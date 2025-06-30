@@ -1,0 +1,62 @@
+# docker-compose.yml (BASE - common configuration)
+services:
+
+  expo:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - fastapi
+    restart: unless-stopped
+
+  fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DATABASE_HOST: postgres  # This overrides 'localhost' set in the .env file to use the docker service name
+    depends_on:
+      migrations_fastapi:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    volumes:
+      - user_uploads:/app/data/uploads
+      - logs:/app/logs
+
+  migrations_fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.migrations
+    restart: on-failure:3
+    env_file: ./backend/.env
+    environment:
+      DATABASE_HOST: postgres  # This overrides 'localhost' set in the .env file to use the docker service name
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mkdocs:  # This serves the documentation site for development by default
+    image: squidfunk/mkdocs-material:9
+    restart: unless-stopped
+    volumes:
+      - ./docs:/docs
+
+  postgres:
+    image: postgres:17
+    restart: always
+    env_file: ./backend/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]  # Check if the database is ready to accept connections
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  logs:
+  postgres_data:
+  user_uploads:

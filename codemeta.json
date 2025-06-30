@@ -1,0 +1,51 @@
+{
+  "@context": "http://schema.org",
+  "@type": "SoftwareSourceCode",
+  "applicationCategory": "Web App",
+  "author": [
+    {
+      "@type": "Person",
+      "identifier": "https://orcid.org/0009-0006-6953-909X",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      },
+      "email": "s.n.van.lierde@cml.leidenuniv.nl",
+      "familyName": "van Lierde",
+      "givenName": "Simon"
+    },
+    {
+      "@type": "Person",
+      "identifier": "https://orcid.org/0000-0002-8287-2413",
+      "affiliation": {
+        "type": "Organization",
+        "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      },
+      "email": "f.donati@cml.leidenuniv.nl",
+      "familyName": "Donati",
+      "givenName": "Franco"
+    }
+  ],
+  "codeRepository": "https://github.com/CMLPlatform/relab",
+  "dateCreated": "2025-06-06",
+  "dateModified": "2025-06-30",
+  "datePublished": "2025-06-30",
+  "description": "Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments.",
+  "identifier": "https://github.com/CMLPlatform/relab",
+  "keywords": [
+    "circular economy",
+    "computer vision",
+    "data collection",
+    "industrial ecology",
+    "life cycle assessment",
+    "remanufacturing"
+  ],
+  "license": "https://spdx.org/licenses/AGPL-3.0-or-later",
+  "name": "CML Reverse Engineering Lab",
+  "programmingLanguage": [
+    "Python 3.13",
+    "JavaScript"
+  ],
+  "softwareRequirements": "Docker",
+  "version": "0.1.0"
+}

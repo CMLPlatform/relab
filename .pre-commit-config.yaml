@@ -1,0 +1,66 @@
+repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.4.1
+    hooks:
+      - id: commitizen
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.22
+    hooks:
+      - id: mdformat  # Format Markdown files.
+        additional_dependencies:
+          - mdformat-gfm  # Support GitHub Flavored Markdown.
+          - mdformat-footnote
+          - mdformat-frontmatter
+          - mdformat-ruff  # Support Python code blocks linted with Ruff.
+          - mdformat-tables  # Support GitHub style tables.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-ast  # Check if Python code is syntactically valid.
+      - id: check-added-large-files
+      - id: check-case-conflict  # Check for files with names that differ only in case.
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer  # Ensure files end with a newline.
+      - id: mixed-line-ending
+      - id: no-commit-to-branch  # Prevent commits to main and master branches.
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext", "md"]  # Preserve Markdown hard line breaks.
+  - repo: https://github.com/RobertCraigie/pyright-python  # Lint backend code with Pyright.
+    rev: v1.1.396
+    hooks:
+      - id: pyright
+        files: ^backend/
+        entry: pyright --project backend
+  - repo: https://github.com/astral-sh/ruff-pre-commit  # Lint and format backend code with Ruff.
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        files: ^backend/
+        args: ["--fix", "--config", "backend/pyproject.toml", "--ignore", "FIX002"]  # Allow TODO comments in commits.
+      - id: ruff-format
+        files: ^backend/
+        args: ["--config", "backend/pyproject.toml"]
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.6.6
+    hooks:
+      - id: uv-lock  # Update the uv lockfile for the backend.
+        files: '^backend/(uv\.lock|pyproject\.toml|uv\.toml)$'
+        entry: uv lock --project backend
+  - repo: local
+    hooks:
+      - id: alembic-autogen-check
+        name: check alembic migrations
+        entry: uv run --python backend/.venv/bin/python alembic-autogen-check  # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        args: ["--config", "backend/alembic.ini"]

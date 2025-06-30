@@ -1,0 +1,313 @@
+[project]
+  ## Project metadata
+  authors = [
+    { name = "Franco Donati", email = "f.donati@cml.leidenuniv.nl" },
+    { name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" },
+  ]
+  classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+  ]
+  description = "Data collection app for the reverse engineering lab project at CML."
+  keywords = ["automated-lca", "circular-economy", "computer-vision"]
+  license = "AGPL-3.0-or-later"
+  maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
+  name = "cml-relab-backend"
+  readme = "README.md"
+
+  ## Dependencies and version constraints
+  dependencies = [ # Core dependencies. These can be slimmed down by refactoring of the codebase for faster builds
+    "aiosmtplib>=4.0.1",
+    "asyncache>=0.3.1",
+    "asyncpg>=0.30.0",
+    "cachetools>=5.5.2",
+    "email-validator>=2.2.0",
+    "fastapi-filter>=2.0.1",
+    "fastapi-pagination>=0.13.2",
+    "fastapi-storages >=0.3.0",
+    "fastapi-users-db-sqlmodel",
+    "fastapi-users[oauth,sqlalchemy]>=14.0.1",
+    "fastapi[standard] >=0.115.14",
+    "markdown>=3.8.2",
+    "pillow >=11.2.1",
+    "psycopg[binary] >=3.2.9",
+    "pydantic-extra-types >=2.10.5",
+    "pydantic-settings >=2.10.1",
+    "python-dotenv >=1.1.1",
+    "python-slugify>=8.0.4",
+    "sqlalchemy >=2.0.41",
+    "sqlmodel >=0.0.24",
+  ]
+  requires-python = ">= 3.13"
+  # TODO: Use dynamic versioning from app/version.py with python-semantic-release when implementing uv build backend
+  version = "0.1.0"
+
+  [project.urls]
+    Homepage   = "https://github.com/CMLPlatform/relab"
+    Issues     = "https://github.com/CMLPlatform/relab/issues"
+    Repository = "https://github.com/CMLPlatform/relab.git"
+
+### Dependency groups
+[dependency-groups]
+  dev = [ # Development dependencies. See also https://docs.astral.sh/uv/concepts/dependencies/#development-dependencies
+    "alembic-autogen-check >=1.1.1",
+    "commitizen>=4.8.3",
+    "markdown>=3.8.2",
+    "mdformat-footnote >=0.1.1",
+    "mdformat-frontmatter >=2.0.8",
+    "mdformat-gfm >=0.4.1",
+    "mdformat-ruff >=0.1.3",
+    "mdformat-tables >=1.0.0",
+    "pre-commit >=4.1.0",
+    "pyright>=1.1.402",
+    "python-semantic-release>=10.1.0",
+    "ruff >=0.12.1",
+  ]
+
+  api = [ # API dependencies
+    "coloredlogs>=15.0.1",
+    "google-api-python-client>=2.174.0",
+    "google-auth>=2.40.3",
+    "itsdangerous>=2.2.0",
+    "markupsafe >=3.0.2",
+    "sqladmin >=0.20.1",
+  ]
+
+  migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0"]
+
+  tests = [ # Testing dependencies
+    "factory-boy>=3.3.3",
+    "pytest >=8.4.1",
+    "pytest-alembic>=0.12.1",
+    "pytest-asyncio >=1.0.0",
+    "pytest-cov >=6.2.1",
+  ]
+
+### Tool configuration
+# TODO: Integrate semantic-release and commitizen. See also: https://totaldebug.uk/posts/automated-release-with-semantic-release-and-commitizen/
+[tool.commitizen]
+  version_files = ["pyproject.toml:^version"]
+
+[tool.paracelsus]
+  base = "app.api.common.models.base:CustomBase"
+  column_sort = "preserve-order"
+  imports = [
+    "app.api.auth.models",
+    "app.api.background_data.models",
+    "app.api.common.models.associations",
+    "app.api.data_collection.models",
+    "app.api.file_storage.models.models",
+    "app.api.plugins.rpi_cam.models",
+  ]
+
+[tool.pyright]
+  exclude          = ["**/__pycache__", "**/alembic"]
+  include          = ["app"]
+  typeCheckingMode = "standard"
+  venv             = ".venv"
+  venvPath         = "."
+
+[tool.pytest.ini_options]
+  asyncio_mode = "auto"
+
+[tool.ruff]
+  fix            = true
+  line-length    = 120
+  target-version = "py313"
+
+  # Exclude automatically generated files from linting
+  extend-exclude = ["*/.venv/*", "*/.vscode/*", "*/alembic/versions/*"]
+
+  [tool.ruff.format]
+    docstring-code-format = true
+
+  [tool.ruff.lint]
+    extend-select = [
+      "A",      # flake8-builtins (checks for conflicts with Python builtins)
+      "ANN",    # flake8-annotations (checks for missing type annotations)
+      "ARG",    # flake8-unused-arguments
+      "ASYNC",  # flake8-async
+      "B",      # flake8-bugbear (fixes typical bugs)
+      "BLE",    # flake8-blind-except
+      "C4",     # flake8-comprehensions (fixes iterable comprehensions)
+      "C90",    # mccabe
+      "D",      # pydocstyle
+      "DJ",     # flake8-django
+      "DTZ",    # flake8-datetimez (checks for naive datetime uses without timezone)
+      "E",      # pycodestyle errors
+      "EM",     # flake8-errmsgs (checks for error messages)
+      "FAST",   # fastapi
+      "FBT",    # flake8-boolean-trap
+      "FIX",    # flake8-fixme
+      "FLY",    # flynt (replaces `str.join` calls with f-strings)
+      "FURB",   # refurb (refurbishes code)
+      "G",      # flake8-logging-format
+      "I",      # isort
+      "ICN",    # flake8-import-conventions
+      "INP",    # flake8-no-pep420 (checks for implicit namespace packages)
+      "ISC",    # flake8-implicit-str-concat (fixes implicit string concatenation)
+      "LOG",    # flake8-logging
+      "N",      # pep8-naming (checks for naming conventions)
+      "NPY",    # NumPy-specific rules
+      "PD",     # pandas-vet (checks for Pandas issues)
+      "PERF",   # Perflint (checks for performance issues)
+      "PGH",    # pygrep-hooks (checks for common Python issues)
+      "PIE",    # flake8-pie (checks for miscellaneous issues)
+      "PL",     # Pylint (checks for pylint errors)
+      "PT",     # flake8-pytest-style (checks for pytest fixtures)
+      "PTH",    # lake8-use-pathlib (ensures pathlib is used instead of os.path)
+      "Q004",   # flake8-quotes: unnecessary-escaped-quote (other 'Q' rules can conflict with formatter)
+      "RET",    # flake8-return (checks return values)
+      "RUF",    # Ruff-specific rules
+      "S",      # flake8-bandit (security)
+      "SIM",    # flake8-simplify
+      "T10",    # flake8-debugger (checks for debugger calls)
+      "T20",    # flake8-print (checks for print calls)
+      "TCH",    # flake8-type-checking
+      "TID252", # flake8-tidy-imports: relative-imports (replaces relative imports with absolute imports)
+      "TRY",    # tryceratops (checks for common issues with try-except blocks)
+      "UP",     # pyupgrade (upgrades Python syntax)
+      "W",      # pycodestyle warnings
+    ]
+
+    fixable = [
+      "ASYNC",  # flake8-async
+      "B",      # flake8-bugbear (fixes typical bugs)
+      "C4",     # flake8-comprehensions (fixes iterable comprehensions)
+      "D",      # pydocstyle
+      "E",      # pycodestyle errors
+      "EM",     # flake8-errmsgs (checks for error messages)
+      "FAST",   # fastapi
+      "FLY",    # flynt (replaces `str.join` calls with f-strings)
+      "FURB",   # refurb (refurbishes code)
+      "G",      # flake8-logging-format
+      "I",      # isort
+      "ICN",    # flake8-import-conventions
+      "ISC",    # flake8-implicit-str-concat (fixes implicit string concatenation)
+      "LOG",    # flake8-logging
+      "N",      # pep8-naming (checks for naming conventions)
+      "NPY",    # NumPy-specific rules
+      "PD",     # pandas-vet (checks for Pandas issues)
+      "PERF",   # Perflint (checks for performance issues)
+      "PGH",    # pygrep-hooks (checks for common Python issues)
+      "PIE",    # flake8-pie (checks for miscellaneous issues)
+      "PL",     # Pylint (checks for pylint errors)
+      "PT",     # flake8-pytest-style (checks for pytest fixtures)
+      "PTH",    # lake8-use-pathlib (ensures pathlib is used instead of os.path)
+      "Q004",   # flake8-quotes: unnecessary-escaped-quote (other 'Q' rules can conflict with formatter)
+      "RET",    # flake8-return (checks return values)
+      "RUF",    # Ruff-specific rules
+      "S",      # flake8-bandit (security)
+      "SIM",    # flake8-simplify
+      "TCH",    # flake8-type-checking
+      "TID252", # flake8-tidy-imports: relative-imports (replaces relative imports with absolute imports)
+      "TRY",    # tryceratops (checks for common issues with try-except blocks)
+      "UP",     # pyupgrade (upgrades Python syntax)
+      "W",      # pycodestyle warnings
+    ]
+
+    # These rules are ignored to prevent conflicts with formatter or because they are overly strict
+    ignore = [
+      "ANN204", # missing-return-type-special-method
+      "D102",   # undocumented-public-method
+      "D104",   # undocumented-public-package
+      "D105",   # undocumented-magic-method
+      "D107",   # undocumented-public-init
+      "D206",   # indent-with-spaces
+      "D300",   # triple-single-quotes
+      "E111",   # indentation-with-invalid-multiple
+      "E114",   # indentation-with-invalid-multiple-comment
+      "E117",   # over-indented
+      "ISC001", # single-line-implicit-string-concatenation
+      "ISC002", # multi-line-implicit-string-concatenation
+      "RET504", # unnecessary-assign
+      "W191",   # tab-indentation
+    ]
+
+    [tool.ruff.lint.flake8-bugbear]
+      # Allow default arguments for FastAPI Depends and Query
+      extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
+
+    [tool.ruff.lint.per-file-ignores]
+      # Ignore security issues over use of `assert` in test files
+      "test*.py" = ["S101"]
+
+    [tool.ruff.lint.pydocstyle]
+      convention = "google"
+
+    [tool.ruff.lint.pylint]
+      allow-magic-value-types = ["int"]
+      max-args                = 10
+
+[tool.semantic_release]
+  allow_zero_version      = true
+  assets                  = []
+  build_command_env       = []
+  commit_message          = "{version}\n\nAutomatically generated by python-semantic-release"
+  commit_parser           = "angular"
+  logging_use_named_masks = false
+  major_on_zero           = true
+  no_git_verify           = false
+  tag_format              = "v{version}"
+  version_variables       = ["app/version.py:__version__"]
+
+  [tool.semantic_release.branches.main]
+    match            = "(main|master)"
+    prerelease       = false
+    prerelease_token = "rc"
+
+  [tool.semantic_release.changelog]
+    exclude_commit_patterns = []
+    insertion_flag          = "<!-- version list -->"
+    mode                    = "init"
+
+    [tool.semantic_release.changelog.default_templates]
+      changelog_file       = "CHANGELOG.md"
+      mask_initial_release = false
+      output_format        = "md"
+
+    [tool.semantic_release.changelog.environment]
+      autoescape            = false
+      block_end_string      = "%}"
+      block_start_string    = "{%"
+      comment_end_string    = "#}"
+      comment_start_string  = "{#"
+      extensions            = []
+      keep_trailing_newline = false
+      lstrip_blocks         = false
+      newline_sequence      = "\n"
+      trim_blocks           = false
+      variable_end_string   = "}}"
+      variable_start_string = "{{"
+
+  [tool.semantic_release.commit_author]
+    default = "semantic-release <semantic-release>"
+    env     = "GIT_COMMIT_AUTHOR"
+
+  [tool.semantic_release.commit_parser_options]
+    allowed_tags       = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "style", "test"]
+    default_bump_level = 0
+    minor_tags         = ["feat"]
+    patch_tags         = ["fix", "perf"]
+
+  [tool.semantic_release.remote]
+    ignore_token_for_push = false
+    insecure              = false
+    name                  = "origin"
+    type                  = "github"
+
+  [tool.semantic_release.publish]
+    dist_glob_patterns    = ["dist/*"]
+    upload_to_vcs_release = true
+
+[tool.uv]
+  default-groups = ["api", "dev", "migrations", "tests"]
+
+  [tool.uv.sources]
+    # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub
+    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "main" }
