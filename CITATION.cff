@@ -1,0 +1,26 @@
+# More info: https://github.com/citation-file-format/citation-file-format/blob/main/schema-guide.md
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "van Lierde"
+    given-names: "Simon"
+    orcid: "https://orcid.org/0009-0006-6953-909X"
+  - family-names: "Donati"
+    given-names: "Franco"
+    orcid: "https://orcid.org/0000-0002-8287-2413"
+title: "Reverse Engineering Lab - Data Collection Platform"
+version: 0.1.0
+identifiers:
+  - type: doi
+    value: TODO
+date-released: 2025-06-30
+url: https://cml-relab.org
+repository-code: "https://github.com/CMLPlatform/relab"
+license: "AGPL-3.0-or-later"
+keywords:
+  - "circular economy"
+  - "computer vision"
+  - "data collection"
+  - "industrial ecology"
+  - "life cycle assessment"
+  - "machine learning"

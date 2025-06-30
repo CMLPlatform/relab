@@ -1,0 +1,25 @@
+# docker-compose.prod.yml (PRODUCTION - must be explicitly specified)
+services:
+
+  cloudflared:  # Cloudflared tunnel to cml-relab.org
+    image: cloudflare/cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    env_file: ./.env
+    depends_on:
+      - expo
+      - fastapi
+      - mkdocs
+
+    volumes:
+      - cloudflared_logs:/var/log/cloudflared
+
+  expo:
+    command: ["npx", "expo", "start", "--port", "3000", "--web", "--no-dev"]  # Override for production
+
+  fastapi:
+    environment:
+      FRONTEND_URL: https://cml-relab.org  # The public URL of the frontend, used for email generation by the FastAPI backend
+
+volumes:
+  cloudflared_logs:

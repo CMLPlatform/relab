@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Reverse Engineering Lab API</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Login</h1>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        {% if next %}
+          <input type="hidden" id="next" name="next" value="{{ next }}" />
+        {% endif %}
+        <button type="submit" class="primary-btn" style="width: 100%;">Login</button>
+        <a href="{{ url_for('index') }}" class="secondary-btn back-link">API Homepage</a>
+      </form>
+    </div>
+
+    <script>
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault()
+        const errorDiv = document.getElementById('error')
+        const nextInput = document.getElementById('next')
+        const nextValue = nextInput ? nextInput.value : null
+      
+        try {
+          const response = await fetch('{{ url_for("auth:cookie.login") }}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              username: document.getElementById('email').value,
+              password: document.getElementById('password').value,
+              ...(nextValue ? { next: nextValue } : {})
+            }),
+            credentials: 'include'
+          })
+      
+          if (response.ok) {
+            window.location.href = nextValue || '{{ url_for("index") }}'
+          } else {
+            const data = await response.json()
+            errorDiv.textContent = data.detail || 'Login failed'
+            errorDiv.style.display = 'block'
+          }
+        } catch (error) {
+          errorDiv.textContent = error.message || 'An unexpected error occurred'
+          errorDiv.style.display = 'block'
+        }
+      })
+    </script>
+  </body>
+</html>

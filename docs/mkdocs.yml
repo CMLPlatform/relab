@@ -1,0 +1,81 @@
+site_name: Reverse Engineering Lab
+site_description: Documentation of the CML Reverse Engineering Lab data platform
+site_url: https://docs.cml-relab.org
+docs_dir: docs
+site_dir: site
+
+# Repository
+repo_name: CMLPlatform/relab
+repo_url: https://github.com/CMLPlatform/relab
+
+# Plugins
+plugins:
+  - search
+
+# Theme configuration
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  features:
+    - content.code.annotate
+    - navigation.expand
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.suggest
+    - toc.follow
+
+# Extensions
+markdown_extensions:
+  - admonition
+  # Add Mermaid support
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - tables
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - User Guides:
+      - Getting Started: user-guides/getting-started.md
+      - Data Collection: user-guides/data-collection.md
+      - Raspberry Pi Camera Setup: user-guides/rpi-cam.md
+      - API Documentation: user-guides/api.md
+  - Technical Architecture:
+      - System Design: architecture/system-design.md
+      - Database Schema: architecture/datamodel.md
+      - API Structure: architecture/api.md
+      - Authentication: architecture/auth.md
+      - RPI Camera Plugin: architecture/rpi-cam.md
+  - Dataset:
+      - Overview: dataset/index.md

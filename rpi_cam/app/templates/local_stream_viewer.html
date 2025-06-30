@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Local HLS Stream Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+      body {
+        margin: 20px;
+        display: grid;
+        place-items: center;
+        font-family: system-ui;
+      }
+      .container {
+        width: 1280px;
+        background: #f5f5f5;
+        border-radius: 8px;
+      }
+      video {
+        width: 100%;
+      }
+      .controls {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+      }
+      #status {
+        flex: 1;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <video id="video" controls muted></video>
+      <div class="controls">
+        <button onclick="startStream()">Start Stream</button>
+        <button onclick="stopStream()">Stop Stream</button>
+        <div id="status"></div>
+      </div>
+    </div>
+    <script>
+      const video = document.getElementById('video')
+      const statusDiv = document.getElementById('status')
+
+      let hlsPlayer = null
+
+      function initPlayer() {
+        if (!Hls.isSupported()) return
+        hlsPlayer?.destroy()
+        hlsPlayer = new Hls()
+        hlsPlayer.loadSource('/stream/hls', { method: 'GET', credentials: 'include' })
+        hlsPlayer.attachMedia(video)
+        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => video.play())
+      }
+
+      async function checkStreamStatus() {
+        try {
+          const response = await fetch('/camera/status', { method: 'GET', credentials: 'include' })
+          const status = await response.json()
+          return status.stream.mode === 'local'
+        } catch {
+          return false
+        }
+      }
+
+      async function startStream() {
+        if (await checkStreamStatus()) {
+          statusDiv.innerHTML = 'Stream is already active'
+          return
+        }
+        try {
+          const response = await fetch('/stream/start?mode=local', { method: 'POST', credentials: 'include' })
+          if (!response.ok) throw new Error()
+          statusDiv.innerHTML = 'Starting stream...'
+          await new Promise((resolve) => setTimeout(resolve, 5000))
+          if (await checkStreamStatus()) {
+            statusDiv.innerHTML = 'Stream active'
+            initPlayer()
+          }
+        } catch {
+          statusDiv.innerHTML = 'Failed to start stream'
+        }
+      }
+
+      async function stopStream() {
+        if (!(await checkStreamStatus())) {
+          statusDiv.innerHTML = 'No active stream to stop'
+          return
+        }
+        try {
+          await fetch('/stream/stop?mode=local', { method: 'DELETE', credentials: 'include' })
+          hlsPlayer?.destroy()
+          hlsPlayer = null
+          video.pause()
+          video.src = ''
+          statusDiv.innerHTML = 'Stream stopped'
+        } catch {
+          statusDiv.innerHTML = 'Failed to stop stream'
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        if (await checkStreamStatus()) {
+          statusDiv.innerHTML = 'Stream active'
+          initPlayer()
+        } else {
+          statusDiv.innerHTML = 'No active stream'
+        }
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+# docker-compose.override.yml (DEVELOPMENT - automatically used with docker-compose up)
+services:
+
+  # Expose individual services for development/testing
+  expo:
+    ports:
+      - "8010:3000"
+
+  fastapi:
+    environment:
+      FRONTEND_URL: http://localhost:8010
+    ports:
+      - "8011:8000"  # Direct access for API testing
+
+  mkdocs:
+    ports:
+      - "8012:8000"  # Direct access for docs development
+
+  postgres:
+    ports:
+      - "5433:5432"

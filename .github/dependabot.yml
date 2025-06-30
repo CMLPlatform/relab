@@ -1,0 +1,22 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0 # Disable version updates until we have automated testing. Only security checks will occur for now.
+    # TODO: change dependabot PR when we have automated testing
+    commit-message:
+      prefix: "security(backend)"
+      include: "scope"
+  - package-ecosystem: "uv"
+    directory: "/rpi_cam"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "security(rpi_cam)"
+      include: "scope"

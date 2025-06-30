@@ -1,0 +1,11 @@
+### Gitignore for the RaspBerry Pi API
+
+# HLS stream data
+data/hls/
+
+# Captured images
+data/images/
+
+# Ignore all .env files except .env.example
+.env.*
+!.env.example
