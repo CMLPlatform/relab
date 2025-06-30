@@ -24,4 +24,4 @@ sequenceDiagram
     end
 ```
 
-For an overview of the relevant API endpoints, visit the [interactive documentation](https://cml-relab.org/docs#tag/auth).
+For an overview of the relevant API endpoints, visit the [interactive documentation](https://api2.cml-relab.org/docs#tag/auth).

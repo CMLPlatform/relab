@@ -161,7 +161,7 @@ All contributions must pass automated checks and receive approval before merging
 
 ## Project Structure
 
-See the [online documentation]\](<https://cml-relab.org/docs/architecture/>) for an overview of the project's architecture and organization.
+See the [online documentation]\](<https://docs.cml-relab.org/architecture/>) for an overview of the project's architecture and organization.
 
 ## License
 
