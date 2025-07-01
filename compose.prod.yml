@@ -15,7 +15,7 @@ services:
       - cloudflared_logs:/var/log/cloudflared
 
   expo:
-    command: ["npx", "expo", "start", "--port", "3000", "--web", "--no-dev"]  # Override for production
+    command: sh -c "npx expo export -p web -c && npx serve dist -l 3000"  # Override for production
 
   fastapi:
     environment:
