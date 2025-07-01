@@ -163,7 +163,7 @@ export default function CreateProductBasicInfo() {
                 disabled={!isFormValid()}
                 style={{ flex: 1 }}
                 icon="arrow-right"
-                contentStyle={{ flexDirection: 'row-reverse' }}
+                contentStyle={{ flexDirection: 'row', justifyContent: 'center' }}
               >
                 Next: Materials
               </Button>
