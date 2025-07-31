@@ -12,7 +12,7 @@ title: "Reverse Engineering Lab - Data Collection Platform"
 version: 0.1.0
 identifiers:
   - type: doi
-    value: TODO
+    value: 10.5281/zenodo.16637742
 date-released: 2025-06-30
 url: https://cml-relab.org
 repository-code: "https://github.com/CMLPlatform/relab"
