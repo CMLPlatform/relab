@@ -3,6 +3,7 @@ import expoConfig from 'eslint-config-expo/flat.js';
 import eslintPluginJest from 'eslint-plugin-jest';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import eslintPluginTestingLibrary from 'eslint-plugin-testing-library';
+
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
@@ -11,13 +12,21 @@ export default defineConfig([
       '**/.expo/**',
       '**/node_modules/**',
       '**/dist/**',
-      '**/types/api.ts', // Exclude generated API types
+      'src/lib/types/api/**', // Exclude generated API types
     ],
   },
 
   // Base configs
-  ...expoConfig,
+  expoConfig,
   eslintPluginPrettierRecommended,
+
+  // Import organization
+  {
+    rules: {
+      'import/order': 'error',
+      'import/no-duplicates': 'error',
+    },
+  },
 
   // Test files configuration
   {

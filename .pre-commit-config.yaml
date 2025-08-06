@@ -69,3 +69,14 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
         args: ["--config", "backend/alembic.ini"]
+
+  ### Frontend hooks
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: lint frontend code
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        # Match frontend JavaScript and TypeScript files for linting.
+        files: ^frontend/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
+        pass_filenames: false
