@@ -44,9 +44,24 @@ Temporary Items
 *.code-workspace
 .history/
 
+## Python
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Ruff linter
+.ruff_cache/
+
 ### Manual additions
 # Ignore all local .env files
-.env
 .env.local
 .env.*.local
 !.env.*
