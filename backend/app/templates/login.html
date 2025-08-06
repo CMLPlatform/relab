@@ -35,7 +35,7 @@
         const errorDiv = document.getElementById('error')
         const nextInput = document.getElementById('next')
         const nextValue = nextInput ? nextInput.value : null
-      
+
         try {
           const response = await fetch('{{ url_for("auth:cookie.login") }}', {
             method: 'POST',
@@ -49,7 +49,7 @@
             }),
             credentials: 'include'
           })
-      
+
           if (response.ok) {
             window.location.href = nextValue || '{{ url_for("index") }}'
           } else {
