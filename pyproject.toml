@@ -1,0 +1,13 @@
+[project]
+  authors = [
+    { name = "Franco Donati", email = "f.donati@cml.leidenuniv.nl" },
+    { name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" },
+  ]
+  description = "Reverse Engineering Lab monorepo"
+  license = { text = "AGPL-3.0-or-later" }
+  name = "relab"
+  requires-python = ">=3.13"
+  version = "0.1.0"
+
+[dependency-groups]
+  dev = ["pre-commit>=4.2.0"]
