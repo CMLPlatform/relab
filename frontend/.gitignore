@@ -1,5 +1,6 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+### Auto-generated
 # dependencies
 node_modules/
 
@@ -40,3 +41,8 @@ yarn-error.*
 
 #
 !lib/
+
+### Manual additions
+# VS Code settings
+!.vscode/settings.json
+!.vscode/extensions.json
