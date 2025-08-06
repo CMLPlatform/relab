@@ -58,7 +58,7 @@ venv/
 # Ruff linter
 .ruff_cache/
 
-### Manual
+### Manual additions
 # Debugging
 playground.ipynb
 
@@ -67,3 +67,7 @@ data/*
 
 # Logs
 logs/*
+
+# VS Code settings
+!.vscode/settings.json
+!.vscode/extensions.json

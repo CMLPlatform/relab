@@ -40,7 +40,7 @@ Temporary Items
 .nfs*
 
 ## VS Code
-.vscode/
+.vscode/*
 *.code-workspace
 .history/
 
