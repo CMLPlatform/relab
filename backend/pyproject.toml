@@ -94,8 +94,8 @@
   ]
 
 [tool.pyright]
-  exclude          = ["**/__pycache__", "**/alembic"]
-  include          = ["app"]
+  # NOTE: Pyright doesn't work well by only setting exclude, so we explicitly include the directories we want to check
+  include          = ["app", "scripts", "tests"]
   typeCheckingMode = "standard"
   venv             = ".venv"
   venvPath         = "."
@@ -109,7 +109,7 @@
   target-version = "py313"
 
   # Exclude automatically generated files from linting
-  extend-exclude = ["*/.venv/*", "*/.vscode/*", "*/alembic/versions/*"]
+  extend-exclude = ["./alembic/versions"]
 
   [tool.ruff.format]
     docstring-code-format = true

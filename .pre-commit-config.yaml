@@ -4,7 +4,6 @@
 # Alternatively, move to lefthook for extensible git hook management.
 
 repos:
-
   ### Global hooks
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.28.0
@@ -13,54 +12,55 @@ repos:
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.22
     hooks:
-      - id: mdformat  # Format Markdown files.
+      - id: mdformat # Format Markdown files.
         additional_dependencies:
-          - mdformat-gfm  # Support GitHub Flavored Markdown.
+          - mdformat-gfm # Support GitHub Flavored Markdown.
           - mdformat-footnote
           - mdformat-frontmatter
-          - mdformat-ruff  # Support Python code blocks linted with Ruff.
-          - mdformat-tables  # Support GitHub style tables.
+          - mdformat-ruff # Support Python code blocks linted with Ruff.
+          - mdformat-tables # Support GitHub style tables.
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-added-large-files
-      - id: check-case-conflict  # Check for files with names that differ only in case.
+      - id: check-case-conflict # Check for files with names that differ only in case.
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
       - id: check-json
       - id: check-toml
       - id: check-yaml
       - id: detect-private-key
-      - id: end-of-file-fixer  # Ensure files end with a newline.
+      - id: end-of-file-fixer # Ensure files end with a newline.
       - id: mixed-line-ending
-      - id: no-commit-to-branch  # Prevent commits to main and master branches.
+      - id: no-commit-to-branch # Prevent commits to main and master branches.
       - id: trailing-whitespace
-        args: ["--markdown-linebreak-ext", "md"]  # Preserve Markdown hard line breaks.
+        args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
 
   ### Backend hooks
-  - repo: https://github.com/RobertCraigie/pyright-python  # Lint backend code with Pyright.
+  - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
     rev: v1.1.403
     hooks:
       - id: pyright
         files: ^backend/(app|scripts|tests)/
         entry: pyright --project backend
-  - repo: https://github.com/astral-sh/ruff-pre-commit  # Lint and format backend code with Ruff.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.7
     hooks:
-      - id: ruff-check
+      - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
-        args: ["--fix", "--config", "backend/pyproject.toml", "--ignore", "FIX002"]  # Allow TODO comments in commits.
-      - id: ruff-format
+        args: # Allow TODO comments in commits.
+          ["--fix", "--config", "backend/pyproject.toml", "--ignore", "FIX002"]
+      - id: ruff-format # Format code
         files: ^backend/(app|scripts|tests)/
         args: ["--config", "backend/pyproject.toml"]
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.8.4
     hooks:
-      - id: uv-lock  # Update the uv lockfile for the backend.
+      - id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
         entry: uv lock --project backend
   - repo: local
-    hooks:  # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
+    hooks: # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
       - id: backend-alembic-autogen-check
         name: check alembic migrations
         entry: bash -c 'cd backend && uv run alembic-autogen-check'
@@ -68,7 +68,6 @@ repos:
         files: ^(backend/(app|alembic)/|alembic\.ini$)
         pass_filenames: false
         stages: [pre-commit]
-        args: ["--config", "backend/alembic.ini"]
 
   ### Frontend hooks
   - repo: local
