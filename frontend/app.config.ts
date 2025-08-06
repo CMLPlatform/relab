@@ -3,12 +3,12 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: 'cml-relab-frontend',
-    slug: 'cml-relab-frontend',
+    name: 'relab-frontend',
+    slug: 'relab-frontend',
     version: '0.1.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
-    scheme: 'cml-relab-frontend',
+    scheme: 'relab-frontend',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {

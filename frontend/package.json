@@ -1,7 +1,12 @@
 {
-  "name": "cml-relab-frontend",
+  "name": "relab-frontend",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-or-later",
+  "contributors": [
+    "Simon van Lierde <s.n.van.lierde@cml.leidenuniv.nl>",
+    "Franco Donati <f.donati@cml.leidenuniv.nl>"
+  ],
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",

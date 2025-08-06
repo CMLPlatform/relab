@@ -17,7 +17,7 @@
   keywords = ["automated-lca", "circular-economy", "computer-vision"]
   license = "AGPL-3.0-or-later"
   maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
-  name = "cml-relab-backend"
+  name = "relab-backend"
   readme = "README.md"
 
   ## Dependencies and version constraints
