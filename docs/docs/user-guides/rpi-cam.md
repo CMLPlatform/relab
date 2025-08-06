@@ -9,7 +9,9 @@ This section covers **platform-side setup and management** of RPI cameras. For d
 ## Platform Setup
 
 ### Step 1: Register Your Camera
-   <!-- TODO: Describe frontend UI once available -->
+
+<!-- TODO: Describe frontend UI once available -->
+
 Post a request to the `/plugins/rpi-cam/cameras` endpoint with the following data:
 
 - **Camera name**: Descriptive name (e.g., "Assembly Station A Camera")
@@ -26,7 +28,8 @@ See the [API documentation](https://api2.cml-relab.org/docs#/rpi-cam-management/
 Configure the RPI camera plugin with the API key provided during registration. If you are self-hosting the platform, be sure to add the platform URL to the allowed origins of the Raspberry Pi plugin. This allows the platform to communicate with your camera.
 
 ### Step 3: Verify Camera Registration
-   <!-- TODO: Describe frontend UI once available -->
+
+<!-- TODO: Describe frontend UI once available -->
 
 - Use the `/plugins/rpi-cam/cameras/include_status` endpoint to list registered cameras
 - Check that your camera appears with correct details
@@ -34,10 +37,12 @@ Configure the RPI camera plugin with the API key provided during registration. I
 ## Using RPI Cameras
 
 ### During Data Collection
-   <!-- TODO: Describe frontend UI once available -->
+
+<!-- TODO: Describe frontend UI once available -->
 
 ### Camera Management
-   <!-- TODO: Describe frontend UI once available -->
+
+<!-- TODO: Describe frontend UI once available -->
 
 ## Troubleshooting (Platform Side)
 
