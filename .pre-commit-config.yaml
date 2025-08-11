@@ -9,6 +9,7 @@ repos:
     rev: v8.28.0
     hooks:
       - id: gitleaks
+
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.22
     hooks:
@@ -19,6 +20,7 @@ repos:
           - mdformat-frontmatter
           - mdformat-ruff # Support Python code blocks linted with Ruff.
           - mdformat-tables # Support GitHub style tables.
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -36,6 +38,12 @@ repos:
       - id: trailing-whitespace
         args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
 
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.8.3
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
   ### Backend hooks
   - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
     rev: v1.1.403
@@ -43,6 +51,7 @@ repos:
       - id: pyright
         files: ^backend/(app|scripts|tests)/
         entry: pyright --project backend
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.7
     hooks:
@@ -53,12 +62,14 @@ repos:
       - id: ruff-format # Format code
         files: ^backend/(app|scripts|tests)/
         args: ["--config", "backend/pyproject.toml"]
+
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.8.4
     hooks:
       - id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
         entry: uv lock --project backend
+
   - repo: local
     hooks: # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
       - id: backend-alembic-autogen-check

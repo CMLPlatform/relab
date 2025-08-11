@@ -2,4 +2,4 @@
 # TODO: Add instructions on setting up python-semantic-release
 # TODO: Add python-semantic-release job to Github Actions.
 
-__version__ = "0.1.0"
+version = "0.1.0"

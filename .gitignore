@@ -68,3 +68,7 @@ venv/
 
 # Local architecture diagrams
 LOCAL_DIAGRAMS.md
+
+# VS Code settings
+!.vscode/settings.json
+!.vscode/extensions.json

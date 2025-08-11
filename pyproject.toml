@@ -7,7 +7,25 @@
   license = { text = "AGPL-3.0-or-later" }
   name = "relab"
   requires-python = ">=3.13"
+  # NOTE: package versioning across the repo is managed by commitizen
   version = "0.1.0"
 
 [dependency-groups]
-  dev = ["pre-commit>=4.2.0"]
+  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0"]
+
+[tool.commitizen]
+  annotated_tag = true
+  major_version_zero = true
+  name = "cz_conventional_commits"
+  tag_format = "v$version"
+  update_changelog_on_bump = true
+  version_files = [
+    "CITATION.cff",
+    "backend/app/__version__.py",
+    "backend/pyproject.toml",
+    "codemeta.json",
+    "frontend/app.config.ts",
+    "frontend/package.json",
+  ]
+  version_provider = "uv"
+  version_scheme = "semver2"

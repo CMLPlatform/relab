@@ -1,0 +1,15 @@
+{
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.pythonProjects": [
+    {
+      "name": "relab",
+      "path": "./",
+      "pythonPath": "./.venv/bin/python"
+    },
+    {
+      "name": "relab-backend",
+      "path": "./backend",
+      "pythonPath": "./backend/.venv/bin/python"
+    }
+  ]
+}
