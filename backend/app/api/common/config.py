@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
-from app.version import __version__
+from app.__version__ import version
 
 # Set the project base directory and .env file
 BASE_DIR: Path = (Path(__file__).parents[3]).resolve()
@@ -28,7 +28,7 @@ class APISettings(BaseSettings):
     public_docs: OpenAPISettings = OpenAPISettings(
         title="Reverse Engineering Lab - Data Collection API",
         description="Data collection app for the reverse engineering lab project at CML.",
-        version=__version__,
+        version=version,
         license_info={
             "name": "GNU Affero General Public License v3.0",
             "url": "https://www.gnu.org/licenses/agpl-3.0.en.html",
