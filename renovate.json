@@ -1,21 +1,37 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices", ":approveMajorUpdates", ":maintainLockFilesWeekly", "schedule:weekly"],
-
+  "extends": [
+    "config:best-practices",
+    ":approveMajorUpdates",
+    ":maintainLockFilesWeekly",
+    "schedule:weekly"
+  ],
   "packageRules": [
     {
       "groupName": "backend",
-      "matchFiles": ["backend/pyproject.toml", "backend/.python-version", "backend/Dockerfile*"]
+      "matchFileNames": [
+        "backend/pyproject.toml",
+        "backend/.python-version",
+        "backend/Dockerfile*"
+      ]
     },
     {
       "groupName": "frontend",
-      "matchFiles": ["frontend/package.json", "frontend/Dockerfile*"]
+      "matchFileNames": [
+        "frontend/package.json",
+        "frontend/Dockerfile*"
+      ]
     },
     {
       "groupName": "infrastructure",
-      "matchFiles": ["**/compose.*.yml", "**/compose.yml"]
+      "matchFileNames": [
+        "**/compose.*.yml",
+        "**/compose.yml"
+      ]
     }
   ],
-
-  "labels": ["dependencies", "renovate"]
+  "labels": [
+    "dependencies",
+    "renovate"
+  ]
 }
