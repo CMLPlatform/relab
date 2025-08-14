@@ -22,7 +22,7 @@ repos:
           - mdformat-tables # Support GitHub style tables.
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict # Check for files with names that differ only in case.
@@ -53,7 +53,7 @@ repos:
         entry: pyright --project backend
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.7
+    rev: v0.12.8
     hooks:
       - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
@@ -64,7 +64,7 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.4
+    rev: 0.8.10
     hooks:
       - id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
