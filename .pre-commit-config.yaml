@@ -5,6 +5,11 @@
 
 repos:
   ### Global hooks
+  - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+    rev: v0.8.0
+    hooks:
+      - id: pre-commit-update # Autoupdate pre-commit hooks
+
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.28.0
     hooks:
@@ -31,6 +36,7 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-yaml
+        exclude: ^docs/mkdocs.yml$ # Exclude mkdocs.yml because it uses an obscure tag to allow for mermaid formatting
       - id: detect-private-key
       - id: end-of-file-fixer # Ensure files end with a newline.
       - id: mixed-line-ending
@@ -44,7 +50,7 @@ repos:
       - id: commitizen
         stages: [commit-msg]
 
-  ### Backend hooks
+    ### Backend hooks
   - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
     rev: v1.1.403
     hooks:
@@ -57,8 +63,13 @@ repos:
     hooks:
       - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
-        args: # Allow TODO comments in commits.
-          ["--fix", "--config", "backend/pyproject.toml", "--ignore", "FIX002"]
+        args: [
+            "--fix",
+            "--config",
+            "backend/pyproject.toml",
+            "--ignore",
+            "FIX002",
+          ] # Allow TODO comments in commits.
       - id: ruff-format # Format code
         files: ^backend/(app|scripts|tests)/
         args: ["--config", "backend/pyproject.toml"]
@@ -80,7 +91,7 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-  ### Frontend hooks
+    ### Frontend hooks
   - repo: local
     hooks:
       - id: frontend-lint
