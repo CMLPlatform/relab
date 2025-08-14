@@ -49,7 +49,7 @@ def create_test_database() -> None:
 def get_alembic_config() -> Config:
     """Get Alembic config for tests."""
     alembic_cfg = Config()
-    project_root: Path = Path(__file__).parent.parent
+    project_root: Path = Path(__file__).parents[1]
     alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_SQLALCHEMY_DATABASE_URL)
     return alembic_cfg

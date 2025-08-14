@@ -9,7 +9,7 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel  # Include the SQLModel metadata
 
 # Load settings from the FastAPI app config
-project_root = Path(__file__).resolve().parent.parent
+project_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(project_root))
 
 from app.core.config import settings  # noqa: E402, I001 # Allow the settings to be imported after the project root is added to the path
