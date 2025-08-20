@@ -40,6 +40,7 @@
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
     "python-slugify>=8.0.4",
+    "relab-rpi-cam-models>=0.1.1",
     "sqlalchemy >=2.0.41",
     "sqlmodel >=0.0.24",
   ]
