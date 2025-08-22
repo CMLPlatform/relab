@@ -2,7 +2,7 @@
 services:
 
   cloudflared:  # Cloudflared tunnel to cml-relab.org
-    image: cloudflare/cloudflared
+    image: cloudflare/cloudflared@sha256:b77d84e8704db38db22c22661cf7e56468c526e3a6a5fe9c8b7c151452fa1472
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     env_file: ./.env
