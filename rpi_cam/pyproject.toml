@@ -25,7 +25,7 @@
     "typing-inspect>=0.9.0",      # Required by fastapi-utils but not listed in its dependencies
   ]
 
-  requires-python = "~=3.11.2"
+  requires-python = "~=3.13.7"
   version         = "0.1.0"
 
   [project.urls] # TODO: Update these URLs when moving to new repo
