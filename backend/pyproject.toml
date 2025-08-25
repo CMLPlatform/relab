@@ -21,7 +21,7 @@
   readme = "README.md"
 
   ## Dependencies and version constraints
-  dependencies = [ # Core dependencies. These can be slimmed down by refactoring of the codebase for faster builds
+  dependencies = [ # Core dependencies.
     "aiosmtplib>=4.0.1",
     "asyncache>=0.3.1",
     "asyncpg>=0.30.0",
@@ -62,7 +62,7 @@
     "ruff >=0.12.1",
   ]
 
-  api = [ # API dependencies
+  api = [
     "coloredlogs>=15.0.1",
     "google-api-python-client>=2.174.0",
     "google-auth>=2.40.3",
@@ -73,7 +73,7 @@
 
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0"]
 
-  tests = [ # Testing dependencies
+  tests = [
     "factory-boy>=3.3.3",
     "pytest >=8.4.1",
     "pytest-alembic>=0.12.1",
