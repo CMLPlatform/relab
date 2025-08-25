@@ -39,13 +39,13 @@ services:
         condition: service_healthy
 
   mkdocs:  # This serves the documentation site for development by default
-    image: squidfunk/mkdocs-material:9
+    image: squidfunk/mkdocs-material:9@sha256:1a4e939cfd62b90943b6a829eb8544933e4e94eab18b8ca1d0f912fa9a532c37
     restart: unless-stopped
     volumes:
       - ./docs:/docs
 
   postgres:
-    image: postgres:17
+    image: postgres:17@sha256:29e0bb09c8e7e7fc265ea9f4367de9622e55bae6b0b97e7cce740c2d63c2ebc0
     restart: always
     env_file: ./backend/.env
     volumes:
