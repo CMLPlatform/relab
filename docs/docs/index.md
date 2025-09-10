@@ -24,7 +24,7 @@ Welcome to the documentation for the Reverse Engineering Lab data collection pla
 ## Quick Start
 
 - 🚀 [Access the platform](https://cml-relab.org)
-- 🔍 [API Documentation](https://api2.cml-relab.org/docs)
+- 🔍 [API Documentation](https://api.cml-relab.org/docs)
 
 ## For Developers
 

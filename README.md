@@ -25,7 +25,7 @@ A data collection platform for disassembled durable goods to support circular ec
 
 - 🚀 **[Get Started](https://cml-relab.org)** - Access the live platform
 - 📖 **[Full Documentation](https://docs.cml-relab.org)** - Complete guides and architecture
-- 🔍 **[API Documentation](https://api2.cml-relab.org/docs)** - Interactive API reference
+- 🔍 **[API Documentation](https://api.cml-relab.org/docs)** - Interactive API reference
 - 🤝 **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute
 - 📋 **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
 - 📝 **[Changelog](CHANGELOG.md)** - Version history
