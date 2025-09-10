@@ -15,7 +15,7 @@ The dataset contains high-quality images and metadata of disassembled power tool
 
 <!---TODO: Add browse and download links once available--->
 
-- 🔍 **[API Access](https://api2.cml-relab.org/docs)** - Programmatic data access
+- 🔍 **[API Access](https://api.cml-relab.org/docs)** - Programmatic data access
 - 🌐 **Browse Dataset** - Soon: explore the dataset online
 - 📦 **Download Data** - Soon: Download the raw dataset in various formats
 

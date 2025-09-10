@@ -3,22 +3,23 @@
 import csv
 from pathlib import Path
 
+from sqlalchemy import select
+
 from app.api.background_data.models import (
     Category,
     Taxonomy,
     TaxonomyDomain,
 )
 from app.core.database import sync_session_context
-from sqlalchemy import select
 
 # Configuration
 DATA_DIR = Path(__file__).parents[2] / "data" / "seed"
-HS_CSV_PATH = DATA_DIR / "harmonized_system_test.csv"
+HS_CSV_PATH = DATA_DIR / "harmonized-system.csv"
 HS_VERSION = "2022"
 HS_SOURCE = "https://github.com/datasets/harmonized-system"
 
 
-def seed_hs_taxonomy():
+def seed_hs_taxonomy() -> None:
     """Seed HS codes as taxonomy and categories using synchronous operations."""
     with sync_session_context() as session:
         # Check if taxonomy already exists
@@ -49,9 +50,20 @@ def seed_hs_taxonomy():
         count = 0
         print("Creating categories...")
 
-        with open(HS_CSV_PATH, encoding="utf-8") as f:
+        with HS_CSV_PATH.open(encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                section = row.get("section", "").strip()
+
+                # Only keep relevant sections. See also https://www.wcotradetools.org/en/harmonized-system
+                if section not in {
+                    "VII",  # Plastics
+                    "X",  # Paper
+                    "XV",  # Metals
+                    "XVI",  # Machinery
+                }:
+                    continue
+
                 hscode = row["hscode"].strip()
                 description = row["description"].strip()
                 parent_code = row["parent"].strip()
