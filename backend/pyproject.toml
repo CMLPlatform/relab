@@ -239,4 +239,4 @@
 
   [tool.uv.sources]
     # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub
-    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "main" }
+    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "7e9c4830e53ee20c38e3de80066cb19d7c3efc43" }

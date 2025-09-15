@@ -45,21 +45,21 @@ repos:
         args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.8.3
+    rev: v4.9.1
     hooks:
       - id: commitizen
         stages: [commit-msg]
 
     ### Backend hooks
   - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
-    rev: v1.1.403
+    rev: v1.1.405
     hooks:
       - id: pyright
         files: ^backend/(app|scripts|tests)/
         entry: pyright --project backend
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8
+    rev: v0.13.0
     hooks:
       - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
@@ -75,7 +75,7 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.10
+    rev: 0.8.17
     hooks:
       - id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
