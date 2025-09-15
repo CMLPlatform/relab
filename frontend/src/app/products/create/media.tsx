@@ -1,9 +1,9 @@
-import { useProductCreationStore, type MediaItem } from '@/lib/stores/productCreationStore';
-import { Screen } from '@/lib/ui/components/Screen';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, Chip, IconButton, Text, TextInput } from 'react-native-paper';
+import { Screen } from '@/lib/ui/components/Screen';
+import { useProductCreationStore, type MediaItem } from '@/lib/stores/productCreationStore';
 
 export default function CreateProductMedia() {
   const router = useRouter();

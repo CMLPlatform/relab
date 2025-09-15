@@ -1,124 +1,65 @@
-# Raspberry Pi Camera Setup
+# RPI Camera Integration
 
-Set up automated image capture during data collection using a Raspberry Pi camera system.
+Integrate Raspberry Pi cameras with the RELab platform for automated image capture during data collection.
 
-## What You Need
+## Overview
 
-**Hardware:**
+This section covers **platform-side setup and management** of RPI cameras. For device installation and configuration, see the [RPI Camera Plugin Documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
-- Raspberry Pi 5 (recommended) or Pi 4
-- Raspberry Pi Camera Module 3 (recommended) or v2
-- MicroSD card (8GB or larger)
-- Power supply (wall adapter or power bank)
-- Network connection (Ethernet or WiFi)
-- Camera mount (tripod, clamp, or custom)
+## Platform Setup
 
-**Software Requirements:**
+### Step 1: Register Your Camera
 
-- Python 3.11+
-- Raspberry Pi OS
+<!-- TODO: Describe frontend UI once available -->
 
-## Quick Setup
+Post a request to the `/plugins/rpi-cam/cameras` endpoint with the following data:
 
-### Step 1: Prepare Your Raspberry Pi
+- **Camera name**: Descriptive name (e.g., "Assembly Station A Camera")
+- **Description**: Location and purpose details
+- **Camera API URL**: Where your Pi runs (e.g., `http://<your-rpi-ip>:8018`)
+- **Auth headers**: Additional authentication if needed (optional)
 
-1. **Install Raspberry Pi OS**: Follow the installation guide on the [Raspberry Pi website](https://www.raspberrypi.com/documentation/computers/getting-started.html).
-1. **Enable camera**: Run `sudo raspi-config`, go to Interface Options → Camera → Enable
+See the [API documentation](https://api2.cml-relab.org/docs#/rpi-cam-management/register_user_camera_plugins_rpi_cam_cameras_post) for details on required fields.
 
-### Step 2: Install Camera Software
+> 💡 **Note**: Save the generated API key - it's only shown once.
 
-1. **Get the code**: Clone the repository and navigate to the `rpi_cam` directory
+### Step 2: Configure Raspberry Pi Camera
 
-   ```bash
-   git clone github.com/CMLPlatform/relab
-   cd relab/rpi_cam
-   ```
+Configure the RPI camera plugin with the API key provided during registration. If you are self-hosting the platform, be sure to add the platform URL to the allowed origins of the Raspberry Pi plugin. This allows the platform to communicate with your camera.
 
-1. **Run setup script**: Execute `./setup.sh` which automatically:
+### Step 3: Verify Camera Registration
 
-   - Verifies your environment configuration
-   - Sets up audio streaming capabilities
-   - Installs dependencies using uv
-   - Creates Python virtual environment
+<!-- TODO: Describe frontend UI once available -->
 
-### Step 3: Register Your Camera
+- Use the `/plugins/rpi-cam/cameras/include_status` endpoint to list registered cameras
+- Check that your camera appears with correct details
 
-TODO: Add link to main platform camera registration page
-
-1. **Access registration**: Go to the main platform's camera registration page
-1. **Provide details**:
-   - Camera name and description
-   - Camera API URL (where your Pi will run, e.g., `http://192.168.1.100:8018`)
-   - Any additional auth headers (optional)
-1. **Save API key**: Copy the generated API key - it's only shown once
-
-### Step 4: Configure Your Camera
-
-1. **Copy config file**: Use `cp .env.example .env` to create configuration
-1. **Edit settings**:
-   - **BASE_URL**: Your Pi's IP and port (e.g., `http://192.168.1.100:8018`)
-   - **ALLOWED_CORS_ORIGINS**: Include main platform URL in quotes: `["http://127.0.0.1:8000", "https://cml-relab.org"]`
-   - **AUTHORIZED_API_KEYS**: Add your API key in quotes: `["YOUR_API_KEY_HERE"]`
-
-**Important**: Keep API keys secure and never commit them to version control.
-
-### Step 5: Start Camera Service
-
-1. **Launch API**: Run `uv run fastapi run app/main.py --port 8018`
-1. **Test connection**: Visit `http://your-pi-ip:8018/docs` for API documentation
-1. **Verify integration**: Check that your camera appears in the main platform
-
-## Using Your Camera
-
-### Local testing
-
-1. **Live preview**: Access the camera feed at `http://your-pi-ip:8018/stream/watch`
-1. **Capture images**: Use the `/capture` endpoint to take photos
+## Using RPI Cameras
 
 ### During Data Collection
 
-1. **Start session** on the main platform
-1. **Access camera**: TODO: Add link to main platform camera interface
-1. **Position subject** in camera's field of view
-1. **Capture images** via the platform interface
+<!-- TODO: Describe frontend UI once available -->
 
-## Troubleshooting
+### Camera Management
 
-**Camera not detected**:
+<!-- TODO: Describe frontend UI once available -->
 
-- Verify camera module is properly connected
-- Check that camera is enabled in raspi-config
-- Restart the Pi if needed
+## Troubleshooting (Platform Side)
 
-**API won't start**:
+**Camera shows as "Disconnected"**:
 
-- Check that port 8018 is available
-- Verify all dependencies installed correctly
-- Review error logs for specific issues
+- Verify RPI device is powered on and connected to network
+- Check API URL is correct and accessible from platform
+- Confirm API key matches on both platform and device
 
-**Platform can't connect**:
+**Platform can't connect to camera**:
 
-- Confirm API key is correct in both places
-- Check network connectivity between Pi and platform
-- Verify CORS origins include platform URL
-- Test API directly at `http://pi-ip:8018/docs`
+- Test direct access to `http://<your-rpi-ip>:8018/docs`
+- Verify firewall rules allow platform → RPI communication
+- Check CORS configuration includes platform URL
 
-**Poor image quality**:
+## Device Setup
 
-- Clean camera lens
-- Improve lighting conditions
-- Check camera module connection
-- Adjust camera settings through API
+For device installation, configuration, and deployment:
 
-## Development Mode
-
-For development and testing on the Raspberry Pi:
-
-- **Install dev dependencies**: `uv sync`
-- **Start dev server**: `uv run fastapi dev app/main.py`
-- **Access dev docs**: Available at `http://127.0.0.1:8000/docs`
-
-## Additional Resources
-
-- [Raspberry Pi Camera Module Documentation](https://www.raspberrypi.com/documentation/accessories/camera.html)
-- [Technical Architecture of Raspberry Pi Camera Plugin](../architecture/rpi-cam.md)
+📱 **[RPI Camera Plugin Documentation →](https://github.com/CMLPlatform/relab-rpi-cam-plugin)**

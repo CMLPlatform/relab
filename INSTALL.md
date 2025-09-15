@@ -148,40 +148,7 @@ The documentation is now available at <http://127.0.0.1:8012> with live reload.
 
 #### Raspberry Pi Camera Setup (Optional)
 
-If you want to use the Raspberry Pi Camera module with the platform, follow these steps on a Raspberry Pi device. For more information, see the [README](rpi_cam/README.md) in the `rpi_cam` directory.
-
-1. **Navigate to the rpi_cam directory**
-
-   ```bash
-   cd rpi_cam
-   ```
-
-1. **Configure Environment**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` to set:
-
-   - Base URL for the Camera API
-   - Allowed CORS origins (including your main API)
-   - Authorized API keys
-
-1. **Run Setup Script**
-
-   ```bash
-   ./setup.sh
-   ```
-
-1. **Start the Camera API**
-
-   ```bash
-   uv run fastapi run app/main.py --port 8018
-   ```
-
-1. **Register the Camera**
-   Access the main platform's `plugins/rpi-cam/cameras` endpoint to register your camera.
+If you want to use a Raspberry Pi Camera for image and video capture, see the [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
 ______________________________________________________________________
 

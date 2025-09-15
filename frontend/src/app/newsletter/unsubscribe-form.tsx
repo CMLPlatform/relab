@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import {Stack} from 'expo-router';
+import { Stack } from 'expo-router';
 import { Button, Card, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 const UnsubscribeFormScreen = () => {
@@ -57,7 +57,6 @@ const UnsubscribeFormScreen = () => {
       <View style={{ maxWidth: 600, alignSelf: 'center', width: '100%' }}>
         <Card>
           <Card.Content style={{ marginBottom: 20, gap: 16 }}>
-
             <Text variant="bodyMedium">Please enter your email address to unsubscribe from our newsletter.</Text>
 
             <View style={{ flexDirection: 'row', gap: 12 }}>
