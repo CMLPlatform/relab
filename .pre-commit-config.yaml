@@ -1,66 +1,103 @@
+# Configuration of Pre-commit Hooks. For more information, see https://pre-commit.com.
+# NOTE: pre-commit does not support multiple config files, hence this file is used for both global and subrepo-specific hooks.
+# TODO: Consider moving to from monorepo to multiple repos for easier CI/CD management.
+# Alternatively, move to lefthook for extensible git hook management.
+
 repos:
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.4.1
+  ### Global hooks
+  - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+    rev: v0.8.0
     hooks:
-      - id: commitizen
+      - id: pre-commit-update # Autoupdate pre-commit hooks
+
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.0
+    rev: v8.28.0
     hooks:
       - id: gitleaks
+
   - repo: https://github.com/executablebooks/mdformat
     rev: 0.7.22
     hooks:
-      - id: mdformat  # Format Markdown files.
+      - id: mdformat # Format Markdown files.
         additional_dependencies:
-          - mdformat-gfm  # Support GitHub Flavored Markdown.
+          - mdformat-gfm # Support GitHub Flavored Markdown.
           - mdformat-footnote
           - mdformat-frontmatter
-          - mdformat-ruff  # Support Python code blocks linted with Ruff.
-          - mdformat-tables  # Support GitHub style tables.
+          - mdformat-ruff # Support Python code blocks linted with Ruff.
+          - mdformat-tables # Support GitHub style tables.
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
-      - id: check-ast  # Check if Python code is syntactically valid.
       - id: check-added-large-files
-      - id: check-case-conflict  # Check for files with names that differ only in case.
+      - id: check-case-conflict # Check for files with names that differ only in case.
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
       - id: check-json
       - id: check-toml
       - id: check-yaml
+        exclude: ^docs/mkdocs.yml$ # Exclude mkdocs.yml because it uses an obscure tag to allow for mermaid formatting
       - id: detect-private-key
-      - id: end-of-file-fixer  # Ensure files end with a newline.
+      - id: end-of-file-fixer # Ensure files end with a newline.
       - id: mixed-line-ending
-      - id: no-commit-to-branch  # Prevent commits to main and master branches.
+      - id: no-commit-to-branch # Prevent commits to main and master branches.
       - id: trailing-whitespace
-        args: ["--markdown-linebreak-ext", "md"]  # Preserve Markdown hard line breaks.
-  - repo: https://github.com/RobertCraigie/pyright-python  # Lint backend code with Pyright.
-    rev: v1.1.396
+        args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+    ### Backend hooks
+  - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
+    rev: v1.1.405
     hooks:
       - id: pyright
-        files: ^backend/
+        files: ^backend/(app|scripts|tests)/
         entry: pyright --project backend
-  - repo: https://github.com/astral-sh/ruff-pre-commit  # Lint and format backend code with Ruff.
-    rev: v0.9.10
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.0
     hooks:
-      - id: ruff
-        files: ^backend/
-        args: ["--fix", "--config", "backend/pyproject.toml", "--ignore", "FIX002"]  # Allow TODO comments in commits.
-      - id: ruff-format
-        files: ^backend/
+      - id: ruff-check # Lint code
+        files: ^backend/(app|scripts|tests)/
+        args: [
+            "--fix",
+            "--config",
+            "backend/pyproject.toml",
+            "--ignore",
+            "FIX002",
+          ] # Allow TODO comments in commits.
+      - id: ruff-format # Format code
+        files: ^backend/(app|scripts|tests)/
         args: ["--config", "backend/pyproject.toml"]
+
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.6.6
+    rev: 0.8.17
     hooks:
-      - id: uv-lock  # Update the uv lockfile for the backend.
-        files: '^backend/(uv\.lock|pyproject\.toml|uv\.toml)$'
+      - id: uv-lock # Update the uv lockfile for the backend.
+        files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
         entry: uv lock --project backend
+
   - repo: local
-    hooks:
-      - id: alembic-autogen-check
+    hooks: # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
+      - id: backend-alembic-autogen-check
         name: check alembic migrations
-        entry: uv run --python backend/.venv/bin/python alembic-autogen-check  # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
+        entry: bash -c 'cd backend && uv run alembic-autogen-check'
         language: system
+        files: ^(backend/(app|alembic)/|alembic\.ini$)
         pass_filenames: false
         stages: [pre-commit]
-        args: ["--config", "backend/alembic.ini"]
+
+    ### Frontend hooks
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: lint frontend code
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        # Match frontend JavaScript and TypeScript files for linting.
+        files: ^frontend/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
+        pass_filenames: false

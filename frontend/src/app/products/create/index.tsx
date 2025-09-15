@@ -1,10 +1,10 @@
-import { useProductCreationStore } from '@/lib/stores/productCreationStore';
-import { Screen } from '@/lib/ui/components/Screen';
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import { Button, Card, Divider, Text, TextInput } from 'react-native-paper';
 import { Dropdown } from 'react-native-paper-dropdown';
+import { Screen } from '@/lib/ui/components/Screen';
+import { useProductCreationStore } from '@/lib/stores/productCreationStore';
 
 // Available product types
 const AVAILABLE_PRODUCT_TYPES = [
@@ -163,7 +163,7 @@ export default function CreateProductBasicInfo() {
                 disabled={!isFormValid()}
                 style={{ flex: 1 }}
                 icon="arrow-right"
-                contentStyle={{ flexDirection: 'row-reverse' }}
+                contentStyle={{ flexDirection: 'row', justifyContent: 'center' }}
               >
                 Next: Materials
               </Button>

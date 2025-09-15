@@ -1,4 +1,3 @@
-import Themes from '@/lib/ui/styles/themes';
 import { Inter_400Regular } from '@expo-google-fonts/inter';
 import { SourceSerif4_400Regular } from '@expo-google-fonts/source-serif-4';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { adaptNavigationTheme, PaperProvider } from 'react-native-paper';
+import Themes from '@/lib/ui/styles/themes';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
