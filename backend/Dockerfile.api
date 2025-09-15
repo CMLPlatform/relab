@@ -1,5 +1,5 @@
 # Use the official UV image with Python 3.13
-FROM ghcr.io/astral-sh/uv:0.8-python3.13-trixie
+FROM ghcr.io/astral-sh/uv:0.8-python3.13-trixie-slim
 
 # Set the working directory inside the container
 WORKDIR /app/
@@ -37,4 +37,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Run the application
 # HACK: "--forwarded-allow-ips=*" ensures ssl links in generated urls, but is a security risk
 # TODO: Improve this when setting up reverse proxy
-CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--forwarded-allow-ips=*"]
+CMD [".venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000", "--forwarded-allow-ips=*"]
