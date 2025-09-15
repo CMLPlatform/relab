@@ -39,13 +39,13 @@ services:
       - "migrations"
 
   mkdocs: # This serves the documentation site for development by default
-    image: squidfunk/mkdocs-material:9
+    image: squidfunk/mkdocs-material:9@sha256:209b62dd9530163cc5cf9a49853b5bb8570ffb3f3b5fe4eadc1d319bbda5ce2f
     restart: unless-stopped
     volumes:
       - ./docs:/docs
 
   postgres:
-    image: postgres:17
+    image: postgres:17@sha256:8a56bef4c60bef3d26193cb9d810fce93def8fd0c459f4a9b14240fbd7559a1d
     restart: always
     env_file: ./backend/.env
     volumes:
