@@ -1,14 +1,19 @@
 {
-  "name": "cml-relab-frontend",
+  "name": "relab-frontend",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-or-later",
+  "contributors": [
+    "Simon van Lierde <s.n.van.lierde@cml.leidenuniv.nl>",
+    "Franco Donati <f.donati@cml.leidenuniv.nl>"
+  ],
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "expo lint --fix",
     "test": "jest --watchAll",
     "generate-client": "npx @hey-apiopenapi-ts --input http://localhost:8001/openapi.json --output ./src/lib/types/api --client @hey-api/client-axios"
   },
@@ -51,6 +56,7 @@
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
+    "serve": "^14.2.4",
     "typescript": "~5.8.3",
     "zustand": "^5.0.5"
   },

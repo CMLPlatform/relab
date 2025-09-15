@@ -12,7 +12,7 @@ from app.core.database import sync_session_context
 from sqlalchemy import select
 
 # Configuration
-DATA_DIR = Path(__file__).parent.parent.parent / "data" / "seed"
+DATA_DIR = Path(__file__).parents[2] / "data" / "seed"
 HS_CSV_PATH = DATA_DIR / "harmonized_system_test.csv"
 HS_VERSION = "2022"
 HS_SOURCE = "https://github.com/datasets/harmonized-system"

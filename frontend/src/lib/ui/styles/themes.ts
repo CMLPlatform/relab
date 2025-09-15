@@ -1,5 +1,5 @@
-import colors from '@/lib/ui/styles/colors';
 import { MD3DarkTheme, MD3LightTheme, configureFonts } from 'react-native-paper';
+import colors from '@/lib/ui/styles/colors';
 
 const fonts = configureFonts({
   config: {

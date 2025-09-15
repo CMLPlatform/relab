@@ -1,10 +1,10 @@
-import { useProductCreationStore, type MaterialEntry } from '@/lib/stores/productCreationStore';
-import { Screen } from '@/lib/ui/components/Screen';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, IconButton, Text, TextInput, Tooltip } from 'react-native-paper';
 import { Dropdown } from 'react-native-paper-dropdown';
+import { Screen } from '@/lib/ui/components/Screen';
+import { useProductCreationStore, type MaterialEntry } from '@/lib/stores/productCreationStore';
 
 // Mock materials for demonstration
 const AVAILABLE_MATERIALS = [

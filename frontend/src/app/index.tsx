@@ -1,10 +1,10 @@
-import { ExternalLinkButton } from '@/lib/ui/components/ExternalLinkButton';
-import { InlineLink } from '@/lib/ui/components/InlineLink';
-import { Screen } from '@/lib/ui/components/Screen';
 import { Link, Stack } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import { Button, Card, Divider, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
+import { Screen } from '@/lib/ui/components/Screen';
+import { InlineLink } from '@/lib/ui/components/InlineLink';
+import { ExternalLinkButton } from '@/lib/ui/components/ExternalLinkButton';
 
 export default function HomeScreen() {
   const theme = useTheme();

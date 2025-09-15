@@ -1,8 +1,8 @@
-import { Screen } from '@/lib/ui/components/Screen';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import { Card, Chip, DataTable, Divider, Text, Tooltip } from 'react-native-paper';
+import { Screen } from '@/lib/ui/components/Screen';
 
 // Import demo data
 import demoData from '@/assets/data/demo.json';
