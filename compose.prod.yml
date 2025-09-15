@@ -15,7 +15,7 @@ services:
 
   expo:
     # Override for production
-    command: sh -c "npx expo export -p web -c && npx serve dist -l 3000" 
+    command: /usr/bin/env bash -c "npx expo export -p web -c && npx serve dist -l 3000"
 
   fastapi:
     environment:
