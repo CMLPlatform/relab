@@ -26,7 +26,9 @@ class PublicAPIRouter(APIRouter):
     Example: public_router = PublicAPIRouter(prefix="/products", tags=["products"])
     """
 
-    def api_route(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: ANN401 # Allow Any-typed (kw)args as this is an override
+    def api_route(
+        self, path: str, *args: Any, **kwargs: Any
+    ) -> Callable[[DecoratedCallable], DecoratedCallable]:  # Allow Any-typed (kw)args as this is an override
         existing_extra = kwargs.get("openapi_extra") or {}
         kwargs["openapi_extra"] = {**existing_extra, OPENAPI_PUBLIC_INCLUSION_EXTENSION: True}
         return super().api_route(path, *args, **kwargs)
@@ -40,7 +42,9 @@ def public_endpoint(router_method: Callable) -> Callable:
     post = public_endpoint(product_router.post)
     """
 
-    def wrapper(*args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: ANN401  # Allow Any-typed (kw)args as this is a wrapper
+    def wrapper(
+        *args: Any, **kwargs: Any
+    ) -> Callable[[DecoratedCallable], DecoratedCallable]:  # Allow Any-typed (kw)args as this is a wrapper
         existing_extra = kwargs.get("openapi_extra") or {}
         kwargs["openapi_extra"] = {**existing_extra, OPENAPI_PUBLIC_INCLUSION_EXTENSION: True}
         return router_method(*args, **kwargs)

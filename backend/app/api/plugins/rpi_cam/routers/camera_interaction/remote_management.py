@@ -5,11 +5,12 @@ import json
 from fastapi import HTTPException, Query
 from httpx import QueryParams
 from pydantic import UUID4, ValidationError
+from relab_rpi_cam_models.camera import CameraMode
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.plugins.rpi_cam.models import CameraConnectionStatus, CameraMode, CameraStatus, CameraStatusDetails
+from app.api.plugins.rpi_cam.models import CameraConnectionStatus, CameraStatus, CameraStatusDetails
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
     fetch_from_camera_url,

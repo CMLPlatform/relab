@@ -11,6 +11,7 @@ from googleapiclient.discovery import Resource, build
 from googleapiclient.errors import HttpError
 from httpx_oauth.clients.google import GoogleOAuth2
 from pydantic import Field, PositiveInt
+from relab_rpi_cam_models.stream import YoutubeStreamConfig
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.auth.config import settings
@@ -23,7 +24,7 @@ from app.api.data_collection.models import Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models.models import Image, ImageParentType
 from app.api.file_storage.schemas import ImageCreateInternal
-from app.api.plugins.rpi_cam.models import Camera, YoutubeStreamConfig
+from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod, fetch_from_camera_url
 
 

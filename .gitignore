@@ -40,16 +40,35 @@ Temporary Items
 .nfs*
 
 ## VS Code
-.vscode/
+.vscode/*
 *.code-workspace
 .history/
 
+## Python
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Ruff linter
+.ruff_cache/
+
 ### Manual additions
 # Ignore all local .env files
-.env
 .env.local
 .env.*.local
 !.env.*
 
 # Local architecture diagrams
 LOCAL_DIAGRAMS.md
+
+# VS Code settings
+!.vscode/settings.json
+!.vscode/extensions.json

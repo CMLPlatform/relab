@@ -8,7 +8,8 @@ from fastapi import Body, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from httpx import QueryParams
-from pydantic import UUID4, HttpUrl, PositiveInt, ValidationError
+from pydantic import UUID4, AnyUrl, HttpUrl, PositiveInt, ValidationError
+from relab_rpi_cam_models.stream import StreamMode, StreamView
 from sqlmodel import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -22,7 +23,6 @@ from app.api.data_collection.models import Product
 from app.api.file_storage.crud import create_video
 from app.api.file_storage.models.models import Video
 from app.api.file_storage.schemas import VideoCreate, VideoRead
-from app.api.plugins.rpi_cam.models import StreamMode, StreamView
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
     fetch_from_camera_url,
@@ -162,7 +162,7 @@ async def start_recording(
 
     # Update video with actual stream URL and store in database
     video.url = stream_info.url
-    video.video_metadata = stream_info.metadata
+    video.video_metadata = stream_info.metadata.model_dump()
     return await create_video(session, video)
 
 
@@ -171,7 +171,7 @@ async def stop_recording(
     camera_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
-) -> dict[str, HttpUrl]:
+) -> dict[str, AnyUrl]:
     """Stop recording and save video to database."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id)
 

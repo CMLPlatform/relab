@@ -1,6 +1,6 @@
-import { Screen } from '@/lib/ui/components/Screen';
 import { Link, Stack } from 'expo-router';
 import { Button, Text } from 'react-native-paper';
+import { Screen } from '@/lib/ui/components/Screen';
 
 export default function NotFoundScreen() {
   return (

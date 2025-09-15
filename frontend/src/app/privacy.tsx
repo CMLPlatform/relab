@@ -1,8 +1,8 @@
-import { InlineLink } from '@/lib/ui/components/InlineLink';
-import { Screen } from '@/lib/ui/components/Screen';
 import { Stack } from 'expo-router';
 import React from 'react';
 import { Card, Text } from 'react-native-paper';
+import { Screen } from '@/lib/ui/components/Screen';
+import { InlineLink } from '@/lib/ui/components/InlineLink';
 
 export default function PrivacyScreen() {
   return (

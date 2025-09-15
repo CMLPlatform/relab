@@ -3,19 +3,14 @@
 import uuid
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import httpx
 from asyncache import cached
 from cachetools import TTLCache
-from pydantic import (
-    UUID4,
-    BaseModel,
-    HttpUrl,
-    PastDatetime,
-    computed_field,
-)
+from pydantic import UUID4, BaseModel, HttpUrl, computed_field
+from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
 
 from app.api.common.models.base import CustomBase, TimeStampMixinBare
@@ -28,47 +23,6 @@ if TYPE_CHECKING:
 
 
 ### Utility models ###
-## Raspberry-Pi side API schemas ##
-# TODO: Publish the plugin as a separate package and import the CameraMode schema from there instead of redefining here
-class CameraMode(str, Enum):
-    """Camera mode."""
-
-    PHOTO = "photo"
-    VIDEO = "video"
-
-
-class YoutubeStreamConfig(BaseModel):
-    """YouTube stream configuration."""
-
-    stream_key: str = Field(description="Stream key for YouTube streaming")
-    broadcast_key: str = Field(description="Broadcast key for YouTube streaming")
-
-
-class StreamMode(str, Enum):
-    """Stream mode. Contains ffmpeg stream and URL construction logic for each mode."""
-
-    LOCAL = "local"
-    YOUTUBE = "youtube"
-
-
-class StreamView(BaseModel):
-    """Pydantic model for active stream information."""
-
-    mode: StreamMode
-    url: HttpUrl
-    started_at: PastDatetime
-    youtube_config: YoutubeStreamConfig | None = None
-    metadata: dict[str, Any]
-
-
-class CameraStatusDetails(BaseModel):
-    """API response model for camera status."""
-
-    current_mode: CameraMode | None = None
-    stream: StreamView | None = None
-
-
-## Main API Utility models ##
 class CameraConnectionStatus(str, Enum):
     """Camera connection status."""
 
