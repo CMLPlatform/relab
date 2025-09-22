@@ -121,8 +121,8 @@ def add_storage_type_routes(
                                     "filename": f"example.{storage_ext}",
                                     "description": f"{parent_title} {storage_type_title}",
                                     f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                    "created_at": "2024-03-27T14:30:45Z",
-                                    "updated_at": "2024-03-27T14:30:45Z",
+                                    "created_at": "2025-09-22T14:30:45Z",
+                                    "updated_at": "2025-09-22T14:30:45Z",
                                 }
                             ]
                         }
@@ -155,8 +155,8 @@ def add_storage_type_routes(
                                 "filename": f"example.{storage_ext}",
                                 "description": f"{parent_title} {storage_type_title}",
                                 f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                "created_at": "2024-03-27T14:30:45Z",
-                                "updated_at": "2024-03-27T14:30:45Z",
+                                "created_at": "2025-09-22T14:30:45Z",
+                                "updated_at": "2025-09-22T14:30:45Z",
                             }
                         }
                     },
@@ -190,8 +190,8 @@ def add_storage_type_routes(
                                 "filename": f"example.{storage_ext}",
                                 "description": f"{parent_title} {storage_type_title}",
                                 f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                "created_at": "2024-03-27T14:30:45Z",
-                                "updated_at": "2024-03-27T14:30:45Z",
+                                "created_at": "2025-09-22T14:30:45Z",
+                                "updated_at": "2025-09-22T14:30:45Z",
                             }
                         }
                     },
@@ -256,8 +256,8 @@ def add_storage_type_routes(
                                 "filename": f"example.{storage_ext}",
                                 "description": f"{parent_title} {storage_type_title}",
                                 f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                "created_at": "2024-03-27T14:30:45Z",
-                                "updated_at": "2024-03-27T14:30:45Z",
+                                "created_at": "2025-09-22T14:30:45Z",
+                                "updated_at": "2025-09-22T14:30:45Z",
                             }
                         }
                     },

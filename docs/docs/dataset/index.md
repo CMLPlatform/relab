@@ -36,7 +36,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Formats     | text/csv, image/jpeg, application/x-python, text/markdown                                                                             |
 | Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                |
 | Language    | en-US                                                                                                                                 |
-| Coverage    | Products: Power tools; Time: 2024-2025; Geographic location: NL                                                                       |
+| Coverage    | Products: Power tools; Time: 2025-; Geographic location: NL                                                                       |
 | Rights      | <https://opendatacommons.org/licenses/odbl/>                                                                                          |
 
 ## License

@@ -333,8 +333,8 @@ async def create_product(
                         "description": "Complete chair assembly",
                         "brand": "Brand 1",
                         "model": "Model 1",
-                        "dismantling_time_start": "2024-02-27T14:30:45Z",
-                        "dismantling_time_end": "2024-03-27T16:30:45Z",
+                        "dismantling_time_start": "2025-09-22T14:30:45Z",
+                        "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
                             "weight_kg": 20,
@@ -358,8 +358,8 @@ async def create_product(
                         "description": "Complete chair assembly",
                         "brand": "Brand 1",
                         "model": "Model 1",
-                        "dismantling_time_start": "2024-02-27T14:30:45Z",
-                        "dismantling_time_end": "2024-03-27T16:30:45Z",
+                        "dismantling_time_start": "2025-09-22T14:30:45Z",
+                        "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
                             "weight_kg": 20,
@@ -377,8 +377,8 @@ async def create_product(
                                 "description": "Seat assembly",
                                 "brand": "Brand 2",
                                 "model": "Model 2",
-                                "dismantling_time_start": "2024-02-27T14:30:45Z",
-                                "dismantling_time_end": "2024-03-27T16:30:45Z",
+                                "dismantling_time_start": "2025-09-22T14:30:45Z",
+                                "dismantling_time_end": "2025-09-22T16:30:45Z",
                                 "amount_in_parent": 1.0,
                                 "product_type_id": 2,
                                 "physical_properties": {
