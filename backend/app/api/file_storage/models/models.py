@@ -80,7 +80,7 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
         """Return the URL to the file."""
         if self.file and Path(self.file.path).exists():
             relative_path: Path = Path(self.file.path).relative_to(settings.file_storage_path)
-            return f"/uploads/{quote(str(relative_path))}"
+            return f"/uploads/files/{quote(str(relative_path))}"
 
         raise FastAPIStorageFileNotFoundError(filename=self.filename)
 
