@@ -12,7 +12,9 @@ fi
 echo "Setting up local development environment..."
 
 # Load database environment variables from .env file
-eval "$(command grep -E "^(DATABASE_HOST|DATABASE_PORT|POSTGRES_USER|POSTGRES_PASSWORD|POSTGRES_DB)=" .env)"
+set -a
+source .env
+set +a
 
 # Check if the PostgreSQL database exists, if not, create it
 until pg_isready -h "$DATABASE_HOST" -U "$POSTGRES_USER" >/dev/null 2>&1; do
@@ -36,16 +38,14 @@ echo "Upgrading database to the latest revision..."
 uv run alembic upgrade head
 
 # Check if all tables are empty
-echo "Checking if all tables in the database are empty using scripts/check_db_empty.py..."
+echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
 
-set +e
-uv run python -m scripts.check_db_empty
-DB_EMPTY=$?
-set -e
+# Run the script and temporarily disable exit-on-error to capture the exit code
+DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
 
-if [ "$DB_EMPTY" -eq "0" ]; then
+if [ "$DB_EMPTY" = "TRUE" ]; then
     echo "All tables are empty, proceeding to seed dummy data..."
-    uv run python -m scripts.seed.dummy_data
+    .venv/bin/python -m scripts.seed.dummy_data
 else
     echo "Database already has data, skipping seeding."
 fi
@@ -53,3 +53,7 @@ fi
 # Create a superuser if the required environment variables are set
 echo "Creating a superuser..."
 uv run -m scripts.create_superuser
+
+# Activate the virtual environment
+echo "Activating the virtual environment..."
+source .venv/bin/activate
