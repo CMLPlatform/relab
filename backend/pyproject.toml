@@ -29,7 +29,11 @@
     "email-validator>=2.2.0",
     "fastapi-filter>=2.0.1",
     "fastapi-pagination>=0.13.2",
+    # NOTE: This is a heavy dependency (~40MB) due to its use of boto3, even though we don't use any cloud storage
+    # We should consider using a more lightweight alternative if it becomes available.
+    # Alternatively, we could write the local file storage backend ourselves.
     "fastapi-storages >=0.3.0",
+    # NOTE: We use a custom fork of fastapi-users-db-sqlmodel to support Pydantic V2
     "fastapi-users-db-sqlmodel",
     "fastapi-users[oauth,sqlalchemy]>=14.0.1",
     "fastapi[standard] >=0.115.14",
@@ -64,6 +68,9 @@
 
   api = [
     "coloredlogs>=15.0.1",
+    # NOTE: This is a heavy dependency (~90MB) due to it storing all of Google's API specifications.
+    # We should consider using a more lightweight alternative if it becomes available.
+    # Alternatively, we could write the required API calls manually using `google-auth` and `google-auth-httplib2` directly.
     "google-api-python-client>=2.174.0",
     "google-auth>=2.40.3",
     "itsdangerous>=2.2.0",
@@ -238,5 +245,5 @@
   default-groups = ["api", "dev", "migrations", "tests"]
 
   [tool.uv.sources]
-    # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub
+    # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
     fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "7e9c4830e53ee20c38e3de80066cb19d7c3efc43" }
