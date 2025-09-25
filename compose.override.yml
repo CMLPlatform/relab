@@ -1,21 +1,31 @@
 # docker-compose.override.yml (DEVELOPMENT - automatically used with docker-compose up)
+name: relab_dev # Separate dev containers, networks, and volumes from prod
+
 services:
-
-  # Expose individual services for development/testing
-  expo:
+  frontend:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/opt/relab/frontend # Mount source code for hot reload
+      - /opt/relab/frontend/node_modules # Prevent overwriting node_modules
     ports:
-      - "8010:3000"
+      - "8010:8081"
 
-  fastapi:
+  backend:
+    build:
+      dockerfile: Dockerfile.dev
     environment:
       FRONTEND_URL: http://localhost:8010
+    volumes:
+      - ./backend:/opt/relab/backend # Mount source code for hot reload
+      - /opt/relab/backend/.venv # Prevent overwriting the virtual environment
     ports:
-      - "8011:8000"  # Direct access for API testing
+      - "8011:8000"
 
-  mkdocs:
+  docs:
     ports:
-      - "8012:8000"  # Direct access for docs development
+      - "8012:8000"
 
-  postgres:
+  database:
     ports:
       - "5433:5432"

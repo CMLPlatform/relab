@@ -1,67 +1,64 @@
 # docker-compose.yml (BASE - common configuration)
 services:
-  expo:
+  frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
     depends_on:
-      - fastapi
+      - backend
     restart: unless-stopped
 
-  fastapi:
+  backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.api
     restart: unless-stopped
     env_file: ./backend/.env
-    environment:
-      DATABASE_HOST: postgres # This overrides 'localhost' set in the .env file to use the docker service name
+    environment: # This overrides 'localhost' set in the .env file to use the docker service name
+      DATABASE_HOST: database
     depends_on:
-      postgres:
+      database:
         condition: service_healthy
     volumes:
-      - user_uploads:/app/data/uploads
-      - logs:/app/logs
+      - user_uploads:/opt/relab/backend/data/uploads
+      - backend_logs:/opt/relab/backend/logs
 
-  migrations_fastapi:
+  backend_migrations:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
     restart: on-failure:3
     env_file: ./backend/.env
-    environment:
-      DATABASE_HOST: postgres # This overrides 'localhost' set in the .env file to use the docker service name
+    environment: # This overrides 'localhost' set in the .env file to use the docker service name
+      DATABASE_HOST: database
     depends_on:
-      postgres:
+      database:
         condition: service_healthy
+    volumes: # Ensure migrations have access to seed data and user uploads (for seeding example images)
+      - ./backend/data/seed:/opt/relab/backend/data/seed:ro
+      - user_uploads:/opt/relab/backend/data/uploads
     profiles:
       # Only run this service when explicitly included
       - "migrations"
 
-  mkdocs:  # This serves the documentation site for development by default
+  docs:
     image: squidfunk/mkdocs-material:9@sha256:86d21da4f45f16e30774bf911e5b4795da13ce0cd197dbf8d3d059f256b2cc37
-
     restart: unless-stopped
     volumes:
       - ./docs:/docs
 
-  postgres:
+  database:
     image: postgres:17@sha256:feff5b24fedd610975a1f5e743c51a4b360437f4dc3a11acf740dcd708f413f6
     restart: always
     env_file: ./backend/.env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - database_data:/var/lib/postgresql/data
     healthcheck:
       test: # Check if the database is ready to accept connections
-        [
-          "CMD-SHELL",
-          "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
-        ]
+        ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 3s
       timeout: 5s
       retries: 5
 
 volumes:
-  logs:
-  postgres_data:
+  backend_logs:
+  database_data:
   user_uploads:
