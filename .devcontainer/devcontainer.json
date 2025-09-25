@@ -1,0 +1,74 @@
+{
+  "name": "relab-fullstack",
+  "dockerComposeFile": ["../compose.yml", "../compose.override.yml"],
+  "service": "frontend",
+  "workspaceFolder": "/opt/relab",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers-extra/features/expo-cli:1": {},
+    "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
+  },
+  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n💡 Frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012 (all forwarded ports)'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Frontend
+        "msjsdiag.vscode-react-native",
+        "christian-kohler.npm-intellisense",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "expo.vscode-expo-tools",
+        // Backend
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "wholroyd.jinja",
+        // Docs
+        "bierner.markdown-mermaid",
+        "bierner.markdown-preview-github-styles",
+        "DavidAnson.vscode-markdownlint",
+        "shd101wyy.markdown-preview-enhanced",
+        "yzhang.markdown-all-in-one"
+      ],
+      "settings": {
+        // Frontend
+        "[javascript][typescript][javascriptreact][typescriptreact]": {
+          "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "always",
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "eslint.format.enable": true,
+        "eslint.lintTask.enable": true,
+        "eslint.run": "onSave",
+        // Backend
+        "[python][notebook]": {
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "python.analysis.typeCheckingMode": "standard",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "python.terminal.activateEnvironment": true,
+        "python.testing.pytestEnabled": true,
+        // Docs
+        "[markdown]": {
+          "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+        },
+        "editor.formatOnSave": true,
+        "github.copilot.enable": {
+          "markdown": true
+        },
+        "markdown.extension.completion.enabled": true,
+        "markdown.extension.orderedList.marker": "one",
+        "markdown.extension.tableFormatter.normalizeIndentation": true,
+        "markdown.extension.theming.decoration.renderTrailingSpace": true
+      }
+    }
+  }
+}
