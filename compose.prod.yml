@@ -1,25 +1,25 @@
 # docker-compose.prod.yml (PRODUCTION - must be explicitly specified)
+name: relab_prod # Separate prod containers, networks, and volumes from dev
+
 services:
-  cloudflared: # Cloudflared tunnel to cml-relab.org
+  # Cloudflared tunnel to cml-relab.org
+  cloudflared:
     image: cloudflare/cloudflared:latest
     pull_policy: always
     restart: unless-stopped
     command: tunnel --no-autoupdate run
-    env_file: ./.env
-    depends_on:
-      - expo
-      - fastapi
-      - mkdocs
+    env_file: .env
     volumes:
       - cloudflared_logs:/var/log/cloudflared
 
-  expo:
-    # Override for production
-    command: /usr/bin/env bash -c "npx expo export -p web -c && npx serve dist -l 3000"
-
-  fastapi:
+  backend:
     environment:
-      FRONTEND_URL: https://cml-relab.org # The public URL of the frontend, used for email generation by the FastAPI backend
+      # The public URL of the frontend, used for email generation and cookie management
+      FRONTEND_URL: https://cml-relab.org
+
+  docs:
+    # Disable live reload for production
+    command: ["serve", "--dev-addr=0.0.0.0:8000", "--no-livereload"]
 
 volumes:
   cloudflared_logs:
