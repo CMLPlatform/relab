@@ -13,15 +13,12 @@ echo "Upgrading database to the latest revision..."
 .venv/bin/alembic upgrade head
 
 # Check if all tables are empty
-echo "Checking if all tables in the database are empty using scripts/check_db_empty.py..."
+echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
 
-# Run the script and temporarily disable exit-on-error
-set +e
-.venv/bin/python -m scripts.check_db_empty
-DB_EMPTY=$?
-set -e
+# Run the script and temporarily disable exit-on-error to capture the exit code
+DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
 
-if [ "$DB_EMPTY" -eq "0" ]; then
+if [ "$DB_EMPTY" = "TRUE" ]; then
     echo "All tables are empty, proceeding to seed dummy data..."
     .venv/bin/python -m scripts.seed.dummy_data
 else

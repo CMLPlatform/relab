@@ -9,12 +9,12 @@ Usage:
     Run this script directly to print 1 if the database is empty, or 0 if it is not.
 """
 
-import sys
 from typing import Any
 
-from app.core.config import settings
 from sqlalchemy import CursorResult, Engine, Inspector, MetaData, Select, Table, inspect, select
 from sqlmodel import create_engine
+
+from app.core.config import settings
 
 sync_engine: Engine = create_engine(settings.sync_database_url, echo=settings.debug)
 
@@ -50,8 +50,6 @@ def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
 
 if __name__ == "__main__":
     if database_is_empty(ignore_tables={"alembic_version"}):
-        # Database is empty, exit with code 0
-        sys.exit(0)
+        print("TRUE")  # noqa: T201 # for shell script usage
     else:
-        # Database has data, exit with code 1
-        sys.exit(1)
+        print("FALSE")  # noqa: T201
