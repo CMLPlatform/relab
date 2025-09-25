@@ -32,7 +32,7 @@ class CoreSettings(BaseSettings):
     frontend_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     allowed_origins: list[str] = [str(frontend_url)]
 
-    # Initialize the settings configuration from the .env file
+    # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     # Construct directory paths
