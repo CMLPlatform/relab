@@ -1,0 +1,6 @@
+[project]
+  dependencies    = ["mkdocs-material>=9.6.20"]
+  description     = "Documentation for the Reverse Engineering Lab"
+  name            = "docs"
+  requires-python = ">=3.13"
+  version         = "0.1.0"
