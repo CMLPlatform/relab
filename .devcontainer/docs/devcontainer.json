@@ -1,0 +1,44 @@
+{
+  "name": "relab-docs",
+  "dockerComposeFile": ["../../compose.yml", "../../compose.override.yml"],
+  "service": "docs",
+  "runServices": ["docs"],
+  "workspaceFolder": "/opt/relab/docs",
+  /*
+    NOTE: The non-trivial mount setup to allow live reload and git:
+
+      [Devcontainer: /opt/relab/docs]  ⇄  [Local ./docs]  ⇄  [Devcontainer: /docs]
+
+    - Edit in git-integrated /opt/relab/docs (devcontainer) → updates local ./docs
+    - MkDocs in the devcontainer live reloads /docs (synced from local ./docs)
+  */
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "features": {
+    "ghcr.io/cirolosapio/devcontainers-features/alpine-bash:0": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bierner.markdown-mermaid",
+        "bierner.markdown-preview-github-styles",
+        "DavidAnson.vscode-markdownlint",
+        "shd101wyy.markdown-preview-enhanced",
+        "yzhang.markdown-all-in-one"
+      ]
+    },
+    "settings": {
+      "[markdown]": {
+        "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+      },
+      "editor.formatOnSave": true,
+      "github.copilot.enable": {
+        "markdown": true
+      },
+      "markdown.extension.completion.enabled": true,
+      "markdown.extension.orderedList.marker": "one",
+      "markdown.extension.tableFormatter.normalizeIndentation": true,
+      "markdown.extension.theming.decoration.renderTrailingSpace": true
+    }
+  }
+}
