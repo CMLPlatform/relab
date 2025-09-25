@@ -125,9 +125,7 @@ async def unsubscribe_with_token(token: Annotated[str, Body()], db: AsyncSession
 
 
 ### Admin router ###
-admin_router = APIRouter(
-    prefix="/admin/newsletter", include_in_schema=False, dependencies=[Security(current_active_superuser)]
-)
+admin_router = APIRouter(prefix="/admin/newsletter", dependencies=[Security(current_active_superuser)])
 
 
 @admin_router.get("/subscribers", response_model=Sequence[NewsletterSubscriberRead])
@@ -138,7 +136,7 @@ async def get_subscribers(db: AsyncSessionDep) -> Sequence[NewsletterSubscriber]
 
 
 ### Router registration ###
-router = APIRouter(include_in_schema=False)
+router = APIRouter()
 
 router.include_router(backend_router)
 router.include_router(admin_router)
