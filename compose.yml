@@ -46,7 +46,7 @@ services:
       - ./docs:/docs
 
   postgres:
-    image: postgres:17@sha256:feff5b24fedd610975a1f5e743c51a4b360437f4dc3a11acf740dcd708f413f6
+    image: postgres:17@sha256:0b6428e8c09651398137d2b3308a6ad87e73ac15fc38729891c16d942e947d3d
     restart: always
     env_file: ./backend/.env
     volumes:
