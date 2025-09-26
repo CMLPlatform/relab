@@ -10,18 +10,21 @@ Thank you for your interest in contributing to the Reverse Engineering Lab proje
     - [Initial Setup](#initial-setup)
     - [Using Devcontainers](#using-devcontainers)
   - [Alternative: Local Development Setup](#alternative-local-development-setup)
+    - [Root Setup](#root-setup)
     - [Backend Setup](#backend-setup)
     - [Documentation Setup](#documentation-setup)
     - [Frontend Setup](#frontend-setup)
 - [Development Workflow](#development-workflow)
+  - [Pull Request Process](#pull-request-process)
   - [Backend Development](#backend-development)
-    - [Running the Application](#running-the-application)
-    - [Code Style Guidelines](#code-style-guidelines)
-    - [Testing](#testing)
+    - [Backend Code Style](#backend-code-style)
+    - [Backend Testing](#backend-testing)
     - [Database Migrations](#database-migrations)
   - [Frontend Development](#frontend-development)
-- [Pull Request Process](#pull-request-process)
-- [Project Structure](#project-structure)
+    - [Frontend Code Style](#frontend-code-style)
+    - [Frontend Testing](#frontend-testing)
+  - [Docs Development](#docs-development)
+  - [Documentation Style](#documentation-style)
 - [License](#license)
 
 ## Code of Conduct
@@ -30,28 +33,39 @@ By participating in this project, you agree to uphold our [Code of Conduct](CODE
 
 ## Getting Started
 
-We recommend using [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers) for development, as this provides a consistent, ready-to-code environment for backend, frontend, and docs.  
-If you prefer, you can also set up your environment manually.
+If you’re new, start with the [Architecture Documentation](https://docs.cml-relab.org/architecture/) for an overview of the project structure.
+
+We recommend using [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers) for development, as this provides a consistent, ready-to-code environment for backend, frontend, and docs.
+
+If you prefer, you can also set up your [environment manually](#alternative-local-development-setup).
 
 ### Recommended: Devcontainer Setup
 
 #### Initial Setup
 
 1. **Install Prerequisites**
+
+   - [VS Code](https://code.visualstudio.com/)
    - [Docker Desktop](https://docs.docker.com/get-docker/)
-   - [Visual Studio Code](https://code.visualstudio.com/)
    - [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
 1. **Clone the Repository Using VS Code**
 
-    - Open Visual Studio Code.
-    - Press <kbd>F1</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>) to open the Command Palette.
-    - Type and select `Git: Clone`.
-    - Enter `https://github.com/CMLPlatform/relab` as the repository URL.
-    - Choose a local folder for the clone.
-    - When prompted, open the cloned repository.
+   - Open VS Code.
+   - Press <kbd>F1</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>) to open the Command Palette.
+   - Type and select `Git: Clone`.
+   - Enter `https://github.com/CMLPlatform/relab` as the repository URL.
+   - Choose a local folder for the clone.
+   - When prompted, open the cloned repository.
+
+1. **Install linting and formatting tools**
+
+   ```bash
+   uv run pre-commit install
+   ```
 
 1. **Configure Environment Variables**
+
    - Copy the example environment file for the backend:
 
      ```bash
@@ -63,22 +77,25 @@ If you prefer, you can also set up your environment manually.
 #### Using Devcontainers
 
 1. **Open Dev Container**
+
    - Open the repository in VS Code.
    - When prompted, click **"Reopen in Container"** in VS Code.
    - Alternatively, open the Command Palette again and select `Dev Containers: Reopen in Container`.
 
 1. **Choose a Configuration**
+
    - Select a container for your task:
 
-     | Configuration      | Purpose                 | Main Service(s) Start Command    |
-     |--------------------|-------------------------|----------------------------------|
-     | `relab-backend`    | Backend development     | `fastapi dev`                    |
-     | `relab-frontend`   | Frontend development    | `npx expo start --web`           |
-     | `relab-docs`       | Documentation           | MkDocs server auto-starts        |
-     | `relab-fullstack`  | Fullstack development   | Both servers auto-start          |
+     | Configuration     | Purpose               | Main Service(s) Start Command |
+     | ----------------- | --------------------- | ----------------------------- |
+     | `relab-backend`   | Backend development   | `fastapi dev`                 |
+     | `relab-frontend`  | Frontend development  | `npx expo start --web`        |
+     | `relab-docs`      | Documentation         | MkDocs server auto-starts     |
+     | `relab-fullstack` | Fullstack development | Both servers auto-start       |
 
 1. **Service Ports**
    The following ports are forwarded to your local machine:
+
    - **Frontend:** [http://127.0.0.1:8010](http://127.0.0.1:8010)
    - **Backend:** [http://127.0.0.1:8011](http://127.0.0.1:8011)
    - **Docs:** [http://127.0.0.1:8012](http://127.0.0.1:8012)
@@ -87,13 +104,17 @@ If you prefer, you can also set up your environment manually.
 ### Alternative: Local Development Setup
 
 If you prefer not to use devcontainers, you can set up your environment manually.
+
 You will need to install all dependencies (Python, Node, PostgreSQL, etc.) and run the services yourself.
 
-#### Backend Setup
+It is still recommended to use VS Code as your IDE, as we have provided some recommended extensions and settings in the `.vscode` folders.
 
-1. **Install Dependencies**
-   - [uv (Python management tool)](https://docs.astral.sh/uv/getting-started/installation)
-   - [PostgreSQL](https://pipenv.pypa.io/en/latest/install/). Make sure PostgreSQL is installed and running.
+#### Root Setup
+
+1. **Install Prerequisites**
+
+   - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+   - [uv](https://docs.astral.sh/uv/getting-started/installation)
 
 1. **Fork and clone the repository**:
 
@@ -102,12 +123,24 @@ You will need to install all dependencies (Python, Node, PostgreSQL, etc.) and r
    cd relab
    ```
 
+1. **Install linting and formatting tools**
+
+   ```bash
+   uv run pre-commit install
+   ```
+
+#### Backend Setup
+
+1. **Install Dependencies**
+
+   - [uv](https://docs.astral.sh/uv/getting-started/installation) (should have been installed in the root setup)
+   - [PostgreSQL](https://pipenv.pypa.io/en/latest/install/). Make sure PostgreSQL is installed and running.
+
 1. **Install Python Dependencies**
 
    ```bash
-   cd backend                  # Change to the backend directory
-   uv sync                     # Install dependencies
-   uv run pre-commit install   # Install pre-commit hooks
+   cd backend  
+   uv sync  
    ```
 
 1. **Configure Environment**
@@ -146,7 +179,7 @@ You will need to install all dependencies (Python, Node, PostgreSQL, etc.) and r
 
 #### Documentation Setup
 
-You can use uv to manage the documentation dependencies and run the MkDocs server.
+You can use `uv` to manage the documentation dependencies and run the MkDocs server.
 
 ```bash
 cd docs
@@ -157,7 +190,13 @@ The documentation is now available at <http://127.0.0.1:8000> with live reload.
 
 #### Frontend Setup
 
-1. **Install dependencies**
+1. **Install Dependencies**
+
+   - [Node.js](https://nodejs.org/en/download/) (LTS version recommended)
+   - [Expo](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for your target platform (Android/iOS, device/simulator).
+     - Select **Development build**, disable **Build with EAS**, and follow the setup steps for your platform.
+
+1. **Install Node.js Packages**
 
    ```bash
    cd frontend
@@ -170,25 +209,75 @@ The documentation is now available at <http://127.0.0.1:8000> with live reload.
    npx expo start --web
    ```
 
-   This will launch the Expo development server for the web frontend. By default, it opens [http://localhost:8081](http://localhost:8081) in your browser.  
-   You can also use the Expo UI to run the app on a mobile device or emulator.
+   This will launch the Expo development server for the web frontend. By default, it opens [http://localhost:8081](http://localhost:8081) in your browser.
+
+   > 💡 Note: You can also use the Expo UI to run the app on a mobile device or emulator, see the [official Expo documentation](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for details.
 
 ## Development Workflow
 
+This section explains how to contribute to Reverse Engineering Lab, including proposing changes, submitting pull requests, and following our development guidelines for backend, frontend, and documentation.
+
+If you’re new, start with the [Architecture Documentation](https://docs.cml-relab.org/architecture/) for an overview of the project structure.
+
+### Pull Request Process
+
+1. **Fork and Create a Feature Branch**
+   If not already done, [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository and create a feature branch:
+
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+1. **Make and Commit Changes**
+
+   - Implement your feature or fix, following the [code style guidelines](#code-style-guidelines).
+
+   - [Pre-commit](https://pre-commit.com/) hooks will automatically check and format your code before each commit.\
+     You can also run all checks manually:
+
+     ```bash
+     uv run pre-commit run --all-files
+     ```
+
+     > 💡 Tip: Make sure you have installed the pre-commit hooks by running `uv run pre-commit install` in the project root directory.
+
+   - Use the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) format when committing changes:
+
+     ```bash
+     <type>(<scope>): <short summary>
+     ```
+
+     > 💡 Tip: You can use `uv run cz commit` to create conventional commits in the correct format.
+
+1. **Submit Pull Request**
+
+   - Push to your fork:
+
+     ```bash
+     git push origin feature/your-feature-name
+     ```
+
+   - Create a pull request against the main repository
+
+   - Provide a clear description and reference related issues
+
+   - Address review feedback
+
+All contributions must pass automated checks and receive approval before merging.
+
 ### Backend Development
 
-#### Running the Application
+Set up your environment as described in the [Getting Started](#getting-started) section.
 
-Start the development server by navigating to the [`backend`](backend) directory and running the fastapi development server:
+You can run the development server with:
 
 ```bash
-cd backend
-uv run fastapi dev
+fastapi dev
 ```
 
-The API will be available at <http://127.0.0.1:8000>.
+The API will be available at <http://localhost:8000>, or <http://localhost:8011> when using a devcontainer.
 
-#### Code Style Guidelines
+#### Backend Code Style
 
 We follow RESTful API design and the [Google Style Guide](https://google.github.io/styleguide/pyguide.html) for Python code, but use a line length of 120 characters.
 
@@ -207,13 +296,7 @@ We use several tools to ensure code quality:
    uv run pyright
    ```
 
-1. [Pre-commit](https://pre-commit.com/) hooks automatically run these checks and more before committing (see the [pre-commit configuration](backend/.pre-commit-config.yaml) for the full list of checks). You can check and format your code manually using:
-
-   ```bash
-   uv run pre-commit run --all-files
-   ```
-
-#### Testing
+#### Backend Testing
 
 The project uses pytest for testing:
 
@@ -250,48 +333,47 @@ When making changes to the database schema:
 
 ### Frontend Development
 
-TODO: Add frontend development guidelines.
+Set up your environment as described in the [Getting Started](#getting-started) section.
 
-## Pull Request Process
+You can run the development server with:
 
-1. **Fork and Create a Feature Branch**
-   If not already done, [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository and create a feature branch:
+```bash
+npx expo start --web
+```
 
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+The app will be available at <http://localhost:8081>, or <http://localhost:8010> when using a devcontainer.
 
-1. **Make and Commit Changes**
+#### Frontend Code Style
 
-   - Implement your feature or fix, following the [code style guidelines](#code-style-guidelines).
+- Code should be formatted with Prettier and checked with ESLint (run `npm run lint` and `npm run format`).
+- Use [React Native Paper](https://callstack.github.io/react-native-paper/) components where possible for UI consistency.
+- Follow the existing folder structure and naming conventions.
 
-   - Use the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) format when committing changes:
+#### Frontend Testing
 
-     ```bash
-     <type>(<scope>): <short summary>
-     ```
+- Write unit tests for new components and features.
+- Follow the [Expo testing guidelines](https://docs.expo.dev/develop/unit-testing/).
+- Run tests with `npm run test` before submitting a pull request.
 
-     > 💡 Tip: You can use `uv run cz commit` to create conventional commits in the correct format.
+### Docs Development
 
-1. **Submit Pull Request**
+Set up your environment as described in the [Getting Started](#getting-started) section.
 
-   - Push to your fork:
+You can run the MkDocs server with:
 
-     ```bash
-     git push origin feature/your-feature-name
-     ```
+```bash
+uv run mkdocs serve
+```
 
-   - Create a pull request against the main repository
+The docs will be available at <http://localhost:8000>, or <http://localhost:8012> when using a devcontainer.
 
-   - Provide a clear description and reference related issues
+### Documentation Style
 
-   - Address review feedback
-
-All contributions must pass automated checks and receive approval before merging.
-
-## Project Structure
-
-See the [online documentation]\](<https://docs.cml-relab.org/architecture/>) for an overview of the project's architecture and organization.
+- Write docs in clear, concise English and follow the existing tone.
+- Prefer [GitHub-flavored Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax) and [Mermaid](https://mermaid-js.github.io/) for diagrams.
+- Avoid raw HTML unless absolutely necessary.
+- Format markdown with `mdformat` (see [.pre-commit-config.yaml](.pre-commit-config.yaml) for the configuration).
+- Refer to the [MkDocs](https://www.mkdocs.org/) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) documentation to see available features and best practices.
 
 ## License
 

@@ -62,7 +62,7 @@ export default function HomeScreen() {
         <Card.Content style={{ gap: 12 }}>
           <Text variant="headlineLarge">Reverse Engineering Lab</Text>
           <Text variant="bodyLarge">
-            Welcome to the CML Reverse Engineering Lab app. This interface provides access to data collection tools and
+            Welcome to the Reverse Engineering Lab app. This interface provides access to data collection tools and
             resources for reverse engineering research.
           </Text>
         </Card.Content>
