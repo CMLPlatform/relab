@@ -2,9 +2,8 @@
 name: relab_prod # Separate prod containers, networks, and volumes from dev
 
 services:
-  # Cloudflared tunnel to cml-relab.org
-  cloudflared:
-    image: cloudflare/cloudflared:latest
+  cloudflared: # Cloudflared tunnel to cml-relab.org
+    image: cloudflare/cloudflared:latest@sha256:4604b477520dc8322af5427da68b44f0bf814938e9d2e4814f2249ee4b03ffdf
     pull_policy: always
     restart: unless-stopped
     command: tunnel --no-autoupdate run
