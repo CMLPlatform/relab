@@ -13,7 +13,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint --fix",
+    "lint": "expo lint",
+    "format": "expo lint --fix",
     "test": "jest --watchAll",
     "generate-client": "npx @hey-apiopenapi-ts --input http://localhost:8001/openapi.json --output ./src/lib/types/api --client @hey-api/client-axios"
   },
