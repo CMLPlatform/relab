@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserRea
+from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserRead
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend, fastapi_user_manager
 from app.api.common.routers.openapi import mark_router_routes_public
 
