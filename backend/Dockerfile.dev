@@ -32,9 +32,6 @@ ENV PYTHONPATH=/opt/relab/backend \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/relab/backend/.venv/bin:$PATH"
 
-# Install pre-commit hooks
-RUN uv run pre-commit install
-
 EXPOSE 8000
 
 # Run the FastAPI application in development mode
