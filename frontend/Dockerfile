@@ -22,7 +22,7 @@ WORKDIR /opt/relab/frontend
 # Install serve for static file serving
 RUN npm install -g serve
 
-# Set up a non-root user 
+# Set up a non-root user
 RUN useradd -m appuser
 
 # Copy the build output

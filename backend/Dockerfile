@@ -31,7 +31,7 @@ COPY app/ app/
 
 # Final sync with project code (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable --no-default-groups --group=api 
+    uv sync --locked --no-editable --no-default-groups --group=api
 
 # --- Final runtime stage ---
 FROM python:3.13-slim
