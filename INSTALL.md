@@ -26,8 +26,7 @@ Only needed for: custom development, institutional deployment, offline usage, or
 - 🐳 **[Docker Setup](#docker-setup)** - Quick testing and evaluation
 - 🏢 **[Production Deployment](#production-deployment)** - Institutional hosting
 
-> **Note:**  
-> For contributing code or setting up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
+> 💡Note: For contributing code or setting up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Docker Setup
 
@@ -121,6 +120,7 @@ ______________________________________________________________________
 ## Raspberry Pi Camera Plugin
 
 If you want to use a Raspberry Pi Camera for image and video capture, see the [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+
 ______________________________________________________________________
 
 ## Need Help?

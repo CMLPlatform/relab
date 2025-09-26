@@ -89,7 +89,7 @@ async def send_registration_email(to_email: str, username: str | None, token: st
     # TODO: Store frontend paths required by the backend in a shared .env or other config file in the root directory
     # Alternatively, we can send the right path as a parameter from the frontend to the backend
     verification_link = generate_token_link(token, "/verify")
-    subject = "Welcome to CML Reverse Engineering Lab - Verify Your Email"
+    subject = "Welcome to Reverse Engineering Lab - Verify Your Email"
     body = f"""
 Hello {username if username else to_email},
 

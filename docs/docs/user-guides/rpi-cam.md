@@ -19,7 +19,7 @@ Post a request to the `/plugins/rpi-cam/cameras` endpoint with the following dat
 - **Camera API URL**: Where your Pi runs (e.g., `http://<your-rpi-ip>:8018`)
 - **Auth headers**: Additional authentication if needed (optional)
 
-See the [API documentation](https://api2.cml-relab.org/docs#/rpi-cam-management/register_user_camera_plugins_rpi_cam_cameras_post) for details on required fields.
+See the [API documentation](https://api.cml-relab.org/docs#/rpi-cam-management/register_user_camera_plugins_rpi_cam_cameras_post) for details on required fields.
 
 > 💡 **Note**: Save the generated API key - it's only shown once.
 

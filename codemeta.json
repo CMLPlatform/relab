@@ -41,11 +41,8 @@
     "remanufacturing"
   ],
   "license": "https://spdx.org/licenses/AGPL-3.0-or-later",
-  "name": "CML Reverse Engineering Lab",
-  "programmingLanguage": [
-    "Python 3.13",
-    "JavaScript"
-  ],
+  "name": "Reverse Engineering Lab",
+  "programmingLanguage": ["Python 3.13", "JavaScript"],
   "softwareRequirements": "Docker",
   "version": "0.1.0"
 }
