@@ -65,8 +65,8 @@ class MaterialProductLinkAdmin(ModelView, model=MaterialProductLink):
     column_list: ClassVar[Sequence[MODEL_ATTR]] = ["material", "product", "quantity", "unit"]
 
     column_formatters: ClassVar[dict[MODEL_ATTR, Callable]] = {
-        "material": lambda m, _: Markup(f'<a href="/admin/material/{m.material_id}">{m.material}</a>'),
-        "product": lambda m, _: Markup(f'<a href="/admin/product/{m.product_id}">{m.product}</a>'),
+        "material": lambda m, _: Markup('<a href="/admin/material/{}">{}</a>').format(m.material_id, m.material),
+        "product": lambda m, _: Markup('<a href="/admin/product/{}">{}</a>').format(m.product_id, m.product),
     }
 
     column_searchable_list: ClassVar[Sequence[MODEL_ATTR]] = ["material.name", "product.name"]
@@ -177,8 +177,10 @@ class VideoAdmin(ModelView, model=Video):
     column_list: ClassVar[Sequence[MODEL_ATTR]] = ["id", "url", "description", "product", "created_at"]
 
     column_formatters: ClassVar[dict[MODEL_ATTR, Callable]] = {
-        "url": lambda m, _: Markup(f'<a href="{m.url}" target="_blank">{m.url}</a>'),
-        "product": lambda m, _: Markup(f'<a href="/admin/product/{m.product_id}">{m.product}</a>') if m.product else "",
+        "url": lambda m, _: Markup('<a href="{}" target="_blank">{}</a>').format(m.url, m.url),
+        "product": lambda m, _: Markup('<a href="/admin/product/{}">{}</a>').format(m.product_id, m.product)
+        if m.product
+        else "",
         "created_at": lambda m, _: m.created_at.strftime("%Y-%m-%d %H:%M") if m.created_at else "",
     }
 

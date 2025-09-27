@@ -294,7 +294,7 @@ CreateSchema = TypeVar("CreateSchema", FileCreate, ImageCreateFromForm)
 FilterType = TypeVar("FilterType", bound=Filter)
 
 
-class ParentStorageOperations(Generic[MT, StorageModel, CreateSchema, FilterType]):
+class ParentStorageOperations[MT, StorageModel, CreateSchema, FilterType]:
     """Generic Create, Read, and Delete operations for managing files/images attached to a parent model."""
 
     def __init__(

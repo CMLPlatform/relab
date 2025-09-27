@@ -14,7 +14,7 @@ from sqlmodel import AutoString, Column, Field, Relationship
 from sqlmodel import Enum as SAEnum
 
 from app.api.common.models.base import APIModelName, CustomBase, SingleParentMixin, TimeStampMixinBare
-from app.api.common.models.custom_fields import AnyUrlInDB, HttpUrlInDB
+from app.api.common.models.custom_fields import AnyUrlInDB
 from app.api.data_collection.models import Product
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.custom_types import FileType, ImageType
@@ -146,7 +146,7 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
 
     def image_preview(self, size: int = 100) -> str:
         """HTML preview of the image with a specified size."""
-        return Markup(f'<img src="{self.image_url}" style="max-height: {size}px;">')
+        return Markup('<img src="{}" style="max-height: {}px;">').format(self.image_url, size)
 
 
 ### Video Model ###
