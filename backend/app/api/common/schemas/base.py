@@ -80,6 +80,7 @@ class ProductRead(BaseReadSchemaWithTimeStamp, ProductBase):
     """Base schema for reading product information."""
 
     product_type_id: PositiveInt | None = None
+    owner_id: UUID4
 
     @field_serializer("dismantling_time_start", "dismantling_time_end", when_used="unless-none")
     def serialize_timestamps(self, dt: datetime, _info: FieldSerializationInfo) -> str:
