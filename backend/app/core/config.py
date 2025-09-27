@@ -18,8 +18,8 @@ class CoreSettings(BaseSettings):
     database_port: int = 5432
     postgres_user: str = "postgres"
     postgres_password: str = ""
-    postgres_db: str = "fastapi_db"
-    postgres_test_db: str = "fastapi_test_db"
+    postgres_db: str = "relab_db"
+    postgres_test_db: str = "relab_test_db"
 
     # Debug settings
     debug: bool = False
