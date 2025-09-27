@@ -4,11 +4,12 @@ FROM node:24-slim AS builder
 
 WORKDIR /opt/relab/frontend
 
+# Copy package files
+COPY package*.json ./
+
 # Install dependencies
 RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=bind,source=package.json,target=package.json \
-    --mount=type=bind,source=package-lock.json,target=package-lock.json \
-    npm install
+    npm ci --include prod
 
 # Copy source code and build
 COPY . ./
