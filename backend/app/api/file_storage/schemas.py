@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import UploadFile
 from pydantic import AfterValidator, Field, HttpUrl, Json, PositiveInt
 
+from app.api.common.models.custom_types import IDT
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
 from app.api.file_storage.models.models import FileBase, FileParentType, ImageBase, ImageParentType, VideoBase
 
@@ -72,7 +73,7 @@ class FileCreate(FileCreateWithinParent):
 
     # HACK: Even though the parent_id is optional, it should be required in the request.
     # It is optional to allow for the currently messy storage crud and router factories to work
-    parent_id: PositiveInt | None = None
+    parent_id: IDT | None = None
     parent_type: FileParentType | None = Field(
         default=None, description=f"Type of the parent object, e.g. {', '.join(t.value for t in FileParentType)}"
     )
@@ -125,9 +126,9 @@ class ImageCreateInternal(BaseCreateSchema, ImageBase):
     ]
     # HACK: Even though the parent_id is optional, it should be required in the request.
     # It is optional to allow for the currently messy storage crud and router factories to work
-    parent_id: PositiveInt = Field(description="ID of the parent object")
-    parent_type: ImageParentType = Field(
-        description=f"Type of the parent object, e.g. {', '.join(t.value for t in ImageParentType)}"
+    parent_id: IDT | None = None
+    parent_type: ImageParentType | None = Field(
+        default=None, description=f"Type of the parent object, e.g. {', '.join(t.value for t in ImageParentType)}"
     )
 
 

@@ -89,19 +89,21 @@ def add_storage_type_routes(
     storage_type = storage_type_slug
     storage_ext: str = STORAGE_EXTENSION_MAP[storage_type]
 
-    async def check_read_parent_auth_dep(
-        parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
-    ) -> int:
-        if read_parent_auth_dep:
-            await read_parent_auth_dep(parent_id)
-        return parent_id
+    # HACK: Define null parent auth dependencies if none are provided
+    # TODO: Simplify storage crud and router factories
+    if read_parent_auth_dep is None:
 
-    async def check_modify_parent_auth_dep(
-        parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
-    ) -> int:
-        if modify_parent_auth_dep:
-            await modify_parent_auth_dep(parent_id)
-        return parent_id
+        async def read_parent_auth_dep(
+            parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
+        ) -> int:
+            return parent_id
+
+    if modify_parent_auth_dep is None:
+
+        async def modify_parent_auth_dep(
+            parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
+        ) -> int:
+            return parent_id
 
     if StorageRouteMethod.GET in include_methods:
 
@@ -134,7 +136,7 @@ def add_storage_type_routes(
         )
         async def get_items(
             session: AsyncSessionDep,
-            parent_id: Annotated[int, Depends(check_read_parent_auth_dep)],
+            parent_id: Annotated[int, Depends(read_parent_auth_dep)],
             item_filter: FilterSchema = FilterDepends(filter_schema),
         ) -> Sequence[StorageModel]:
             """Get all storage items associated with the parent."""
@@ -166,7 +168,7 @@ def add_storage_type_routes(
             summary=f"Get specific {parent_title} {storage_type_title}",
         )
         async def get_item(
-            parent_id: Annotated[int, Depends(check_read_parent_auth_dep)],
+            parent_id: Annotated[int, Depends(read_parent_auth_dep)],
             item_id: Annotated[UUID4, Path(alias=f"{storage_type_slug}_id", description=f"ID of the {storage_type}")],
             session: AsyncSessionDep,
         ) -> StorageModel:
@@ -207,10 +209,17 @@ def add_storage_type_routes(
             @router.post(**common_upload_route_params)
             async def upload_image(
                 session: AsyncSessionDep,
-                parent_id: Annotated[int, Path(alias=f"{parent_id_param}", description=f"ID of the {parent_title}")],
+                parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
                 file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
                 description: Annotated[str | None, Form()] = None,
-                image_metadata: Annotated[str | None, Form(), BeforeValidator(empty_str_to_none)] = None,
+                image_metadata: Annotated[
+                    str | None,
+                    Form(
+                        description="Image metadata in JSON string format",
+                        examples=[r'{"foo_key": "foo_value", "bar_key": {"nested_key": "nested_value"}}'],
+                    ),
+                    BeforeValidator(empty_str_to_none),
+                ] = None,
             ) -> StorageModel:
                 """Upload a new image for the parent.
 
@@ -219,12 +228,12 @@ def add_storage_type_routes(
                 item_data = ImageCreateFromForm(file=file, description=description, image_metadata=image_metadata)
                 return await storage_crud.create(session, parent_id, item_data)
 
-        elif create_schema == FileCreate:
+        elif create_schema is FileCreate:
 
             @router.post(**common_upload_route_params)
             async def upload_file(
                 session: AsyncSessionDep,
-                parent_id: Annotated[int, Path(alias=f"{parent_id_param}", description=f"ID of the {parent_title}")],
+                parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
                 file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
                 description: Annotated[str | None, Form()] = None,
             ) -> StorageModel:
@@ -245,29 +254,15 @@ def add_storage_type_routes(
             f"/{{{parent_id_param}}}/{storage_type_slug_plural}/{{{storage_type_slug}_id}}",
             dependencies=[Security(modify_auth_dep)] if modify_auth_dep else None,
             description=f"Remove {storage_type_title} from the {parent_title} and delete it from the storage.",
-            response_model=read_schema,
             responses={
-                200: {
-                    "description": f"{storage_type.title()} successfully removed",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "filename": f"example.{storage_ext}",
-                                "description": f"{parent_title} {storage_type_title}",
-                                f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                "created_at": "2025-09-22T14:30:45Z",
-                                "updated_at": "2025-09-22T14:30:45Z",
-                            }
-                        }
-                    },
-                },
+                204: {"description": f"{storage_type.title()} successfully removed"},
                 404: {"description": f"{parent_title} or {storage_type} not found"},
             },
             summary=f"Remove {storage_type_title} from {parent_title}",
+            status_code=204,
         )
         async def delete_item(
-            parent_id: Annotated[int, Depends(check_modify_parent_auth_dep)],
+            parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
             item_id: Annotated[UUID4, Path(alias=f"{storage_type_slug}_id", description=f"ID of the {storage_type}")],
             session: AsyncSessionDep,
         ) -> None:
