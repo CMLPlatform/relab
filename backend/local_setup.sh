@@ -13,14 +13,22 @@ echo "Setting up local development environment..."
 
 # Load database environment variables from .env file
 set -a
-source .env
+eval "$(command grep -E "^(DATABASE_HOST|DATABASE_PORT|POSTGRES_USER|POSTGRES_PASSWORD|POSTGRES_DB)=" .env)"
 set +a
 
 # Check if the PostgreSQL database exists, if not, create it
-until pg_isready -h "$DATABASE_HOST" -U "$POSTGRES_USER" >/dev/null 2>&1; do
+until pg_isready -h "$DATABASE_HOST" >/dev/null 2>&1; do
     echo "Waiting for PostgreSQL to be ready..."
     sleep 2
 done
+
+# Try connecting as POSTGRES_USER
+if psql -h "$DATABASE_HOST" -U "$POSTGRES_USER" -d postgres -c '\q' 2>/dev/null; then
+    echo "Successfully connected as $POSTGRES_USER."
+else
+    echo "Could not connect as $POSTGRES_USER. Please ensure this user exists and has access."
+    exit 1
+fi
 
 echo "Checking if the PostgreSQL database exists..."
 if psql -h "$DATABASE_HOST" -U "$POSTGRES_USER" -lqt | cut -d \| -f 1 | grep -qw "$POSTGRES_DB"; then
