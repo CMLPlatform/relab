@@ -11,6 +11,26 @@ services:
     volumes:
       - cloudflared_logs:/var/log/cloudflared
 
+  database_backups: # Automated database backups to local file system
+    image: prodrigestivill/postgres-backup-local:18
+    restart: always
+    volumes:
+      - /var/opt/pgbackups:/backups
+    depends_on:
+      - database
+    env_file: ./backend/.env
+    # Ensure the container has permission to write to the mounted volume.
+    # See also https://github.com/prodrigestivill/docker-postgres-backup-local?tab=readme-ov-file#usage
+    user: postgres:postgres
+    environment:
+      - POSTGRES_HOST=database
+      - POSTGRES_EXTRA_OPTS=-Z1 --schema=public --blobs
+      - SCHEDULE=@daily
+      - TZ=UTC
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+
   backend:
     environment:
       # The public URL of the frontend, used for email generation and cookie management
