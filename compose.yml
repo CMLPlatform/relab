@@ -50,7 +50,7 @@ services:
     restart: always
     env_file: ./backend/.env
     volumes:
-      - database_data:/var/lib/postgresql/data
+      - database_data:/var/lib/postgresql
     healthcheck:
       test: # Check if the database is ready to accept connections
         ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
