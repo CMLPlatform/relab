@@ -34,7 +34,11 @@ async def get_organizations(
     return await get_models(session, Organization, model_filter=org_filter)
 
 
-@router.get("/{organization_id}", summary="View a single organization", response_model=OrganizationReadPublic)
+@router.get(
+    "/{organization_id}",  # noqa: FAST003 # organization_id is used by OrgByID dependency
+    summary="View a single organization",
+    response_model=OrganizationReadPublic,
+)
 async def get_organization(organization: OrgByID) -> Organization:
     """Get an organization by ID."""
     return organization
@@ -62,7 +66,7 @@ async def get_organization_members(
 
 
 @router.post(
-    "/{organization_id}/members/me",
+    "/{organization_id}/members/me",  # noqa: FAST003 # organization_id is used by OrgByID dependency
     response_model=UserReadWithOrganization,
     status_code=201,
     summary="Join organization",

@@ -116,7 +116,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             logger.info("Skipping registration email for user %s", user.email)
             return
 
-        # HACK: Create synthetic request to specify sending registration email with verification token over normal verification email
+        # HACK: Create synthetic request to specify sending registration email with verification token
+        # instead of normal verification email
         request = Request(scope={"type": "http"})
         request.state.send_registration_email = True
         await self.request_verify(user, request)
