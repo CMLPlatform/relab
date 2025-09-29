@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { User } from "@/types/User";
 
 const baseUrl = "https://api.cml-relab.org"
 let token: string | undefined;
@@ -26,6 +27,12 @@ export async function login(
     return true;
 }
 
+export async function logout(): Promise<void> {
+    token = undefined;
+    await AsyncStorage.removeItem("username");
+    await AsyncStorage.removeItem("password");
+}
+
 export async function getToken(): Promise<string | undefined> {
     if (token) {return token;}
 
@@ -37,5 +44,25 @@ export async function getToken(): Promise<string | undefined> {
     if (!success) {return undefined;}
 
     return token;
+}
+
+export async function getProfile(): Promise<User | undefined> {
+    const url = new URL(baseUrl + "/users/me");
+    const authToken = await getToken();
+    if (!authToken) { return undefined; }
+
+    const headers = {"Authorization": `Bearer ${authToken}`, "Accept": "application/json"}
+
+    const response = await fetch(url, {method: "GET", headers: headers});
+    if (!response.ok) { return undefined; }
+
+    const data = await response.json();
+    return {
+        id: data.id,
+        email: data.email,
+        isActive: data.is_active,
+        isSuperuser: data.is_superuser,
+        username: data.username || "Username not defined",
+    };
 }
 
