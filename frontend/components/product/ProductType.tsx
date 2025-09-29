@@ -32,7 +32,7 @@ export default function ProductType({product, editMode, onTypeChange}: Props){
     return (
         <View style={{margin: 10, gap: 10}}>
             <Text variant="titleLarge" style={{ marginBottom: 12, paddingLeft: 10 }}>
-                Product Type
+                Product Type / Material
             </Text>
             <CPVCard
                 CPVId={product.productType?.name || "Define"}
