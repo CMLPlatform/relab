@@ -12,7 +12,7 @@ interface Props {
 
 export default function ProductDescription({product, editMode, onChangeDescription}: Props) {
     // States
-    const [text, setText] = useState(product.description);
+    const [text, setText] = useState(product.description || "");
     const [height, setHeight] = useState(40);
 
     // Sub Render >> View Mode
