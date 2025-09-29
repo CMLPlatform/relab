@@ -60,11 +60,35 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
                         {length: width, offset: width * index, index}
                     )}
                     renderItem={({ item }) => (
-                        <Image
-                            source={{ uri: item.url }}
-                            style={{ width: width, height: 400}}
-                            contentFit="cover"
-                        />
+                        <>
+                            <Image
+                                source={{ uri: item.url }}
+                                style={{ width: width, height: 400}}
+                                contentFit="cover"
+                            />
+                            {editMode && (
+                                <View
+                                    style={{
+                                        position: 'absolute',
+                                        top: 10,
+                                        right: 10,
+                                        padding: 8,
+                                        borderRadius: 12,
+                                        backgroundColor: 'rgba(160, 0, 0, 0.6)',
+                                    }}
+                                    onTouchEnd={() => {
+                                        product.images = product.images.filter(img => img.url !== item.url);
+                                        onImagesChange?.(product.images);
+                                    }}
+                                >
+                                    <Icon
+                                        source={"delete"} size={24} color={"white"}
+                                    />
+                                </View>
+
+                            )}
+
+                        </>
                     )}
                 />
             )}
