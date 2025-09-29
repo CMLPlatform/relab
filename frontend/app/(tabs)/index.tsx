@@ -23,10 +23,13 @@ export default function Main() {
     const [loggedIn, setLoggedIn] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
 
-    // Effects
-    useEffect(() => {
+    // Callbacks
+    const syncProducts = () => {
         allProducts().then(setProductList);
-    }, []);
+    }
+
+    // Effects
+    useEffect(syncProducts, []);
 
     if (authenticated === "true" && !loggedIn) {
         setLoggedIn(true);
@@ -43,6 +46,7 @@ export default function Main() {
     return (
         <Provider>
             <FlatList
+                onLayout={syncProducts}
                 style={{ padding: 10}}
                 contentContainerStyle={{ gap: 15 }}
                 data={productList}
