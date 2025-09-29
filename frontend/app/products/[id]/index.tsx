@@ -1,7 +1,7 @@
-import {ScrollView} from "react-native";
+import {NativeScrollEvent, NativeSyntheticEvent, ScrollView} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {useEffect, useState} from "react";
-import {Card, FAB, Provider, Text} from 'react-native-paper';
+import {Card, AnimatedFAB, Provider, Text} from 'react-native-paper';
 
 import ProductImage from "@/components/product/ProductImage";
 import ProductDescription from "@/components/product/ProductDescription";
@@ -43,6 +43,7 @@ export default function ProductPage() {
     // States
     const [product, setProduct] = useState<Product>();
     const [editMode, setEditMode] = useState(edit === "true" || false);
+    const [fabExtended, setFabExtended] = useState(true);
 
     // Effects
     /**
@@ -121,6 +122,10 @@ export default function ProductPage() {
         setProduct({...product, images: newImages});
     }
 
+    const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        setFabExtended(event.nativeEvent.contentOffset.y <= 0);
+    };
+
     // Methods
 
     /**
@@ -143,7 +148,7 @@ export default function ProductPage() {
     // Render
     return (
         <Provider>
-            <ScrollView contentContainerStyle={{ gap: 15 }} onLayout={synchronizeProduct}>
+            <ScrollView contentContainerStyle={{ gap: 15 }} onLayout={synchronizeProduct} onScroll={onScroll} scrollEventThrottle={16}>
                 <ProductImage product={product} editMode={editMode} onImagesChange={onImagesChange}/>
                 <ProductDescription product={product} editMode={editMode} onChangeDescription={onChangeDescription}/>
                 <ProductTags product={product} editMode={editMode} onBrandChange={onBrandChange} onModelChange={onModelChange}/>
@@ -152,11 +157,13 @@ export default function ProductPage() {
                 <ProductComponents product={product} editMode={editMode}/>
                 <ProductMetaData product={product}/>
             </ScrollView>
-            <FAB
+            <AnimatedFAB
                 icon={editMode? "check-bold": "pencil"}
                 onPress={toggleEditMode}
                 style={{position: "absolute", margin: 16, right: 0, bottom: 0}}
                 visible={isProductValid(product) || !editMode}
+                extended={fabExtended}
+                label={editMode? "Save Product": "Edit Product"}
             />
         </Provider>
     );
