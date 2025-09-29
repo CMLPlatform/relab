@@ -9,18 +9,9 @@ import { Product } from "@/types/Product";
 import {FAB, Provider} from "react-native-paper";
 
 
-
-type searchParams = {
-    authenticated?: string;
-}
-
 export default function Main() {
-    // Hooks
-    const {authenticated} = useLocalSearchParams<searchParams>();
-
     // States
     const [productList, setProductList] = useState<Required<Product>[]>([]);
-    const [loggedIn, setLoggedIn] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
 
     // Callbacks
@@ -30,17 +21,6 @@ export default function Main() {
 
     // Effects
     useEffect(syncProducts, []);
-
-    if (authenticated === "true" && !loggedIn) {
-        setLoggedIn(true);
-    }
-
-    // Sub Render >> Not logged in
-    if (!loggedIn) {
-        return (
-            <Redirect href={"/login"}/>
-        )
-    }
 
     // Render
     return (

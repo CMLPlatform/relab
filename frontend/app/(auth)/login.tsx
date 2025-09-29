@@ -19,7 +19,7 @@ export default function Login() {
             if (!token) {return;}
 
             const params = {authenticated: "true"};
-            router.replace({pathname: "/", params: params});
+            router.replace({pathname: "/database", params: params});
         });
     }, []);
 
@@ -28,7 +28,7 @@ export default function Login() {
         login(username, password).then((success) => {
             if (success) {
                 const params = {authenticated: "true"};
-                router.replace({pathname: "/", params: params});
+                router.replace({pathname: "/database", params: params});
             } else {
                 alert("Login failed. Please check your credentials.");
             }
