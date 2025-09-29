@@ -59,6 +59,9 @@ async function saveNewProduct(product: Product): Promise<number> {
 
     const response = await fetch(url, {method: "POST", headers: headers, body: body});
     const data = await response.json();
+
+    await updateProductImages(product);
+
     return data.id;
 }
 
@@ -77,7 +80,8 @@ async function updateProduct(product: Product): Promise<number> {
     const response = await fetch(url, {method: "PATCH", headers: headers, body: productBody });
 
     url = new URL(baseUrl + `/products/${product.id}/physical_properties`)
-    fetch(url, {method: "PATCH", headers: headers, body: propertiesBody });
+    await fetch(url, {method: "PATCH", headers: headers, body: propertiesBody });
+    await updateProductImages(product);
 
     const data = await response.json();
 
@@ -92,10 +96,14 @@ async function updateProductImages(product: Product) {
     for (const img of imagesToDelete) {
         await deleteImage(product, img);
     }
+
+    for (const img of imagesToAdd) {
+        await addImage(product, img);
+    }
 }
 
 async function deleteImage(product: Product, image: {id: number}) {
-    const url = new URL(baseUrl + `/products/${product.id}/images`);
+    const url = new URL(baseUrl + `/products/${product.id}/images/${image.id}`);
     const token = await getToken();
     const headers = {
         "Accept": "application/json",
@@ -108,10 +116,26 @@ async function addImage(product: Product, image: {url: string, description: stri
     const url = new URL(baseUrl + `/products/${product.id}/images`);
     const token = await getToken();
     const headers = {
-        "Content-Type": "application/json",
         "Accept": "application/json",
         "Authorization": `Bearer ${token}`
     }
+    const body = new FormData();
+    body.append("file", dataURItoBlob(image.url), "image.png");
+
+    await fetch(url, {method: "POST", headers: headers, body: body});
+}
+
+function dataURItoBlob(dataURI: string) {
+    const byteString = atob(dataURI.split(",")[1]); // decode base64
+    const mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0]; // e.g. "image/png"
+
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+
+    return new Blob([ab], { type: mimeString });
 }
 
 export function isProductValid(product: Product): boolean {
