@@ -161,7 +161,7 @@ export default function ProductPage() {
                 icon={editMode? "check-bold": "pencil"}
                 onPress={toggleEditMode}
                 style={{position: "absolute", margin: 16, right: 0, bottom: 0}}
-                visible={isProductValid(product) || !editMode}
+                disabled={!isProductValid(product)}
                 extended={fabExtended}
                 label={editMode? "Save Product": "Edit Product"}
             />
