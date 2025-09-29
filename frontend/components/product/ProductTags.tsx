@@ -82,7 +82,7 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
                         contentContainerStyle={{backgroundColor: 'white', padding: 16, margin: 10, borderRadius: 12}}
                     >
                         <TextInput
-                            placeholder={"New component name"}
+                            placeholder={"Set model"}
                             value={newModel}
                             onChangeText={setNewModel}
                             onSubmitEditing={modelChanged}
