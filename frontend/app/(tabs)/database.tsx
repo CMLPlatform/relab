@@ -1,5 +1,4 @@
 import {  FlatList } from "react-native";
-import {Redirect, useLocalSearchParams, useRouter} from "expo-router";
 import {useEffect, useState} from "react";
 
 import ProductCard from "@/components/common/ProductCard";
@@ -9,7 +8,7 @@ import { Product } from "@/types/Product";
 import {FAB, Provider} from "react-native-paper";
 
 
-export default function Main() {
+export default function DatabaseTab() {
     // States
     const [productList, setProductList] = useState<Required<Product>[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
