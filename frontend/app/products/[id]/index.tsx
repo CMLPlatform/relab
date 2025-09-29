@@ -11,8 +11,9 @@ import ProductMetaData from "@/components/product/ProductMetaData";
 import ProductComponents from "@/components/product/ProductComponents";
 import ProductType from "@/components/product/ProductType";
 
-import {getProduct, newProduct} from "@/services/api/fetching";
+import { getProduct, newProduct } from "@/services/api/fetching";
 import { isProductValid, saveProduct } from "@/services/api/saving";
+import { getUser } from "@/services/api/authentication";
 import {Product} from "@/types/Product";
 
 /**
@@ -160,6 +161,7 @@ export default function ProductPage() {
                 disabled={!isProductValid(product)}
                 extended={fabExtended}
                 label={editMode? "Save Product": "Edit Product"}
+                visible={product.ownedBy === "me"}
             />
         </Provider>
     );

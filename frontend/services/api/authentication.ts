@@ -3,6 +3,7 @@ import { User } from "@/types/User";
 
 const baseUrl = "https://api.cml-relab.org"
 let token: string | undefined;
+let user: User | undefined;
 
 export async function login(
     username: string,
@@ -29,6 +30,7 @@ export async function login(
 
 export async function logout(): Promise<void> {
     token = undefined;
+    user = undefined;
     await AsyncStorage.removeItem("username");
     await AsyncStorage.removeItem("password");
 }
@@ -46,7 +48,9 @@ export async function getToken(): Promise<string | undefined> {
     return token;
 }
 
-export async function getProfile(): Promise<User | undefined> {
+export async function getUser(): Promise<User | undefined> {
+    if (user) {return user;}
+
     const url = new URL(baseUrl + "/users/me");
     const authToken = await getToken();
     if (!authToken) { return undefined; }
@@ -57,12 +61,15 @@ export async function getProfile(): Promise<User | undefined> {
     if (!response.ok) { return undefined; }
 
     const data = await response.json();
-    return {
+
+    user = {
         id: data.id,
         email: data.email,
         isActive: data.is_active,
         isSuperuser: data.is_superuser,
         username: data.username || "Username not defined",
     };
+
+    return user;
 }
 
