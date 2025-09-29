@@ -44,17 +44,16 @@ export default function ProductPage() {
     const [product, setProduct] = useState<Product>();
     const [editMode, setEditMode] = useState(edit === "true" || false);
 
-    // Logic
-    navigation.setOptions({
-        title: name,
-    })
-
     // Effects
     /**
      * Fetch product data on mount or when id changes.
      * If id is "new", creates a new product instance.
      */
     useEffect(() => {
+        navigation.setOptions({
+            title: name,
+        })
+
         if (id === "new"){
             setProduct(newProduct(name, parent ? parseInt(parent) : NaN));
         }
