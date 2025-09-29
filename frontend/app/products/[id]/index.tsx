@@ -1,4 +1,4 @@
-import {NativeScrollEvent, NativeSyntheticEvent, ScrollView} from "react-native";
+import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, Platform} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {useEffect, useState} from "react";
 import {Card, AnimatedFAB, Provider, Text} from 'react-native-paper';
@@ -63,24 +63,20 @@ export default function ProductPage() {
         }
     }, []);
 
-    /**
-     * Update navigation options when product or editMode changes.
-     * Sets the header title and back button visibility.
-     */
-    useEffect(() => {
-        navigation.setOptions({
-            headerBackVisible: !editMode,
-            headerLeft: editMode ? () => null : undefined,
-        })
-    }, [product, editMode]);
-
-    /**
-     * Prevent navigation away from the page if in edit mode.
-     */
     useEffect(() => {
         return navigation.addListener("beforeRemove", (e) => {
             if (!editMode) {return;}
             e.preventDefault();
+            if (Platform.OS === "web") {
+                if (window.confirm("Discard changes?")) {
+                    navigation.dispatch(e.data.action);
+                }
+            } else {
+                Alert.alert("Discard changes?", "You have unsaved changes. Are you sure you want to discard them and leave the screen?", [
+                    { text: "Don't leave", style: "cancel", onPress: () => {} },
+                    { text: "Discard", style: "destructive", onPress: () => navigation.dispatch(e.data.action) },
+                ]);
+            }
         });
     }, [navigation, editMode]);
 
