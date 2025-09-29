@@ -113,6 +113,7 @@ async function deleteImage(product: Product, image: {id: number}) {
 }
 
 async function addImage(product: Product, image: {url: string, description: string}) {
+    console.log(image)
     const url = new URL(baseUrl + `/products/${product.id}/images`);
     const token = await getToken();
     const headers = {
@@ -120,7 +121,12 @@ async function addImage(product: Product, image: {url: string, description: stri
         "Authorization": `Bearer ${token}`
     }
     const body = new FormData();
-    body.append("file", dataURItoBlob(image.url), "image.png");
+
+    if (image.url.startsWith("data:")) {
+        body.append("file", dataURItoBlob(image.url), "image.png");
+    } else if (image.url.startsWith("file:")) {
+        body.append("file", { uri: image.url, name: "image.png", type: "image/png" } as any);
+    }
 
     await fetch(url, {method: "POST", headers: headers, body: body});
 }
