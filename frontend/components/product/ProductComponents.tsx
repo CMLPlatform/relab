@@ -31,7 +31,7 @@ export default function ProductComponents({product, editMode}: Props) {
                 {components.map((component, index) => (
                     <ProductCard key={component.id} id={component.id} name={component.name} description={component.description} />
                 ))}
-            {editMode || (
+            {editMode || product.ownedBy !== "me" || (
                 <Button compact={true} icon="plus" mode="contained" onPress={() => setModalVisible(true)}>
                     Add component
                 </Button>

@@ -1,4 +1,5 @@
 import {Product} from "@/types/Product";
+import {getUser} from "@/services/api/authentication";
 
 const baseUrl = "https://api.cml-relab.org"
 
@@ -14,6 +15,7 @@ type ProductData = {
     physical_properties: { weight_kg: number, height_cm: number, width_cm: number, depth_cm: number };
     components: { id: number; name: string; description: string }[];
     images: ImageData[];
+    owner_id: string;
 }
 
 type ImageData = {
@@ -22,7 +24,8 @@ type ImageData = {
     description: string;
 }
 
-function toProduct(data: ProductData): Required<Product> {
+async function toProduct(data: ProductData): Promise<Required<Product>> {
+    const meId = await getUser().then(user => user?.id);
     return {
         id: data.id,
         parentID: NaN,
@@ -33,6 +36,7 @@ function toProduct(data: ProductData): Required<Product> {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         productType: data.product_type,
+        ownedBy: data.owner_id === meId ? "me" : data.owner_id,
         physicalProperties: [
             { propertyName: "Weight", value: data.physical_properties.weight_kg, unit: "kg" },
             { propertyName: "Height", value: data.physical_properties.height_cm, unit: "cm" },
@@ -85,7 +89,8 @@ export function newProduct(name: string = "", parentID: number = NaN): Product {
                 unit: "cm"
             }],
         componentIDs: [],
-        images: []
+        images: [],
+        ownedBy: "me",
     }
 }
 
@@ -108,7 +113,8 @@ export async function allProducts (
     const data = await response.json();
     const product_data = data.items as ProductData[];
 
-    return product_data.map(data => toProduct(data));
+    await getUser(); // Ensure user is loaded for ownership checks
+    return Promise.all(product_data.map(data => toProduct(data)));
 }
 
 export function allBrands(): string[] {

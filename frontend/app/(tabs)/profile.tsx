@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import { Card, Text, Chip, Button } from "react-native-paper";
 
 import { User } from "@/types/User";
-import { getProfile, logout } from "@/services/api/authentication";
+import { getUser, logout } from "@/services/api/authentication";
 import {View} from "react-native";
 import {useRouter} from "expo-router";
 
@@ -15,7 +15,7 @@ export default function ProfileTab() {
 
     // Effects
     useEffect(() => {
-        getProfile().then(setProfile);
+        getUser().then(setProfile);
     }, []);
 
     // callbacks
