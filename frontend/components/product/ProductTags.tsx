@@ -4,6 +4,7 @@ import {View} from "react-native";
 import {useEffect, useState} from "react";
 
 import {Product} from "@/types/Product";
+import {useDialog} from "@/components/common/DialogProvider";
 
 type searchParams = {
     brandSelection?: string;
@@ -19,15 +20,8 @@ interface Props {
 export default function ProductTags({product, editMode, onBrandChange, onModelChange}: Props){
     // Hooks
     const router = useRouter();
-    const theme = useTheme();
+    const dialog = useDialog();
     const { brandSelection } = useLocalSearchParams<searchParams>();
-
-    // States
-    const [editModelMode, setEditModelMode] = useState(false);
-    const [newModel, setNewModel] = useState(product.model || "")
-
-    // Variables
-    let icon = editMode ? "pencil": ""
 
     // Effects
     useEffect(() => {
@@ -37,67 +31,55 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
     }, [brandSelection]);
 
     // Callbacks
-    const modelChanged = () => {
-        onModelChange?.(newModel)
-        setEditModelMode(false)
+
+    const onEditBrand = () => {
+        if (!editMode) return;
+        const params = {id: product.id, brand: product.brand};
+        router.push({pathname: "/products/[id]/brand_selection", params: params});
     }
 
-    // Methods
-    const createTag = function(type: string, text: string, onPress?: () => void) {
-        return(
-            <Surface style={{flexDirection: "row", borderRadius: 8, alignItems: "center"}}>
-                <Text style={{margin: 6}}>{type}</Text>
-                <Chip onPress={onPress}  icon={icon} textStyle={{margin: 6}}
-                      style={{backgroundColor: text==="Define" ? theme.colors.errorContainer: theme.colors.primaryContainer}}
-                >{text}</Chip>
-            </Surface>
-        )
+    const onEditModel = () => {
+        dialog.input({
+            title: "Set Model",
+            placeholder: "Model Name",
+            defaultValue: product.model || "",
+            buttons: [
+                { text: "Cancel", onPress: () => undefined },
+                { text: "OK", onPress: (modelName) => {
+                    onModelChange?.(modelName || "");
+                }}
+            ]
+        });
     }
 
     // Render
     return(
         <View style={{ marginVertical: 12, paddingHorizontal: 16, gap: 10, flexDirection: "row", flexWrap: "wrap" }}>
-            {createTag(
-                "Brand",
-                product.brand || "Define",
-                () => {
-                    if (!editMode) return;
-                    const params = {id: product.id, brand: product.brand};
-                    router.push({pathname: "/products/[id]/brand_selection", params: params});
-                }
-            )}
-            {createTag(
-                "Model",
-                product.model || "Define",
-                () => {
-                    setEditModelMode(true)
-                }
-            )}
-
-            {editModelMode && (
-                <Portal>
-                    <Modal
-                        visible={editModelMode}
-                        onDismiss={() => setEditModelMode(false)}
-                        contentContainerStyle={{backgroundColor: 'white', padding: 16, margin: 10, borderRadius: 12}}
-                    >
-                        <TextInput
-                            placeholder={"Set model"}
-                            value={newModel}
-                            onChangeText={setNewModel}
-                            onSubmitEditing={modelChanged}
-                            autoFocus={true}
-                        />
-                    </Modal>
-                    <FAB
-                        visible={editModelMode}
-                        icon={"check"}
-                        onPress={modelChanged}
-                        style={{position: "absolute", margin: 16, right: 0, bottom: 0}}
-                    />
-                </Portal>
-            )}
-
+            <TagChip tagType={"Brand"} text={product.brand} editMode={editMode} onEdit={onEditBrand} />
+            <TagChip tagType={"Model"} text={product.model} editMode={editMode} onEdit={onEditModel} />
         </View>
+    )
+}
+
+function TagChip({tagType, text, editMode, onEdit}: {tagType: string, text?: string, editMode: boolean, onEdit: () => void}){
+    // Hooks
+    const theme = useTheme();
+
+    // Variables
+    let icon = editMode ? "pencil": ""
+
+    // Render
+    return(
+        <Surface style={{flexDirection: "row", borderRadius: 8, alignItems: "center"}}>
+            <Text style={{margin: 6}}>{tagType}</Text>
+            <Chip
+                onPress={editMode ? onEdit: undefined}
+                icon={icon}
+                textStyle={{margin: 6}}
+                style={{backgroundColor: text ? theme.colors.primaryContainer: theme.colors.errorContainer}}
+            >
+                {text || "Define"}
+            </Chip>
+        </Surface>
     )
 }

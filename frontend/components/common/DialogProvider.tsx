@@ -11,24 +11,15 @@ type DialogOptions = {
     title?: string;
     message?: string;
     buttons?: DialogButton[];
-    input?: boolean; // if true, show a text field
+
+    input?: boolean;
     defaultValue?: string;
     placeholder?: string;
 };
 
 type DialogContextType = {
-    alert: (
-        title: string,
-        message?: string,
-        buttons?: DialogButton[],
-        options?: Omit<DialogOptions, "title" | "message" | "buttons">
-    ) => void,
-    input: (
-        title: string,
-        placeholder?: string,
-        buttons?: DialogButton[],
-        options?: Omit<DialogOptions, "title" | "placeholder" | "buttons">
-    ) => void,
+    alert: (options: DialogOptions) => void,
+    input: (options: DialogOptions) => void,
 };
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -44,22 +35,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     const [options, setOptions] = useState<DialogOptions | null>(null);
 
     // Context functions
-    const alert: DialogContextType["alert"] = (
-        title,
-        message,
-        buttons,
-        extraOptions
-    ) => {
-        setOptions({ title, message, buttons, ...extraOptions });
+    const alert: DialogContextType["alert"] = (options: DialogOptions) => {
+        setOptions({ ...options, input: false });
     };
 
-    const input: DialogContextType["input"] = (
-        title,
-        placeholder,
-        buttons,
-        extraOptions
-    ) => {
-        setOptions({ title, placeholder, buttons, input: true, ...extraOptions });
+    const input: DialogContextType["input"] = (options: DialogOptions) => {
+        setOptions({ ...options, input: true });
     };
 
     // Callbacks
@@ -88,7 +69,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
 function Dialog({options, onDismiss}: { options: DialogOptions | null, onDismiss?: () => void }) {
     // States
-    const [inputValue, setInputValue] = useState("");
+    const [inputValue, setInputValue] = useState(options?.defaultValue || "");
 
     // Callbacks
     const handleClose = (btn?: DialogButton) => {
@@ -142,12 +123,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     container: {
-        zIndex: 10,
         backgroundColor: "white",
         borderRadius: 12,
         padding: 20,
-        paddingBottom: 5,
-        width: "80%",
+        paddingBottom: 0,
+        width: "90%",
     },
     title: {
         fontSize: 18,
@@ -165,7 +145,7 @@ const styles = StyleSheet.create({
     },
     button: {
         paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingVertical: 15,
         marginLeft: 8,
     },
     buttonText: {

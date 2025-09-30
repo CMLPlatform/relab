@@ -28,13 +28,17 @@ export default function DatabaseTab() {
     };
 
     const newProduct = () => {
-        dialog.input("Create New Product", "Product Name", [
-            { text: "Cancel" },
-            { text: "OK", onPress: (productName) => {
-                const params = { id: "new", edit: "true", name: productName };
-                router.push({ pathname: "/products/[id]", params: params });
-            }}
-        ]);
+        dialog.input({
+            title: "Create New Product",
+            placeholder: "Product Name",
+            buttons: [
+                { text: "Cancel" },
+                { text: "OK", onPress: (productName) => {
+                    const params = { id: "new", edit: "true", name: productName };
+                    router.push({ pathname: "/products/[id]", params: params });
+                }}
+            ]
+        })
     }
 
     // Render
