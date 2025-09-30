@@ -1,6 +1,6 @@
 import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, Platform} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
-import {useEffect, useState} from "react";
+import {JSX, useEffect, useState} from "react";
 import {Card, AnimatedFAB, Provider, Text} from 'react-native-paper';
 
 import ProductImage from "@/components/product/ProductImage";
@@ -13,7 +13,6 @@ import ProductType from "@/components/product/ProductType";
 
 import { getProduct, newProduct } from "@/services/api/fetching";
 import { isProductValid, saveProduct } from "@/services/api/saving";
-import { getUser } from "@/services/api/authentication";
 import {Product} from "@/types/Product";
 
 /**
@@ -26,16 +25,8 @@ type searchParams = {
     parent?: string;
 }
 
-/**
- * ProductPage component displays and allows editing of a product.
- *
- * - Fetches product data based on route parameters.
- * - Supports edit mode for modifying product details.
- * - Renders product information and editing controls.
- *
- * @returns {JSX.Element} The product page UI.
- */
-export default function ProductPage() {
+
+export default function ProductPage(): JSX.Element {
     // Hooks
     const { id, name, edit, parent } = useLocalSearchParams<searchParams>();
     const navigation = useNavigation();
@@ -47,22 +38,18 @@ export default function ProductPage() {
     const [fabExtended, setFabExtended] = useState(true);
 
     // Effects
-    /**
-     * Fetch product data on mount or when id changes.
-     * If id is "new", creates a new product instance.
-     */
     useEffect(() => {
-        navigation.setOptions({
-            title: name,
-        })
+        navigation.setOptions({title: product?.name || "Product" });
+    }, [navigation, product]);
 
+    useEffect(() => {
         if (id === "new"){
             setProduct(newProduct(name, parent ? parseInt(parent) : NaN));
         }
         else {
             getProduct(parseInt(id)).then(setProduct);
         }
-    }, []);
+    }, [id, name, parent]);
 
     useEffect(() => {
         return navigation.addListener("beforeRemove", (e) => {
