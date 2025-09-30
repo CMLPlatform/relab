@@ -3,9 +3,10 @@ import {View} from "react-native";
 import {useState, useEffect} from "react";
 
 import ProductCard from "@/components/common/ProductCard";
-import NewProductModal from "@/components/common/NewProductModal";
 import {productComponents} from "@/services/api/fetching";
 import {Product} from "@/types/Product";
+import {useRouter} from "expo-router";
+import {useDialog} from "@/components/common/DialogProvider";
 
 interface Props {
     product: Product;
@@ -13,14 +14,28 @@ interface Props {
 }
 
 export default function ProductComponents({product, editMode}: Props) {
+    // Hooks
+    const router = useRouter();
+    const dialog = useDialog();
+
     // States
-    const [modalVisible, setModalVisible] = useState(false);
     const [components, setComponents] = useState<Product[]>([]);
 
     // Effects
     useEffect(() => {
         productComponents(product).then(setComponents)
     }, [product]);
+
+    // Callbacks
+    const newComponent = () => {
+        dialog.input("Create New Component", "Component Name", [
+            { text: "Cancel" },
+            { text: "OK", onPress: (componentName) => {
+                    const params = { id: "new", edit: "true", name: componentName, parent: product.id };
+                    router.push({ pathname: "/products/[id]", params: params });
+                }}
+        ]);
+    }
 
     // Render
     return (
@@ -32,11 +47,10 @@ export default function ProductComponents({product, editMode}: Props) {
                     <ProductCard key={component.id} id={component.id} name={component.name} description={component.description} />
                 ))}
             {editMode || product.ownedBy !== "me" || (
-                <Button compact={true} icon="plus" mode="contained" onPress={() => setModalVisible(true)}>
+                <Button compact={true} icon="plus" mode="contained" onPress={newComponent}>
                     Add component
                 </Button>
             )}
-            {modalVisible && <NewProductModal onDone={() => setModalVisible(false)} parentID={product.id} />}
         </View>
     )
 }
