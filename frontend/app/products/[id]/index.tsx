@@ -1,4 +1,4 @@
-import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, Platform} from "react-native";
+import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {JSX, useEffect, useState} from "react";
 import {Card, AnimatedFAB, Provider, Text, Button } from 'react-native-paper';
@@ -16,6 +16,7 @@ import { isProductValid, saveProduct, deleteProduct } from "@/services/api/savin
 import {Product} from "@/types/Product";
 import {useDialog} from "@/components/common/DialogProvider";
 import ProductDelete from "@/components/product/ProductDelete";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 /**
  * Type definition for search parameters used in the product page route.
@@ -38,6 +39,7 @@ export default function ProductPage(): JSX.Element {
     // States
     const [product, setProduct] = useState<Product>();
     const [editMode, setEditMode] = useState(edit === "true" || false);
+    const [saving, setSaving] = useState(false);
     const [fabExtended, setFabExtended] = useState(true);
 
     // Effects
@@ -151,11 +153,12 @@ export default function ProductPage(): JSX.Element {
      * Switch between view and edit modes.
      */
     const toggleEditMode = () => {
-        setEditMode(!editMode);
-        if (!editMode) {return}
+        if(!editMode){return setEditMode(true);}
+        setSaving(true);
         saveProduct(product).then((id) => {
             router.setParams({id: id.toString()})
-        });
+            setEditMode(false);
+        }).finally(() => setSaving(false));
     }
 
     const synchronizeProduct = () => {
@@ -182,7 +185,13 @@ export default function ProductPage(): JSX.Element {
                 <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete}/>
             </ScrollView>
             <AnimatedFAB
-                icon={editMode? "check-bold": "pencil"}
+                icon={() =>
+                    saving ? (
+                        <ActivityIndicator color={"black"}/>
+                    ) : editMode? (
+                        <MaterialCommunityIcons name="content-save" size={20}/>
+                    ) : (<MaterialCommunityIcons name="pencil" size={20}/>)
+                }
                 onPress={toggleEditMode}
                 style={{position: "absolute", margin: 15, right: 0, bottom: 5}}
                 disabled={!isProductValid(product)}
