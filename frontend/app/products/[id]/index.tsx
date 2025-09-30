@@ -43,13 +43,13 @@ export default function ProductPage(): JSX.Element {
     }, [navigation, product]);
 
     useEffect(() => {
-        if (id === "new"){
+        if (id === "new" && product === undefined) {
             setProduct(newProduct(name, parent ? parseInt(parent) : NaN));
         }
-        else {
+        else if (id !== "new") {
             getProduct(parseInt(id)).then(setProduct);
         }
-    }, [id, name, parent]);
+    }, []);
 
     useEffect(() => {
         return navigation.addListener("beforeRemove", (e) => {
