@@ -1,22 +1,15 @@
 # docker-compose.yml (BASE - common configuration)
 services:
-  frontend:
-    build:
-      context: ./frontend
-    depends_on:
-      - backend
-    restart: unless-stopped
-
   backend:
     build:
       context: ./backend
-    restart: unless-stopped
-    env_file: ./backend/.env
-    environment: # This overrides 'localhost' set in the .env file to use the docker service name
-      DATABASE_HOST: database
     depends_on:
       database:
         condition: service_healthy
+    env_file: ./backend/.env
+    environment:
+      DATABASE_HOST: database # Point to the database service
+    restart: unless-stopped
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
       - backend_logs:/opt/relab/backend/logs
@@ -25,19 +18,31 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
-    restart: on-failure:3
-    env_file: ./backend/.env
-    environment: # This overrides 'localhost' set in the .env file to use the docker service name
-      DATABASE_HOST: database
     depends_on:
       database:
         condition: service_healthy
+    env_file: ./backend/.env
+    environment:
+      DATABASE_HOST: database
+    profiles:
+      - migrations
+    restart: on-failure:3
     volumes: # Ensure migrations have access to seed data and user uploads (for seeding example images)
       - ./backend/data/seed:/opt/relab/backend/data/seed:ro
       - user_uploads:/opt/relab/backend/data/uploads
-    profiles:
-      # Only run this service when explicitly included
-      - "migrations"
+
+  database:
+    image: postgres:18@sha256:9685e09573f19eeb99d259547a1cb7a7a77cd15877f55f51e215ad06edf5c721
+    env_file: ./backend/.env
+    healthcheck:
+      test: # Check if the database is ready to accept connections
+        ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - database_data:/var/lib/postgresql
 
   docs:
     image: squidfunk/mkdocs-material:9@sha256:86d21da4f45f16e30774bf911e5b4795da13ce0cd197dbf8d3d059f256b2cc37
@@ -45,18 +50,12 @@ services:
     volumes:
       - ./docs:/docs
 
-  database:
-    image: postgres:18@sha256:9685e09573f19eeb99d259547a1cb7a7a77cd15877f55f51e215ad06edf5c721
-    restart: always
-    env_file: ./backend/.env
-    volumes:
-      - database_data:/var/lib/postgresql
-    healthcheck:
-      test: # Check if the database is ready to accept connections
-        ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 3s
-      timeout: 5s
-      retries: 5
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   backend_logs:

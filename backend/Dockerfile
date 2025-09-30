@@ -36,22 +36,29 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # --- Final runtime stage ---
 FROM python:3.13-slim
 
+# Build arguments
+ARG WORKDIR=/opt/relab/backend
+ARG APP_PORT=8000
+ARG APP_USER=appuser
+
 # Set up a non-root user
-RUN useradd appuser
+RUN useradd $APP_USER
 
 # Copy built app and environment from builder
-COPY --from=builder --chown=appuser:appuser /opt/relab/backend /opt/relab/backend
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
 
-WORKDIR /opt/relab/backend
+WORKDIR $WORKDIR
 
 # Set Python variables
-ENV PYTHONPATH=/opt/relab/backend \
+ENV PYTHONPATH=$WORKDIR \
     PYTHONUNBUFFERED=1 \
-    PATH="/opt/relab/backend/.venv/bin:$PATH"
+    PATH="$WORKDIR/.venv/bin:$PATH"
 
+# Expose the application port
 EXPOSE 8000
 
-USER appuser
+# Switch to non-root user
+USER $APP_USER
 
 # Run the FastAPI application
 CMD [".venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
