@@ -144,6 +144,18 @@ function dataURItoBlob(dataURI: string) {
     return new Blob([ab], { type: mimeString });
 }
 
+export async function deleteProduct(product: Product): Promise<void> {
+    if (product.id === "new") {return} // New products are not saved yet
+    const url = new URL(baseUrl + `/products/${product.id}`);
+    const token = await getToken();
+    const headers = {
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`
+    }
+    await fetch(url, {method: "DELETE", headers: headers});
+    return;
+}
+
 export function isProductValid(product: Product): boolean {
     return (
         product.name != undefined && product.name != "" &&

@@ -12,9 +12,10 @@ import ProductComponents from "@/components/product/ProductComponents";
 import ProductType from "@/components/product/ProductType";
 
 import { getProduct, newProduct } from "@/services/api/fetching";
-import { isProductValid, saveProduct } from "@/services/api/saving";
+import { isProductValid, saveProduct, deleteProduct } from "@/services/api/saving";
 import {Product} from "@/types/Product";
 import {useDialog} from "@/components/common/DialogProvider";
+import ProductDelete from "@/components/product/ProductDelete";
 
 /**
  * Type definition for search parameters used in the product page route.
@@ -48,8 +49,8 @@ export default function ProductPage(): JSX.Element {
                     onPress={() => {
                         if (!product) {return;}
                         dialog.input({
-                            title: "Edit Product Name",
-                            placeholder: "Product Name",
+                            title: "Edit name",
+                            placeholder: "Enter a name",
                             defaultValue: product.name || "",
                             buttons: [
                                 { text: "Cancel", onPress: () => undefined },
@@ -133,6 +134,13 @@ export default function ProductPage(): JSX.Element {
         setProduct({...product, images: newImages});
     }
 
+    const onProductDelete = () => {
+        deleteProduct(product).then(() => {
+            setEditMode(false);
+            router.replace("/(tabs)/database");
+        })
+    }
+
     const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         setFabExtended(event.nativeEvent.contentOffset.y <= 0);
     };
@@ -152,14 +160,18 @@ export default function ProductPage(): JSX.Element {
 
     const synchronizeProduct = () => {
         if (editMode) {return;}
-        console.log("Synchronizing product ", product.name);
         getProduct(parseInt(id)).then(setProduct);
     }
 
     // Render
     return (
         <Provider>
-            <ScrollView contentContainerStyle={{ gap: 15 }} onLayout={synchronizeProduct} onScroll={onScroll} scrollEventThrottle={16}>
+            <ScrollView
+                contentContainerStyle={{ gap: 15 , paddingBottom: 20 }}
+                onLayout={synchronizeProduct}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+            >
                 <ProductImage product={product} editMode={editMode} onImagesChange={onImagesChange}/>
                 <ProductDescription product={product} editMode={editMode} onChangeDescription={onChangeDescription}/>
                 <ProductTags product={product} editMode={editMode} onBrandChange={onBrandChange} onModelChange={onModelChange}/>
@@ -167,11 +179,12 @@ export default function ProductPage(): JSX.Element {
                 <ProductPhysicalProperties product={product} editMode={editMode} onChangePhysicalProperties={onChangePhysicalProperties}/>
                 <ProductComponents product={product} editMode={editMode}/>
                 <ProductMetaData product={product}/>
+                <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete}/>
             </ScrollView>
             <AnimatedFAB
                 icon={editMode? "check-bold": "pencil"}
                 onPress={toggleEditMode}
-                style={{position: "absolute", margin: 16, right: 0, bottom: 0}}
+                style={{position: "absolute", margin: 15, right: 0, bottom: 5}}
                 disabled={!isProductValid(product)}
                 extended={fabExtended}
                 label={editMode? "Save Product": "Edit Product"}
