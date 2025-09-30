@@ -68,6 +68,9 @@ data/*
 # Logs
 logs/*
 
+# Backups
+backups/*
+
 # VS Code settings
 !.vscode/settings.json
 !.vscode/extensions.json

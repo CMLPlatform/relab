@@ -1,0 +1,26 @@
+FROM alpine:latest
+
+# Build arguments
+ARG WORKDIR=/opt/relab/backend_backups
+ARG BACKUP_SCRIPT_NAME=backup_user_uploads.sh
+
+# Install GNU tar and zstd for faster compression
+RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
+    apk -U upgrade && apk add --no-interactive\
+    tar \
+    zstd
+
+WORKDIR $WORKDIR
+
+# Set BACKUP_SCRIPT variable for entrypoint script
+ENV BACKUP_SCRIPT=$WORKDIR/$BACKUP_SCRIPT_NAME
+
+# Copy backup script
+COPY scripts/$BACKUP_SCRIPT_NAME .
+RUN chmod +x ./$BACKUP_SCRIPT_NAME
+
+# Copy entrypoint script
+COPY user_upload_backups_entrypoint.sh .
+RUN chmod +x ./user_upload_backups_entrypoint.sh
+
+ENTRYPOINT ["./user_upload_backups_entrypoint.sh"]
