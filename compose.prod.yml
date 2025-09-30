@@ -2,65 +2,59 @@
 name: relab_prod # Separate prod containers, networks, and volumes from dev
 
 services:
-  cloudflared: # Cloudflared tunnel to cml-relab.org
-    image: cloudflare/cloudflared:latest@sha256:4604b477520dc8322af5427da68b44f0bf814938e9d2e4814f2249ee4b03ffdf
-    pull_policy: always
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    env_file: .env
-    volumes:
-      - cloudflared_logs:/var/log/cloudflared
-
   backend:
     environment:
       # The public URL of the frontend, used for email generation and cookie management
-      - FRONTEND_URL=https://cml-relab.org
-      - DEBUG=False
+      FRONTEND_URL: https://cml-relab.org
+      DEBUG: False
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   backend_user_upload_backups: # Automated user uploads backups to local file system
     build:
       context: ./backend
       dockerfile: Dockerfile.user_upload_backups
-    restart: unless-stopped
+    depends_on:
+      - backend
     environment:
-      - SCHEDULE=0 2 * * * # Daily at 2am
-      - UPLOADS_DIR=/data/uploads # Note: this is the path inside the container
-      - BACKUP_DIR=/backups # Note: this is the path inside the container
-      - BACKUP_KEEP_DAYS=7
-      - BACKUP_KEEP_WEEKS=4
-      - BACKUP_KEEP_MONTHS=6
-      - MAX_TOTAL_GB=100
+      SCHEDULE: 0 2 * * * # Daily at 2am
+      UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
+      BACKUP_DIR: /backups # NOTE: this is the path inside the container
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      MAX_TOTAL_GB: 100
+    profiles:
+      - backups
+    restart: unless-stopped
     volumes:
       - user_uploads:/data/uploads:ro
       - ${BACKUP_DIR}/user_uploads:/backups
-    depends_on:
-      - backend
-    profiles:
-      - backups
+
+  cloudflared: # Cloudflared tunnel to cml-relab.org
+    image: cloudflare/cloudflared:latest@sha256:4604b477520dc8322af5427da68b44f0bf814938e9d2e4814f2249ee4b03ffdf
+    command: tunnel --no-autoupdate run
+    env_file: .env # Should contain TUNNEL_TOKEN variable
+    pull_policy: always
+    restart: unless-stopped
 
   database_backups: # Automated database backups to local file system
     image: prodrigestivill/postgres-backup-local:18
-    restart: unless-stopped
-    env_file: ./backend/.env # Load database connection settings
-    volumes:
-      - ${BACKUP_DIR}/postgres_db:/backups
     depends_on:
       - database
+    env_file: ./backend/.env # Load database connection settings
     environment:
-      - SCHEDULE=0 2 * * * # Daily at 2am
-      - POSTGRES_HOST=database
-      - POSTGRES_EXTRA_OPTS=-Z1 --schema=public --blobs
-      - BACKUP_KEEP_DAYS=7
-      - BACKUP_KEEP_WEEKS=4
-      - BACKUP_KEEP_MONTHS=6
-      - BACKUP_ON_STARTUP=True
+      SCHEDULE: 0 2 * * * # Daily at 2am
+      POSTGRES_HOST: database
+      POSTGRES_EXTRA_OPTS: "-Z1 --schema: public --blobs" # Compress backups, only back up public schema, include blobs
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
     profiles:
       - backups
+    restart: unless-stopped
+    volumes:
+      - ${BACKUP_DIR}/postgres_db:/backups
 
   docs:
     # Disable live reload for production
     command: ["serve", "--dev-addr=0.0.0.0:8000", "--no-livereload"]
-
-volumes:
-  cloudflared_logs:

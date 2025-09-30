@@ -2,30 +2,32 @@
 name: relab_dev # Separate dev containers, networks, and volumes from prod
 
 services:
-  frontend:
-    build:
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend:/opt/relab/frontend # Mount source code for hot reload
-      - /opt/relab/frontend/node_modules # Prevent overwriting node_modules
-    ports:
-      - "8010:8081"
-
   backend:
     build:
       dockerfile: Dockerfile.dev
     environment:
-      FRONTEND_URL: http://localhost:8010
-    volumes:
-      - ./backend:/opt/relab/backend # Mount source code for hot reload
-      - /opt/relab/backend/.venv # Prevent overwriting the virtual environment
+      FRONTEND_URL: http://localhost:8010 # Point to local frontend dev server
     ports:
       - "8011:8000"
+    volumes:
+      - ./backend:/opt/relab/backend # Mount source code for hot reload
+      - /opt/relab/backend/.venv # Prevent overwriting local virtual environment
+      - /opt/relab/backend/logs # Prevent overwriting local logs
+
+  database:
+    ports:
+      - "5433:5432"
 
   docs:
     ports:
       - "8012:8000"
 
-  database:
+  frontend:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend:/opt/relab/frontend # Mount source code for hot reload
+      - /opt/relab/frontend/node_modules # Prevent overwriting local node_modules
+      - /opt/relab/frontend/.expo # Prevent overwriting local Expo files
     ports:
-      - "5433:5432"
+      - "8010:8081"

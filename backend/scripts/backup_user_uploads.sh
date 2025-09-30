@@ -69,12 +69,12 @@ generate_backup_paths() {
 # Create the main backup
 create_daily_backup() {
     log "Creating backup: ${DAILY_FILE}"
-    
+
     if ! tar caf "${DAILY_FILE}" -C "${UPLOADS_DIR}" .; then
         log "Error: Failed to create backup"
         exit 1
     fi
-    
+
     log "Daily backup successful: ${DAILY_FILE}"
 }
 
@@ -119,16 +119,16 @@ enforce_size_limit() {
         # Calculate current total size
         CURRENT_SIZE=$(find "${BACKUP_DIR}" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
             -exec stat -c %s {} + 2>/dev/null | awk '{sum+=$1} END{print sum+0}')
-        
+
         # Break if under limit
         if [ "${CURRENT_SIZE}" -le "${MAX_BYTES}" ]; then
             break
         fi
-        
+
         # Find and remove oldest backup
         OLDEST=$(find "${BACKUP_DIR}" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
             -printf '%T@ %p\n' 2>/dev/null | sort -n | head -n1 | cut -d' ' -f2-)
-        
+
         if [ -n "${OLDEST}" ] && [ -f "${OLDEST}" ]; then
             rm -f "${OLDEST}"
             log "Removed old backup (size limit): ${OLDEST}"
@@ -148,7 +148,7 @@ show_final_status() {
 # Main execution
 main() {
     log "Starting user uploads backup..."
-    
+
     validate_directories
     setup_backup_subdirectories
     generate_backup_paths
@@ -157,7 +157,7 @@ main() {
     cleanup_old_backups
     enforce_size_limit
     show_final_status
-    
+
     log "Backup process completed successfully"
 }
 
