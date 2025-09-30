@@ -60,6 +60,9 @@ async function saveNewProduct(product: Product): Promise<number> {
     const response = await fetch(url, {method: "POST", headers: headers, body: body});
     const data = await response.json();
 
+    console.log("Created product:", data);
+    product.id = data.id;  // Update product ID to the newly assigned ID so we can add images
+
     await updateProductImages(product);
 
     return data.id;
@@ -113,7 +116,6 @@ async function deleteImage(product: Product, image: {id: number}) {
 }
 
 async function addImage(product: Product, image: {url: string, description: string}) {
-    console.log(image)
     const url = new URL(baseUrl + `/products/${product.id}/images`);
     const token = await getToken();
     const headers = {
