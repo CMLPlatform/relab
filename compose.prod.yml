@@ -11,30 +11,52 @@ services:
     volumes:
       - cloudflared_logs:/var/log/cloudflared
 
-  database_backups: # Automated database backups to local file system
-    image: prodrigestivill/postgres-backup-local:18
-    restart: always
-    volumes:
-      - /var/opt/pgbackups:/backups
-    depends_on:
-      - database
-    env_file: ./backend/.env
-    # Ensure the container has permission to write to the mounted volume.
-    # See also https://github.com/prodrigestivill/docker-postgres-backup-local?tab=readme-ov-file#usage
-    user: postgres:postgres
-    environment:
-      - POSTGRES_HOST=database
-      - POSTGRES_EXTRA_OPTS=-Z1 --schema=public --blobs
-      - SCHEDULE=@daily
-      - TZ=UTC
-      - BACKUP_KEEP_DAYS=7
-      - BACKUP_KEEP_WEEKS=4
-      - BACKUP_KEEP_MONTHS=6
-
   backend:
     environment:
       # The public URL of the frontend, used for email generation and cookie management
-      FRONTEND_URL: https://cml-relab.org
+      - FRONTEND_URL=https://cml-relab.org
+      - DEBUG=False
+
+  # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
+  backend_user_upload_backups: # Automated user uploads backups to local file system
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.user_upload_backups
+    restart: unless-stopped
+    environment:
+      - SCHEDULE=0 2 * * * # Daily at 2am
+      - UPLOADS_DIR=/data/uploads # Note: this is the path inside the container
+      - BACKUP_DIR=/backups # Note: this is the path inside the container
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - MAX_TOTAL_GB=100
+    volumes:
+      - user_uploads:/data/uploads:ro
+      - ${BACKUP_DIR}/user_uploads:/backups
+    depends_on:
+      - backend
+    profiles:
+      - backups
+
+  database_backups: # Automated database backups to local file system
+    image: prodrigestivill/postgres-backup-local:18
+    restart: unless-stopped
+    env_file: ./backend/.env # Load database connection settings
+    volumes:
+      - ${BACKUP_DIR}/postgres_db:/backups
+    depends_on:
+      - database
+    environment:
+      - SCHEDULE=0 2 * * * # Daily at 2am
+      - POSTGRES_HOST=database
+      - POSTGRES_EXTRA_OPTS=-Z1 --schema=public --blobs
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - BACKUP_ON_STARTUP=True
+    profiles:
+      - backups
 
   docs:
     # Disable live reload for production

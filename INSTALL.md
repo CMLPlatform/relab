@@ -100,7 +100,18 @@ To publicly host the Reverse Engineering Lab platform using Cloudflare and Docke
    docker compose -f compose.yml -f compose.prod.yml up --build -d
    ```
 
-   The application will be available at your configured domain through Cloudflare.
+   The application will be available at your configured domain.
+
+1. **Enable Backups (optional, but recommended):**
+   You can automate backups of user uploads and the database on the host machine.
+
+   - Set `BACKUP_DIR` in your root `.env` file.
+
+   - Run the backups profile:
+
+     ```bash
+     docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
+     ```
 
 1. **Manage Containers**
    To monitor logs, run:
