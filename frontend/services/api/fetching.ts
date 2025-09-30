@@ -74,7 +74,7 @@ export function newProduct(name: string = "", parentID: number = NaN): Product {
             {
                 propertyName: "Weight",
                 value: NaN,
-                unit: "g"
+                unit: "kg"
             }, {
                 propertyName: "Height",
                 value: NaN,
