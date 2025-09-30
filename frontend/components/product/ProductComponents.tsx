@@ -28,13 +28,17 @@ export default function ProductComponents({product, editMode}: Props) {
 
     // Callbacks
     const newComponent = () => {
-        dialog.input("Create New Component", "Component Name", [
-            { text: "Cancel" },
-            { text: "OK", onPress: (componentName) => {
+        dialog.input({
+            title: "Create New Component",
+            placeholder: "Component Name",
+            buttons: [
+                { text: "Cancel" },
+                { text: "OK", onPress: (componentName) => {
                     const params = { id: "new", edit: "true", name: componentName, parent: product.id };
                     router.push({ pathname: "/products/[id]", params: params });
                 }}
-        ]);
+            ]
+        })
     }
 
     // Render

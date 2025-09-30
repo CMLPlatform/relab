@@ -14,6 +14,7 @@ import ProductType from "@/components/product/ProductType";
 import { getProduct, newProduct } from "@/services/api/fetching";
 import { isProductValid, saveProduct } from "@/services/api/saving";
 import {Product} from "@/types/Product";
+import {useDialog} from "@/components/common/DialogProvider";
 
 /**
  * Type definition for search parameters used in the product page route.
@@ -31,6 +32,7 @@ export default function ProductPage(): JSX.Element {
     const { id, name, edit, parent } = useLocalSearchParams<searchParams>();
     const navigation = useNavigation();
     const router = useRouter()
+    const dialog = useDialog();
 
     // States
     const [product, setProduct] = useState<Product>();
@@ -55,16 +57,15 @@ export default function ProductPage(): JSX.Element {
         return navigation.addListener("beforeRemove", (e) => {
             if (!editMode) {return;}
             e.preventDefault();
-            if (Platform.OS === "web") {
-                if (window.confirm("Discard changes?")) {
-                    navigation.dispatch(e.data.action);
-                }
-            } else {
-                Alert.alert("Discard changes?", "You have unsaved changes. Are you sure you want to discard them and leave the screen?", [
-                    { text: "Don't leave", style: "cancel", onPress: () => {} },
-                    { text: "Discard", style: "destructive", onPress: () => navigation.dispatch(e.data.action) },
-                ]);
-            }
+
+            dialog.alert({
+                title: "Discard changes?",
+                message: "You have unsaved changes. Are you sure you want to discard them and leave the screen?",
+                buttons: [
+                    { text: "Don't leave", onPress: () => {} },
+                    { text: "Discard", onPress: () => navigation.dispatch(e.data.action) },
+                ]
+            });
         });
     }, [navigation, editMode]);
 
