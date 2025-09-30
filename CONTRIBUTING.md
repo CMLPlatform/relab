@@ -327,6 +327,14 @@ When making changes to the database schema:
 
 1. **Apply the Migration**
 
+   - For docker setups, run the migration service:
+
+   ```bash
+   docker compose up backend_migrations
+   ```
+
+   - For local setups, run:
+
    ```bash
    uv run alembic upgrade head
    ```
