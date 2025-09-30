@@ -1,7 +1,7 @@
 import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, Platform} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {JSX, useEffect, useState} from "react";
-import {Card, AnimatedFAB, Provider, Text} from 'react-native-paper';
+import {Card, AnimatedFAB, Provider, Text, Button } from 'react-native-paper';
 
 import ProductImage from "@/components/product/ProductImage";
 import ProductDescription from "@/components/product/ProductDescription";
@@ -41,8 +41,34 @@ export default function ProductPage(): JSX.Element {
 
     // Effects
     useEffect(() => {
-        navigation.setOptions({title: product?.name || "Product" });
-    }, [navigation, product]);
+        navigation.setOptions({
+            title: product?.name || "Product" ,
+            headerRight: editMode ? () => (
+                <Button
+                    onPress={() => {
+                        if (!product) {return;}
+                        dialog.input({
+                            title: "Edit Product Name",
+                            placeholder: "Product Name",
+                            defaultValue: product.name || "",
+                            buttons: [
+                                { text: "Cancel", onPress: () => undefined },
+                                { text: "OK", onPress: (newName) => {
+                                    if (!newName || newName.trim().length === 0) {
+                                        Alert.alert("Invalid Name", "Product name cannot be empty.");
+                                        return;
+                                    }
+                                    setProduct({...product, name: newName.trim()});
+                                }}
+                            ]
+                        });
+                    }}
+                >
+                    Edit name
+                </Button>
+            ) : undefined
+        });
+    }, [navigation, product, editMode]);
 
     useEffect(() => {
         if (id === "new" && product === undefined) {
