@@ -1,10 +1,10 @@
-import { FlatList, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import { FlatList, NativeSyntheticEvent, NativeScrollEvent, RefreshControl } from "react-native";
 import { useState } from "react";
 
 import ProductCard from "@/components/common/ProductCard";
 import { allProducts } from "@/services/api/fetching";
 import { Product } from "@/types/Product";
-import { AnimatedFAB, Provider } from "react-native-paper";
+import { AnimatedFAB } from "react-native-paper";
 import { useDialog } from "@/components/common/DialogProvider";
 import {useRouter} from "expo-router";
 
@@ -17,8 +17,14 @@ export default function DatabaseTab() {
     // States
     const [productList, setProductList] = useState<Required<Product>[]>([]);
     const [fabExtended, setFabExtended] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Callbacks
+    const onRefresh = () => {
+        setRefreshing(true);
+        allProducts().then(setProductList).finally(() => setRefreshing(false));
+    }
+
     const syncProducts = () => {
         allProducts().then(setProductList);
     }
@@ -43,11 +49,12 @@ export default function DatabaseTab() {
 
     // Render
     return (
-        <Provider>
+        <>
             <FlatList
                 onScroll={onScroll}
                 scrollEventThrottle={16}
                 onLayout={syncProducts}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 contentContainerStyle={{ gap: 15, padding: 10}}
                 data={productList}
                 keyExtractor={(item) => item.id.toString()}
@@ -62,6 +69,6 @@ export default function DatabaseTab() {
                 onPress={newProduct}
                 style={{position: "absolute", margin: 16, right: 0, bottom: 0}}
             />
-        </Provider>
+        </>
     );
 }
