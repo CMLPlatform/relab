@@ -113,7 +113,9 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # Many-to-one relationships
     files: list["File"] | None = Relationship(back_populates="product", cascade_delete=True)
-    images: list["Image"] | None = Relationship(back_populates="product", cascade_delete=True)
+    images: list["Image"] | None = Relationship(
+        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"lazy": "subquery"}
+    )
     videos: list["Video"] | None = Relationship(back_populates="product", cascade_delete=True)
 
     # One-to-many relationships
