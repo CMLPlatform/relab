@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13-slim
 
 # Set up a non-root user
-RUN useradd -m appuser
+RUN useradd appuser
 
 # Copy built app and environment from builder
 COPY --from=builder --chown=appuser:appuser /opt/relab/backend /opt/relab/backend
