@@ -2,16 +2,20 @@ import { FlatList, NativeSyntheticEvent, NativeScrollEvent } from "react-native"
 import { useState } from "react";
 
 import ProductCard from "@/components/common/ProductCard";
-import NewProductModal from "@/components/common/NewProductModal";
 import { allProducts } from "@/services/api/fetching";
 import { Product } from "@/types/Product";
 import { AnimatedFAB, Provider } from "react-native-paper";
+import { useDialog } from "@/components/common/DialogProvider";
+import {useRouter} from "expo-router";
 
 
 export default function DatabaseTab() {
+    // Hooks
+    const dialog = useDialog();
+    const router = useRouter();
+
     // States
     const [productList, setProductList] = useState<Required<Product>[]>([]);
-    const [modalVisible, setModalVisible] = useState(false);
     const [fabExtended, setFabExtended] = useState(true);
 
     // Callbacks
@@ -23,6 +27,16 @@ export default function DatabaseTab() {
         setFabExtended(event.nativeEvent.contentOffset.y <= 0);
     };
 
+    const newProduct = () => {
+        dialog.input("Create New Product", "Product Name", [
+            { text: "Cancel" },
+            { text: "OK", onPress: (productName) => {
+                const params = { id: "new", edit: "true", name: productName };
+                router.push({ pathname: "/products/[id]", params: params });
+            }}
+        ]);
+    }
+
     // Render
     return (
         <Provider>
@@ -30,7 +44,6 @@ export default function DatabaseTab() {
                 onScroll={onScroll}
                 scrollEventThrottle={16}
                 onLayout={syncProducts}
-                // style={{ padding: 10}}
                 contentContainerStyle={{ gap: 15, padding: 10}}
                 data={productList}
                 keyExtractor={(item) => item.id.toString()}
@@ -41,12 +54,10 @@ export default function DatabaseTab() {
             <AnimatedFAB
                 icon="plus"
                 label="New Product"
-                visible={!modalVisible}
                 extended={fabExtended}
-                onPress={() => setModalVisible(true)}
+                onPress={newProduct}
                 style={{position: "absolute", margin: 16, right: 0, bottom: 0}}
             />
-            {modalVisible && <NewProductModal onDone={() => setModalVisible(false)} />}
         </Provider>
     );
 }
