@@ -13,12 +13,19 @@ echo "Setting up local development environment..."
 
 # Load database environment variables from .env file
 set -a
-eval "$(command grep -E "^(DATABASE_HOST|DATABASE_PORT|POSTGRES_USER|POSTGRES_PASSWORD|POSTGRES_DB)=" .env)"
+source .env
 set +a
 
-# Check if the PostgreSQL database exists, if not, create it
+MAX_RETRIES=10
+RETRY_COUNT=0
+
 until pg_isready -h "$DATABASE_HOST" >/dev/null 2>&1; do
-    echo "Waiting for PostgreSQL to be ready..."
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    echo "Waiting for PostgreSQL at $DATABASE_HOST... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+    if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+        echo "Could not connect to PostgreSQL at $DATABASE_HOST after $MAX_RETRIES attempts. Access was tried but not found."
+        exit 1
+    fi
     sleep 2
 done
 
