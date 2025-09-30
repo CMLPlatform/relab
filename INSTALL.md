@@ -54,7 +54,13 @@ Only needed for: custom development, institutional deployment, offline usage, or
 
 1. **Build and Run Containers**
 
-   Start the application using Docker Compose:
+   To seed the database for the first time, run the `migrations` profile:
+
+   ```bash
+   docker compose --profile migrations up
+   ```
+
+   After the initial setup, you can start the application as usual:
 
    ```bash
    docker compose up
@@ -74,7 +80,19 @@ ______________________________________________________________________
 
 **Perfect for**: Research institutions, universities, or organizations deploying for multiple users.
 
-To publicly host the Reverse Engineering Lab platform using Cloudflare and Docker, follow these steps:
+To host the Reverse Engineering Lab platform using Cloudflare and Docker, follow these steps:
+
+1. **Configure Cloudflare Tunnel**
+
+   - Ensure you have set up a domain and [remotely managed tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/cloudflared-parameters/) with Cloudflare.
+
+   - Configure the tunnel to forward traffic directly from the docker services:
+
+     - `frontend:8081`
+     - `backend:8000`
+     - `docs:8000`
+
+   - Set the `TUNNEL_TOKEN` in your root directory [`.env`](.env) file.
 
 1. **Configure Backend Environment**
 
@@ -87,20 +105,23 @@ To publicly host the Reverse Engineering Lab platform using Cloudflare and Docke
 
    Set up the necessary values in `.env` (marked with 🔀).
 
-1. **Configure Cloudflare Tunnel**
-   Ensure you have set up a domain and [remotely managed tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/cloudflared-parameters/) with Cloudflare.
-
-   Set the `TUNNEL_TOKEN` in your root directory [`.env`](.env) file.
-
 1. **Build and Run Containers**
 
    To deploy, run:
 
    ```bash
-   docker compose -f compose.yml -f compose.prod.yml up --build -d
+   docker compose -f compose.yml -f compose.prod.yml up -d
    ```
 
    The application will be available at your configured domain.
+
+1. **Seed the Database**
+
+   If this is your first launch or after schema changes, run the migrations profile:
+
+   ```bash
+   docker compose -f compose.yml -f compose.prod.yml --profile migrations up
+   ```
 
 1. **Enable Backups (optional, but recommended):**
    You can automate backups of user uploads and the database on the host machine.
@@ -117,13 +138,13 @@ To publicly host the Reverse Engineering Lab platform using Cloudflare and Docke
    To monitor logs, run:
 
    ```bash
-   docker compose logs -f
+   docker compose -p relab_prod logs -f
    ```
 
    To stop the application, run:
 
    ```bash
-   docker compose down
+   docker compose -p relab_prod down
    ```
 
 ______________________________________________________________________
