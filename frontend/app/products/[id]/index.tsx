@@ -2,6 +2,8 @@ import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, ActivityIndi
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {JSX, useEffect, useState} from "react";
 import {Card, AnimatedFAB, Provider, Text, Button } from 'react-native-paper';
+import {MaterialCommunityIcons} from "@expo/vector-icons";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 import ProductImage from "@/components/product/ProductImage";
 import ProductDescription from "@/components/product/ProductDescription";
@@ -10,13 +12,13 @@ import ProductPhysicalProperties from "@/components/product/ProductPhysicalPrope
 import ProductMetaData from "@/components/product/ProductMetaData";
 import ProductComponents from "@/components/product/ProductComponents";
 import ProductType from "@/components/product/ProductType";
+import ProductDelete from "@/components/product/ProductDelete";
 
+import {useDialog} from "@/components/common/DialogProvider";
+
+import {Product} from "@/types/Product";
 import { getProduct, newProduct } from "@/services/api/fetching";
 import { isProductValid, saveProduct, deleteProduct } from "@/services/api/saving";
-import {Product} from "@/types/Product";
-import {useDialog} from "@/components/common/DialogProvider";
-import ProductDelete from "@/components/product/ProductDelete";
-import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 /**
  * Type definition for search parameters used in the product page route.
@@ -169,8 +171,8 @@ export default function ProductPage(): JSX.Element {
     // Render
     return (
         <Provider>
-            <ScrollView
-                contentContainerStyle={{ gap: 15 , paddingBottom: 20 }}
+            <KeyboardAwareScrollView
+                contentContainerStyle={{ gap: 15 , paddingBottom: 5 }}
                 onLayout={synchronizeProduct}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
@@ -183,7 +185,7 @@ export default function ProductPage(): JSX.Element {
                 <ProductComponents product={product} editMode={editMode}/>
                 <ProductMetaData product={product}/>
                 <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete}/>
-            </ScrollView>
+            </KeyboardAwareScrollView>
             <AnimatedFAB
                 icon={() =>
                     saving ? (
