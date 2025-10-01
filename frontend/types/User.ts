@@ -3,5 +3,6 @@ export type User = {
     email: string;
     isActive: boolean;
     isSuperuser: boolean;
+    isVerified: boolean;
     username: string;
 }
