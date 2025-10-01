@@ -14,35 +14,35 @@ from app.core.database import sync_session_context
 
 # Configuration
 DATA_DIR = Path(__file__).parents[2] / "data" / "seed"
-HS_CSV_PATH = DATA_DIR / "harmonized-system.csv"
-HS_VERSION = "2022"
-HS_SOURCE = "https://github.com/datasets/harmonized-system/blob/main/data/harmonized-system.csv"
+CPV_ODS_PATH = DATA_DIR / "cpv.xlsx"
+CPV_VERSION = "2008"
+CPV_SOURCE = "from https://ted.europa.eu/documents/d/ted/cpv_2008_ods"
 
 
-def seed_hs_taxonomy() -> None:
+def seed_cpv_taxonomy() -> None:
     """Seed HS codes as taxonomy and categories using synchronous operations."""
     with sync_session_context() as session:
         # Check if taxonomy already exists
         existing_taxonomy = (
-            session.execute(select(Taxonomy).where(Taxonomy.name == f"Harmonized System {HS_VERSION}"))
+            session.execute(select(Taxonomy).where(Taxonomy.name == f"Harmonized System {CPV_VERSION}"))
             .scalars()
             .first()
         )
 
         if existing_taxonomy:
-            print(f"Harmonized System {HS_VERSION} already exists (id: {existing_taxonomy.id})")
+            print(f"Harmonized System {CPV_VERSION} already exists (id: {existing_taxonomy.id})")
             return
 
         # Create taxonomy
-        hs_taxonomy = Taxonomy(
-            name=f"Harmonized System {HS_VERSION}",
+        cpv_taxonomy = Taxonomy(
+            name=f"Harmonized System {CPV_VERSION}",
             description="World Customs Organization's Harmonized System for product classification",
             domains={TaxonomyDomain.PRODUCTS},
-            source=HS_SOURCE,
+            source=CPV_SOURCE,
         )
-        session.add(hs_taxonomy)
+        session.add(cpv_taxonomy)
         session.flush()
-        print(f"Created Harmonized System {HS_VERSION} taxonomy (id: {hs_taxonomy.id})")
+        print(f"Created Harmonized System {CPV_VERSION} taxonomy (id: {cpv_taxonomy.id})")
 
         # Create categories and store parent relationships in one pass
         categories = {}
@@ -50,7 +50,7 @@ def seed_hs_taxonomy() -> None:
         count = 0
         print("Creating categories...")
 
-        with HS_CSV_PATH.open(encoding="utf-8") as f:
+        with CPV_XLS_PATH.open(encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 section = row.get("section", "").strip()
@@ -71,7 +71,7 @@ def seed_hs_taxonomy() -> None:
                 category = Category(
                     name=description,
                     external_id=hscode,
-                    taxonomy_id=hs_taxonomy.id,
+                    taxonomy_id=cpv_taxonomy.id,
                 )
                 session.add(category)
                 categories[hscode] = category
@@ -102,4 +102,4 @@ def seed_hs_taxonomy() -> None:
 
 
 if __name__ == "__main__":
-    seed_hs_taxonomy()
+    seed_CPV_taxonomy()

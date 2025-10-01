@@ -63,7 +63,7 @@ venv/
 playground.ipynb
 
 # User-uploaded data
-data/*
+data/uploads/*
 
 # Logs
 logs/*
