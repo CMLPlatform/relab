@@ -80,7 +80,7 @@ async def send_email(
 def generate_token_link(token: str, route: str) -> str:
     """Generate a link with the specified token and route."""
     # TODO: Check that the base url works in remote deployment
-    return urljoin(str(core_settings.frontend_url), f"{route}?token={token}")
+    return urljoin(str(core_settings.frontend_web_url), f"{route}?token={token}")
 
 
 ### Email content ###
