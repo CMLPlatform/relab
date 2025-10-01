@@ -18,7 +18,7 @@ services:
     environment:
       SCHEDULE: 0 2 * * * # Daily at 2am
       UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
-      BACKUP_DIR: /backups # NOTE: this is the path inside the container
+      UPLOADS_BACKUP_DIR: /backups # NOTE: this is the path inside the container
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
@@ -53,7 +53,7 @@ services:
       - backups
     restart: unless-stopped
     volumes:
-      - ${BACKUP_DIR:./backend/backups}/postgres_db:/backups
+      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
 
   docs:
     # Disable live reload for production
