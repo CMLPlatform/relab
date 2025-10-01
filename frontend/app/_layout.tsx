@@ -1,42 +1,51 @@
 import { Stack } from "expo-router";
 import { DialogProvider } from "@/components/common/DialogProvider";
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import {
-    MD3LightTheme as DefaultTheme,
-    PaperProvider, useTheme,
-} from 'react-native-paper';
+import {MD3LightTheme, MD3DarkTheme, PaperProvider, adaptNavigationTheme} from 'react-native-paper';
+import {ThemeProvider, DarkTheme, DefaultTheme} from "@react-navigation/native";
 
-import customTheme from '../assets/themes/light'
+import lightTheme from '../assets/themes/light'
+import darkTheme from '../assets/themes/dark'
+import {useColorScheme} from "react-native";
 
-const theme = {
-    ...DefaultTheme,
-    ...customTheme,
-    colors: {
-        ...DefaultTheme.colors,
-        ...customTheme.colors,
-    },
-    roundness: 1,
-};
+
 
 
 export default function RootLayout() {
-  return (
+    const colorScheme = useColorScheme();
+
+    const theme =
+        colorScheme === 'dark'
+            ? { ...MD3LightTheme, colors: darkTheme.colors}
+            : { ...MD3DarkTheme, colors: lightTheme.colors}
+            ;
+
+    const { LightTheme } = adaptNavigationTheme({
+        reactNavigationLight: DefaultTheme,
+        reactNavigationDark: DefaultTheme,
+        materialLight: theme,
+        materialDark: theme
+    });
+
+    return (
       <PaperProvider theme={theme}>
-          <KeyboardProvider>
-              <DialogProvider>
+          <ThemeProvider value={LightTheme}>
+              <KeyboardProvider>
+                  <DialogProvider>
 
-                  <Stack>
-                      <Stack.Screen name="index" options={{headerShown: false}}/>
-                      <Stack.Screen name="(tabs)" options={{title: "ReLab."}}/>
+                      <Stack>
+                          <Stack.Screen name="index" options={{headerShown: false}}/>
+                          <Stack.Screen name="(tabs)" options={{title: "ReLab."}}/>
 
-                      <Stack.Screen name="(auth)/login" options={{ headerShown: false }}/>
+                          <Stack.Screen name="(auth)/login" options={{ headerShown: false }}/>
 
-                      <Stack.Screen name="products/[id]/camera" options={{ headerShown: false }}/>
-                      <Stack.Screen name="products/[id]/category_selection" options={{ title: "Select Category" }}/>
-                      <Stack.Screen name="products/[id]/brand_selection" options={{ title: "Select Brand" }}/>
-                  </Stack>
-              </DialogProvider>
-          </KeyboardProvider>
+                          <Stack.Screen name="products/[id]/camera" options={{ headerShown: false }}/>
+                          <Stack.Screen name="products/[id]/category_selection" options={{ title: "Select Category" }}/>
+                          <Stack.Screen name="products/[id]/brand_selection" options={{ title: "Select Brand" }}/>
+                      </Stack>
+                  </DialogProvider>
+              </KeyboardProvider>
+          </ThemeProvider>
       </PaperProvider>
   );
 }

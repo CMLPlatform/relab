@@ -40,7 +40,8 @@ const theme = {
         "surfaceDisabled": "rgba(25, 28, 30, 0.12)",
         "onSurfaceDisabled": "rgba(25, 28, 30, 0.38)",
         "backdrop": "rgba(42, 50, 53, 0.4)"
-    }
+    },
+    roundness: 1
 }
 
 export default theme;

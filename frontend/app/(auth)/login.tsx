@@ -3,7 +3,7 @@ import {useEffect, useState} from "react";
 import {Platform, View} from "react-native";
 import {Button, TextInput, Text, useTheme} from "react-native-paper";
 import { LinearGradient } from 'expo-linear-gradient';
-import {Keyboard} from "react-native";
+import {Keyboard, useColorScheme} from "react-native";
 import Animated, {
     useAnimatedSensor,
     SensorType,
@@ -21,6 +21,7 @@ export default function Login() {
     const router = useRouter();
     const dialog = useDialog();
     const rotation = useAnimatedSensor(SensorType.ROTATION, {interval: 20});
+    const colorScheme = useColorScheme();
 
     const backgroundStyle = useAnimatedStyle(() => {
         const { pitch, roll } = rotation.sensor.value;
@@ -32,6 +33,9 @@ export default function Login() {
             ],
         };
     });
+
+    // Variables
+    const image = colorScheme === "light" ? require("../../assets/images/bg-1.jpg") : require("../../assets/images/bg-2.jpg");
 
     // States
     const [username, setUsername] = useState("");
@@ -74,7 +78,7 @@ export default function Login() {
         <View style={{ flex: 1}}>
             {Platform.OS !== "web" && (
                 <Animated.Image
-                    source={require("../../assets/images/bg-1.jpg")}
+                    source={image}
                     style={[
                         {flex: 1, width: "180%", overflow: "hidden"},
                         backgroundStyle
@@ -83,7 +87,7 @@ export default function Login() {
             )}
             {Platform.OS === "web" && (
                 <ImageBackground
-                    source={require("../../assets/images/bg-1.jpg")}
+                    source={image}
                     style={{flex: 1}}
                 />
             )}
@@ -98,7 +102,7 @@ export default function Login() {
                 }}
             >
                 <LinearGradient
-                    colors={['transparent', 'white']}
+                    colors={['transparent', colorScheme === "light" ? 'white' : 'black']}
                     style={{
                         position: 'absolute',
                         top: 0, left: 0, right: 0, bottom: 0,
@@ -109,7 +113,7 @@ export default function Login() {
                         fontSize: 40,
                         fontWeight: "bold",
                         textAlign: "right",
-                        textShadowColor: "white",
+                        textShadowColor: colorScheme === "light" ? 'white' : 'black',
                         textShadowOffset: { width: 0, height: 0 },
                         textShadowRadius: 10,
                     }}
@@ -151,7 +155,7 @@ export default function Login() {
                     bottom: 0,
                     height: ( keyboardShown && Keyboard.metrics() ) ? Keyboard.metrics()?.height : 0,
                     width: "100%",
-                    backgroundColor: "white",
+                    backgroundColor: colorScheme === "light" ? 'white' : 'black',
                 }}
             />
         </View>
