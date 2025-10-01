@@ -29,7 +29,7 @@ async def index(
             "request": request,
             "user": user,
             "show_full_docs": user.is_superuser if user else False,
-            "frontend_url": core_settings.frontend_url,
+            "frontend_web_url": core_settings.frontend_web_url,
             "admin_path": admin_settings.admin_base_url,
         },
     )
