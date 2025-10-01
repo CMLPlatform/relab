@@ -1,4 +1,4 @@
-import {FlatList, View, Dimensions} from "react-native";
+import {FlatList, View, Dimensions, Pressable} from "react-native";
 import {Image} from "expo-image";
 import {Icon} from "react-native-paper";
 import {useLocalSearchParams, useRouter} from "expo-router";
@@ -99,7 +99,7 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
                     contentFit="cover"/>
             )}
             {editMode && (
-                <View
+                <Pressable
                     style={{
                         position: 'absolute',
                         bottom: 10,
@@ -108,7 +108,7 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
                         borderRadius: 12,
                         backgroundColor: 'rgba(0, 0, 0, 0.6)',
                     }}
-                    onTouchEnd={() => {
+                    onPress={() => {
                         const params = {id: product.id};
                         router.push({pathname: "/products/[id]/camera", params: params});
                     }
@@ -117,7 +117,7 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
                     <Icon
                         source={"camera"} size={24} color={"white"}
                     />
-                </View>
+                </Pressable>
             )}
         </View>
     )}
