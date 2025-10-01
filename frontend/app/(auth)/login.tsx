@@ -132,6 +132,7 @@ export default function Login() {
                     mode={"outlined"}
                     value={password}
                     onChangeText={setPassword}
+                    autoCapitalize="none"
                     secureTextEntry
                     placeholder="Password"
                 />
@@ -144,7 +145,7 @@ export default function Login() {
                 </Button>
                 <Button
                     style={{ width: "100%", padding: 5, alignItems: "flex-end" }}
-                    onPress={() => {}}
+                    onPress={() => router.push("/new_account")}
                 >
                     Create a new account
                 </Button>

@@ -67,9 +67,41 @@ export async function getUser(): Promise<User | undefined> {
         email: data.email,
         isActive: data.is_active,
         isSuperuser: data.is_superuser,
+        isVerified: data.is_verified,
         username: data.username || "Username not defined",
     };
 
     return user;
 }
 
+export async function register(
+    username: string,
+    email: string,
+    password: string
+): Promise<boolean> {
+    const url = new URL(baseUrl + "/auth/register");
+    const headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+    const body = {
+        username: username,
+        email: email,
+        password: password
+    }
+
+    const response = await fetch(url, {method: "POST", headers: headers, body: JSON.stringify(body)});
+    return response.ok;
+}
+
+export async function verify(
+    email: string,
+): Promise<boolean> {
+    const url = new URL(baseUrl + "/auth/request-verify-token");
+    const headers = {"Content-Type": "application/json", "Accept": "application/json"}
+
+    const body = {
+        email: email,
+    }
+
+    const response = await fetch(url, {method: "POST", headers: headers, body: JSON.stringify(body)});
+    return response.ok;
+}
