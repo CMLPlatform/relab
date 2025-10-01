@@ -1,7 +1,7 @@
 import {useRouter} from "expo-router";
 import {useEffect, useState} from "react";
 import {Platform, View} from "react-native";
-import {Button, TextInput, Text} from "react-native-paper";
+import {Button, TextInput, Text, useTheme} from "react-native-paper";
 import { LinearGradient } from 'expo-linear-gradient';
 import {Keyboard} from "react-native";
 import Animated, {
@@ -108,6 +108,10 @@ export default function Login() {
                     style={{
                         fontSize: 40,
                         fontWeight: "bold",
+                        textAlign: "right",
+                        textShadowColor: "white",
+                        textShadowOffset: { width: 0, height: 0 },
+                        textShadowRadius: 10,
                     }}
                 >
                     {"ReLab."}
@@ -118,7 +122,7 @@ export default function Login() {
                     onChangeText={setUsername}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    placeholder="Username"
+                    placeholder="Email address"
                 />
                 <TextInput
                     mode={"outlined"}

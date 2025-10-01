@@ -8,6 +8,7 @@ export default function Layout() {
             name="database"
             options={{
                 title: "Database",
+                headerShown: false,
                 tabBarIcon: ({ color, size }) => (
                     <MaterialCommunityIcons name="database" color={color} size={size} />
                 ),
@@ -17,6 +18,7 @@ export default function Layout() {
               name="profile"
               options={{
                   title: "Profile",
+                  headerShown: false,
                   tabBarIcon: ({ color, size }) => (
                       <MaterialCommunityIcons name="account" color={color} size={size} />
                   ),
