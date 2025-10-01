@@ -82,6 +82,11 @@ class ProductRead(BaseReadSchemaWithTimeStamp, ProductBase):
     product_type_id: PositiveInt | None = None
     owner_id: UUID4
 
+    # HACK: Include parent id and mount_in_parent in base product read schema
+    # TODO: separate components and base products on the model level
+    parent_id: PositiveInt | None = None
+    amount_in_parent: float | None = Field(default=None, description="Quantity within parent product")
+
     @field_serializer("dismantling_time_start", "dismantling_time_end", when_used="unless-none")
     def serialize_timestamps(self, dt: datetime, _info: FieldSerializationInfo) -> str:
         """Serialize timestamps for read operations."""
