@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     volumes:
       - user_uploads:/data/uploads:ro
-      - ${BACKUP_DIR}/user_uploads:/backups
+      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
 
   cloudflared: # Cloudflared tunnel to cml-relab.org
     image: cloudflare/cloudflared:latest@sha256:4604b477520dc8322af5427da68b44f0bf814938e9d2e4814f2249ee4b03ffdf
@@ -53,7 +53,7 @@ services:
       - backups
     restart: unless-stopped
     volumes:
-      - ${BACKUP_DIR}/postgres_db:/backups
+      - ${BACKUP_DIR:./backend/backups}/postgres_db:/backups
 
   docs:
     # Disable live reload for production
