@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-default-groups --group=migrations --no-install-project
 
 # Copy alembic migrations, scripts, and source code
-COPY alembic.ini migrations_entrypoint.sh ./
+COPY alembic.ini ./
 COPY alembic/ alembic/
 COPY scripts/ scripts/
 COPY app/ app/
@@ -56,4 +56,4 @@ ENV PYTHONPATH=$WORKDIR \
 USER $APP_USER
 
 # Run the entrypoint
-ENTRYPOINT ["./migrations_entrypoint.sh"]
+ENTRYPOINT [". scripts/seed/migrations_entrypoint.sh"]

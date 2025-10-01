@@ -16,11 +16,11 @@ WORKDIR $WORKDIR
 ENV BACKUP_SCRIPT=$WORKDIR/$BACKUP_SCRIPT_NAME
 
 # Copy backup script
-COPY scripts/$BACKUP_SCRIPT_NAME .
+COPY scripts/backup/$BACKUP_SCRIPT_NAME .
 RUN chmod +x ./$BACKUP_SCRIPT_NAME
 
 # Copy entrypoint script
-COPY user_upload_backups_entrypoint.sh .
+COPY scripts/backup/user_upload_backups_entrypoint.sh .
 RUN chmod +x ./user_upload_backups_entrypoint.sh
 
 ENTRYPOINT ["./user_upload_backups_entrypoint.sh"]
