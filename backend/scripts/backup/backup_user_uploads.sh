@@ -1,14 +1,16 @@
 #!/bin/sh
 ### This script creates backups of user uploads with rotation and size limits.
+# NOTE: This is primarily intended to be run from within the backend_user_uploads_backups docker container.
+# If you want to run it locally, you can export the UPLOADS_DIR and UPLOADS_BACKUP_DIR env vars to point to the correct locations.
 
 set -e
 
 # Get the directory of this script
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Configuration with defaults
-UPLOADS_DIR="${UPLOADS_DIR:-$SCRIPT_DIR/../data/uploads}"
-BACKUP_DIR="${BACKUP_DIR:-$SCRIPT_DIR/../backups}"
+# Configuration
+UPLOADS_DIR="${UPLOADS_DIR:-$SCRIPT_DIR/../../data/uploads}"
+UPLOADS_BACKUP_DIR="${UPLOADS_BACKUP_DIR:-$SCRIPT_DIR/../../backups/user_uploads}"
 BACKUP_KEEP_DAYS="${BACKUP_KEEP_DAYS:-7}"
 BACKUP_KEEP_WEEKS="${BACKUP_KEEP_WEEKS:-4}"
 BACKUP_KEEP_MONTHS="${BACKUP_KEEP_MONTHS:-6}"
@@ -34,17 +36,17 @@ validate_directories() {
     fi
 
     # Validate backup directory (create if missing, then check permissions)
-    if [ ! -d "${BACKUP_DIR}" ]; then
-        log "Creating backup directory: ${BACKUP_DIR}"
-        if ! mkdir -p "${BACKUP_DIR}"; then
-            log "Error: Cannot create BACKUP_DIR '${BACKUP_DIR}'"
+    if [ ! -d "${UPLOADS_BACKUP_DIR}" ]; then
+        log "Creating backup directory: ${UPLOADS_BACKUP_DIR}"
+        if ! mkdir -p "${UPLOADS_BACKUP_DIR}"; then
+            log "Error: Cannot create UPLOADS_BACKUP_DIR '${UPLOADS_BACKUP_DIR}'"
             exit 1
         fi
     fi
 
     # Check backup directory permissions
-    if [ ! -d "${BACKUP_DIR}" ] || [ ! -w "${BACKUP_DIR}" ] || [ ! -x "${BACKUP_DIR}" ]; then
-        log "Error: BACKUP_DIR '${BACKUP_DIR}' has insufficient permissions (needs read/write/execute)"
+    if [ ! -d "${UPLOADS_BACKUP_DIR}" ] || [ ! -w "${UPLOADS_BACKUP_DIR}" ] || [ ! -x "${UPLOADS_BACKUP_DIR}" ]; then
+        log "Error: UPLOADS_BACKUP_DIR '${UPLOADS_BACKUP_DIR}' has insufficient permissions (needs read/write/execute)"
         exit 1
     fi
 }
@@ -52,7 +54,7 @@ validate_directories() {
 # Ensure backup subdirectories exist
 setup_backup_subdirectories() {
     log "Setting up backup directories..."
-    mkdir -p "${BACKUP_DIR}/daily" "${BACKUP_DIR}/weekly" "${BACKUP_DIR}/monthly"
+    mkdir -p "${UPLOADS_BACKUP_DIR}/daily" "${UPLOADS_BACKUP_DIR}/weekly" "${UPLOADS_BACKUP_DIR}/monthly"
 }
 
 # Generate file paths
@@ -61,9 +63,9 @@ generate_backup_paths() {
     WEEK="$(date +%G-%V)"
     MONTH="$(date +%Y-%m)"
 
-    DAILY_FILE="${BACKUP_DIR}/daily/user_uploads-${DATE}.tar.${COMPRESSION_FMT}"
-    WEEKLY_FILE="${BACKUP_DIR}/weekly/user_uploads-${WEEK}.tar.${COMPRESSION_FMT}"
-    MONTHLY_FILE="${BACKUP_DIR}/monthly/user_uploads-${MONTH}.tar.${COMPRESSION_FMT}"
+    DAILY_FILE="${UPLOADS_BACKUP_DIR}/daily/user_uploads-${DATE}.tar.${COMPRESSION_FMT}"
+    WEEKLY_FILE="${UPLOADS_BACKUP_DIR}/weekly/user_uploads-${WEEK}.tar.${COMPRESSION_FMT}"
+    MONTHLY_FILE="${UPLOADS_BACKUP_DIR}/monthly/user_uploads-${MONTH}.tar.${COMPRESSION_FMT}"
 }
 
 # Create the main backup
@@ -98,15 +100,15 @@ cleanup_old_backups() {
     log "Cleaning up old backups..."
 
     # Daily backups
-    find "${BACKUP_DIR}/daily" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
+    find "${UPLOADS_BACKUP_DIR}/daily" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
         -mtime +"${BACKUP_KEEP_DAYS}" -delete 2>/dev/null || true
 
     # Weekly backups
-    find "${BACKUP_DIR}/weekly" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
+    find "${UPLOADS_BACKUP_DIR}/weekly" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
         -mtime +$((BACKUP_KEEP_WEEKS * 7)) -delete 2>/dev/null || true
 
     # Monthly backups
-    find "${BACKUP_DIR}/monthly" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
+    find "${UPLOADS_BACKUP_DIR}/monthly" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
         -mtime +$((BACKUP_KEEP_MONTHS * 30)) -delete 2>/dev/null || true
 }
 
@@ -117,7 +119,7 @@ enforce_size_limit() {
 
     while true; do
         # Calculate current total size
-        CURRENT_SIZE=$(find "${BACKUP_DIR}" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
+        CURRENT_SIZE=$(find "${UPLOADS_BACKUP_DIR}" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
             -exec stat -c %s {} + 2>/dev/null | awk '{sum+=$1} END{print sum+0}')
 
         # Break if under limit
@@ -126,7 +128,7 @@ enforce_size_limit() {
         fi
 
         # Find and remove oldest backup
-        OLDEST=$(find "${BACKUP_DIR}" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
+        OLDEST=$(find "${UPLOADS_BACKUP_DIR}" -name "user_uploads-*.tar.${COMPRESSION_FMT}" \
             -printf '%T@ %p\n' 2>/dev/null | sort -n | head -n1 | cut -d' ' -f2-)
 
         if [ -n "${OLDEST}" ] && [ -f "${OLDEST}" ]; then
@@ -141,7 +143,7 @@ enforce_size_limit() {
 
 # Show final status
 show_final_status() {
-    TOTAL_SIZE=$(du -sh "${BACKUP_DIR}" 2>/dev/null | awk '{print $1}' || echo "unknown")
+    TOTAL_SIZE=$(du -sh "${UPLOADS_BACKUP_DIR}" 2>/dev/null | awk '{print $1}' || echo "unknown")
     log "Backup completed. Total size: ${TOTAL_SIZE}"
 }
 

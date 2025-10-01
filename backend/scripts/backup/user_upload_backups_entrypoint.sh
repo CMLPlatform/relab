@@ -3,7 +3,7 @@
 set -e
 
 # Create backup directory
-mkdir -p "${BACKUP_DIR:-/backups}"
+mkdir -p "${UPLOADS_BACKUP_DIR:-/backups}"
 
 # Write the backup schedule to the crontab.
 echo "${SCHEDULE-:'0 2 * * *'} ${BACKUP_SCRIPT:-./backup_user_uploads.sh} >> /proc/1/fd/1 2>&1" > /etc/crontabs/"${USER:-root}"
