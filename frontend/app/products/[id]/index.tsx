@@ -1,7 +1,7 @@
-import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, ActivityIndicator} from "react-native";
+import {NativeScrollEvent, NativeSyntheticEvent, Alert, ActivityIndicator} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {JSX, useEffect, useState} from "react";
-import {Card, AnimatedFAB, Provider, Text, Button } from 'react-native-paper';
+import {Card, AnimatedFAB, Text, Button} from 'react-native-paper';
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
@@ -170,7 +170,7 @@ export default function ProductPage(): JSX.Element {
 
     // Render
     return (
-        <Provider>
+        <>
             <KeyboardAwareScrollView
                 contentContainerStyle={{ gap: 15 , paddingBottom: 5 }}
                 onLayout={synchronizeProduct}
@@ -195,12 +195,12 @@ export default function ProductPage(): JSX.Element {
                     ) : (<MaterialCommunityIcons name="pencil" size={20}/>)
                 }
                 onPress={toggleEditMode}
-                style={{position: "absolute", margin: 15, right: 0, bottom: 5}}
+                style={{position: "absolute", right: 0, bottom: 0, overflow: "hidden",  margin: 16}}
                 disabled={!isProductValid(product)}
                 extended={fabExtended}
                 label={editMode? "Save Product": "Edit Product"}
                 visible={product.ownedBy === "me"}
             />
-        </Provider>
+        </>
     );
 }
