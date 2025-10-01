@@ -175,6 +175,11 @@ async def get_products(
             },
         ),
     ] = None,
+    *,
+    include_components_as_base_products: Annotated[
+        bool | None,
+        Query(description="Whether to include components as base products in the response"),
+    ] = None,
 ) -> Page[Sequence[ProductReadWithRelationshipsAndFlatComponents]]:
     """Get all products with specified relationships.
 
@@ -186,11 +191,22 @@ async def get_products(
     - product_type: Type classification
     - bill_of_materials: Material composition
     """
+    # TODO: Instead of this hacky parameter, distinguish between base products and components on the model level
+    # For now, only return base products (those without a parent)
+    if include_components_as_base_products:
+        statement: SelectOfScalar[Product] = select(Product)
+    else:
+        statement: SelectOfScalar[Product] = select(Product).where(Product.parent_id == None)
+
+    if product_filter:
+        statement = product_filter.filter(statement)
+
     return await get_paginated_models(
         session,
         Product,
         include_relationships=include,
         model_filter=product_filter,
+        statement=statement,
         read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
 
