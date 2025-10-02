@@ -48,7 +48,7 @@ export default function ProductComponents({product, editMode}: Props) {
                 Components ({product.componentIDs.length})
             </Text>
                 {components.map((component, index) => (
-                    <ProductCard key={component.id} id={component.id} name={component.name} description={component.description} />
+                    <ProductCard key={component.id} product={component} />
                 ))}
             {editMode || product.ownedBy !== "me" || (
                 <Button compact={true} icon="plus" mode="contained" onPress={newComponent}>
