@@ -1,7 +1,10 @@
 import {View} from "react-native";
-import {Card, Text, TextInput, Divider} from "react-native-paper";
+import {Card, Text, TextInput, Divider, Button} from "react-native-paper";
 import {useState, Fragment} from "react";
 import {Product, PhysicalProperty} from "@/types/Product";
+import ProductCard from "@/components/common/ProductCard";
+import DimensionSvg from "@/components/common/Dimensions";
+import Cube from "@/components/common/SVGCube";
 
 interface Props {
     product: Product;
@@ -17,25 +20,38 @@ export default function ProductPhysicalProperties({product, editMode, onChangePh
         onChangePhysicalProperties?.(newProperties);
     }
 
+    const widthProp = product.physicalProperties.find(p => p.propertyName.toLowerCase() === "width");
+    const heightProp = product.physicalProperties.find(p => p.propertyName.toLowerCase() === "height");
+    const depthProp = product.physicalProperties.find(p => p.propertyName.toLowerCase() === "depth");
+
     // Render
     return (
-        <Card style={{ margin: 10}}>
-            <Card.Title title={"Physical Properties"} titleVariant={"titleLarge"}/>
-            <Card.Content style={{ margin: 0, padding:0}} >
-                {product.physicalProperties.map((prop, index) => (
-                    <Fragment key={index}>
-                        <PhysicalPropertyCard
-                            property={prop}
-                            editMode={editMode}
-                            onChangeProperty={newProp => onChangeProperty(index, newProp)}
-                        />
-                        {index < product.physicalProperties.length - 1 && <Divider/>}
-                    </Fragment>
+        <View>
+            <Text
+                style={{
+                    marginBottom: 12,
+                    paddingLeft: 14,
+                    fontSize: 24,
+                    fontWeight: "bold",
+                }}
+            >
+                Physical Properties
+            </Text>
+            <Cube width={widthProp?.value} height={heightProp?.value} depth={depthProp?.value}></Cube>
+            {product.physicalProperties.map((prop, index) => (
+                <Fragment key={index}>
+                    <PhysicalPropertyCard
+                        property={prop}
+                        editMode={editMode}
+                        onChangeProperty={newProp => onChangeProperty(index, newProp)}
+                    />
+                    {index < product.physicalProperties.length - 1 && <Divider/>}
+                </Fragment>
 
-                ))}
-            </Card.Content>
-        </Card>
-)}
+            ))}
+        </View>
+    )}
+
 
 function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property: PhysicalProperty; editMode: boolean; onChangeProperty?: (newProperty: PhysicalProperty) => void}) {
     // States
