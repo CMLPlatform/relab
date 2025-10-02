@@ -1,5 +1,5 @@
-import {Button, Text} from "react-native-paper";
-import {View} from "react-native";
+import {View, Text} from "react-native";
+import {Button} from "react-native-paper";
 import {useState, useEffect} from "react";
 
 import ProductCard from "@/components/common/ProductCard";
@@ -43,15 +43,28 @@ export default function ProductComponents({product, editMode}: Props) {
 
     // Render
     return (
-        <View style={{margin: 10, gap: 10}}>
-            <Text variant="titleLarge" style={{ marginBottom: 12, paddingLeft: 10 }}>
+        <View>
+            <Text
+                style={{
+                    marginBottom: 12,
+                    paddingLeft: 14,
+                    fontSize: 24,
+                    fontWeight: "bold",
+                }}
+            >
                 Components ({product.componentIDs.length})
             </Text>
                 {components.map((component, index) => (
                     <ProductCard key={component.id} product={component} />
                 ))}
             {editMode || product.ownedBy !== "me" || (
-                <Button compact={true} icon="plus" mode="contained" onPress={newComponent}>
+                <Button
+                    compact={true}
+                    icon="plus"
+                    mode="contained"
+                    onPress={newComponent}
+                    style={{ marginHorizontal: 16, marginVertical: 8 }}
+                >
                     Add component
                 </Button>
             )}
