@@ -1,9 +1,7 @@
-import {View} from "react-native";
-import {Card, Text, TextInput, Divider, Button} from "react-native-paper";
+import {View, Text} from "react-native";
+import {TextInput, Divider} from "react-native-paper";
 import {useState, Fragment} from "react";
 import {Product, PhysicalProperty} from "@/types/Product";
-import ProductCard from "@/components/common/ProductCard";
-import DimensionSvg from "@/components/common/Dimensions";
 import Cube from "@/components/common/SVGCube";
 
 interface Props {
@@ -60,7 +58,7 @@ function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property
     // Render
     return(
         <View style={{ margin: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}} >
-                <Text variant="labelLarge" style={{paddingHorizontal: 10}}>
+                <Text style={{paddingHorizontal: 10}}>
                     {property.propertyName}
                 </Text>
             <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}}>
@@ -89,7 +87,7 @@ function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property
                         {text}
                     </Text>
                 )}
-                <Text variant="bodyMedium" style={{ width: 30 }}>
+                <Text style={{ width: 30 }}>
                     {" " + property.unit}
                 </Text>
 
