@@ -54,9 +54,12 @@ export default function ProductComponents({product, editMode}: Props) {
             >
                 Components ({product.componentIDs.length})
             </Text>
-                {components.map((component, index) => (
-                    <ProductCard key={component.id} product={component} />
-                ))}
+            {components.length === 0 && (
+                <Text style={{ paddingHorizontal: 14, opacity: 0.7, marginBottom: 8 }}>
+                    This product has no subcomponents.
+                </Text>
+            )}
+            {components.map((component, index) => (<ProductCard key={component.id} product={component} />))}
             {editMode || product.ownedBy !== "me" || (
                 <Button
                     compact={true}
