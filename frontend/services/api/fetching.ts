@@ -37,12 +37,12 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
         updatedAt: data.updated_at,
         productType: data.product_type,
         ownedBy: data.owner_id === meId ? "me" : data.owner_id,
-        physicalProperties: [
-            { propertyName: "Weight", value: data.physical_properties.weight_kg, unit: "kg" },
-            { propertyName: "Height", value: data.physical_properties.height_cm, unit: "cm" },
-            { propertyName: "Width", value: data.physical_properties.width_cm, unit: "cm" },
-            { propertyName: "Depth", value: data.physical_properties.depth_cm, unit: "cm" }
-        ],
+        physicalProperties: {
+            weight: data.physical_properties.weight_kg,
+            height: data.physical_properties.height_cm,
+            width: data.physical_properties.width_cm,
+            depth: data.physical_properties.depth_cm
+        },
         componentIDs: data.components.map(({id}) => id),
         images: data.images.map(img => ({ ...img, url: baseUrl + img.image_url }))
     }
@@ -70,24 +70,12 @@ export function newProduct(name: string = "", parentID: number = NaN): Product {
         id: "new",
         parentID: parentID,
         name: name,
-        physicalProperties: [
-            {
-                propertyName: "Weight",
-                value: NaN,
-                unit: "kg"
-            }, {
-                propertyName: "Height",
-                value: NaN,
-                unit: "cm"
-            }, {
-                propertyName: "Width",
-                value: NaN,
-                unit: "cm"
-            }, {
-                propertyName: "Depth",
-                value: NaN,
-                unit: "cm"
-            }],
+        physicalProperties: {
+            weight: NaN,
+            height: NaN,
+            width: NaN,
+            depth: NaN
+        },
         componentIDs: [],
         images: [],
         ownedBy: "me",

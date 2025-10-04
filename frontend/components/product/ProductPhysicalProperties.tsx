@@ -1,26 +1,35 @@
 import {View, Text} from "react-native";
 import {TextInput, Divider} from "react-native-paper";
 import {useState, Fragment} from "react";
-import {Product, PhysicalProperty} from "@/types/Product";
+import {Product, PhysicalProperties} from "@/types/Product";
 import Cube from "@/components/common/SVGCube";
 
 interface Props {
     product: Product;
     editMode: boolean;
-    onChangePhysicalProperties?: (newProperties: PhysicalProperty[]) => void;
+    onChangePhysicalProperties?: (newProperties: PhysicalProperties) => void;
+}
+
+const unitMap = {
+    weight: "kg",
+    height: "cm",
+    width: "cm",
+    depth: "cm"
+}
+
+const nameMap = {
+    weight: "Weight",
+    height: "Height",
+    width: "Width",
+    depth: "Depth"
 }
 
 export default function ProductPhysicalProperties({product, editMode, onChangePhysicalProperties}: Props) {
     // Callbacks
-    const onChangeProperty = (index: number, newProperty: PhysicalProperty) => {
-        const newProperties = [...product.physicalProperties];
-        newProperties[index] = newProperty;
+    const onChangeProperty = (key: string, value: number) => {
+        const newProperties = {...product.physicalProperties, [key]: value};
         onChangePhysicalProperties?.(newProperties);
     }
-
-    const widthProp = product.physicalProperties.find(p => p.propertyName.toLowerCase() === "width");
-    const heightProp = product.physicalProperties.find(p => p.propertyName.toLowerCase() === "height");
-    const depthProp = product.physicalProperties.find(p => p.propertyName.toLowerCase() === "depth");
 
     // Render
     return (
@@ -35,15 +44,21 @@ export default function ProductPhysicalProperties({product, editMode, onChangePh
             >
                 Physical Properties
             </Text>
-            <Cube width={widthProp?.value} height={heightProp?.value} depth={depthProp?.value}></Cube>
-            {product.physicalProperties.map((prop, index) => (
+            <Cube
+                width={product.physicalProperties.width}
+                height={product.physicalProperties.height}
+                depth={product.physicalProperties.depth}
+            />
+            {Object.keys(product.physicalProperties).map((prop, index) => (
                 <Fragment key={index}>
                     <PhysicalPropertyCard
-                        property={prop}
+                        name={nameMap[prop as keyof PhysicalProperties]}
+                        value={product.physicalProperties[prop as keyof PhysicalProperties]}
+                        unit={unitMap[prop as keyof PhysicalProperties]}
                         editMode={editMode}
-                        onChangeProperty={newProp => onChangeProperty(index, newProp)}
+                        onChangeProperty={onChangeProperty}
                     />
-                    {index < product.physicalProperties.length - 1 && <Divider/>}
+                    {index < 4 && <Divider/>}
                 </Fragment>
 
             ))}
@@ -51,15 +66,15 @@ export default function ProductPhysicalProperties({product, editMode, onChangePh
     )}
 
 
-function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property: PhysicalProperty; editMode: boolean; onChangeProperty?: (newProperty: PhysicalProperty) => void}) {
+function PhysicalPropertyCard({name, value, unit, editMode, onChangeProperty}: { name: string; value: number; unit: string; editMode: boolean; onChangeProperty?: (name: string, value: number) => void}) {
     // States
-    const [text, setText] = useState(Number.isNaN(property.value) ? "" : property.value.toString());
+    const [text, setText] = useState(Number.isNaN(value) ? "" : value.toString());
 
     // Render
     return(
         <View style={{ margin: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}} >
                 <Text style={{paddingHorizontal: 10}}>
-                    {property.propertyName}
+                    {name}
                 </Text>
             <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}}>
                 {editMode ? (
@@ -72,7 +87,7 @@ function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property
                         onChangeText={s => {
                             if(s.match("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$") || s === "") {
                                 setText(s)
-                                onChangeProperty?.({...property, value: parseFloat(s)})
+                                onChangeProperty?.(name.toLowerCase(), parseFloat(s))
                             }
                         }}
                         textAlign={"right"}
@@ -88,7 +103,7 @@ function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property
                     </Text>
                 )}
                 <Text style={{ width: 30 }}>
-                    {" " + property.unit}
+                    {" " + unit}
                 </Text>
 
             </View>
