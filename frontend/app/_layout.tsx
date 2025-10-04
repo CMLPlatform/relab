@@ -2,7 +2,8 @@ import { Stack } from "expo-router";
 import { DialogProvider } from "@/components/common/DialogProvider";
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {MD3LightTheme, MD3DarkTheme, PaperProvider, adaptNavigationTheme} from 'react-native-paper';
-import {ThemeProvider, DefaultTheme} from "@react-navigation/native";
+import {ThemeProvider, DefaultTheme as RNLight, DarkTheme as RNDark} from "@react-navigation/native";
+
 
 import lightTheme from '../assets/themes/light'
 import darkTheme from '../assets/themes/dark'
@@ -31,27 +32,29 @@ function Providers({ children }: { children: React.ReactNode }) {
     const colorScheme = useColorScheme();
 
     const theme =
-        colorScheme === 'dark'
-            ? { ...MD3LightTheme, colors: darkTheme.colors}
-            : { ...MD3DarkTheme, colors: lightTheme.colors}
+        colorScheme === 'light'
+            ? { ...MD3LightTheme, colors: lightTheme.colors}
+            : { ...MD3DarkTheme, colors: darkTheme.colors}
     ;
 
-    const { LightTheme } = adaptNavigationTheme({
-        reactNavigationLight: DefaultTheme,
-        reactNavigationDark: DefaultTheme,
+    const { LightTheme, DarkTheme } = adaptNavigationTheme({
+        reactNavigationLight: RNLight,
+        reactNavigationDark: RNDark,
         materialLight: theme,
         materialDark: theme
     });
+    console.log(LightTheme)
+    console.log(DarkTheme)
 
     return (
-        <PaperProvider theme={theme}>
-            <ThemeProvider value={LightTheme}>
+        // <PaperProvider theme={theme}>
+        //     <ThemeProvider value={colorScheme === "light" ? LightTheme : DarkTheme}>
                 <KeyboardProvider>
                     <DialogProvider>
                         {children}
                     </DialogProvider>
                 </KeyboardProvider>
-            </ThemeProvider>
-        </PaperProvider>
+        //     </ThemeProvider>
+        // </PaperProvider>
     );
 }
