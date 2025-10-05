@@ -8,10 +8,11 @@ import {Text} from "@/components/base";
 interface Props extends PressableProps {
     children?: string,
     title?: string,
+    icon?: React.ReactNode,
 }
 
 
-export const Chip: React.FC<Props> = ({style, children, title, ...props}) => {
+export const Chip: React.FC<Props> = ({style, children, title, icon, ...props}) => {
     const cs = useColorScheme() || 'light';
 
     const finalStyle = StyleSheet.flatten([
@@ -25,6 +26,8 @@ export const Chip: React.FC<Props> = ({style, children, title, ...props}) => {
         cs === "light" ? styles["lightText"] : styles["darkText"],
     ]);
 
+    console.log(icon)
+
     return (
         <Pressable style={finalStyle} {...props}>
             { title && (<Text style={styles.baseText}>
@@ -32,6 +35,8 @@ export const Chip: React.FC<Props> = ({style, children, title, ...props}) => {
             </Text>)}
             <Text style={finalTextStyle}>
                 {children}
+                {icon && "   "}
+                {icon}
             </Text>
         </Pressable>
     );
