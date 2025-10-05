@@ -5,6 +5,7 @@ import {useEffect} from "react";
 
 import {Product} from "@/types/Product";
 import {useDialog} from "@/components/common/DialogProvider";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 type searchParams = {
     brandSelection?: string;
@@ -31,7 +32,6 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
     }, [brandSelection]);
 
     // Callbacks
-
     const onEditBrand = () => {
         if (!editMode) return;
         const params = {id: product.id, brand: product.brand};
@@ -53,11 +53,25 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
         });
     }
 
+
+
     // Render
     return(
         <View style={{ marginVertical: 12, paddingHorizontal: 16, gap: 10, flexDirection: "row", flexWrap: "wrap" }}>
-            <Chip title={"Brand"} onPress={onEditBrand}>{product.brand}</Chip>
-            <Chip title={"Model"} onPress={onEditModel}>{product.model}</Chip>
+            <Chip
+                title={"Brand"}
+                onPress={onEditBrand}
+                icon={editMode && <MaterialCommunityIcons name={"pencil"}/>}
+            >
+                {product.brand}
+            </Chip>
+            <Chip
+                title={"Model"}
+                onPress={onEditModel}
+                icon={editMode && <MaterialCommunityIcons name={"pencil"}/>}
+            >
+                {product.model}
+            </Chip>
         </View>
     )
 }

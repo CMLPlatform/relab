@@ -73,11 +73,16 @@ function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { 
 
     // Render
     return(
-        <View style={{ marginHorizontal: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}} >
-                <Text style={{paddingHorizontal: 10}}>
+        <View style={{
+            marginHorizontal: 10,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+        }} >
+                <Text style={{padding: 10, height: "100%"}}>
                     {name}
                 </Text>
-            <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}}>
+            <View style={{flexDirection: "row", justifyContent: "space-between"}}>
                     <TextInput
                         style={{
                             width: 80,
@@ -100,7 +105,7 @@ function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { 
                         placeholder={"Set value"}
                         editable={editMode}
                     />
-                <Text style={{ width: 30, fontWeight: "bold" }}>
+                <Text style={{ width: 30, fontWeight: "bold", paddingVertical: 10 }}>
                     {" " + unit}
                 </Text>
 
