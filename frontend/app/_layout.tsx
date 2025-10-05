@@ -8,14 +8,32 @@ import {ThemeProvider, DefaultTheme as RNLight, DarkTheme as RNDark} from "@reac
 import lightTheme from '../assets/themes/light'
 import darkTheme from '../assets/themes/dark'
 import {useColorScheme} from "react-native";
+import {setBackgroundColorAsync} from "expo-system-ui"
 
+setBackgroundColorAsync("black");
 
 export default function RootLayout() {
+
     return (
       <Providers>
-          <Stack>
+          <Stack
+              // screenOptions={{
+              //     animation: "slide_from_right",
+              //     contentStyle: { backgroundColor: 'black'}
+              // }}
+          >
               <Stack.Screen name="index" options={{headerShown: false}}/>
-              <Stack.Screen name="(tabs)" options={{title: "ReLab."}}/>
+              <Stack.Screen name="(tabs)" options={{
+                  title: "ReLab.",
+                  headerTitleStyle: {
+                      fontWeight: "bold",
+                      fontSize: 34,
+                      color: lightTheme.colors.onPrimary,
+                  },
+                  headerStyle: {
+                      backgroundColor: lightTheme.colors.primary
+                  },
+              }}/>
 
               <Stack.Screen name="(auth)/login" options={{ headerShown: false }}/>
               <Stack.Screen name="(auth)/new_account" options={{ headerShown: false }}/>
