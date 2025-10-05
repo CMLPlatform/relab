@@ -1,7 +1,8 @@
-import {View, Text} from "react-native";
+import {View} from "react-native";
 import {Button} from "react-native-paper";
 import {useState, useEffect} from "react";
 
+import {Text} from "@/components/base";
 import ProductCard from "@/components/common/ProductCard";
 import {productComponents} from "@/services/api/fetching";
 import {Product} from "@/types/Product";

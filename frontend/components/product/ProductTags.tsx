@@ -1,7 +1,7 @@
 import {useLocalSearchParams, useRouter} from "expo-router";
-import {Chip, FAB, Modal, Portal, Surface, Text, TextInput, useTheme} from "react-native-paper";
+import {Chip, Surface, Text, useTheme} from "react-native-paper";
 import {View} from "react-native";
-import {useEffect, useState} from "react";
+import {useEffect} from "react";
 
 import {Product} from "@/types/Product";
 import {useDialog} from "@/components/common/DialogProvider";

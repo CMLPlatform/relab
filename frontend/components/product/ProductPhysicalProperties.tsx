@@ -1,4 +1,5 @@
-import {View, Text, TextInput} from "react-native";
+import {View} from "react-native";
+import {Text, TextInput} from "@/components/base";
 import {Divider} from "react-native-paper";
 import {useState, Fragment} from "react";
 import {Product, PhysicalProperties} from "@/types/Product";

@@ -1,4 +1,5 @@
-import {View, Text} from "react-native";
+import {View} from "react-native";
+import {Text} from "@/components/base";
 import {Product} from "@/types/Product";
 
 interface Props {
