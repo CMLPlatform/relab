@@ -1,5 +1,5 @@
 import {useLocalSearchParams, useRouter} from "expo-router";
-import {Chip, Surface, Text, useTheme} from "react-native-paper";
+import {Chip} from "@/components/base";
 import {View} from "react-native";
 import {useEffect} from "react";
 
@@ -39,6 +39,7 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
     }
 
     const onEditModel = () => {
+        if (!editMode) return;
         dialog.input({
             title: "Set Model",
             placeholder: "Model Name",
@@ -55,31 +56,8 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
     // Render
     return(
         <View style={{ marginVertical: 12, paddingHorizontal: 16, gap: 10, flexDirection: "row", flexWrap: "wrap" }}>
-            <TagChip tagType={"Brand"} text={product.brand} editMode={editMode} onEdit={onEditBrand} />
-            <TagChip tagType={"Model"} text={product.model} editMode={editMode} onEdit={onEditModel} />
+            <Chip title={"Brand"} onPress={onEditBrand}>{product.brand}</Chip>
+            <Chip title={"Model"} onPress={onEditModel}>{product.model}</Chip>
         </View>
-    )
-}
-
-function TagChip({tagType, text, editMode, onEdit}: {tagType: string, text?: string, editMode: boolean, onEdit: () => void}){
-    // Hooks
-    const theme = useTheme();
-
-    // Variables
-    let icon = editMode ? "pencil": ""
-
-    // Render
-    return(
-        <Surface style={{flexDirection: "row", borderRadius: 8, alignItems: "center"}}>
-            <Text style={{margin: 6}}>{tagType}</Text>
-            <Chip
-                onPress={editMode ? onEdit: undefined}
-                icon={icon}
-                textStyle={{margin: 6}}
-                style={{backgroundColor: text ? theme.colors.primaryContainer: theme.colors.errorContainer}}
-            >
-                {text || "Define"}
-            </Chip>
-        </Surface>
     )
 }
