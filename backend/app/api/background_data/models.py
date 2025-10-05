@@ -43,7 +43,7 @@ class TaxonomyDomain(str, Enum):
 class TaxonomyBase(CustomBase):
     """Base model for Taxonomy."""
 
-    name: str = Field(index=True, min_length=2, max_length=50, description="Name of the taxonomy")
+    name: str = Field(index=True, min_length=2, max_length=100, description="Name of the taxonomy")
     description: str | None = Field(default=None, max_length=500, description="Description of the taxonomy")
     domains: set[TaxonomyDomain] = Field(
         sa_column=Column(ARRAY(SAEnum(TaxonomyDomain))),
@@ -52,7 +52,7 @@ class TaxonomyBase(CustomBase):
 
     # TODO: Implement Source model
     source: str | None = Field(
-        default=None, max_length=50, description="Source of the taxonomy data, e.g. URL, IRI or citation key"
+        default=None, max_length=500, description="Source of the taxonomy data, e.g. URL, IRI or citation key"
     )
 
     model_config: ConfigDict = ConfigDict(use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
@@ -117,10 +117,10 @@ class Category(CategoryBase, TimeStampMixinBare, table=True):
 class MaterialBase(CustomBase):
     """Base model for Material."""
 
-    name: str = Field(index=True, min_length=2, max_length=50, description="Name of the Material")
+    name: str = Field(index=True, min_length=2, max_length=100, description="Name of the Material")
     description: str | None = Field(default=None, max_length=500, description="Description of the Material")
     source: str | None = Field(
-        default=None, max_length=50, description="Source of the material data, e.g. URL, IRI or citation key"
+        default=None, max_length=100, description="Source of the material data, e.g. URL, IRI or citation key"
     )
     density_kg_m3: float | None = Field(default=None, gt=0, description="Volumetric density (kg/m³) ")
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
@@ -148,7 +148,7 @@ class Material(MaterialBase, TimeStampMixinBare, table=True):
 class ProductTypeBase(CustomBase):
     """Base model for ProductType."""
 
-    name: str = Field(index=True, min_length=2, max_length=50, description="Name of the Product Type.")
+    name: str = Field(index=True, min_length=2, max_length=100, description="Name of the Product Type.")
     description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
 
 
