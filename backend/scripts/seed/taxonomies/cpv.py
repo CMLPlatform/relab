@@ -1,5 +1,6 @@
 """Seed Common Procurement Vocabulary (CPV) codes as taxonomy and categories."""
 
+import argparse
 import logging
 import re
 import zipfile
@@ -9,13 +10,18 @@ from typing import Any
 
 import pandas as pd
 import requests
+from sqlmodel import select
 
 from app.api.auth.models import User  # noqa: F401 # Need to explictly import User for SQLModel relationships
-from app.api.background_data.models import Category, TaxonomyDomain
+from app.api.background_data.models import (
+    Category,
+    ProductType,  # Adjust import as needed
+    TaxonomyDomain,
+)
 from app.core.database import sync_session_context
-from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
+from scripts.seed.taxonomies.common import configure_logging, get_or_create_taxonomy, seed_categories_from_rows
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("seeding.taxonomies.cpv")
 
 # Configuration
 DATA_DIR = Path(__file__).parents[3] / "data" / "seed"
@@ -85,7 +91,10 @@ def download_cpv_excel(excel_path: Path = EXCEL_PATH, source_url: str = TAXONOMY
 
 
 def load_cpv_rows_from_excel(
-    excel_path: Path, relevant_sections: list[str] | None = None, language_col: str = "EN", cpv_code_col: str = "CODE"
+    excel_path: Path,
+    relevant_sections: set[str] | None = RELEVANT_SECTIONS,
+    language_col: str = "EN",
+    cpv_code_col: str = "CODE",
 ) -> list[dict[str, Any]]:
     """Load CPV codes and English descriptions from the 'CPV codes' sheet, using pandas vectorized operations."""
     df = pd.read_excel(excel_path, sheet_name="CPV codes")
@@ -120,7 +129,7 @@ def get_cpv_parent_id(row: dict[str, Any]) -> str | None:
     return parent_code
 
 
-def seed_taxonomy() -> None:
+def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
     """Seed CPV taxonomy and categories."""
     # Ensure Excel is downloaded
     download_cpv_excel()
@@ -138,14 +147,13 @@ def seed_taxonomy() -> None:
         )
 
         # If taxonomy already existed, skip seeding
-
         existing_count = session.query(Category).filter_by(taxonomy_id=taxonomy.id).count()
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
             return
 
         # Load rows from Excel
-        rows = load_cpv_rows_from_excel(EXCEL_PATH)
+        rows = load_cpv_rows_from_excel(excel_path)
         logger.info("Loaded %d CPV codes from Excel", len(rows))
 
         # Seed categories
@@ -156,5 +164,52 @@ def seed_taxonomy() -> None:
         logger.info("✓ Added %s taxonomy with %d categories and %d relationships", TAXONOMY_NAME, cat_count, rel_count)
 
 
+def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
+    """Seed product types from CPV codes.
+
+    Note: this is a temporary measure until we have an improved link between product types and categories.
+    """
+    product_types_created = 0
+
+    # Ensure Excel is downloaded
+    download_cpv_excel()
+
+    logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
+
+    with sync_session_context() as session:
+        rows = load_cpv_rows_from_excel(excel_path)
+        logger.info("Loaded %d CPV codes from Excel", len(rows))
+
+        for row in rows:
+            # Remove trailing zeros for product type code for cosmetic reasons
+            cpv_code = row["external_id"].rstrip("0")
+            cpv_description = row["name"]
+
+            # Check if product type already exists
+            existing = session.exec(select(ProductType).where(ProductType.name == cpv_code)).first()
+            if existing:
+                continue
+
+            # Create product type
+            pt = ProductType(name=cpv_code, description=cpv_description)
+            session.add(pt)
+            product_types_created += 1
+
+        session.commit()
+        logger.info("Seeded %d product types from CPV codes", product_types_created)
+
+
 if __name__ == "__main__":
+    configure_logging()
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Seed CPV taxonomy and optionally product types")
+    parser.add_argument("--seed-product-types", action="store_true", help="Also seed product types from CPV codes")
+    args = parser.parse_args()
+
+    # Seed taxonomy
     seed_taxonomy()
+
+    # Optionally seed product types
+    if args.seed_product_types:
+        seed_product_types()

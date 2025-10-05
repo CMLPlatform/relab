@@ -9,7 +9,16 @@ from sqlalchemy.orm import Session
 
 from app.api.background_data.models import Category, Taxonomy
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("seeding.taxonomies")
+
+
+def configure_logging(level: int = logging.INFO) -> None:
+    """Configure logging for seeding scripts."""
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def get_or_create_taxonomy(
