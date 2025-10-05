@@ -1,5 +1,5 @@
-import {View, Text} from "react-native";
-import {TextInput, Divider} from "react-native-paper";
+import {View, Text, TextInput} from "react-native";
+import {Divider} from "react-native-paper";
 import {useState, Fragment} from "react";
 import {Product, PhysicalProperties} from "@/types/Product";
 import Cube from "@/components/common/SVGCube";
@@ -51,14 +51,14 @@ export default function ProductPhysicalProperties({product, editMode, onChangePh
             />
             {Object.keys(product.physicalProperties).map((prop, index) => (
                 <Fragment key={index}>
-                    <PhysicalPropertyCard
+                    <Divider/>
+                    <PhysicalPropertyRow
                         name={nameMap[prop as keyof PhysicalProperties]}
                         value={product.physicalProperties[prop as keyof PhysicalProperties]}
                         unit={unitMap[prop as keyof PhysicalProperties]}
                         editMode={editMode}
                         onChangeProperty={onChangeProperty}
                     />
-                    {index < 4 && <Divider/>}
                 </Fragment>
 
             ))}
@@ -66,23 +66,26 @@ export default function ProductPhysicalProperties({product, editMode, onChangePh
     )}
 
 
-function PhysicalPropertyCard({name, value, unit, editMode, onChangeProperty}: { name: string; value: number; unit: string; editMode: boolean; onChangeProperty?: (name: string, value: number) => void}) {
+function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { name: string; value: number; unit: string; editMode: boolean; onChangeProperty?: (name: string, value: number) => void}) {
     // States
     const [text, setText] = useState(Number.isNaN(value) ? "" : value.toString());
 
     // Render
     return(
-        <View style={{ margin: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}} >
+        <View style={{ marginHorizontal: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}} >
                 <Text style={{paddingHorizontal: 10}}>
                     {name}
                 </Text>
             <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}}>
-                {editMode ? (
                     <TextInput
-                        mode={"outlined"}
-                        style={{height: 26, width: 80, textAlign: "right", lineHeight: 24, fontSize: 14
-                    }}
-                        contentStyle={{padding: 0, paddingHorizontal: 5}}
+                        style={{
+                            width: 80,
+                            height: 40,
+                            outline: "none",
+                            textAlign: "right",
+                            fontSize: 14,
+                            fontWeight: "bold",
+                        }}
                         value={text}
                         onChangeText={s => {
                             if(s.match("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$") || s === "") {
@@ -94,15 +97,9 @@ function PhysicalPropertyCard({name, value, unit, editMode, onChangeProperty}: {
                         textAlignVertical={"top"}
                         keyboardType={"numeric"}
                         placeholder={"Set value"}
-                        error={text === ""}
+                        editable={editMode}
                     />
-
-                ) : (
-                    <Text style={{height: 25, width: 80, textAlign: "right", padding: 5}}>
-                        {text}
-                    </Text>
-                )}
-                <Text style={{ width: 30 }}>
+                <Text style={{ width: 30, fontWeight: "bold" }}>
                     {" " + unit}
                 </Text>
 
