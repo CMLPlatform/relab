@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
-import {Chip, IconButton} from "react-native-paper";
-import { Text } from "@/components/base";
+import {IconButton} from "react-native-paper";
+import { Text, Chip } from "@/components/base";
 
 import { User } from "@/types/User";
 import { getUser, logout } from "@/services/api/authentication";

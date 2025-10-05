@@ -17,7 +17,7 @@ export default function ProductDescription({product, editMode, onChangeDescripti
     // Render
     return (
         <TextInput
-            style={{padding: 14, fontSize: 22, lineHeight: 26}}
+            style={{padding: 14, fontSize: 16, lineHeight: 26}}
             placeholder={"Add a product description"}
             value={text}
             onChangeText={text => {setText(text); onChangeDescription?.(text)}}
