@@ -1,5 +1,6 @@
 import {useLocalSearchParams, useRouter} from "expo-router";
-import {View, Text} from "react-native";
+import {View} from "react-native";
+import {Text} from "@/components/base";
 import {useEffect} from "react";
 import CPVCard from "@/components/common/CPVCard";
 

@@ -43,18 +43,16 @@ function Providers({ children }: { children: React.ReactNode }) {
         materialLight: theme,
         materialDark: theme
     });
-    console.log(LightTheme)
-    console.log(DarkTheme)
 
     return (
-        // <PaperProvider theme={theme}>
-        //     <ThemeProvider value={colorScheme === "light" ? LightTheme : DarkTheme}>
+        <PaperProvider theme={theme}>
+            <ThemeProvider value={colorScheme === "light" ? LightTheme : DarkTheme}>
                 <KeyboardProvider>
                     <DialogProvider>
                         {children}
                     </DialogProvider>
                 </KeyboardProvider>
-        //     </ThemeProvider>
-        // </PaperProvider>
+             </ThemeProvider>
+         </PaperProvider>
     );
 }

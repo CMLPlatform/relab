@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {Card, Text, Chip, Button, TextInput, IconButton} from "react-native-paper";
+import {Text, Chip, IconButton} from "react-native-paper";
 
 import { User } from "@/types/User";
 import { getUser, logout } from "@/services/api/authentication";

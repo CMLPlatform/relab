@@ -1,13 +1,6 @@
-import {
-    Pressable,
-    Animated,
-    Easing,
-    StyleSheet,
-    View,
-    Platform,
-    Text
-} from "react-native";
-import React, { useRef } from "react";
+import { Pressable } from "react-native";
+import { Text } from "@/components/base";
+import React from "react";
 import {useRouter} from "expo-router";
 import {Product} from "@/types/Product";
 import {useTheme} from "react-native-paper";
