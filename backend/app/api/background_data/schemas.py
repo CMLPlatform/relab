@@ -165,7 +165,7 @@ class CategoryUpdate(BaseUpdateSchema):
     # TODO: Add functionality to move a category to a different taxonomy or supercategory.
     # This requires additional validation to prevent self-referential loops and other inconsistencies.
 
-    name: str | None = Field(default=None, min_length=2, max_length=50, description="Name of the category")
+    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the category")
     description: str | None = Field(default=None, max_length=500, description="Description of the category")
 
     model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
@@ -307,7 +307,7 @@ class MaterialReadWithRelationships(MaterialRead):
 class MaterialUpdate(BaseUpdateSchema):
     """Schema for a partial update of a material."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=50, description="Name of the Material")
+    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the Material")
     description: str | None = Field(default=None, max_length=500, description="Description of the Material")
     source: str | None = Field(
         default=None,
@@ -352,5 +352,5 @@ class ProductTypeReadWithRelationships(ProductTypeRead):
 class ProductTypeUpdate(BaseUpdateSchema):
     """Schema for a partial update of a product type."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=50, description="Name of the Product Type.")
+    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the Product Type.")
     description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")

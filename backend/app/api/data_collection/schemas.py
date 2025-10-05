@@ -268,10 +268,10 @@ class ProductReadWithRecursiveComponents(ProductReadWithRelationships):
 class ProductUpdate(BaseUpdateSchema):
     """Schema for updating basic product information."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=50)
+    name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    brand: str | None = Field(default=None, max_length=50)
-    model: str | None = Field(default=None, max_length=50)
+    brand: str | None = Field(default=None, max_length=100)
+    model: str | None = Field(default=None, max_length=100)
 
     dismantling_notes: str | None = Field(default=None, max_length=500, description="Notes on the dismantling process")
     dismantling_time_start: ValidDateTime = Field(

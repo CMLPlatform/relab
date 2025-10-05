@@ -60,7 +60,7 @@ class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True)
 class ProductBase(CustomBase):
     """Basic model to store product information."""
 
-    name: str = Field(index=True, min_length=2, max_length=50)
+    name: str = Field(index=True, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
     brand: str | None = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
