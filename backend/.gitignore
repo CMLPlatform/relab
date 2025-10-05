@@ -65,6 +65,9 @@ playground.ipynb
 # User-uploaded data
 data/uploads/*
 
+# Seed files (will be downloaded locally if needed)
+data/seed/*
+
 # Logs
 logs/*
 
