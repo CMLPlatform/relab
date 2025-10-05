@@ -17,9 +17,9 @@ const styles = StyleSheet.create({
         fontFamily: 'System',
     },
     light: {
-        color: LightTheme.colors.onPrimaryContainer,
+        color: LightTheme.colors.onSurface,
     },
     dark: {
-        color: DarkTheme.colors.onPrimaryContainer,
+        color: DarkTheme.colors.onSurface,
     }
 });
