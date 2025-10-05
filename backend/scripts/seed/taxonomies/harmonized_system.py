@@ -11,9 +11,9 @@ import pandas as pd
 from app.api.auth.models import User  # noqa: F401 # Need to explictly import User for SQLModel relationships
 from app.api.background_data.models import Category, TaxonomyDomain
 from app.core.database import sync_session_context
-from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
+from scripts.seed.taxonomies.common import configure_logging, get_or_create_taxonomy, seed_categories_from_rows
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("seeding.taxonomies.harmonized_system")
 
 # Configuration
 DATA_DIR = Path(__file__).parents[3] / "data" / "seed"
@@ -113,4 +113,5 @@ def seed_taxonomy() -> None:
 
 
 if __name__ == "__main__":
+    configure_logging()
     seed_taxonomy()
