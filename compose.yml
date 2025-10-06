@@ -50,6 +50,13 @@ services:
     volumes:
       - ./docs:/docs
 
+  frontend-app:
+    build:
+      context: ./frontend-app
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   frontend-web:
     build:
       context: ./frontend-web

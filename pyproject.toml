@@ -25,6 +25,8 @@
     "backend/pyproject.toml",
     "codemeta.json",
     "docs/pyproject.toml",
+    "frontend-app/app.json",
+    "frontend-app/package.json",
     "frontend-web/app.config.ts",
     "frontend-web/package.json",
   ]
