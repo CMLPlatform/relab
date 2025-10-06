@@ -42,7 +42,7 @@ ARG APP_PORT=8000
 ARG APP_USER=appuser
 
 # Set up a non-root user
-RUN useradd $APP_USER
+RUN useradd -m $APP_USER
 
 # Copy built app and environment from builder
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
