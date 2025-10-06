@@ -56,4 +56,4 @@ ENV PYTHONPATH=$WORKDIR \
 USER $APP_USER
 
 # Run the entrypoint
-ENTRYPOINT [". scripts/seed/migrations_entrypoint.sh"]
+ENTRYPOINT ["./scripts/seed/migrations_entrypoint.sh"]
