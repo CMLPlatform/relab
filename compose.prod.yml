@@ -6,6 +6,7 @@ services:
     environment:
       # The public URL of the frontend, used for email generation and cookie management
       FRONTEND_WEB_URL: https://cml-relab.org
+      FRONTEND_APP_URL: https://app.cml-relab.org
       DEBUG: False
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
