@@ -3,6 +3,8 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 
+from asyncache import cached
+from cachetools import LRUCache, TTLCache
 from fastapi import APIRouter, Body, Path, Query
 from fastapi_filter import FilterDepends
 from fastapi_pagination.links import Page
@@ -1013,6 +1015,7 @@ search_router = PublicAPIRouter(prefix="", include_in_schema=True)
 
 
 @search_router.get("/brands")
+@cached(cache=TTLCache(maxsize=1, ttl=60))
 async def get_brands(
     session: AsyncSessionDep,
 ) -> Sequence[str]:
@@ -1025,6 +1028,7 @@ unit_router = PublicAPIRouter(prefix="/units", tags=["units"], include_in_schema
 
 
 @unit_router.get("")
+@cached(LRUCache(maxsize=1))  # Cache units, as they are defined on app startup and do not change
 async def get_units() -> list[str]:
     """Get a list of available units."""
     return [unit.value for unit in Unit]
