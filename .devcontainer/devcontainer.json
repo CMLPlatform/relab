@@ -1,7 +1,7 @@
 {
   "name": "relab-fullstack",
   "dockerComposeFile": ["../compose.yml", "../compose.override.yml"],
-  "service": "frontend",
+  "service": "frontend-web",
   "workspaceFolder": "/opt/relab",
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "features": {
