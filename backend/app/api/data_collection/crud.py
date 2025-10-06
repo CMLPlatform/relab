@@ -477,3 +477,11 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
     )
     await db.execute(statement)
     await db.commit()
+
+
+### Ancillary Search CRUD operations ###
+async def get_unique_product_brands(db: AsyncSession) -> list[str]:
+    """Get all unique product brands."""
+    statement = select(Product.brand).distinct().order_by(Product.brand).where(Product.brand.is_not(None))
+    results = (await db.exec(statement)).all()
+    return [brand.strip().title() for brand in results if brand is not None]

@@ -1007,6 +1007,19 @@ async def remove_materials_from_product_bulk(
     await crud.remove_materials_from_product(session, product.id, material_ids)
 
 
+### Ancillary Search Routers ###
+
+search_router = PublicAPIRouter(prefix="", include_in_schema=True)
+
+
+@search_router.get("/brands")
+async def get_brands(
+    session: AsyncSessionDep,
+) -> Sequence[str]:
+    """Get a list of unique product brands."""
+    return await crud.get_unique_product_brands(session)
+
+
 ### Unit Routers ###
 unit_router = PublicAPIRouter(prefix="/units", tags=["units"], include_in_schema=True)
 
@@ -1020,4 +1033,5 @@ async def get_units() -> list[str]:
 ### Router inclusion ###
 router.include_router(user_product_router)
 router.include_router(product_router)
+router.include_router(search_router)
 router.include_router(unit_router)
