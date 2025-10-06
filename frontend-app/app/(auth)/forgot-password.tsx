@@ -37,6 +37,9 @@ export default function ForgotPasswordScreen() {
       if (response.ok) {
         setSuccess(true);
         setError(null);
+        setTimeout(() => {
+          router.replace('/login');
+        }, 5000);
       } else {
         const data = await response.json();
         setError(data.detail || 'Failed to send reset email');

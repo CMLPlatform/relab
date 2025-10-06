@@ -43,6 +43,9 @@ export default function RegisterScreen() {
       if (response.ok) {
         setSuccess(true);
         setError(null);
+        setTimeout(() => {
+          router.replace('/login');
+        }, 5000);
       } else {
         const data = await response.json();
         let errorMessage = 'Registration failed';
