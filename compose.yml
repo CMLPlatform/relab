@@ -50,9 +50,9 @@ services:
     volumes:
       - ./docs:/docs
 
-  frontend:
+  frontend-web:
     build:
-      context: ./frontend
+      context: ./frontend-web
     depends_on:
       - backend
     restart: unless-stopped

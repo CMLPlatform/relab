@@ -22,12 +22,12 @@ services:
     ports:
       - "8012:8000"
 
-  frontend:
+  frontend-web:
     build:
       dockerfile: Dockerfile.dev
     volumes:
-      - ./frontend:/opt/relab/frontend # Mount source code for hot reload
-      - /opt/relab/frontend/node_modules # Prevent overwriting local node_modules
-      - /opt/relab/frontend/.expo # Prevent overwriting local Expo files
+      - ./frontend-web:/opt/relab/frontend-web # Mount source code for hot reload
+      - /opt/relab/frontend-web/node_modules # Prevent overwriting local node_modules
+      - /opt/relab/frontend-web/.expo # Prevent overwriting local Expo files
     ports:
       - "8010:8081"

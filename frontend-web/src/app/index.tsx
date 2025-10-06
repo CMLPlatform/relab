@@ -1,4 +1,4 @@
-import { Link, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 import { Button, Card, Divider, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
@@ -75,11 +75,9 @@ export default function HomeScreen() {
           <Text variant="bodyMedium">
             Browse our sample product library and explore the disassembly data collection tools with example data.
           </Text>
-          <Link href="/products" asChild>
-            <Button mode="contained" icon="play-circle">
-              View Demo Library
-            </Button>
-          </Link>
+          <ExternalLinkButton href={process.env.EXPO_PUBLIC_APP_URL!} icon="play-circle" mode="outlined">
+            Demo
+          </ExternalLinkButton>
         </Card.Content>
       </Card>
 
