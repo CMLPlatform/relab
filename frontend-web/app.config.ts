@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     web: {
       bundler: 'metro',
       output: 'static',
-      favicon: './src/assets/images/maintenance.png',
+      favicon: './src/assets/images/favicon.ico',
     },
     plugins: [
       'expo-router',
@@ -33,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         'expo-splash-screen',
         {
-          image: './assets/images/maintenance.png',
+          image: './assets/images/favicon.ico',
           imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#ffffff',
