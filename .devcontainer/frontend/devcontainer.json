@@ -1,9 +1,9 @@
 {
-  "name": "relab-frontend",
+  "name": "relab-frontend-web",
   "dockerComposeFile": ["../../compose.yml", "../../compose.override.yml"],
-  "service": "frontend",
-  "runServices": ["frontend"],
-  "workspaceFolder": "/opt/relab/frontend",
+  "service": "frontend-web",
+  "runServices": ["frontend-web"],
+  "workspaceFolder": "/opt/relab/frontend-web",
   // The local workspace is mounted in /opt/relab for git integration
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "overrideCommand": true,
