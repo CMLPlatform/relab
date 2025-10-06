@@ -167,7 +167,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
 def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     """Seed product types from CPV codes.
 
-    Note: this is a temporary measure until we have an improved link between product types and categories.
+    Note: this is a temporary measure until we have an improved implementation of categories and product types.
     """
     product_types_created = 0
 
@@ -177,6 +177,11 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
 
     with sync_session_context() as session:
+        existing_cpv = session.exec(select(ProductType).where(ProductType.name.startswith("CPV:"))).first()
+        if existing_cpv:
+            logger.info("CPV product types already exist, skipping seeding")
+            return
+
         rows = load_cpv_rows_from_excel(excel_path)
         logger.info("Loaded %d CPV codes from Excel", len(rows))
 
@@ -185,13 +190,8 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
             cpv_code = row["external_id"].rstrip("0")
             cpv_description = row["name"]
 
-            # Check if product type already exists
-            existing = session.exec(select(ProductType).where(ProductType.name == cpv_code)).first()
-            if existing:
-                continue
-
             # Create product type
-            pt = ProductType(name=cpv_code, description=cpv_description)
+            pt = ProductType(name=f"CPV: {cpv_code}", description=cpv_description)
             session.add(pt)
             product_types_created += 1
 

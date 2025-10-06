@@ -12,6 +12,19 @@ fi
 echo "Upgrading database to the latest revision..."
 .venv/bin/alembic upgrade head
 
+# Check if we should seed taxonomies
+if [ "$SEED_TAXONOMIES" = "true" ]; then
+    echo "Seeding taxonomies..."
+    .venv/bin/python -m scripts.seed.taxonomies.cpv
+    .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
+fi
+
+# Check if we should seed product types
+if [ "$SEED_PRODUCT_TYPES" = "true" ]; then
+    echo "Seeding product types..."
+    .venv/bin/python -m scripts.seed.taxonomies.cpv --seed-product-types
+fi
+
 # Check if all tables are empty
 echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
 
