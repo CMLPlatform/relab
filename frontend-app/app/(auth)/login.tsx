@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Keyboard, Platform, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import Animated, { SensorType, useAnimatedSensor, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import validator from 'validator';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { getToken, login } from '@/services/api/authentication';
@@ -27,7 +28,8 @@ export default function Login() {
   });
 
   // States
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const isValidEmail = validator.isEmail(email);
   const [password, setPassword] = useState('');
   const [keyboardShown, setKeyBoardShown] = useState(false);
 
@@ -41,7 +43,7 @@ export default function Login() {
       const params = { authenticated: 'true' };
       router.replace({ pathname: '/database', params: params });
     });
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     Keyboard.addListener('keyboardDidShow', () => {
@@ -54,12 +56,12 @@ export default function Login() {
 
   // Callbacks
   const attemptLogin = () => {
-    login(username, password).then((success) => {
+    login(email, password).then((success) => {
       if (success) {
         const params = { authenticated: 'true' };
         router.replace({ pathname: '/database', params: params });
       } else {
-        dialog.alert({ title: 'Login Failed', message: 'Invalid username or password.' });
+        dialog.alert({ title: 'Login Failed', message: 'Invalid email or password.' });
       }
     });
   };
@@ -106,11 +108,11 @@ export default function Login() {
         </Text>
         <TextInput
           mode={'outlined'}
-          value={username}
-          onChangeText={setUsername}
+          value={email}
+          onChangeText={setEmail}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="Username"
+          placeholder="Email"
         />
         <TextInput
           mode={'outlined'}
@@ -119,17 +121,22 @@ export default function Login() {
           secureTextEntry
           placeholder="Password"
         />
-        <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={attemptLogin}>
+        <Button
+          mode="contained"
+          style={{ width: '100%', padding: 5 }}
+          onPress={attemptLogin}
+          disabled={!isValidEmail || !password}
+        >
           Login
         </Button>
-        <Button
-          style={{ width: '100%', padding: 5, alignItems: 'flex-end' }}
-          onPress={() => {
-            router.push('/register');
-          }}
-        >
-          Create a new account
-        </Button>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+          <Button mode="text" onPress={() => router.push('/forgot-password')}>
+            Forgot Password?
+          </Button>
+          <Button mode="text" onPress={() => router.push('/register')}>
+            Create New Account
+          </Button>
+        </View>
       </View>
       <View
         style={{

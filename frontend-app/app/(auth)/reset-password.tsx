@@ -1,10 +1,9 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 
 export default function ResetPasswordScreen() {
-  const theme = useTheme();
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
 
@@ -44,7 +43,7 @@ export default function ResetPasswordScreen() {
       if (response.ok) {
         setSuccess(true);
         setError(null);
-        // Redirect to app login page after a short delay
+        // Redirect to homepage
         // TODO: Replace this with platform-dependent code (app urls for mobile, login page on main site for web)
         setTimeout(() => {
           router.push('/login');
@@ -62,7 +61,14 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
+      <Stack.Screen
+        options={{
+          title: 'Reset Password',
+          headerShown: true,
+        }}
+      />
+
       <Card>
         <Card.Content style={{ gap: 16 }}>
           <Text variant="headlineMedium">Reset Password</Text>
@@ -100,9 +106,6 @@ export default function ResetPasswordScreen() {
               </Button>
 
               <View style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}>
-                <Button mode="text" onPress={() => router.push('/')}>
-                  Homepage
-                </Button>
                 <Button mode="text" onPress={() => router.push('/login')}>
                   Back to Login
                 </Button>
@@ -110,7 +113,7 @@ export default function ResetPasswordScreen() {
             </>
           ) : (
             <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
-              <Text variant="bodyLarge" style={{ color: theme.colors.primary, textAlign: 'center' }}>
+              <Text variant="bodyLarge" style={{ textAlign: 'center' }}>
                 Password reset successful! You can now login on the app.
               </Text>
               <Text variant="bodyMedium">Redirecting to login...</Text>

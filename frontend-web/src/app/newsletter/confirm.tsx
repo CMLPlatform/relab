@@ -1,12 +1,12 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
 
 const ConfirmSubscriptionScreen = () => {
   const [confirmationStatus, setConfirmationStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Confirming your newsletter subscription...');
-  const { token } = useLocalSearchParams();
+  const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
 
   useEffect(() => {

@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
+import validator from 'validator';
 
 export default function RegisterScreen() {
-  const theme = useTheme();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
+  const isValidEmail = validator.isEmail(email);
+
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -122,15 +124,12 @@ export default function RegisterScreen() {
                 mode="contained"
                 onPress={handleRegister}
                 loading={isLoading}
-                disabled={isLoading || !email || !password}
+                disabled={isLoading || !isValidEmail || !password}
               >
                 Register
               </Button>
 
               <View style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}>
-                <Button mode="text" onPress={() => router.push('/')}>
-                  Homepage
-                </Button>
                 <Button mode="text" onPress={() => router.push('/login')}>
                   Back to Login
                 </Button>
@@ -138,7 +137,7 @@ export default function RegisterScreen() {
             </>
           ) : (
             <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
-              <Text variant="bodyLarge" style={{ color: theme.colors.primary, textAlign: 'center' }}>
+              <Text variant="bodyLarge" style={{ textAlign: 'center' }}>
                 Registration successful! Please check your email for verification.
               </Text>
             </View>

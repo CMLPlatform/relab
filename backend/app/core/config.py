@@ -30,7 +30,8 @@ class CoreSettings(BaseSettings):
 
     # Network settings
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
-    allowed_origins: list[str] = [str(frontend_web_url)]
+    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
+    allowed_origins: list[str] = [str(frontend_web_url), str(frontend_app_url)]
 
     # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
