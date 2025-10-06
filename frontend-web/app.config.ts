@@ -3,12 +3,12 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: 'relab-frontend',
-    slug: 'relab-frontend',
+    name: 'relab-frontend-web',
+    slug: 'relab-frontend-web',
     version: '0.1.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
-    scheme: 'relab-frontend',
+    scheme: 'relab-frontend-web',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
@@ -20,12 +20,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
-      package: 'com.cml.relabFrontend',
+      package: 'com.cml.relabFrontendWeb',
     },
     web: {
       bundler: 'metro',
       output: 'static',
-      favicon: './assets/images/maintenance.png',
+      favicon: './src/assets/images/maintenance.png',
     },
     plugins: [
       'expo-router',

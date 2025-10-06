@@ -1,8 +1,8 @@
-# Production Dockerfile for Expo React Frontend
+# Production Dockerfile for Web Frontend
 # --- Builder stage ---
 FROM node:24-slim AS builder
 
-WORKDIR /opt/relab/frontend
+WORKDIR /opt/relab/frontend-web
 
 # Copy package files
 COPY package*.json ./
@@ -19,7 +19,7 @@ RUN npx expo export -p web -c
 FROM node:24-slim
 
 # Build arguments
-ARG WORKDIR=/opt/relab/frontend
+ARG WORKDIR=/opt/relab/frontend-web
 ARG APP_USER=appuser
 
 # Set the working directory

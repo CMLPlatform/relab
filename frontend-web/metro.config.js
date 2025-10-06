@@ -6,6 +6,7 @@ function validateEnvVars() {
   const requiredVars = {
     EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
     EXPO_PUBLIC_MKDOCS_URL: process.env.EXPO_PUBLIC_MKDOCS_URL,
+    EXPO_PUBLIC_APP_URL: process.env.EXPO_PUBLIC_APP_URL,
   };
 
   const missingVars = Object.entries(requiredVars)

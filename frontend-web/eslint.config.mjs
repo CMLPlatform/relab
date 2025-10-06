@@ -18,7 +18,6 @@ export default defineConfig([
 
   // Base configs
   expoConfig,
-  eslintPluginPrettierRecommended,
 
   // Import organization
   {
@@ -27,6 +26,9 @@ export default defineConfig([
       'import/no-duplicates': 'error',
     },
   },
+
+  // Prettier integration
+  eslintPluginPrettierRecommended,
 
   // Test files configuration
   {

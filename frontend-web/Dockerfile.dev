@@ -1,8 +1,8 @@
-# Development Dockerfile for Expo React Frontend
+# Development Dockerfile for Web Frontend
 # Note: This requires mounting the source code as a volume in docker-compose.override.yml
 FROM node:24-slim
 
-WORKDIR /opt/relab/frontend
+WORKDIR /opt/relab/frontend-web
 
 # Copy package files and install dependencies
 COPY package*.json ./
