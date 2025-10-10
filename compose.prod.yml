@@ -1,24 +1,61 @@
 # docker-compose.prod.yml (PRODUCTION - must be explicitly specified)
+name: relab_prod # Separate prod containers, networks, and volumes from dev
+
 services:
+  backend:
+    environment:
+      # The public URL of the frontend, used for email generation and cookie management
+      FRONTEND_WEB_URL: https://cml-relab.org
+      FRONTEND_APP_URL: https://app.cml-relab.org
+      DEBUG: False
+
+  # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
+  backend_user_upload_backups: # Automated user uploads backups to local file system
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.user_upload_backups
+    depends_on:
+      - backend
+    environment:
+      SCHEDULE: 0 2 * * * # Daily at 2am
+      UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
+      UPLOADS_BACKUP_DIR: /backups # NOTE: this is the path inside the container
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      MAX_TOTAL_GB: 100
+    profiles:
+      - backups
+    restart: unless-stopped
+    volumes:
+      - user_uploads:/data/uploads:ro
+      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
+
   cloudflared: # Cloudflared tunnel to cml-relab.org
     image: cloudflare/cloudflared:latest@sha256:4604b477520dc8322af5427da68b44f0bf814938e9d2e4814f2249ee4b03ffdf
+    command: tunnel --no-autoupdate run
+    env_file: .env # Should contain TUNNEL_TOKEN variable
     pull_policy: always
     restart: unless-stopped
-    command: tunnel --no-autoupdate run
-    env_file: ./.env
+
+  database_backups: # Automated database backups to local file system
+    image: prodrigestivill/postgres-backup-local:18
     depends_on:
-      - expo
-      - fastapi
-      - mkdocs
-    volumes:
-      - cloudflared_logs:/var/log/cloudflared
-
-  expo:
-    command: sh -c "npx expo export -p web -c && npx serve dist -l 3000" # Override for production
-
-  fastapi:
+      - database
+    env_file: ./backend/.env # Load database connection settings
     environment:
-      FRONTEND_URL: https://cml-relab.org # The public URL of the frontend, used for email generation by the FastAPI backend
+      SCHEDULE: 0 2 * * * # Daily at 2am
+      POSTGRES_HOST: database
+      POSTGRES_EXTRA_OPTS: "-Z1 --schema: public --blobs" # Compress backups, only back up public schema, include blobs
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+    profiles:
+      - backups
+    restart: unless-stopped
+    volumes:
+      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
 
-volumes:
-  cloudflared_logs:
+  docs:
+    # Disable live reload for production
+    command: ["serve", "--dev-addr=0.0.0.0:8000", "--no-livereload"]

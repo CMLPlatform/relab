@@ -3,6 +3,8 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 
+from asyncache import cached
+from cachetools import LRUCache, TTLCache
 from fastapi import APIRouter, Body, Path, Query
 from fastapi_filter import FilterDepends
 from fastapi_pagination.links import Page
@@ -175,6 +177,11 @@ async def get_products(
             },
         ),
     ] = None,
+    *,
+    include_components_as_base_products: Annotated[
+        bool | None,
+        Query(description="Whether to include components as base products in the response"),
+    ] = None,
 ) -> Page[Sequence[ProductReadWithRelationshipsAndFlatComponents]]:
     """Get all products with specified relationships.
 
@@ -186,11 +193,22 @@ async def get_products(
     - product_type: Type classification
     - bill_of_materials: Material composition
     """
+    # TODO: Instead of this hacky parameter, distinguish between base products and components on the model level
+    # For now, only return base products (those without a parent)
+    if include_components_as_base_products:
+        statement: SelectOfScalar[Product] = select(Product)
+    else:
+        statement: SelectOfScalar[Product] = select(Product).where(Product.parent_id == None)
+
+    if product_filter:
+        statement = product_filter.filter(statement)
+
     return await get_paginated_models(
         session,
         Product,
         include_relationships=include,
         model_filter=product_filter,
+        statement=statement,
         read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
 
@@ -333,8 +351,8 @@ async def create_product(
                         "description": "Complete chair assembly",
                         "brand": "Brand 1",
                         "model": "Model 1",
-                        "dismantling_time_start": "2024-02-27T14:30:45Z",
-                        "dismantling_time_end": "2024-03-27T16:30:45Z",
+                        "dismantling_time_start": "2025-09-22T14:30:45Z",
+                        "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
                             "weight_kg": 20,
@@ -358,8 +376,8 @@ async def create_product(
                         "description": "Complete chair assembly",
                         "brand": "Brand 1",
                         "model": "Model 1",
-                        "dismantling_time_start": "2024-02-27T14:30:45Z",
-                        "dismantling_time_end": "2024-03-27T16:30:45Z",
+                        "dismantling_time_start": "2025-09-22T14:30:45Z",
+                        "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
                             "weight_kg": 20,
@@ -377,8 +395,8 @@ async def create_product(
                                 "description": "Seat assembly",
                                 "brand": "Brand 2",
                                 "model": "Model 2",
-                                "dismantling_time_start": "2024-02-27T14:30:45Z",
-                                "dismantling_time_end": "2024-03-27T16:30:45Z",
+                                "dismantling_time_start": "2025-09-22T14:30:45Z",
+                                "dismantling_time_end": "2025-09-22T16:30:45Z",
                                 "amount_in_parent": 1.0,
                                 "product_type_id": 2,
                                 "physical_properties": {
@@ -991,11 +1009,26 @@ async def remove_materials_from_product_bulk(
     await crud.remove_materials_from_product(session, product.id, material_ids)
 
 
+### Ancillary Search Routers ###
+
+search_router = PublicAPIRouter(prefix="", include_in_schema=True)
+
+
+@search_router.get("/brands")
+@cached(cache=TTLCache(maxsize=1, ttl=60))
+async def get_brands(
+    session: AsyncSessionDep,
+) -> Sequence[str]:
+    """Get a list of unique product brands."""
+    return await crud.get_unique_product_brands(session)
+
+
 ### Unit Routers ###
 unit_router = PublicAPIRouter(prefix="/units", tags=["units"], include_in_schema=True)
 
 
 @unit_router.get("")
+@cached(LRUCache(maxsize=1))  # Cache units, as they are defined on app startup and do not change
 async def get_units() -> list[str]:
     """Get a list of available units."""
     return [unit.value for unit in Unit]
@@ -1004,4 +1037,5 @@ async def get_units() -> list[str]:
 ### Router inclusion ###
 router.include_router(user_product_router)
 router.include_router(product_router)
+router.include_router(search_router)
 router.include_router(unit_router)

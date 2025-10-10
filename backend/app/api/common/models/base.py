@@ -153,7 +153,7 @@ class TimeStampMixinBare:
 ParentTypeEnum = TypeVar("ParentTypeEnum", bound=Enum)
 
 
-class SingleParentMixin(SQLModel, Generic[ParentTypeEnum]):
+class SingleParentMixin[ParentTypeEnum](SQLModel):
     """Mixin to ensure an object belongs to exactly one parent."""
 
     # TODO: Implement improved polymorphic associations in SQLModel after this issue is resolved: https://github.com/fastapi/sqlmodel/pull/1226

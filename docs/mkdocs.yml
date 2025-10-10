@@ -1,5 +1,5 @@
 site_name: Reverse Engineering Lab
-site_description: Documentation of the CML Reverse Engineering Lab data platform
+site_description: Documentation of the Reverse Engineering Lab data platform
 site_url: https://docs.cml-relab.org
 docs_dir: docs
 site_dir: site

@@ -62,7 +62,7 @@ class CameraStatus(BaseModel):
 class CameraBase(CustomBase):
     """Base model for Camera with common fields."""
 
-    name: str = Field(index=True, min_length=2, max_length=50)
+    name: str = Field(index=True, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
 
     # NOTE: Local addresses only work when they are on the local network of this API

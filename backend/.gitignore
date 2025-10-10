@@ -63,10 +63,16 @@ venv/
 playground.ipynb
 
 # User-uploaded data
-data/*
+data/uploads/*
+
+# Seed files (will be downloaded locally if needed)
+data/seed/*
 
 # Logs
 logs/*
+
+# Backups
+backups/*
 
 # VS Code settings
 !.vscode/settings.json

@@ -1,7 +1,6 @@
 """Main logger setup."""
 
 import logging
-import sys
 import time
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
@@ -50,16 +49,6 @@ def create_file_handlers(log_dir: Path, fmt: str, datefmt: str) -> dict[str, log
     return handler_dict
 
 
-def is_console_handler(handler: logging.Handler) -> bool:
-    """Check if handler outputs to console."""
-    return isinstance(handler, logging.StreamHandler | coloredlogs.StandardErrorHandler) and handler.stream in (
-        sys.stdout,
-        sys.stderr,
-        None,
-    )
-
-
-### Logging setup ###
 def setup_logging(
     *,
     fmt: str = LOG_FORMAT,
@@ -76,16 +65,22 @@ def setup_logging(
 
     # Configure root logger
     root_logger: logging.Logger = logging.getLogger()
+    root_logger.setLevel(base_log_level)
 
     # Install colored console logging
-    coloredlogs.install(level=base_log_level, fmt=fmt, datefmt=datefmt)
+    coloredlogs.install(level=base_log_level, fmt=fmt, datefmt=datefmt, logger=root_logger)
 
     # Add file handlers to root logger
     file_handlers: dict[str, logging.Handler] = create_file_handlers(log_dir, fmt, datefmt)
     for handler in file_handlers.values():
         root_logger.addHandler(handler)
 
-    # Remove stream handlers of all other loggers because coloredlogs installs its own
-    for logger in logging.getLogger(None).manager.loggerDict.values():
-        if isinstance(logger, logging.Logger):
-            logger.handlers = [h for h in logger.handlers if not is_console_handler(h)]
+    # Ensure uvicorn loggers propagate to root and have no handlers of their own
+    for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
+        logger = logging.getLogger(logger_name)
+        logger.handlers.clear()
+        logger.propagate = True
+
+    # Optionally, quiet noisy loggers
+    for logger_name in ["watchfiles.main"]:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)

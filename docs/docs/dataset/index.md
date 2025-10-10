@@ -7,15 +7,18 @@ The Reverse Engineering Lab platform hosts a comprehensive dataset of disassembl
 The dataset contains high-quality images and metadata of disassembled power tools, providing detailed information about components, materials, and assembly relationships. This data supports:
 
 - **Computer vision tasks** - Object detection, segmentation, classification
+
 - **Life cycle assessments** - Material identification and quantification
+
 - **Circular economy research** - Disassembly sequence analysis
+
 - **Remanufacturing studies** - Component condition assessment
 
 ## Access the Dataset
 
 <!---TODO: Add browse and download links once available--->
 
-- 🔍 **[API Access](https://api2.cml-relab.org/docs)** - Programmatic data access
+- 🔍 **[API Access](https://api.cml-relab.org/docs)** - Programmatic data access
 - 🌐 **Browse Dataset** - Soon: explore the dataset online
 - 📦 **Download Data** - Soon: Download the raw dataset in various formats
 
@@ -36,7 +39,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Formats     | text/csv, image/jpeg, application/x-python, text/markdown                                                                             |
 | Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                |
 | Language    | en-US                                                                                                                                 |
-| Coverage    | Products: Power tools; Time: 2024-2025; Geographic location: NL                                                                       |
+| Coverage    | Products: Power tools; Time: 2025-; Geographic location: NL                                                                           |
 | Rights      | <https://opendatacommons.org/licenses/odbl/>                                                                                          |
 
 ## License

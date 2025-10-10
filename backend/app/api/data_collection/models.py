@@ -60,7 +60,7 @@ class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True)
 class ProductBase(CustomBase):
     """Basic model to store product information."""
 
-    name: str = Field(index=True, min_length=2, max_length=50)
+    name: str = Field(index=True, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
     brand: str | None = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
@@ -113,7 +113,9 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # Many-to-one relationships
     files: list["File"] | None = Relationship(back_populates="product", cascade_delete=True)
-    images: list["Image"] | None = Relationship(back_populates="product", cascade_delete=True)
+    images: list["Image"] | None = Relationship(
+        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"lazy": "subquery"}
+    )
     videos: list["Video"] | None = Relationship(back_populates="product", cascade_delete=True)
 
     # One-to-many relationships

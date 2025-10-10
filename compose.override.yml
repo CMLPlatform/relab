@@ -1,21 +1,44 @@
 # docker-compose.override.yml (DEVELOPMENT - automatically used with docker-compose up)
+name: relab_dev # Separate dev containers, networks, and volumes from prod
+
 services:
-
-  # Expose individual services for development/testing
-  expo:
-    ports:
-      - "8010:3000"
-
-  fastapi:
+  backend:
+    build:
+      dockerfile: Dockerfile.dev
     environment:
-      FRONTEND_URL: http://localhost:8010
+      FRONTEND_WEB_URL: http://localhost:8010 # Point to local frontend dev server
+      FRONTEND_APP_URL: ttp://localhost:8013
     ports:
-      - "8011:8000"  # Direct access for API testing
+      - "8011:8000"
+    volumes:
+      - ./backend:/opt/relab/backend # Mount source code for hot reload
+      - /opt/relab/backend/.venv # Prevent overwriting local virtual environment
+      - /opt/relab/backend/logs # Prevent overwriting local logs
 
-  mkdocs:
-    ports:
-      - "8012:8000"  # Direct access for docs development
-
-  postgres:
+  database:
     ports:
       - "5433:5432"
+
+  docs:
+    ports:
+      - "8012:8000"
+
+  frontend-app:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend-app:/opt/relab/frontend-app # Mount source code for hot reload
+      - /opt/relab/frontend-app/node_modules # Prevent overwriting local node_modules
+      - /opt/relab/frontend-app/.expo # Prevent overwriting local Expo files
+    ports:
+      - "8013:8081"
+
+  frontend-web:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./frontend-web:/opt/relab/frontend-web # Mount source code for hot reload
+      - /opt/relab/frontend-web/node_modules # Prevent overwriting local node_modules
+      - /opt/relab/frontend-web/.expo # Prevent overwriting local Expo files
+    ports:
+      - "8010:8081"

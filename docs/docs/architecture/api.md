@@ -1,6 +1,6 @@
 # API Structure
 
-The platform provides a RESTful API that allows interaction with the backend services. The API is built using FastAPI and follows standard REST principles. It supports authentication, data collection, media management, and hardware integration. For complete API reference, visit the [interactive documentation](https://api2.cml-relab.org/docs).
+The platform provides a RESTful API that allows interaction with the backend services. The API is built using FastAPI and follows standard REST principles. It supports authentication, data collection, media management, and hardware integration. For complete API reference, visit the [interactive documentation](https://api.cml-relab.org/docs).
 
 ## Core Endpoints
 

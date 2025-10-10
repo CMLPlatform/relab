@@ -1,9 +1,17 @@
 {
-  "[python]": {
+  "[python][notebook]": {
     "editor.codeActionsOnSave": {
       "source.fixAll": "explicit",
       "source.organizeImports": "explicit"
     },
     "editor.defaultFormatter": "charliermarsh.ruff"
-  }
+  },
+  "python-envs.terminal.showActivateButton": true,
+  "python.analysis.autoFormatStrings": true,
+  "python.analysis.typeCheckingMode": "standard",
+  "python.linting.enabled": true,
+  "python.linting.ruffEnabled": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.terminal.activateEnvironment": true,
+  "python.testing.pytestEnabled": true
 }

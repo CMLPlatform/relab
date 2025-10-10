@@ -79,8 +79,8 @@ class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare,
 class OrganizationBase(CustomBase):
     """Base schema for organization data."""
 
-    name: str = Field(index=True, unique=True, min_length=2, max_length=50)
-    location: str | None = Field(default=None, max_length=50)
+    name: str = Field(index=True, unique=True, min_length=2, max_length=100)
+    location: str | None = Field(default=None, max_length=100)
     description: str | None = Field(default=None, max_length=500)
 
 

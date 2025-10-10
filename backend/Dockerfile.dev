@@ -1,0 +1,41 @@
+# Development Dockerfile for FastAPI Backend
+# Note: This requires mounting the source code as a volume in docker-compose.override.yml
+FROM ghcr.io/astral-sh/uv:0.8-python3.13-trixie-slim
+
+# Build arguments
+ARG WORKDIR=/opt/relab/backend
+
+# Install git for custom dependencies (fastapi-users-db-sqlmodel)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && apt-get dist-clean
+
+# Set the working directory inside the container
+WORKDIR $WORKDIR
+
+# Create needed directories for logs and uploads
+RUN mkdir -p logs data/uploads/files data/uploads/images
+
+# uv optimizations (see https://docs.astral.sh/uv/guides/integration/docker/#optimizations)
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
+
+# Copy dependency files
+COPY .python-version pyproject.toml uv.lock ./
+
+# Install dependencies (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --no-editable
+
+# Set Python variables
+ENV PYTHONPATH=$WORKDIR \
+    PYTHONUNBUFFERED=1 \
+    PATH="$WORKDIR/.venv/bin:$PATH"
+
+EXPOSE 8000
+
+# Run the FastAPI application in development mode
+CMD [".venv/bin/fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]

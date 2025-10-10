@@ -5,12 +5,8 @@
 - [Use Our Platform (Recommended)](#use-our-platform-recommended)
 - [Self-Hosting](#self-hosting)
   - [Docker Setup](#docker-setup)
-  - [Local Development](#local-development)
-    - [Backend Setup](#backend-setup)
-    - [Documentation Setup](#documentation-setup)
-    - [Frontend Setup](#frontend-setup)
-    - [Raspberry Pi Camera Setup (Optional)](#raspberry-pi-camera-setup-optional)
 - [Production Deployment](#production-deployment)
+- [Raspberry Pi Camera Plugin](#raspberry-pi-camera-plugin)
 - [Need Help?](#need-help)
 
 ## Use Our Platform (Recommended)
@@ -28,8 +24,9 @@ ______________________________________________________________________
 Only needed for: custom development, institutional deployment, offline usage, or evaluation.
 
 - 🐳 **[Docker Setup](#docker-setup)** - Quick testing and evaluation
-- 💻 **[Local Development](#local-development)** - Contributing code and customization
 - 🏢 **[Production Deployment](#production-deployment)** - Institutional hosting
+
+> 💡Note: For contributing code or setting up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Docker Setup
 
@@ -43,7 +40,7 @@ Only needed for: custom development, institutional deployment, offline usage, or
 
    ```bash
    git clone https://github.com/CMLPlatform/relab
-   cd relab/backend
+   cd relab
    ```
 
 1. **Configure Environment**
@@ -57,98 +54,25 @@ Only needed for: custom development, institutional deployment, offline usage, or
 
 1. **Build and Run Containers**
 
-   Start the application using Docker Compose:
+   To seed the database for the first time, run the `migrations` profile:
 
    ```bash
-   docker compose -p cml_relab up --build
+   docker compose --profile migrations up
+   ```
+
+   After the initial setup, you can start the application as usual:
+
+   ```bash
+   docker compose up
    ```
 
 1. **Access Your Local Instance**
 
    - Platform: <http://127.0.0.1:8010>
-   - Interactive API Documentation: <http://127.0.0.1:8011/swagger/full>
+   - API Documentation: <http://127.0.0.1:8011>
    - Documentation: <http://127.0.0.1:8012>
 
-   > 💡 **Note**: Ports **8010** through **8012** are used to avoid conflicts with other local services.
-
-   Log in with the superuser credentials from your .env file to explore the platform.
-
-______________________________________________________________________
-
-### Local Development
-
-**Prerequisites**:
-
-- [uv](https://docs.astral.sh/uv/getting-started/installation) (Python package manager)
-- [PostgreSQL](https://www.postgresql.org/download/) installed and running
-
-#### Backend Setup
-
-1. **Install Dependencies**
-
-   Navigate to the backend directory:
-
-   ```bash
-   cd backend
-   ```
-
-   Install dependencies using uv:
-
-   ```bash
-   uv sync --no-dev
-   ```
-
-1. **Configure Environment**
-
-   Copy the example environment file:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Configure the necessary values in `.env` (marked with 🔀).
-
-   > 💡 Note: Make sure to create the PostgreSQL database and user as specified in your `.env` file.
-
-1. **Run Setup Script**
-   The [`local_setup.sh`](backend/local_setup.sh) script creates the database tables, runs the migrations, and sets up initial test data.
-
-   **For Linux/macOS**: `./local_setup.sh`
-
-   **For Windows**: It is recommended to use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) or a Linux VM for development.
-
-1. **Start the Application**
-
-   Run the FastAPI server:
-
-   ```bash
-   uv run fastapi run app/main.py
-   ```
-
-   The API is now available at <http://127.0.0.1:8000>.
-
-   You can log in with the superuser details specified in the `.env` file. This gives you access to:
-
-   - Interactive API documentation at <http://127.0.0.1:8000/swagger/full>
-   - Admin panel for database management at <http://127.0.0.1:8000/dashboard>
-
-#### Documentation Setup
-
-You can use docker to run the MkDocs documentation server for the Reverse Engineering Lab platform.
-
-```bash
-docker compose up mkdocs
-```
-
-The documentation is now available at <http://127.0.0.1:8012> with live reload.
-
-#### Frontend Setup
-
-<!--- TODO: Document Expo dev setup --->
-
-#### Raspberry Pi Camera Setup (Optional)
-
-If you want to use a Raspberry Pi Camera for image and video capture, see the [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+   Log in with the superuser credentials from your `backend/.env` file to explore the platform.
 
 ______________________________________________________________________
 
@@ -156,7 +80,19 @@ ______________________________________________________________________
 
 **Perfect for**: Research institutions, universities, or organizations deploying for multiple users.
 
-To publicly host the Reverse Engineering Lab platform using Cloudflare and Docker, follow these steps:
+To host the Reverse Engineering Lab platform using Cloudflare and Docker, follow these steps:
+
+1. **Configure Cloudflare Tunnel**
+
+   - Ensure you have set up a domain and [remotely managed tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/cloudflared-parameters/) with Cloudflare.
+
+   - Configure the tunnel to forward traffic directly from the docker services:
+
+     - `frontend:8081`
+     - `backend:8000`
+     - `docs:8000`
+
+   - Set the `TUNNEL_TOKEN` in your root directory [`.env`](.env) file.
 
 1. **Configure Backend Environment**
 
@@ -169,33 +105,53 @@ To publicly host the Reverse Engineering Lab platform using Cloudflare and Docke
 
    Set up the necessary values in `.env` (marked with 🔀).
 
-1. **Configure Cloudflare Tunnel**
-   Ensure you have set up a domain and [remotely managed tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/cloudflared-parameters/) with Cloudflare.
-
-   Set the `TUNNEL_TOKEN` in your root directory [`.env`](.env) file.
-
 1. **Build and Run Containers**
 
    To deploy, run:
 
    ```bash
-   docker compose -p cml_relab -f compose.yml -f compose.prod.yml up --build -d
+   docker compose -f compose.yml -f compose.prod.yml up -d
    ```
 
-   The application will be available at your configured domain through Cloudflare.
+   The application will be available at your configured domain.
+
+1. **Seed the Database**
+
+   If this is your first launch or after schema changes, run the migrations profile:
+
+   ```bash
+   docker compose -f compose.yml -f compose.prod.yml --profile migrations up
+   ```
+
+1. **Enable Backups (optional, but recommended):**
+   You can automate backups of user uploads and the database on the host machine.
+
+   - Set `BACKUP_DIR` in your root `.env` file.
+
+   - Run the backups profile:
+
+     ```bash
+     docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
+     ```
 
 1. **Manage Containers**
    To monitor logs, run:
 
    ```bash
-   docker compose -p cml_relab logs -f
+   docker compose -p relab_prod logs -f
    ```
 
    To stop the application, run:
 
    ```bash
-   docker compose -p cml_relab down
+   docker compose -p relab_prod down
    ```
+
+______________________________________________________________________
+
+## Raspberry Pi Camera Plugin
+
+If you want to use a Raspberry Pi Camera for image and video capture, see the [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
 ______________________________________________________________________
 

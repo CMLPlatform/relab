@@ -1,16 +1,22 @@
-# Use the official UV image with Python 3.13
-FROM ghcr.io/astral-sh/uv:0.8-python3.13-trixie
+# --- Builder stage ---
+FROM ghcr.io/astral-sh/uv:0.8-python3.13-trixie-slim AS builder
 
-# Set the working directory inside the container
-WORKDIR /app/
+WORKDIR /opt/relab/backend_migrations
 
-# Add working directory to the PYTHONPATH to allow local imports, and unbuffer python output for easier debugging
-ENV PYTHONUNBUFFERED=1
+# Install git for custom dependencies (fastapi-users-db-sqlmodel)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && apt-get dist-clean
 
-# uv optimizations
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#optimizations
-ENV UV_COMPILE_BYTECODE=1
-ENV UV_LINK_MODE=copy
+# Create needed directories data uploads for seeding example images and files
+RUN mkdir -p data/uploads/files data/uploads/images
+
+# uv optimizations (see https://docs.astral.sh/uv/guides/integration/docker/#optimizations)
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
 
 # Copy dependency files
 COPY .python-version pyproject.toml uv.lock ./
@@ -18,17 +24,36 @@ COPY .python-version pyproject.toml uv.lock ./
 # Install dependencies
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-default-groups --group=migrations --no-install-project
 
-# Copy configuration files
-COPY .env alembic.ini entrypoint.sh ./
+# Copy alembic migrations, scripts, and source code
+COPY alembic.ini ./
+COPY alembic/ alembic/
+COPY scripts/ scripts/
+COPY app/ app/
 
-# Copy source code and migration scripts
-COPY ./app ./app
-COPY ./alembic ./alembic
-COPY ./scripts ./scripts
+# --- Final runtime stage ---
+FROM python:3.13-slim
+
+# Build arguments
+ARG WORKDIR=/opt/relab/backend_migrations
+ARG APP_USER=appuser
+
+# Set up a non-root user
+RUN useradd $APP_USER
+
+# Copy built app and environment from builder
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
+
+WORKDIR $WORKDIR
+
+# Set Python variables
+ENV PYTHONPATH=$WORKDIR \
+    PYTHONUNBUFFERED=1 \
+    PATH="$WORKDIR/.venv/bin:$PATH"
+
+# Switch to non-root user
+USER $APP_USER
 
 # Run the entrypoint
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["./scripts/seed/migrations_entrypoint.sh"]
