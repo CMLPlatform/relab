@@ -1,4 +1,5 @@
 {
+  "editor.formatOnSave": true,
   "python-envs.pythonProjects": [
     {
       "name": "relab",

@@ -1,0 +1,42 @@
+{
+  "name": "relab-frontend-web",
+  "dockerComposeFile": ["../../compose.yml", "../../compose.override.yml"],
+  "service": "frontend-web",
+  "runServices": ["frontend-web"],
+  "workspaceFolder": "/opt/relab/frontend-web",
+  // The local workspace is mounted in /opt/relab for git integration
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "overrideCommand": true,
+  "postAttachCommand": "echo '🚀 Frontend dev container ready!\\n💡 To start the Expo dev server, run: npx expo start --web\\n🌐 The server will be available at http://localhost:8010 (forwarded port)'",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers-extra/features/expo-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "msjsdiag.vscode-react-native",
+        "christian-kohler.npm-intellisense",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "expo.vscode-expo-tools"
+      ],
+      "settings": {
+        "[javascript][typescript][javascriptreact][typescriptreact]": {
+          "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "always",
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[json][jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "editor.formatOnSave": true,
+        "eslint.format.enable": true,
+        "eslint.lintTask.enable": true,
+        "eslint.run": "onSave"
+      }
+    }
+  }
+}

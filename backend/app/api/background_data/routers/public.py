@@ -690,8 +690,8 @@ async def get_materials(
                                 "name": "Steel",
                                 "description": "Common structural steel",
                                 "density_kg_m3": 7850,
-                                "created_at": "2024-03-27T14:30:45Z",
-                                "updated_at": "2024-03-27T14:30:45Z",
+                                "created_at": "2025-09-22T14:30:45Z",
+                                "updated_at": "2025-09-22T14:30:45Z",
                             },
                         },
                         "with_categories": {
@@ -701,8 +701,8 @@ async def get_materials(
                                 "name": "Steel",
                                 "description": "Common structural steel",
                                 "density_kg_m3": 7850,
-                                "created_at": "2024-03-27T14:30:45Z",
-                                "updated_at": "2024-03-27T14:30:45Z",
+                                "created_at": "2025-09-22T14:30:45Z",
+                                "updated_at": "2025-09-22T14:30:45Z",
                                 "categories": [
                                     {
                                         "id": 1,
@@ -721,8 +721,8 @@ async def get_materials(
                                 "name": "Steel",
                                 "description": "Common structural steel",
                                 "density_kg_m3": 7850,
-                                "created_at": "2024-03-27T14:30:45Z",
-                                "updated_at": "2024-03-27T14:30:45Z",
+                                "created_at": "2025-09-22T14:30:45Z",
+                                "updated_at": "2025-09-22T14:30:45Z",
                                 "categories": [
                                     {
                                         "id": 1,

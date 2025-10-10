@@ -43,8 +43,8 @@ class OrganizationReadWithRelationships(BaseReadSchemaWithTimeStamp, Organizatio
 class OrganizationUpdate(BaseUpdateSchema):
     """Update schema for organizations."""
 
-    name: str = Field(min_length=2, max_length=50)
-    location: str | None = Field(default=None, max_length=50)
+    name: str = Field(min_length=2, max_length=100)
+    location: str | None = Field(default=None, max_length=100)
     description: str | None = Field(default=None, max_length=500)
 
     # TODO: Handle transfer of ownership

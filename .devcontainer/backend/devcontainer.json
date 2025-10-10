@@ -1,0 +1,38 @@
+{
+  "name": "relab-backend",
+  "dockerComposeFile": ["../../compose.yml", "../../compose.override.yml"],
+  "service": "backend",
+  "runServices": ["backend"],
+  "workspaceFolder": "/opt/relab/backend",
+  // The local workspace is mounted in /opt/relab for git integration
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "overrideCommand": true,
+  "postCreateCommand": "",
+  "postAttachCommand": "echo '🚀 Backend dev container ready!\\n💡 To start the FastAPI dev server, run: fastapi dev\\n🔄 If that fails, try: uv run fastapi dev\\n🌐 The server will be available at http://localhost:8011 (forwarded port)'",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["charliermarsh.ruff", "ms-python.python", "wholroyd.jinja"],
+      "settings": {
+        "[python][notebook]": {
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "editor.formatOnSave": true,
+        "python-envs.terminal.showActivateButton": true,
+        "python.analysis.autoFormatStrings": true,
+        "python.analysis.typeCheckingMode": "standard",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "python.terminal.activateEnvironment": true,
+        "python.testing.pytestEnabled": true
+      }
+    }
+  }
+}

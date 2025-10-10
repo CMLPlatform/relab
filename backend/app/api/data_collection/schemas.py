@@ -146,8 +146,8 @@ class ProductCreateBaseProduct(ProductCreateWithRelationships):
                     "description": "Complete chair assembly",
                     "brand": "Brand 1",
                     "model": "Model 1",
-                    "dismantling_time_start": "2024-02-27T14:30:45Z",
-                    "dismantling_time_end": "2024-03-27T16:30:45Z",
+                    "dismantling_time_start": "2025-09-22T14:30:45Z",
+                    "dismantling_time_end": "2025-09-22T16:30:45Z",
                     "product_type_id": 1,
                     "physical_properties": {
                         "weight_kg": 20,
@@ -268,10 +268,10 @@ class ProductReadWithRecursiveComponents(ProductReadWithRelationships):
 class ProductUpdate(BaseUpdateSchema):
     """Schema for updating basic product information."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=50)
+    name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    brand: str | None = Field(default=None, max_length=50)
-    model: str | None = Field(default=None, max_length=50)
+    brand: str | None = Field(default=None, max_length=100)
+    model: str | None = Field(default=None, max_length=100)
 
     dismantling_notes: str | None = Field(default=None, max_length=500, description="Notes on the dismantling process")
     dismantling_time_start: ValidDateTime = Field(

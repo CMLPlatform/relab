@@ -154,7 +154,7 @@ class CameraReadWithCredentials(CameraRead):
 class CameraUpdate(BaseUpdateSchema):
     """Schema for updating a camera."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=50)
+    name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
     url: HttpUrl | None = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
     auth_headers: OptionalAuthHeaderCreateList

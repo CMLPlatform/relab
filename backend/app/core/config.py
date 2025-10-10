@@ -18,8 +18,8 @@ class CoreSettings(BaseSettings):
     database_port: int = 5432
     postgres_user: str = "postgres"
     postgres_password: str = ""
-    postgres_db: str = "fastapi_db"
-    postgres_test_db: str = "fastapi_test_db"
+    postgres_db: str = "relab_db"
+    postgres_test_db: str = "relab_test_db"
 
     # Debug settings
     debug: bool = False
@@ -29,10 +29,11 @@ class CoreSettings(BaseSettings):
     superuser_password: str = ""
 
     # Network settings
-    frontend_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
-    allowed_origins: list[str] = [str(frontend_url)]
+    frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
+    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
+    allowed_origins: list[str] = [str(frontend_web_url), str(frontend_app_url)]
 
-    # Initialize the settings configuration from the .env file
+    # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     # Construct directory paths

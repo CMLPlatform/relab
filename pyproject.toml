@@ -24,8 +24,11 @@
     "backend/app/__version__.py",
     "backend/pyproject.toml",
     "codemeta.json",
-    "frontend/app.config.ts",
-    "frontend/package.json",
+    "docs/pyproject.toml",
+    "frontend-app/app.json",
+    "frontend-app/package.json",
+    "frontend-web/app.config.ts",
+    "frontend-web/package.json",
   ]
   version_provider = "uv"
   version_scheme = "semver2"

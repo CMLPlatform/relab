@@ -1,0 +1,12 @@
+{
+  "[markdown]": {
+    "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
+  },
+  "github.copilot.enable": {
+    "markdown": true
+  },
+  "markdown.extension.completion.enabled": true,
+  "markdown.extension.orderedList.marker": "one",
+  "markdown.extension.tableFormatter.normalizeIndentation": true,
+  "markdown.extension.theming.decoration.renderTrailingSpace": true
+}

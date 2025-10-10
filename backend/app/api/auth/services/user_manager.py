@@ -3,6 +3,7 @@
 import logging
 from collections.abc import AsyncGenerator
 
+import tldextract
 from fastapi import Depends
 from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, CookieTransport, JWTStrategy
@@ -116,7 +117,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             logger.info("Skipping registration email for user %s", user.email)
             return
 
-        # HACK: Create synthetic request to specify sending registration email with verification token over normal verification email
+        # HACK: Create synthetic request to specify sending registration email with verification token
+        # instead of normal verification email
         request = Request(scope={"type": "http"})
         request.state.send_registration_email = True
         await self.request_verify(user, request)
@@ -154,13 +156,12 @@ async def get_user_manager(user_db: SQLModelUserDatabaseAsync = Depends(get_user
 # Bearer Transport
 bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
 
+
 # Cookie Transport
-if core_settings.frontend_url.host and core_settings.frontend_url.host not in ["localhost", "127.0.0.1"]:
-    # Set the cookie domain to the main host, including subdomains (hence the dot prefix)
-    cookie_domain = f".{core_settings.frontend_url.host}"
-else:
-    # For local development, use the default cookie domain
-    cookie_domain = None
+
+# Set the cookie domain to the main host, including subdomains (hence the dot prefix)
+url_extract = tldextract.extract(str(core_settings.frontend_web_url))
+cookie_domain = f".{url_extract.domain}.{url_extract.suffix}" if url_extract.domain and url_extract.suffix else None
 
 cookie_transport = CookieTransport(
     cookie_name="auth",
