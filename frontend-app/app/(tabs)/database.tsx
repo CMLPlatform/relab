@@ -55,11 +55,11 @@ export default function DatabaseTab() {
                 scrollEventThrottle={16}
                 onLayout={syncProducts}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                contentContainerStyle={{ gap: 15, padding: 10}}
+                // contentContainerStyle={{padding: 10}}
                 data={productList}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                    <ProductCard name={item.name} description={item.description} id={item.id}/>
+                    <ProductCard product={item}/>
                 )}
             />
             <AnimatedFAB

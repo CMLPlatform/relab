@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Text, TextInput, Button } from "react-native-paper";
+import {Text, TextInput, Button, useTheme} from "react-native-paper";
 import {View, StyleSheet, Modal, Pressable} from "react-native";
 
 type DialogButton = {
@@ -68,6 +68,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
 
 function Dialog({options, onDismiss}: { options: DialogOptions | null, onDismiss?: () => void }) {
+    // Hooks
+    const theme = useTheme();
+
     // States
     const [inputValue, setInputValue] = useState(options?.defaultValue || "");
 
@@ -82,7 +85,7 @@ function Dialog({options, onDismiss}: { options: DialogOptions | null, onDismiss
 
     // Render
     return (
-        <Pressable style={styles.container} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={{backgroundColor: theme.colors.surface ,...styles.container}} onPress={(e) => e.stopPropagation()}>
             {options?.title && (
                 <Text style={styles.title}>{options.title}</Text>
             )}
@@ -123,7 +126,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     container: {
-        backgroundColor: "white",
         borderRadius: 12,
         padding: 20,
         paddingBottom: 0,

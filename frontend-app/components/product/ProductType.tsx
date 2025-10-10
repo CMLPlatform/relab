@@ -1,6 +1,6 @@
 import {useLocalSearchParams, useRouter} from "expo-router";
-import {Text} from "react-native-paper";
 import {View} from "react-native";
+import {Text} from "@/components/base";
 import {useEffect} from "react";
 import CPVCard from "@/components/common/CPVCard";
 
@@ -30,9 +30,15 @@ export default function ProductType({product, editMode, onTypeChange}: Props){
 
     // Render
     return (
-        <View style={{margin: 10, gap: 10}}>
-            <Text variant="titleLarge" style={{ marginBottom: 12, paddingLeft: 10 }}>
-                Product Type / Material
+        <View style={{ padding: 14}}>
+            <Text
+                style={{
+                    marginBottom: 12,
+                    fontSize: 24,
+                    fontWeight: "bold",
+                }}
+            >
+                Type or Material
             </Text>
             <CPVCard
                 CPVId={product.productType?.name || "Define"}

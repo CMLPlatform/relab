@@ -1,31 +1,61 @@
-import {Card, Text} from "react-native-paper";
+import { Pressable } from "react-native";
+import { Text } from "@/components/base";
+import React from "react";
 import {useRouter} from "expo-router";
+import {Product} from "@/types/Product";
+import {useTheme} from "react-native-paper";
+
+
+
 
 interface Props {
-    name: string;
-    description?: string;
-    id: number | "new";
+    product: Product;
 }
 
-export default function ProductCard({ name, description, id }: Props) {
+export default function ProductCard({ product }: Props) {
     // Hooks
     const router = useRouter();
+    const theme = useTheme();
+
+    // Variables
+    const detailList = [
+        product.brand,
+        product.model,
+        product.productType?.name,
+    ].filter(Boolean);
 
     // Callbacks
     const navigateToProduct = () => {
-        const params = {id: id, name: name};
+        const params = {id: product.id};
         router.push({pathname: "/products/[id]", params: params});
     }
 
     // Render
     return (
-        <Card onPress={navigateToProduct}>
-            <Card.Title title={name}/>
-            <Card.Content>
-                <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
-                    {description || "No description provided."}
-                </Text>
-            </Card.Content>
-        </Card>
+        <Pressable
+            onPress={navigateToProduct}
+            style={({ pressed }) => [
+                {
+                    padding: 10,
+                    paddingLeft: 16,
+                },
+                (pressed ? { backgroundColor: theme.colors.secondaryContainer } : { backgroundColor: undefined }),
+            ]}
+        >
+            <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 4 }}>
+                {product.name || "Unnamed Product"}
+            </Text>
+            <Text style={{ fontSize: 14, marginBottom: 4 }} numberOfLines={1} ellipsizeMode="tail">
+                {detailList.join(" • ")}
+            </Text>
+            <Text
+                style={{ fontSize: 16,  marginBottom: 4 }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+            >
+                {product.description || "No description provided."}
+            </Text>
+        </Pressable>
     );
 }
+

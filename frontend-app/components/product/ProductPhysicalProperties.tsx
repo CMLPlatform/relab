@@ -1,80 +1,112 @@
 import {View} from "react-native";
-import {Card, Text, TextInput, Divider} from "react-native-paper";
+import {Text, TextInput} from "@/components/base";
+import {Divider} from "react-native-paper";
 import {useState, Fragment} from "react";
-import {Product, PhysicalProperty} from "@/types/Product";
+import {Product, PhysicalProperties} from "@/types/Product";
+import Cube from "@/components/common/SVGCube";
 
 interface Props {
     product: Product;
     editMode: boolean;
-    onChangePhysicalProperties?: (newProperties: PhysicalProperty[]) => void;
+    onChangePhysicalProperties?: (newProperties: PhysicalProperties) => void;
+}
+
+const unitMap = {
+    weight: "kg",
+    height: "cm",
+    width: "cm",
+    depth: "cm"
+}
+
+const nameMap = {
+    weight: "Weight",
+    height: "Height",
+    width: "Width",
+    depth: "Depth"
 }
 
 export default function ProductPhysicalProperties({product, editMode, onChangePhysicalProperties}: Props) {
     // Callbacks
-    const onChangeProperty = (index: number, newProperty: PhysicalProperty) => {
-        const newProperties = [...product.physicalProperties];
-        newProperties[index] = newProperty;
+    const onChangeProperty = (key: string, value: number) => {
+        const newProperties = {...product.physicalProperties, [key]: value};
         onChangePhysicalProperties?.(newProperties);
     }
 
     // Render
     return (
-        <Card style={{ margin: 10}}>
-            <Card.Title title={"Physical Properties"} titleVariant={"titleLarge"}/>
-            <Card.Content style={{ margin: 0, padding:0}} >
-                {product.physicalProperties.map((prop, index) => (
-                    <Fragment key={index}>
-                        <PhysicalPropertyCard
-                            property={prop}
-                            editMode={editMode}
-                            onChangeProperty={newProp => onChangeProperty(index, newProp)}
-                        />
-                        {index < product.physicalProperties.length - 1 && <Divider/>}
-                    </Fragment>
+        <View>
+            <Text
+                style={{
+                    marginBottom: 12,
+                    paddingLeft: 14,
+                    fontSize: 24,
+                    fontWeight: "bold",
+                }}
+            >
+                Physical Properties
+            </Text>
+            <Cube
+                width={product.physicalProperties.width}
+                height={product.physicalProperties.height}
+                depth={product.physicalProperties.depth}
+            />
+            {Object.keys(product.physicalProperties).map((prop, index) => (
+                <Fragment key={index}>
+                    <Divider/>
+                    <PhysicalPropertyRow
+                        name={nameMap[prop as keyof PhysicalProperties]}
+                        value={product.physicalProperties[prop as keyof PhysicalProperties]}
+                        unit={unitMap[prop as keyof PhysicalProperties]}
+                        editMode={editMode}
+                        onChangeProperty={onChangeProperty}
+                    />
+                </Fragment>
 
-                ))}
-            </Card.Content>
-        </Card>
-)}
+            ))}
+        </View>
+    )}
 
-function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property: PhysicalProperty; editMode: boolean; onChangeProperty?: (newProperty: PhysicalProperty) => void}) {
+
+function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { name: string; value: number; unit: string; editMode: boolean; onChangeProperty?: (name: string, value: number) => void}) {
     // States
-    const [text, setText] = useState(Number.isNaN(property.value) ? "" : property.value.toString());
+    const [text, setText] = useState(Number.isNaN(value) ? "" : value.toString());
 
     // Render
     return(
-        <View style={{ margin: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}} >
-                <Text variant="labelLarge" style={{paddingHorizontal: 10}}>
-                    {property.propertyName}
+        <View style={{
+            marginHorizontal: 10,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+        }} >
+                <Text style={{padding: 10, height: "100%"}}>
+                    {name}
                 </Text>
-            <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "baseline"}}>
-                {editMode ? (
+            <View style={{flexDirection: "row", justifyContent: "space-between"}}>
                     <TextInput
-                        mode={"outlined"}
-                        style={{height: 26, width: 80, textAlign: "right", lineHeight: 24, fontSize: 14
-                    }}
-                        contentStyle={{padding: 0, paddingHorizontal: 5}}
+                        style={{
+                            width: 80,
+                            height: 40,
+                            outline: "none",
+                            textAlign: "right",
+                            fontSize: 14,
+                            fontWeight: "bold",
+                        }}
                         value={text}
                         onChangeText={s => {
                             if(s.match("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$") || s === "") {
                                 setText(s)
-                                onChangeProperty?.({...property, value: parseFloat(s)})
+                                onChangeProperty?.(name.toLowerCase(), parseFloat(s))
                             }
                         }}
                         textAlign={"right"}
                         textAlignVertical={"top"}
                         keyboardType={"numeric"}
                         placeholder={"Set value"}
-                        error={text === ""}
+                        editable={editMode}
                     />
-
-                ) : (
-                    <Text style={{height: 25, width: 80, textAlign: "right", padding: 5}}>
-                        {text}
-                    </Text>
-                )}
-                <Text variant="bodyMedium" style={{ width: 30 }}>
-                    {" " + property.unit}
+                <Text style={{ width: 30, fontWeight: "bold", paddingVertical: 10 }}>
+                    {" " + unit}
                 </Text>
 
             </View>
@@ -82,3 +114,5 @@ function PhysicalPropertyCard({property, editMode, onChangeProperty}: { property
         </View>
     )
 }
+
+
