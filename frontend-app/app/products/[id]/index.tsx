@@ -131,8 +131,8 @@ export default function ProductPage(): JSX.Element {
         setProduct({...product, model: newModel});
     }
 
-    const onTypeChange = (newType: string) => {
-        setProduct({...product, productType: {id: 0, name: newType, description: ""} });
+    const onTypeChange = (newTypeId: number) => {
+        setProduct({...product, productTypeID: newTypeId });
     }
 
     const onImagesChange = (newImages: { url: string, description: string, id: number }[]) => {

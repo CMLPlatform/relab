@@ -1,22 +1,19 @@
-import {Stack, useLocalSearchParams, useRouter} from "expo-router";
+import {useLocalSearchParams, useRouter} from "expo-router";
 import {useState} from "react";
-import {Card, Icon, Searchbar, Text, useTheme} from 'react-native-paper';
-import {FlatList, View, Dimensions} from "react-native";
+import {Card, Icon, Searchbar, Text} from 'react-native-paper';
+import {FlatList, View, Pressable, StyleSheet, useColorScheme} from "react-native";
+
+
 import CPVCard from "@/components/common/CPVCard";
 
+import {CPVCategory} from "@/types/CPVCategory";
+
 import cpvJSON from '@/assets/data/cpv.json';
-import cvpClassificationsJSON from '@/assets/data/cpv_classifications.json';
+import LightTheme from "@/assets/themes/light";
+import DarkTheme from "@/assets/themes/dark";
 
-const cpv: Record<string, string> = cpvJSON as Record<string, string>;
-const cpvClassifications = cvpClassificationsJSON as cpvItem;
+const cpv = cpvJSON as Record<string, CPVCategory>
 
-interface cpvItem {
-    id: string;
-    name: string;
-    type: string;
-    total: number;
-    children: Record<string, cpvItem>;
-}
 
 type searchParams = {
     id: string;
@@ -29,26 +26,30 @@ export default function CategorySelection() {
 
     // States
     const [searchQuery, setSearchQuery] = useState("");
-    const [cpvClass, setCpvClass] = useState(cpvClassifications);
-    const [history, setHistory] = useState<cpvItem[]>([cpvClassifications]);
+    const [cpvClass, setCpvClass] = useState(cpv["root"]);
+    const [history, setHistory] = useState<CPVCategory[]>([cpv["root"]]);
 
     // Callbacks
-    const selectedBranch = (item: cpvItem) => {
+    const selectedBranch = (item: CPVCategory) => {
         setHistory([...history, item]);
         setCpvClass(item);
     }
 
-    const typeSelected = function(selectedTypeID: string){
+    const typeSelected = function(selectedTypeID: number){
         const params = {id: id, typeSelection: selectedTypeID};
         router.dismissTo({pathname: "/products/[id]", params: params});
     }
 
     // Methods
-    const filteredCPV = () => {
-        return Object.entries(cpv).filter(
-            ([key, value]) =>
-                key.startsWith(cpvClass.id) &&
-                value.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredCPV = (): CPVCategory[] => {
+        if (!searchQuery) {
+            return cpvClass.directChildren.map(id => cpv[id]);
+        }
+
+        const unfiltered = cpvClass.allChildren.map(id => cpv[id]);
+        return unfiltered.filter(item =>
+            item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }
 
@@ -74,77 +75,86 @@ export default function CategorySelection() {
                     <Card.Content style={{ flexDirection: "row", alignItems: "center", gap: 10}}>
                         <Icon size={20} source={"chevron-left"}/>
                         <Text variant="bodySmall">
-                            {history[history.length - 1].name}
+                            {history[history.length - 1].description}
                         </Text>
                     </Card.Content>
                 </Card>
             )}
-            {cpvClass.type !== "category" && searchQuery === "" && (
-                <FlatList
-                    contentContainerStyle={{
-                        gap: 15,
-                        paddingTop: history.length > 1 ? 145 : 85,
-                        paddingBottom: 20
+            <FlatList
+                contentContainerStyle={{
+                    gap: 15,
+                    padding: 15,
+                    paddingTop: history.length > 1 ? 145 : 85,
+                    marginBottom: 20
                 }}
-                    numColumns={2}
-                    data={Object.values(cpvClass.children)}
-                    renderItem={({ item }) => (
-                        <CPVItemCard cpvItem={item} setCPV={selectedBranch}/>
-                    )}
-                />)
-            }
-            { (searchQuery !== "" || cpvClass.type === "category") && (
-                <FlatList
-                    contentContainerStyle={{
-                        gap: 15,
-                        padding: 15,
-                        paddingTop: history.length > 1 ? 145 : 85,
-                        marginBottom: 20
-                }}
-                    data={filteredCPV()}
-                    renderItem={({ item }) => {
-                        const [id, name] = item;
-                        return (
-                            <CPVCard
-                                CPVId={id}
-                                onPress={() => typeSelected(id)}
-                            />);
-                    }}
-                />
-            )}
+                data={filteredCPV()}
+                renderItem={({ item }) => (
+                    <View>
+                        <CPVCard
+                            CPV={item}
+                            onPress={() => {typeSelected(item.id)}}
+                            actionElement={<CPVLink CPV={item} onPress={()=> selectedBranch(item)} />}
+                        />
+                    </View>
+                )}
+            />
         </View>
     );
 }
 
+function CPVLink({CPV, onPress}: {CPV: CPVCategory, onPress?: () => void}) {
+    const darkMode = useColorScheme() === "dark";
 
-function CPVItemCard({ cpvItem, setCPV }: { cpvItem: cpvItem, setCPV?: (cpv: cpvItem) => void}) {
-    const size = Dimensions.get('window').width / 2 - 25;
+    if (CPV.directChildren.length <= 0) {
+        return <View style={{height: 30}}/>
+    }
 
     return (
-        <Card
-            style={{ marginLeft: 16, marginRight: 0}}
-            onPress={() => setCPV?.(cpvItem)}
+        <Pressable
+            style={[
+                styles.linkContainer,
+                darkMode ? styles.linkContainerDark : null,
+            ]}
+            onPress={onPress}
         >
-            <View style={{width: size, height: size, padding: 20}}>
-                <Text variant="bodySmall" style={{ opacity: 0.7}}>
-                    {cpvItem.name}
-                </Text>
-                <Text
-                    variant="titleLarge"
-                      style={
-                          {
-                              opacity: 0.1,
-                              position: "absolute",
-                              bottom: 0,
-                              right: 5,
-                              fontWeight: "900",
-                              fontSize: 80,
-                                lineHeight: 80,
-                          }}>
-                    {cpvItem.total}
-                </Text>
-            </View>
-
-        </Card>
-    );
+            <Text
+                style={[
+                    styles.linkText,
+                    darkMode ? styles.linkTextDark : null,
+                ]}
+            >
+                {`${CPV.directChildren.length} subcategories`}
+            </Text>
+            <Icon
+                size={20}
+                source={"chevron-right"}
+                color={darkMode ? DarkTheme.colors.onSecondaryContainer : LightTheme.colors.onSecondaryContainer}
+            />
+        </Pressable>
+    )
 }
+
+const styles = StyleSheet.create({
+    linkContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        gap: 5,
+        height: 30,
+        paddingHorizontal: 12,
+        backgroundColor: LightTheme.colors.secondaryContainer,
+    },
+    linkContainerDark: {
+        backgroundColor: DarkTheme.colors.secondaryContainer,
+    },
+    linkText: {
+        color: LightTheme.colors.onSecondaryContainer,
+        fontSize: 14,
+        textAlign: "right",
+    },
+    linkTextDark: {
+        color: DarkTheme.colors.onSecondaryContainer,
+    }
+
+});
+

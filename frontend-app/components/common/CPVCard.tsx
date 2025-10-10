@@ -1,55 +1,79 @@
-import {Card, Icon, Text, useTheme} from "react-native-paper";
-import cpvJSON from '@/assets/data/cpv.json';
-import {View} from "react-native";
+import {Icon} from "react-native-paper";
+import {CPVCategory} from "@/types/CPVCategory";
+import {Pressable, View, Text, StyleSheet, useColorScheme} from "react-native";
+import LightTheme from "@/assets/themes/light";
+import DarkTheme from "@/assets/themes/dark";
 
-const CPVData = cpvJSON as Record<string, string>;
 
 interface Props {
-    CPVId: string;
+    CPV: CPVCategory;
     onPress?: () => void;
+    actionElement?: React.ReactNode;
 }
 
-export default function CPVCard({ CPVId, onPress }: Props) {
-    // Hooks
-    const theme = useTheme();
-
-    // Variables
-    let name = CPVData[CPVId] || "Unknown CPV Code";
-    if (name.length > 100) {
-        name = name.substring(0, 97) + "...";
-    }
+export default function CPVCard({ CPV, onPress, actionElement }: Props) {
+    const darkMode = useColorScheme() === "dark";
 
     // Render
     return (
-        <Card
-            style={{backgroundColor: theme.colors.primaryContainer, overflow: "hidden"}}
+        <Pressable
             onPress={onPress}
+            style={[
+                styles.container,
+                darkMode ? styles.containerDark : null,
+                ]}
         >
-            <Card.Content>
-                <Text
-                    variant="bodyMedium"
-                    style={{ height: 40 }}>
-                    {name}
-                </Text>
-                <Text
-                    variant="labelSmall"
-                    style={{ opacity: 0.7, height: 20, textAlign: "right" }}>
-                    {CPVId}
-                </Text>
-                <View
-                    style={{
-                        position: "absolute",
-                        right: 10,
-                        top: -30,
-                        transform: [{ rotate: "-15deg" }],
-                        opacity: 0.1,
-                        }}>
-                    <Icon
-                        source="shape"
-                        size={150}
-                    />
-                </View>
-            </Card.Content>
-        </Card>
+            <Text
+                style={[
+                    styles.text,
+                    darkMode ? styles.textDark : null,
+                ]}
+                numberOfLines={3}
+                ellipsizeMode="tail"
+            >
+                {CPV.description}
+            </Text>
+            {actionElement || <Text
+                style={{opacity: 0.7, height: 20, textAlign: "right"}}>
+                {CPV.name}
+            </Text>}
+            <View
+                style={{
+                    position: "absolute",
+                    right: 10,
+                    top: -30,
+                    transform: [{ rotate: "-15deg" }],
+                    opacity: 0.1,
+                    zIndex: -1,
+                }}>
+                <Icon
+                    source="shape"
+                    size={150}
+                />
+            </View>
+        </Pressable>
     );
 }
+
+const styles = StyleSheet.create({
+    container: {
+        borderRadius: 5,
+        overflow: "hidden",
+        boxShadow: '3px 3px 3px rgba(0, 0, 0, 0.2)',
+        height: 100,
+        justifyContent: "space-between",
+        backgroundColor: LightTheme.colors.primaryContainer,
+    },
+    containerDark: {
+        backgroundColor: DarkTheme.colors.primaryContainer,
+    },
+    text: {
+        padding: 12,
+        fontSize: 15,
+        fontWeight: "500",
+        color: LightTheme.colors.onPrimaryContainer,
+    },
+    textDark: {
+        color: DarkTheme.colors.onPrimaryContainer,
+    }
+});

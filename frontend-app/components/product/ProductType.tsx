@@ -2,9 +2,14 @@ import {useLocalSearchParams, useRouter} from "expo-router";
 import {View} from "react-native";
 import {Text} from "@/components/base";
 import {useEffect} from "react";
+import {CPVCategory} from "@/types/CPVCategory";
+import {Product} from "@/types/Product";
 import CPVCard from "@/components/common/CPVCard";
 
-import {Product} from "@/types/Product";
+import cpvJSON from '@/assets/data/cpv.json';
+
+const cpv = cpvJSON as Record<string, CPVCategory>
+
 
 type searchParams = {
     typeSelection?: string;
@@ -13,7 +18,7 @@ type searchParams = {
 interface Props {
     product: Product;
     editMode: boolean;
-    onTypeChange?: (newType: string) => void;
+    onTypeChange?: (newType: number) => void;
 }
 
 export default function ProductType({product, editMode, onTypeChange}: Props){
@@ -25,7 +30,7 @@ export default function ProductType({product, editMode, onTypeChange}: Props){
     useEffect(() => {
         if (!typeSelection) return;
         router.setParams({ typeSelection: undefined });
-        onTypeChange?.(typeSelection!);
+        onTypeChange?.(parseInt(typeSelection));
     }, [typeSelection]);
 
     // Render
@@ -41,7 +46,7 @@ export default function ProductType({product, editMode, onTypeChange}: Props){
                 Type or Material
             </Text>
             <CPVCard
-                CPVId={product.productType?.name || "Define"}
+                CPV={cpv[product.productTypeID || "root"]}
                 onPress={() => {
                     if (!editMode) return;
                     const params = {id: product.id};
