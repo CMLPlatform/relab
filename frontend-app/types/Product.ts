@@ -8,7 +8,7 @@ export type Product = {
     description?: string;
     createdAt?: string;
     updatedAt?: string;
-    productType?: { id: number; name: string; description: string };
+    productTypeID?: number;
     componentIDs: number[];
     physicalProperties: PhysicalProperties;
     images: { id: number; url: string; description: string }[];

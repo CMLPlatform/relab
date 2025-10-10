@@ -11,7 +11,7 @@ type ProductData = {
     description: string;
     created_at: string;
     updated_at: string;
-    product_type: { name: string; description: string, id: number };
+    product_type_id: number;
     physical_properties: { weight_kg: number, height_cm: number, width_cm: number, depth_cm: number };
     components: { id: number; name: string; description: string }[];
     images: ImageData[];
@@ -35,7 +35,7 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
         description: data.description,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-        productType: data.product_type,
+        productTypeID: data.product_type_id,
         ownedBy: data.owner_id === meId ? "me" : data.owner_id,
         physicalProperties: {
             weight: data.physical_properties.weight_kg,

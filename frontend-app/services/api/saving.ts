@@ -17,6 +17,7 @@ function toNewProduct(product: Product): any {
         }],
         physical_properties: toUpdatePhysicalProperties(product),
         amount_in_parent: product.parentID ? 1 : undefined,
+        product_type_id: product.productTypeID ? product.productTypeID: null,
     })
 }
 
@@ -26,6 +27,7 @@ function toUpdateProduct(product: Product): any {
         brand: product.brand,
         model: product.model,
         description: product.description,
+        product_type_id: product.productTypeID ? product.productTypeID : null,
     })
 }
 
