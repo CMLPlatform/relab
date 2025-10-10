@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   database_backups: # Automated database backups to local file system
-    image: prodrigestivill/postgres-backup-local:18
+    image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f
     depends_on:
       - database
     env_file: ./backend/.env # Load database connection settings
