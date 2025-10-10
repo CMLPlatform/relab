@@ -31,10 +31,10 @@ function toUpdateProduct(product: Product): any {
 
 function toUpdatePhysicalProperties(product: Product): any {
     return ({
-        weight_kg: product.physicalProperties.find(p => p.propertyName === "Weight")?.value || 0,
-        height_cm: product.physicalProperties.find(p => p.propertyName === "Height")?.value || 0,
-        width_cm: product.physicalProperties.find(p => p.propertyName === "Width")?.value  || 0,
-        depth_cm: product.physicalProperties.find(p => p.propertyName === "Depth")?.value || 0,
+        weight_kg: product.physicalProperties.weight || 0,
+        height_cm: product.physicalProperties.height || 0,
+        width_cm: product.physicalProperties.width || 0,
+        depth_cm: product.physicalProperties.depth || 0,
     })
 }
 
@@ -160,10 +160,13 @@ export async function deleteProduct(product: Product): Promise<void> {
 
 export function isProductValid(product: Product): boolean {
     return (
-        product.name != undefined && product.name != "" &&
-        product.brand != undefined && product.brand != "" &&
-        product.model != undefined && product.model != "" &&
-        product.description != undefined && product.description != "" &&
-        product.physicalProperties.every(prop => !Number.isNaN(prop.value) && prop.value > 0)
+        product.name !== undefined && product.name !== "" &&
+        product.brand !== undefined && product.brand !== "" &&
+        product.model !== undefined && product.model !== "" &&
+        product.description !== undefined && product.description !== "" &&
+        product.physicalProperties.weight > 0 &&
+        product.physicalProperties.width > 0 &&
+        product.physicalProperties.height > 0 &&
+        product.physicalProperties.depth > 0
     )
 }

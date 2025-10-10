@@ -1,7 +1,7 @@
-import {NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, ActivityIndicator} from "react-native";
+import {NativeScrollEvent, NativeSyntheticEvent, Alert, ActivityIndicator, useColorScheme} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {JSX, useEffect, useState} from "react";
-import {Card, AnimatedFAB, Provider, Text, Button } from 'react-native-paper';
+import {Card, AnimatedFAB, Text, Button, useTheme} from 'react-native-paper';
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
@@ -37,11 +37,12 @@ export default function ProductPage(): JSX.Element {
     const navigation = useNavigation();
     const router = useRouter()
     const dialog = useDialog();
+    const theme = useTheme()
 
     // States
     const [product, setProduct] = useState<Product>();
     const [editMode, setEditMode] = useState(edit === "true" || false);
-    const [saving, setSaving] = useState(false);
+    const [savingState, setSavingState] = useState<"saving" | "success" | undefined>(undefined);
     const [fabExtended, setFabExtended] = useState(true);
 
     // Effects
@@ -82,7 +83,7 @@ export default function ProductPage(): JSX.Element {
         else if (id !== "new") {
             getProduct(parseInt(id)).then(setProduct);
         }
-    }, []);
+    }, [id]);
 
     useEffect(() => {
         return navigation.addListener("beforeRemove", (e) => {
@@ -156,11 +157,14 @@ export default function ProductPage(): JSX.Element {
      */
     const toggleEditMode = () => {
         if(!editMode){return setEditMode(true);}
-        setSaving(true);
+        setSavingState("saving");
         saveProduct(product).then((id) => {
             router.setParams({id: id.toString()})
             setEditMode(false);
-        }).finally(() => setSaving(false));
+        }).finally(() => {
+            setSavingState("success")
+            setTimeout(() => setSavingState(undefined), 1000);
+        });
     }
 
     const synchronizeProduct = () => {
@@ -168,9 +172,16 @@ export default function ProductPage(): JSX.Element {
         getProduct(parseInt(id)).then(setProduct);
     }
 
+    const FABicon = () => {
+        if (savingState === "saving") {return <ActivityIndicator color={theme.colors.onBackground}/>}
+        if (savingState === "success") { return <MaterialCommunityIcons name="check-bold" size={20} color={theme.colors.onBackground}/>}
+        if (editMode) { return <MaterialCommunityIcons name="content-save" size={20} color={theme.colors.onBackground}/>}
+        return <MaterialCommunityIcons name="pencil" size={20} color={theme.colors.onBackground}/>;
+    }
+
     // Render
     return (
-        <Provider>
+        <>
             <KeyboardAwareScrollView
                 contentContainerStyle={{ gap: 15 , paddingBottom: 5 }}
                 onLayout={synchronizeProduct}
@@ -187,20 +198,14 @@ export default function ProductPage(): JSX.Element {
                 <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete}/>
             </KeyboardAwareScrollView>
             <AnimatedFAB
-                icon={() =>
-                    saving ? (
-                        <ActivityIndicator color={"black"}/>
-                    ) : editMode? (
-                        <MaterialCommunityIcons name="content-save" size={20}/>
-                    ) : (<MaterialCommunityIcons name="pencil" size={20}/>)
-                }
+                icon={FABicon}
                 onPress={toggleEditMode}
-                style={{position: "absolute", margin: 15, right: 0, bottom: 5}}
+                style={{position: "absolute", right: 0, bottom: 0, overflow: "hidden",  margin: 16}}
                 disabled={!isProductValid(product)}
                 extended={fabExtended}
                 label={editMode? "Save Product": "Edit Product"}
                 visible={product.ownedBy === "me"}
             />
-        </Provider>
+        </>
     );
 }

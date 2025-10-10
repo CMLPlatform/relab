@@ -1,5 +1,5 @@
 import {View} from "react-native";
-import {Text, Card} from "react-native-paper";
+import {Text} from "@/components/base";
 import {Product} from "@/types/Product";
 
 interface Props {
@@ -9,35 +9,30 @@ interface Props {
 export default function ProductMetaData({product}: Props) {
     // Render
     return (
-        <Card style={{ margin: 10}} >
-            <Card.Content>
-                <Text variant="titleLarge" style={{ marginBottom: 12 }}>
-                    Metadata
+        <View style={{ padding: 14}}>
+            <Text
+                style={{
+                    marginBottom: 12,
+                    fontSize: 24,
+                    fontWeight: "bold",
+                }}
+            >
+                Metadata
+            </Text>
+            <View style={{ gap: 8, paddingLeft: 4 }}>
+                {product.createdAt && (
+                    <Text style={{ opacity: 0.7 }}>
+                        Created: {new Date(product.createdAt).toLocaleDateString()}
+                    </Text>
+                )}
+                {product.updatedAt && (
+                    <Text style={{ opacity: 0.7 }}>
+                        Last Updated: {new Date(product.updatedAt).toLocaleDateString()}
+                    </Text>
+                )}
+                <Text style={{ opacity: 0.7 }}>
+                    Product ID: {product.id}
                 </Text>
-                <View style={{ gap: 8 }}>
-                    {product.createdAt && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
-                                Created:
-                            </Text>
-                            <Text variant="bodyMedium">{new Date(product.createdAt).toLocaleDateString()}</Text>
-                        </View>
-                    )}
-                    {product.updatedAt && (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
-                                Last Updated:
-                            </Text>
-                            <Text variant="bodyMedium">{new Date(product.updatedAt).toLocaleDateString()}</Text>
-                        </View>
-                    )}
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
-                            Product ID:
-                        </Text>
-                        <Text variant="bodyMedium">{product.id}</Text>
-                    </View>
-                </View>
-            </Card.Content>
-        </Card>
+            </View>
+        </View>
 )}
