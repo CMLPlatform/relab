@@ -1,4 +1,4 @@
-import {FlatList, View, Dimensions, Pressable} from "react-native";
+import {FlatList, View, Dimensions, Pressable, Text} from "react-native";
 import {Image} from "expo-image";
 import {Icon} from "react-native-paper";
 import {useLocalSearchParams, useRouter} from "expo-router";
@@ -16,7 +16,7 @@ interface Props {
     onImagesChange?: (images: { url: string, description: string, id: number }[]) => void;
 }
 
-export default function ProductImage({product, editMode, onImagesChange}: Props) {
+export default function ProductImages({product, editMode, onImagesChange}: Props) {
     // Hooks
     const router = useRouter();
     const {photoTaken} = useLocalSearchParams<searchParams>();
@@ -45,6 +45,12 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
         }
     }, [photoTaken]);
 
+    // Callbacks
+    const onImageDelete = (imageUrl: string) => {
+        product.images = product.images.filter(img => img.url !== imageUrl);
+        onImagesChange?.(product.images);
+    }
+
     // Render
     return (
         <View style={{height: 400}}>
@@ -59,36 +65,14 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
                     getItemLayout={(data, index) => (
                         {length: width, offset: width * index, index}
                     )}
-                    renderItem={({ item }) => (
-                        <>
-                            <Image
-                                source={{ uri: item.url }}
-                                style={{ width: width, height: 400}}
-                                contentFit="cover"
-                            />
-                            {editMode && (
-                                <View
-                                    style={{
-                                        position: 'absolute',
-                                        top: 10,
-                                        right: 10,
-                                        padding: 8,
-                                        borderRadius: 12,
-                                        backgroundColor: 'rgba(160, 0, 0, 0.6)',
-                                    }}
-                                    onTouchEnd={() => {
-                                        product.images = product.images.filter(img => img.url !== item.url);
-                                        onImagesChange?.(product.images);
-                                    }}
-                                >
-                                    <Icon
-                                        source={"delete"} size={24} color={"white"}
-                                    />
-                                </View>
-
-                            )}
-
-                        </>
+                    renderItem={({ item, index }) => (
+                        <SingleImage
+                            uri={item.url}
+                            editMode={editMode}
+                            onDelete={onImageDelete}
+                            index={index + 1}
+                            maxIndex={product.images.length}
+                        />
                     )}
                 />
             )}
@@ -121,3 +105,60 @@ export default function ProductImage({product, editMode, onImagesChange}: Props)
             )}
         </View>
     )}
+
+
+interface singeImageProps {
+    uri: string;
+    editMode: boolean;
+    index: number;
+    maxIndex: number;
+    onDelete?: (imageUrl: string) => void;
+}
+
+
+function SingleImage({uri, editMode, index, maxIndex, onDelete}: singeImageProps) {
+    const width = Dimensions.get('window').width;
+
+    return (
+        <>
+            <Image
+                source={{ uri: uri }}
+                style={{ width: width, height: 400}}
+                contentFit="cover"
+            />
+            <Text
+                style={{
+                    position: 'absolute',
+                    top: 10,
+                    left: 10,
+                    padding: 6,
+                    borderRadius: 12,
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    color: 'white',
+                    fontSize: 14,
+                }}
+            >
+                {`${index} / ${maxIndex}`}
+            </Text>
+            {editMode && (
+                <Pressable
+                    style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        padding: 8,
+                        borderRadius: 12,
+                        backgroundColor: 'rgba(160, 0, 0, 0.6)',
+                    }}
+                    onPress={() => onDelete?.(uri)}
+                >
+                    <Icon
+                        source={"delete"} size={24} color={"white"}
+                    />
+                </Pressable>
+
+            )}
+
+        </>
+    )
+}
