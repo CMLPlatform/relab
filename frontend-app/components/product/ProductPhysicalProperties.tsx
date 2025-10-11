@@ -1,9 +1,12 @@
-import {View} from "react-native";
+import RN, {Pressable, View} from "react-native";
 import {Text, TextInput} from "@/components/base";
 import {Divider} from "react-native-paper";
-import {useState, Fragment} from "react";
+import {useState, useRef, Fragment} from "react";
 import {Product, PhysicalProperties} from "@/types/Product";
 import Cube from "@/components/common/SVGCube";
+
+import LightTheme from "@/assets/themes/light";
+import DarkTheme from "@/assets/themes/dark";
 
 interface Props {
     product: Product;
@@ -68,17 +71,31 @@ export default function ProductPhysicalProperties({product, editMode, onChangePh
 
 
 function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { name: string; value: number; unit: string; editMode: boolean; onChangeProperty?: (name: string, value: number) => void}) {
+    // Hooks
+    const textInput = useRef<RN.TextInput>(null);
+
     // States
     const [text, setText] = useState(Number.isNaN(value) ? "" : value.toString());
 
+    // Callbacks
+    const onPress = () => {
+        if(editMode) {
+            textInput.current?.focus();
+        }
+    }
+
     // Render
     return(
-        <View style={{
-            marginHorizontal: 10,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-        }} >
+        <Pressable
+            style={{
+                paddingHorizontal: 10,
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: text ? undefined : LightTheme.colors.errorContainer
+            }}
+            onPress={onPress}
+        >
                 <Text style={{padding: 10, height: "100%"}}>
                     {name}
                 </Text>
@@ -104,6 +121,7 @@ function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { 
                         keyboardType={"numeric"}
                         placeholder={"Set value"}
                         editable={editMode}
+                        ref={textInput}
                     />
                 <Text style={{ width: 30, fontWeight: "bold", paddingVertical: 10 }}>
                     {" " + unit}
@@ -111,7 +129,7 @@ function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { 
 
             </View>
 
-        </View>
+        </Pressable>
     )
 }
 
