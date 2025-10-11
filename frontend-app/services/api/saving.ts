@@ -129,7 +129,13 @@ async function addImage(product: Product, image: {url: string, description: stri
     if (image.url.startsWith("data:")) {
         body.append("file", dataURItoBlob(image.url), "image.png");
     } else if (image.url.startsWith("file:")) {
+        console.log(image.url)
         body.append("file", { uri: image.url, name: "image.png", type: "image/png" } as any);
+    } else if (image.url.startsWith("blob:")) {
+        // Fetch the blob from the blob URL
+        const response = await fetch(image.url);
+        const blob = await response.blob();
+        body.append("file", blob, "image.png");
     }
 
     await fetch(url, {method: "POST", headers: headers, body: body});
