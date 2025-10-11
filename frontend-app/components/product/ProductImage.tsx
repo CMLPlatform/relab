@@ -154,7 +154,7 @@ function SingleImage({uri, editMode, index, maxIndex, onDelete}: singeImageProps
         >
             <Image
                 source={{ uri: uri }}
-                style={{ width: width, height: 400, display: loaded ? 'flex' : 'none' }}
+                style={{ width: loaded? width : 1, height: loaded ? 400 : 1}}
                 contentFit="cover"
                 onLoad={() => setLoaded(true)}
             />
