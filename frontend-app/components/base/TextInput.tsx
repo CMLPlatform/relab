@@ -1,19 +1,23 @@
 import React from 'react';
-import {TextInput as NativeTextInput, TextInputProps, StyleSheet, useColorScheme, PressableProps} from 'react-native';
+import {TextInput as NativeTextInput, TextInputProps, StyleSheet, useColorScheme} from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
 
 interface Props extends TextInputProps {
     errorOnEmpty?: boolean;
+    ref?: React.Ref<NativeTextInput>
 }
 
 
-export const TextInput: React.FC<Props> = ({style, children, errorOnEmpty=false,  ...props}) => {
+export function TextInput(
+    { style, children, errorOnEmpty = false, ref, ...props }: Props,
+) {
     const darkMode = useColorScheme() === "dark";
     const error = errorOnEmpty && (!props.value || props.value === "");
 
     return (
         <NativeTextInput
+            ref={ref}
             style={[
                 styles.input,
                 error ? styles.inputError : null,
@@ -25,7 +29,7 @@ export const TextInput: React.FC<Props> = ({style, children, errorOnEmpty=false,
             {...props}
         >{children}</NativeTextInput>
     );
-};
+}
 
 const styles = StyleSheet.create({
     input: {
