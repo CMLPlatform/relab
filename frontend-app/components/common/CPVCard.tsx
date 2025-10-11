@@ -29,17 +29,27 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
             <Text
                 style={[
                     styles.text,
-                    darkMode ? styles.textDark : null,
+                    error ? styles.textError : null,
+                    darkMode && !error ? styles.textDark : null,
+                    darkMode && error ? styles.textErrorDark : null,
                 ]}
                 numberOfLines={3}
                 ellipsizeMode="tail"
             >
                 {CPV.description}
             </Text>
-            {actionElement || <Text
-                style={{opacity: 0.7, textAlign: "right", padding: 12}}>
-                {CPV.name}
-            </Text>}
+            {actionElement ||
+                <Text
+                    style={[
+                        styles.subText,
+                        error ? styles.subTextError : null,
+                        darkMode && !error ? styles.subTextDark : null,
+                        darkMode && error ? styles.subTextErrorDark : null,
+                    ]}
+                >
+                    {CPV.name}
+                </Text>
+            }
             <View
                 style={styles.shapes}>
                 <Icon
@@ -83,6 +93,22 @@ const styles = StyleSheet.create({
         color: LightTheme.colors.onErrorContainer,
     },
     textErrorDark: {
+        color: DarkTheme.colors.onErrorContainer,
+    },
+
+    subText: {
+        padding: 12,
+        opacity: 0.7,
+        textAlign: "right",
+        color: LightTheme.colors.onPrimaryContainer,
+    },
+    subTextDark: {
+        color: DarkTheme.colors.onPrimaryContainer,
+    },
+    subTextError: {
+        color: LightTheme.colors.onErrorContainer,
+    },
+    subTextErrorDark: {
         color: DarkTheme.colors.onErrorContainer,
     },
 
