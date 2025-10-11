@@ -9,29 +9,41 @@ interface Props extends PressableProps {
     children?: string,
     title?: string,
     icon?: React.ReactNode,
+    error?: boolean,
 }
 
 
-export const Chip: React.FC<Props> = ({style, children, title, icon, ...props}) => {
-    const cs = useColorScheme() || 'light';
-
-    const finalStyle = StyleSheet.flatten([
-        styles.base,
-        styles[cs],
-        style
-    ]);
-
-    const finalTextStyle = StyleSheet.flatten([
-        styles.baseText,
-        cs === "light" ? styles["lightText"] : styles["darkText"],
-    ]);
+export const Chip: React.FC<Props> = ({style, children, title, icon, error, ...props}) => {
+    const darkMode = useColorScheme() === "dark";
 
     return (
-        <Pressable style={finalStyle} {...props}>
-            { title && (<Text style={styles.baseText}>
-                {title}
-            </Text>)}
-            <Text style={finalTextStyle}>
+        <Pressable
+            style={[
+                styles.container,
+                error ? styles.containerError : null,
+                darkMode && !error ? styles.containerDark : null,
+                darkMode && error ? styles.containerErrorDark : null,
+            ]}
+            {...props}
+        >
+            { title && (
+                <Text
+                    style={[
+                        styles.titleText,
+                        darkMode ? styles.titleTextDark : null,
+                    ]}
+                >
+                    {title}
+                </Text>
+            )}
+            <Text
+                style={[
+                    styles.text,
+                    error ? styles.textError : null,
+                    darkMode && !error ? styles.textDark : null,
+                    darkMode && error ? styles.textErrorDark : null,
+                ]}
+            >
                 {children}
                 {icon && "   "}
                 {icon}
@@ -41,31 +53,54 @@ export const Chip: React.FC<Props> = ({style, children, title, icon, ...props}) 
 };
 
 const styles = StyleSheet.create({
-    base: {
+    container: {
         borderRadius: 5,
         flexDirection: 'row',
         boxShadow: '3px 3px 3px rgba(0, 0, 0, 0.2)',
-    },
-    light: {
         backgroundColor: LightTheme.colors.primaryContainer,
     },
-    dark: {
+    containerDark: {
         backgroundColor: DarkTheme.colors.primaryContainer,
     },
-    baseText: {
+    containerError: {
+        backgroundColor: LightTheme.colors.surfaceVariant,
+    },
+    containerErrorDark: {
+        backgroundColor: DarkTheme.colors.surfaceVariant,
+    },
+
+    text: {
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 5,
         textAlign: 'center',
         fontWeight: '500',
         fontSize: 15,
-    },
-    lightText: {
         backgroundColor: LightTheme.colors.primary,
         color: LightTheme.colors.onPrimary,
     },
-    darkText: {
+    textDark: {
         backgroundColor: DarkTheme.colors.primary,
         color: DarkTheme.colors.onPrimary,
     },
+    textError: {
+        backgroundColor: LightTheme.colors.errorContainer,
+        color: LightTheme.colors.onErrorContainer,
+    },
+    textErrorDark: {
+        backgroundColor: DarkTheme.colors.errorContainer,
+        color: DarkTheme.colors.onErrorContainer,
+    },
+
+    titleText : {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        textAlign: 'center',
+        fontWeight: '500',
+        fontSize: 15,
+        color: LightTheme.colors.onPrimaryContainer,
+    },
+    titleTextDark : {
+        color: DarkTheme.colors.onPrimaryContainer,
+    }
 });
