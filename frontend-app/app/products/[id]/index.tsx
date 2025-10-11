@@ -49,30 +49,7 @@ export default function ProductPage(): JSX.Element {
     useEffect(() => {
         navigation.setOptions({
             title: product?.name || "Product" ,
-            headerRight: editMode ? () => (
-                <Button
-                    onPress={() => {
-                        if (!product) {return;}
-                        dialog.input({
-                            title: "Edit name",
-                            placeholder: "Enter a name",
-                            defaultValue: product.name || "",
-                            buttons: [
-                                { text: "Cancel", onPress: () => undefined },
-                                { text: "OK", onPress: (newName) => {
-                                    if (!newName || newName.trim().length === 0) {
-                                        Alert.alert("Invalid Name", "Product name cannot be empty.");
-                                        return;
-                                    }
-                                    setProduct({...product, name: newName.trim()});
-                                }}
-                            ]
-                        });
-                    }}
-                >
-                    Edit name
-                </Button>
-            ) : undefined
+            headerRight: editMode ? () => <EditNameButton product={product} onProductNameChange={onProductNameChange}/> : undefined
         });
     }, [navigation, product, editMode]);
 
@@ -142,6 +119,10 @@ export default function ProductPage(): JSX.Element {
         })
     }
 
+    const onProductNameChange = (newName: string) => {
+        setProduct({...product, name: newName.trim()});
+    }
+
     const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         setFabExtended(event.nativeEvent.contentOffset.y <= 0);
     };
@@ -204,4 +185,32 @@ export default function ProductPage(): JSX.Element {
             />
         </>
     );
+}
+
+
+function EditNameButton({product, onProductNameChange}: {product: Product | undefined; onProductNameChange?: (newName: string) => void}) {
+    const dialog = useDialog();
+
+    const onPress = () => {
+        if (!product) {return;}
+        dialog.input({
+            title: "Edit name",
+            placeholder: "Enter a name",
+            defaultValue: product.name || "",
+            buttons: [
+                { text: "Cancel", onPress: () => undefined },
+                { text: "OK", onPress: onOK}
+            ]
+        });
+    }
+
+    const onOK = (newName: string | undefined) => {
+        if (!newName || newName.trim().length === 0) {
+            Alert.alert("Invalid Name", "Product name cannot be empty.");
+            return;
+        }
+        onProductNameChange?.(newName)
+    }
+
+    return (<Button onPress={onPress}>Edit name</Button>)
 }
