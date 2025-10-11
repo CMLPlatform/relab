@@ -1,7 +1,7 @@
-import {NativeScrollEvent, NativeSyntheticEvent, Alert, ActivityIndicator, useColorScheme} from "react-native";
+import {NativeScrollEvent, NativeSyntheticEvent, Alert, ActivityIndicator, View} from "react-native";
 import {useLocalSearchParams, useNavigation, useRouter} from "expo-router";
 import {JSX, useEffect, useState} from "react";
-import {Card, AnimatedFAB, Text, Button, useTheme} from 'react-native-paper';
+import {AnimatedFAB, Button, useTheme} from 'react-native-paper';
 import {MaterialCommunityIcons} from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
@@ -104,13 +104,9 @@ export default function ProductPage(): JSX.Element {
     // Sub Render >> Product not found
     if (!product) {
         return (
-            <Card>
-                <Card.Content style={{ alignItems: 'center', gap: 12 }}>
-                    <Text variant="bodyMedium" style={{ opacity: 0.7 }}>
-                        The requested product could not be found.
-                    </Text>
-                </Card.Content>
-            </Card>
+            <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
+                <ActivityIndicator size="large"/>
+            </View>
         );
     }
 
