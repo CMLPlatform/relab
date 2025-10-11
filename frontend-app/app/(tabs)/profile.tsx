@@ -4,7 +4,7 @@ import { Text, Chip } from "@/components/base";
 
 import { User } from "@/types/User";
 import { getUser, logout, verify } from "@/services/api/authentication";
-import {Pressable, View} from "react-native";
+import {Pressable, View, Platform} from "react-native";
 import {useRouter} from "expo-router";
 
 export default function ProfileTab() {
@@ -54,10 +54,10 @@ export default function ProfileTab() {
             </Text>
             <Text
                 style={{
-                    fontSize: 80,
+                    fontSize: Platform.OS === "web" ? 40 : 80,
                     fontWeight: "bold",
                 }}
-                numberOfLines={1}
+                numberOfLines={Platform.OS === "web" ? undefined : 1}
                 adjustsFontSizeToFit={true}
             >
                 {profile.username + "."}
