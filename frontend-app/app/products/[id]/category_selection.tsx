@@ -1,7 +1,7 @@
 import {useLocalSearchParams, useRouter} from "expo-router";
 import {useState} from "react";
-import {Card, Icon, Searchbar, Text} from 'react-native-paper';
-import {FlatList, View, Pressable, StyleSheet, useColorScheme} from "react-native";
+import {Icon, Searchbar} from 'react-native-paper';
+import {FlatList, View, Pressable, StyleSheet, useColorScheme, Text} from "react-native";
 
 
 import CPVCard from "@/components/common/CPVCard";
@@ -35,6 +35,13 @@ export default function CategorySelection() {
         setCpvClass(item);
     }
 
+    const moveUp = () => {
+        const newHistory = [...history];
+        newHistory.pop();
+        setHistory(newHistory);
+        setCpvClass(newHistory[newHistory.length - 1]);
+    }
+
     const typeSelected = function(selectedTypeID: number){
         const params = {id: id, typeSelection: selectedTypeID};
         router.dismissTo({pathname: "/products/[id]", params: params});
@@ -63,28 +70,13 @@ export default function CategorySelection() {
                 value={searchQuery}
             />
             {history.length > 1 && (
-                <Card
-                    style={{ position: "absolute", top: 80, left: 15, right: 15, zIndex: 1}}
-                    onPress={() => {
-                        const newHistory = [...history];
-                        newHistory.pop();
-                        setHistory(newHistory);
-                        setCpvClass(newHistory[newHistory.length - 1]);
-                    }}
-                >
-                    <Card.Content style={{ flexDirection: "row", alignItems: "center", gap: 10}}>
-                        <Icon size={20} source={"chevron-left"}/>
-                        <Text variant="bodySmall">
-                            {history[history.length - 1].description}
-                        </Text>
-                    </Card.Content>
-                </Card>
+                <CPVHistory history={history} onPress={moveUp} />
             )}
             <FlatList
                 contentContainerStyle={{
                     gap: 15,
                     padding: 15,
-                    paddingTop: history.length > 1 ? 145 : 85,
+                    paddingTop: history.length > 1 ? 152 : 85,
                     marginBottom: 20
                 }}
                 data={filteredCPV()}
@@ -100,6 +92,35 @@ export default function CategorySelection() {
             />
         </View>
     );
+}
+
+function CPVHistory({history, onPress}: {history: CPVCategory[], onPress?: () => void}) {
+    const darkMode = useColorScheme() === "dark";
+    return (
+        <Pressable
+            style={[
+                styles.historyContainer,
+                darkMode ? styles.historyContainerDark : null,
+            ]}
+            onPress={onPress}
+        >
+            <Icon
+                size={20}
+                source={"chevron-left"}
+                color={darkMode ? DarkTheme.colors.onTertiaryContainer : LightTheme.colors.onTertiaryContainer}
+            />
+            <Text
+                numberOfLines={2}
+                lineBreakMode={"tail"}
+                style={[
+                    styles.historyText,
+                    darkMode ? styles.historyTextDark : null,
+                ]}
+            >
+                {history[history.length - 1].description}
+            </Text>
+        </Pressable>
+    )
 }
 
 function CPVLink({CPV, onPress}: {CPV: CPVCategory, onPress?: () => void}) {
@@ -154,6 +175,31 @@ const styles = StyleSheet.create({
     },
     linkTextDark: {
         color: DarkTheme.colors.onSecondaryContainer,
+    },
+
+    historyContainer: {
+        position: "absolute",
+        flexDirection: "row",
+        gap: 10,
+        padding: 10,
+        height: 60,
+        alignItems: "center",
+        top: 80,
+        left: 15,
+        right: 15,
+        zIndex: 1,
+        borderRadius: 5,
+        backgroundColor: LightTheme.colors.tertiaryContainer,
+        boxShadow: '3px 3px 3px rgba(0, 0, 0, 0.2)',
+    },
+    historyContainerDark: {
+        backgroundColor: DarkTheme.colors.tertiaryContainer,
+    },
+    historyText: {
+        color: LightTheme.colors.onTertiaryContainer,
+    },
+    historyTextDark: {
+        color: DarkTheme.colors.onTertiaryContainer
     }
 
 });
