@@ -10,9 +10,10 @@ import {useTheme} from "react-native-paper";
 
 interface Props {
     product: Product;
+    enabled?: boolean
 }
 
-export default function ProductCard({ product }: Props) {
+export default function ProductCard({ product, enabled = true }: Props) {
     // Hooks
     const router = useRouter();
     const theme = useTheme();
@@ -21,7 +22,8 @@ export default function ProductCard({ product }: Props) {
     const detailList = [
         product.brand,
         product.model,
-        product.productType?.name,
+        product.componentIDs.length === 1 && `1 component`,
+        product.componentIDs.length > 1 && `${product.componentIDs.length} components`,
     ].filter(Boolean);
 
     // Callbacks
@@ -33,13 +35,13 @@ export default function ProductCard({ product }: Props) {
     // Render
     return (
         <Pressable
-            onPress={navigateToProduct}
+            onPress={enabled ? navigateToProduct : undefined}
             style={({ pressed }) => [
                 {
                     padding: 10,
                     paddingLeft: 16,
                 },
-                (pressed ? { backgroundColor: theme.colors.secondaryContainer } : { backgroundColor: undefined }),
+                pressed && enabled && { backgroundColor: theme.colors.secondaryContainer },
             ]}
         >
             <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 4 }}>
