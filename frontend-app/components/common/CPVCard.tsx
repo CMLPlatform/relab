@@ -37,7 +37,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
                 {CPV.description}
             </Text>
             {actionElement || <Text
-                style={{opacity: 0.7, height: 20, textAlign: "right"}}>
+                style={{opacity: 0.7, textAlign: "right", padding: 12}}>
                 {CPV.name}
             </Text>}
             <View
@@ -55,7 +55,6 @@ const styles = StyleSheet.create({
     container: {
         borderRadius: 5,
         overflow: "hidden",
-        boxShadow: '3px 3px 3px rgba(0, 0, 0, 0.2)',
         height: 100,
         justifyContent: "space-between",
         backgroundColor: LightTheme.colors.primaryContainer,

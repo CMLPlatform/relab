@@ -56,7 +56,6 @@ const styles = StyleSheet.create({
     container: {
         borderRadius: 5,
         flexDirection: 'row',
-        boxShadow: '3px 3px 3px rgba(0, 0, 0, 0.2)',
         backgroundColor: LightTheme.colors.primaryContainer,
     },
     containerDark: {
