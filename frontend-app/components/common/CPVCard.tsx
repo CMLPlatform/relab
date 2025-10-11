@@ -13,6 +13,7 @@ interface Props {
 
 export default function CPVCard({ CPV, onPress, actionElement }: Props) {
     const darkMode = useColorScheme() === "dark";
+    const error = CPV.name === "undefined"
 
     // Render
     return (
@@ -20,8 +21,10 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
             onPress={onPress}
             style={[
                 styles.container,
-                darkMode ? styles.containerDark : null,
-                ]}
+                error ? styles.containerError : null,
+                darkMode && !error ? styles.containerDark : null,
+                darkMode && error ? styles.containerErrorDark : null,
+            ]}
         >
             <Text
                 style={[
@@ -38,14 +41,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
                 {CPV.name}
             </Text>}
             <View
-                style={{
-                    position: "absolute",
-                    right: 10,
-                    top: -30,
-                    transform: [{ rotate: "-15deg" }],
-                    opacity: 0.1,
-                    zIndex: -1,
-                }}>
+                style={styles.shapes}>
                 <Icon
                     source="shape"
                     size={150}
@@ -67,6 +63,14 @@ const styles = StyleSheet.create({
     containerDark: {
         backgroundColor: DarkTheme.colors.primaryContainer,
     },
+    containerError: {
+        backgroundColor: LightTheme.colors.errorContainer,
+    },
+    containerErrorDark: {
+        backgroundColor: DarkTheme.colors.errorContainer,
+    },
+
+
     text: {
         padding: 12,
         fontSize: 15,
@@ -75,5 +79,20 @@ const styles = StyleSheet.create({
     },
     textDark: {
         color: DarkTheme.colors.onPrimaryContainer,
+    },
+    textError: {
+        color: LightTheme.colors.onErrorContainer,
+    },
+    textErrorDark: {
+        color: DarkTheme.colors.onErrorContainer,
+    },
+
+    shapes: {
+        position: "absolute",
+        right: 10,
+        top: -30,
+        transform: [{ rotate: "-15deg" }],
+        opacity: 0.1,
+        zIndex: -1,
     }
 });
