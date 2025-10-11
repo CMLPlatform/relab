@@ -98,9 +98,10 @@ function CPVHistory({history, onPress}: {history: CPVCategory[], onPress?: () =>
     const darkMode = useColorScheme() === "dark";
     return (
         <Pressable
-            style={[
+            style={({pressed}) => [
                 styles.historyContainer,
                 darkMode ? styles.historyContainerDark : null,
+                pressed && {opacity: 0.5}
             ]}
             onPress={onPress}
         >
@@ -111,7 +112,7 @@ function CPVHistory({history, onPress}: {history: CPVCategory[], onPress?: () =>
             />
             <Text
                 numberOfLines={2}
-                lineBreakMode={"tail"}
+                ellipsizeMode={"tail"}
                 style={[
                     styles.historyText,
                     darkMode ? styles.historyTextDark : null,
@@ -132,9 +133,10 @@ function CPVLink({CPV, onPress}: {CPV: CPVCategory, onPress?: () => void}) {
 
     return (
         <Pressable
-            style={[
+            style={({pressed}) => [
                 styles.linkContainer,
                 darkMode ? styles.linkContainerDark : null,
+                pressed && {opacity: 0.5}
             ]}
             onPress={onPress}
         >
@@ -190,12 +192,12 @@ const styles = StyleSheet.create({
         zIndex: 1,
         borderRadius: 5,
         backgroundColor: LightTheme.colors.tertiaryContainer,
-        boxShadow: '3px 3px 3px rgba(0, 0, 0, 0.2)',
     },
     historyContainerDark: {
         backgroundColor: DarkTheme.colors.tertiaryContainer,
     },
     historyText: {
+        flexShrink: 1,
         color: LightTheme.colors.onTertiaryContainer,
     },
     historyTextDark: {

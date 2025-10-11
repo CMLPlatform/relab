@@ -33,6 +33,13 @@ export default function ProductType({product, editMode, onTypeChange}: Props){
         onTypeChange?.(parseInt(typeSelection));
     }, [typeSelection]);
 
+    // Callback
+    const onTypeSelectionStart = () => {
+        if (!editMode) return;
+        const params = {id: product.id};
+        router.push({pathname: "/products/[id]/category_selection", params: params});
+    }
+
     // Render
     return (
         <View style={{ padding: 14}}>
@@ -47,11 +54,7 @@ export default function ProductType({product, editMode, onTypeChange}: Props){
             </Text>
             <CPVCard
                 CPV={cpv[product.productTypeID || "root"]}
-                onPress={() => {
-                    if (!editMode) return;
-                    const params = {id: product.id};
-                    router.push({pathname: "/products/[id]/category_selection", params: params});
-                }}
+                onPress={editMode ? onTypeSelectionStart : undefined}
             />
         </View>
     )
