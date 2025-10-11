@@ -35,7 +35,13 @@ export default function ProductComponents({product, editMode}: Props) {
             buttons: [
                 { text: "Cancel" },
                 { text: "OK", onPress: (componentName) => {
-                    const params = { id: "new", edit: "true", name: componentName, parent: product.id };
+                    const params = {
+                        id: "new",
+                        name: componentName,
+                        model: product.model,
+                        brand: product.brand,
+                        parent: product.id,
+                    };
                     router.push({ pathname: "/products/[id]", params: params });
                 }}
             ]
