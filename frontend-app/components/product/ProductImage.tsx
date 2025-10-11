@@ -1,4 +1,4 @@
-import {FlatList, View, Dimensions, Pressable, Text} from "react-native";
+import {FlatList, View, Dimensions, Pressable, Text, ActivityIndicator} from "react-native";
 import {Image} from "expo-image";
 import * as ImagePicker from 'expo-image-picker';
 import {Icon} from "react-native-paper";
@@ -141,14 +141,24 @@ interface singeImageProps {
 
 function SingleImage({uri, editMode, index, maxIndex, onDelete}: singeImageProps) {
     const width = Dimensions.get('window').width;
+    const [loaded, setLoaded] = useState(false);
 
     return (
-        <>
+        <View
+            style={{
+                width: width,
+                height: 400,
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
             <Image
                 source={{ uri: uri }}
-                style={{ width: width, height: 400}}
+                style={{ width: width, height: 400, display: loaded ? 'flex' : 'none' }}
                 contentFit="cover"
+                onLoad={() => setLoaded(true)}
             />
+            {loaded || <ActivityIndicator size="large"/>}
             <Text
                 style={{
                     position: 'absolute',
@@ -182,7 +192,7 @@ function SingleImage({uri, editMode, index, maxIndex, onDelete}: singeImageProps
 
             )}
 
-        </>
+        </View>
     )
 }
 
