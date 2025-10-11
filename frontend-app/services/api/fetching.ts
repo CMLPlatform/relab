@@ -65,11 +65,18 @@ export async function getProduct(id: number | "new"): Promise<Product> {
     return toProduct(data as ProductData);
 }
 
-export function newProduct(name: string = "", parentID: number = NaN): Product {
+export function newProduct(
+    name: string = "",
+    parentID: number = NaN,
+    brand: string | undefined = undefined,
+    model: string | undefined = undefined,
+): Product {
     return {
         id: "new",
         parentID: parentID,
         name: name,
+        brand: brand,
+        model: model,
         physicalProperties: {
             weight: NaN,
             height: NaN,

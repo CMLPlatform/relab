@@ -26,22 +26,23 @@ import { isProductValid, saveProduct, deleteProduct } from "@/services/api/savin
 type searchParams = {
     id: string;
     name: string;
-    edit?: string;
+    model?: string;
+    brand?: string;
     parent?: string;
 }
 
 
 export default function ProductPage(): JSX.Element {
     // Hooks
-    const { id, name, edit, parent } = useLocalSearchParams<searchParams>();
+    const { id, name, model, brand, parent } = useLocalSearchParams<searchParams>();
     const navigation = useNavigation();
     const router = useRouter()
     const dialog = useDialog();
     const theme = useTheme()
 
     // States
-    const [product, setProduct] = useState<Product>();
-    const [editMode, setEditMode] = useState(edit === "true" || false);
+    const [product, setProduct] = useState<Product>({} as Product);
+    const [editMode, setEditMode] = useState(id === "new" || false);
     const [savingState, setSavingState] = useState<"saving" | "success" | undefined>(undefined);
     const [fabExtended, setFabExtended] = useState(true);
 
@@ -55,7 +56,7 @@ export default function ProductPage(): JSX.Element {
 
     useEffect(() => {
         if (id === "new" && product === undefined) {
-            setProduct(newProduct(name, parent ? parseInt(parent) : NaN));
+            setProduct(newProduct(name, parent ? parseInt(parent) : NaN, brand, model));
         }
         else if (id !== "new") {
             getProduct(parseInt(id)).then(setProduct);
@@ -77,15 +78,6 @@ export default function ProductPage(): JSX.Element {
             });
         });
     }, [navigation, editMode]);
-
-    // Sub Render >> Product loading
-    if (!product) {
-        return (
-            <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
-                <ActivityIndicator size="large"/>
-            </View>
-        );
-    }
 
     // Callbacks
     const onChangeDescription = (newDescription: string) => {
@@ -154,6 +146,15 @@ export default function ProductPage(): JSX.Element {
         if (savingState === "success") { return <MaterialCommunityIcons name="check-bold" size={20} color={theme.colors.onBackground}/>}
         if (editMode) { return <MaterialCommunityIcons name="content-save" size={20} color={theme.colors.onBackground}/>}
         return <MaterialCommunityIcons name="pencil" size={20} color={theme.colors.onBackground}/>;
+    }
+
+    // Sub Render >> Product loading
+    if (product.id === undefined) {
+        return (
+            <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
+                <ActivityIndicator size="large"/>
+            </View>
+        );
     }
 
     // Render
