@@ -55,7 +55,7 @@ export default function ProductPage(): JSX.Element {
     }, [navigation, product, editMode]);
 
     useEffect(() => {
-        if (id === "new" && product === undefined) {
+        if (id === "new") {
             setProduct(newProduct(name, parent ? parseInt(parent) : NaN, brand, model));
         }
         else if (id !== "new") {

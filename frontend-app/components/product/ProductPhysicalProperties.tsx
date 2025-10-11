@@ -1,4 +1,4 @@
-import RN, {Pressable, View} from "react-native";
+import RN, {Pressable, View, Platform} from "react-native";
 import {Text, TextInput} from "@/components/base";
 import {Divider} from "react-native-paper";
 import {useState, useRef, Fragment} from "react";
@@ -88,49 +88,51 @@ function PhysicalPropertyRow({name, value, unit, editMode, onChangeProperty}: { 
     return(
         <Pressable
             style={{
-                paddingHorizontal: 10,
                 flexDirection: "row",
-                justifyContent: "space-between",
                 alignItems: "center",
-                backgroundColor: text ? undefined : LightTheme.colors.errorContainer
+                paddingHorizontal: 15,
+                gap: 2,
             }}
             onPress={onPress}
         >
-                <Text style={{padding: 10, height: "100%"}}>
-                    {name}
-                </Text>
-            <View style={{flexDirection: "row", justifyContent: "space-between"}}>
-                    <TextInput
-                        style={{
-                            width: 80,
-                            height: 40,
-                            outline: "none",
-                            textAlign: "right",
-                            fontSize: 14,
-                            fontWeight: "bold",
-                        }}
-                        value={text}
-                        onChangeText={s => {
-                            if(s.match("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$") || s === "") {
-                                setText(s)
-                                onChangeProperty?.(name.toLowerCase(), parseFloat(s))
-                            }
-                        }}
-                        textAlign={"right"}
-                        textAlignVertical={"top"}
-                        keyboardType={"numeric"}
-                        placeholder={"Set value"}
-                        editable={editMode}
-                        ref={textInput}
-                    />
-                <Text style={{ width: 30, fontWeight: "bold", paddingVertical: 10 }}>
-                    {" " + unit}
-                </Text>
+            <Text
+                style={{
+                    flexGrow: 2,
+                }}
+            >
+                {name}
+            </Text>
+            <TextInput
+                style={{
+                    textAlign: Platform.OS === "web" ? "right" : undefined,
+                    outline: "none",
+                    height: 38,
+                    paddingHorizontal: 10,
+                    marginVertical: 2,
+                    borderRadius: 50,
+                    // @ts-ignore because this works on the web
+                    fieldSizing: "content",
+                }}
+                value={text}
+                onChangeText={s => {
+                    if(s.match("^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$") || s === "") {
+                        setText(s)
+                    }
+                }}
+                onBlur={() => onChangeProperty?.(name.toLowerCase(), parseFloat(text))}
+                keyboardType={"numeric"}
+                placeholder={"Set value"}
+                editable={editMode}
+                ref={textInput}
+                errorOnEmpty
+            />
+            <Text
+                style={{
+                    fontWeight: "bold",
+                    width: 30,
+                }}
 
-            </View>
-
+            >{unit}</Text>
         </Pressable>
     )
 }
-
-
