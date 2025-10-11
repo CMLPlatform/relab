@@ -66,7 +66,9 @@ export default function ProductComponents({product, editMode}: Props) {
                     This product has no subcomponents.
                 </Text>
             )}
-            {components.map((component, index) => (<ProductCard key={component.id} product={component} />))}
+            {components.map((component, index) => (
+                <ProductCard key={component.id} product={component} enabled={!editMode} />
+            ))}
             {editMode || product.ownedBy !== "me" || (
                 <Button
                     compact={true}
