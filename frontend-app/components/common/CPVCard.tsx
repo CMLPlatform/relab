@@ -19,11 +19,12 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
     return (
         <Pressable
             onPress={onPress}
-            style={[
+            style={({pressed}) => [
                 styles.container,
                 error ? styles.containerError : null,
                 darkMode && !error ? styles.containerDark : null,
                 darkMode && error ? styles.containerErrorDark : null,
+                pressed && onPress && {opacity: 0.5}
             ]}
         >
             <Text
