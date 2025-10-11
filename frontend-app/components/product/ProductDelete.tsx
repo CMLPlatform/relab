@@ -38,13 +38,15 @@ export default function ProductDelete({product, editMode, onDelete}: Props){
             icon={"delete"}
             style={{
                 marginTop: 10,
-                marginLeft: 10,
+                marginLeft: 19,
                 marginRight: 85,
                 height: 54,
                 backgroundColor: "#B00020",
                 justifyContent: "center",
                 alignItems: "center",
-        }}
+                borderRadius: 16,
+            }}
+            textColor={"white"}
         >
             Delete product
         </Button>

@@ -178,7 +178,7 @@ export default function ProductPage(): JSX.Element {
             <AnimatedFAB
                 icon={FABicon}
                 onPress={toggleEditMode}
-                style={{position: "absolute", right: 0, bottom: 0, overflow: "hidden",  margin: 16}}
+                style={{position: "absolute", right: 0, bottom: 0, overflow: "hidden",  margin: 19}}
                 disabled={!isProductValid(product)}
                 extended={fabExtended}
                 label={editMode? "Save Product": "Edit Product"}
