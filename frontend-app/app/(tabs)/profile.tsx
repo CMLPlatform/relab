@@ -3,7 +3,7 @@ import {IconButton} from "react-native-paper";
 import { Text, Chip } from "@/components/base";
 
 import { User } from "@/types/User";
-import { getUser, logout } from "@/services/api/authentication";
+import { getUser, logout, verify } from "@/services/api/authentication";
 import {Pressable, View} from "react-native";
 import {useRouter} from "expo-router";
 
@@ -20,10 +20,19 @@ export default function ProfileTab() {
     }, []);
 
     // callbacks
-    const logoutCallback = () => {
+    const onLogout = () => {
         logout().then(() => {
             setProfile(undefined);
             router.replace("/login");
+        });
+    }
+
+    const onVerifyAccount = () => {
+        if (!profile) return;
+        verify(profile.email).then(() => {
+            alert("Verification email sent. Please check your inbox.");
+        }).catch(() => {
+            alert("Failed to send verification email. Please try again later.");
         });
     }
 
@@ -59,9 +68,9 @@ export default function ProfileTab() {
                 {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={{backgroundColor: "lightgrey"}}>Unverified</Chip>}
             </View>
             {/*<Text variant={"labelSmall"} style={{textAlign: "right"}}>{profile.id}</Text>*/}
-            <ProfileAction title={"Logout"} subtitle={"Change to another account"} onPress={logoutCallback} />
+            <ProfileAction title={"Logout"} subtitle={"Change to another account"} onPress={onLogout} />
             {profile.isVerified || (
-                <ProfileAction title={"Verify your email address"} subtitle={"Resend the verification email"} onPress={logoutCallback} />
+                <ProfileAction title={"Verify your email address"} subtitle={"Resend the verification email"} onPress={onVerifyAccount} />
             )}
         </View>
     )
