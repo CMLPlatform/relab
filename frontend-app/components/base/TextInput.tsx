@@ -25,6 +25,7 @@ export function TextInput(
                 darkMode && error ? styles.inputErrorDark : null,
                 style,
             ]}
+            placeholderTextColor={darkMode ? DarkTheme.colors.onSurface : LightTheme.colors.onSurface}
 
             {...props}
         >{children}</NativeTextInput>
