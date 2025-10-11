@@ -62,15 +62,17 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
                 title={"Brand"}
                 onPress={onEditBrand}
                 icon={editMode && <MaterialCommunityIcons name={"pencil"}/>}
+                error={product.brand === undefined}
             >
-                {product.brand}
+                {product.brand || "Define"}
             </Chip>
             <Chip
                 title={"Model"}
                 onPress={onEditModel}
                 icon={editMode && <MaterialCommunityIcons name={"pencil"}/>}
+                error={product.model === undefined}
             >
-                {product.model}
+                {product.model || "Define"}
             </Chip>
         </View>
     )
