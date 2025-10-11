@@ -18,11 +18,12 @@ export const Chip: React.FC<Props> = ({style, children, title, icon, error, ...p
 
     return (
         <Pressable
-            style={[
+            style={({pressed}) => [
                 styles.container,
                 error ? styles.containerError : null,
                 darkMode && !error ? styles.containerDark : null,
                 darkMode && error ? styles.containerErrorDark : null,
+                pressed && {opacity: 0.5}
             ]}
             {...props}
         >
