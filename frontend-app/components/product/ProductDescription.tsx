@@ -20,7 +20,8 @@ export default function ProductDescription({product, editMode, onChangeDescripti
             style={{padding: 14, fontSize: 16, lineHeight: 26}}
             placeholder={"Add a product description"}
             value={text}
-            onChangeText={text => {setText(text); onChangeDescription?.(text)}}
+            onChangeText={setText}
+            onBlur={() => onChangeDescription?.(text)}
             editable={editMode}
             multiline
             errorOnEmpty
