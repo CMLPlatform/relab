@@ -1,11 +1,16 @@
-import {FlatList, View, Dimensions, Pressable, Text, ActivityIndicator} from "react-native";
+import {useEffect, useRef, useState} from "react";
+import {FlatList, View, Dimensions, Pressable, Text, ActivityIndicator, useColorScheme} from "react-native";
+import {Icon} from "react-native-paper";
+
+import {useLocalSearchParams, useRouter} from "expo-router";
+
 import {Image} from "expo-image";
 import * as ImagePicker from 'expo-image-picker';
-import {Icon} from "react-native-paper";
-import {useLocalSearchParams, useRouter} from "expo-router";
-import {useEffect, useRef, useState} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import {Product} from "@/types/Product";
+
+
 
 type searchParams = {
     photoTaken?: "taken" | "set";
@@ -23,6 +28,7 @@ export default function ProductImages({product, editMode, onImagesChange}: Props
     const {photoTaken} = useLocalSearchParams<searchParams>();
     const imageGallery = useRef<FlatList>(null);
     const width = Dimensions.get('window').width;
+    const darkMode = useColorScheme() === "dark"
 
     // States
     const [galleryIndex, setGalleryIndex] = useState(0);
@@ -105,8 +111,13 @@ export default function ProductImages({product, editMode, onImagesChange}: Props
             )}
             {product.images.length === 0 && (
                 <Image
-                    source={{ uri: "https://placehold.co/600x400?text=" + product.name.replace(" ", "+") }}
-                    style={{ width: '100%', height: '100%'}}
+                    source={{ uri: `https://placehold.co/${width}x400?text=` + product.name.replace(" ", "+") }}
+                    // @ts-ignore inverting seems to work no problem
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        filter: darkMode ? "invert(1)" : undefined
+                    }}
                     contentFit="cover"
                 />
             )}
