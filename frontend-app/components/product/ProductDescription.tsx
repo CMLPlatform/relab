@@ -2,6 +2,9 @@ import {useState} from "react";
 import {TextInput} from "@/components/base";
 
 import {Product} from "@/types/Product";
+import {StyleSheet} from "react-native";
+import LightTheme from "@/assets/themes/light";
+import DarkTheme from "@/assets/themes/dark";
 
 
 interface Props {
@@ -21,8 +24,9 @@ export default function ProductDescription({product, editMode, onChangeDescripti
             placeholder={"Add a product description"}
             value={text}
             onChangeText={text => {setText(text); onChangeDescription?.(text)}}
-            multiline={true}
             editable={editMode}
+            multiline
+            errorOnEmpty
         />
     )
 }

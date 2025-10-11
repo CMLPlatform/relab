@@ -1,25 +1,46 @@
 import React from 'react';
-import { TextInput as NativeTextInput, TextInputProps, StyleSheet, useColorScheme } from 'react-native';
+import {TextInput as NativeTextInput, TextInputProps, StyleSheet, useColorScheme, PressableProps} from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
 
+interface Props extends TextInputProps {
+    errorOnEmpty?: boolean;
+}
 
-export const TextInput: React.FC<TextInputProps> = ({style, children,  ...props}) => {
-    const cs = useColorScheme() || 'light';
+
+export const TextInput: React.FC<Props> = ({style, children, errorOnEmpty=false,  ...props}) => {
+    const darkMode = useColorScheme() === "dark";
+    const error = errorOnEmpty && (!props.value || props.value === "");
 
     return (
-        <NativeTextInput style={[styles.base, styles[cs], style]} {...props}>{children}</NativeTextInput>
+        <NativeTextInput
+            style={[
+                styles.input,
+                error ? styles.inputError : null,
+                darkMode && !error ? styles.inputDark : null,
+                darkMode && error ? styles.inputErrorDark : null,
+                style,
+            ]}
+
+            {...props}
+        >{children}</NativeTextInput>
     );
 };
 
 const styles = StyleSheet.create({
-    base: {
+    input: {
         fontFamily: 'System',
-    },
-    light: {
         color: LightTheme.colors.onSurface,
     },
-    dark: {
+    inputDark: {
         color: DarkTheme.colors.onSurface,
-    }
+    },
+    inputError: {
+        backgroundColor: LightTheme.colors.errorContainer,
+        color: LightTheme.colors.onErrorContainer,
+    },
+    inputErrorDark: {
+        backgroundColor: DarkTheme.colors.errorContainer,
+        color: DarkTheme.colors.onErrorContainer,
+    },
 });
