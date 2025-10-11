@@ -26,8 +26,6 @@ export const Chip: React.FC<Props> = ({style, children, title, icon, ...props}) 
         cs === "light" ? styles["lightText"] : styles["darkText"],
     ]);
 
-    console.log(icon)
-
     return (
         <Pressable style={finalStyle} {...props}>
             { title && (<Text style={styles.baseText}>
