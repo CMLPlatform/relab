@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     },
     message: {
         fontSize: 15,
-        color: "#555",
+        opacity: 0.7,
         marginBottom: 12,
     },
     buttonRow: {
