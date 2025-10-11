@@ -101,7 +101,7 @@ export default function ProductPage(): JSX.Element {
         });
     }, [navigation, editMode]);
 
-    // Sub Render >> Product not found
+    // Sub Render >> Product loading
     if (!product) {
         return (
             <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
