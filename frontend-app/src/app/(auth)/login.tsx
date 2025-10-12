@@ -43,7 +43,7 @@ export default function Login() {
         }
 
         const params = { authenticated: 'true' };
-        router.replace({ pathname: '/database', params: params });
+        router.replace({ pathname: '/products', params: params });
       } catch (err) {
         console.error('[Login useEffect] Failed to get token:', err);
       }
@@ -73,7 +73,7 @@ export default function Login() {
         return;
       }
       const params = { authenticated: 'true' };
-      router.replace({ pathname: '/database', params: params });
+      router.replace({ pathname: '/products', params: params });
     } catch (error: any) {
       dialog.alert({
         title: 'Login Failed',

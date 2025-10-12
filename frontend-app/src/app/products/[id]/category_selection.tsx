@@ -1,7 +1,7 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Card, Icon, Searchbar, Text, useTheme } from 'react-native-paper';
-import { FlatList, View, Dimensions } from 'react-native';
+import { Dimensions, FlatList, View } from 'react-native';
+import { Card, Icon, Searchbar, Text } from 'react-native-paper';
 import CPVCard from '@/components/common/CPVCard';
 
 import cpvJSON from '@/assets/data/cpv.json';

@@ -25,6 +25,6 @@ export default function Main() {
   if (!loggedIn) {
     return <Redirect href={'/login'} />;
   }
-  // Sub Render >> Logged in -> redirect to database
-  return <Redirect href={'/database'} />;
+  // Sub Render >> Logged in -> redirect to products database
+  return <Redirect href={'/products'} />;
 }

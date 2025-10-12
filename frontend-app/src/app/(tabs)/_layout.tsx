@@ -1,13 +1,13 @@
-import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 
 export default function Layout() {
   return (
     <Tabs>
       <Tabs.Screen
-        name="database"
+        name="products"
         options={{
-          title: 'Database',
+          title: 'Products Database',
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="database" color={color} size={size} />,
         }}
       />

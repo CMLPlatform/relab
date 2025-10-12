@@ -8,7 +8,7 @@ import { allProducts } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
 import { useDialog } from '@/components/common/DialogProvider';
 
-export default function DatabaseTab() {
+export default function ProductsTab() {
   // Hooks
   const dialog = useDialog();
   const router = useRouter();

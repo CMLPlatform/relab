@@ -1,24 +1,24 @@
-import { NativeScrollEvent, NativeSyntheticEvent, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { JSX, useEffect, useState } from 'react';
-import { Card, AnimatedFAB, Provider, Text, Button } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ActivityIndicator, Alert, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { AnimatedFAB, Button, Card, Provider, Text } from 'react-native-paper';
 
-import ProductImage from '@/components/product/ProductImage';
-import ProductDescription from '@/components/product/ProductDescription';
-import ProductTags from '@/components/product/ProductTags';
-import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
-import ProductMetaData from '@/components/product/ProductMetaData';
 import ProductComponents from '@/components/product/ProductComponents';
-import ProductType from '@/components/product/ProductType';
 import ProductDelete from '@/components/product/ProductDelete';
+import ProductDescription from '@/components/product/ProductDescription';
+import ProductImage from '@/components/product/ProductImage';
+import ProductMetaData from '@/components/product/ProductMetaData';
+import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
+import ProductTags from '@/components/product/ProductTags';
+import ProductType from '@/components/product/ProductType';
 
 import { useDialog } from '@/components/common/DialogProvider';
 
-import { Product } from '@/types/Product';
 import { getProduct, newProduct } from '@/services/api/fetching';
-import { isProductValid, saveProduct, deleteProduct } from '@/services/api/saving';
+import { deleteProduct, isProductValid, saveProduct } from '@/services/api/saving';
+import { Product } from '@/types/Product';
 
 /**
  * Type definition for search parameters used in the product page route.
@@ -148,7 +148,7 @@ export default function ProductPage(): JSX.Element {
   const onProductDelete = () => {
     deleteProduct(product).then(() => {
       setEditMode(false);
-      router.replace('/(tabs)/database');
+      router.replace('/products');
     });
   };
 
