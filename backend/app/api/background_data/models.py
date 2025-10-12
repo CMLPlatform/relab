@@ -43,8 +43,9 @@ class TaxonomyDomain(str, Enum):
 class TaxonomyBase(CustomBase):
     """Base model for Taxonomy."""
 
-    name: str = Field(index=True, min_length=2, max_length=100, description="Name of the taxonomy")
-    description: str | None = Field(default=None, max_length=500, description="Description of the taxonomy")
+    name: str = Field(index=True, min_length=2, max_length=100)
+    version: str | None = Field(min_length=1, max_length=50)
+    description: str | None = Field(default=None, max_length=500)
     domains: set[TaxonomyDomain] = Field(
         sa_column=Column(ARRAY(SAEnum(TaxonomyDomain))),
         description=f"Domains of the taxonomy, e.g. {{{', '.join([d.value for d in TaxonomyDomain][:3])}}}",
