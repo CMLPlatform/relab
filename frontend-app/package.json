@@ -5,10 +5,16 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "format": "expo lint --fix",
+    "test": "jest --watchAll",
+    "generate-client": "npx @hey-apiopenapi-ts --input http://localhost:8001/openapi.json --output ./types/api --client @hey-api/client-axios"
+  },
+  "jest": {
+    "preset": "jest-expo"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

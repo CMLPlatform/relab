@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "RELab",
-    "slug": "RELab",
-    "version": "1.0.0",
+    "name": "relab-frontend-app",
+    "slug": "relab-frontend-app",
+    "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo-cml.png",
-    "scheme": "relab",
+    "icon": "./src/assets/images/logo-cml.jpg",
+    "scheme": "relab-frontend-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/favicon.png",
+        "foregroundImage": "./src/assets/images/favicon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
@@ -21,7 +21,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./src/assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/favicon.png",
+          "image": "./src/assets/images/favicon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
