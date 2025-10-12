@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "@/types/User";
 
-const baseUrl = "https://api.cml-relab.org"
+const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 let token: string | undefined;
 let user: User | undefined;
 
