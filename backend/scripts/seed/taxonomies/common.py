@@ -24,12 +24,15 @@ def configure_logging(level: int = logging.INFO) -> None:
 def get_or_create_taxonomy(
     session: Session,
     name: str,
+    version: str,
     description: str | None = None,
     domains: set | None = None,
     source: str | None = None,
 ) -> Taxonomy:
     """Get existing taxonomy or create a new one."""
-    existing = session.execute(select(Taxonomy).where(Taxonomy.name == name)).scalars().first()
+    existing: Taxonomy | None = (
+        session.execute(select(Taxonomy).where(Taxonomy.name == name, Taxonomy.version == version)).scalars().first()
+    )
 
     if existing:
         logger.info("Taxonomy '%s' already exists (id: %s)", name, existing.id)
@@ -37,13 +40,14 @@ def get_or_create_taxonomy(
 
     taxonomy = Taxonomy(
         name=name,
+        version=version,
         description=description,
         domains=domains or set(),
         source=source,
     )
     session.add(taxonomy)
     session.flush()
-    logger.info("Created taxonomy '%s' (id: %s)", name, taxonomy.id)
+    logger.info("Created taxonomy '%s' version '%s' (id: %s)", name, version, taxonomy.id)
     return taxonomy
 
 
