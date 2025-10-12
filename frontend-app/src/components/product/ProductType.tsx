@@ -28,6 +28,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   }, [typeSelection]);
 
   // Helper to get CPV code from product type ID
+  // HACK: This mapping is based on the api.cml-relab.org backend and it WILL NOT WORK for local backends
   // TODO: This mapping is from the api.cml-relab.org backend. We should fetch this from the backend instead of hardcoding it here.
   const getCpvCodeFromProductTypeId = (productTypeId: number | undefined): string => {
     if (!productTypeId) return 'Unknown';

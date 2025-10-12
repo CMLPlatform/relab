@@ -3,7 +3,8 @@ import { getProduct } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
-
+// TODO: Refactor this file to use generated API client from OpenAPI spec
+// TODO: Break up into smaller files
 function toNewProduct(product: Product): any {
   console.log('product type id', product.productType);
   return {
