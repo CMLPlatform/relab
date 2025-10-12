@@ -55,6 +55,21 @@ RELEVANT_SECTIONS = {
     "44000000",  # Construction structures and materials; auxiliary products to construction (exc. electric apparatus)
 }
 
+# TODO: Replace this manual override with an automatic lookup of the higher parent
+# if no direct parent is present in the CPV taxonomy
+CPV_PARENT_CODE_OVERRIDES = {
+    "30192120": "30192000",
+    "34511000": "34510000",
+    "35611000": "35610000",
+    "35612000": "35610000",
+    "35811000": "35810000",
+    "38527000": "38520000",
+    "39250000": "39200000",
+    "42924000": "42920000",
+    "44115300": "44115000",
+    "44613100": "44613000",
+}
+
 
 def download_cpv_excel(excel_path: Path = EXCEL_PATH, source_url: str = TAXONOMY_SOURCE) -> None:
     """Download the CPV ZIP file and extract the Excel file if not present."""
@@ -116,22 +131,6 @@ def load_cpv_rows_from_excel(
 
     # Select only the needed columns and convert to list of dicts
     return df[["external_id", "name"]].to_dict(orient="records")
-
-
-# TODO: Replace this manual override with an automatic lookup of the higher parent
-# if no direct parent is present in the CPV taxonomy
-CPV_PARENT_CODE_OVERRIDES = {
-    "30192120": "30192000",
-    "34511000": "34510000",
-    "35611000": "35610000",
-    "35612000": "35610000",
-    "35811000": "35810000",
-    "38527000": "38520000",
-    "39250000": "39200000",
-    "42924000": "42920000",
-    "44115300": "44115000",
-    "44613100": "44613000",
-}
 
 
 def get_cpv_parent_id(row: dict[str, Any]) -> str | None:
