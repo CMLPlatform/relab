@@ -35,14 +35,21 @@ export default function Login() {
 
   // Effects
   useEffect(() => {
-    getToken().then((token) => {
-      if (!token) {
-        return;
-      }
+    const checkToken = async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          return;
+        }
 
-      const params = { authenticated: 'true' };
-      router.replace({ pathname: '/database', params: params });
-    });
+        const params = { authenticated: 'true' };
+        router.replace({ pathname: '/database', params: params });
+      } catch (err) {
+        console.error('[Login useEffect] Failed to get token:', err);
+      }
+    };
+
+    checkToken();
   }, [router]);
 
   useEffect(() => {
@@ -55,15 +62,24 @@ export default function Login() {
   }, []);
 
   // Callbacks
-  const attemptLogin = () => {
-    login(email, password).then((success) => {
-      if (success) {
-        const params = { authenticated: 'true' };
-        router.replace({ pathname: '/database', params: params });
-      } else {
-        dialog.alert({ title: 'Login Failed', message: 'Invalid email or password.' });
+  const attemptLogin = async () => {
+    try {
+      const token = await login(email, password);
+      if (!token) {
+        dialog.alert({
+          title: 'Login Failed',
+          message: 'Invalid email or password.',
+        });
+        return;
       }
-    });
+      const params = { authenticated: 'true' };
+      router.replace({ pathname: '/database', params: params });
+    } catch (error: any) {
+      dialog.alert({
+        title: 'Login Failed',
+        message: error.message || 'Unable to reach server. Please try again later.',
+      });
+    }
   };
 
   // Render
