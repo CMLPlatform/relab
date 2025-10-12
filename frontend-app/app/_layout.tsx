@@ -1,6 +1,6 @@
-import { DialogProvider } from '@/components/common/DialogProvider';
 import { Stack } from 'expo-router';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { DialogProvider } from '@/components/common/DialogProvider';
 
 export default function RootLayout() {
   return (

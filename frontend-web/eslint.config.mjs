@@ -8,12 +8,7 @@ import { defineConfig } from 'eslint/config';
 
 export default defineConfig([
   {
-    ignores: [
-      '**/.expo/**',
-      '**/node_modules/**',
-      '**/dist/**',
-      'src/lib/types/api/**', // Exclude generated API types
-    ],
+    ignores: ['**/.expo/**', '**/node_modules/**', '**/dist/**'],
   },
 
   // Base configs

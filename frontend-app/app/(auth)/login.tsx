@@ -6,9 +6,9 @@ import { Button, Text, TextInput } from 'react-native-paper';
 import Animated, { SensorType, useAnimatedSensor, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import validator from 'validator';
 
+import { ImageBackground } from 'expo-image';
 import { useDialog } from '@/components/common/DialogProvider';
 import { getToken, login } from '@/services/api/authentication';
-import { ImageBackground } from 'expo-image';
 
 export default function Login() {
   // Hooks

@@ -1,18 +1,18 @@
-import { getBrands } from '@/services/api/fetching';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Chip, Searchbar } from 'react-native-paper';
+import { getBrands } from '@/services/api/fetching';
 
 type searchParams = {
-    id: string;
-    preset?: string;
-}
+  id: string;
+  preset?: string;
+};
 
 export default function BrandSelection() {
-    // Hooks
-    const router = useRouter();
-    const { id, preset } = useLocalSearchParams<searchParams>();
+  // Hooks
+  const router = useRouter();
+  const { id, preset } = useLocalSearchParams<searchParams>();
 
   // States
   const [searchQuery, setSearchQuery] = useState(preset || '');
@@ -27,16 +27,14 @@ export default function BrandSelection() {
       .finally(() => setLoading(false));
   }, []);
 
-    // Methods
-    const results = allBrands.filter(brand =>
-        brand.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  // Methods
+  const results = allBrands.filter((brand) => brand.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    // Callbacks
-    const brandSelected = (selectedBrand: string) => {
-        const params = {id: id, brandSelection: selectedBrand};
-        router.dismissTo({pathname: "/products/[id]", params: params});
-    }
+  // Callbacks
+  const brandSelected = (selectedBrand: string) => {
+    const params = { id: id, brandSelection: selectedBrand };
+    router.dismissTo({ pathname: '/products/[id]', params: params });
+  };
 
   // Render
   return (
