@@ -222,7 +222,7 @@ export default function ProductPage(): JSX.Element {
         style={{ position: 'absolute', margin: 15, right: 0, bottom: 5 }}
         disabled={!isProductValid(product)}
         extended={fabExtended}
-        label={editMode ? 'Save Product' : 'Edit Product'}
+        label={editMode ? 'Save' : 'Edit'}
         visible={product.ownedBy === 'me'}
       />
     </Provider>
