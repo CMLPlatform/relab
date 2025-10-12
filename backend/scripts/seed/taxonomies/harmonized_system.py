@@ -18,7 +18,7 @@ logger = logging.getLogger("seeding.taxonomies.harmonized_system")
 # Configuration
 DATA_DIR = Path(__file__).parents[3] / "data" / "seed"
 CSV_PATH = DATA_DIR / "harmonized-system.csv"
-TAXONOMY_NAME = "Harmonized System"
+TAXONOMY_NAME = "Harmonized System (HS)"
 TAXONOMY_VERSION = "2022"
 TAXONOMY_SOURCE = "https://github.com/datasets/harmonized-system/blob/main/data/harmonized-system.csv"
 TAXONOMY_DESCRIPTION = "World Customs Organization's Harmonized standard taxonomy for product classification"
@@ -89,7 +89,8 @@ def seed_taxonomy() -> None:
         # Get or create taxonomy
         taxonomy = get_or_create_taxonomy(
             session,
-            name=f"{TAXONOMY_NAME} {TAXONOMY_VERSION}",
+            name=TAXONOMY_NAME,
+            version=TAXONOMY_VERSION,
             description=TAXONOMY_DESCRIPTION,
             domains={TaxonomyDomain.PRODUCTS},
             source=TAXONOMY_SOURCE,
@@ -109,7 +110,13 @@ def seed_taxonomy() -> None:
 
         # Commit
         session.commit()
-        logger.info("✓ Added %s taxonomy with %d categories and %d relationships", TAXONOMY_NAME, cat_count, rel_count)
+        logger.info(
+            "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
+            TAXONOMY_NAME,
+            TAXONOMY_VERSION,
+            cat_count,
+            rel_count,
+        )
 
 
 if __name__ == "__main__":
