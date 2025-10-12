@@ -3,6 +3,7 @@ import { Product } from '@/types/Product';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
+// TODO: Build on generated API client from OpenAPI spec over manual schema mapping
 type ProductData = {
   id: number;
   name: string;

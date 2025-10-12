@@ -5,11 +5,14 @@ import { Product } from '@/types/Product';
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
 function toNewProduct(product: Product): any {
+  console.log('product type id', product.productType);
   return {
     name: product.name,
     brand: product.brand,
     model: product.model,
     description: product.description,
+    product_type_id: product.productType?.id,
+    // TODO: Implement bill of materials in the UI
     bill_of_materials: [
       {
         quantity: 42,
@@ -28,6 +31,7 @@ function toUpdateProduct(product: Product): any {
     brand: product.brand,
     model: product.model,
     description: product.description,
+    product_type_id: product.productType?.id,
   };
 }
 
@@ -49,92 +53,141 @@ export async function saveProduct(product: Product): Promise<number> {
 }
 
 async function saveNewProduct(product: Product): Promise<number> {
-  const url = product.parentID
-    ? new URL(`${baseUrl}/products/${product.parentID}/components`)
-    : new URL(baseUrl + '/products');
+  try {
+    const url = product.parentID
+      ? new URL(`${baseUrl}/products/${product.parentID}/components`)
+      : new URL(baseUrl + '/products');
 
-  const token = await getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  const body = JSON.stringify(toNewProduct(product));
+    const token = await getToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+    const body = JSON.stringify(toNewProduct(product));
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: body });
-  const data = await response.json();
+    const response = await fetch(url, { method: 'POST', headers: headers, body: body });
 
-  console.log('Created product:', data);
-  product.id = data.id; // Update product ID to the newly assigned ID so we can add images
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to create product: ${errorData.detail || response.statusText}`);
+    }
 
-  await updateProductImages(product);
+    const data = await response.json();
 
-  return data.id;
+    console.log('Created product:', data);
+    product.id = data.id; // Update product ID to the newly assigned ID so we can add images
+
+    await updateProductImages(product);
+
+    return data.id;
+  } catch (error: any) {
+    console.error('[SaveNewProduct Error]:', error);
+    throw new Error(error.message || 'Unable to create product. Please try again later.');
+  }
 }
 
 async function updateProduct(product: Product): Promise<number> {
-  const token = await getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
+  try {
+    const token = await getToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
 
-  const productBody = JSON.stringify(toUpdateProduct(product));
-  const propertiesBody = JSON.stringify(toUpdatePhysicalProperties(product));
+    const productBody = JSON.stringify(toUpdateProduct(product));
+    const propertiesBody = JSON.stringify(toUpdatePhysicalProperties(product));
 
-  let url = new URL(baseUrl + `/products/${product.id}`);
-  const response = await fetch(url, { method: 'PATCH', headers: headers, body: productBody });
+    let url = new URL(baseUrl + `/products/${product.id}`);
+    const response = await fetch(url, { method: 'PATCH', headers: headers, body: productBody });
 
-  url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
-  await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
-  await updateProductImages(product);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to update product: ${errorData.detail || response.statusText}`);
+    }
 
-  const data = await response.json();
+    url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
+    const propsResponse = await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
 
-  return data.id;
+    if (!propsResponse.ok) {
+      console.warn('[UpdateProduct] Failed to update physical properties');
+    }
+
+    await updateProductImages(product);
+
+    const data = await response.json();
+
+    return data.id;
+  } catch (error: any) {
+    console.error('[UpdateProduct Error]:', error);
+    throw new Error(error.message || 'Unable to update product. Please try again later.');
+  }
 }
 
 async function updateProductImages(product: Product) {
-  const currentImages = await getProduct(product.id);
-  const imagesToDelete = currentImages.images.filter((img) => !product.images.some((i) => i.id === img.id));
-  const imagesToAdd = product.images.filter((img) => !img.id);
+  try {
+    const currentImages = await getProduct(product.id);
+    const imagesToDelete = currentImages.images.filter((img) => !product.images.some((i) => i.id === img.id));
+    const imagesToAdd = product.images.filter((img) => !img.id);
 
-  for (const img of imagesToDelete) {
-    await deleteImage(product, img);
-  }
+    for (const img of imagesToDelete) {
+      await deleteImage(product, img);
+    }
 
-  for (const img of imagesToAdd) {
-    await addImage(product, img);
+    for (const img of imagesToAdd) {
+      await addImage(product, img);
+    }
+  } catch (error) {
+    console.error('[UpdateProductImages Error]:', error);
+    // Don't throw - image updates are not critical
   }
 }
 
 async function deleteImage(product: Product, image: { id: number }) {
-  const url = new URL(baseUrl + `/products/${product.id}/images/${image.id}`);
-  const token = await getToken();
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  return await fetch(url, { method: 'DELETE', headers: headers });
+  try {
+    const url = new URL(baseUrl + `/products/${product.id}/images/${image.id}`);
+    const token = await getToken();
+    const headers = {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+    const response = await fetch(url, { method: 'DELETE', headers: headers });
+
+    if (!response.ok) {
+      console.warn(`[DeleteImage] Failed to delete image ${image.id}`);
+    }
+  } catch (error) {
+    console.error('[DeleteImage Error]:', error);
+    // Don't throw - continue with other images
+  }
 }
 
 async function addImage(product: Product, image: { url: string; description: string }) {
-  const url = new URL(baseUrl + `/products/${product.id}/images`);
-  const token = await getToken();
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  const body = new FormData();
+  try {
+    const url = new URL(baseUrl + `/products/${product.id}/images`);
+    const token = await getToken();
+    const headers = {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+    const body = new FormData();
 
-  if (image.url.startsWith('data:')) {
-    body.append('file', dataURItoBlob(image.url), 'image.png');
-  } else if (image.url.startsWith('file:')) {
-    body.append('file', { uri: image.url, name: 'image.png', type: 'image/png' } as any);
+    if (image.url.startsWith('data:')) {
+      body.append('file', dataURItoBlob(image.url), 'image.png');
+    } else if (image.url.startsWith('file:')) {
+      body.append('file', { uri: image.url, name: 'image.png', type: 'image/png' } as any);
+    }
+
+    const response = await fetch(url, { method: 'POST', headers: headers, body: body });
+
+    if (!response.ok) {
+      console.warn('[AddImage] Failed to add image');
+    }
+  } catch (error) {
+    console.error('[AddImage Error]:', error);
+    // Don't throw - continue with other images
   }
-
-  await fetch(url, { method: 'POST', headers: headers, body: body });
 }
 
 function dataURItoBlob(dataURI: string) {
@@ -154,14 +207,24 @@ export async function deleteProduct(product: Product): Promise<void> {
   if (product.id === 'new') {
     return;
   } // New products are not saved yet
-  const url = new URL(baseUrl + `/products/${product.id}`);
-  const token = await getToken();
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  await fetch(url, { method: 'DELETE', headers: headers });
-  return;
+
+  try {
+    const url = new URL(baseUrl + `/products/${product.id}`);
+    const token = await getToken();
+    const headers = {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+    const response = await fetch(url, { method: 'DELETE', headers: headers });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Failed to delete product: ${errorData.detail || response.statusText}`);
+    }
+  } catch (error: any) {
+    console.error('[DeleteProduct Error]:', error);
+    throw new Error(error.message || 'Unable to delete product. Please try again later.');
+  }
 }
 
 export function isProductValid(product: Product): boolean {

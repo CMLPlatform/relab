@@ -7,7 +7,7 @@ export type Product = {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
-  productType?: { id: number; name: string; description: string };
+  productType?: ProductType;
   componentIDs: number[];
   physicalProperties: PhysicalProperty[];
   images: { id: number; url: string; description: string }[];
@@ -18,4 +18,10 @@ export type PhysicalProperty = {
   propertyName: string;
   value: number;
   unit: string;
+};
+
+export type ProductType = {
+  id: number;
+  name: string;
+  description: string;
 };

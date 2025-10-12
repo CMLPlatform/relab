@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { Text } from 'react-native-paper';
 import CPVCard from '@/components/common/CPVCard';
+import productTypesMapping from '@/assets/data/product-types.json';
 
 import { Product } from '@/types/Product';
 
@@ -13,29 +14,36 @@ type searchParams = {
 interface Props {
   product: Product;
   editMode: boolean;
-  onTypeChange?: (newType: string) => void;
+  onTypeChange?: (newTypeId: number) => void;
 }
 
 export default function ProductType({ product, editMode, onTypeChange }: Props) {
-  // Hooks
   const router = useRouter();
   const { typeSelection } = useLocalSearchParams<searchParams>();
 
-  // Effects
   useEffect(() => {
     if (!typeSelection) return;
     router.setParams({ typeSelection: undefined });
-    onTypeChange?.(typeSelection!);
+    onTypeChange?.(parseInt(typeSelection));
   }, [typeSelection]);
 
-  // Render
+  // Helper to get CPV code from product type ID
+  // TODO: This mapping is from the api.cml-relab.org backend. We should fetch this from the backend instead of hardcoding it here.
+  const getCpvCodeFromProductTypeId = (productTypeId: number | undefined): string => {
+    if (!productTypeId) return 'Unknown';
+    const mapping = productTypesMapping.find((item) => item.id === productTypeId);
+    return mapping?.name || 'Unknown';
+  };
+
+  const cpvCode = getCpvCodeFromProductTypeId(product.productType?.id);
+
   return (
     <View style={{ margin: 10, gap: 10 }}>
       <Text variant="titleLarge" style={{ marginBottom: 12, paddingLeft: 10 }}>
         Product Type / Material
       </Text>
       <CPVCard
-        CPVId={product.productType?.name || 'Define'}
+        CPVId={cpvCode}
         onPress={() => {
           if (!editMode) return;
           const params = { id: product.id };

@@ -6,6 +6,7 @@ import CPVCard from '@/components/common/CPVCard';
 
 import cpvJSON from '@/assets/data/cpv.json';
 import cvpClassificationsJSON from '@/assets/data/cpv_classifications.json';
+import productTypesMapping from '@/assets/data/product-types.json';
 
 const cpv: Record<string, string> = cpvJSON as Record<string, string>;
 const cpvClassifications = cvpClassificationsJSON as cpvItem;
@@ -38,9 +39,19 @@ export default function CategorySelection() {
     setCpvClass(item);
   };
 
-  const typeSelected = function (selectedTypeID: string) {
-    const params = { id: id, typeSelection: selectedTypeID };
-    router.dismissTo({ pathname: '/products/[id]', params: params });
+  const typeSelected = function (selectedCpvCode: string) {
+    // Look up the product type ID from the CPV code
+    const mapping = productTypesMapping.find((item) => item.name === selectedCpvCode);
+
+    if (mapping) {
+      const params = {
+        id: id,
+        typeSelection: mapping.id,
+      };
+      router.dismissTo({ pathname: '/products/[id]', params: params });
+    } else {
+      console.warn('No product type ID found for CPV code:', selectedCpvCode);
+    }
   };
 
   // Methods
