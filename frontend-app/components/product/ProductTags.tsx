@@ -91,7 +91,7 @@ function TagChip({
         textStyle={{ margin: 6 }}
         style={{ backgroundColor: text ? theme.colors.primaryContainer : theme.colors.errorContainer }}
       >
-        {text || 'Define'}
+        {text || 'None'}
       </Chip>
     </Surface>
   );

@@ -159,11 +159,21 @@ export async function deleteProduct(product: Product): Promise<void> {
 }
 
 export function isProductValid(product: Product): boolean {
-    return (
-        product.name != undefined && product.name != "" &&
-        product.brand != undefined && product.brand != "" &&
-        product.model != undefined && product.model != "" &&
-        product.description != undefined && product.description != "" &&
-        product.physicalProperties.every(prop => !Number.isNaN(prop.value) && prop.value > 0)
-    )
+  const weightProp = product.physicalProperties.find((prop) => prop.propertyName === 'Weight');
+
+  return (
+    product.name !== undefined &&
+    product.name !== '' &&
+    // NOTE: Relaxed validation for now
+    // product.brand != undefined &&
+    // product.brand != '' &&
+    // product.model != undefined &&
+    // product.model != '' &&
+    // product.description != undefined &&
+    // product.description != '' &&
+    // product.physicalProperties.every((prop) => !Number.isNaN(prop.value) && prop.value > 0)
+    weightProp !== undefined &&
+    !Number.isNaN(weightProp.value) &&
+    weightProp.value > 0
+  );
 }
