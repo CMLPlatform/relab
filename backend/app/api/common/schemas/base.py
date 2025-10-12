@@ -29,6 +29,7 @@ class BaseCreateSchema(BaseModel):
 
     model_config = ConfigDict(
         extra="forbid",  # Prevent additional fields not in schema
+        str_strip_whitespace=True,  # Strip whitespace from strings
     )
 
 
@@ -63,6 +64,7 @@ class BaseUpdateSchema(BaseModel):
 
     model_config = ConfigDict(
         extra="forbid",  # Prevent additional fields not in schema
+        str_strip_whitespace=True,  # Strip whitespace from strings
     )
 
 
