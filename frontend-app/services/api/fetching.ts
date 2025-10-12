@@ -117,8 +117,14 @@ export async function allProducts (
     return Promise.all(product_data.map(data => toProduct(data)));
 }
 
-export function allBrands(): string[] {
-    return ["Apple", "Samsung", "Sony", "LG", "Dell", "HP", "Lenovo", "Asus", "Acer", "Microsoft"];
+export async function getBrands(): Promise<string[]> {
+  const url = new URL(baseUrl + '/brands');
+  const response = await fetch(url, { method: 'GET' });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+  return response.json() as Promise<string[]>;
 }
 
 export async function productComponents(product: Product): Promise<Product[]> {
