@@ -40,6 +40,8 @@
     "markdown>=3.8.2",
     "pillow >=11.2.1",
     "psycopg[binary] >=3.2.9",
+    # TODO: Investigate pydantic v2.12 compatibility issues (might have to do with custom fastapi-users-db-sqlmodel fork)
+    "pydantic >=2.11,<2.12",
     "pydantic-extra-types >=2.10.5",
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
@@ -50,7 +52,6 @@
     "tldextract>=5.3.0",
   ]
   requires-python = ">= 3.13"
-  # TODO: Use dynamic versioning from app/version.py with python-semantic-release when implementing uv build backend
   version = "0.1.0"
 
   [project.urls]
