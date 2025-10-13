@@ -27,6 +27,13 @@
       "expo-router",
       "expo-font",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "This app accesses your photos to attach them to product entries.",
+          "cameraPermission": "This app accesses your camera to take product photos."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./src/assets/images/favicon.png",
