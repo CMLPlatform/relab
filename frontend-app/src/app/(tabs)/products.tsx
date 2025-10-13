@@ -1,12 +1,12 @@
-import { FlatList, NativeSyntheticEvent, NativeScrollEvent, RefreshControl } from 'react-native';
 import { useState } from 'react';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl } from 'react-native';
 
-import { AnimatedFAB } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { AnimatedFAB } from 'react-native-paper';
+import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { allProducts } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
-import { useDialog } from '@/components/common/DialogProvider';
 
 export default function ProductsTab() {
   // Hooks
@@ -43,6 +43,14 @@ export default function ProductsTab() {
         {
           text: 'OK',
           onPress: (productName) => {
+            // TODO: Validate product name constraints from API (e.g. min length, max length)
+            if (!productName || productName.trim().length < 2) {
+              dialog.alert({
+                title: 'Invalid name',
+                message: 'Product name must be at least 2 characters.',
+              });
+              return;
+            }
             const params = { id: 'new', edit: 'true', name: productName };
             router.push({ pathname: '/products/[id]', params: params });
           },

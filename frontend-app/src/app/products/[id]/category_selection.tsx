@@ -41,6 +41,8 @@ export default function CategorySelection() {
 
   const typeSelected = function (selectedCpvCode: string) {
     // Look up the product type ID from the CPV code
+    // HACK: This mapping is based on the api.cml-relab.org backend and it WILL NOT WORK for local backends
+    // TODO: Replace this hardcoded mapping with a fetch from the backend
     const mapping = productTypesMapping.find((item) => item.name === selectedCpvCode);
 
     if (mapping) {
