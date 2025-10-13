@@ -34,7 +34,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups --group=api
 
 # --- Final runtime stage ---
-FROM python:3.14-slim@sha256:1e7c3510ceb3d6ebb499c86e1c418b95cb4e5e2f682f8e195069f470135f8d51
+FROM python:3.13-slim
 
 # Build arguments
 ARG WORKDIR=/opt/relab/backend
@@ -61,4 +61,5 @@ EXPOSE 8000
 USER $APP_USER
 
 # Run the FastAPI application
+# CMD ["ls", ".venv/bin/"]
 CMD [".venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
