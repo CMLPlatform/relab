@@ -11,7 +11,8 @@ type searchParams = { id: string };
 export default function ProductCamera() {
   const router = useRouter();
   const { id } = useLocalSearchParams<searchParams>();
-  const compressionQuality = 0.5;
+  // TODO: Investigate optimal image handling in frontend and backend (e.g. using https://docs.expo.dev/versions/latest/sdk/imagemanipulator/)
+  const compressionQuality = 0.1; // Compress images to 10% quality
 
   // ImagePicker permissions (mobile + mobile web)
   const [cameraStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
