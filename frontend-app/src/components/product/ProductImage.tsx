@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, View, Dimensions, Pressable, Text, ActivityIndicator, useColorScheme } from 'react-native';
+import { ActivityIndicator, Dimensions, FlatList, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { Icon } from 'react-native-paper';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Product } from '@/types/Product';
 
@@ -20,6 +20,7 @@ interface Props {
   onImagesChange?: (images: { url: string; description: string; id: number }[]) => void;
 }
 
+// TODO: Only load images lazily when they come into view (or soon)
 export default function ProductImages({ product, editMode, onImagesChange }: Props) {
   // Hooks
   const router = useRouter();
@@ -27,30 +28,85 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
   const imageGallery = useRef<FlatList>(null);
   const width = Dimensions.get('window').width;
   const darkMode = useColorScheme() === 'dark';
+  const isWeb = Platform.OS === 'web';
 
   // States
-  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageCount, setImageCount] = useState(product.images.length);
+  const [pendingScrollIndex, setPendingScrollIndex] = useState<number | null>(null);
+
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = currentIndex < imageCount - 1;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    if (viewableItems?.length && viewableItems[0]?.index != null) {
+      setCurrentIndex(viewableItems[0].index);
+    }
+  }).current;
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
 
   // Effects
   useEffect(() => {
-    // If a photo was taken, get it from AsyncStorage and add it to the product images
-    if (photoTaken !== 'taken') return;
-    AsyncStorage.getItem('lastPhoto').then((uri) => {
-      if (!uri) return;
+    setImageCount(product.images.length);
+  }, [product.images.length]);
 
-      product.images = [...product.images, { url: uri, description: '', id: 0 }];
-      onImagesChange?.(product.images);
-
-      AsyncStorage.removeItem('lastPhoto');
-      router.setParams({ photoTaken: 'undefined' });
-
-      setGalleryIndex(product.images.length - 1);
-    });
-  }, [photoTaken]);
+  // Handle pending scroll after image count updates
+  useEffect(() => {
+    if (pendingScrollIndex !== null && pendingScrollIndex < imageCount) {
+      goToIndex(pendingScrollIndex);
+      setPendingScrollIndex(null);
+    }
+  }, [imageCount, pendingScrollIndex]);
 
   useEffect(() => {
-    imageGallery.current?.scrollToIndex({ index: galleryIndex });
-  }, [galleryIndex]);
+    // If a photo was taken, get it from AsyncStorage and add it to the product images
+    if (photoTaken === 'taken') {
+      AsyncStorage.getItem('lastPhoto').then((uri) => {
+        if (!uri) return;
+
+        product.images = [...product.images, { url: uri, description: '', id: 0 }];
+        onImagesChange?.(product.images);
+
+        AsyncStorage.removeItem('lastPhoto');
+        router.setParams({ photoTaken: 'set' });
+      });
+    }
+    if (photoTaken === 'set') {
+      setPendingScrollIndex(product.images.length - 1);
+      router.setParams({ photoTaken: undefined });
+    }
+  }, [photoTaken]);
+
+  // Arrow key navigation on web
+  useEffect(() => {
+    if (!isWeb) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (canGoNext) goToIndex(currentIndex + 1);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (canGoPrev) goToIndex(currentIndex - 1);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isWeb, currentIndex, imageCount, canGoPrev, canGoNext]);
+
+  // Helper to scroll safely
+  const goToIndex = (idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, imageCount - 1));
+    if (clamped === currentIndex) return;
+    try {
+      imageGallery.current?.scrollToIndex({ index: clamped, animated: true });
+      setCurrentIndex(clamped);
+    } catch {
+      // In case FlatList hasn't measured yet, fallback to offset
+      imageGallery.current?.scrollToOffset({ offset: clamped * width, animated: true });
+      setCurrentIndex(clamped);
+    }
+  };
 
   // Callbacks
   const onImageDelete = (imageUrl: string) => {
@@ -66,7 +122,7 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
   const onImagePicker = async () => {
     // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -81,7 +137,8 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
     product.images = [...product.images, ...newImages];
     onImagesChange?.(product.images);
 
-    setGalleryIndex(product.images.length - 1);
+    // Queue the scroll to happen after state updates
+    setPendingScrollIndex(product.images.length - 1);
   };
 
   // Render
@@ -95,7 +152,12 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={width}
+          disableIntervalMomentum
           getItemLayout={(data, index) => ({ length: width, offset: width * index, index })}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
           renderItem={({ item, index }) => (
             <SingleImage
               uri={item.url}
@@ -119,6 +181,48 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
           contentFit="cover"
         />
       )}
+
+      {/* Chevrons for web navigation */}
+      {imageCount > 1 && (
+        <>
+          <Pressable
+            onPress={() => goToIndex(currentIndex - 1)}
+            disabled={!canGoPrev}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: 10,
+              transform: [{ translateY: -20 }],
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              opacity: canGoPrev ? 1 : 0.4,
+            }}
+            hitSlop={10}
+          >
+            <Icon source="chevron-left" size={28} color="white" />
+          </Pressable>
+
+          <Pressable
+            onPress={() => goToIndex(currentIndex + 1)}
+            disabled={!canGoNext}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: 10,
+              transform: [{ translateY: -20 }],
+              padding: 8,
+              borderRadius: 20,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              opacity: canGoNext ? 1 : 0.4,
+            }}
+            hitSlop={10}
+          >
+            <Icon source="chevron-right" size={28} color="white" />
+          </Pressable>
+        </>
+      )}
+
       {editMode && (
         <View
           style={{
