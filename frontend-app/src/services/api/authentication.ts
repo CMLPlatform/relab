@@ -5,27 +5,36 @@ const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 let token: string | undefined;
 let user: User | undefined;
 
-export async function login(
-    username: string,
-    password: string
-): Promise<boolean> {
-    const url = new URL(baseUrl + "/auth/bearer/login");
-    const headers = {"Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
+export async function login(username: string, password: string): Promise<string | undefined> {
+  const url = new URL(baseUrl + '/auth/bearer/login');
+  const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
+  const body = new URLSearchParams({ username, password }).toString();
 
-    const body = new URLSearchParams();
-    body.append("username", username);
-    body.append("password", password);
-
-    const response = await fetch(url, {method: "POST", headers: headers, body: body.toString()});
-    const data = await response.json();
-
-    if (!response.ok) { return false; }
-
-    await AsyncStorage.setItem("username", username);
-    await AsyncStorage.setItem("password", password);
-
+  try {
+    const response = await fetch(url, { method: 'POST', headers, body });
+    let data;
+    try {
+      data = await response.json();
+    } catch (err: any) {
+      throw new Error(err.message || 'Unable to parse server response.');
+    }
+    if (response.status === 400) {
+      // NOTE: FastAPI-User implementation of the backend returns 400 on invalid login
+      token = undefined;
+      return undefined;
+    }
+    if (!response.ok) {
+      // Throw error with HTTP status and message
+      throw new Error(`HTTP ${response.status}: ${data?.detail || JSON.stringify(data) || 'Login failed.'}`);
+    }
+    await AsyncStorage.setItem('username', username);
+    await AsyncStorage.setItem('password', password);
     token = data.access_token;
-    return true;
+    return token;
+  } catch (err: any) {
+    console.error('[Login Fetch Error]:', err);
+    throw new Error('Unable to reach server. Please try again later.');
+  }
 }
 
 export async function logout(): Promise<void> {
@@ -42,25 +51,45 @@ export async function getToken(): Promise<string | undefined> {
     const password = await AsyncStorage.getItem("password");
     if (!username || !password) {return undefined;}
 
+  try {
     const success = await login(username, password);
-    if (!success) {return undefined;}
-
+    if (!success) {
+      return undefined;
+    }
     return token;
+  } catch (err) {
+    console.error('[GetToken Error]:', err);
+    return undefined;
+  }
 }
 
 export async function getUser(): Promise<User | undefined> {
-    if (user) {return user;}
+  try {
+    if (user) {
+      return user;
+    }
 
-    const url = new URL(baseUrl + "/users/me");
+    const url = new URL(baseUrl + '/users/me');
     const authToken = await getToken();
-    if (!authToken) { return undefined; }
+    if (!authToken) {
+      return undefined;
+    }
 
-    const headers = {"Authorization": `Bearer ${authToken}`, "Accept": "application/json"}
+    const headers = { Authorization: `Bearer ${authToken}`, Accept: 'application/json' };
+    const response = await fetch(url, { method: 'GET', headers });
 
-    const response = await fetch(url, {method: "GET", headers: headers});
-    if (!response.ok) { return undefined; }
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonErr) {
+      console.error('[GetUser Fetch Error]: Unable to parse server response.', jsonErr);
+      return undefined;
+    }
 
-    const data = await response.json();
+    if (!response.ok) {
+      console.error('[GetUser Fetch Error]:', data);
+      return undefined;
+    }
 
     user = {
         id: data.id,
@@ -72,6 +101,10 @@ export async function getUser(): Promise<User | undefined> {
     };
 
     return user;
+  } catch (error) {
+    console.error('[GetUser Fetch Error]:', error);
+    return undefined;
+  }
 }
 
 export async function register(

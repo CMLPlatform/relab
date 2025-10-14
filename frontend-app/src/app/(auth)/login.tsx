@@ -38,19 +38,28 @@ export default function Login() {
     const image = colorScheme === "light" ? require("../../assets/images/bg-1.jpg") : require("../../assets/images/bg-2.jpg");
 
     // States
-    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [keyboardShown, setKeyBoardShown] = useState(false);
 
-    // Effects
-    useEffect(() => {
-        getToken().then((token) => {
-            if (!token) {return;}
+  // Effects
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          return;
+        }
 
-            const params = {authenticated: "true"};
-            router.replace({pathname: "/database", params: params});
-        });
-    }, []);
+        const params = { authenticated: 'true' };
+        router.replace({ pathname: '/database', params: params });
+      } catch (err) {
+        console.error('[Login useEffect] Failed to get token:', err);
+      }
+    };
+
+    checkToken();
+  }, [router]);
 
     useEffect(() => {
         Keyboard.addListener('keyboardDidShow', () => {
@@ -61,17 +70,26 @@ export default function Login() {
         });
     }, []);
 
-    // Callbacks
-    const attemptLogin = () => {
-        login(username, password).then((success) => {
-            if (success) {
-                const params = {authenticated: "true"};
-                router.replace({pathname: "/database", params: params});
-            } else {
-                dialog.alert({ title: "Login Failed", message: "Invalid username or password." });
-            }
+  // Callbacks
+  const attemptLogin = async () => {
+    try {
+      const token = await login(email, password);
+      if (!token) {
+        dialog.alert({
+          title: 'Login Failed',
+          message: 'Invalid email or password.',
         });
+        return;
+      }
+      const params = { authenticated: 'true' };
+      router.replace({ pathname: '/database', params: params });
+    } catch (error: any) {
+      dialog.alert({
+        title: 'Login Failed',
+        message: error.message || 'Unable to reach server. Please try again later.',
+      });
     }
+  };
 
     // Render
     return (
@@ -122,8 +140,8 @@ export default function Login() {
                 </Text>
                 <TextInput
                     mode={"outlined"}
-                    value={username}
-                    onChangeText={setUsername}
+                    value={email}
+                    onChangeText={setEmail}
                     autoCapitalize="none"
                     autoCorrect={false}
                     placeholder="Email address"
