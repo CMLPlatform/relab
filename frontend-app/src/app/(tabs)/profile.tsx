@@ -1,11 +1,11 @@
+import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { IconButton } from 'react-native-paper';
-import { Pressable, View, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Text, Chip } from '@/components/base';
+import { Platform, Pressable, TextStyle, View } from 'react-native';
+import { Button, Dialog, Divider, IconButton, Portal } from 'react-native-paper';
+import { Chip, Text } from '@/components/base';
 
-import { User } from '@/types/User';
 import { getUser, logout, verify } from '@/services/api/authentication';
+import { User } from '@/types/User';
 
 export default function ProfileTab() {
   // Hooks
@@ -13,6 +13,7 @@ export default function ProfileTab() {
 
   // States
   const [profile, setProfile] = useState<User | undefined>(undefined);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 
   // Effects
   useEffect(() => {
@@ -36,6 +37,14 @@ export default function ProfileTab() {
       .catch(() => {
         alert('Failed to send verification email. Please try again later.');
       });
+  };
+
+  const onDeleteAccount = () => {
+    setDeleteDialogVisible(true);
+  };
+
+  const confirmDeleteAccount = () => {
+    setDeleteDialogVisible(false);
   };
 
   // Sub Render >> No profile (not logged in)
@@ -64,12 +73,28 @@ export default function ProfileTab() {
       >
         {profile.username + '.'}
       </Text>
-      <View style={{ marginTop: 12, marginBottom: 50, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}>
+
+      {/* User Info */}
+      <View
+        style={{ marginTop: 25, marginBottom: 15, gap: 8 }}
+        //TODO: Allow change of email. Requires backend support to change and re-verify email address
+      >
+        <Text style={{ fontSize: 16, opacity: 0.6 }}>{profile.email}</Text>
+        <Text style={{ fontSize: 12, opacity: 0.4 }}>ID: {profile.id}</Text>
+      </View>
+
+      <View
+        style={{ marginTop: 12, marginBottom: 15, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}
+        //TODO: Add public user profile page with stats and optional contact info
+      >
         {profile.isActive ? <Chip>Active</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Inactive</Chip>}
         {profile.isSuperuser && <Chip>Superuser</Chip>}
         {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Unverified</Chip>}
       </View>
-      {/*<Text variant={"labelSmall"} style={{textAlign: "right"}}>{profile.id}</Text>*/}
+
+      <Divider style={{ marginBottom: 20 }} />
+
+      {/* Actions */}
       <ProfileAction title={'Logout'} subtitle={'Change to another account'} onPress={onLogout} />
       {profile.isVerified || (
         <ProfileAction
@@ -78,11 +103,52 @@ export default function ProfileTab() {
           onPress={onVerifyAccount}
         />
       )}
+
+      {
+        /* Delete Account */
+        // TODO: Implement in-app account deletion. For now, just provide instructions to email support
+      }
+      <View style={{ marginTop: 20 }}>
+        <ProfileAction
+          title={'Delete Account?'}
+          onPress={onDeleteAccount}
+          titleStyle={{ fontSize: 15, fontWeight: 'bold', color: '#d32f2f', opacity: 0.8 }}
+          hideChevron={true}
+        />
+      </View>
+
+      <Portal>
+        <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+          <Dialog.Title>Delete Account</Dialog.Title>
+          <Dialog.Content>
+            <Text>To delete your account and all associated data, please send an email request to:</Text>
+            <Link href="mailto:info@cml-relab.org">
+              <Text style={{ marginTop: 10, fontWeight: 'bold' }}>info@cml-relab.org</Text>
+            </Link>
+            <Text style={{ marginTop: 10 }}>We&apos;ll process your request and confirm the deletion via email.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={confirmDeleteAccount}>OK</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
 
-function ProfileAction({ onPress, title, subtitle }: { onPress: () => void; title: string; subtitle?: string }) {
+function ProfileAction({
+  onPress,
+  title,
+  subtitle,
+  titleStyle,
+  hideChevron = false,
+}: {
+  onPress: () => void;
+  title: string;
+  subtitle?: string;
+  titleStyle?: TextStyle;
+  hideChevron?: boolean;
+}) {
   return (
     <Pressable
       style={{
@@ -100,21 +166,25 @@ function ProfileAction({ onPress, title, subtitle }: { onPress: () => void; titl
             marginRight: 10,
             fontSize: 18,
             fontWeight: 'bold',
+            ...titleStyle,
           }}
         >
           {title}
         </Text>
-        <Text
-          style={{
-            flex: 1,
-            marginRight: 10,
-            fontSize: 15,
-          }}
-        >
-          {subtitle}
-        </Text>
+        {subtitle && (
+          <Text
+            style={{
+              flex: 1,
+              marginRight: 10,
+              fontSize: 15,
+              opacity: 0.7,
+            }}
+          >
+            {subtitle}
+          </Text>
+        )}
       </View>
-      <IconButton icon="chevron-right" size={30} onPress={onPress} />
+      {!hideChevron && <IconButton icon="chevron-right" size={30} onPress={onPress} />}
     </Pressable>
   );
 }
