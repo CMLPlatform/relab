@@ -9,7 +9,7 @@ import { useDialog } from "@/components/common/DialogProvider";
 import {useRouter} from "expo-router";
 
 
-export default function DatabaseTab() {
+export default function ProductsTab() {
     // Hooks
     const dialog = useDialog();
     const router = useRouter();

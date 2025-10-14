@@ -31,7 +31,7 @@ export default function NewAccount() {
             router.replace("/login");
             return;
         }
-        router.navigate("/database");
+        router.navigate("/products");
     }
 
     // Render
