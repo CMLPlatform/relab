@@ -1,8 +1,11 @@
-import { useRouter, useLocalSearchParams } from 'expo-router';
+// MAIN camera.tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CameraView } from 'expo-camera';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { CameraView } from 'expo-camera';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { processImage } from '@/services/media/imageProcessing';
+import { useDialog } from '@/components/common/DialogProvider';
 
 type searchParams = {
   id: string;
@@ -11,6 +14,7 @@ type searchParams = {
 export default function ProductCamera() {
   // Hooks
   const router = useRouter();
+  const dialog = useDialog();
   const { id } = useLocalSearchParams<searchParams>();
   const ref = useRef<CameraView>(null);
 
@@ -24,8 +28,23 @@ export default function ProductCamera() {
     const photo = await ref.current?.takePictureAsync();
     if (!photo) return;
 
+    // Process the image
+    const processedUri = await processImage(photo, {
+      onError: (error) => {
+        dialog.alert({
+          title: error.type === 'size' ? 'Image too large' : 'Processing failed',
+          message: error.message,
+        });
+      },
+    });
+
+    if (!processedUri) {
+      router.back();
+      return;
+    }
+
     // Save photo URI to AsyncStorage
-    await AsyncStorage.setItem('lastPhoto', photo.uri);
+    await AsyncStorage.setItem('lastPhoto', processedUri);
 
     // Dismiss and return to product page
     const params = { id: id, photoTaken: 'taken' };

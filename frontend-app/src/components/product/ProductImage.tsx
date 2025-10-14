@@ -1,3 +1,5 @@
+//MAIN ProductImage.tsx
+
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { Icon } from 'react-native-paper';
@@ -7,7 +9,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { useDialog } from '@/components/common/DialogProvider';
 
+import { processImage } from '@/services/media/imageProcessing';
 import { Product } from '@/types/Product';
 
 type searchParams = {
@@ -24,6 +28,7 @@ interface Props {
 export default function ProductImages({ product, editMode, onImagesChange }: Props) {
   // Hooks
   const router = useRouter();
+  const dialog = useDialog();
   const { photoTaken } = useLocalSearchParams<searchParams>();
   const imageGallery = useRef<FlatList>(null);
   const width = Dimensions.get('window').width;
@@ -124,7 +129,6 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      aspect: [4, 3],
       quality: 1,
     });
 
@@ -132,9 +136,29 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
       return;
     }
 
-    const newImages = result.assets.map((asset) => ({ url: asset.uri, description: '', id: 0 }));
+    // Process all selected images
+    const processedImages: { url: string; description: string; id: number }[] = [];
 
-    product.images = [...product.images, ...newImages];
+    for (const asset of result.assets) {
+      const processedUri = await processImage(asset, {
+        onError: (error) => {
+          dialog.alert({
+            title: error.type === 'size' ? 'Image too large' : 'Processing failed',
+            message: error.message,
+          });
+        },
+      });
+
+      if (processedUri) {
+        processedImages.push({ url: processedUri, description: '', id: 0 });
+      }
+    }
+
+    if (processedImages.length === 0) {
+      return;
+    }
+
+    product.images = [...product.images, ...processedImages];
     onImagesChange?.(product.images);
 
     // Queue the scroll to happen after state updates
