@@ -1,9 +1,9 @@
-import { StyleSheet, Pressable, PressableProps, useColorScheme } from 'react-native';
 import React from 'react';
-import LightTheme from '@/assets/themes/light';
+import { Pressable, PressableProps, StyleSheet, useColorScheme } from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
+import LightTheme from '@/assets/themes/light';
 
-import { Text } from '@/components/base';
+import { Text } from '@/components/base/Text';
 
 interface Props extends PressableProps {
   children?: string;
