@@ -1,61 +1,57 @@
-import {useLocalSearchParams, useRouter} from "expo-router";
-import {View} from "react-native";
-import {Text} from "@/components/base";
-import {useEffect} from "react";
-import {CPVCategory} from "@/types/CPVCategory";
-import {Product} from "@/types/Product";
-import CPVCard from "@/components/common/CPVCard";
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View } from 'react-native';
+import { useEffect } from 'react';
+import { Text } from '@/components/base';
+import { CPVCategory } from '@/types/CPVCategory';
+import { Product } from '@/types/Product';
+import CPVCard from '@/components/common/CPVCard';
 
 import cpvJSON from '@/assets/data/cpv.json';
 
-const cpv = cpvJSON as Record<string, CPVCategory>
-
+const cpv = cpvJSON as Record<string, CPVCategory>;
 
 type searchParams = {
-    typeSelection?: string;
-}
+  typeSelection?: string;
+};
 
 interface Props {
-    product: Product;
-    editMode: boolean;
-    onTypeChange?: (newType: number) => void;
+  product: Product;
+  editMode: boolean;
+  onTypeChange?: (newType: number) => void;
 }
 
-export default function ProductType({product, editMode, onTypeChange}: Props){
-    // Hooks
-    const router = useRouter();
-    const { typeSelection } = useLocalSearchParams<searchParams>();
+export default function ProductType({ product, editMode, onTypeChange }: Props) {
+  // Hooks
+  const router = useRouter();
+  const { typeSelection } = useLocalSearchParams<searchParams>();
 
-    // Effects
-    useEffect(() => {
-        if (!typeSelection) return;
-        router.setParams({ typeSelection: undefined });
-        onTypeChange?.(parseInt(typeSelection));
-    }, [typeSelection]);
+  // Effects
+  useEffect(() => {
+    if (!typeSelection) return;
+    router.setParams({ typeSelection: undefined });
+    onTypeChange?.(parseInt(typeSelection));
+  }, [typeSelection]);
 
-    // Callback
-    const onTypeSelectionStart = () => {
-        if (!editMode) return;
-        const params = {id: product.id};
-        router.push({pathname: "/products/[id]/category_selection", params: params});
-    }
+  // Callback
+  const onTypeSelectionStart = () => {
+    if (!editMode) return;
+    const params = { id: product.id };
+    router.push({ pathname: '/products/[id]/category_selection', params: params });
+  };
 
-    // Render
-    return (
-        <View style={{ padding: 14}}>
-            <Text
-                style={{
-                    marginBottom: 12,
-                    fontSize: 24,
-                    fontWeight: "bold",
-                }}
-            >
-                Type or Material
-            </Text>
-            <CPVCard
-                CPV={cpv[product.productTypeID || "root"]}
-                onPress={editMode ? onTypeSelectionStart : undefined}
-            />
-        </View>
-    )
+  // Render
+  return (
+    <View style={{ padding: 14 }}>
+      <Text
+        style={{
+          marginBottom: 12,
+          fontSize: 24,
+          fontWeight: 'bold',
+        }}
+      >
+        Type or Material
+      </Text>
+      <CPVCard CPV={cpv[product.productTypeID || 'root']} onPress={editMode ? onTypeSelectionStart : undefined} />
+    </View>
+  );
 }
