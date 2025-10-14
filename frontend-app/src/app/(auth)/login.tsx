@@ -28,8 +28,7 @@ export default function Login() {
   });
 
   // Variables
-  const image =
-    colorScheme === 'light' ? require('../../assets/images/bg-1.jpg') : require('../../assets/images/bg-2.jpg');
+  const image = colorScheme === 'light' ? require('@/assets/images/bg-1.jpg') : require('@/assets/images/bg-2.jpg');
 
   // States
   const [email, setEmail] = useState('');
