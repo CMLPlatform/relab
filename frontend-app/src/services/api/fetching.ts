@@ -3,6 +3,9 @@ import { Product } from '@/types/Product';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
+// TODO: Break up the fetching logic into smaller files
+// TODO: Refactor the types to build on the generated API client from OpenAPI spec
+
 type ProductData = {
   id: number;
   name: string;

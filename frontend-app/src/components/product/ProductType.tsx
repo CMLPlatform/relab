@@ -1,13 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View } from 'react-native';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Text } from '@/components/base';
+import CPVCard from '@/components/common/CPVCard';
 import { CPVCategory } from '@/types/CPVCategory';
 import { Product } from '@/types/Product';
-import CPVCard from '@/components/common/CPVCard';
 
 import cpvJSON from '@/assets/data/cpv.json';
 
+// HACK: This json inclused a mapping to product types at the api.cml-relab.org backend and it WILL NOT WORK for local backends
+// TODO: This mapping is from the api.cml-relab.org backend. We should fetch this from the backend instead of hardcoding it here.
 const cpv = cpvJSON as Record<string, CPVCategory>;
 
 type searchParams = {

@@ -2,6 +2,9 @@ import { getToken } from '@/services/api/authentication';
 import { getProduct } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
 
+// TODO: Break up the saving logic into smaller files
+// TODO: Refactor the types to build on the generated API client from OpenAPI spec
+
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
 function toNewProduct(product: Product): any {
