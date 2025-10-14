@@ -6,6 +6,8 @@ import { Screen } from '@/lib/ui/components/Screen';
 import { InlineLink } from '@/lib/ui/components/InlineLink';
 import { ExternalLinkButton } from '@/lib/ui/components/ExternalLinkButton';
 
+// TODO: Consider removing newsletter subscription and just linking to the user registration page on the app
+// Invite the existing newsletter subscribers to create an account
 export default function HomeScreen() {
   const theme = useTheme();
   const [email, setEmail] = React.useState('');
@@ -62,8 +64,8 @@ export default function HomeScreen() {
         <Card.Content style={{ gap: 12 }}>
           <Text variant="headlineLarge">Reverse Engineering Lab</Text>
           <Text variant="bodyLarge">
-            Welcome to the Reverse Engineering Lab app. This interface provides access to data collection tools and
-            resources for reverse engineering research.
+            Welcome to the Reverse Engineering Lab. This interface provides access to bottom-up product data collection
+            tools for circular economy and industrial ecology research.
           </Text>
         </Card.Content>
       </Card>
@@ -71,9 +73,9 @@ export default function HomeScreen() {
       {/* Demo Card */}
       <Card>
         <Card.Content style={{ gap: 12 }}>
-          <Text variant="headlineMedium">🔧 Product Library Demo</Text>
+          <Text variant="headlineMedium">🔧 Product Database Demo</Text>
           <Text variant="bodyMedium">
-            Browse our sample product library and explore the disassembly data collection tools with example data.
+            Browse our sample product database and explore the disassembly data collection tools.
           </Text>
           <ExternalLinkButton href={process.env.EXPO_PUBLIC_APP_URL!} icon="play-circle" mode="outlined">
             Demo
@@ -103,7 +105,9 @@ export default function HomeScreen() {
       <Card>
         <Card.Content style={{ gap: 12, alignItems: 'center' }}>
           <Text variant="headlineMedium">📧 Stay Updated</Text>
-          <Text variant="bodyMedium">Subscribe to receive updates when the full frontend application is launched.</Text>
+          <Text variant="bodyMedium">
+            Subscribe to receive updates about new features and other relevant information.
+          </Text>
 
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <TextInput
