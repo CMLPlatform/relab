@@ -64,7 +64,7 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
                 icon={editMode && <MaterialCommunityIcons name={"pencil"}/>}
                 error={!product.brand}
             >
-                {product.brand || "Define"}
+                {product.brand || "Unknown"}
             </Chip>
             <Chip
                 title={"Model"}
@@ -72,7 +72,7 @@ export default function ProductTags({product, editMode, onBrandChange, onModelCh
                 icon={editMode && <MaterialCommunityIcons name={"pencil"}/>}
                 error={!product.model}
             >
-                {product.model || "Define"}
+                {product.model || "Unknown"}
             </Chip>
         </View>
     )

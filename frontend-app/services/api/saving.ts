@@ -169,12 +169,15 @@ export async function deleteProduct(product: Product): Promise<void> {
 export function isProductValid(product: Product): boolean {
     return (
         product.name !== undefined && product.name !== "" &&
-        product.brand !== undefined && product.brand !== "" &&
-        product.model !== undefined && product.model !== "" &&
-        product.description !== undefined && product.description !== "" &&
-        product.physicalProperties.weight > 0 &&
-        product.physicalProperties.width > 0 &&
-        product.physicalProperties.height > 0 &&
-        product.physicalProperties.depth > 0
+        // NOTE: Relaxed validation for now
+        // product.brand !== undefined && product.brand !== "" &&
+        // product.model !== undefined && product.model !== "" &&
+        // product.description !== undefined && product.description !== "" &&
+        product.physicalProperties.weight > 0 
+        // product.physicalProperties.width > 0 &&
+        // product.physicalProperties.height > 0 &&
+        // product.physicalProperties.depth > 0
     )
 }
+
+
