@@ -1,7 +1,7 @@
-import {Product} from "@/types/Product";
-import {getUser} from "@/services/api/authentication";
+import { getUser } from "@/services/api/authentication";
+import { Product } from "@/types/Product";
 
-const baseUrl = "https://api.cml-relab.org"
+const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
 type ProductData = {
     id: number;
