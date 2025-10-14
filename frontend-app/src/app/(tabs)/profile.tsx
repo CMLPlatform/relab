@@ -1,118 +1,120 @@
-import {useEffect, useState} from "react";
-import {IconButton} from "react-native-paper";
-import { Text, Chip } from "@/components/base";
+import { useEffect, useState } from 'react';
+import { IconButton } from 'react-native-paper';
+import { Pressable, View, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Text, Chip } from '@/components/base';
 
-import { User } from "@/types/User";
-import { getUser, logout, verify } from "@/services/api/authentication";
-import {Pressable, View, Platform} from "react-native";
-import {useRouter} from "expo-router";
+import { User } from '@/types/User';
+import { getUser, logout, verify } from '@/services/api/authentication';
 
 export default function ProfileTab() {
-    // Hooks
-    const router = useRouter();
+  // Hooks
+  const router = useRouter();
 
-    // States
-    const [profile, setProfile] = useState<User | undefined>(undefined);
+  // States
+  const [profile, setProfile] = useState<User | undefined>(undefined);
 
-    // Effects
-    useEffect(() => {
-        getUser().then(setProfile);
-    }, []);
+  // Effects
+  useEffect(() => {
+    getUser().then(setProfile);
+  }, []);
 
-    // callbacks
-    const onLogout = () => {
-        logout().then(() => {
-            setProfile(undefined);
-            router.replace("/login");
-        });
-    }
+  // callbacks
+  const onLogout = () => {
+    logout().then(() => {
+      setProfile(undefined);
+      router.replace('/login');
+    });
+  };
 
-    const onVerifyAccount = () => {
-        if (!profile) return;
-        verify(profile.email).then(() => {
-            alert("Verification email sent. Please check your inbox.");
-        }).catch(() => {
-            alert("Failed to send verification email. Please try again later.");
-        });
-    }
+  const onVerifyAccount = () => {
+    if (!profile) return;
+    verify(profile.email)
+      .then(() => {
+        alert('Verification email sent. Please check your inbox.');
+      })
+      .catch(() => {
+        alert('Failed to send verification email. Please try again later.');
+      });
+  };
 
-    // Sub Render >> No profile (not logged in)
-    if (!profile) {
-        return null
-    }
+  // Sub Render >> No profile (not logged in)
+  if (!profile) {
+    return null;
+  }
 
-    // Render
-    return (
-        <View style={{ flex: 1, padding: 20}}>
-            <Text
-                style={{
-                    marginTop: 80,
-                    fontSize: 40,
-                }}
-            >
-                {"Hi"}
-            </Text>
-            <Text
-                style={{
-                    fontSize: Platform.OS === "web" ? 40 : 80,
-                    fontWeight: "bold",
-                }}
-                numberOfLines={Platform.OS === "web" ? undefined : 1}
-                adjustsFontSizeToFit={true}
-            >
-                {profile.username + "."}
-            </Text>
-            <View style={{ marginTop: 12, marginBottom: 50, gap: 10, flexDirection: "row", flexWrap: "wrap" }}>
-                {profile.isActive ? <Chip>Active</Chip> : <Chip style={{backgroundColor: "lightgrey"}}>Inactive</Chip>}
-                {profile.isSuperuser && <Chip>Superuser</Chip>}
-                {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={{backgroundColor: "lightgrey"}}>Unverified</Chip>}
-            </View>
-            {/*<Text variant={"labelSmall"} style={{textAlign: "right"}}>{profile.id}</Text>*/}
-            <ProfileAction title={"Logout"} subtitle={"Change to another account"} onPress={onLogout} />
-            {profile.isVerified || (
-                <ProfileAction title={"Verify your email address"} subtitle={"Resend the verification email"} onPress={onVerifyAccount} />
-            )}
-        </View>
-    )
+  // Render
+  return (
+    <View style={{ flex: 1, padding: 20 }}>
+      <Text
+        style={{
+          marginTop: 80,
+          fontSize: 40,
+        }}
+      >
+        {'Hi'}
+      </Text>
+      <Text
+        style={{
+          fontSize: Platform.OS === 'web' ? 40 : 80,
+          fontWeight: 'bold',
+        }}
+        numberOfLines={Platform.OS === 'web' ? undefined : 1}
+        adjustsFontSizeToFit={true}
+      >
+        {profile.username + '.'}
+      </Text>
+      <View style={{ marginTop: 12, marginBottom: 50, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}>
+        {profile.isActive ? <Chip>Active</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Inactive</Chip>}
+        {profile.isSuperuser && <Chip>Superuser</Chip>}
+        {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Unverified</Chip>}
+      </View>
+      {/*<Text variant={"labelSmall"} style={{textAlign: "right"}}>{profile.id}</Text>*/}
+      <ProfileAction title={'Logout'} subtitle={'Change to another account'} onPress={onLogout} />
+      {profile.isVerified || (
+        <ProfileAction
+          title={'Verify your email address'}
+          subtitle={'Resend the verification email'}
+          onPress={onVerifyAccount}
+        />
+      )}
+    </View>
+  );
 }
 
-function ProfileAction({onPress, title, subtitle}: {onPress: () => void, title: string, subtitle?: string}){
-    return(
-        <Pressable
-            style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginVertical: 5
-            }}
-            onPress={onPress}
+function ProfileAction({ onPress, title, subtitle }: { onPress: () => void; title: string; subtitle?: string }) {
+  return (
+    <Pressable
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginVertical: 5,
+      }}
+      onPress={onPress}
+    >
+      <View style={{ flexDirection: 'column' }}>
+        <Text
+          style={{
+            flex: 1,
+            marginRight: 10,
+            fontSize: 18,
+            fontWeight: 'bold',
+          }}
         >
-            <View style={{flexDirection: "column"}}>
-                <Text
-                    style={{
-                        flex: 1,
-                        marginRight: 10,
-                        fontSize: 18,
-                        fontWeight: "bold",
-                    }}
-                >
-                    {title}
-                </Text>
-                <Text
-                    style={{
-                        flex: 1,
-                        marginRight: 10,
-                        fontSize: 15,
-                    }}
-                >
-                    {subtitle}
-                </Text>
-            </View>
-            <IconButton
-                icon="chevron-right"
-                size={30}
-                onPress={onPress}
-            />
-        </Pressable>
-    )
+          {title}
+        </Text>
+        <Text
+          style={{
+            flex: 1,
+            marginRight: 10,
+            fontSize: 15,
+          }}
+        >
+          {subtitle}
+        </Text>
+      </View>
+      <IconButton icon="chevron-right" size={30} onPress={onPress} />
+    </Pressable>
+  );
 }

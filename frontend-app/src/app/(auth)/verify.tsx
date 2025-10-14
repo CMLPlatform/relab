@@ -42,6 +42,7 @@ export default function VerifyEmailScreen() {
         setError(data.detail || 'Verification failed. Please try registering again.');
       }
     } catch (err) {
+      console.error('Verification error:', err);
       setError('An error occurred during verification. Please try again later.');
     } finally {
       setIsLoading(false);

@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/types/User";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User } from '@/types/User';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 let token: string | undefined;
@@ -38,18 +38,22 @@ export async function login(username: string, password: string): Promise<string 
 }
 
 export async function logout(): Promise<void> {
-    token = undefined;
-    user = undefined;
-    await AsyncStorage.removeItem("username");
-    await AsyncStorage.removeItem("password");
+  token = undefined;
+  user = undefined;
+  await AsyncStorage.removeItem('username');
+  await AsyncStorage.removeItem('password');
 }
 
 export async function getToken(): Promise<string | undefined> {
-    if (token) {return token;}
+  if (token) {
+    return token;
+  }
 
-    const username = await AsyncStorage.getItem("username");
-    const password = await AsyncStorage.getItem("password");
-    if (!username || !password) {return undefined;}
+  const username = await AsyncStorage.getItem('username');
+  const password = await AsyncStorage.getItem('password');
+  if (!username || !password) {
+    return undefined;
+  }
 
   try {
     const success = await login(username, password);
@@ -92,12 +96,12 @@ export async function getUser(): Promise<User | undefined> {
     }
 
     user = {
-        id: data.id,
-        email: data.email,
-        isActive: data.is_active,
-        isSuperuser: data.is_superuser,
-        isVerified: data.is_verified,
-        username: data.username || "Username not defined",
+      id: data.id,
+      email: data.email,
+      isActive: data.is_active,
+      isSuperuser: data.is_superuser,
+      isVerified: data.is_verified,
+      username: data.username || 'Username not defined',
     };
 
     return user;
@@ -107,34 +111,28 @@ export async function getUser(): Promise<User | undefined> {
   }
 }
 
-export async function register(
-    username: string,
-    email: string,
-    password: string
-): Promise<boolean> {
-    const url = new URL(baseUrl + "/auth/register");
-    const headers = {"Content-Type": "application/json", "Accept": "application/json"}
+export async function register(username: string, email: string, password: string): Promise<boolean> {
+  const url = new URL(baseUrl + '/auth/register');
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
-    const body = {
-        username: username,
-        email: email,
-        password: password
-    }
+  const body = {
+    username: username,
+    email: email,
+    password: password,
+  };
 
-    const response = await fetch(url, {method: "POST", headers: headers, body: JSON.stringify(body)});
-    return response.ok;
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  return response.ok;
 }
 
-export async function verify(
-    email: string,
-): Promise<boolean> {
-    const url = new URL(baseUrl + "/auth/request-verify-token");
-    const headers = {"Content-Type": "application/json", "Accept": "application/json"}
+export async function verify(email: string): Promise<boolean> {
+  const url = new URL(baseUrl + '/auth/request-verify-token');
+  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
-    const body = {
-        email: email,
-    }
+  const body = {
+    email: email,
+  };
 
-    const response = await fetch(url, {method: "POST", headers: headers, body: JSON.stringify(body)});
-    return response.ok;
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  return response.ok;
 }
