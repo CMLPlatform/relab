@@ -5,9 +5,9 @@ export default function Layout() {
   return (
       <Tabs>
         <Tabs.Screen
-            name="database"
+            name="products"
             options={{
-                title: "Database",
+                title: "Products Database",
                 headerShown: false,
                 tabBarIcon: ({ color, size }) => (
                     <MaterialCommunityIcons name="database" color={color} size={size} />

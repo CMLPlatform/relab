@@ -107,7 +107,7 @@ export default function ProductPage(): JSX.Element {
     const onProductDelete = () => {
         deleteProduct(product).then(() => {
             setEditMode(false);
-            router.replace("/(tabs)/database");
+            router.replace("/(tabs)/products");
         })
     }
 

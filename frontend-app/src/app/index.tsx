@@ -27,8 +27,8 @@ export default function Main() {
             <Redirect href={"/login"}/>
         );
     }
-    // Sub Render >> Logged in -> redirect to database
+    // Sub Render >> Logged in -> redirect to products database
     return (
-        <Redirect href={"/database"}/>
+        <Redirect href={"/products"}/>
     )
 }
