@@ -1,12 +1,12 @@
+import { DarkTheme as RNDark, DefaultTheme as RNLight, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { MD3LightTheme, MD3DarkTheme, PaperProvider, adaptNavigationTheme } from 'react-native-paper';
-import { ThemeProvider, DefaultTheme as RNLight, DarkTheme as RNDark } from '@react-navigation/native';
+import { MD3DarkTheme, MD3LightTheme, PaperProvider, adaptNavigationTheme } from 'react-native-paper';
 
-import { useColorScheme } from 'react-native';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import lightTheme from '../assets/themes/light';
+import { useColorScheme } from 'react-native';
 import darkTheme from '../assets/themes/dark';
+import lightTheme from '../assets/themes/light';
 import { DialogProvider } from '@/components/common/DialogProvider';
 
 setBackgroundColorAsync('black');
@@ -37,7 +37,9 @@ export default function RootLayout() {
         />
 
         <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/new_account" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
 
         <Stack.Screen name="products/[id]/camera" options={{ headerShown: false }} />
         <Stack.Screen name="products/[id]/category_selection" options={{ title: 'Select Category' }} />

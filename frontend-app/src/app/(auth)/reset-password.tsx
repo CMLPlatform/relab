@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
@@ -62,13 +62,6 @@ export default function ResetPasswordScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-      <Stack.Screen
-        options={{
-          title: 'Reset Password',
-          headerShown: true,
-        }}
-      />
-
       <Card>
         <Card.Content style={{ gap: 16 }}>
           <Text variant="headlineMedium">Reset Password</Text>

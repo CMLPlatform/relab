@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Button, TextInput, Text, IconButton } from 'react-native-paper';
+import { Button, IconButton, Text, TextInput } from 'react-native-paper';
 
-import { register, login } from '@/services/api/authentication';
+import { login, register } from '@/services/api/authentication';
 
 export default function NewAccount() {
   // Hooks

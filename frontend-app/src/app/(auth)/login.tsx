@@ -143,12 +143,10 @@ export default function Login() {
         <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={attemptLogin}>
           Login
         </Button>
-        <Button
-          style={{ width: '100%', padding: 5, alignItems: 'flex-end' }}
-          onPress={() => router.push('/new_account')}
-        >
-          Create a new account
-        </Button>
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+          <Button onPress={() => router.push('/forgot-password')}>Forgot Password?</Button>
+          <Button onPress={() => router.push('/new-account')}>Create a new account</Button>
+        </View>
       </View>
       <View
         style={{
