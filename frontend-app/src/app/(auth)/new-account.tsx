@@ -1,13 +1,13 @@
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Button, IconButton, Text, TextInput } from 'react-native-paper';
+import { Button, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { login, register } from '@/services/api/authentication';
-
 export default function NewAccount() {
   // Hooks
   const router = useRouter();
+  const theme = useTheme();
 
   // States
   const [section, setSection] = useState<'username' | 'email' | 'password'>('username');
@@ -197,14 +197,24 @@ export default function NewAccount() {
           <IconButton icon="chevron-right" size={30} disabled={password.length === 0} onPress={createAccount} />
         </View>
 
-        <Button
-          style={{ position: 'absolute', bottom: 20, right: 20 }}
-          onPress={() => {
-            router.dismissTo('/login');
-          }}
-        >
-          I already have an account
-        </Button>
+        <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20, alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 12, opacity: 0.7, textAlign: 'center' }}>
+            By creating an account, you agree to our{' '}
+            <Link href="https://cml-relab.org/privacy">
+              <Text style={{ fontSize: 12, textDecorationLine: 'underline', color: theme.colors.primary }}>
+                Privacy Policy
+              </Text>
+            </Link>
+          </Text>
+
+          <Button
+            onPress={() => {
+              router.dismissTo('/login');
+            }}
+          >
+            I already have an account
+          </Button>
+        </View>
       </View>
     );
   }
