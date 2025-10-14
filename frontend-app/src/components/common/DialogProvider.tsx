@@ -1,20 +1,22 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Text, TextInput, Button, useTheme } from 'react-native-paper';
-import { View, StyleSheet, Modal, Pressable } from 'react-native';
+import { createContext, ReactNode, useContext, useState } from 'react';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 
 type DialogButton = {
   text: string;
   onPress?: (value?: string) => void;
+  disabled?: boolean | ((value: string) => boolean);
 };
 
 type DialogOptions = {
   title?: string;
   message?: string;
   buttons?: DialogButton[];
-
   input?: boolean;
   defaultValue?: string;
   placeholder?: string;
+  helperText?: string;
+  error?: boolean;
 };
 
 type DialogContextType = {
@@ -78,6 +80,14 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
     onDismiss?.();
   };
 
+  // Methods
+  const isButtonDisabled = (button: DialogButton) => {
+    if (typeof button.disabled === 'function') {
+      return button.disabled(inputValue);
+    }
+    return button.disabled ?? false;
+  };
+
   // Render
   return (
     <Pressable
@@ -95,13 +105,18 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
             handleClose(options?.buttons ? options.buttons[options.buttons.length - 1] : undefined)
           }
           placeholder={options.placeholder}
+          error={options.error}
           autoFocus
         />
       )}
 
+      {options?.input && options?.helperText && (
+        <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>{options.helperText}</Text>
+      )}
+
       <View style={styles.buttonRow}>
         {(options?.buttons || [{ text: 'OK' }]).map((btn, idx) => (
-          <Button key={idx} onPress={() => handleClose(btn)} style={styles.button}>
+          <Button key={idx} onPress={() => handleClose(btn)} disabled={isButtonDisabled(btn)} style={styles.button}>
             {btn.text}
           </Button>
         ))}
@@ -146,5 +161,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  helperText: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginTop: 4,
+    marginBottom: 8,
   },
 });

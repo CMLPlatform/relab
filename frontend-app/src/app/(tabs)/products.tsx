@@ -1,8 +1,9 @@
-import { FlatList, NativeSyntheticEvent, NativeScrollEvent, RefreshControl } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { AnimatedFAB, Card } from 'react-native-paper';
+import { ActivityIndicator, AnimatedFAB, Card, IconButton, Searchbar } from 'react-native-paper';
+import { Text } from '@/components/base/Text';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { allProducts } from '@/services/api/fetching';
@@ -15,20 +16,52 @@ export default function ProductsTab() {
 
   // States
   const [productList, setProductList] = useState<Required<Product>[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Required<Product>[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [fabExtended, setFabExtended] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showInfoCard, setShowInfoCard] = useState(true);
 
-  // Callbacks
-  const onRefresh = () => {
-    setRefreshing(true);
+  // Effects
+  useEffect(() => {
+    setLoading(true);
     allProducts()
-      .then(setProductList)
-      .finally(() => setRefreshing(false));
+      .then((products) => {
+        setProductList(products);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredProducts(productList);
+      return;
+    }
+
+    const lowercaseQuery = searchQuery.toLowerCase();
+    const filtered = productList.filter(
+      (product) =>
+        product.name.toLowerCase().includes(lowercaseQuery) ||
+        product.description?.toLowerCase().includes(lowercaseQuery),
+    );
+    setFilteredProducts(filtered);
+  }, [productList, searchQuery]);
+
+  // Callbacks
+  // TODO: Deal with product pagination
+  // TODO: Use backend search endpoint
+  // TODO: Add filtering options
+  const loadProducts = () => {
+    setLoading(true);
+    allProducts()
+      .then((products) => {
+        setProductList(products);
+      })
+      .finally(() => setLoading(false));
   };
 
-  const syncProducts = () => {
-    allProducts().then(setProductList);
+  const onSearchChange = (query: string) => {
+    setSearchQuery(query);
   };
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -39,13 +72,19 @@ export default function ProductsTab() {
     dialog.input({
       title: 'Create New Product',
       placeholder: 'Product Name',
+      helperText: 'Enter a descriptive name between 2 and 100 characters',
       buttons: [
         { text: 'Cancel' },
         {
           text: 'OK',
+          disabled: (value) => {
+            const name = typeof value === 'string' ? value.trim() : '';
+            return name.length < 2 || name.length > 100;
+          },
           onPress: (productName) => {
-            const params = { id: 'new', edit: 'true', name: productName };
-            router.push({ pathname: '/products/[id]', params: params });
+            const name = typeof productName === 'string' ? productName.trim() : '';
+            const params = { id: 'new', edit: 'true', name };
+            router.push({ pathname: '/products/[id]', params });
           },
         },
       ],
@@ -62,12 +101,15 @@ export default function ProductsTab() {
             <Card.Content>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <View style={{ flex: 1 }}>
-                  <Text variant="titleMedium" style={{ marginBottom: 8 }}>
-                    Welcome to Relab Products Database
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8 }}>
+                    Welcome to the Relab Products Database
                   </Text>
-                  <Text variant="bodyMedium">
+                  <Text style={{ fontSize: 16 }}>
                     Browse and manage products here. Click the &quot;New Product&quot; button in the bottom right to add
                     a new product.
+                  </Text>
+                  <Text style={{ marginTop: 8, fontStyle: 'italic', opacity: 0.7 }}>
+                    💡 Tip: Make sure to verify your email address to create products.
                   </Text>
                 </View>
                 <IconButton icon="close" size={20} onPress={() => setShowInfoCard(false)} />
@@ -76,16 +118,40 @@ export default function ProductsTab() {
           </Card>
         )}
 
-      <FlatList
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        onLayout={syncProducts}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        // contentContainerStyle={{padding: 10}}
-        data={productList}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <ProductCard product={item} />}
-      />
+        {/* Search Bar */}
+        <Searchbar
+          placeholder="Search products by name or description"
+          onChangeText={onSearchChange}
+          value={searchQuery}
+          icon="magnify"
+          clearIcon="close"
+        />
+      </View>
+
+      {/* Product List */}
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" />
+        </View>
+      ) : (
+        <FlatList
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={loadProducts} />}
+          data={filteredProducts}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => <ProductCard product={item} />}
+          ListEmptyComponent={
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text>
+                {searchQuery ? 'No products found matching your search.' : 'No products yet. Create your first one!'}
+              </Text>
+            </View>
+          }
+        />
+      )}
+
+      {/* New Product FAB */}
       <AnimatedFAB
         icon="plus"
         label="New Product"
