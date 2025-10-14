@@ -1,8 +1,8 @@
-import {Product} from "@/types/Product";
-import {getProduct} from "@/services/api/fetching";
-import {getToken} from "@/services/api/authentication";
+import { getToken } from "@/services/api/authentication";
+import { getProduct } from "@/services/api/fetching";
+import { Product } from "@/types/Product";
 
-const baseUrl = "https://api.cml-relab.org"
+const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
 function toNewProduct(product: Product): any {
     return ({
