@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.8-python3.13-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.9-python3.13-trixie-slim AS builder
 
 # Install git for custom dependencies (fastapi-users-db-sqlmodel)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
