@@ -20,16 +20,17 @@ export function isProductValid(product: Product): boolean {
   const { weight, width, height, depth } = product.physicalProperties;
 
   // Allow undefined dimensions, but if provided, they must be positive numbers
-  const validWidth = typeof width === 'undefined' || (typeof width === 'number' && width > 0);
-  const validHeight = typeof height === 'undefined' || (typeof height === 'number' && height > 0);
-  const validDepth = typeof depth === 'undefined' || (typeof depth === 'number' && depth > 0);
+  const isValidDimension = (val: number | undefined) => {
+    return val == null || Number.isNaN(val) || (typeof val === 'number' && val > 0);
+  };
 
   return (
     isValidProductName(product.name) &&
     typeof weight === 'number' &&
+    !Number.isNaN(weight) &&
     weight > 0 &&
-    validWidth &&
-    validHeight &&
-    validDepth
+    isValidDimension(width) &&
+    isValidDimension(height) &&
+    isValidDimension(depth)
   );
 }

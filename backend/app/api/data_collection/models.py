@@ -1,5 +1,6 @@
 """Database models for data collection on products."""
 
+import logging
 from datetime import UTC, datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Optional, Self
@@ -16,6 +17,10 @@ if TYPE_CHECKING:
     from app.api.auth.models import User
     from app.api.background_data.models import ProductType
     from app.api.file_storage.models.models import File, Image, Video
+
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 
 ### Validation Utilities ###
@@ -38,11 +43,11 @@ class PhysicalPropertiesBase(CustomBase):
     # Computed properties
     @computed_field
     @cached_property
-    def volume_cm3(self) -> float:
+    def volume_cm3(self) -> float | None:
         """Calculate the volume of the product."""
         if self.height_cm is None or self.width_cm is None or self.depth_cm is None:
-            err_msg = "All dimensions must be set to calculate the volume."
-            raise ValueError(err_msg)
+            logger.warning("All dimensions must be set to calculate the volume.")
+            return None
         return self.height_cm * self.width_cm * self.depth_cm
 
 

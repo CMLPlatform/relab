@@ -45,10 +45,10 @@ function toUpdateProduct(product: Product): any {
 
 function toUpdatePhysicalProperties(product: Product): any {
   return {
-    weight_kg: product.physicalProperties.weight || 0,
-    height_cm: product.physicalProperties.height || 0,
-    width_cm: product.physicalProperties.width || 0,
-    depth_cm: product.physicalProperties.depth || 0,
+    weight_kg: product.physicalProperties.weight || null,
+    height_cm: product.physicalProperties.height || null,
+    width_cm: product.physicalProperties.width || null,
+    depth_cm: product.physicalProperties.depth || null,
   };
 }
 

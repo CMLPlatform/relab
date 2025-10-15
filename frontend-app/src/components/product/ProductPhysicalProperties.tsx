@@ -27,8 +27,10 @@ const nameMap = {
 
 export default function ProductPhysicalProperties({ product, editMode, onChangePhysicalProperties }: Props) {
   // Callbacks
-  const onChangeProperty = (key: string, value: number) => {
-    const newProperties = { ...product.physicalProperties, [key]: value };
+  const onChangeProperty = (key: string, value: number | undefined) => {
+    // Ensure NaN is converted to undefined before saving
+    const normalizedValue = value === undefined || Number.isNaN(value) ? undefined : value;
+    const newProperties = { ...product.physicalProperties, [key]: normalizedValue };
     onChangePhysicalProperties?.(newProperties);
   };
 
@@ -75,21 +77,39 @@ function PhysicalPropertyRow({
   onChangeProperty,
 }: {
   name: string;
-  value: number;
+  value: number | undefined;
   unit: string;
   editMode: boolean;
-  onChangeProperty?: (name: string, value: number) => void;
+  onChangeProperty?: (name: string, value: number | undefined) => void;
 }) {
   // Hooks
   const textInput = useRef<RN.TextInput>(null);
 
+  // Normalize value: convert NaN, null, or undefined to undefined
+  const normalizedValue = value == null || Number.isNaN(value) ? undefined : value;
+
   // States
-  const [text, setText] = useState(Number.isNaN(value) ? '' : value.toString());
+  const [text, setText] = useState(normalizedValue === undefined ? '' : normalizedValue.toString());
 
   // Callbacks
   const onPress = () => {
     if (editMode) {
       textInput.current?.focus();
+    }
+  };
+
+  const handleBlur = () => {
+    if (text.trim() === '') {
+      onChangeProperty?.(name.toLowerCase(), undefined);
+      return;
+    }
+    const numValue = parseFloat(text);
+    // Only save if valid positive number > 0
+    if (!isNaN(numValue) && numValue > 0) {
+      onChangeProperty?.(name.toLowerCase(), numValue);
+    } else {
+      // Reset to previous value if invalid
+      setText(normalizedValue === undefined ? '' : normalizedValue.toString());
     }
   };
 
@@ -124,16 +144,16 @@ function PhysicalPropertyRow({
         }}
         value={text}
         onChangeText={(s) => {
-          if (s.match('^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$') || s === '') {
+          // Allow only positive numbers (including decimals) or empty string
+          if (/^\d*\.?\d*$/.test(s) || s === '') {
             setText(s);
           }
         }}
-        onBlur={() => onChangeProperty?.(name.toLowerCase(), parseFloat(text))}
-        keyboardType={'numeric'}
-        placeholder={'Set value'}
+        onBlur={handleBlur}
+        keyboardType={'decimal-pad'}
+        placeholder={'> 0'}
         editable={editMode}
         ref={textInput}
-        errorOnEmpty
       />
       <Text
         style={{
