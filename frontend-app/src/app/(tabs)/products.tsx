@@ -6,8 +6,10 @@ import { ActivityIndicator, AnimatedFAB, Card, IconButton, Searchbar, SegmentedB
 import { Text } from '@/components/base/Text';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
+import { getUser } from '@/services/api/authentication';
 import { allProducts, myProducts } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
+import { User } from '@/types/User';
 
 type ProductFilter = 'all' | 'mine';
 
@@ -24,10 +26,13 @@ export default function ProductsTab() {
   const [fabExtended, setFabExtended] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showInfoCard, setShowInfoCard] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | undefined>();
+  const [showVerificationSnackbar, setShowVerificationSnackbar] = useState(false);
 
   // Effects
   useEffect(() => {
     loadProducts();
+    loadUser();
   }, [filterMode]);
 
   useEffect(() => {
@@ -46,6 +51,11 @@ export default function ProductsTab() {
   }, [productList, searchQuery]);
 
   // Callbacks
+  const loadUser = async () => {
+    const user = await getUser();
+    setCurrentUser(user);
+  };
+
   const loadProducts = () => {
     setLoading(true);
     const fetchFunction = filterMode === 'mine' ? myProducts : allProducts;
@@ -66,6 +76,22 @@ export default function ProductsTab() {
   };
 
   const newProduct = () => {
+    if (!currentUser?.isVerified) {
+      dialog.alert({
+        title: 'Email Verification Required',
+        message:
+          'Please verify your email address before creating products. Check your inbox for the verification link or go to your Profile to resend it.',
+        buttons: [
+          { text: 'OK' },
+          {
+            text: 'Go to Profile',
+            onPress: () => router.push('/profile'),
+          },
+        ],
+      });
+      return;
+    }
+
     dialog.input({
       title: 'Create New Product',
       placeholder: 'Product Name',
@@ -168,7 +194,12 @@ export default function ProductsTab() {
         label="New Product"
         extended={fabExtended}
         onPress={newProduct}
-        style={{ position: 'absolute', margin: 16, right: 0, bottom: 0 }}
+        style={{
+          position: 'absolute',
+          margin: 16,
+          right: 0,
+          bottom: 0,
+        }}
       />
     </>
   );
