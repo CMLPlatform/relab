@@ -1,4 +1,4 @@
-import { getUser } from '@/services/api/authentication';
+import { getToken, getUser } from '@/services/api/authentication';
 import { Product } from '@/types/Product';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
@@ -117,6 +117,40 @@ export async function allProducts(
   const product_data = data.items as ProductData[];
 
   await getUser(); // Ensure user is loaded for ownership checks
+  return Promise.all(product_data.map((data) => toProduct(data)));
+}
+
+export async function myProducts(
+  include = ['physical_properties', 'images', 'product_type', 'components'],
+  page = 1,
+  size = 50,
+): Promise<Required<Product>[]> {
+  const url = new URL(baseUrl + '/users/me/products');
+  include.forEach((inc) => url.searchParams.append('include', inc));
+  url.searchParams.append('page', page.toString());
+  url.searchParams.append('size', size.toString());
+
+  const authToken = await getToken();
+  if (!authToken) {
+    throw new Error('Authentication required');
+  }
+
+  const headers = {
+    Authorization: `Bearer ${authToken}`,
+    Accept: 'application/json',
+  };
+
+  const response = await fetch(url, { method: 'GET', headers });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // TODO: Update to data.items when adding pagination to /users/me/products endpoint
+  const product_data = data as ProductData[];
+
   return Promise.all(product_data.map((data) => toProduct(data)));
 }
 
