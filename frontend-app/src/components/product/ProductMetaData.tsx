@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 import { Text } from '@/components/base';
+import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { Product } from '@/types/Product';
 
 interface Props {
@@ -17,8 +18,9 @@ export default function ProductMetaData({ product }: Props) {
           fontWeight: 'bold',
         }}
       >
-        Metadata
+        Metadata <InfoTooltip title="Auto-generated metadata of the product" />
       </Text>
+
       <View style={{ gap: 8, paddingLeft: 4 }}>
         {product.createdAt && (
           <Text style={{ opacity: 0.7 }}>Created: {new Date(product.createdAt).toLocaleDateString()}</Text>

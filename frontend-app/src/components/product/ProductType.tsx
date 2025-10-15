@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
+import { InfoTooltip } from '@/components//base/InfoTooltip';
 import { Text } from '@/components/base';
 import CPVCard from '@/components/common/CPVCard';
 import { CPVCategory } from '@/types/CPVCategory';
@@ -51,7 +52,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
           fontWeight: 'bold',
         }}
       >
-        Type or Material
+        Type or Material <InfoTooltip title="Select a fitting category for the product." />
       </Text>
       <CPVCard CPV={cpv[product.productTypeID || 'root']} onPress={editMode ? onTypeSelectionStart : undefined} />
     </View>

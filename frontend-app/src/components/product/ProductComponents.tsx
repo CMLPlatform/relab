@@ -1,13 +1,15 @@
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
-import { useState, useEffect } from 'react';
 
 import { useRouter } from 'expo-router';
+import { InfoTooltip } from '../base/InfoTooltip';
 import { Text } from '@/components/base';
+import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { productComponents } from '@/services/api/fetching';
+import { isValidProductName } from '@/services/api/validation/product';
 import { Product } from '@/types/Product';
-import { useDialog } from '@/components/common/DialogProvider';
 
 interface Props {
   product: Product;
@@ -32,16 +34,18 @@ export default function ProductComponents({ product, editMode }: Props) {
     dialog.input({
       title: 'Create New Component',
       placeholder: 'Component Name',
+      helperText: 'Enter a descriptive name between 2 and 100 characters',
       buttons: [
         { text: 'Cancel' },
         {
           text: 'OK',
+          disabled: (value) => !isValidProductName(value),
           onPress: (componentName) => {
+            const name = typeof componentName === 'string' ? componentName.trim() : '';
             const params = {
               id: 'new',
-              name: componentName,
-              model: product.model,
-              brand: product.brand,
+              name,
+              isComponent: 'true',
               parent: product.id,
             };
             router.push({ pathname: '/products/[id]', params: params });
@@ -62,7 +66,7 @@ export default function ProductComponents({ product, editMode }: Props) {
           fontWeight: 'bold',
         }}
       >
-        Components ({product.componentIDs.length})
+        Components ({product.componentIDs.length}) <InfoTooltip title="Add components after saving the product." />
       </Text>
       {components.length === 0 && (
         <Text style={{ paddingHorizontal: 14, opacity: 0.7, marginBottom: 8 }}>This product has no subcomponents.</Text>

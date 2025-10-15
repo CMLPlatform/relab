@@ -12,6 +12,7 @@ export type Product = {
   physicalProperties: PhysicalProperties;
   images: { id: number; url: string; description: string }[];
   ownedBy: 'me' | string;
+  amountInParent?: number;
 };
 
 export type PhysicalProperties = {

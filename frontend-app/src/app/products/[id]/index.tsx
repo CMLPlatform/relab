@@ -1,24 +1,26 @@
-import { NativeScrollEvent, NativeSyntheticEvent, Alert, ActivityIndicator, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { JSX, useEffect, useState } from 'react';
-import { AnimatedFAB, Button, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { AnimatedFAB, Button, useTheme } from 'react-native-paper';
 
-import ProductImage from '@/components/product/ProductImage';
-import ProductDescription from '@/components/product/ProductDescription';
-import ProductTags from '@/components/product/ProductTags';
-import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
-import ProductMetaData from '@/components/product/ProductMetaData';
+import ProductAmountInParent from '@/components/product/ProductAmountInParent';
 import ProductComponents from '@/components/product/ProductComponents';
-import ProductType from '@/components/product/ProductType';
 import ProductDelete from '@/components/product/ProductDelete';
+import ProductDescription from '@/components/product/ProductDescription';
+import ProductImage from '@/components/product/ProductImage';
+import ProductMetaData from '@/components/product/ProductMetaData';
+import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
+import ProductTags from '@/components/product/ProductTags';
+import ProductType from '@/components/product/ProductType';
 
 import { useDialog } from '@/components/common/DialogProvider';
 
-import { Product } from '@/types/Product';
 import { getProduct, newProduct } from '@/services/api/fetching';
-import { isProductValid, saveProduct, deleteProduct } from '@/services/api/saving';
+import { deleteProduct, saveProduct } from '@/services/api/saving';
+import { getProductNameHelperText, isProductValid, isValidProductName } from '@/services/api/validation/product';
+import { Product } from '@/types/Product';
 
 /**
  * Type definition for search parameters used in the product page route.
@@ -29,11 +31,12 @@ type searchParams = {
   model?: string;
   brand?: string;
   parent?: string;
+  isComponent?: string;
 };
 
 export default function ProductPage(): JSX.Element {
   // Hooks
-  const { id, name, model, brand, parent } = useLocalSearchParams<searchParams>();
+  const { id, name, model, brand, parent, isComponent } = useLocalSearchParams<searchParams>();
   const navigation = useNavigation();
   const router = useRouter();
   const dialog = useDialog();
@@ -44,6 +47,10 @@ export default function ProductPage(): JSX.Element {
   const [editMode, setEditMode] = useState(id === 'new' || false);
   const [savingState, setSavingState] = useState<'saving' | 'success' | undefined>(undefined);
   const [fabExtended, setFabExtended] = useState(true);
+
+  const isProductComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+  console.log('product.parentID:', product.parentID);
+  console.log('isProductComponent:', isProductComponent);
 
   // Effects
   useEffect(() => {
@@ -57,11 +64,16 @@ export default function ProductPage(): JSX.Element {
 
   useEffect(() => {
     if (id === 'new') {
-      setProduct(newProduct(name, parent ? parseInt(parent) : NaN, brand, model));
+      const newProd = newProduct(name, parent ? parseInt(parent) : NaN, brand, model);
+      // Set default amountInParent to 1 for new components
+      if (isComponent === 'true' && !newProd.amountInParent) {
+        newProd.amountInParent = 1;
+      }
+      setProduct(newProd);
     } else if (id !== 'new') {
       getProduct(parseInt(id)).then(setProduct);
     }
-  }, [id]);
+  }, [id, isComponent]);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
@@ -104,6 +116,10 @@ export default function ProductPage(): JSX.Element {
 
   const onImagesChange = (newImages: { url: string; description: string; id: number }[]) => {
     setProduct({ ...product, images: newImages });
+  };
+
+  const onAmountInParentChange = (newAmount: number) => {
+    setProduct({ ...product, amountInParent: newAmount });
   };
 
   const onProductDelete = () => {
@@ -187,8 +203,12 @@ export default function ProductPage(): JSX.Element {
           editMode={editMode}
           onBrandChange={onBrandChange}
           onModelChange={onModelChange}
+          isComponent={isProductComponent}
         />
         <ProductType product={product} editMode={editMode} onTypeChange={onTypeChange} />
+        {isProductComponent && (
+          <ProductAmountInParent product={product} editMode={editMode} onAmountChange={onAmountInParentChange} />
+        )}
         <ProductPhysicalProperties
           product={product}
           editMode={editMode}
@@ -226,21 +246,21 @@ function EditNameButton({
     }
     dialog.input({
       title: 'Edit name',
-      placeholder: 'Enter a name',
+      placeholder: 'Product Name',
+      helperText: getProductNameHelperText(),
       defaultValue: product.name || '',
       buttons: [
         { text: 'Cancel', onPress: () => undefined },
-        { text: 'OK', onPress: onOK },
+        {
+          text: 'OK',
+          disabled: (value) => !isValidProductName(value),
+          onPress: (newName) => {
+            const name = typeof newName === 'string' ? newName.trim() : '';
+            onProductNameChange?.(name);
+          },
+        },
       ],
     });
-  };
-
-  const onOK = (newName: string | undefined) => {
-    if (!newName || newName.trim().length === 0) {
-      Alert.alert('Invalid Name', 'Product name cannot be empty.');
-      return;
-    }
-    onProductNameChange?.(newName);
   };
 
   return <Button onPress={onPress}>Edit name</Button>;
