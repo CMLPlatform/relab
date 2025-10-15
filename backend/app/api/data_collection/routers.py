@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING, Annotated
 
 from asyncache import cached
 from cachetools import LRUCache, TTLCache
-from fastapi import APIRouter, Body, Path, Query
+from fastapi import APIRouter, Body, HTTPException, Path, Query, Request
+from fastapi.responses import RedirectResponse
 from fastapi_filter import FilterDepends
 from fastapi_pagination.links import Page
-from pydantic import PositiveInt
+from pydantic import UUID4, PositiveInt
 from sqlmodel import select
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
@@ -74,7 +75,29 @@ router = APIRouter()
 
 
 ## User Product routers ##
-user_product_router = PublicAPIRouter(prefix="/users/me/products", tags=["products"])
+user_product_redirect_router = PublicAPIRouter(prefix="/users/me/products", tags=["products"])
+
+
+@user_product_redirect_router.get(
+    "",
+    response_class=RedirectResponse,
+    status_code=307,  # Temporary redirect that preserves method and body
+    summary="Redirect to user's products",
+)
+async def redirect_to_current_user_products(
+    current_user: CurrentActiveVerifiedUserDep,
+    request: Request,
+) -> RedirectResponse:
+    """Redirect /users/me/products to /users/{id}/products for better caching."""
+    # Preserve query parameters
+    query_string = str(request.url.query)
+    redirect_url = f"/users/{current_user.id}/products"
+    if query_string:
+        redirect_url += f"?{query_string}"
+    return RedirectResponse(url=redirect_url, status_code=307)
+
+
+user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
 
 
 @user_product_router.get(
@@ -82,7 +105,8 @@ user_product_router = PublicAPIRouter(prefix="/users/me/products", tags=["produc
     response_model=list[ProductReadWithRelationshipsAndFlatComponents],
     summary="Get products collected by a user",
 )
-async def get_current_user_products(
+async def get_user_products(
+    user_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
@@ -111,13 +135,17 @@ async def get_current_user_products(
         ),
     ] = None,
 ) -> Sequence[Product]:
-    """Get products collected by the current user."""
+    """Get products collected by a specific user."""
+    # NOTE: If needed, we can open up this endpoint to any user by removing this ownership check
+    if user_id != current_user.id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
+
     return await get_models(
         session,
         Product,
         include_relationships=include,
         model_filter=product_filter,
-        statement=(select(Product).where(Product.owner_id == current_user.id)),
+        statement=(select(Product).where(Product.owner_id == user_id)),
     )
 
 
@@ -1035,6 +1063,7 @@ async def get_units() -> list[str]:
 
 
 ### Router inclusion ###
+router.include_router(user_product_redirect_router)
 router.include_router(user_product_router)
 router.include_router(product_router)
 router.include_router(search_router)

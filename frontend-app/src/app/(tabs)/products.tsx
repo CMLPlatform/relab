@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, AnimatedFAB, Card, IconButton, Searchbar } from 'react-native-paper';
+import { ActivityIndicator, AnimatedFAB, Card, IconButton, Searchbar, SegmentedButtons } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
-import { allProducts } from '@/services/api/fetching';
+import { allProducts, myProducts } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
+
+type ProductFilter = 'all' | 'mine';
 
 export default function ProductsTab() {
   // Hooks
@@ -18,19 +20,15 @@ export default function ProductsTab() {
   const [productList, setProductList] = useState<Required<Product>[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Required<Product>[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState<ProductFilter>('all');
   const [fabExtended, setFabExtended] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showInfoCard, setShowInfoCard] = useState(true);
 
   // Effects
   useEffect(() => {
-    setLoading(true);
-    allProducts()
-      .then((products) => {
-        setProductList(products);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    loadProducts();
+  }, [filterMode]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -48,12 +46,11 @@ export default function ProductsTab() {
   }, [productList, searchQuery]);
 
   // Callbacks
-  // TODO: Deal with product pagination
-  // TODO: Use backend search endpoint
-  // TODO: Add filtering options
   const loadProducts = () => {
     setLoading(true);
-    allProducts()
+    const fetchFunction = filterMode === 'mine' ? myProducts : allProducts;
+
+    fetchFunction()
       .then((products) => {
         setProductList(products);
       })
@@ -118,6 +115,16 @@ export default function ProductsTab() {
           </Card>
         )}
 
+        {/* Filter Buttons */}
+        <SegmentedButtons
+          value={filterMode}
+          onValueChange={(value) => setFilterMode(value as ProductFilter)}
+          buttons={[
+            { value: 'all', label: 'All Products', icon: 'database' },
+            { value: 'mine', label: 'My Products', icon: 'account' },
+          ]}
+        />
+
         {/* Search Bar */}
         <Searchbar
           placeholder="Search products by name or description"
@@ -144,7 +151,11 @@ export default function ProductsTab() {
           ListEmptyComponent={
             <View style={{ padding: 20, alignItems: 'center' }}>
               <Text>
-                {searchQuery ? 'No products found matching your search.' : 'No products yet. Create your first one!'}
+                {searchQuery
+                  ? 'No products found matching your search.'
+                  : filterMode === 'mine'
+                    ? "You haven't created any products yet. Create your first one!"
+                    : 'No products yet. Create your first one!'}
               </Text>
             </View>
           }
