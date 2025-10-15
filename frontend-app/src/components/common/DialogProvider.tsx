@@ -125,6 +125,7 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
   );
 }
 
+// TODO: put common styling in global stylesheet
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,

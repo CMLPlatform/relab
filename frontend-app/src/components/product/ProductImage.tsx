@@ -6,10 +6,10 @@ import { Icon } from 'react-native-paper';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { useDialog } from '@/components/common/DialogProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useDialog } from '@/components/common/DialogProvider';
 
 import { processImage } from '@/services/media/imageProcessing';
 import { Product } from '@/types/Product';
@@ -112,6 +112,9 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
       setCurrentIndex(clamped);
     }
   };
+  // TODO: Add dedicated gallery view with thumbnails 
+  // TODO: Add hold/click to see image details (filename, size, dimensions, date)
+  // TODO: Add a way to see the full image in a modal
 
   // Callbacks
   const onImageDelete = (imageUrl: string) => {

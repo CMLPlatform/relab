@@ -11,6 +11,7 @@ from app.api.common.routers.openapi import mark_router_routes_public
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Basic authentication routes
+# TODO: Allow both username and email logins with custom login router
 router.include_router(fastapi_user_manager.get_auth_router(bearer_auth_backend), prefix="/bearer")
 router.include_router(fastapi_user_manager.get_auth_router(cookie_auth_backend), prefix="/cookie")
 
