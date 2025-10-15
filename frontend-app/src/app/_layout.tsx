@@ -5,8 +5,8 @@ import { MD3DarkTheme, MD3LightTheme, PaperProvider, adaptNavigationTheme } from
 
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { useColorScheme } from 'react-native';
-import darkTheme from '../assets/themes/dark';
-import lightTheme from '../assets/themes/light';
+import darkTheme from '@/assets/themes/dark';
+import lightTheme from '@/assets/themes/light';
 import { DialogProvider } from '@/components/common/DialogProvider';
 
 setBackgroundColorAsync('black');
