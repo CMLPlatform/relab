@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '@/types/User';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 let token: string | undefined;
@@ -27,6 +27,7 @@ export async function login(username: string, password: string): Promise<string 
       // Throw error with HTTP status and message
       throw new Error(`HTTP ${response.status}: ${data?.detail || JSON.stringify(data) || 'Login failed.'}`);
     }
+    // TODO: use cookies for frontend auth instead of storing credentials in local storage
     await AsyncStorage.setItem('username', username);
     await AsyncStorage.setItem('password', password);
     token = data.access_token;
