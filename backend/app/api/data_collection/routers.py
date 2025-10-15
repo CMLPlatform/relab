@@ -397,7 +397,7 @@ async def create_product(
                                 "model": "Model 2",
                                 "dismantling_time_start": "2025-09-22T14:30:45Z",
                                 "dismantling_time_end": "2025-09-22T16:30:45Z",
-                                "amount_in_parent": 1.0,
+                                "amount_in_parent": 1,
                                 "product_type_id": 2,
                                 "physical_properties": {
                                     "weight_kg": 5,
@@ -409,7 +409,7 @@ async def create_product(
                                     {
                                         "name": "Seat Cushion",
                                         "description": "Seat cushion assembly",
-                                        "amount_in_parent": 1.0,
+                                        "amount_in_parent": 1,
                                         "physical_properties": {
                                             "weight_kg": 2,
                                             "height_cm": 10,

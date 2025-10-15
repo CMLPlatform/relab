@@ -8,6 +8,8 @@ import { Product } from '@/types/Product';
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
 function toNewProduct(product: Product): any {
+  const isComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+
   return {
     name: product.name,
     brand: product.brand,
@@ -21,18 +23,23 @@ function toNewProduct(product: Product): any {
       },
     ],
     physical_properties: toUpdatePhysicalProperties(product),
-    amount_in_parent: product.parentID ? 1 : undefined,
     product_type_id: product.productTypeID ? product.productTypeID : null,
+    // Only include amountInParent if this is a component (has a parent)
+    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
   };
 }
 
 function toUpdateProduct(product: Product): any {
+  const isComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+
   return {
     name: product.name,
     brand: product.brand,
     model: product.model,
     description: product.description,
     product_type_id: product.productTypeID ? product.productTypeID : null,
+    // Only include amount_in_parent if this is a component (has a parent)
+    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
   };
 }
 
@@ -54,9 +61,11 @@ export async function saveProduct(product: Product): Promise<number> {
 }
 
 async function saveNewProduct(product: Product): Promise<number> {
-  const url = product.parentID
-    ? new URL(`${baseUrl}/products/${product.parentID}/components`)
-    : new URL(baseUrl + '/products');
+  // If product has a parent, it's a component - use the components endpoint
+  const url =
+    typeof product.parentID === 'number' && !isNaN(product.parentID)
+      ? new URL(`${baseUrl}/products/${product.parentID}/components`)
+      : new URL(baseUrl + '/products');
 
   const token = await getToken();
   const headers = {
@@ -173,19 +182,4 @@ export async function deleteProduct(product: Product): Promise<void> {
   };
   await fetch(url, { method: 'DELETE', headers: headers });
   return;
-}
-
-export function isProductValid(product: Product): boolean {
-  return (
-    product.name !== undefined &&
-    product.name !== '' &&
-    // NOTE: Relaxed validation for now
-    // product.brand !== undefined && product.brand !== "" &&
-    // product.model !== undefined && product.model !== "" &&
-    // product.description !== undefined && product.description !== "" &&
-    product.physicalProperties.weight > 0
-    // product.physicalProperties.width > 0 &&
-    // product.physicalProperties.height > 0 &&
-    // product.physicalProperties.depth > 0
-  );
 }

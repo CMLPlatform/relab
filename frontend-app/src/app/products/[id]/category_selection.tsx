@@ -1,15 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Icon, Searchbar } from 'react-native-paper';
-import { FlatList, View, Pressable, StyleSheet, useColorScheme, Text } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/common/CPVCard';
 
 import { CPVCategory } from '@/types/CPVCategory';
 
 import cpvJSON from '@/assets/data/cpv.json';
-import LightTheme from '@/assets/themes/light';
 import DarkTheme from '@/assets/themes/dark';
+import LightTheme from '@/assets/themes/light';
 
 const cpv = cpvJSON as Record<string, CPVCategory>;
 
@@ -68,6 +68,10 @@ export default function CategorySelection() {
         onChangeText={setSearchQuery}
         value={searchQuery}
       />
+      <HelperText type="info" style={{ marginTop: 70, marginHorizontal: 15 }}>
+        Search by name or description, or browse with the &apos;Subcategories&apos; button on each card. Tap or click a
+        card to select it.
+      </HelperText>
       {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
       <FlatList
         contentContainerStyle={{
@@ -124,7 +128,7 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
   const darkMode = useColorScheme() === 'dark';
 
   if (CPV.directChildren.length <= 0) {
-    return <View style={{ height: 30 }} />;
+    return <View style={{ height: 50 }} />;
   }
 
   return (

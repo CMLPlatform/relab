@@ -19,6 +19,8 @@ type ProductData = {
   components: { id: number; name: string; description: string }[];
   images: ImageData[];
   owner_id: string;
+  parent_id?: number;
+  amount_in_parent?: number;
 };
 
 type ImageData = {
@@ -31,7 +33,7 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
   const meId = await getUser().then((user) => user?.id);
   return {
     id: data.id,
-    parentID: NaN,
+    parentID: data.parent_id,
     name: data.name,
     brand: data.brand,
     model: data.model,
@@ -40,6 +42,7 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
     updatedAt: data.updated_at,
     productTypeID: data.product_type_id,
     ownedBy: data.owner_id === meId ? 'me' : data.owner_id,
+    amountInParent: data.amount_in_parent,
     physicalProperties: {
       weight: data.physical_properties.weight_kg,
       height: data.physical_properties.height_cm,

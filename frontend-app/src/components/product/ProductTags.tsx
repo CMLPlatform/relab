@@ -1,11 +1,11 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View } from 'react-native';
-import { useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Chip } from '@/components/base';
 
-import { Product } from '@/types/Product';
 import { useDialog } from '@/components/common/DialogProvider';
+import { Product } from '@/types/Product';
 
 type searchParams = {
   brandSelection?: string;
@@ -16,13 +16,17 @@ interface Props {
   editMode: boolean;
   onBrandChange?: (newBrand: string) => void;
   onModelChange?: (newModel: string) => void;
+  isComponent?: boolean;
 }
 
-export default function ProductTags({ product, editMode, onBrandChange, onModelChange }: Props) {
+export default function ProductTags({ product, editMode, onBrandChange, onModelChange, isComponent = false }: Props) {
   // Hooks
   const router = useRouter();
   const dialog = useDialog();
   const { brandSelection } = useLocalSearchParams<searchParams>();
+
+  const isBrandRequired = !isComponent;
+  const isModelRequired = !isComponent;
 
   // Effects
   useEffect(() => {
@@ -63,7 +67,7 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
         title={'Brand'}
         onPress={onEditBrand}
         icon={editMode && <MaterialCommunityIcons name={'pencil'} />}
-        error={!product.brand}
+        error={isBrandRequired && !product.brand}
       >
         {product.brand || 'Unknown'}
       </Chip>
@@ -71,7 +75,7 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
         title={'Model'}
         onPress={onEditModel}
         icon={editMode && <MaterialCommunityIcons name={'pencil'} />}
-        error={!product.model}
+        error={isModelRequired && !product.model}
       >
         {product.model || 'Unknown'}
       </Chip>

@@ -2,6 +2,7 @@ import { Fragment, useRef, useState } from 'react';
 import RN, { Platform, Pressable, View } from 'react-native';
 import { Divider } from 'react-native-paper';
 import { Text, TextInput } from '@/components/base';
+import { InfoTooltip } from '@/components/base/InfoTooltip';
 import Cube from '@/components/common/SVGCube';
 import { PhysicalProperties, Product } from '@/types/Product';
 interface Props {
@@ -42,8 +43,9 @@ export default function ProductPhysicalProperties({ product, editMode, onChangeP
           fontWeight: 'bold',
         }}
       >
-        Physical Properties
+        Physical Properties <InfoTooltip title="Must be greater than 0. Assume a bounding box for the dimensions." />
       </Text>
+
       <Cube
         width={product.physicalProperties.width}
         height={product.physicalProperties.height}
