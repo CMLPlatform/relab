@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, View } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, AnimatedFAB, Card, IconButton, Searchbar, SegmentedButtons } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
@@ -12,6 +13,8 @@ import { Product } from '@/types/Product';
 import { User } from '@/types/User';
 
 type ProductFilter = 'all' | 'mine';
+
+const INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed';
 
 export default function ProductsTab() {
   // Hooks
@@ -25,14 +28,14 @@ export default function ProductsTab() {
   const [filterMode, setFilterMode] = useState<ProductFilter>('all');
   const [fabExtended, setFabExtended] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [showInfoCard, setShowInfoCard] = useState(true);
+  const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null); // null = not loaded yet
   const [currentUser, setCurrentUser] = useState<User | undefined>();
-  const [showVerificationSnackbar, setShowVerificationSnackbar] = useState(false);
 
   // Effects
   useEffect(() => {
     loadProducts();
     loadUser();
+    loadInfoCardPreference();
   }, [filterMode]);
 
   useEffect(() => {
@@ -54,6 +57,25 @@ export default function ProductsTab() {
   const loadUser = async () => {
     const user = await getUser();
     setCurrentUser(user);
+  };
+
+  const loadInfoCardPreference = async () => {
+    try {
+      const dismissed = await AsyncStorage.getItem(INFO_CARD_STORAGE_KEY);
+      setShowInfoCard(dismissed !== 'true'); // true if not dismissed, false if dismissed
+    } catch (error) {
+      console.error('Failed to load info card preference:', error);
+      setShowInfoCard(true); // default to true on error
+    }
+  };
+
+  const dismissInfoCard = async () => {
+    setShowInfoCard(false);
+    try {
+      await AsyncStorage.setItem(INFO_CARD_STORAGE_KEY, 'true');
+    } catch (error) {
+      console.error('Failed to save info card preference:', error);
+    }
   };
 
   const loadProducts = () => {
@@ -118,8 +140,8 @@ export default function ProductsTab() {
   return (
     <>
       <View style={{ padding: 10, gap: 10 }}>
-        {/* Info Card */}
-        {showInfoCard && (
+        {/* Info Card - only show after preference is loaded */}
+        {showInfoCard === true && (
           <Card>
             <Card.Content>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -135,7 +157,7 @@ export default function ProductsTab() {
                     💡 Tip: Make sure to verify your email address to create products.
                   </Text>
                 </View>
-                <IconButton icon="close" size={20} onPress={() => setShowInfoCard(false)} />
+                <IconButton icon="close" size={20} onPress={dismissInfoCard} />
               </View>
             </Card.Content>
           </Card>
