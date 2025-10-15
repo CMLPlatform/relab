@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { HeaderBackButton } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { JSX, useEffect, useState } from 'react';
 import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
@@ -49,13 +50,30 @@ export default function ProductPage(): JSX.Element {
   const [fabExtended, setFabExtended] = useState(true);
 
   const isProductComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
-  console.log('product.parentID:', product.parentID);
-  console.log('isProductComponent:', isProductComponent);
 
   // Effects
   useEffect(() => {
     navigation.setOptions({
       title: product?.name || 'Product',
+      headerLeft: (props: any) => (
+        <HeaderBackButton
+          {...props}
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else if (isProductComponent && product.parentID) {
+              // Navigate to parent product if this is a component
+              router.replace({
+                pathname: '/products/[id]',
+                params: { id: product.parentID.toString() },
+              });
+            } else {
+              // Navigate to products list if this is a standalone product
+              router.replace('/(tabs)/products');
+            }
+          }}
+        />
+      ),
       headerRight: editMode
         ? () => <EditNameButton product={product} onProductNameChange={onProductNameChange} />
         : undefined,
