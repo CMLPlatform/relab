@@ -122,8 +122,8 @@ export default function ProfileTab() {
           <Dialog.Title>Delete Account</Dialog.Title>
           <Dialog.Content>
             <Text>To delete your account and all associated data, please send an email request to:</Text>
-            <Link href="mailto:info@cml-relab.org">
-              <Text style={{ marginTop: 10, fontWeight: 'bold' }}>info@cml-relab.org</Text>
+            <Link href="mailto:relab@cml.leidenuniv.nl">
+              <Text style={{ marginTop: 10, fontWeight: 'bold' }}>relab@cml.leidenuniv.nl</Text>
             </Link>
             <Text style={{ marginTop: 10 }}>We&apos;ll process your request and confirm the deletion via email.</Text>
           </Dialog.Content>
