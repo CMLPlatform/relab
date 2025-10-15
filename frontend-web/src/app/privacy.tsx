@@ -59,8 +59,8 @@ export default function PrivacyScreen() {
           <Divider style={{ marginVertical: 8 }} />
 
           <Text variant="bodyMedium">
-            Contact us at <InlineLink href="mailto:info@cml-relab.org">info@cml-relab.org</InlineLink> with questions or
-            data requests.
+            Contact us at <InlineLink href="mailto:relab@cml.leidenuniv.nl">relab@cml.leidenuniv.nl</InlineLink> with
+            questions or data requests.
           </Text>
         </Card.Content>
       </Card>

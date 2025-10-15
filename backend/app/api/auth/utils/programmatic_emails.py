@@ -62,6 +62,7 @@ async def send_email(
     msg.attach(content_type.body_to_mimetext(body))
 
     try:
+        # TODO: Investigate use of managed outlook address for sending emails
         smtp = SMTP(
             hostname=auth_settings.email_host,
             port=auth_settings.email_port,
