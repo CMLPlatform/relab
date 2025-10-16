@@ -96,7 +96,7 @@ Hello {username if username else to_email},
 
 Thank you for registering! Please verify your email by clicking the link below:
 
-    {verification_link}
+{verification_link}
 
 This link will expire in 1 hour.
 
@@ -119,7 +119,7 @@ Hello {username if username else to_email},
 
 Please reset your password by clicking the link below:
 
-    {request_password_link}
+{request_password_link}
 
 This link will expire in 1 hour.
 
@@ -141,7 +141,7 @@ Hello {username if username else to_email},
 
 Please verify your email by clicking the link below:
 
-    {verification_link}
+{verification_link}
 
 This link will expire in 1 hour.
 
