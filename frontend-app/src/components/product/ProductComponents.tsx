@@ -3,8 +3,7 @@ import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 
 import { useRouter } from 'expo-router';
-import { InfoTooltip } from '../base/InfoTooltip';
-import { Text } from '@/components/base';
+import { InfoTooltip, Text } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { productComponents } from '@/services/api/fetching';
