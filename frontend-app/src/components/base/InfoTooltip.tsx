@@ -1,4 +1,3 @@
-// InfoTooltip.tsx
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -10,15 +9,17 @@ const isMobileWeb =
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useTheme();
   const [visible, setVisible] = useState(false);
+  
+  // Settings
+  const exitDelay = 1500; // milliseconds
 
   useEffect(() => {
     if (visible) {
-      const timer = setTimeout(() => setVisible(false), 1500);
+      const timer = setTimeout(() => setVisible(false), exitDelay);
       return () => clearTimeout(timer);
     }
   }, [visible]);
 
-  // Use custom Modal solution for mobile web only
   if (isMobileWeb) {
     return (
       <View>
@@ -39,9 +40,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
     );
   }
 
-  // Use React Native Paper Tooltip for desktop web and native
   return (
-    <Tooltip title={title} enterTouchDelay={100} leaveTouchDelay={1500}>
+    <Tooltip title={title} enterTouchDelay={100} leaveTouchDelay={exitDelay}>
       <MaterialCommunityIcons
         name="information-outline"
         size={20}
