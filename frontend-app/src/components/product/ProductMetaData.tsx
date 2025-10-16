@@ -1,6 +1,5 @@
 import { View } from 'react-native';
-import { Text } from '@/components/base';
-import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { InfoTooltip, Text } from '@/components/base';
 import { Product } from '@/types/Product';
 
 interface Props {

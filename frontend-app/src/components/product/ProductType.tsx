@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { InfoTooltip } from '@/components//base/InfoTooltip';
-import { Text } from '@/components/base';
+import { InfoTooltip, Text } from '@/components/base';
 import CPVCard from '@/components/common/CPVCard';
 import { CPVCategory } from '@/types/CPVCategory';
 import { Product } from '@/types/Product';

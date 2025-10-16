@@ -1,8 +1,7 @@
 import { Fragment, useRef, useState } from 'react';
 import RN, { Platform, Pressable, View } from 'react-native';
 import { Divider } from 'react-native-paper';
-import { Text, TextInput } from '@/components/base';
-import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { InfoTooltip, Text, TextInput } from '@/components/base';
 import Cube from '@/components/common/SVGCube';
 import { PhysicalProperties, Product } from '@/types/Product';
 interface Props {

@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { JSX, useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { Card, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
+import { Card, IconButton, Text, TextInput } from 'react-native-paper';
 
-import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { InfoTooltip } from '@/components/base';
 import { Product } from '@/types/Product';
 
 type ProductAmountInParentProps = {
@@ -17,7 +17,6 @@ export default function ProductAmountInParent({
   editMode,
   onAmountChange,
 }: ProductAmountInParentProps): JSX.Element {
-  const theme = useTheme();
   const amount = product.amountInParent ?? 1;
   const [inputValue, setInputValue] = useState(amount.toString());
 
