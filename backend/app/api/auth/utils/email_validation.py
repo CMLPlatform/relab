@@ -1,10 +1,10 @@
-# backend/app/api/auth/utils/email_validation.py
+"""Utilities for validating email addresses."""
+
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import anyio
 import httpx
-from fastapi import HTTPException
 
 DISPOSABLE_DOMAINS_URL = "https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt"
 BASE_DIR: Path = (Path(__file__).parents[4]).resolve()
@@ -20,7 +20,7 @@ async def get_disposable_domains() -> set[str]:
         cache_age = datetime.now(tz=UTC) - datetime.fromtimestamp(CACHE_FILE.stat().st_mtime, tz=UTC)
         if cache_age < CACHE_DURATION:
             async with await anyio.open_file(CACHE_FILE, "r") as f:
-                content = await f.read()  # Read the entire file first
+                content = await f.read()
                 return {line.strip().lower() for line in content.splitlines() if line.strip()}
 
     # Fetch fresh list
@@ -38,13 +38,14 @@ async def get_disposable_domains() -> set[str]:
                 await f.write("\n".join(sorted(domains)))
 
             return domains
-    except Exception as e:
+    except (httpx.RequestError, httpx.HTTPStatusError, OSError):
         # If fetch fails and cache exists, use stale cache
         if CACHE_FILE.exists():
             async with await anyio.open_file(CACHE_FILE, "r") as f:
-                content = await f.read()  # Read the entire file first
+                content = await f.read()
                 return {line.strip().lower() for line in content.splitlines() if line.strip()}
-        raise HTTPException(status_code=503, detail="Email validation service unavailable") from e
+        # If no cache available, return empty set (allow registration)
+        return set()
 
 
 async def is_disposable_email(email: str) -> bool:
