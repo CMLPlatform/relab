@@ -26,7 +26,7 @@ logger = logging.getLogger("seeding.taxonomies.cpv")
 # Configuration
 DATA_DIR = Path(__file__).parents[3] / "data" / "seed"
 EXCEL_PATH = DATA_DIR / "cpv.xlsx"
-TAXONOMY_NAME = "Common Procurement Vocabulary"
+TAXONOMY_NAME = "Common Procurement Vocabulary (CPV)"
 TAXONOMY_VERSION = "2008"
 TAXONOMY_SOURCE = "https://ted.europa.eu/documents/d/ted/cpv_2008_xls"
 TAXONOMY_DESCRIPTION = "EU standard classification system for public procurement"
@@ -53,6 +53,21 @@ RELEVANT_SECTIONS = {
     "42000000",  # Industrial machinery
     "43000000",  # Machinery for mining, quarrying, construction equipment
     "44000000",  # Construction structures and materials; auxiliary products to construction (exc. electric apparatus)
+}
+
+# TODO: Replace this manual override with an automatic lookup of the higher parent
+# if no direct parent is present in the CPV taxonomy
+CPV_PARENT_CODE_OVERRIDES = {
+    "30192120": "30192000",
+    "34511000": "34510000",
+    "35611000": "35610000",
+    "35612000": "35610000",
+    "35811000": "35810000",
+    "38527000": "38520000",
+    "39250000": "39200000",
+    "42924000": "42920000",
+    "44115300": "44115000",
+    "44613100": "44613000",
 }
 
 
@@ -126,6 +141,8 @@ def get_cpv_parent_id(row: dict[str, Any]) -> str | None:
     parent_code = re.sub(r"([1-9])([^1-9]*)$", r"0\2", code)
     if set(parent_code) == {"0"}:  # Top-level, no parent
         return None
+    if parent_code in CPV_PARENT_CODE_OVERRIDES:
+        return CPV_PARENT_CODE_OVERRIDES[parent_code]
     return parent_code
 
 
@@ -140,7 +157,8 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         # Get or create taxonomy
         taxonomy = get_or_create_taxonomy(
             session,
-            name=f"{TAXONOMY_NAME} {TAXONOMY_VERSION}",
+            name=TAXONOMY_NAME,
+            version=TAXONOMY_VERSION,
             description=TAXONOMY_DESCRIPTION,
             domains={TaxonomyDomain.PRODUCTS},
             source=TAXONOMY_SOURCE,
@@ -161,7 +179,13 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
 
         # Commit
         session.commit()
-        logger.info("✓ Added %s taxonomy with %d categories and %d relationships", TAXONOMY_NAME, cat_count, rel_count)
+        logger.info(
+            "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
+            TAXONOMY_NAME,
+            TAXONOMY_VERSION,
+            cat_count,
+            rel_count,
+        )
 
 
 def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:

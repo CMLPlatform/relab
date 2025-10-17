@@ -174,9 +174,7 @@ class ComponentCreate(ProductCreateWithRelationships):
     Owner ID and parent ID are inferred from the parent product within the CRUD layer.
     """
 
-    amount_in_parent: float = Field(
-        gt=0, description="Quantity within parent product. Required for component products."
-    )
+    amount_in_parent: int = Field(gt=0, description="Quantity within parent product. Required for component products.")
 
 
 # Recursive product creation schemas
@@ -282,6 +280,10 @@ class ProductUpdate(BaseUpdateSchema):
         default=None, description="End of the dismantling time, in ISO 8601 format with timezone info"
     )
     product_type_id: PositiveInt | None = None
+
+    amount_in_parent: int | None = Field(
+        default=None, gt=0, description="Quantity within parent product. Required for component products."
+    )
 
 
 class ProductUpdateWithProperties(ProductUpdate):

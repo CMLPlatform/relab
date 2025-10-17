@@ -48,4 +48,4 @@ The dataset is licensed under the [Open Database License (ODbL)](https://opendat
 
 ## Contact
 
-For questions about using the dataset or platform, contact [info@cml-relab.org](mailto:info@cml-relab.org).
+For questions about using the dataset or platform, contact [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).

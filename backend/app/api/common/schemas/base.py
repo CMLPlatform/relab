@@ -29,6 +29,7 @@ class BaseCreateSchema(BaseModel):
 
     model_config = ConfigDict(
         extra="forbid",  # Prevent additional fields not in schema
+        str_strip_whitespace=True,  # Strip whitespace from strings
     )
 
 
@@ -63,6 +64,7 @@ class BaseUpdateSchema(BaseModel):
 
     model_config = ConfigDict(
         extra="forbid",  # Prevent additional fields not in schema
+        str_strip_whitespace=True,  # Strip whitespace from strings
     )
 
 
@@ -85,7 +87,7 @@ class ProductRead(BaseReadSchemaWithTimeStamp, ProductBase):
     # HACK: Include parent id and mount_in_parent in base product read schema
     # TODO: separate components and base products on the model level
     parent_id: PositiveInt | None = None
-    amount_in_parent: float | None = Field(default=None, description="Quantity within parent product")
+    amount_in_parent: int | None = Field(default=None, description="Quantity within parent product")
 
     @field_serializer("dismantling_time_start", "dismantling_time_end", when_used="unless-none")
     def serialize_timestamps(self, dt: datetime, _info: FieldSerializationInfo) -> str:
@@ -97,4 +99,4 @@ class ComponentRead(ProductRead):
     """Base schema for reading component information."""
 
     parent_id: PositiveInt | None = None
-    amount_in_parent: float | None = Field(default=None, description="Quantity within parent product")
+    amount_in_parent: int | None = Field(default=None, description="Quantity within parent product")

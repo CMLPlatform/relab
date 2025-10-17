@@ -256,22 +256,14 @@ class TaxonomyReadWithCategoryTree(TaxonomyRead):
 class TaxonomyUpdate(BaseUpdateSchema):
     """Schema for the partial update of a taxonomy."""
 
-    name: str | None = Field(
-        default=None,
-        min_length=2,
-        max_length=50,
-        description="Name of the taxonomy",
-    )
-    description: str | None = Field(default=None, max_length=500, description="Description of the taxonomy")
+    name: str | None = Field(default=None, min_length=2, max_length=50)
+    version: str | None = Field(default=None, min_length=1, max_length=50)
+    description: str | None = Field(default=None, max_length=500)
     domains: set[TaxonomyDomain] | None = Field(
-        description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}",
+        description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}"
     )
 
-    source: str | None = Field(
-        default=None,
-        max_length=50,
-        description="Source of the taxonomy data",
-    )
+    source: str | None = Field(default=None, max_length=50, description="Source of the taxonomy data")
 
 
 ### Material Schemas ###

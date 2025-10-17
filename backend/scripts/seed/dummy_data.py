@@ -8,6 +8,10 @@ import logging
 import mimetypes
 from typing import TYPE_CHECKING
 
+from fastapi import UploadFile
+from sqlmodel.ext.asyncio.session import AsyncSession
+from starlette.datastructures import Headers
+
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.utils.programmatic_user_crud import create_user
@@ -30,9 +34,6 @@ from app.api.file_storage.models.models import ImageParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
 from app.core.config import settings
 from app.core.database import get_async_session
-from fastapi import UploadFile
-from sqlmodel.ext.asyncio.session import AsyncSession
-from starlette.datastructures import Headers
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -63,12 +64,14 @@ taxonomy_data = [
     {
         "name": "Electronics Taxonomy",
         "description": "Taxonomy for electronic products.",
+        "version": "1.0",
         "domains": {TaxonomyDomain.PRODUCTS},
         "source": "https://example.com/electronics-taxonomy",
     },
     {
         "name": "Materials Taxonomy",
         "description": "Taxonomy for materials.",
+        "version": "1.0",
         "domains": {TaxonomyDomain.MATERIALS},
         "source": "https://example.com/materials-taxonomy",
     },
@@ -203,6 +206,7 @@ async def seed_taxonomies(session: AsyncSession) -> dict[str, Taxonomy]:
     for data in taxonomy_data:
         taxonomy = Taxonomy(
             name=data["name"],
+            version=data["version"],
             description=data["description"],
             domains=data["domains"],
             source=data["source"],

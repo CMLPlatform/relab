@@ -68,6 +68,9 @@ data/uploads/*
 # Seed files (will be downloaded locally if needed)
 data/seed/*
 
+# Cache files
+data/cache/*
+
 # Logs
 logs/*
 

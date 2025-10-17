@@ -34,4 +34,4 @@ A data collection platform for disassembled durable goods to support circular ec
 
 ## Contact
 
-For questions about the platform, code or dataset, please contact [info@cml-relab.org](mailto:info@cml-relab.org).
+For questions about the platform, code or dataset, please contact [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).
