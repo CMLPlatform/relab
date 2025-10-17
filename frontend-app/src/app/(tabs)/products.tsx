@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, View } from 'react-native';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,19 +24,31 @@ export default function ProductsTab() {
   // States
   const [productList, setProductList] = useState<Required<Product>[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Required<Product>[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<ProductFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [fabExtended, setFabExtended] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null); // null = not loaded yet
+  const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null);
   const [currentUser, setCurrentUser] = useState<User | undefined>();
+
+  // Callbacks
+  const loadProducts = useCallback(() => {
+    setLoading(true);
+    const fetchFunction = filterMode === 'mine' ? myProducts : allProducts;
+
+    fetchFunction()
+      .then((products) => {
+        setProductList(products);
+      })
+      .finally(() => setLoading(false));
+  }, [filterMode]);
 
   // Effects
   useEffect(() => {
     loadProducts();
     loadUser();
     loadInfoCardPreference();
-  }, [filterMode]);
+  }, [filterMode, loadProducts]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -62,10 +74,10 @@ export default function ProductsTab() {
   const loadInfoCardPreference = async () => {
     try {
       const dismissed = await AsyncStorage.getItem(INFO_CARD_STORAGE_KEY);
-      setShowInfoCard(dismissed !== 'true'); // true if not dismissed, false if dismissed
+      setShowInfoCard(dismissed !== 'true');
     } catch (error) {
       console.error('Failed to load info card preference:', error);
-      setShowInfoCard(true); // default to true on error
+      setShowInfoCard(true);
     }
   };
 
@@ -76,17 +88,6 @@ export default function ProductsTab() {
     } catch (error) {
       console.error('Failed to save info card preference:', error);
     }
-  };
-
-  const loadProducts = () => {
-    setLoading(true);
-    const fetchFunction = filterMode === 'mine' ? myProducts : allProducts;
-
-    fetchFunction()
-      .then((products) => {
-        setProductList(products);
-      })
-      .finally(() => setLoading(false));
   };
 
   const onSearchChange = (query: string) => {
@@ -140,7 +141,7 @@ export default function ProductsTab() {
   return (
     <>
       <View style={{ padding: 10, gap: 10 }}>
-        {/* Info Card - only show after preference is loaded */}
+        {/* Info Card */}
         {showInfoCard === true && (
           <Card>
             <Card.Content>

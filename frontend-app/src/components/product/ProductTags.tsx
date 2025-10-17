@@ -33,7 +33,7 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
     if (!brandSelection) return;
     router.setParams({ brandSelection: undefined });
     onBrandChange?.(brandSelection!);
-  }, [brandSelection]);
+  }, [brandSelection, onBrandChange, router]);
 
   // Callbacks
   const onEditBrand = () => {

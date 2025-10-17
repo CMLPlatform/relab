@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { JSX, useEffect, useState } from 'react';
+import { JSX, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AnimatedFAB, Button, useTheme } from 'react-native-paper';
@@ -51,6 +51,14 @@ export default function ProductPage(): JSX.Element {
 
   const isProductComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
 
+  // Callbacks
+  const onProductNameChange = useCallback(
+    (newName: string) => {
+      setProduct({ ...product, name: newName.trim() });
+    },
+    [product],
+  );
+
   // Effects
   useEffect(() => {
     navigation.setOptions({
@@ -78,7 +86,7 @@ export default function ProductPage(): JSX.Element {
         ? () => <EditNameButton product={product} onProductNameChange={onProductNameChange} />
         : undefined,
     });
-  }, [navigation, product, editMode]);
+  }, [navigation, product, editMode, isProductComponent, router, onProductNameChange]);
 
   useEffect(() => {
     if (id === 'new') {
@@ -91,7 +99,7 @@ export default function ProductPage(): JSX.Element {
     } else if (id !== 'new') {
       getProduct(parseInt(id)).then(setProduct);
     }
-  }, [id, isComponent]);
+  }, [brand, id, isComponent, model, name, parent]);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
@@ -109,7 +117,7 @@ export default function ProductPage(): JSX.Element {
         ],
       });
     });
-  }, [navigation, editMode]);
+  }, [navigation, editMode, dialog]);
 
   // Callbacks
   const onChangeDescription = (newDescription: string) => {
@@ -145,10 +153,6 @@ export default function ProductPage(): JSX.Element {
       setEditMode(false);
       router.replace('/(tabs)/products');
     });
-  };
-
-  const onProductNameChange = (newName: string) => {
-    setProduct({ ...product, name: newName.trim() });
   };
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {

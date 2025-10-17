@@ -9,7 +9,7 @@ const isMobileWeb =
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useTheme();
   const [visible, setVisible] = useState(false);
-  
+
   // Settings
   const exitDelay = 1500; // milliseconds
 

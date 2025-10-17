@@ -8,7 +8,7 @@ import { Product } from '@/types/Product';
 
 import cpvJSON from '@/assets/data/cpv.json';
 
-// HACK: This json inclused a mapping to product types at the api.cml-relab.org backend and it WILL NOT WORK for local backends
+// HACK: This json includes a mapping to product types at the api.cml-relab.org backend and it WILL NOT WORK for local backends
 // TODO: This mapping is from the api.cml-relab.org backend. We should fetch this from the backend instead of hardcoding it here.
 const cpv = cpvJSON as Record<string, CPVCategory>;
 
@@ -32,7 +32,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     if (!typeSelection) return;
     router.setParams({ typeSelection: undefined });
     onTypeChange?.(parseInt(typeSelection));
-  }, [typeSelection]);
+  }, [onTypeChange, router, typeSelection]);
 
   // Callback
   const onTypeSelectionStart = () => {
