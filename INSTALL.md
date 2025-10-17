@@ -158,4 +158,4 @@ ______________________________________________________________________
 ## Need Help?
 
 - 📖 Documentation: [docs.cml-relab.org](https://docs.cml-relab.org)
-- 📧 Contact: <info@cml-relab.org>
+- 📧 Contact: <relab@cml.leidenuniv.nl>

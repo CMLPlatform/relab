@@ -10,6 +10,7 @@ class TaxonomyFilter(Filter):
     """FastAPI-Filter for Taxonomy filtering."""
 
     name__ilike: str | None = None
+    version__ilike: str | None = None
     description__ilike: str | None = None
     source__ilike: str | None = None
 
@@ -25,7 +26,7 @@ class TaxonomyFilter(Filter):
         search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
             "name",
             "description",
-            "source",
+            "version",
         ]
 
 
@@ -34,6 +35,7 @@ class CategoryFilter(Filter):
 
     name__ilike: str | None = None
     description__ilike: str | None = None
+    external_id__ilike: str | None = None
 
     search: str | None = None
 

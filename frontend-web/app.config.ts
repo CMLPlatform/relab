@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: 'relab-frontend-web',
     version: '0.1.0',
     orientation: 'portrait',
-    icon: './assets/images/favicon.png',
+    icon: './src/assets/images/favicon.png',
     scheme: 'relab-frontend-web',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/images/favicon.png',
+        foregroundImage: './src/assets/images/favicon.png',
         backgroundColor: '#ffffff',
       },
       edgeToEdgeEnabled: true,
@@ -33,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         'expo-splash-screen',
         {
-          image: './assets/images/favicon.png',
+          image: './src/assets/images/favicon.png',
           imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#ffffff',
