@@ -60,7 +60,7 @@ export default function ProductPhysicalProperties({ product, editMode, onChangeP
             value={product.physicalProperties[prop as keyof PhysicalProperties]}
             unit={unitMap[prop as keyof PhysicalProperties]}
             editable={editMode}
-            onChange={(value) => onChangeProperty(prop, value)}
+            onChange={(value: number | undefined) => onChangeProperty(prop, value)}
             min={0}
             placeholder="> 0"
           />

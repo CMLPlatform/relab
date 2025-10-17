@@ -1,15 +1,15 @@
 //MAIN ProductImage.tsx
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { Icon } from 'react-native-paper';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { useDialog } from '@/components/common/DialogProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { useDialog } from '@/components/common/DialogProvider';
 
 import { processImage } from '@/services/media/imageProcessing';
 import { Product } from '@/types/Product';
@@ -43,12 +43,29 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < imageCount - 1;
 
+  // Refs and Callbacks
+  const goToIndex = useCallback(
+    (idx: number) => {
+      const clamped = Math.max(0, Math.min(idx, imageCount - 1));
+      if (clamped === currentIndex) return;
+      try {
+        imageGallery.current?.scrollToIndex({ index: clamped, animated: true });
+        setCurrentIndex(clamped);
+      } catch {
+        // In case FlatList hasn't measured yet, fallback to offset
+        imageGallery.current?.scrollToOffset({ offset: clamped * width, animated: true });
+        setCurrentIndex(clamped);
+      }
+    },
+    [imageCount, currentIndex, width],
+  );
+
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
     if (viewableItems?.length && viewableItems[0]?.index != null) {
       setCurrentIndex(viewableItems[0].index);
     }
   }).current;
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 75 }).current;
 
   // Effects
   useEffect(() => {
@@ -61,7 +78,7 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
       goToIndex(pendingScrollIndex);
       setPendingScrollIndex(null);
     }
-  }, [imageCount, pendingScrollIndex]);
+  }, [goToIndex, imageCount, pendingScrollIndex]);
 
   useEffect(() => {
     // If a photo was taken, get it from AsyncStorage and add it to the product images
@@ -80,7 +97,7 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
       setPendingScrollIndex(product.images.length - 1);
       router.setParams({ photoTaken: undefined });
     }
-  }, [photoTaken]);
+  }, [onImagesChange, photoTaken, product, router]);
 
   // Arrow key navigation on web
   useEffect(() => {
@@ -97,22 +114,9 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isWeb, currentIndex, imageCount, canGoPrev, canGoNext]);
+  }, [isWeb, currentIndex, imageCount, canGoPrev, canGoNext, goToIndex]);
 
-  // Helper to scroll safely
-  const goToIndex = (idx: number) => {
-    const clamped = Math.max(0, Math.min(idx, imageCount - 1));
-    if (clamped === currentIndex) return;
-    try {
-      imageGallery.current?.scrollToIndex({ index: clamped, animated: true });
-      setCurrentIndex(clamped);
-    } catch {
-      // In case FlatList hasn't measured yet, fallback to offset
-      imageGallery.current?.scrollToOffset({ offset: clamped * width, animated: true });
-      setCurrentIndex(clamped);
-    }
-  };
-  // TODO: Add dedicated gallery view with thumbnails 
+  // TODO: Add dedicated gallery view with thumbnails
   // TODO: Add hold/click to see image details (filename, size, dimensions, date)
   // TODO: Add a way to see the full image in a modal
 
