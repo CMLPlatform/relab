@@ -23,6 +23,7 @@ fi
 if [ "$SEED_PRODUCT_TYPES" = "true" ]; then
     echo "Seeding product types..."
     .venv/bin/python -m scripts.seed.taxonomies.cpv --seed-product-types
+
 fi
 
 # Check if all tables are empty
@@ -31,7 +32,7 @@ echo "Checking if all tables in the database are empty using scripts/db_is_empty
 # Run the script and temporarily disable exit-on-error to capture the exit code
 DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
 
-if [ "$DB_EMPTY" = "TRUE" ]; then
+if [ "$DB_EMPTY" = "TRUE" ] && [ "$SEED_DUMMY_DATA" = "true" ]; then
     echo "All tables are empty, proceeding to seed dummy data..."
     .venv/bin/python -m scripts.seed.dummy_data
 else
