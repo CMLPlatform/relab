@@ -40,7 +40,7 @@
     "markdown>=3.8.2",
     "pillow >=11.2.1",
     "psycopg[binary] >=3.2.9",
-    # TODO: Investigate pydantic v2.12 compatibility issues (might have to do with custom fastapi-users-db-sqlmodel fork)
+    # TODO: Upgrade to python 3.14 and pydantic 2.12 when SQLModel fixes compatibility issues (see https://github.com/fastapi/sqlmodel/issues/1606)
     "pydantic >=2.11,<2.12",
     "pydantic-extra-types >=2.10.5",
     "pydantic-settings >=2.10.1",
