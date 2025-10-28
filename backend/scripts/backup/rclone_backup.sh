@@ -21,7 +21,7 @@ BACKUP_RCLONE_MULTI_THREAD_STREAMS="${BACKUP_RCLONE_MULTI_THREAD_STREAMS:-16}"
 
 # Safety Check: If the local dir has 0 files AND the remote has more than 0 files, abort.
 LOCAL_FILE_COUNT=$(find "$BACKUP_DIR" -type f | wc -l)
-REMOTE_FILE_COUNT=$(rclone lsf "$BACKUP_RCLONE_REMOTE" --files-only 2>/dev/null | wc -l)
+REMOTE_FILE_COUNT=$(rclone lsf "$BACKUP_RCLONE_REMOTE" --files-only --max-depth=3 2>/dev/null | wc -l)
 
 if [ "$LOCAL_FILE_COUNT" -eq 0 ] && [ "$REMOTE_FILE_COUNT" -gt 0 ]; then
     echo "[$(date)] ERROR: Local backup directory is empty, but remote is not. Aborting sync to prevent data loss."
@@ -39,4 +39,5 @@ rclone sync "$BACKUP_DIR" "$BACKUP_RCLONE_REMOTE" \
     --stats=30s \
     --stats-one-line
 
-echo "[$(date)] Sync complete."
+echo "[$(date)] Sync complete. Remote backup stats after sync:"
+rclone size "$BACKUP_RCLONE_REMOTE" --max-depth=3 2>/dev/null | sed 's/^/  /'
