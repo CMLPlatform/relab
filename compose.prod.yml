@@ -46,7 +46,6 @@ services:
     environment:
       SCHEDULE: 0 2 * * * # Daily at 2am
       POSTGRES_HOST: database
-      BACKUP_ON_STARTUP: true
       POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
