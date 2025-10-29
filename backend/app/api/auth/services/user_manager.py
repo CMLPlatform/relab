@@ -139,7 +139,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         await send_post_verification_email(user.email, user.username)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
-        logger.info("User %s has forgot their password. Reset token: %s", user.email, token)
+        logger.info("User %s has forgot their password. Sending reset token", user.email)
         await send_reset_password_email(user.email, user.username, token)
 
 
