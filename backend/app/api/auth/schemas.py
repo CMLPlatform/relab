@@ -51,14 +51,21 @@ class OrganizationUpdate(BaseUpdateSchema):
 
 
 ### Users ###
+
+# Validation constraints for username field
+ValidatedUsername = Annotated[
+    str | None, StringConstraints(strip_whitespace=True, pattern=r"^\w+$", min_length=2, max_length=50)
+]
+
+
 class UserCreateBase(UserBase, schemas.BaseUserCreate):
     """Base schema for user creation."""
 
-    # Override for validation
-    username: Annotated[str | None, StringConstraints(strip_whitespace=True)] = None
+    # Override for username field validation
+    username: ValidatedUsername = None
 
     # Override for OpenAPI schema configuration
-    password: str = Field(json_schema_extra={"format": "password"})
+    password: str = Field(json_schema_extra={"format": "password"}, min_length=8)
 
 
 class UserCreate(UserCreateBase):
@@ -145,11 +152,13 @@ class UserReadWithRelationships(UserReadWithOrganization):
 class UserUpdate(UserBase, schemas.BaseUserUpdate):
     """Update schema for users."""
 
-    username: Annotated[str | None, StringConstraints(strip_whitespace=True)] = None
+    # Override for username field validation
+    username: ValidatedUsername = None
+
     organization_id: UUID4 | None = None
 
     # Override password field to include password format in JSON schema
-    password: str | None = Field(default=None, json_schema_extra={"format": "password"})
+    password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
 
     model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
         {

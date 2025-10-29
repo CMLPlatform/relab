@@ -3,10 +3,10 @@
 import uuid
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, Optional
+from typing import TYPE_CHECKING, Optional
 
 from fastapi_users_db_sqlmodel import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
-from pydantic import UUID4, BaseModel, ConfigDict, StringConstraints
+from pydantic import UUID4, BaseModel, ConfigDict
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey
 from sqlmodel import Column, Field, Relationship
@@ -31,10 +31,7 @@ class OrganizationRole(str, Enum):
 class UserBase(BaseModel):
     """Base schema for user data."""
 
-    username: Annotated[
-        str | None,
-        StringConstraints(strip_whitespace=True, pattern=r"^[\w]+$"),  # Allows only letters, numbers, and underscores
-    ] = Field(index=True, unique=True, default=None)
+    username: str | None = Field(index=True, unique=True, default=None, min_length=2, max_length=50)
 
     model_config = ConfigDict(use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
 
