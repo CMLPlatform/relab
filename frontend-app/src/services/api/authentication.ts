@@ -1,5 +1,5 @@
-import { User } from '@/types/User';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { User } from '@/types/User';
 
 const apiURL = `${process.env.EXPO_PUBLIC_API_URL}`;
 let token: string | undefined;
@@ -112,7 +112,11 @@ export async function getUser(): Promise<User | undefined> {
   }
 }
 
-export async function register(username: string, email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function register(
+  username: string,
+  email: string,
+  password: string,
+): Promise<{ success: boolean; error?: string }> {
   const url = new URL(apiURL + '/auth/register');
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
@@ -124,14 +128,14 @@ export async function register(username: string, email: string, password: string
 
   try {
     const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
-    
+
     if (response.ok) {
       return { success: true };
     }
-    
+
     const errorData = await response.json();
     const errorMessage = errorData.detail?.reason || errorData.detail || 'Registration failed. Please try again.';
-    
+
     return { success: false, error: errorMessage };
   } catch (error) {
     console.error('Registration error:', error);

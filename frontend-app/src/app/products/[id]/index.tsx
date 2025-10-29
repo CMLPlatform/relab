@@ -240,15 +240,15 @@ export default function ProductPage(): JSX.Element {
         <ProductMetaData product={product} />
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
       </KeyboardAwareScrollView>
-        <AnimatedFAB
-          icon={FABicon}
-          onPress={toggleEditMode}
-          style={{ position: 'absolute', right: 0, bottom: 0, overflow: 'hidden', margin: 19 }}
-          disabled={!validateProduct(product).isValid}
-          extended={fabExtended}
-          label={editMode ? 'Save Product' : 'Edit Product'}
-          visible={product.ownedBy === 'me'}
-        />
+      <AnimatedFAB
+        icon={FABicon}
+        onPress={toggleEditMode}
+        style={{ position: 'absolute', right: 0, bottom: 0, overflow: 'hidden', margin: 19 }}
+        disabled={!validateProduct(product).isValid}
+        extended={fabExtended}
+        label={editMode ? 'Save Product' : 'Edit Product'}
+        visible={product.ownedBy === 'me'}
+      />
     </>
   );
 }
@@ -263,37 +263,37 @@ function EditNameButton({
   const dialog = useDialog();
 
   const onPress = () => {
-  if (!product) {
-    return;
-  }
-  dialog.input({
-    title: 'Edit name',
-    placeholder: 'Product Name',
-    helperText: getProductNameHelperText(),
-    defaultValue: product.name || '',
-    buttons: [
-      { text: 'Cancel', onPress: () => undefined },
-      {
-        text: 'OK',
-        disabled: (value) => {
-          const result = validateProductName(value);
-          return !result.isValid;
-        },
-        onPress: (newName) => {
-          const name = typeof newName === 'string' ? newName.trim() : '';
-          const result = validateProductName(name);
+    if (!product) {
+      return;
+    }
+    dialog.input({
+      title: 'Edit name',
+      placeholder: 'Product Name',
+      helperText: getProductNameHelperText(),
+      defaultValue: product.name || '',
+      buttons: [
+        { text: 'Cancel', onPress: () => undefined },
+        {
+          text: 'OK',
+          disabled: (value) => {
+            const result = validateProductName(value);
+            return !result.isValid;
+          },
+          onPress: (newName) => {
+            const name = typeof newName === 'string' ? newName.trim() : '';
+            const result = validateProductName(name);
 
-          if (!result.isValid) {
-            alert(result.error);
-            return;
-          }
+            if (!result.isValid) {
+              alert(result.error);
+              return;
+            }
 
-          onProductNameChange?.(name);
+            onProductNameChange?.(name);
+          },
         },
-      },
-    ],
-  });
-};
+      ],
+    });
+  };
 
   return <Button onPress={onPress}>Edit name</Button>;
 }

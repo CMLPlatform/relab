@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 
+import { useRouter } from 'expo-router';
 import { InfoTooltip, Text } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { productComponents } from '@/services/api/fetching';
 import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
 import { Product } from '@/types/Product';
-import { useRouter } from 'expo-router';
 
 interface Props {
   product: Product;
@@ -30,40 +30,40 @@ export default function ProductComponents({ product, editMode }: Props) {
 
   // Callbacks
   const newComponent = () => {
-  dialog.input({
-    title: 'Create New Component',
-    placeholder: 'Component Name',
-    helperText: getProductNameHelperText(),
-    buttons: [
-      { text: 'Cancel' },
-      {
-        text: 'OK',
-        disabled: (value) => {
-          const result = validateProductName(value);
-          return !result.isValid;
-        },
-        onPress: (componentName) => {
-          const name = typeof componentName === 'string' ? componentName.trim() : '';
-          const result = validateProductName(name);
+    dialog.input({
+      title: 'Create New Component',
+      placeholder: 'Component Name',
+      helperText: getProductNameHelperText(),
+      buttons: [
+        { text: 'Cancel' },
+        {
+          text: 'OK',
+          disabled: (value) => {
+            const result = validateProductName(value);
+            return !result.isValid;
+          },
+          onPress: (componentName) => {
+            const name = typeof componentName === 'string' ? componentName.trim() : '';
+            const result = validateProductName(name);
 
-          if (!result.isValid) {
-            // This shouldn't happen due to disabled check, but handle defensively
-            alert(result.error);
-            return;
-          }
+            if (!result.isValid) {
+              // This shouldn't happen due to disabled check, but handle defensively
+              alert(result.error);
+              return;
+            }
 
-          const params = {
-            id: 'new',
-            name,
-            isComponent: 'true',
-            parent: product.id,
-          };
-          router.push({ pathname: '/products/[id]', params: params });
+            const params = {
+              id: 'new',
+              name,
+              isComponent: 'true',
+              parent: product.id,
+            };
+            router.push({ pathname: '/products/[id]', params: params });
+          },
         },
-      },
-    ],
-  });
-};
+      ],
+    });
+  };
 
   // Render
   return (

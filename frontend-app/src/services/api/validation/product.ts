@@ -22,14 +22,14 @@ export function validateProductName(value: string | undefined): ValidationResult
   if (name.length < PRODUCT_NAME_MIN_LENGTH) {
     return {
       isValid: false,
-      error: `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`
+      error: `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`,
     };
   }
 
   if (name.length > PRODUCT_NAME_MAX_LENGTH) {
     return {
       isValid: false,
-      error: `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`
+      error: `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`,
     };
   }
 
@@ -40,10 +40,7 @@ export function getProductNameHelperText(): string {
   return `Enter a descriptive name between ${PRODUCT_NAME_MIN_LENGTH} and ${PRODUCT_NAME_MAX_LENGTH} characters`;
 }
 
-export function validateProductDimension(
-  value: number | undefined,
-  dimensionName: string
-): ValidationResult {
+export function validateProductDimension(value: number | undefined, dimensionName: string): ValidationResult {
   if (value == null || Number.isNaN(value)) {
     return { isValid: true }; // Optional field
   }
@@ -51,7 +48,7 @@ export function validateProductDimension(
   if (typeof value !== 'number' || value <= 0) {
     return {
       isValid: false,
-      error: `${dimensionName} must be a positive number`
+      error: `${dimensionName} must be a positive number`,
     };
   }
 

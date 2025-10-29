@@ -37,7 +37,7 @@ rclone sync "$BACKUP_DIR" "$BACKUP_RCLONE_REMOTE" \
     --retries 3 \
     --low-level-retries 10 \
     --stats=30s \
-    --stats-one-line-date 
+    --stats-one-line-date
 
 echo "[$(date)] Sync complete. Remote backup stats after sync:"
 rclone size "$BACKUP_RCLONE_REMOTE" --max-depth=3 2>/dev/null | sed 's/^/  /'

@@ -4,11 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
 
 import { login, register } from '@/services/api/authentication';
-import {
-  validateEmail,
-  validatePassword,
-  validateUsername
-} from '@/services/api/validation/user';
+import { validateEmail, validatePassword, validateUsername } from '@/services/api/validation/user';
 
 const styles = StyleSheet.create({
   container: {
@@ -104,21 +100,21 @@ export default function NewAccount() {
   const handleUsernameChange = (input: string) => {
     const trimmed = input.trim();
     setUsername(trimmed);
-    
+
     const result = validateUsername(trimmed);
     setUsernameError(result.error || '');
   };
 
   const handleEmailChange = (input: string) => {
     setEmail(input);
-    
+
     const result = validateEmail(input);
     setEmailError(result.error || '');
   };
 
   const handlePasswordChange = (input: string) => {
     setPassword(input);
-    
+
     const result = validatePassword(input, username, email);
     setPasswordError(result.error || '');
   };
@@ -146,22 +142,22 @@ export default function NewAccount() {
     setIsRegistering(true);
 
     const result = await register(username, email, password);
-    
+
     if (!result.success) {
       setIsRegistering(false);
       alert(result.error || 'Account creation failed. Please try again.');
       return;
     }
-    
+
     const loginSuccess = await login(email, password);
     setIsRegistering(false);
-    
+
     if (!loginSuccess) {
       alert('Account created! Please log in manually.');
       router.replace('/login');
       return;
     }
-    
+
     router.navigate('/products');
   };
 
@@ -200,14 +196,12 @@ export default function NewAccount() {
 
         <View style={styles.bottomContainer}>
           <PrivacyPolicy />
-          <Button onPress={() => router.dismissTo('/login')}>
-            I already have an account
-          </Button>
+          <Button onPress={() => router.dismissTo('/login')}>I already have an account</Button>
         </View>
       </View>
     );
   }
-  
+
   if (section === 'email') {
     return (
       <View style={styles.container}>
@@ -257,9 +251,7 @@ export default function NewAccount() {
 
         <View style={styles.bottomContainer}>
           <PrivacyPolicy />
-          <Button onPress={() => router.dismissTo('/login')}>
-            I already have an account
-          </Button>
+          <Button onPress={() => router.dismissTo('/login')}>I already have an account</Button>
         </View>
       </View>
     );
@@ -284,7 +276,7 @@ export default function NewAccount() {
               placeholder="Password"
               error={!!passwordError}
             />
-            <Button 
+            <Button
               mode="contained"
               onPress={createAccount}
               disabled={!validatePassword(password, username, email).isValid || isRegistering}
@@ -316,9 +308,7 @@ export default function NewAccount() {
 
         <View style={styles.bottomContainer}>
           <PrivacyPolicy />
-          <Button onPress={() => router.dismissTo('/login')}>
-            I already have an account
-          </Button>
+          <Button onPress={() => router.dismissTo('/login')}>I already have an account</Button>
         </View>
       </View>
     );
