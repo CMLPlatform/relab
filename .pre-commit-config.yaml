@@ -57,14 +57,14 @@ repos:
         files: ^ (?!(backend/frontend-app|frontend-web)/data/)
         ### Backend hooks
   - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
-    rev: v1.1.406
+    rev: v1.1.407
     hooks:
       - id: pyright
         files: ^backend/(app|scripts|tests)/
         entry: pyright --project backend
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.1
+    rev: v0.14.2
     hooks:
       - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
@@ -74,7 +74,7 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.4
+    rev: 0.9.5
     hooks:
       - id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
