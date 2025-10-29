@@ -68,13 +68,20 @@ export function validateProductWeight(value: number | undefined): ValidationResu
 }
 
 export function validateProduct(product: Product): ValidationResult {
-  const { weight, width, height, depth } = product.physicalProperties;
+  // Handle undefined or incomplete product
+  if (!product || typeof product !== 'object') {
+    return { isValid: false, error: 'Invalid product data' };
+  }
 
   // Validate product name
   const nameResult = validateProductName(product.name);
   if (!nameResult.isValid) {
     return nameResult;
   }
+
+  // Safely access physicalProperties with fallback
+  const physicalProperties = product.physicalProperties || {};
+  const { weight, width, height, depth } = physicalProperties;
 
   // Validate weight
   const weightResult = validateProductWeight(weight);
@@ -99,8 +106,4 @@ export function validateProduct(product: Product): ValidationResult {
   }
 
   return { isValid: true };
-}
-
-export function isProductValid(product: Product): boolean {
-  return validateProduct(product).isValid;
 }
