@@ -68,7 +68,6 @@ async def send_email(
             port=auth_settings.email_port,
         )
         await smtp.connect()
-        # logger.info("Sending email to %s", auth_settings.__dict__)
         await smtp.login(auth_settings.email_username, auth_settings.email_password)
         await smtp.send_message(msg)
         await smtp.quit()

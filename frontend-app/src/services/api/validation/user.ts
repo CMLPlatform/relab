@@ -27,21 +27,21 @@ export function validateUsername(value: string | undefined): ValidationResult {
   if (username.length < USERNAME_MIN_LENGTH) {
     return {
       isValid: false,
-      error: `Username must be at least ${USERNAME_MIN_LENGTH} characters`
+      error: `Username must be at least ${USERNAME_MIN_LENGTH} characters`,
     };
   }
 
   if (username.length > USERNAME_MAX_LENGTH) {
     return {
       isValid: false,
-      error: `Username must be at most ${USERNAME_MAX_LENGTH} characters`
+      error: `Username must be at most ${USERNAME_MAX_LENGTH} characters`,
     };
   }
 
   if (!USERNAME_PATTERN.test(username)) {
     return {
       isValid: false,
-      error: 'Username can only contain letters, numbers, and underscores'
+      error: 'Username can only contain letters, numbers, and underscores',
     };
   }
 
@@ -72,11 +72,7 @@ export function getEmailHelperText(): string {
   return 'Enter a valid email address';
 }
 
-export function validatePassword(
-  value: string | undefined,
-  username?: string,
-  email?: string
-): ValidationResult {
+export function validatePassword(value: string | undefined, username?: string, email?: string): ValidationResult {
   const password = typeof value === 'string' ? value : '';
 
   if (!password) {
@@ -86,14 +82,14 @@ export function validatePassword(
   if (password.length < PASSWORD_MIN_LENGTH) {
     return {
       isValid: false,
-      error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
+      error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
     };
   }
 
   if (password.length > PASSWORD_MAX_LENGTH) {
     return {
       isValid: false,
-      error: `Password must be at most ${PASSWORD_MAX_LENGTH} characters`
+      error: `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
     };
   }
 
@@ -101,18 +97,20 @@ export function validatePassword(
   if (username && password.toLowerCase().includes(username.toLowerCase())) {
     return {
       isValid: false,
-      error: 'Password cannot contain your username'
+      error: 'Password cannot contain your username',
     };
   }
 
   // Check if password contains email or email username part
   if (email) {
     const emailUsername = email.split('@')[0];
-    if (password.toLowerCase().includes(email.toLowerCase()) ||
-        password.toLowerCase().includes(emailUsername.toLowerCase())) {
+    if (
+      password.toLowerCase().includes(email.toLowerCase()) ||
+      password.toLowerCase().includes(emailUsername.toLowerCase())
+    ) {
       return {
         isValid: false,
-        error: 'Password cannot contain your email address'
+        error: 'Password cannot contain your email address',
       };
     }
   }

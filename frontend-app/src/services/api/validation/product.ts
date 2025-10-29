@@ -22,14 +22,14 @@ export function validateProductName(value: string | undefined): ValidationResult
   if (name.length < PRODUCT_NAME_MIN_LENGTH) {
     return {
       isValid: false,
-      error: `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`
+      error: `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`,
     };
   }
 
   if (name.length > PRODUCT_NAME_MAX_LENGTH) {
     return {
       isValid: false,
-      error: `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`
+      error: `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`,
     };
   }
 
@@ -55,25 +55,7 @@ export function isValidUrl(value: string | undefined): boolean {
   }
 }
 
-export function isValidUrl(value: string | undefined): boolean {
-  if (!value || typeof value !== 'string') return false;
-
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return false;
-
-  try {
-    const url = new URL(trimmed);
-    // Check if protocol is http or https
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-export function validateProductDimension(
-  value: number | undefined,
-  dimensionName: string
-): ValidationResult {
+export function validateProductDimension(value: number | undefined, dimensionName: string): ValidationResult {
   if (value == null || Number.isNaN(value)) {
     return { isValid: true }; // Optional field
   }
@@ -81,7 +63,7 @@ export function validateProductDimension(
   if (typeof value !== 'number' || value <= 0) {
     return {
       isValid: false,
-      error: `${dimensionName} must be a positive number`
+      error: `${dimensionName} must be a positive number`,
     };
   }
 

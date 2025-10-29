@@ -49,4 +49,3 @@ echo "Creating a superuser..."
 
 # Start the server or other desired commands
 exec "$@"
-# ...existing code...

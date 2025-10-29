@@ -11,7 +11,7 @@ Two types of data are backed up:
 
 Backups are created locally first, then optionally synced to remote storage.
 
----
+______________________________________________________________________
 
 ## Local Backups
 
@@ -61,7 +61,7 @@ This runs:
 
 Backup schedules and retention policies are configured in [`compose.prod.yml`](../../../compose.prod.yml).
 
----
+______________________________________________________________________
 
 ## Remote Backups
 
@@ -100,7 +100,7 @@ BACKUP_RSYNC_REMOTE_PATH=/path/to/remote/backup
 30 3 * * * /path/to/relab/backend/scripts/backup/rsync_backup.sh >> /var/log/relab/rsync_backup.log 2>&1
 ```
 
----
+______________________________________________________________________
 
 ### Option 2: rclone (Cloud/SFTP)
 
