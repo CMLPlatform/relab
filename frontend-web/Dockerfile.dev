@@ -1,6 +1,6 @@
 # Development Dockerfile for Web Frontend
 # Note: This requires mounting the source code as a volume in docker-compose.override.yml
-FROM node:24-slim
+FROM node:24-slim@sha256:0f2d677a7152ee7ac390837bd4fc36aca12f595411df5d4209f972660e34a7b6
 
 WORKDIR /opt/relab/frontend-web
 

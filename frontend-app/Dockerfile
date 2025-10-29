@@ -1,6 +1,6 @@
 # Production Dockerfile for Web Frontend
 # --- Builder stage ---
-FROM node:24-slim AS builder
+FROM node:24-slim@sha256:0f2d677a7152ee7ac390837bd4fc36aca12f595411df5d4209f972660e34a7b6 AS builder
 
 WORKDIR /opt/relab/frontend-app
 
@@ -16,7 +16,7 @@ COPY . ./
 RUN npx expo export -p web -c
 
 # --- Production stage ---
-FROM node:24-slim
+FROM node:24-slim@sha256:0f2d677a7152ee7ac390837bd4fc36aca12f595411df5d4209f972660e34a7b6
 
 # Build arguments
 ARG WORKDIR=/opt/relab/frontend-app
