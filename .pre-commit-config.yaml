@@ -55,7 +55,8 @@ repos:
     hooks:
       - id: check-json5
         files: ^ (?!(backend/frontend-app|frontend-web)/data/)
-        ### Backend hooks
+
+  ### Backend hooks
   - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
     rev: v1.1.407
     hooks:
@@ -90,22 +91,22 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-        ### Frontend hooks
+  ### Frontend hooks
   - repo: local
     hooks:
-      - id: frontend-web-lint
-        name: lint frontend-web code
-        entry: bash -c 'cd frontend-web && npm run lint'
+      - id: frontend-web-format
+        name: format frontend-web code
+        entry: bash -c 'cd frontend-web && npm run format'
         language:
           system
-          # Match frontend JavaScript and TypeScript files for linting.
+          # Match frontend JavaScript and TypeScript files for formatting.
         files: ^frontend-web\/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
         pass_filenames: false
-      - id: frontend-app-lint
-        name: lint frontend-app code
-        entry: bash -c 'cd frontend-app && npm run lint'
+      - id: frontend-app-format
+        name: format frontend-app code
+        entry: bash -c 'cd frontend-app && npm run format'
         language:
           system
-          # Match frontend JavaScript and TypeScript files for linting.
+          # Match frontend JavaScript and TypeScript files for formatting.
         files: ^frontend-app\/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
         pass_filenames: false
