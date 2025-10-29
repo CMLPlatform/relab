@@ -7,9 +7,33 @@ import { Product } from '@/types/Product';
 export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
 
-export function isValidProductName(value: string | undefined): boolean {
+export type ValidationResult = {
+  isValid: boolean;
+  error?: string;
+};
+
+export function validateProductName(value: string | undefined): ValidationResult {
   const name = typeof value === 'string' ? value.trim() : '';
-  return name.length >= PRODUCT_NAME_MIN_LENGTH && name.length <= PRODUCT_NAME_MAX_LENGTH;
+
+  if (!name) {
+    return { isValid: false, error: 'Product name is required' };
+  }
+
+  if (name.length < PRODUCT_NAME_MIN_LENGTH) {
+    return {
+      isValid: false,
+      error: `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`
+    };
+  }
+
+  if (name.length > PRODUCT_NAME_MAX_LENGTH) {
+    return {
+      isValid: false,
+      error: `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`
+    };
+  }
+
+  return { isValid: true };
 }
 
 export function getProductNameHelperText(): string {
@@ -31,27 +55,103 @@ export function isValidUrl(value: string | undefined): boolean {
   }
 }
 
-export function isProductValid(product: Product): boolean {
+export function isValidUrl(value: string | undefined): boolean {
+  if (!value || typeof value !== 'string') return false;
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return false;
+
+  try {
+    const url = new URL(trimmed);
+    // Check if protocol is http or https
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function validateProductDimension(
+  value: number | undefined,
+  dimensionName: string
+): ValidationResult {
+  if (value == null || Number.isNaN(value)) {
+    return { isValid: true }; // Optional field
+  }
+
+  if (typeof value !== 'number' || value <= 0) {
+    return {
+      isValid: false,
+      error: `${dimensionName} must be a positive number`
+    };
+  }
+
+  return { isValid: true };
+}
+
+export function validateProductWeight(value: number | undefined): ValidationResult {
+  if (value == null || Number.isNaN(value)) {
+    return { isValid: false, error: 'Weight is required' };
+  }
+
+  if (typeof value !== 'number' || value <= 0) {
+    return { isValid: false, error: 'Weight must be a positive number' };
+  }
+
+  return { isValid: true };
+}
+
+export function validateProductVideos(videos: { title: string; url: string }[]): ValidationResult {
+  for (const video of videos) {
+    if (video.title.trim().length === 0) {
+      return { isValid: false, error: 'Video title cannot be empty' };
+    }
+    if (!isValidUrl(video.url)) {
+      return { isValid: false, error: `Invalid URL for video titled "${video.title}"` };
+    }
+  }
+  return { isValid: true };
+}
+
+export function validateProduct(product: Product): ValidationResult {
   const { weight, width, height, depth } = product.physicalProperties;
 
-  // Allow undefined dimensions, but if provided, they must be positive numbers
-  const isValidDimension = (val: number | undefined) => {
-    return val == null || Number.isNaN(val) || (typeof val === 'number' && val > 0);
-  };
+  // Validate product name
+  const nameResult = validateProductName(product.name);
+  if (!nameResult.isValid) {
+    return nameResult;
+  }
 
-  // Validate that all videos have non-empty titles and valid URLs
-  const areVideosValid = product.videos.every(video => {
-    return video.title.trim().length > 0 && isValidUrl(video.url);
-  });
+  // Validate weight
+  const weightResult = validateProductWeight(weight);
+  if (!weightResult.isValid) {
+    return weightResult;
+  }
 
-  return (
-    isValidProductName(product.name) &&
-    typeof weight === 'number' &&
-    !Number.isNaN(weight) &&
-    weight > 0 &&
-    isValidDimension(width) &&
-    isValidDimension(height) &&
-    isValidDimension(depth) &&
-    areVideosValid
-  );
+  // Validate dimensions
+  const widthResult = validateProductDimension(width, 'Width');
+  if (!widthResult.isValid) {
+    return widthResult;
+  }
+
+  const heightResult = validateProductDimension(height, 'Height');
+  if (!heightResult.isValid) {
+    return heightResult;
+  }
+
+  const depthResult = validateProductDimension(depth, 'Depth');
+  if (!depthResult.isValid) {
+    return depthResult;
+  }
+
+  // Validate product videos
+  const videosResult = validateProductVideos(product.videos);
+  if (!videosResult.isValid) {
+    return videosResult;
+  }
+
+  return { isValid: true };
+}
+
+export function isProductValid(product: Product): boolean {
+  return validateProduct(product).isValid;
 }
