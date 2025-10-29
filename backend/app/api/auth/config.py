@@ -29,7 +29,7 @@ class AuthSettings(BaseSettings):
     email_from: str = ""
     email_reply_to: str = ""
 
-    # Initialize the settings configuration from the .env file
+    # Initialize the settings configuration from the .env file (or direct environment variables in Docker)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     # Set default values for email settings if not provided
