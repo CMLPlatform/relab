@@ -1,0 +1,5 @@
+<mj-section background-color="#ffffff" padding="20px">
+  <mj-column>
+    <mj-text align="center" css-class="header"> Reverse Engineering Lab </mj-text>
+  </mj-column>
+</mj-section>

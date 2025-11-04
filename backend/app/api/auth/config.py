@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Set the project base directory and .env file
@@ -25,7 +26,7 @@ class AuthSettings(BaseSettings):
     email_host: str = ""
     email_port: int = 587  # Default SMTP port for TLS
     email_username: str = ""
-    email_password: str = ""
+    email_password: SecretStr = SecretStr("")
     email_from: str = ""
     email_reply_to: str = ""
 
