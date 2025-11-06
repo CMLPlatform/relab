@@ -12,33 +12,34 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-async def init_redis() -> Redis:
+async def init_redis() -> Redis | None:
     """Initialize Redis client instance with connection pooling.
 
     Returns:
-        Redis: Async Redis client with connection pooling
+        Redis: Async Redis client with connection pooling, or None if connection fails
 
     This should be called once during application startup.
+    Gracefully handles connection failures and returns None if Redis is unavailable.
     """
-    redis_client = Redis(
-        host=settings.redis_host,
-        port=settings.redis_port,
-        db=settings.redis_db,
-        password=settings.redis_password if settings.redis_password else None,
-        decode_responses=True,
-        socket_connect_timeout=5,
-        socket_timeout=5,
-    )
-
-    # Verify connection on startup
     try:
+        redis_client = Redis(
+            host=settings.redis_host,
+            port=settings.redis_port,
+            db=settings.redis_db,
+            password=settings.redis_password if settings.redis_password else None,
+            decode_responses=True,
+            socket_connect_timeout=5,
+            socket_timeout=5,
+        )
+
+        # Verify connection on startup
         await redis_client.pubsub().ping()
         logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
-    except (TimeoutError, RedisError, OSError):
-        logger.exception("Failed to connect to Redis during initialization.")
-        raise
+        return redis_client
 
-    return redis_client
+    except (TimeoutError, RedisError, OSError, ConnectionError) as e:
+        logger.warning("Failed to connect to Redis during initialization: %s. Application will continue without Redis.", e)
+        return None
 
 
 async def close_redis(redis_client: Redis) -> None:
@@ -112,18 +113,20 @@ async def set_redis_value(redis_client: Redis, key: str, value: Any, ex: int | N
         return True
 
 
-def get_redis_dependency(request: Request) -> Redis:
+def get_redis_dependency(request: Request) -> Redis | None:
     """FastAPI dependency to get Redis client from app state.
 
     Args:
         request: FastAPI request object
 
     Returns:
-        Redis: Redis client instance
+        Redis client instance, or None if Redis is not available
 
     Usage:
         @app.get("/example")
-        async def example(redis: Redis = Depends(get_redis_dependency)):
+        async def example(redis: Redis | None = Depends(get_redis_dependency)):
+            if redis is None:
+                raise HTTPException(status_code=503, detail="Redis is not available")
             await redis.get("key")
     """
     return request.app.state.redis
