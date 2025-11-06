@@ -21,8 +21,7 @@
   readme = "README.md"
 
   ## Dependencies and version constraints
-  dependencies = [ # Core dependencies.
-    "aiosmtplib>=4.0.1",
+  dependencies = [
     "asyncache>=0.3.1",
     "asyncpg>=0.30.0",
     "cachetools>=5.5.2",
@@ -48,6 +47,7 @@
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
     "python-slugify>=8.0.4",
+    "redis>=5.2.1",
     "relab-rpi-cam-models>=0.1.1",
     "sqlalchemy >=2.0.41",
     "sqlmodel >=0.0.24",

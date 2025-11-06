@@ -21,6 +21,12 @@ class CoreSettings(BaseSettings):
     postgres_db: str = "relab_db"
     postgres_test_db: str = "relab_test_db"
 
+    # Redis settings for caching
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_db: int = 0
+    redis_password: str = ""
+
     # Debug settings
     debug: bool = False
 

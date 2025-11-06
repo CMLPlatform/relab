@@ -13,14 +13,14 @@ class AuthSettings(BaseSettings):
     """Settings class to store settings related to auth components."""
 
     # Authentication settings
-    fastapi_users_secret: str = ""
-    newsletter_secret: str = ""
+    fastapi_users_secret: SecretStr = SecretStr("")
+    newsletter_secret: SecretStr = SecretStr("")
 
     # OAuth settings
-    google_oauth_client_id: str = ""
-    google_oauth_client_secret: str = ""
-    github_oauth_client_id: str = ""
-    github_oauth_client_secret: str = ""
+    google_oauth_client_id: SecretStr = SecretStr("")
+    google_oauth_client_secret: SecretStr = SecretStr("")
+    github_oauth_client_id: SecretStr = SecretStr("")
+    github_oauth_client_secret: SecretStr = SecretStr("")
 
     # Settings used to configure the email server for sending emails from the app.
     email_host: str = ""
