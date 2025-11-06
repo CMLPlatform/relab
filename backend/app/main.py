@@ -4,27 +4,84 @@ This module initializes the FastAPI application, sets up the API routes,
 mounts static and upload directories, and initializes the admin interface.
 """
 
+import logging
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
 from app.api.admin.main import init_admin
+from app.api.auth.utils.email_validation import EmailChecker
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.core.config import settings
 from app.core.database import async_engine
+from app.core.redis import close_redis, init_redis
 from app.core.utils.custom_logging import setup_logging
 
 # Initialize logging
 setup_logging()
+logger = logging.getLogger(__name__)
 
-# Initialize FastAPI application
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    """Manage application lifespan: startup and shutdown events."""
+    # Startup
+    logger.info("Starting up application...")
+
+    # Initialize Redis connection and store in app.state
+    # The init_redis() function will verify the connection on startup
+    try:
+        app.state.redis = await init_redis()
+    except (ConnectionError, OSError) as e:
+        logger.warning("Failed to initialize Redis: %s", e)
+        app.state.redis = None
+
+    # Initialize disposable email checker and store in app.state
+    app.state.email_checker = None
+    if app.state.redis is not None:
+        try:
+            email_checker = EmailChecker(app.state.redis)
+            await email_checker.initialize()
+            app.state.email_checker = email_checker
+        except (RuntimeError, ValueError, ConnectionError) as e:
+            logger.warning("Failed to initialize email checker: %s", e)
+
+    logger.info("Application startup complete")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down application...")
+
+    # Close email checker (this will cancel background tasks)
+    if app.state.email_checker is not None:
+        try:
+            await app.state.email_checker.close()
+        except (RuntimeError, OSError) as e:
+            logger.warning("Error closing email checker: %s", e)
+
+    # Close Redis connection
+    if app.state.redis is not None:
+        try:
+            await close_redis(app.state.redis)
+        except (ConnectionError, OSError) as e:
+            logger.warning("Error closing Redis: %s", e)
+
+    logger.info("Application shutdown complete")
+
+
+# Initialize FastAPI application with lifespan
 app = FastAPI(
     openapi_url=None,
     docs_url=None,
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 # Add CORS middleware

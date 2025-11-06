@@ -31,6 +31,10 @@ services:
       - user_uploads:/data/uploads:ro
       - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
 
+  cache:
+    volumes: # Persist cache data in production
+      - cache_data:/data
+
   cloudflared: # Cloudflared tunnel to cml-relab.org
     image: cloudflare/cloudflared:latest@sha256:4604b477520dc8322af5427da68b44f0bf814938e9d2e4814f2249ee4b03ffdf
     command: tunnel --no-autoupdate run

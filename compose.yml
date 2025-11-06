@@ -21,6 +21,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      cache:
+        condition: service_healthy
     env_file: ./backend/.env
     environment:
       DATABASE_HOST: database
@@ -35,14 +37,16 @@ services:
     image: postgres:18@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8
     env_file: ./backend/.env
     healthcheck:
-      test: # Check if the database is ready to accept connections
-        ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
     restart: unless-stopped
     volumes:
       - database_data:/var/lib/postgresql
+
+  cache:
+    image: redis:8
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+    restart: unless-stopped
 
   docs:
     image: squidfunk/mkdocs-material:9@sha256:00f9276315990b82f5af8c47bb2b71e2c69aef9f02a08f8dffd2515f42310753
