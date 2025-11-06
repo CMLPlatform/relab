@@ -35,12 +35,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info("Starting up application...")
 
     # Initialize Redis connection and store in app.state
-    # The init_redis() function will verify the connection on startup
-    try:
-        app.state.redis = await init_redis()
-    except (ConnectionError, OSError) as e:
-        logger.warning("Failed to initialize Redis: %s", e)
-        app.state.redis = None
+    # The init_redis() function will verify the connection on startup and return None if it fails
+    app.state.redis = await init_redis()
 
     # Initialize disposable email checker and store in app.state
     app.state.email_checker = None
