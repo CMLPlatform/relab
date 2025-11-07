@@ -6,6 +6,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      cache:
+        condition: service_healthy
     env_file: ./backend/.env
     environment:
       DATABASE_HOST: database # Point to the database service
@@ -20,8 +22,6 @@ services:
       dockerfile: Dockerfile.migrations
     depends_on:
       database:
-        condition: service_healthy
-      cache:
         condition: service_healthy
     env_file: ./backend/.env
     environment:
