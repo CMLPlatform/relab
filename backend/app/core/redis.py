@@ -35,11 +35,14 @@ async def init_redis() -> Redis | None:
         # Verify connection on startup
         await redis_client.pubsub().ping()
         logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
-        return redis_client
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
-        logger.warning("Failed to connect to Redis during initialization: %s. Application will continue without Redis.", e)
+        logger.warning(
+            "Failed to connect to Redis during initialization: %s. Application will continue without Redis.", e
+        )
         return None
+    else:
+        return redis_client
 
 
 async def close_redis(redis_client: Redis) -> None:
