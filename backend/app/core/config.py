@@ -3,7 +3,7 @@
 from functools import cached_property
 from pathlib import Path
 
-from pydantic import EmailStr, HttpUrl, PostgresDsn, computed_field
+from pydantic import EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Set the project base directory and .env file
@@ -17,7 +17,7 @@ class CoreSettings(BaseSettings):
     database_host: str = "localhost"
     database_port: int = 5432
     postgres_user: str = "postgres"
-    postgres_password: str = ""
+    postgres_password: SecretStr = SecretStr("")
     postgres_db: str = "relab_db"
     postgres_test_db: str = "relab_test_db"
 
@@ -25,14 +25,14 @@ class CoreSettings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_db: int = 0
-    redis_password: str = ""
+    redis_password: SecretStr = SecretStr("")
 
     # Debug settings
     debug: bool = False
 
     # Superuser settings
     superuser_email: EmailStr = "your-email@example.com"
-    superuser_password: str = ""
+    superuser_password: SecretStr = SecretStr("")
 
     # Network settings
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
@@ -55,7 +55,7 @@ class CoreSettings(BaseSettings):
     def _build_database_url(self, driver: str, database: str) -> str:
         """Build and validate PostgreSQL database URL."""
         url = (
-            f"postgresql+{driver}://{self.postgres_user}:{self.postgres_password}"
+            f"postgresql+{driver}://{self.postgres_user}:{self.postgres_password.get_secret_value()}"
             f"@{self.database_host}:{self.database_port}/{database}"
         )
         PostgresDsn(url)  # Validate URL format
