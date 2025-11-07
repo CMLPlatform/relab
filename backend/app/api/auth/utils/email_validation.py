@@ -34,7 +34,11 @@ class EmailChecker:
         Should be called during application startup.
         """
         try:
-            self.checker = DefaultChecker(db_provider="redis", source=DISPOSABLE_DOMAINS_URL)
+            self.checker = DefaultChecker(
+                source=DISPOSABLE_DOMAINS_URL,
+                db_provider="redis",
+                redis_client=self.redis_client,
+            )
             await self.checker.init_redis()
             logger.info("Disposable email checker initialized successfully")
 
