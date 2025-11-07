@@ -11,6 +11,7 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_HOST: database # Point to the database service
+      REDIS_HOST: cache # Point to the cache service
     restart: unless-stopped
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
@@ -26,6 +27,7 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_HOST: database
+      REDIS_HOST: cache
     profiles:
       - migrations
     restart: on-failure:3
@@ -38,14 +40,20 @@ services:
     env_file: ./backend/.env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      start_period: 5s
+      start_interval: 5s
     restart: unless-stopped
     volumes:
       - database_data:/var/lib/postgresql
 
   cache:
     image: redis:8
+    command: ["sh", "-c", "redis-server --appendonly yes --save 60 1 --requirepass $${REDIS_PASSWORD}"]
+    env_file: ./backend/.env
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping"]
+      start_period: 5s
+      start_interval: 5s
     restart: unless-stopped
 
   docs:
