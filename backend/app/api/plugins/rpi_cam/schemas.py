@@ -9,7 +9,6 @@ from pydantic import (
     AfterValidator,
     BaseModel,
     Field,
-    HttpUrl,
     PlainSerializer,
     SecretStr,
 )
@@ -20,6 +19,7 @@ from app.api.common.schemas.base import (
     BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
 )
+from app.api.common.schemas.custom_fields import HttpUrlToDB
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_str
@@ -107,6 +107,8 @@ OptionalAuthHeaderCreateList = Annotated[
 class CameraCreate(BaseCreateSchema, CameraBase):
     """Schema for creating a camera."""
 
+    # Override url field to add validation
+    url: HttpUrlToDB = Field(description="HTTP(S) URL where the camera API is hosted")
     auth_headers: OptionalAuthHeaderCreateList
 
 
@@ -156,7 +158,7 @@ class CameraUpdate(BaseUpdateSchema):
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    url: HttpUrl | None = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
+    url: HttpUrlToDB | None = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
     auth_headers: OptionalAuthHeaderCreateList
 
     # TODO: Make it only possible to change ownership to existing users within the same organization

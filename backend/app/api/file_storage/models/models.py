@@ -10,11 +10,10 @@ from urllib.parse import quote
 from markupsafe import Markup
 from pydantic import UUID4, ConfigDict
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import AutoString, Column, Field, Relationship
+from sqlmodel import Column, Field, Relationship
 from sqlmodel import Enum as SAEnum
 
 from app.api.common.models.base import APIModelName, CustomBase, SingleParentMixin, TimeStampMixinBare
-from app.api.common.models.custom_fields import AnyUrlInDB
 from app.api.data_collection.models import Product
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.custom_types import FileType, ImageType
@@ -49,7 +48,9 @@ class FileBase(CustomBase):
 class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], table=True):
     """Database model for generic files stored in the local file system, using FastAPI-Storages."""
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True)
+    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
+    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+
     filename: str = Field(description="Original file name of the file. Automatically generated.")
 
     # TODO: Add custom file paths based on parent object (Product, year, etc.)
@@ -111,7 +112,10 @@ class ImageBase(CustomBase):
 class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
     """Database model for images stored in the local file system, using FastAPI-Storages."""
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True)
+    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
+    # TODO: To avoid this hack, for all database models, create a InDB child class that has non-optional id field
+    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+
     filename: str = Field(description="Original file name of the image. Automatically generated.", nullable=False)
     file: ImageType = Field(
         sa_column=Column(ImageType, nullable=False),
@@ -153,7 +157,7 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
 class VideoBase(CustomBase):
     """Base model for videos stored online."""
 
-    url: AnyUrlInDB = Field(description="URL linking to the video", sa_type=AutoString, nullable=False)
+    url: str = Field(description="URL linking to the video", nullable=False)
     title: str | None = Field(default=None, max_length=100, description="Title of the video")
     description: str | None = Field(default=None, max_length=500, description="Description of the video")
     video_metadata: dict[str, Any] | None = Field(
