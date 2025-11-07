@@ -26,7 +26,7 @@ async def init_redis() -> Redis | None:
             host=settings.redis_host,
             port=settings.redis_port,
             db=settings.redis_db,
-            password=settings.redis_password if settings.redis_password else None,
+            password=settings.redis_password.get_secret_value() if settings.redis_password else None,
             decode_responses=True,
             socket_connect_timeout=5,
             socket_timeout=5,
