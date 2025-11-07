@@ -80,3 +80,6 @@ backups/*
 # VS Code settings
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# Include built email templates
+!app/templates/emails/build/
