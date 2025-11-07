@@ -27,7 +27,7 @@
     "cachetools>=5.5.2",
     "email-validator>=2.2.0",
     "fastapi-filter>=2.0.1",
-    "fastapi-mail==1.5.2",
+    "fastapi-mail",
     "fastapi-pagination>=0.13.2",
     # NOTE: This is a heavy dependency (~40MB) due to its use of boto3, even though we don't use any cloud storage
     # We should consider using a more lightweight alternative if it becomes available.
@@ -249,5 +249,7 @@
   default-groups = ["api", "dev", "migrations", "tests"]
 
   [tool.uv.sources]
+    # HACK: Fetch FastAPI-Mail from custom fork on GitHub to allow passing existing Redis client and fix compatibility issues with Pydantic > 2.12 and SQLModel (see https://github.com/fastapi/sqlmodel/issues/1623)
+    fastapi-mail = { git = "https://github.com/simonvanlierde/fastapi-mail", rev = "f32147ec1a450ed22262913c5ac7ec3b67dd0117" }
     # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
     fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "7e9c4830e53ee20c38e3de80066cb19d7c3efc43" }
