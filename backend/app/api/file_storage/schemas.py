@@ -3,10 +3,11 @@
 from typing import Annotated, Any
 
 from fastapi import UploadFile
-from pydantic import AfterValidator, Field, HttpUrl, Json, PositiveInt
+from pydantic import AfterValidator, Field, Json, PositiveInt
 
 from app.api.common.models.custom_types import IDT
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
+from app.api.common.schemas.custom_fields import AnyUrlToDB
 from app.api.file_storage.models.models import FileBase, FileParentType, ImageBase, ImageParentType, VideoBase
 
 ### Constants ###
@@ -171,10 +172,15 @@ class ImageUpdate(BaseUpdateSchema, ImageBase):
 class VideoCreateWithinProduct(BaseCreateSchema, VideoBase):
     """Schema for creating a video."""
 
+    # Override url field to add validation
+    url: AnyUrlToDB
+
 
 class VideoCreate(BaseCreateSchema, VideoBase):
     """Schema for creating a video."""
 
+    # Override url field to add validation
+    url: AnyUrlToDB
     product_id: PositiveInt
 
 
@@ -191,7 +197,7 @@ class VideoRead(BaseReadSchemaWithTimeStamp, VideoBase):
 class VideoUpdate(BaseUpdateSchema):
     """Schema for updating a video."""
 
-    url: HttpUrl | None = Field(default=None, max_length=250, description="HTTP(S) URL linking to the video")
+    url: AnyUrlToDB | None = Field(default=None, description="URL linking to the video")
     title: str | None = Field(default=None, max_length=100, description="Title of the video")
     description: str | None = Field(default=None, max_length=500, description="Description of the video")
     video_metadata: dict[str, Any] | None = Field(default=None, description="Video metadata as a JSON dict")
