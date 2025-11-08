@@ -40,13 +40,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     # Initialize disposable email checker and store in app.state
     app.state.email_checker = None
-    if app.state.redis is not None:
-        try:
-            email_checker = EmailChecker(app.state.redis)
-            await email_checker.initialize()
-            app.state.email_checker = email_checker
-        except (RuntimeError, ValueError, ConnectionError) as e:
-            logger.warning("Failed to initialize email checker: %s", e)
+    try:
+        email_checker = EmailChecker(app.state.redis)
+        await email_checker.initialize()
+        app.state.email_checker = email_checker
+    except (RuntimeError, ValueError, ConnectionError) as e:
+        logger.warning("Failed to initialize email checker: %s", e)
 
     logger.info("Application startup complete")
 

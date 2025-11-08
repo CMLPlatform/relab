@@ -18,7 +18,7 @@ DISPOSABLE_DOMAINS_URL = "https://raw.githubusercontent.com/disposable/disposabl
 class EmailChecker:
     """Email checker that manages disposable domain validation."""
 
-    def __init__(self, redis_client: Redis) -> None:
+    def __init__(self, redis_client: Redis | None) -> None:
         """Initialize email checker with Redis client.
 
         Args:
@@ -34,13 +34,17 @@ class EmailChecker:
         Should be called during application startup.
         """
         try:
-            self.checker = DefaultChecker(
-                source=DISPOSABLE_DOMAINS_URL,
-                db_provider="redis",
-                redis_client=self.redis_client,
+            if self.redis_client is None:
+                self.checker = DefaultChecker(source=DISPOSABLE_DOMAINS_URL)
+                logger.info("Disposable email checker initialized without Redis")
+            else:
+                self.checker = DefaultChecker(
+                    source=DISPOSABLE_DOMAINS_URL,
+                    db_provider="redis",
+                    redis_client=self.redis_client,
             )
-            await self.checker.init_redis()
-            logger.info("Disposable email checker initialized successfully")
+                await self.checker.init_redis()
+                logger.info("Disposable email checker initialized with Redis")
 
             # Fetch initial domains
             await self._refresh_domains()
@@ -87,7 +91,8 @@ class EmailChecker:
                 await self._refresh_task
 
         # Close checker connections if initialized
-        if self.checker is not None:
+        if self.checker is not None and self.redis_client is not None:
+            logger.info("Closing email checker Redis connections")
             try:
                 await self.checker.close_connections()
                 logger.info("Email checker closed successfully")
