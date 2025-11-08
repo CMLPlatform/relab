@@ -32,7 +32,7 @@ for oauth_client in (github_oauth_client, google_oauth_client):
             fastapi_user_manager.get_oauth_router(
                 oauth_client,
                 auth_backend,
-                settings.fastapi_users_secret,
+                settings.fastapi_users_secret.get_secret_value(),
                 associate_by_email=True,
                 is_verified_by_default=True,
             ),
@@ -44,7 +44,7 @@ for oauth_client in (github_oauth_client, google_oauth_client):
         fastapi_user_manager.get_oauth_associate_router(
             oauth_client,
             UserRead,
-            settings.fastapi_users_secret,
+            settings.fastapi_users_secret.get_secret_value(),
         ),
         prefix=f"/{provider_name}/associate",
     )

@@ -14,7 +14,7 @@ class RPiCamSettings(BaseSettings):
     # Authentication settings
     rpi_cam_plugin_secret: str = ""
 
-    # Initialize the settings configuration from the .env file
+    # Initialize the settings configuration from the .env file (or direct environment variables in Docker)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     api_key_header_name: str = "X-API-Key"

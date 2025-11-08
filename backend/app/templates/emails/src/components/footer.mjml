@@ -1,0 +1,15 @@
+<mj-section background-color="#ffffff" padding="20px 40px">
+  <mj-column>
+    <mj-divider border-color="#e0e0e0" />
+    <mj-text align="center" css-class="footer" padding-top="20px">
+      Best regards,<br />
+      The Reverse Engineering Lab Team
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section padding="20px">
+  <mj-column>
+    <mj-text align="center" css-class="footer"> This email was sent from Reverse Engineering Lab </mj-text>
+  </mj-column>
+</mj-section>

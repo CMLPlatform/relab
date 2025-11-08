@@ -20,6 +20,7 @@ Thank you for your interest in contributing to the Reverse Engineering Lab proje
     - [Backend Code Style](#backend-code-style)
     - [Backend Testing](#backend-testing)
     - [Database Migrations](#database-migrations)
+    - [Email templates](#email-templates)
   - [Frontend Development](#frontend-development)
     - [Frontend Code Style](#frontend-code-style)
     - [Frontend Testing](#frontend-testing)
@@ -338,6 +339,32 @@ When making changes to the database schema:
    ```bash
    uv run alembic upgrade head
    ```
+
+#### Email templates
+
+This project uses [MJML](https://mjml.io/) to write email templates and [Jinja2](https://jinja.palletsprojects.com/en/latest/) for variable substitution at runtime.
+
+- **Location**
+  - Source MJML templates: `backend/app/templates/emails/src/`
+  - Reusable components: `backend/app/templates/emails/src/components/`
+  - Compiled HTML output: `backend/app/templates/emails/build/` (This directory is **auto-generated**—do not edit files here.)
+
+- **Editing Guidelines**
+  - Use **MJML** for structure and the `{{include:component_name}}` directive to reuse components.
+  - Use **Jinja2-style variables** in templates, e.g., `{{ username }}`, `{{ verification_link }}`.
+  - Keep components small and shared styles in `src/components/styles.mjml`.
+  - **Do not modify** files in `build/`.
+
+- **Compiling Templates**
+   Run the compilation script from the repository root:
+
+   ```bash
+   cd backend
+   python scripts/compile_email_templates.py
+   ```
+
+- **Interactive Preview**
+  For visual development, use MJML online tools or the [MJML VS Code extension](https://marketplace.visualstudio.com/items?itemName=mjmlio.vscode-mjml).
 
 ### Frontend Development
 

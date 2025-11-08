@@ -14,7 +14,6 @@ from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
 
 from app.api.common.models.base import CustomBase, TimeStampMixinBare
-from app.api.common.models.custom_fields import HttpUrlInDB
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
 
@@ -68,23 +67,29 @@ class CameraBase(CustomBase):
     # NOTE: Local addresses only work when they are on the local network of this API
     # TODO: Add support for server communication to local network cameras for users via websocket or similar
 
-    # NOTE: Database models will have url as string type. This is likely because of how sa_type=Autostring works
-    # This means HttpUrl methods are not available in database model instances.
-    # TODO: Only validate the URL format in Pydantic schemas and store as plain string in the database model.
-    url: HttpUrlInDB = Field(description="HTTP(S) URL where the camera API is hosted", sa_type=AutoString)
+    # NOTE: URL validation is done in the Pydantic schemas (CameraCreate/CameraUpdate).
+    # The database stores it as a plain string.
+    url: str = Field(description="HTTP(S) URL where the camera API is hosted", sa_type=AutoString)
 
 
 class Camera(CameraBase, TimeStampMixinBare, table=True):
     """Database model for Camera."""
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True)
+    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
+    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+
     encrypted_api_key: str = Field(nullable=False)
     # TODO: Consider merging encrypted_auth_headers and encrypted_api_key into a single encrypted_credentials field
     encrypted_auth_headers: str | None = Field(default=None)
 
     # Many-to-one relationship with User
     owner_id: UUID4 = Field(foreign_key="user.id")
-    owner: "User" = Relationship()  # One-way relationship to maintain plugin isolation
+    owner: "User" = Relationship(  # One-way relationship to maintain plugin isolation
+        sa_relationship_kwargs={
+            "primaryjoin": "Camera.owner_id == User.id",
+            "foreign_keys": "[Camera.owner_id]",
+        }
+    )
 
     @computed_field
     @cached_property

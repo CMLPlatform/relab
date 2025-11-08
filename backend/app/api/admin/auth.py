@@ -64,7 +64,7 @@ class AdminAuth(AuthenticationBackend):
 
 def get_authentication_backend() -> AdminAuth:
     """Get the authentication backend for the SQLAdmin interface."""
-    return AdminAuth(secret_key=auth_settings.fastapi_users_secret)
+    return AdminAuth(secret_key=auth_settings.fastapi_users_secret.get_secret_value())
 
 
 async def logout_override(request: Request) -> RedirectResponse:  # noqa: ARG001 # Signature expected by the SQLAdmin implementation

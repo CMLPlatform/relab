@@ -6,18 +6,22 @@ Inspired by https://medium.com/@gnetkov/testing-fastapi-application-with-pytest-
 import logging
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
-from alembic import command
 from alembic.config import Config
-from app.core.config import settings
-from app.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlmodel.ext.asyncio.session import AsyncSession
+
+from alembic import command
+from app.core.config import settings
+from app.main import app
+
+from .factories.emails import EmailContextFactory, EmailDataFactory
 
 # Set up logger
 logger: logging.Logger = logging.getLogger(__name__)
@@ -55,7 +59,7 @@ def get_alembic_config() -> Config:
     return alembic_cfg
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def setup_test_database() -> Generator:
     """Create test database, run migrations, and cleanup after tests."""
     create_test_database()  # Create empty database
@@ -72,7 +76,7 @@ def setup_test_database() -> Generator:
 
 
 ### Async test session generators
-@pytest.fixture(scope="function")
+@pytest.fixture
 async def get_async_session() -> AsyncGenerator[AsyncSession]:
     """Create a new database session for each test and roll it back after the test."""
     async with async_engine.begin() as connection, async_session_local(bind=connection) as session:
@@ -81,7 +85,7 @@ async def get_async_session() -> AsyncGenerator[AsyncSession]:
         await transaction.rollback()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 async def client(db: AsyncSession) -> AsyncGenerator[TestClient]:
     """Provide a TestClient that uses the test database session."""
 
@@ -94,3 +98,48 @@ async def client(db: AsyncSession) -> AsyncGenerator[TestClient]:
         yield c
 
     app.dependency_overrides.clear()
+
+
+### Email fixtures
+@pytest.fixture
+def email_context() -> dict:
+    """Return a realistic email template context dict using FactoryBoy/Faker."""
+    return EmailContextFactory()
+
+
+@pytest.fixture
+def email_data() -> dict:
+    """Return realistic test data for email functions using FactoryBoy/Faker."""
+    return EmailDataFactory()
+
+
+@pytest.fixture
+def mock_smtp() -> AsyncMock:
+    """Return a configured mock SMTP client for testing email sending."""
+    mock = AsyncMock()
+    mock.connect = AsyncMock()
+    mock.login = AsyncMock()
+    mock.send_message = AsyncMock()
+    mock.quit = AsyncMock()
+    return mock
+
+
+@pytest.fixture
+def mock_email_sender(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
+    """Mock the fastapi-mail send_message function for all email tests.
+
+    This fixture automatically patches fm.send_message so tests don't need
+    to manually patch it with context managers.
+
+    Returns:
+        AsyncMock: The mocked send_message function
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_send_email(mock_email_sender):
+            await send_registration_email("test@example.com", "user", "token")
+            mock_email_sender.assert_called_once()
+    """
+    mock_send = AsyncMock()
+    monkeypatch.setattr("app.api.auth.utils.programmatic_emails.fm.send_message", mock_send)
+    return mock_send

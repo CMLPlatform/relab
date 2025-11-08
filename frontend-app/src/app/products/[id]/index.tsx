@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { JSX, useCallback, useEffect, useState } from 'react';
+import { JSX, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { AnimatedFAB, Button, useTheme } from 'react-native-paper';
+import { AnimatedFAB, Button, Tooltip, useTheme } from 'react-native-paper';
 
 import ProductAmountInParent from '@/components/product/ProductAmountInParent';
 import ProductComponents from '@/components/product/ProductComponents';
@@ -20,7 +20,7 @@ import { useDialog } from '@/components/common/DialogProvider';
 
 import { getProduct, newProduct } from '@/services/api/fetching';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
-import { getProductNameHelperText, isProductValid, isValidProductName } from '@/services/api/validation/product';
+import { getProductNameHelperText, validateProduct, validateProductName } from '@/services/api/validation/product';
 import { Product } from '@/types/Product';
 
 /**
@@ -48,8 +48,12 @@ export default function ProductPage(): JSX.Element {
   const [editMode, setEditMode] = useState(id === 'new' || false);
   const [savingState, setSavingState] = useState<'saving' | 'success' | undefined>(undefined);
   const [fabExtended, setFabExtended] = useState(true);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
 
   const isProductComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+
+  // Validate product on every change
+  const validationResult = useMemo(() => validateProduct(product), [product]);
 
   // Callbacks
   const onProductNameChange = useCallback(
@@ -240,15 +244,22 @@ export default function ProductPage(): JSX.Element {
         <ProductMetaData product={product} />
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
       </KeyboardAwareScrollView>
-      <AnimatedFAB
-        icon={FABicon}
-        onPress={toggleEditMode}
-        style={{ position: 'absolute', right: 0, bottom: 0, overflow: 'hidden', margin: 19 }}
-        disabled={!isProductValid(product)}
-        extended={fabExtended}
-        label={editMode ? 'Save Product' : 'Edit Product'}
-        visible={product.ownedBy === 'me'}
-      />
+      <Tooltip
+        title={validationResult.error || ''}
+        enterTouchDelay={0}
+        leaveTouchDelay={1500}
+      >
+        <AnimatedFAB
+          icon={FABicon}
+          onPress={toggleEditMode}
+          onLongPress={() => setTooltipVisible(true)}
+          style={{ position: 'absolute', right: 0, bottom: 0, overflow: 'hidden', margin: 19 }}
+          disabled={!validationResult.isValid}
+          extended={fabExtended}
+          label={editMode ? 'Save Product' : 'Edit Product'}
+          visible={product.ownedBy === 'me'}
+        />
+      </Tooltip>
     </>
   );
 }
@@ -275,9 +286,19 @@ function EditNameButton({
         { text: 'Cancel', onPress: () => undefined },
         {
           text: 'OK',
-          disabled: (value) => !isValidProductName(value),
+          disabled: (value) => {
+            const result = validateProductName(value);
+            return !result.isValid;
+          },
           onPress: (newName) => {
             const name = typeof newName === 'string' ? newName.trim() : '';
+            const result = validateProductName(name);
+
+            if (!result.isValid) {
+              alert(result.error);
+              return;
+            }
+
             onProductNameChange?.(name);
           },
         },

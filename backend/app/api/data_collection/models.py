@@ -126,7 +126,13 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     # One-to-many relationships
     owner_id: UUID4 = Field(foreign_key="user.id")
     owner: "User" = Relationship(
-        back_populates="products", sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
+        back_populates="products",
+        sa_relationship_kwargs={
+            "uselist": False,
+            "lazy": "selectin",
+            "primaryjoin": "Product.owner_id == User.id",  # HACK: Explicitly define join condition because of
+            "foreign_keys": "[Product.owner_id]",  # pydantic / sqlmodel issues (see https://github.com/fastapi/sqlmodel/issues/1623)
+        },
     )
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")

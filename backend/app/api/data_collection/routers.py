@@ -228,9 +228,6 @@ async def get_products(
     else:
         statement: SelectOfScalar[Product] = select(Product).where(Product.parent_id == None)
 
-    if product_filter:
-        statement = product_filter.filter(statement)
-
     return await get_paginated_models(
         session,
         Product,

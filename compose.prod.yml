@@ -31,6 +31,10 @@ services:
       - user_uploads:/data/uploads:ro
       - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
 
+  cache:
+    volumes: # Persist cache data in production
+      - cache_data:/data
+
   cloudflared: # Cloudflared tunnel to cml-relab.org
     image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
     command: tunnel --no-autoupdate run
@@ -46,7 +50,7 @@ services:
     environment:
       SCHEDULE: 0 2 * * * # Daily at 2am
       POSTGRES_HOST: database
-      POSTGRES_EXTRA_OPTS: "-Z1 --schema: public --blobs" # Compress backups, only back up public schema, include blobs
+      POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
@@ -59,3 +63,6 @@ services:
   docs:
     # Disable live reload for production
     command: ["serve", "--dev-addr=0.0.0.0:8000", "--no-livereload"]
+
+volumes:
+  cache_data:

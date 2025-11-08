@@ -4,10 +4,12 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 
 import jwt
+from pydantic import SecretStr
 
 from app.api.auth.config import settings
 
 ALGORITHM = "HS256"  # Algorithm used for JWT encoding/decoding
+SECRET: SecretStr = settings.newsletter_secret
 
 
 class JWTType(str, Enum):
@@ -33,13 +35,13 @@ def create_jwt_token(email: str, token_type: JWTType) -> str:
     """Create a JWT token for newsletter confirmation."""
     expiration = datetime.now(UTC) + timedelta(seconds=token_type.expiration_seconds)
     payload = {"sub": email, "exp": expiration, "type": token_type.value}
-    return jwt.encode(payload, settings.newsletter_secret, algorithm=ALGORITHM)
+    return jwt.encode(payload, SECRET.get_secret_value(), algorithm=ALGORITHM)
 
 
 def verify_jwt_token(token: str, expected_token_type: JWTType) -> str | None:
     """Verify the JWT token and return the email if valid."""
     try:
-        payload = jwt.decode(token, settings.newsletter_secret, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET.get_secret_value(), algorithms=[ALGORITHM])
         if payload["type"] != expected_token_type.value:
             return None
         return payload["sub"]  # Returns the email address from the token

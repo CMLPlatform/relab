@@ -6,11 +6,12 @@ import contextlib
 import logging
 
 import anyio
+from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
+
 from app.api.auth.schemas import UserCreate
 from app.api.auth.utils.programmatic_user_crud import create_user
 from app.core.config import settings
 from app.core.database import get_async_session
-from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 # Set up logging
 logger: logging.Logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ async def create_superuser() -> None:
                 async_session=async_session,
                 user_create=UserCreate(
                     email=superuser_email,
-                    password=superuser_password,
+                    password=superuser_password.get_secret_value(),
                     organization_id=None,
                     is_superuser=True,
                     is_verified=True,

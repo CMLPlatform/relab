@@ -126,3 +126,13 @@ class UserOwnershipError(APIError):
     ) -> None:
         model_name = model_type.get_api_model_name().name_capital
         super().__init__(message=(f"User {user_id} does not own {model_name} with ID {model_id}."))
+
+
+class DisposableEmailError(AuthCRUDError):
+    """Raised when a disposable email address is used."""
+
+    http_status_code = status.HTTP_400_BAD_REQUEST
+
+    def __init__(self, email: str) -> None:
+        msg = f"The email address '{email}' is from a disposable email provider, which is not allowed."
+        super().__init__(msg)

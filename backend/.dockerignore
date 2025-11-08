@@ -96,3 +96,6 @@ MANIFEST
 
 # Local logs
 ./logs
+
+# Include built email templates
+!app/templates/emails/build/

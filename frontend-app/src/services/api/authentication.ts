@@ -1,12 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '@/types/User';
 
-const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
+const apiURL = `${process.env.EXPO_PUBLIC_API_URL}`;
 let token: string | undefined;
 let user: User | undefined;
 
 export async function login(username: string, password: string): Promise<string | undefined> {
-  const url = new URL(baseUrl + '/auth/bearer/login');
+  const url = new URL(apiURL + '/auth/bearer/login');
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
   const body = new URLSearchParams({ username, password }).toString();
 
@@ -74,7 +74,7 @@ export async function getUser(): Promise<User | undefined> {
       return user;
     }
 
-    const url = new URL(baseUrl + '/users/me');
+    const url = new URL(apiURL + '/users/me');
     const authToken = await getToken();
     if (!authToken) {
       return undefined;
@@ -112,8 +112,12 @@ export async function getUser(): Promise<User | undefined> {
   }
 }
 
-export async function register(username: string, email: string, password: string): Promise<boolean> {
-  const url = new URL(baseUrl + '/auth/register');
+export async function register(
+  username: string,
+  email: string,
+  password: string,
+): Promise<{ success: boolean; error?: string }> {
+  const url = new URL(apiURL + '/auth/register');
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
   const body = {
@@ -122,12 +126,25 @@ export async function register(username: string, email: string, password: string
     password: password,
   };
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
-  return response.ok;
+  try {
+    const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+
+    if (response.ok) {
+      return { success: true };
+    }
+
+    const errorData = await response.json();
+    const errorMessage = errorData.detail?.reason || errorData.detail || 'Registration failed. Please try again.';
+
+    return { success: false, error: errorMessage };
+  } catch (error) {
+    console.error('Registration error:', error);
+    return { success: false, error: 'Network error. Please check your connection and try again.' };
+  }
 }
 
 export async function verify(email: string): Promise<boolean> {
-  const url = new URL(baseUrl + '/auth/request-verify-token');
+  const url = new URL(apiURL + '/auth/request-verify-token');
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
   const body = {
