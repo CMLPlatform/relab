@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.9-python3.14-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.9-python3.13-trixie-slim AS builder
 
 WORKDIR /opt/relab/backend_migrations
 
@@ -33,7 +33,7 @@ COPY scripts/ scripts/
 COPY app/ app/
 
 # --- Final runtime stage ---
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 # Build arguments
 ARG WORKDIR=/opt/relab/backend_migrations
