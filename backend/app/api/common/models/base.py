@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import Any, ClassVar, Generic, Self, TypeVar
+from typing import Any, ClassVar, Self, TypeVar
 
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 from sqlalchemy import TIMESTAMP, func
