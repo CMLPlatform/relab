@@ -1,5 +1,6 @@
 # --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.9-python3.14-trixie-slim AS builder
+# TODO: Move to Python 3.14 once asyncpg supports it (version 0.31.0+, see https://github.com/MagicStack/asyncpg/issues/1282)
+FROM ghcr.io/astral-sh/uv:0.9-python3.13-trixie-slim AS builder
 
 # Install git for custom dependencies (fastapi-users-db-sqlmodel)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -34,7 +35,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups --group=api
 
 # --- Final runtime stage ---
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 # Build arguments
 ARG WORKDIR=/opt/relab/backend

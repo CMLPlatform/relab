@@ -23,6 +23,7 @@
   ## Dependencies and version constraints
   dependencies = [
     "asyncache>=0.3.1",
+    # TODO: Move to Python 3.14 once asyncpg supports it (version 0.31.0+, see https://github.com/MagicStack/asyncpg/issues/1282)
     "asyncpg>=0.30.0",
     "cachetools>=5.5.2",
     "email-validator>=2.2.0",
