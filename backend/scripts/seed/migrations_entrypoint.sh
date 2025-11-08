@@ -32,15 +32,20 @@ if [ "$(lc "$SEED_TAXONOMIES")" = "true" ]; then
     .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
 fi
 
-# Check if all tables are empty
-echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
-DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
+# Seed dummy data if enabled and if the database is empty
+if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
+    echo "Dummy data seeding is enabled."
+    echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
+    DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
 
-if [ "$(lc "$DB_EMPTY")" = "true" ] && [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
-    echo "All tables are empty, proceeding to seed dummy data..."
-    .venv/bin/python -m scripts.seed.dummy_data
+    if [ "$(lc "$DB_EMPTY")" = "true" ]; then
+        echo "All tables are empty, proceeding to seed dummy data..."
+        .venv/bin/python -m scripts.seed.dummy_data
+    else
+        echo "Database already has data seeding disabled, skipping."
+    fi
 else
-    echo "Database already has data or dummy data seeding disabled, skipping."
+    echo "Dummy data seeding is disabled."
 fi
 
 # Create a superuser if the required environment variables are set
