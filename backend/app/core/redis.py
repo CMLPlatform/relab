@@ -101,7 +101,7 @@ async def set_redis_value(redis_client: Redis, key: str, value: Any, ex: int | N
     Args:
         redis_client: Redis client
         key: Redis key
-        value: Value to stores
+        value: Value to store
         ex: Expiration time in seconds (optional)
 
     Returns:
