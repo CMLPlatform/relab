@@ -6,8 +6,8 @@ from pydantic import AnyUrl, HttpUrl, PlainSerializer, StringConstraints
 
 # HTTP URL that is stored as string in the database.
 HttpUrlToDB: TypeAlias = Annotated[
-    HttpUrl, PlainSerializer(lambda x: str(x), return_type=str), StringConstraints(max_length=250)
+    HttpUrl, PlainSerializer(str, return_type=str), StringConstraints(max_length=250)
 ]
 AnyUrlToDB: TypeAlias = Annotated[
-    AnyUrl, PlainSerializer(lambda x: str(x), return_type=str), StringConstraints(max_length=250)
+    AnyUrl, PlainSerializer(str, return_type=str), StringConstraints(max_length=250)
 ]
