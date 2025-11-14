@@ -10,7 +10,8 @@ export type Product = {
   productTypeID?: number;
   componentIDs: number[];
   physicalProperties: PhysicalProperties;
-  images: { id: number; url: string; description: string }[];
+  images: { id?: number; url: string; description: string }[];
+  videos: { id: number; url: string; description: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;
 };
