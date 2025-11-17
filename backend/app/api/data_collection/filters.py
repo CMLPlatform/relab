@@ -31,8 +31,8 @@ class MaterialProductLinkFilter(Filter):
 class PhysicalPropertiesFilter(Filter):
     """FastAPI-filter class for Physical Properties filtering."""
 
-    weight_kg__gte: float | None = None
-    weight_kg__lte: float | None = None
+    weight_g__gte: float | None = None
+    weight_g__lte: float | None = None
     height_cm__gte: float | None = None
     height_cm__lte: float | None = None
     width_cm__gte: float | None = None

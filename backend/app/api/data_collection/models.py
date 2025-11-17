@@ -35,7 +35,7 @@ def validate_start_and_end_time(start_time: datetime, end_time: datetime | None)
 class PhysicalPropertiesBase(CustomBase):
     """Base model to store physical properties of a product."""
 
-    weight_kg: float | None = Field(default=None, gt=0)
+    weight_g: float | None = Field(default=None, gt=0)
     height_cm: float | None = Field(default=None, gt=0)
     width_cm: float | None = Field(default=None, gt=0)
     depth_cm: float | None = Field(default=None, gt=0)

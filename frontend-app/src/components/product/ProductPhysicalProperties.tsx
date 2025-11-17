@@ -13,7 +13,7 @@ interface Props {
 }
 
 const unitMap = {
-  weight: 'kg',
+  weight: 'g',
   height: 'cm',
   width: 'cm',
   depth: 'cm',

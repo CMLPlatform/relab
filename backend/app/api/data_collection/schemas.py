@@ -76,7 +76,7 @@ class PhysicalPropertiesCreate(BaseCreateSchema, PhysicalPropertiesBase):
     """Schema for creating physical properties."""
 
     model_config: ConfigDict = ConfigDict(
-        json_schema_extra={"examples": [{"weight_kg": 20, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
+        json_schema_extra={"examples": [{"weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
     )
 
 
@@ -84,14 +84,14 @@ class PhysicalPropertiesRead(BaseReadSchemaWithTimeStamp, PhysicalPropertiesBase
     """Schema for reading physical properties."""
 
     model_config: ConfigDict = ConfigDict(
-        json_schema_extra={"examples": [{"id": 1, "weight_kg": 20, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
+        json_schema_extra={"examples": [{"id": 1, "weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
     )
 
 
 class PhysicalPropertiesUpdate(BaseUpdateSchema, PhysicalPropertiesBase):
     """Schema for updating physical properties."""
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": [{"weight_kg": 15, "height_cm": 120}]})
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": [{"weight_g": 15000, "height_cm": 120}]})
 
 
 class CircularityPropertiesCreate(BaseCreateSchema, CircularityPropertiesBase):
@@ -219,7 +219,7 @@ class ProductCreateBaseProduct(ProductCreateWithRelationships):
                     "dismantling_time_end": "2025-09-22T16:30:45Z",
                     "product_type_id": 1,
                     "physical_properties": {
-                        "weight_kg": 20,
+                        "weight_g": 20000,
                         "height_cm": 150,
                         "width_cm": 70,
                         "depth_cm": 50,
@@ -228,8 +228,8 @@ class ProductCreateBaseProduct(ProductCreateWithRelationships):
                         {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
                     ],
                     "bill_of_materials": [
-                        {"quantity": 0.3, "unit": "kg", "material_id": 1},
-                        {"quantity": 0.1, "unit": "kg", "material_id": 2},
+                        {"quantity": 0.3, "unit": "g", "material_id": 1},
+                        {"quantity": 0.1, "unit": "g", "material_id": 2},
                     ],
                 }
             ]
