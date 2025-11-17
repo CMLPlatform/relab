@@ -4,19 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
 import { Icon } from 'react-native-paper';
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useDialog } from '@/components/common/DialogProvider';
 
 import { processImage } from '@/services/media/imageProcessing';
 import { Product } from '@/types/Product';
-
-type searchParams = {
-  photoTaken?: 'taken' | 'set';
-};
 
 interface Props {
   product: Product;
@@ -27,9 +20,7 @@ interface Props {
 // TODO: Only load images lazily when they come into view (or soon)
 export default function ProductImages({ product, editMode, onImagesChange }: Props) {
   // Hooks
-  const router = useRouter();
   const dialog = useDialog();
-  const { photoTaken } = useLocalSearchParams<searchParams>();
   const imageGallery = useRef<FlatList>(null);
   const width = Dimensions.get('window').width;
   const darkMode = useColorScheme() === 'dark';
@@ -80,25 +71,6 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
     }
   }, [goToIndex, imageCount, pendingScrollIndex]);
 
-  useEffect(() => {
-    // If a photo was taken, get it from AsyncStorage and add it to the product images
-    if (photoTaken === 'taken') {
-      AsyncStorage.getItem('lastPhoto').then((uri) => {
-        if (!uri) return;
-
-        product.images = [...product.images, { url: uri, description: '', id: 0 }];
-        onImagesChange?.(product.images);
-
-        AsyncStorage.removeItem('lastPhoto');
-        router.setParams({ photoTaken: 'set' });
-      });
-    }
-    if (photoTaken === 'set') {
-      setPendingScrollIndex(product.images.length - 1);
-      router.setParams({ photoTaken: undefined });
-    }
-  }, [onImagesChange, photoTaken, product, router]);
-
   // Arrow key navigation on web
   useEffect(() => {
     if (!isWeb) return;
@@ -126,9 +98,51 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
     onImagesChange?.(product.images);
   };
 
-  const onOpenCamera = () => {
-    const params = { id: product.id };
-    router.push({ pathname: '/products/[id]/camera', params: params });
+  const onTakePhoto = async () => {
+    // Request camera permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      await dialog.alert({
+        title: 'Permission Required',
+        message: 'Camera permission is required to take photos',
+      });
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        mediaTypes: 'images',
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      // Process the captured image
+      const processedUri = await processImage(result.assets[0], {
+        onError: (error) => {
+          dialog.alert({
+            title: error.type === 'size' ? 'Image too large' : 'Processing failed',
+            message: error.message,
+          });
+        },
+      });
+
+      if (processedUri) {
+        product.images = [...product.images, { url: processedUri, description: '', id: 0 }];
+        onImagesChange?.(product.images);
+        setPendingScrollIndex(product.images.length - 1);
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      if (error.message?.includes('Unsupported file type')) {
+        await dialog.alert({
+          title: 'Unsupported file',
+          message: 'Please select an image file.',
+        });
+      }
+    }
   };
 
   const onImagePicker = async () => {
@@ -267,7 +281,7 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
           }}
         >
           <ToolbarIcon icon={'upload'} onPress={onImagePicker} />
-          <ToolbarIcon icon={'camera'} onPress={onOpenCamera} />
+          <ToolbarIcon icon={'camera'} onPress={onTakePhoto} />
         </View>
       )}
     </View>
