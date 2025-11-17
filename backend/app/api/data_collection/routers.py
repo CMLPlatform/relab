@@ -45,10 +45,14 @@ from app.api.data_collection.dependencies import (
     get_user_owned_product_id,
 )
 from app.api.data_collection.models import (
+    CircularityProperties,
     PhysicalProperties,
     Product,
 )
 from app.api.data_collection.schemas import (
+    CircularityPropertiesCreate,
+    CircularityPropertiesRead,
+    CircularityPropertiesUpdate,
     ComponentCreateWithComponents,
     ComponentReadWithRecursiveComponents,
     PhysicalPropertiesCreate,
@@ -116,13 +120,14 @@ async def get_user_products(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": {}},
-                "properties": {"value": {"physical_properties"}},
+                "properties": {"value": {"physical_properties", "circularity_properties"}},
                 "materials": {"value": {"bill_of_materials"}},
                 "components": {"value": {"components"}},
                 "media": {"value": {"images", "videos", "files"}},
                 "all": {
                     "value": {
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -187,13 +192,14 @@ async def get_products(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -215,6 +221,7 @@ async def get_products(
 
     Relationships that can be included:
     - physical_properties: Physical measurements and attributes
+    - circularity_properties: Circularity properties (recyclability, repairability, remanufacturability)
     - images: Product images
     - videos: Product videos
     - files: Related documents
@@ -324,13 +331,14 @@ async def get_product(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -347,6 +355,7 @@ async def get_product(
 
     Relationships that can be included:
     - physical_properties: Physical measurements and attributes
+    - circularity_properties: Circularity properties (recyclability, repairability, remanufacturability)
     - images: Product images
     - videos: Product videos
     - files: Related documents
@@ -564,13 +573,14 @@ async def get_product_components(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -612,13 +622,14 @@ async def get_product_component(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -771,6 +782,58 @@ async def delete_product_physical_properties(
 ) -> None:
     """Delete physical properties for a product."""
     await crud.delete_physical_properties(session, product)
+
+
+@product_router.get(
+    "/{product_id}/circularity_properties",
+    response_model=CircularityPropertiesRead,
+    summary="Get product circularity properties",
+)
+async def get_product_circularity_properties(product_id: PositiveInt, session: AsyncSessionDep) -> CircularityProperties:
+    """Get circularity properties for a product."""
+    return await crud.get_circularity_properties(session, product_id)
+
+
+@product_router.post(
+    "/{product_id}/circularity_properties",
+    response_model=CircularityPropertiesRead,
+    status_code=201,
+    summary="Create product circularity properties",
+)
+async def create_product_circularity_properties(
+    product: UserOwnedProductDep,
+    properties: CircularityPropertiesCreate,
+    session: AsyncSessionDep,
+) -> CircularityProperties:
+    """Create circularity properties for a product."""
+    return await crud.create_circularity_properties(session, properties, product.id)
+
+
+@product_router.patch(
+    "/{product_id}/circularity_properties",
+    response_model=CircularityPropertiesRead,
+    summary="Update product circularity properties",
+)
+async def update_product_circularity_properties(
+    product: UserOwnedProductDep,
+    properties: CircularityPropertiesUpdate,
+    session: AsyncSessionDep,
+) -> CircularityProperties:
+    """Update circularity properties for a product."""
+    return await crud.update_circularity_properties(session, product.id, properties)
+
+
+@product_router.delete(
+    "/{product_id}/circularity_properties",
+    status_code=204,
+    summary="Delete product circularity properties",
+)
+async def delete_product_circularity_properties(
+    product: UserOwnedProductDep,
+    session: AsyncSessionDep,
+) -> None:
+    """Delete circularity properties for a product."""
+    await crud.delete_circularity_properties(session, product)
 
 
 ## Product Video routers ##

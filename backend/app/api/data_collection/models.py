@@ -61,6 +61,35 @@ class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True)
     product: "Product" = Relationship(back_populates="physical_properties")
 
 
+class CircularityPropertiesBase(CustomBase):
+    """Base model to store circularity properties of a product."""
+
+    # Recyclability
+    recyclability_observation: str = Field(min_length=2, max_length=500)
+    recyclability_comment: str | None = Field(default=None, max_length=100)
+    recyclability_reference: str | None = Field(default=None, max_length=100)
+
+    # Repairability
+    repairability_observation: str = Field(min_length=2, max_length=500)
+    repairability_comment: str | None = Field(default=None, max_length=100)
+    repairability_reference: str | None = Field(default=None, max_length=100)
+
+    # Remanufacturability
+    remanufacturability_observation: str = Field(min_length=2, max_length=500)
+    remanufacturability_comment: str | None = Field(default=None, max_length=100)
+    remanufacturability_reference: str | None = Field(default=None, max_length=100)
+
+
+class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table=True):
+    """Model to store circularity properties of a product."""
+
+    id: int | None = Field(default=None, primary_key=True)
+
+    # One-to-one relationships
+    product_id: int = Field(foreign_key="product.id")
+    product: "Product" = Relationship(back_populates="circularity_properties")
+
+
 ### Product Model ###
 class ProductBase(CustomBase):
     """Basic model to store product information."""
@@ -113,6 +142,9 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # One-to-one relationships
     physical_properties: PhysicalProperties | None = Relationship(
+        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
+    )
+    circularity_properties: CircularityProperties | None = Relationship(
         back_populates="product", cascade_delete=True, sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
     )
 
