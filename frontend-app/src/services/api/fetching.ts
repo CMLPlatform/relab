@@ -148,8 +148,7 @@ export async function myProducts(
 
   const data = await response.json();
 
-  // TODO: Update to data.items when adding pagination to /users/me/products endpoint
-  const product_data = data as ProductData[];
+  const product_data = data.items as ProductData[];
 
   return Promise.all(product_data.map((data) => toProduct(data)));
 }
