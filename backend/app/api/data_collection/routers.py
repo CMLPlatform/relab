@@ -106,7 +106,7 @@ user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=[
 
 @user_product_router.get(
     "",
-    response_model=list[ProductReadWithRelationshipsAndFlatComponents],
+    response_model=Page[ProductReadWithRelationshipsAndFlatComponents],
     summary="Get products collected by a user",
 )
 async def get_user_products(
@@ -139,18 +139,29 @@ async def get_user_products(
             },
         ),
     ] = None,
+    *,
+    include_components_as_base_products: Annotated[
+        bool | None,
+        Query(description="Whether to include components as base products in the response"),
+    ] = None,
 ) -> Sequence[Product]:
     """Get products collected by a specific user."""
     # NOTE: If needed, we can open up this endpoint to any user by removing this ownership check
     if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
+    
+    statement=(select(Product).where(Product.owner_id == user_id))
+    
+    if not include_components_as_base_products:
+        statement: SelectOfScalar[Product] = statement.where(Product.parent_id == None)
 
-    return await get_models(
+    return await get_paginated_models(
         session,
         Product,
         include_relationships=include,
         model_filter=product_filter,
-        statement=(select(Product).where(Product.owner_id == user_id)),
+        statement=statement,
+        read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
 
 
