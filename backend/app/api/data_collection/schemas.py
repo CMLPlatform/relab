@@ -27,6 +27,7 @@ from app.api.common.schemas.base import (
     ProductRead,
 )
 from app.api.data_collection.models import (
+    CircularityPropertiesBase,
     PhysicalPropertiesBase,
     ProductBase,
 )
@@ -93,6 +94,71 @@ class PhysicalPropertiesUpdate(BaseUpdateSchema, PhysicalPropertiesBase):
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": [{"weight_kg": 15, "height_cm": 120}]})
 
 
+class CircularityPropertiesCreate(BaseCreateSchema, CircularityPropertiesBase):
+    """Schema for creating circularity properties."""
+
+    model_config: ConfigDict = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "recyclability_observation": "The product can be easily disassembled and materials separated",
+                    "recyclability_comment": "High recyclability rating",
+                    "recyclability_reference": "ISO 14021:2016",
+                    "repairability_observation": "Components are modular and can be replaced individually",
+                    "repairability_comment": "Good repairability score",
+                    "repairability_reference": "EN 45554:2020",
+                    "remanufacturability_observation": "Core components can be refurbished and reused",
+                    "remanufacturability_comment": "Suitable for remanufacturing",
+                    "remanufacturability_reference": "BS 8887-2:2009",
+                }
+            ]
+        }
+    )
+
+
+class CircularityPropertiesRead(BaseReadSchemaWithTimeStamp, CircularityPropertiesBase):
+    """Schema for reading circularity properties."""
+
+    model_config: ConfigDict = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": 1,
+                    "recyclability_observation": "The product can be easily disassembled and materials separated",
+                    "recyclability_comment": "High recyclability rating",
+                    "recyclability_reference": "ISO 14021:2016",
+                    "repairability_observation": "Components are modular and can be replaced individually",
+                    "repairability_comment": "Good repairability score",
+                    "repairability_reference": "EN 45554:2020",
+                    "remanufacturability_observation": "Core components can be refurbished and reused",
+                    "remanufacturability_comment": "Suitable for remanufacturing",
+                    "remanufacturability_reference": "BS 8887-2:2009",
+                }
+            ]
+        }
+    )
+
+
+class CircularityPropertiesUpdate(BaseUpdateSchema, CircularityPropertiesBase):
+    """Schema for updating circularity properties."""
+
+    # Make all fields optional for updates
+    recyclability_observation: str | None = Field(default=None, min_length=2, max_length=500)
+    repairability_observation: str | None = Field(default=None, min_length=2, max_length=500)
+    remanufacturability_observation: str | None = Field(default=None, min_length=2, max_length=500)
+
+    model_config: ConfigDict = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "recyclability_observation": "Updated observation on recyclability",
+                    "recyclability_comment": "Updated comment",
+                }
+            ]
+        }
+    )
+
+
 ### Product Schemas ###
 
 
@@ -127,6 +193,9 @@ class ProductCreateWithRelationships(ProductCreateBase):
 
     physical_properties: PhysicalPropertiesCreate | None = Field(
         default=None, description="Physical properties of the product"
+    )
+    circularity_properties: CircularityPropertiesCreate | None = Field(
+        default=None, description="Circularity properties of the product"
     )
 
     videos: list[VideoCreateWithinProduct] = Field(default_factory=list, description="Disassembly videos")
@@ -222,6 +291,7 @@ class ProductReadWithProperties(ProductRead):
     """Schema for reading product information with all properties."""
 
     physical_properties: PhysicalPropertiesRead | None = None
+    circularity_properties: CircularityPropertiesRead | None = None
 
 
 class ProductReadWithRelationships(ProductReadWithProperties):
@@ -290,3 +360,4 @@ class ProductUpdateWithProperties(ProductUpdate):
     """Schema for a partial update of a product with properties."""
 
     physical_properties: PhysicalPropertiesUpdate | None = None
+    circularity_properties: CircularityPropertiesUpdate | None = None
