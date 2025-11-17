@@ -144,7 +144,7 @@ product_data = [
         "model": "A2403",
         "product_type_name": "Smartphone",
         "physical_properties": {
-            "weight_kg": 0.164,
+            "weight_g": 164,
             "height_cm": 14.7,
             "width_cm": 7.15,
             "depth_cm": 0.74,
@@ -161,7 +161,7 @@ product_data = [
         "model": "XPS9380",
         "product_type_name": "Laptop",
         "physical_properties": {
-            "weight_kg": 1.23,
+            "weight_g": 1230,
             "height_cm": 1.16,
             "width_cm": 30.2,
             "depth_cm": 19.9,

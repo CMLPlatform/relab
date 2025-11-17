@@ -18,7 +18,7 @@ function toNewProduct(product: Product): any {
     bill_of_materials: [
       {
         quantity: 42,
-        unit: 'kg',
+        unit: 'g',
         material_id: 1,
       },
     ],
@@ -45,7 +45,7 @@ function toUpdateProduct(product: Product): any {
 
 function toUpdatePhysicalProperties(product: Product): any {
   return {
-    weight_kg: product.physicalProperties.weight || null,
+    weight_g: product.physicalProperties.weight || null,
     height_cm: product.physicalProperties.height || null,
     width_cm: product.physicalProperties.width || null,
     depth_cm: product.physicalProperties.depth || null,

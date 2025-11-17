@@ -389,7 +389,7 @@ async def create_product(
                         "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
-                            "weight_kg": 20,
+                            "weight_g": 2000,
                             "height_cm": 150,
                             "width_cm": 70,
                             "depth_cm": 50,
@@ -398,8 +398,8 @@ async def create_product(
                             {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
                         ],
                         "bill_of_materials": [
-                            {"quantity": 15, "unit": "kg", "material_id": 1},
-                            {"quantity": 5, "unit": "kg", "material_id": 2},
+                            {"quantity": 15, "unit": "g", "material_id": 1},
+                            {"quantity": 5, "unit": "g", "material_id": 2},
                         ],
                     },
                 },
@@ -414,7 +414,7 @@ async def create_product(
                         "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
-                            "weight_kg": 20,
+                            "weight_g": 20000,
                             "height_cm": 150,
                             "width_cm": 70,
                             "depth_cm": 50,
@@ -434,7 +434,7 @@ async def create_product(
                                 "amount_in_parent": 1,
                                 "product_type_id": 2,
                                 "physical_properties": {
-                                    "weight_kg": 5,
+                                    "weight_g": 5000,
                                     "height_cm": 50,
                                     "width_cm": 40,
                                     "depth_cm": 30,
@@ -445,15 +445,15 @@ async def create_product(
                                         "description": "Seat cushion assembly",
                                         "amount_in_parent": 1,
                                         "physical_properties": {
-                                            "weight_kg": 2,
+                                            "weight_g": 2000,
                                             "height_cm": 10,
                                             "width_cm": 40,
                                             "depth_cm": 30,
                                         },
                                         "product_type_id": 3,
                                         "bill_of_materials": [
-                                            {"quantity": 1.5, "unit": "kg", "material_id": 1},
-                                            {"quantity": 0.5, "unit": "kg", "material_id": 2},
+                                            {"quantity": 1.5, "unit": "g", "material_id": 1},
+                                            {"quantity": 0.5, "unit": "g", "material_id": 2},
                                         ],
                                     }
                                 ],
@@ -668,7 +668,7 @@ async def add_component_to_product(
                         "name": "Seat Assembly",
                         "description": "Chair seat component",
                         "amount_in_parent": 1,
-                        "bill_of_materials": [{"material_id": 1, "quantity": 0.5, "unit": "kg"}],
+                        "bill_of_materials": [{"material_id": 1, "quantity": 0.5, "unit": "g"}],
                     },
                 },
                 "nested": {
@@ -683,7 +683,7 @@ async def add_component_to_product(
                                 "name": "Cushion",
                                 "description": "Foam cushion",
                                 "amount_in_parent": 1,
-                                "bill_of_materials": [{"material_id": 2, "quantity": 0.3, "unit": "kg"}],
+                                "bill_of_materials": [{"material_id": 2, "quantity": 0.3, "unit": "g"}],
                             }
                         ],
                     },
@@ -1007,8 +1007,8 @@ async def add_materials_to_product(
             description="List of materials-product links to add to the product",
             examples=[
                 [
-                    {"material_id": 1, "quantity": 5, "unit": "kg"},
-                    {"material_id": 2, "quantity": 10, "unit": "kg"},
+                    {"material_id": 1, "quantity": 5, "unit": "g"},
+                    {"material_id": 2, "quantity": 10, "unit": "g"},
                 ]
             ],
         ),
@@ -1035,7 +1035,7 @@ async def add_material_to_product(
         MaterialProductLinkCreateWithinProductAndMaterial,
         Body(
             description="Material-product link details",
-            examples=[[{"quantity": 5, "unit": "kg"}]],
+            examples=[[{"quantity": 5, "unit": "g"}]],
         ),
     ],
     session: AsyncSessionDep,
