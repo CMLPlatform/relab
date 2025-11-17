@@ -38,7 +38,7 @@ async def get_user_owned_product(
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
     """Verify that the current user owns the specified product."""
-    if product.owner_id == current_user.id:
+    if product.owner_id == current_user.id or current_user.is_superuser:
         return product
     raise UserOwnershipError(model_type=Product, model_id=product.id, user_id=current_user.id) from None
 
