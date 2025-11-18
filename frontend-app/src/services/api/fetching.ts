@@ -1,7 +1,9 @@
+import { Platform } from 'react-native';
 import { getToken, getUser } from '@/services/api/authentication';
 import { Product } from '@/types/Product';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
+const isWeb = Platform.OS === 'web';
 
 // TODO: Break up the fetching logic into smaller files
 // TODO: Refactor the types to build on the generated API client from OpenAPI spec
@@ -63,7 +65,12 @@ export async function getProduct(id: number | 'new'): Promise<Product> {
     url.searchParams.append('include', inc),
   );
 
-  const response = await fetch(url, { method: 'GET' });
+  const fetchOptions: RequestInit = { method: 'GET' };
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -107,7 +114,12 @@ export async function allProducts(
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', size.toString());
 
-  const response = await fetch(url, { method: 'GET' });
+  const fetchOptions: RequestInit = { method: 'GET' };
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -135,12 +147,20 @@ export async function myProducts(
     throw new Error('Authentication required');
   }
 
-  const headers = {
-    Authorization: `Bearer ${authToken}`,
+  const headers: HeadersInit = {
     Accept: 'application/json',
   };
+  const fetchOptions: RequestInit = { method: 'GET', headers };
 
-  const response = await fetch(url, { method: 'GET', headers });
+  if (isWeb) {
+    // For web, use cookies for authentication
+    fetchOptions.credentials = 'include';
+  } else {
+    // For native, use Bearer token
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -156,7 +176,12 @@ export async function myProducts(
 
 export async function allBrands(): Promise<string[]> {
   const url = new URL(baseUrl + `/brands`);
-  const response = await fetch(url, { method: 'GET' });
+  const fetchOptions: RequestInit = { method: 'GET' };
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);

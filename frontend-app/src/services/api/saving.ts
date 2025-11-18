@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { getToken } from '@/services/api/authentication';
 import { getProduct } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
@@ -6,6 +7,7 @@ import { Product } from '@/types/Product';
 // TODO: Refactor the types to build on the generated API client from OpenAPI spec
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
+const isWeb = Platform.OS === 'web';
 
 function toNewProduct(product: Product): any {
   const isComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
@@ -68,14 +70,19 @@ async function saveNewProduct(product: Product): Promise<number> {
       : new URL(baseUrl + '/products');
 
   const token = await getToken();
-  const headers = {
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
   };
-  const body = JSON.stringify(toNewProduct(product));
+  const fetchOptions: RequestInit = { method: 'POST', headers, body: JSON.stringify(toNewProduct(product)) };
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: body });
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  } else {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, fetchOptions);
   const data = await response.json();
 
   console.log('Created product:', data);
@@ -88,20 +95,31 @@ async function saveNewProduct(product: Product): Promise<number> {
 
 async function updateProduct(product: Product): Promise<number> {
   const token = await getToken();
-  const headers = {
+  const headers: HeadersInit = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
   };
+
+  if (!isWeb) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const productBody = JSON.stringify(toUpdateProduct(product));
   const propertiesBody = JSON.stringify(toUpdatePhysicalProperties(product));
 
   let url = new URL(baseUrl + `/products/${product.id}`);
-  const response = await fetch(url, { method: 'PATCH', headers: headers, body: productBody });
+  const fetchOptions: RequestInit = { method: 'PATCH', headers, body: productBody };
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  }
+  const response = await fetch(url, fetchOptions);
 
   url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
-  await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
+  const propertiesFetchOptions: RequestInit = { method: 'PATCH', headers, body: propertiesBody };
+  if (isWeb) {
+    propertiesFetchOptions.credentials = 'include';
+  }
+  await fetch(url, propertiesFetchOptions);
   await updateProductImages(product);
 
   const data = await response.json();
@@ -126,19 +144,25 @@ async function updateProductImages(product: Product) {
 async function deleteImage(product: Product, image: { id: number }) {
   const url = new URL(baseUrl + `/products/${product.id}/images/${image.id}`);
   const token = await getToken();
-  const headers = {
+  const headers: HeadersInit = {
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
   };
-  return await fetch(url, { method: 'DELETE', headers: headers });
+  const fetchOptions: RequestInit = { method: 'DELETE', headers };
+
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  } else {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return await fetch(url, fetchOptions);
 }
 
 async function addImage(product: Product, image: { url: string; description: string }) {
   const url = new URL(baseUrl + `/products/${product.id}/images`);
   const token = await getToken();
-  const headers = {
+  const headers: HeadersInit = {
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
   };
   const body = new FormData();
 
@@ -154,7 +178,15 @@ async function addImage(product: Product, image: { url: string; description: str
     body.append('file', blob, 'image.png');
   }
 
-  await fetch(url, { method: 'POST', headers: headers, body: body });
+  const fetchOptions: RequestInit = { method: 'POST', headers, body };
+
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  } else {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  await fetch(url, fetchOptions);
 }
 
 function dataURItoBlob(dataURI: string) {
@@ -176,10 +208,17 @@ export async function deleteProduct(product: Product): Promise<void> {
   } // New products are not saved yet
   const url = new URL(baseUrl + `/products/${product.id}`);
   const token = await getToken();
-  const headers = {
+  const headers: HeadersInit = {
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
   };
-  await fetch(url, { method: 'DELETE', headers: headers });
+  const fetchOptions: RequestInit = { method: 'DELETE', headers };
+
+  if (isWeb) {
+    fetchOptions.credentials = 'include';
+  } else {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  await fetch(url, fetchOptions);
   return;
 }

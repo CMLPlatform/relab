@@ -1,17 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { User } from '@/types/User';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
+const isWeb = Platform.OS === 'web';
 let token: string | undefined;
 let user: User | undefined;
 
 export async function login(username: string, password: string): Promise<string | undefined> {
-  const url = new URL(baseUrl + '/auth/bearer/login');
+  // Use cookie-based auth for web, bearer token for native
+  const authEndpoint = isWeb ? '/auth/cookie/login' : '/auth/bearer/login';
+  const url = new URL(baseUrl + authEndpoint);
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
   const body = new URLSearchParams({ username, password }).toString();
 
   try {
-    const response = await fetch(url, { method: 'POST', headers, body });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body,
+      credentials: isWeb ? 'include' : 'same-origin', // Include cookies for web
+    });
     let data;
     try {
       data = await response.json();
@@ -27,11 +36,18 @@ export async function login(username: string, password: string): Promise<string 
       // Throw error with HTTP status and message
       throw new Error(`HTTP ${response.status}: ${data?.detail || JSON.stringify(data) || 'Login failed.'}`);
     }
-    // TODO: use cookies for frontend auth instead of storing credentials in local storage
-    await AsyncStorage.setItem('username', username);
-    await AsyncStorage.setItem('password', password);
-    token = data.access_token;
-    return token;
+
+    if (isWeb) {
+      // For web, the token is stored in HTTP-only cookie by the backend
+      // We set a flag to indicate successful authentication
+      token = 'cookie-auth';
+      return token;
+    } else {
+      // For native, store the token in AsyncStorage (not credentials)
+      token = data.access_token;
+      await AsyncStorage.setItem('auth_token', token);
+      return token;
+    }
   } catch (err: any) {
     console.error('[Login Fetch Error]:', err);
     throw new Error('Unable to reach server. Please try again later.');
@@ -41,8 +57,22 @@ export async function login(username: string, password: string): Promise<string 
 export async function logout(): Promise<void> {
   token = undefined;
   user = undefined;
-  await AsyncStorage.removeItem('username');
-  await AsyncStorage.removeItem('password');
+
+  if (isWeb) {
+    // For web, call the logout endpoint to clear the cookie
+    try {
+      const url = new URL(baseUrl + '/auth/cookie/logout');
+      await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('[Logout Error]:', err);
+    }
+  } else {
+    // For native, remove the stored token
+    await AsyncStorage.removeItem('auth_token');
+  }
 }
 
 export async function getToken(): Promise<string | undefined> {
@@ -50,20 +80,31 @@ export async function getToken(): Promise<string | undefined> {
     return token;
   }
 
-  const username = await AsyncStorage.getItem('username');
-  const password = await AsyncStorage.getItem('password');
-  if (!username || !password) {
-    return undefined;
-  }
+  if (isWeb) {
+    // For web, verify if we have a valid session cookie
+    try {
+      const url = new URL(baseUrl + '/users/me');
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-  try {
-    const success = await login(username, password);
-    if (!success) {
-      return undefined;
+      if (response.ok) {
+        // Cookie is valid
+        token = 'cookie-auth';
+        return token;
+      }
+    } catch (err) {
+      console.error('[GetToken Error]:', err);
     }
-    return token;
-  } catch (err) {
-    console.error('[GetToken Error]:', err);
+    return undefined;
+  } else {
+    // For native, try to get the stored token
+    const storedToken = await AsyncStorage.getItem('auth_token');
+    if (storedToken) {
+      token = storedToken;
+      return token;
+    }
     return undefined;
   }
 }
@@ -80,8 +121,18 @@ export async function getUser(): Promise<User | undefined> {
       return undefined;
     }
 
-    const headers = { Authorization: `Bearer ${authToken}`, Accept: 'application/json' };
-    const response = await fetch(url, { method: 'GET', headers });
+    const headers: HeadersInit = { Accept: 'application/json' };
+    const fetchOptions: RequestInit = { method: 'GET', headers };
+
+    if (isWeb) {
+      // For web, use cookies for authentication
+      fetchOptions.credentials = 'include';
+    } else {
+      // For native, use Bearer token
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     let data;
     try {
