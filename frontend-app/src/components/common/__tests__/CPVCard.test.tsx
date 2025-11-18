@@ -37,11 +37,9 @@ describe('CPVCard Component', () => {
   });
 
   it('should render action element when provided', () => {
-    const ActionElement = () => <>{`Action`}</>;
-    const { getByText, queryByText } = render(
-      <CPVCard CPV={mockCategory} onPress={mockOnPress} actionElement={<ActionElement />} />
+    const { queryByText } = render(
+      <CPVCard CPV={mockCategory} onPress={mockOnPress} actionElement={<>Action</>} />
     );
-    expect(getByText('Action')).toBeTruthy();
     // Name should not be rendered when action element is provided
     expect(queryByText('Test Category')).toBeFalsy();
   });

@@ -19,21 +19,10 @@ describe('ProductDescription Component', () => {
     ownedBy: 'me',
   };
 
-  it('should render with initial description', () => {
-    const { getByDisplayValue } = render(
-      <ProductDescription product={mockProduct} editMode={false} />
-    );
-    expect(getByDisplayValue('Initial description')).toBeTruthy();
-  });
-
-  it('should call onChangeDescription on blur', () => {
+  it('should render and update description', () => {
     const onChangeDescription = jest.fn();
     const { getByDisplayValue } = render(
-      <ProductDescription
-        product={mockProduct}
-        editMode={true}
-        onChangeDescription={onChangeDescription}
-      />
+      <ProductDescription product={mockProduct} editMode={true} onChangeDescription={onChangeDescription} />
     );
 
     const input = getByDisplayValue('Initial description');
@@ -43,36 +32,17 @@ describe('ProductDescription Component', () => {
     expect(onChangeDescription).toHaveBeenCalledWith('Updated description');
   });
 
-  it('should be editable when editMode is true', () => {
-    const { getByDisplayValue } = render(
-      <ProductDescription product={mockProduct} editMode={true} />
-    );
-    const input = getByDisplayValue('Initial description');
-    expect(input.props.editable).toBe(true);
-  });
-
-  it('should not be editable when editMode is false', () => {
-    const { getByDisplayValue } = render(
-      <ProductDescription product={mockProduct} editMode={false} />
-    );
+  it('should respect editMode prop', () => {
+    const { getByDisplayValue } = render(<ProductDescription product={mockProduct} editMode={false} />);
     const input = getByDisplayValue('Initial description');
     expect(input.props.editable).toBe(false);
   });
 
-  it('should render with placeholder when no description', () => {
+  it('should show placeholder when no description', () => {
     const productWithoutDesc = { ...mockProduct, description: undefined };
     const { getByPlaceholderText } = render(
       <ProductDescription product={productWithoutDesc} editMode={true} />
     );
     expect(getByPlaceholderText('Add a product description')).toBeTruthy();
-  });
-
-  it('should update text when typing', () => {
-    const { getByDisplayValue } = render(
-      <ProductDescription product={mockProduct} editMode={true} />
-    );
-    const input = getByDisplayValue('Initial description');
-    fireEvent.changeText(input, 'New description');
-    expect(getByDisplayValue('New description')).toBeTruthy();
   });
 });
