@@ -35,7 +35,7 @@ from app.core.config import settings as core_settings
 logger = logging.getLogger(__name__)
 
 # Declare constants
-SECRET: str = auth_settings.fastapi_users_secret
+SECRET: SecretStr = auth_settings.fastapi_users_secret
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
@@ -45,10 +45,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     """User manager class for FastAPI-Users."""
 
     # Set up token secrets and lifetimes
-    reset_password_token_secret: SecretType = SECRET
+    reset_password_token_secret: SecretType = SECRET.get_secret_value()
     reset_password_token_lifetime_seconds = RESET_TOKEN_TTL
 
-    verification_token_secret: SecretType = SECRET
+    verification_token_secret: SecretType = SECRET.get_secret_value()
     verification_token_lifetime_seconds = VERIFICATION_TOKEN_TTL
 
     async def create(
@@ -58,8 +58,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         request: Request | None = None,
     ) -> User:
         """Override of base user creation with additional username uniqueness check and organization creation."""
+        # HACK: Skipping of emails for synthetic users is implemented in an ugly way here
+        # Skip initialization of email checker if sending registration email is disabled
+        if request and hasattr(request.state, "send_registration_email") and not request.state.send_registration_email:
+            email_checker = None
+        else:
+            # Get email checker from app state if request is available
+            email_checker = request.app.state.email_checker if (request and request.app and hasattr(request.app.state, "email_checker")) else None
+
         try:
-            user_create = await create_user_override(self.user_db, user_create)
+            user_create = await create_user_override(self.user_db, user_create, email_checker)
         # HACK: This is a temporary solution to allow error propagation for username and organization creation errors.
         # The built-in UserManager register route can only catch UserAlreadyExists and InvalidPasswordException errors.
         # TODO: Implement custom exceptions in custom register router, this will also simplify user creation crud.
@@ -139,7 +147,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         await send_post_verification_email(user.email, user.username)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
-        logger.info("User %s has forgot their password. Reset token: %s", user.email, token)
+        logger.info("User %s has forgot their password. Sending reset token", user.email)
         await send_reset_password_email(user.email, user.username, token)
 
 
@@ -172,7 +180,7 @@ cookie_transport = CookieTransport(
 
 def get_jwt_strategy() -> JWTStrategy:
     """Get a JWT strategy to be used in authentication backends."""
-    return JWTStrategy(secret=SECRET, lifetime_seconds=ACCESS_TOKEN_TTL)
+    return JWTStrategy(secret=SECRET.get_secret_value(), lifetime_seconds=ACCESS_TOKEN_TTL)
 
 
 # Authentication backends

@@ -29,8 +29,10 @@ from app.api.common.schemas.associations import (
     MaterialProductLinkUpdate,
 )
 from app.api.data_collection.filters import ProductFilterWithRelationships
-from app.api.data_collection.models import PhysicalProperties, Product
+from app.api.data_collection.models import CircularityProperties, PhysicalProperties, Product
 from app.api.data_collection.schemas import (
+    CircularityPropertiesCreate,
+    CircularityPropertiesUpdate,
     ComponentCreateWithComponents,
     PhysicalPropertiesCreate,
     PhysicalPropertiesUpdate,
@@ -122,6 +124,72 @@ async def delete_physical_properties(db: AsyncSession, product: Product) -> None
     await db.commit()
 
 
+### CircularityProperty CRUD operations ###
+async def get_circularity_properties(db: AsyncSession, product_id: int) -> CircularityProperties:
+    """Get circularity properties for a product."""
+    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+
+    if not product.circularity_properties:
+        err_msg: str = f"Circularity properties for product with id {product_id} not found"
+        raise ValueError(err_msg)
+
+    return product.circularity_properties
+
+
+async def create_circularity_properties(
+    db: AsyncSession,
+    circularity_properties: CircularityPropertiesCreate,
+    product_id: int,
+) -> CircularityProperties:
+    """Create circularity properties for a product."""
+    # Validate that product exists and doesn't have circularity properties
+    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    if product.circularity_properties:
+        err_msg: str = f"Product with id {product_id} already has circularity properties"
+        raise ValueError(err_msg)
+
+    # Create circularity properties
+    db_circularity_property = CircularityProperties(
+        **circularity_properties.model_dump(),
+        product_id=product_id,
+    )
+    db.add(db_circularity_property)
+    await db.commit()
+    await db.refresh(db_circularity_property)
+
+    return db_circularity_property
+
+
+async def update_circularity_properties(
+    db: AsyncSession, product_id: int, circularity_properties: CircularityPropertiesUpdate
+) -> CircularityProperties:
+    """Update circularity properties for a product."""
+    # Validate that product exists and has circularity properties
+    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    if not (db_circularity_properties := product.circularity_properties):
+        err_msg: EmailStr = f"Circularity properties for product with id {product_id} not found"
+        raise ValueError(err_msg)
+
+    circularity_properties_data: dict[str, Any] = circularity_properties.model_dump(exclude_unset=True)
+    db_circularity_properties.sqlmodel_update(circularity_properties_data)
+
+    db.add(db_circularity_properties)
+    await db.commit()
+    await db.refresh(db_circularity_properties)
+    return db_circularity_properties
+
+
+async def delete_circularity_properties(db: AsyncSession, product: Product) -> None:
+    """Delete circularity properties for a product."""
+    # Validate that product exists and has circularity properties
+    if not (db_circularity_properties := product.circularity_properties):
+        err_msg: EmailStr = f"Circularity properties for product with id {product.id} not found"
+        raise ValueError(err_msg)
+
+    await db.delete(db_circularity_properties)
+    await db.commit()
+
+
 ### Product CRUD operations ###
 ## Basic CRUD operations ###
 async def get_product_trees(
@@ -178,6 +246,7 @@ async def create_component(
             "components",
             "owner_id",
             "physical_properties",
+            "circularity_properties",
             "videos",
             "bill_of_materials",
         }
@@ -197,6 +266,13 @@ async def create_component(
             product_id=db_component.id,  # pyright: ignore[reportArgumentType] # component ID is guaranteed by database flush above
         )
         db.add(db_physical_property)
+
+    if component.circularity_properties:
+        db_circularity_property = CircularityProperties(
+            **component.circularity_properties.model_dump(),
+            product_id=db_component.id,  # pyright: ignore[reportArgumentType] # component ID is guaranteed by database flush above
+        )
+        db.add(db_circularity_property)
 
     # Create videos
     if component.videos:
@@ -257,6 +333,7 @@ async def create_product(
         exclude={
             "components",
             "physical_properties",
+            "circularity_properties",
             "videos",
             "bill_of_materials",
         }
@@ -273,6 +350,13 @@ async def create_product(
             product_id=db_product.id,  # pyright: ignore[reportArgumentType] # product ID is guaranteed by database flush above
         )
         db.add(db_physical_properties)
+
+    if product.circularity_properties:
+        db_circularity_properties = CircularityProperties(
+            **product.circularity_properties.model_dump(),
+            product_id=db_product.id,  # pyright: ignore[reportArgumentType] # product ID is guaranteed by database flush above
+        )
+        db.add(db_circularity_properties)
 
     # Create videos
     if product.videos:
@@ -327,12 +411,17 @@ async def update_product(
     if product.product_type_id:
         await db_get_model_with_id_if_it_exists(db, ProductType, product.product_type_id)
 
-    product_data: dict[str, Any] = product.model_dump(exclude_unset=True, exclude={"physical_properties"})
+    product_data: dict[str, Any] = product.model_dump(
+        exclude_unset=True, exclude={"physical_properties", "circularity_properties"}
+    )
     db_product.sqlmodel_update(product_data)
 
     # Update properties
-    if isinstance(product, ProductUpdateWithProperties) and product.physical_properties:
-        await update_physical_properties(db, product_id, product.physical_properties)
+    if isinstance(product, ProductUpdateWithProperties):
+        if product.physical_properties:
+            await update_physical_properties(db, product_id, product.physical_properties)
+        if product.circularity_properties:
+            await update_circularity_properties(db, product_id, product.circularity_properties)
 
     db.add(db_product)
     await db.commit()

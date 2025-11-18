@@ -35,7 +35,7 @@ def validate_start_and_end_time(start_time: datetime, end_time: datetime | None)
 class PhysicalPropertiesBase(CustomBase):
     """Base model to store physical properties of a product."""
 
-    weight_kg: float | None = Field(default=None, gt=0)
+    weight_g: float | None = Field(default=None, gt=0)
     height_cm: float | None = Field(default=None, gt=0)
     width_cm: float | None = Field(default=None, gt=0)
     depth_cm: float | None = Field(default=None, gt=0)
@@ -59,6 +59,35 @@ class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True)
     # One-to-one relationships
     product_id: int = Field(foreign_key="product.id")
     product: "Product" = Relationship(back_populates="physical_properties")
+
+
+class CircularityPropertiesBase(CustomBase):
+    """Base model to store circularity properties of a product."""
+
+    # Recyclability
+    recyclability_observation: str = Field(min_length=2, max_length=500)
+    recyclability_comment: str | None = Field(default=None, max_length=100)
+    recyclability_reference: str | None = Field(default=None, max_length=100)
+
+    # Repairability
+    repairability_observation: str = Field(min_length=2, max_length=500)
+    repairability_comment: str | None = Field(default=None, max_length=100)
+    repairability_reference: str | None = Field(default=None, max_length=100)
+
+    # Remanufacturability
+    remanufacturability_observation: str = Field(min_length=2, max_length=500)
+    remanufacturability_comment: str | None = Field(default=None, max_length=100)
+    remanufacturability_reference: str | None = Field(default=None, max_length=100)
+
+
+class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table=True):
+    """Model to store circularity properties of a product."""
+
+    id: int | None = Field(default=None, primary_key=True)
+
+    # One-to-one relationships
+    product_id: int = Field(foreign_key="product.id")
+    product: "Product" = Relationship(back_populates="circularity_properties")
 
 
 ### Product Model ###
@@ -115,6 +144,9 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     physical_properties: PhysicalProperties | None = Relationship(
         back_populates="product", cascade_delete=True, sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
     )
+    circularity_properties: CircularityProperties | None = Relationship(
+        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
+    )
 
     # Many-to-one relationships
     files: list["File"] | None = Relationship(back_populates="product", cascade_delete=True)
@@ -126,7 +158,13 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     # One-to-many relationships
     owner_id: UUID4 = Field(foreign_key="user.id")
     owner: "User" = Relationship(
-        back_populates="products", sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
+        back_populates="products",
+        sa_relationship_kwargs={
+            "uselist": False,
+            "lazy": "selectin",
+            "primaryjoin": "Product.owner_id == User.id",  # HACK: Explicitly define join condition because of
+            "foreign_keys": "[Product.owner_id]",  # pydantic / sqlmodel issues (see https://github.com/fastapi/sqlmodel/issues/1623)
+        },
     )
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")

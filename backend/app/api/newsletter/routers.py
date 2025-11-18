@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Security
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Security
 from fastapi.params import Body
 from pydantic import EmailStr
 from sqlmodel import select
@@ -23,7 +23,9 @@ backend_router = APIRouter(prefix="/newsletter")
 
 
 @backend_router.post("/subscribe", status_code=201, response_model=NewsletterSubscriberRead)
-async def subscribe_to_newsletter(email: Annotated[EmailStr, Body()], db: AsyncSessionDep) -> NewsletterSubscriber:
+async def subscribe_to_newsletter(
+    email: Annotated[EmailStr, Body()], db: AsyncSessionDep, background_tasks: BackgroundTasks
+) -> NewsletterSubscriber:
     """Subscribe to the newsletter to receive updates about the app launch."""
     # Check if the email already exists
     existing_subscriber = (
@@ -36,7 +38,7 @@ async def subscribe_to_newsletter(email: Annotated[EmailStr, Body()], db: AsyncS
 
         # If not confirmed, generate new token and send email
         token = create_jwt_token(email, JWTType.NEWSLETTER_CONFIRMATION)
-        await send_newsletter_subscription_email(email, token)
+        await send_newsletter_subscription_email(email, token, background_tasks=background_tasks)
         raise HTTPException(
             status_code=400,
             detail="Already subscribed, but not confirmed. A new confirmation email has been sent.",
@@ -50,7 +52,7 @@ async def subscribe_to_newsletter(email: Annotated[EmailStr, Body()], db: AsyncS
 
     # Send confirmation email
     token = create_jwt_token(email, JWTType.NEWSLETTER_CONFIRMATION)
-    await send_newsletter_subscription_email(email, token)
+    await send_newsletter_subscription_email(email, token, background_tasks=background_tasks)
 
     return new_subscriber
 
@@ -83,7 +85,9 @@ async def confirm_newsletter_subscription(token: Annotated[str, Body()], db: Asy
 
 
 @backend_router.post("/request-unsubscribe", status_code=200)
-async def request_unsubscribe(email: Annotated[EmailStr, Body()], db: AsyncSessionDep) -> dict:
+async def request_unsubscribe(
+    email: Annotated[EmailStr, Body()], db: AsyncSessionDep, background_tasks: BackgroundTasks
+) -> dict:
     """Request to unsubscribe by sending an email with unsubscribe link."""
     # Check if the email is subscribed
     existing_subscriber = (
@@ -98,7 +102,7 @@ async def request_unsubscribe(email: Annotated[EmailStr, Body()], db: AsyncSessi
     token = create_jwt_token(email, JWTType.NEWSLETTER_UNSUBSCRIBE)
 
     # Send unsubscription email with the link
-    await send_newsletter_unsubscription_request_email(email, token)
+    await send_newsletter_unsubscription_request_email(email, token, background_tasks=background_tasks)
 
     return {"message": "If you are subscribed, we've sent an unsubscribe link to your email."}
 

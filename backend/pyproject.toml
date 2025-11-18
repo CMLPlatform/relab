@@ -21,13 +21,14 @@
   readme = "README.md"
 
   ## Dependencies and version constraints
-  dependencies = [ # Core dependencies.
-    "aiosmtplib>=4.0.1",
+  dependencies = [
     "asyncache>=0.3.1",
+    # TODO: Move to Python 3.14 once asyncpg supports it (version 0.31.0+, see https://github.com/MagicStack/asyncpg/issues/1282)
     "asyncpg>=0.30.0",
     "cachetools>=5.5.2",
     "email-validator>=2.2.0",
     "fastapi-filter>=2.0.1",
+    "fastapi-mail",
     "fastapi-pagination>=0.13.2",
     # NOTE: This is a heavy dependency (~40MB) due to its use of boto3, even though we don't use any cloud storage
     # We should consider using a more lightweight alternative if it becomes available.
@@ -38,17 +39,18 @@
     "fastapi-users[oauth,sqlalchemy]>=14.0.1",
     "fastapi[standard] >=0.115.14",
     "markdown>=3.8.2",
+    "mjml>=0.11.1",
     "pillow >=11.2.1",
     "psycopg[binary] >=3.2.9",
-    # TODO: Investigate pydantic v2.12 compatibility issues (might have to do with custom fastapi-users-db-sqlmodel fork)
-    "pydantic >=2.11,<2.12",
+    "pydantic >=2.12",
     "pydantic-extra-types >=2.10.5",
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
     "python-slugify>=8.0.4",
+    "redis>=5.2.1",
     "relab-rpi-cam-models>=0.1.1",
     "sqlalchemy >=2.0.41",
-    "sqlmodel >=0.0.24",
+    "sqlmodel >=0.0.27",
     "tldextract>=5.3.0",
   ]
   requires-python = ">= 3.13"
@@ -247,5 +249,7 @@
   default-groups = ["api", "dev", "migrations", "tests"]
 
   [tool.uv.sources]
+    # HACK: Fetch FastAPI-Mail from custom fork on GitHub to allow passing existing Redis client
+    fastapi-mail = { git = "https://github.com/simonvanlierde/fastapi-mail", rev = "6c6f04a7afaf3cdced82764009a2f1f2a3c3ee6c" }
     # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
     fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "7e9c4830e53ee20c38e3de80066cb19d7c3efc43" }

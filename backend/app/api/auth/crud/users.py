@@ -6,7 +6,7 @@ from pydantic import UUID4, EmailStr, ValidationError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.auth.exceptions import UserNameAlreadyExistsError
+from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.schemas import (
     OrganizationCreate,
@@ -14,18 +14,24 @@ from app.api.auth.schemas import (
     UserCreateWithOrganization,
     UserUpdate,
 )
+from app.api.auth.utils.email_validation import EmailChecker
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
 
 
 ## Create User ##
 async def create_user_override(
-    user_db: BaseUserDatabase[User, UUID4], user_create: UserCreate | UserCreateWithOrganization
+    user_db: BaseUserDatabase[User, UUID4],
+    user_create: UserCreate | UserCreateWithOrganization,
+    email_checker: EmailChecker | None = None,
 ) -> UserCreate:
     """Override of base user creation with additional username uniqueness check.
 
     Meant for use within the on_after_register event in FastAPI-Users UserManager.
     """
     # TODO: Fix type errors in this method and implement custom UserNameAlreadyExists error in FastAPI-Users
+
+    if email_checker and await email_checker.is_disposable(user_create.email):
+        raise DisposableEmailError(email=user_create.email)
 
     if user_create.username is not None:
         query = select(User).where(User.username == user_create.username)

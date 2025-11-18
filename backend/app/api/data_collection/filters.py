@@ -31,8 +31,8 @@ class MaterialProductLinkFilter(Filter):
 class PhysicalPropertiesFilter(Filter):
     """FastAPI-filter class for Physical Properties filtering."""
 
-    weight_kg__gte: float | None = None
-    weight_kg__lte: float | None = None
+    weight_g__gte: float | None = None
+    weight_g__lte: float | None = None
     height_cm__gte: float | None = None
     height_cm__lte: float | None = None
     width_cm__gte: float | None = None
@@ -58,6 +58,11 @@ class ProductFilter(Filter):
     dismantling_time_start__lte: datetime | None = None
     dismantling_time_end__gte: datetime | None = None
     dismantling_time_end__lte: datetime | None = None
+    created_at__gte: datetime | None = None
+    created_at__lte: datetime | None = None
+    updated_at__gte: datetime | None = None
+    updated_at__lte: datetime | None = None
+    order_by: list[str] | None = None
 
     search: str | None = None
 

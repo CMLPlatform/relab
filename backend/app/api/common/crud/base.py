@@ -95,6 +95,10 @@ def get_models_query(
         statement = add_filter_joins(statement, model, model_filter)
         # Apply the filter
         statement = model_filter.filter(statement)
+        # Apply sorting if specified
+        # HACK: Inspect sort vars to see if any sorting is defined
+        if vars(model_filter.sort):
+            statement = model_filter.sort(statement)
 
     relationships_to_exclude = []
     statement, relationships_to_exclude = add_relationship_options(

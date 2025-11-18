@@ -7,7 +7,7 @@ import { InfoTooltip, Text } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { productComponents } from '@/services/api/fetching';
-import { isValidProductName } from '@/services/api/validation/product';
+import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
 import { Product } from '@/types/Product';
 
 interface Props {
@@ -33,14 +33,25 @@ export default function ProductComponents({ product, editMode }: Props) {
     dialog.input({
       title: 'Create New Component',
       placeholder: 'Component Name',
-      helperText: 'Enter a descriptive name between 2 and 100 characters',
+      helperText: getProductNameHelperText(),
       buttons: [
         { text: 'Cancel' },
         {
           text: 'OK',
-          disabled: (value) => !isValidProductName(value),
+          disabled: (value) => {
+            const result = validateProductName(value);
+            return !result.isValid;
+          },
           onPress: (componentName) => {
             const name = typeof componentName === 'string' ? componentName.trim() : '';
+            const result = validateProductName(name);
+
+            if (!result.isValid) {
+              // This shouldn't happen due to disabled check, but handle defensively
+              alert(result.error);
+              return;
+            }
+
             const params = {
               id: 'new',
               name,

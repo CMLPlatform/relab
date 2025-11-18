@@ -45,10 +45,14 @@ from app.api.data_collection.dependencies import (
     get_user_owned_product_id,
 )
 from app.api.data_collection.models import (
+    CircularityProperties,
     PhysicalProperties,
     Product,
 )
 from app.api.data_collection.schemas import (
+    CircularityPropertiesCreate,
+    CircularityPropertiesRead,
+    CircularityPropertiesUpdate,
     ComponentCreateWithComponents,
     ComponentReadWithRecursiveComponents,
     PhysicalPropertiesCreate,
@@ -102,7 +106,7 @@ user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=[
 
 @user_product_router.get(
     "",
-    response_model=list[ProductReadWithRelationshipsAndFlatComponents],
+    response_model=Page[ProductReadWithRelationshipsAndFlatComponents],
     summary="Get products collected by a user",
 )
 async def get_user_products(
@@ -116,13 +120,14 @@ async def get_user_products(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": {}},
-                "properties": {"value": {"physical_properties"}},
+                "properties": {"value": {"physical_properties", "circularity_properties"}},
                 "materials": {"value": {"bill_of_materials"}},
                 "components": {"value": {"components"}},
                 "media": {"value": {"images", "videos", "files"}},
                 "all": {
                     "value": {
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -134,18 +139,29 @@ async def get_user_products(
             },
         ),
     ] = None,
+    *,
+    include_components_as_base_products: Annotated[
+        bool | None,
+        Query(description="Whether to include components as base products in the response"),
+    ] = None,
 ) -> Sequence[Product]:
     """Get products collected by a specific user."""
     # NOTE: If needed, we can open up this endpoint to any user by removing this ownership check
     if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
+    
+    statement=(select(Product).where(Product.owner_id == user_id))
+    
+    if not include_components_as_base_products:
+        statement: SelectOfScalar[Product] = statement.where(Product.parent_id == None)
 
-    return await get_models(
+    return await get_paginated_models(
         session,
         Product,
         include_relationships=include,
         model_filter=product_filter,
-        statement=(select(Product).where(Product.owner_id == user_id)),
+        statement=statement,
+        read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
 
 
@@ -187,13 +203,14 @@ async def get_products(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -215,6 +232,7 @@ async def get_products(
 
     Relationships that can be included:
     - physical_properties: Physical measurements and attributes
+    - circularity_properties: Circularity properties (recyclability, repairability, remanufacturability)
     - images: Product images
     - videos: Product videos
     - files: Related documents
@@ -227,9 +245,6 @@ async def get_products(
         statement: SelectOfScalar[Product] = select(Product)
     else:
         statement: SelectOfScalar[Product] = select(Product).where(Product.parent_id == None)
-
-    if product_filter:
-        statement = product_filter.filter(statement)
 
     return await get_paginated_models(
         session,
@@ -327,13 +342,14 @@ async def get_product(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -350,6 +366,7 @@ async def get_product(
 
     Relationships that can be included:
     - physical_properties: Physical measurements and attributes
+    - circularity_properties: Circularity properties (recyclability, repairability, remanufacturability)
     - images: Product images
     - videos: Product videos
     - files: Related documents
@@ -383,7 +400,7 @@ async def create_product(
                         "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
-                            "weight_kg": 20,
+                            "weight_g": 2000,
                             "height_cm": 150,
                             "width_cm": 70,
                             "depth_cm": 50,
@@ -392,8 +409,8 @@ async def create_product(
                             {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
                         ],
                         "bill_of_materials": [
-                            {"quantity": 15, "unit": "kg", "material_id": 1},
-                            {"quantity": 5, "unit": "kg", "material_id": 2},
+                            {"quantity": 15, "unit": "g", "material_id": 1},
+                            {"quantity": 5, "unit": "g", "material_id": 2},
                         ],
                     },
                 },
@@ -408,7 +425,7 @@ async def create_product(
                         "dismantling_time_end": "2025-09-22T16:30:45Z",
                         "product_type_id": 1,
                         "physical_properties": {
-                            "weight_kg": 20,
+                            "weight_g": 20000,
                             "height_cm": 150,
                             "width_cm": 70,
                             "depth_cm": 50,
@@ -428,7 +445,7 @@ async def create_product(
                                 "amount_in_parent": 1,
                                 "product_type_id": 2,
                                 "physical_properties": {
-                                    "weight_kg": 5,
+                                    "weight_g": 5000,
                                     "height_cm": 50,
                                     "width_cm": 40,
                                     "depth_cm": 30,
@@ -439,15 +456,15 @@ async def create_product(
                                         "description": "Seat cushion assembly",
                                         "amount_in_parent": 1,
                                         "physical_properties": {
-                                            "weight_kg": 2,
+                                            "weight_g": 2000,
                                             "height_cm": 10,
                                             "width_cm": 40,
                                             "depth_cm": 30,
                                         },
                                         "product_type_id": 3,
                                         "bill_of_materials": [
-                                            {"quantity": 1.5, "unit": "kg", "material_id": 1},
-                                            {"quantity": 0.5, "unit": "kg", "material_id": 2},
+                                            {"quantity": 1.5, "unit": "g", "material_id": 1},
+                                            {"quantity": 0.5, "unit": "g", "material_id": 2},
                                         ],
                                     }
                                 ],
@@ -567,13 +584,14 @@ async def get_product_components(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -615,13 +633,14 @@ async def get_product_component(
             description="Relationships to include",
             openapi_examples={
                 "none": {"value": []},
-                "properties": {"value": ["physical_properties"]},
+                "properties": {"value": ["physical_properties", "circularity_properties"]},
                 "materials": {"value": ["bill_of_materials"]},
                 "media": {"value": ["images", "videos", "files"]},
                 "components": {"value": ["components"]},
                 "all": {
                     "value": [
                         "physical_properties",
+                        "circularity_properties",
                         "images",
                         "videos",
                         "files",
@@ -660,7 +679,7 @@ async def add_component_to_product(
                         "name": "Seat Assembly",
                         "description": "Chair seat component",
                         "amount_in_parent": 1,
-                        "bill_of_materials": [{"material_id": 1, "quantity": 0.5, "unit": "kg"}],
+                        "bill_of_materials": [{"material_id": 1, "quantity": 0.5, "unit": "g"}],
                     },
                 },
                 "nested": {
@@ -675,7 +694,7 @@ async def add_component_to_product(
                                 "name": "Cushion",
                                 "description": "Foam cushion",
                                 "amount_in_parent": 1,
-                                "bill_of_materials": [{"material_id": 2, "quantity": 0.3, "unit": "kg"}],
+                                "bill_of_materials": [{"material_id": 2, "quantity": 0.3, "unit": "g"}],
                             }
                         ],
                     },
@@ -774,6 +793,58 @@ async def delete_product_physical_properties(
 ) -> None:
     """Delete physical properties for a product."""
     await crud.delete_physical_properties(session, product)
+
+
+@product_router.get(
+    "/{product_id}/circularity_properties",
+    response_model=CircularityPropertiesRead,
+    summary="Get product circularity properties",
+)
+async def get_product_circularity_properties(product_id: PositiveInt, session: AsyncSessionDep) -> CircularityProperties:
+    """Get circularity properties for a product."""
+    return await crud.get_circularity_properties(session, product_id)
+
+
+@product_router.post(
+    "/{product_id}/circularity_properties",
+    response_model=CircularityPropertiesRead,
+    status_code=201,
+    summary="Create product circularity properties",
+)
+async def create_product_circularity_properties(
+    product: UserOwnedProductDep,
+    properties: CircularityPropertiesCreate,
+    session: AsyncSessionDep,
+) -> CircularityProperties:
+    """Create circularity properties for a product."""
+    return await crud.create_circularity_properties(session, properties, product.id)
+
+
+@product_router.patch(
+    "/{product_id}/circularity_properties",
+    response_model=CircularityPropertiesRead,
+    summary="Update product circularity properties",
+)
+async def update_product_circularity_properties(
+    product: UserOwnedProductDep,
+    properties: CircularityPropertiesUpdate,
+    session: AsyncSessionDep,
+) -> CircularityProperties:
+    """Update circularity properties for a product."""
+    return await crud.update_circularity_properties(session, product.id, properties)
+
+
+@product_router.delete(
+    "/{product_id}/circularity_properties",
+    status_code=204,
+    summary="Delete product circularity properties",
+)
+async def delete_product_circularity_properties(
+    product: UserOwnedProductDep,
+    session: AsyncSessionDep,
+) -> None:
+    """Delete circularity properties for a product."""
+    await crud.delete_circularity_properties(session, product)
 
 
 ## Product Video routers ##
@@ -947,8 +1018,8 @@ async def add_materials_to_product(
             description="List of materials-product links to add to the product",
             examples=[
                 [
-                    {"material_id": 1, "quantity": 5, "unit": "kg"},
-                    {"material_id": 2, "quantity": 10, "unit": "kg"},
+                    {"material_id": 1, "quantity": 5, "unit": "g"},
+                    {"material_id": 2, "quantity": 10, "unit": "g"},
                 ]
             ],
         ),
@@ -975,7 +1046,7 @@ async def add_material_to_product(
         MaterialProductLinkCreateWithinProductAndMaterial,
         Body(
             description="Material-product link details",
-            examples=[[{"quantity": 5, "unit": "kg"}]],
+            examples=[[{"quantity": 5, "unit": "g"}]],
         ),
     ],
     session: AsyncSessionDep,

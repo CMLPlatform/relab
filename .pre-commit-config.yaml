@@ -6,12 +6,12 @@
 repos:
   ### Global hooks
   - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
-    rev: v0.8.0
+    rev: v0.9.0
     hooks:
       - id: pre-commit-update # Autoupdate pre-commit hooks
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.28.0
+    rev: v8.29.0
     hooks:
       - id: gitleaks
 
@@ -20,11 +20,8 @@ repos:
     hooks:
       - id: mdformat # Format Markdown files.
         additional_dependencies:
-          - mdformat-gfm # Support GitHub Flavored Markdown.
-          - mdformat-footnote
-          - mdformat-frontmatter
+          - mdformat-gfm>=1.0.0 # Support GitHub Flavored Markdown.
           - mdformat-ruff # Support Python code blocks linted with Ruff.
-          - mdformat-tables # Support GitHub style tables.
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -54,16 +51,17 @@ repos:
     hooks:
       - id: check-json5
         files: ^ (?!(backend/frontend-app|frontend-web)/data/)
-        ### Backend hooks
+
+    ### Backend hooks
   - repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
-    rev: v1.1.406
+    rev: v1.1.407
     hooks:
       - id: pyright
         files: ^backend/(app|scripts|tests)/
         entry: pyright --project backend
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+    rev: v0.14.4
     hooks:
       - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
@@ -73,7 +71,7 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.3
+    rev: 0.9.8
     hooks:
       - id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
@@ -89,22 +87,22 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-        ### Frontend hooks
+    ### Frontend hooks
   - repo: local
     hooks:
-      - id: frontend-web-lint
-        name: lint frontend-web code
-        entry: bash -c 'cd frontend-web && npm run lint'
+      - id: frontend-web-format
+        name: format frontend-web code
+        entry: bash -c 'cd frontend-web && npm run format'
         language:
           system
-          # Match frontend JavaScript and TypeScript files for linting.
+          # Match frontend JavaScript and TypeScript files for formatting.
         files: ^frontend-web\/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
         pass_filenames: false
-      - id: frontend-app-lint
-        name: lint frontend-app code
-        entry: bash -c 'cd frontend-app && npm run lint'
+      - id: frontend-app-format
+        name: format frontend-app code
+        entry: bash -c 'cd frontend-app && npm run format'
         language:
           system
-          # Match frontend JavaScript and TypeScript files for linting.
+          # Match frontend JavaScript and TypeScript files for formatting.
         files: ^frontend-app\/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
         pass_filenames: false

@@ -1,0 +1,35 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{subject}}</mj-title>
+    {{include:styles}}
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    {{include:header}}
+
+    <mj-section background-color="#ffffff" padding="20px 40px">
+      <mj-column>
+        <mj-text> {{content}} </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#ffffff" padding="20px 40px">
+      <mj-column>
+        <mj-divider border-color="#e0e0e0" />
+        <mj-text align="center" css-class="footer" padding-top="20px">
+          Best regards,<br />
+          The Reverse Engineering Lab Team
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section padding="20px">
+      <mj-column>
+        <mj-divider border-color="#e0e0e0" />
+        <mj-text align="center" css-class="footer" padding-top="10px">
+          You're receiving this email because you subscribed to the Reverse Engineering Lab newsletter.<br />
+          <a href="{{unsubscribe_link}}" style="color: #007bff">Unsubscribe</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

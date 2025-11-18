@@ -207,7 +207,7 @@ erDiagram
 
     PHYSICALPROPERTIES {
         integer id PK
-        float weight_kg
+        float weight_g
         float height_cm
         float width_cm
         float depth_cm
