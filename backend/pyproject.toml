@@ -84,10 +84,12 @@
 
   tests = [
     "factory-boy>=3.3.3",
+    "httpx>=0.28.1",
     "pytest >=8.4.1",
     "pytest-alembic>=0.12.1",
     "pytest-asyncio >=1.0.0",
     "pytest-cov >=6.2.1",
+    "testcontainers[postgres]>=4.10.0",
   ]
 
 ### Tool configuration
@@ -112,6 +114,37 @@
 
 [tool.pytest.ini_options]
   asyncio_mode = "auto"
+  testpaths = ["tests"]
+  python_files = ["test_*.py"]
+  python_classes = ["Test*"]
+  python_functions = ["test_*"]
+  addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-config=pyproject.toml",
+  ]
+  markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+  ]
+
+[tool.coverage.run]
+  source = ["app"]
+  omit = [
+    "*/tests/*",
+    "*/alembic/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+  ]
+
+[tool.coverage.report]
+  precision = 2
+  show_missing = true
+  skip_covered = false
 
 [tool.ruff]
   fix            = true
