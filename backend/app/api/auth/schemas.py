@@ -1,6 +1,7 @@
 """DTO schemas for users."""
 
 import uuid
+from datetime import datetime
 from typing import Annotated, Optional
 
 from fastapi_users import schemas
@@ -106,7 +107,10 @@ class UserCreateWithOrganization(UserCreateBase):
 class UserReadPublic(UserBase):
     """Public read schema for users."""
 
+    id: UUID4
     email: EmailStr
+    created_at: Optional[datetime] = None
+    product_count: int = 0
 
 
 class UserRead(UserBase, schemas.BaseUser[uuid.UUID]):
@@ -147,6 +151,7 @@ class UserUpdate(UserBase, schemas.BaseUserUpdate):
 
     username: Annotated[str | None, StringConstraints(strip_whitespace=True)] = None
     organization_id: UUID4 | None = None
+    is_profile_public: bool | None = None
 
     # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"})

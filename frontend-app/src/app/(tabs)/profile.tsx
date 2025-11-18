@@ -1,11 +1,13 @@
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, TextStyle, View } from 'react-native';
-import { Button, Dialog, Divider, IconButton, Portal } from 'react-native-paper';
+import { Platform, Pressable, ScrollView, TextStyle, View } from 'react-native';
+import { Button, Card, Dialog, Divider, IconButton, Portal, Switch } from 'react-native-paper';
 import { Chip, Text } from '@/components/base';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { getUser, logout, verify } from '@/services/api/authentication';
+import { getUser, logout, updateUserProfile, verify } from '@/services/api/authentication';
 import { User } from '@/types/User';
+import { getEarnedBadges, getHighestProductBadge } from '@/utils/badges';
 
 export default function ProfileTab() {
   // Hooks
@@ -47,14 +49,26 @@ export default function ProfileTab() {
     setDeleteDialogVisible(false);
   };
 
+  const onTogglePublicProfile = async () => {
+    if (!profile) return;
+    const newValue = !profile.isProfilePublic;
+    const success = await updateUserProfile({ isProfilePublic: newValue });
+    if (success) {
+      setProfile({ ...profile, isProfilePublic: newValue });
+    }
+  };
+
   // Sub Render >> No profile (not logged in)
   if (!profile) {
     return null;
   }
 
+  const earnedBadges = getEarnedBadges(profile.productCount ?? 0, profile.createdAt);
+  const highestProductBadge = getHighestProductBadge(profile.productCount ?? 0);
+
   // Render
   return (
-    <View style={{ flex: 1, padding: 20 }}>
+    <ScrollView style={{ flex: 1, padding: 20 }}>
       <Text
         style={{
           marginTop: 80,
@@ -85,11 +99,76 @@ export default function ProfileTab() {
 
       <View
         style={{ marginTop: 12, marginBottom: 15, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}
-        //TODO: Add public user profile page with stats and optional contact info
       >
         {profile.isActive ? <Chip>Active</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Inactive</Chip>}
         {profile.isSuperuser && <Chip>Superuser</Chip>}
         {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Unverified</Chip>}
+      </View>
+
+      {/* Product Count and Highest Badge */}
+      <Card style={{ marginVertical: 15 }}>
+        <Card.Content>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <MaterialCommunityIcons name="package-variant" size={24} color="#666" />
+            <Text style={{ fontSize: 18, marginLeft: 10, fontWeight: 'bold' }}>
+              {profile.productCount ?? 0} Products Created
+            </Text>
+          </View>
+          {highestProductBadge && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#eee' }}>
+              <MaterialCommunityIcons
+                name={highestProductBadge.icon as any}
+                size={24}
+                color={highestProductBadge.color}
+              />
+              <Text style={{ fontSize: 16, marginLeft: 10, color: highestProductBadge.color, fontWeight: 'bold' }}>
+                {highestProductBadge.name}
+              </Text>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Earned Badges */}
+      {earnedBadges.length > 0 && (
+        <Card style={{ marginVertical: 15 }}>
+          <Card.Content>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Achievements</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {earnedBadges.map((badge) => (
+                <View
+                  key={badge.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: '#f5f5f5',
+                    padding: 10,
+                    borderRadius: 8,
+                    borderLeftWidth: 3,
+                    borderLeftColor: badge.color,
+                  }}
+                >
+                  <MaterialCommunityIcons name={badge.icon as any} size={20} color={badge.color} />
+                  <View style={{ marginLeft: 8 }}>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold' }}>{badge.name}</Text>
+                    <Text style={{ fontSize: 12, opacity: 0.6 }}>{badge.description}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Public Profile Toggle */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 15 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Public Profile</Text>
+          <Text style={{ fontSize: 14, opacity: 0.6, marginTop: 5 }}>
+            Allow others to view your profile, badges, and products
+          </Text>
+        </View>
+        <Switch value={profile.isProfilePublic ?? true} onValueChange={onTogglePublicProfile} />
       </View>
 
       <Divider style={{ marginBottom: 20 }} />
@@ -132,7 +211,7 @@ export default function ProfileTab() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </View>
+    </ScrollView>
   );
 }
 

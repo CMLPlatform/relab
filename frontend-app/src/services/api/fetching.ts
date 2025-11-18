@@ -169,3 +169,32 @@ export async function allBrands(): Promise<string[]> {
 export async function productComponents(product: Product): Promise<Product[]> {
   return Promise.all(product.componentIDs.map((id) => getProduct(id)));
 }
+
+export async function getUserProducts(
+  userId: string,
+  include = ['physical_properties', 'images', 'product_type', 'components'],
+): Promise<Required<Product>[]> {
+  const url = new URL(baseUrl + `/users/${userId}/products`);
+  include.forEach((inc) => url.searchParams.append('include', inc));
+
+  const authToken = await getToken();
+  if (!authToken) {
+    throw new Error('Authentication required');
+  }
+
+  const headers = {
+    Authorization: `Bearer ${authToken}`,
+    Accept: 'application/json',
+  };
+
+  const response = await fetch(url, { method: 'GET', headers });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const product_data = data as ProductData[];
+
+  return Promise.all(product_data.map((data) => toProduct(data)));
+}

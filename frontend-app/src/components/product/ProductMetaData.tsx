@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { InfoTooltip, Text } from '@/components/base';
 import { Product } from '@/types/Product';
 
@@ -7,6 +8,14 @@ interface Props {
 }
 
 export default function ProductMetaData({ product }: Props) {
+  const router = useRouter();
+
+  const handleOwnerPress = () => {
+    if (product.ownedBy !== 'me' && typeof product.ownedBy === 'string') {
+      router.push(`/users/${product.ownedBy}`);
+    }
+  };
+
   // Render
   return (
     <View style={{ padding: 14 }}>
@@ -28,6 +37,18 @@ export default function ProductMetaData({ product }: Props) {
           <Text style={{ opacity: 0.7 }}>Last Updated: {new Date(product.updatedAt).toLocaleDateString()}</Text>
         )}
         <Text style={{ opacity: 0.7 }}>Product ID: {product.id}</Text>
+        {product.ownedBy && (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ opacity: 0.7 }}>Owner: </Text>
+            {product.ownedBy === 'me' ? (
+              <Text style={{ opacity: 0.7 }}>You</Text>
+            ) : (
+              <Pressable onPress={handleOwnerPress}>
+                <Text style={{ color: '#2196F3', textDecorationLine: 'underline' }}>View Profile</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );

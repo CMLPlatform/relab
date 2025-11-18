@@ -5,4 +5,7 @@ export type User = {
   isSuperuser: boolean;
   isVerified: boolean;
   username: string;
+  isProfilePublic?: boolean;
+  productCount?: number;
+  createdAt?: string;
 };

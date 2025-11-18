@@ -1,6 +1,7 @@
 """Public user management routes."""
 
 from fastapi import APIRouter, HTTPException, Security
+from pydantic import UUID4
 
 from app.api.auth import crud
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OrgAsOwner, current_active_user
@@ -17,6 +18,7 @@ from app.api.auth.schemas import (
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import mark_router_routes_public
+from app.api.common.schemas.base import ProductRead
 
 ### User self-management routes ###
 
@@ -82,6 +84,31 @@ async def leave_organization(
 ) -> None:
     """Leave current organization. Cannot be used by organization owner."""
     await crud.leave_organization(session, current_user)
+
+
+## Public user profile routes ##
+@router.get("/{user_id}/profile", response_model=UserReadPublic, summary="Get a user's public profile")
+async def get_user_profile(
+    user_id: UUID4,
+    session: AsyncSessionDep,
+) -> UserReadPublic:
+    """Get a user's public profile with product count."""
+    try:
+        return await crud.get_user_public_profile(session, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/{user_id}/products", response_model=list[ProductRead], summary="Get a user's products")
+async def get_user_products_list(
+    user_id: UUID4,
+    session: AsyncSessionDep,
+) -> list[ProductRead]:
+    """Get all products owned by a user (only if their profile is public)."""
+    try:
+        return await crud.get_user_products(session, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 # TODO: Initializing as PublicRouter doesn't seem to work, need to manually mark all routes as public. Investigate why.

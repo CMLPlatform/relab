@@ -36,6 +36,8 @@ class UserBase(BaseModel):
         StringConstraints(strip_whitespace=True, pattern=r"^[\w]+$"),  # Allows only letters, numbers, and underscores
     ] = Field(index=True, unique=True, default=None)
 
+    is_profile_public: bool = Field(default=True, description="Whether the user's profile is publicly visible")
+
     model_config = ConfigDict(use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
 
 

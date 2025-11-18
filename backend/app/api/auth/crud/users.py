@@ -3,6 +3,7 @@
 from fastapi import Request
 from fastapi_users.db import BaseUserDatabase
 from pydantic import UUID4, EmailStr, ValidationError
+from sqlalchemy import and_, func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -13,6 +14,7 @@ from app.api.auth.schemas import (
     UserCreate,
     UserCreateWithOrganization,
     UserUpdate,
+    UserReadPublic,
 )
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
 
@@ -94,6 +96,65 @@ async def get_user_by_username(
         err_msg: EmailStr = f"User not found with username: {username}"
         raise ValueError(err_msg)
     return user
+
+
+async def get_user_public_profile(
+    session: AsyncSession,
+    user_id: UUID4,
+) -> UserReadPublic:
+    """Get a user's public profile with product count."""
+    from app.api.data_collection.models import Product
+
+    # Get user
+    statement = select(User).where(User.id == user_id)
+    user = (await session.exec(statement)).one_or_none()
+
+    if not user:
+        err_msg = f"User not found with ID: {user_id}"
+        raise ValueError(err_msg)
+
+    if not user.is_profile_public:
+        err_msg = f"User profile is not public"
+        raise ValueError(err_msg)
+
+    # Count user's products
+    count_statement = select(func.count(Product.id)).where(Product.owner_id == user_id)
+    product_count = (await session.exec(count_statement)).one()
+
+    return UserReadPublic(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        is_profile_public=user.is_profile_public,
+        created_at=user.created_at,
+        product_count=product_count or 0,
+    )
+
+
+async def get_user_products(
+    session: AsyncSession,
+    user_id: UUID4,
+):
+    """Get all products owned by a user."""
+    from app.api.data_collection.models import Product
+
+    # Verify user exists and profile is public
+    statement = select(User).where(User.id == user_id)
+    user = (await session.exec(statement)).one_or_none()
+
+    if not user:
+        err_msg = f"User not found with ID: {user_id}"
+        raise ValueError(err_msg)
+
+    if not user.is_profile_public:
+        err_msg = f"User profile is not public"
+        raise ValueError(err_msg)
+
+    # Get user's products
+    products_statement = select(Product).where(Product.owner_id == user_id)
+    products = (await session.exec(products_statement)).all()
+
+    return products
 
 
 ## Update User ##

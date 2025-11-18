@@ -103,6 +103,9 @@ export async function getUser(): Promise<User | undefined> {
       isSuperuser: data.is_superuser,
       isVerified: data.is_verified,
       username: data.username || 'Username not defined',
+      isProfilePublic: data.is_profile_public ?? true,
+      productCount: data.product_count ?? 0,
+      createdAt: data.created_at,
     };
 
     return user;
@@ -136,4 +139,70 @@ export async function verify(email: string): Promise<boolean> {
 
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   return response.ok;
+}
+
+export async function updateUserProfile(updates: Partial<User>): Promise<boolean> {
+  const url = new URL(baseUrl + '/users/me');
+  const authToken = await getToken();
+  if (!authToken) {
+    return false;
+  }
+
+  const headers = {
+    Authorization: `Bearer ${authToken}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+
+  const body: any = {};
+  if (updates.isProfilePublic !== undefined) {
+    body.is_profile_public = updates.isProfilePublic;
+  }
+  if (updates.username !== undefined) {
+    body.username = updates.username;
+  }
+
+  const response = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body) });
+
+  if (response.ok) {
+    // Clear cached user to force refresh
+    user = undefined;
+  }
+
+  return response.ok;
+}
+
+export async function getUserPublicProfile(userId: string): Promise<User | undefined> {
+  try {
+    const url = new URL(baseUrl + `/users/${userId}/profile`);
+    const authToken = await getToken();
+    if (!authToken) {
+      return undefined;
+    }
+
+    const headers = { Authorization: `Bearer ${authToken}`, Accept: 'application/json' };
+    const response = await fetch(url, { method: 'GET', headers });
+
+    if (!response.ok) {
+      console.error('[GetUserPublicProfile Fetch Error]: Response not OK');
+      return undefined;
+    }
+
+    const data = await response.json();
+
+    return {
+      id: data.id,
+      email: data.email,
+      isActive: true,
+      isSuperuser: false,
+      isVerified: true,
+      username: data.username || 'Username not defined',
+      isProfilePublic: data.is_profile_public ?? true,
+      productCount: data.product_count ?? 0,
+      createdAt: data.created_at,
+    };
+  } catch (error) {
+    console.error('[GetUserPublicProfile Fetch Error]:', error);
+    return undefined;
+  }
 }
