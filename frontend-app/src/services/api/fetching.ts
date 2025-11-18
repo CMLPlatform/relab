@@ -26,6 +26,7 @@ type ProductData = {
 type ImageData = {
   id: number;
   image_url: string;
+  thumbnail_url: string;
   description: string;
 };
 
@@ -50,7 +51,12 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
       depth: data.physical_properties.depth_cm,
     },
     componentIDs: data.components.map(({ id }) => id),
-    images: data.images.map((img) => ({ ...img, url: baseUrl + img.image_url })),
+    images: data.images.map((img) => ({
+      id: img.id,
+      url: baseUrl + img.image_url,
+      thumbnail_url: baseUrl + img.thumbnail_url,
+      description: img.description,
+    })),
   };
 }
 
