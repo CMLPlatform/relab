@@ -9,6 +9,7 @@ from typing import Any, Generic, TypeVar
 from anyio import to_thread
 from fastapi import UploadFile
 from fastapi_filter.contrib.sqlalchemy import Filter
+from PIL import Image as PILImage
 from pydantic import UUID4
 from slugify import slugify
 from sqlmodel import select
@@ -72,6 +73,52 @@ async def delete_file_from_storage(file_path: Path) -> None:
     """Delete a file from the filesystem."""
     if file_path.exists():
         await to_thread.run_sync(file_path.unlink)
+
+
+async def generate_thumbnail(image_path: Path, thumbnail_size: tuple[int, int] = (400, 400), quality: int = 85) -> Path | None:
+    """Generate a WebP thumbnail for an image.
+
+    Args:
+        image_path: Path to the original image
+        thumbnail_size: Size of the thumbnail (default 400x400)
+        quality: WebP quality (default 85%)
+
+    Returns:
+        Path to the generated thumbnail, or None if generation failed
+    """
+    try:
+        # Generate thumbnail path
+        thumbnail_path = image_path.parent / f"{image_path.stem}_thumb.webp"
+
+        def _create_thumbnail() -> None:
+            """Synchronous thumbnail creation."""
+            with PILImage.open(image_path) as img:
+                # Convert RGBA to RGB if necessary (WebP doesn't handle all alpha modes well)
+                if img.mode in ("RGBA", "LA", "P"):
+                    # Create white background
+                    background = PILImage.new("RGB", img.size, (255, 255, 255))
+                    if img.mode == "P":
+                        img = img.convert("RGBA")
+                    background.paste(img, mask=img.split()[-1] if img.mode in ("RGBA", "LA") else None)
+                    img = background
+                elif img.mode != "RGB":
+                    img = img.convert("RGB")
+
+                # Create thumbnail maintaining aspect ratio
+                img.thumbnail(thumbnail_size, PILImage.Resampling.LANCZOS)
+
+                # Save as WebP
+                img.save(thumbnail_path, "WEBP", quality=quality, method=6)
+
+        # Run thumbnail creation in thread pool
+        await to_thread.run_sync(_create_thumbnail)
+
+        logger.info("Generated thumbnail for image %s at %s", image_path, thumbnail_path)
+        return thumbnail_path
+
+    except Exception as e:
+        logger.warning("Failed to generate thumbnail for image %s: %s", image_path, e)
+        return None
 
 
 ### File CRUD operations ###
@@ -202,6 +249,15 @@ async def create_image(db: AsyncSession, image_data: ImageCreateFromForm | Image
     await db.commit()
     await db.refresh(db_image)
 
+    # Generate thumbnail after image is saved
+    if db_image.file and Path(db_image.file.path).exists():
+        thumbnail_path = await generate_thumbnail(Path(db_image.file.path))
+        if thumbnail_path:
+            db_image.thumbnail_path = str(thumbnail_path)
+            db.add(db_image)
+            await db.commit()
+            await db.refresh(db_image)
+
     return db_image
 
 
@@ -227,17 +283,24 @@ async def delete_image(db: AsyncSession, image_id: UUID4) -> None:
     try:
         db_image = await db_get_model_with_id_if_it_exists(db, Image, image_id)
         file_path = Path(db_image.file.path) if db_image.file else None
+        thumbnail_path = Path(db_image.thumbnail_path) if db_image.thumbnail_path else None
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError):
         # TODO: test this scenario
         # File missing from storage but exists in DB - proceed with DB cleanup
         db_image = await db.get(Image, image_id)
         file_path = None
+        thumbnail_path = None
 
     await db.delete(db_image)
     await db.commit()
 
+    # Delete original image
     if file_path:
         await delete_file_from_storage(file_path)
+
+    # Delete thumbnail if it exists
+    if thumbnail_path:
+        await delete_file_from_storage(thumbnail_path)
 
 
 ### Video CRUD operations ###

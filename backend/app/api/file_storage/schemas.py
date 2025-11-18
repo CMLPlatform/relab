@@ -147,6 +147,7 @@ class ImageReadWithinParent(BaseReadSchemaWithTimeStamp, ImageBase):
 
     filename: str
     image_url: str
+    thumbnail_url: str
 
 
 class ImageRead(ImageReadWithinParent):

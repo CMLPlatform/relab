@@ -117,6 +117,7 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
         sa_column=Column(ImageType, nullable=False),
         description="Local file path to the image",
     )
+    thumbnail_path: str | None = Field(default=None, description="Local file path to the thumbnail image")
 
     # Many-to-one relationships. This is ugly but SQLModel does not play well with polymorphic associations.
     parent_type: ImageParentType = Field(
@@ -143,6 +144,15 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
             relative_path = Path(self.file.path).relative_to(settings.image_storage_path)
             return f"/uploads/images/{quote(str(relative_path))}"
         return str(PLACEHOLDER_IMAGE_PATH)
+
+    @cached_property
+    def thumbnail_url(self) -> str:
+        """Return the URL to the thumbnail image or fallback to full image."""
+        if self.thumbnail_path and Path(self.thumbnail_path).exists():
+            relative_path = Path(self.thumbnail_path).relative_to(settings.image_storage_path)
+            return f"/uploads/images/{quote(str(relative_path))}"
+        # Fallback to full image if thumbnail doesn't exist
+        return self.image_url
 
     def image_preview(self, size: int = 100) -> str:
         """HTML preview of the image with a specified size."""
