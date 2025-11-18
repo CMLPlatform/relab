@@ -11,6 +11,7 @@ export type Product = {
   componentIDs: number[];
   physicalProperties: PhysicalProperties;
   images: { id: number; url: string; thumbnail_url: string; description: string }[];
+  videos: { id: number; url: string; title?: string; description?: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;
 };

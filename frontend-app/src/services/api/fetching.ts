@@ -18,6 +18,7 @@ type ProductData = {
   physical_properties: { weight_kg: number; height_cm: number; width_cm: number; depth_cm: number };
   components: { id: number; name: string; description: string }[];
   images: ImageData[];
+  videos: VideoData[];
   owner_id: string;
   parent_id?: number;
   amount_in_parent?: number;
@@ -28,6 +29,13 @@ type ImageData = {
   image_url: string;
   thumbnail_url: string;
   description: string;
+};
+
+type VideoData = {
+  id: number;
+  url: string;
+  title?: string;
+  description?: string;
 };
 
 async function toProduct(data: ProductData): Promise<Required<Product>> {
@@ -57,6 +65,12 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
       thumbnail_url: baseUrl + img.thumbnail_url,
       description: img.description,
     })),
+    videos: data.videos.map((vid) => ({
+      id: vid.id,
+      url: vid.url,
+      title: vid.title,
+      description: vid.description,
+    })),
   };
 }
 
@@ -65,7 +79,7 @@ export async function getProduct(id: number | 'new'): Promise<Product> {
     return newProduct();
   }
   const url = new URL(baseUrl + `/products/${id}`);
-  ['physical_properties', 'images', 'product_type', 'components'].forEach((inc) =>
+  ['physical_properties', 'images', 'videos', 'product_type', 'components'].forEach((inc) =>
     url.searchParams.append('include', inc),
   );
 
@@ -99,12 +113,13 @@ export function newProduct(
     },
     componentIDs: [],
     images: [],
+    videos: [],
     ownedBy: 'me',
   };
 }
 
 export async function allProducts(
-  include = ['physical_properties', 'images', 'product_type', 'components'],
+  include = ['physical_properties', 'images', 'videos', 'product_type', 'components'],
   page = 1,
   size = 50,
 ): Promise<Required<Product>[]> {
@@ -127,7 +142,7 @@ export async function allProducts(
 }
 
 export async function myProducts(
-  include = ['physical_properties', 'images', 'product_type', 'components'],
+  include = ['physical_properties', 'images', 'videos', 'product_type', 'components'],
   page = 1,
   size = 50,
 ): Promise<Required<Product>[]> {

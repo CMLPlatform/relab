@@ -15,6 +15,7 @@ import ProductMetaData from '@/components/product/ProductMetaData';
 import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
+import ProductVideos from '@/components/product/ProductVideos';
 
 import { useDialog } from '@/components/common/DialogProvider';
 
@@ -219,6 +220,7 @@ export default function ProductPage(): JSX.Element {
         scrollEventThrottle={16}
       >
         <ProductImage product={product} editMode={editMode} onImagesChange={onImagesChange} />
+        <ProductVideos product={product} />
         <ProductDescription product={product} editMode={editMode} onChangeDescription={onChangeDescription} />
         <ProductTags
           product={product}
