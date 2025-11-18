@@ -1,7 +1,18 @@
 //MAIN ProductImage.tsx
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Platform, Pressable, Text, useColorScheme, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  StatusBar,
+  Text,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { Icon } from 'react-native-paper';
 
 import { Image } from 'expo-image';
@@ -30,6 +41,8 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageCount, setImageCount] = useState(product.images.length);
   const [pendingScrollIndex, setPendingScrollIndex] = useState<number | null>(null);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const canGoPrev = currentIndex > 0;
   const canGoNext = currentIndex < imageCount - 1;
@@ -186,6 +199,23 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
     setPendingScrollIndex(product.images.length - 1);
   };
 
+  const openLightbox = () => {
+    setLightboxIndex(currentIndex);
+    setLightboxVisible(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxVisible(false);
+  };
+
+  const navigateLightbox = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && lightboxIndex > 0) {
+      setLightboxIndex(lightboxIndex - 1);
+    } else if (direction === 'next' && lightboxIndex < product.images.length - 1) {
+      setLightboxIndex(lightboxIndex + 1);
+    }
+  };
+
   // Render
   return (
     <View style={{ height: 400 }}>
@@ -268,7 +298,8 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
         </>
       )}
 
-      {editMode && (
+      {/* Toolbar with expand and edit buttons */}
+      {(editMode || product.images.length > 0) && (
         <View
           style={{
             position: 'absolute',
@@ -280,10 +311,24 @@ export default function ProductImages({ product, editMode, onImagesChange }: Pro
             padding: 10,
           }}
         >
-          <ToolbarIcon icon={'upload'} onPress={onImagePicker} />
-          <ToolbarIcon icon={'camera'} onPress={onTakePhoto} />
+          {product.images.length > 0 && <ToolbarIcon icon={'fullscreen'} onPress={openLightbox} />}
+          {editMode && (
+            <>
+              <ToolbarIcon icon={'upload'} onPress={onImagePicker} />
+              <ToolbarIcon icon={'camera'} onPress={onTakePhoto} />
+            </>
+          )}
         </View>
       )}
+
+      {/* Lightbox Modal */}
+      <ImageLightbox
+        visible={lightboxVisible}
+        images={product.images}
+        currentIndex={lightboxIndex}
+        onClose={closeLightbox}
+        onNavigate={navigateLightbox}
+      />
     </View>
   );
 }
@@ -361,5 +406,169 @@ function ToolbarIcon({ icon, onPress }: { icon: string; onPress: () => void }) {
     >
       <Icon source={icon} size={24} color={'white'} />
     </Pressable>
+  );
+}
+
+interface ImageLightboxProps {
+  visible: boolean;
+  images: { url: string; description: string; id: number }[];
+  currentIndex: number;
+  onClose: () => void;
+  onNavigate: (direction: 'prev' | 'next') => void;
+}
+
+function ImageLightbox({ visible, images, currentIndex, onClose, onNavigate }: ImageLightboxProps) {
+  const { width, height } = Dimensions.get('window');
+  const isWeb = Platform.OS === 'web';
+  const lightboxGallery = useRef<FlatList>(null);
+
+  // Sync FlatList with currentIndex changes
+  useEffect(() => {
+    if (visible && lightboxGallery.current) {
+      lightboxGallery.current.scrollToIndex({ index: currentIndex, animated: true });
+    }
+  }, [currentIndex, visible]);
+
+  // Keyboard navigation on web
+  useEffect(() => {
+    if (!visible || !isWeb) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentIndex < images.length - 1) {
+          onNavigate('next');
+        }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentIndex > 0) {
+          onNavigate('prev');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [visible, isWeb, currentIndex, images.length, onClose, onNavigate]);
+
+  if (!visible) return null;
+
+  const canGoPrev = currentIndex > 0;
+  const canGoNext = currentIndex < images.length - 1;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.95)' }}>
+        {/* Close Button */}
+        <Pressable
+          onPress={onClose}
+          style={{
+            position: 'absolute',
+            top: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 20,
+            right: 20,
+            zIndex: 10,
+            padding: 8,
+            borderRadius: 20,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          }}
+        >
+          <Icon source="close" size={28} color="white" />
+        </Pressable>
+
+        {/* Image Counter */}
+        <Text
+          style={{
+            position: 'absolute',
+            top: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 20,
+            left: 20,
+            zIndex: 10,
+            padding: 8,
+            borderRadius: 12,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            fontSize: 16,
+            fontWeight: 'bold',
+          }}
+        >
+          {`${currentIndex + 1} / ${images.length}`}
+        </Text>
+
+        {/* Image Gallery */}
+        <FlatList
+          ref={lightboxGallery}
+          data={images}
+          keyExtractor={(item, index) => `lightbox-${index}`}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToInterval={width}
+          disableIntervalMomentum
+          getItemLayout={(data, index) => ({ length: width, offset: width * index, index })}
+          initialScrollIndex={currentIndex}
+          renderItem={({ item }) => (
+            <View
+              style={{
+                width: width,
+                height: height,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Image
+                source={{ uri: item.url }}
+                style={{
+                  width: width,
+                  height: height,
+                }}
+                contentFit="contain"
+              />
+            </View>
+          )}
+        />
+
+        {/* Navigation Arrows */}
+        {images.length > 1 && (
+          <>
+            <Pressable
+              onPress={() => onNavigate('prev')}
+              disabled={!canGoPrev}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: 20,
+                transform: [{ translateY: -20 }],
+                padding: 12,
+                borderRadius: 24,
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                opacity: canGoPrev ? 1 : 0.3,
+              }}
+            >
+              <Icon source="chevron-left" size={32} color="white" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => onNavigate('next')}
+              disabled={!canGoNext}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                right: 20,
+                transform: [{ translateY: -20 }],
+                padding: 12,
+                borderRadius: 24,
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                opacity: canGoNext ? 1 : 0.3,
+              }}
+            >
+              <Icon source="chevron-right" size={32} color="white" />
+            </Pressable>
+          </>
+        )}
+      </View>
+    </Modal>
   );
 }
