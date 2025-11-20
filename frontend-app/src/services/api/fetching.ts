@@ -67,7 +67,7 @@ export async function getProduct(id: number | 'new'): Promise<Product> {
     return newProduct();
   }
   const url = new URL(baseUrl + `/products/${id}`);
-  ['physical_properties', 'images', 'product_type', 'components'].forEach((inc) =>
+  ['physical_properties', 'images', 'product_type', 'components', 'videos'].forEach((inc) =>
     url.searchParams.append('include', inc),
   );
 
