@@ -24,6 +24,11 @@ export function isProductValid(product: Product): boolean {
     return val == null || Number.isNaN(val) || (typeof val === 'number' && val > 0);
   };
 
+  // Validate that all videos have non-empty titles
+  const areVideosValid = product.videos.every(video => {
+    return video.title.trim().length > 0;
+  });
+
   return (
     isValidProductName(product.name) &&
     typeof weight === 'number' &&
@@ -31,6 +36,7 @@ export function isProductValid(product: Product): boolean {
     weight > 0 &&
     isValidDimension(width) &&
     isValidDimension(height) &&
-    isValidDimension(depth)
+    isValidDimension(depth) &&
+    areVideosValid
   );
 }
