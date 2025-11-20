@@ -223,7 +223,7 @@ async function deleteVideo(product: Product, video: { id?: number }) {
   await fetch(url, { method: 'DELETE', headers });
 }
 
-async function updateVideo(product: Product, video: { id?: number; url: string; description: string, title: string }) {
+async function updateVideo(product: Product, video: { id?: number; url: string; description: string, title: string, }) {
   if (!video.id) {
     return;
   }
