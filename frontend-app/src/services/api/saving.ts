@@ -201,7 +201,7 @@ async function updateProductVideos(product: Product) {
   }
 }
 
-async function addVideo(product: Product, video: { url: string; description: string }) {
+async function addVideo(product: Product, video: { url: string; description: string, title: string }) {
   const url = new URL(baseUrl + `/products/${product.id}/videos`);
   const token = await getToken();
   const headers = {
@@ -209,7 +209,7 @@ async function addVideo(product: Product, video: { url: string; description: str
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  const body = JSON.stringify({ url: video.url, description: video.description });
+  const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
   await fetch(url, { method: 'POST', headers, body });
 }
 
@@ -223,7 +223,7 @@ async function deleteVideo(product: Product, video: { id: number }) {
   await fetch(url, { method: 'DELETE', headers });
 }
 
-async function updateVideo(product: Product, video: { id: number; url: string; description: string }) {
+async function updateVideo(product: Product, video: { id: number; url: string; description: string, title: string }) {
   const url = new URL(baseUrl + `/products/${product.id}/videos/${video.id}`);
   const token = await getToken();
   const headers = {
@@ -231,7 +231,7 @@ async function updateVideo(product: Product, video: { id: number; url: string; d
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  const body = JSON.stringify({ url: video.url, description: video.description });
+  const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
   await fetch(url, { method: 'PATCH', headers, body });
 }
 
