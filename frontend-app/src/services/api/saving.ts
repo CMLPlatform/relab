@@ -197,7 +197,7 @@ async function updateProductVideos(product: Product) {
   }
 }
 
-async function addVideo(product: Product, video: { url: string; description: string, title: string }) {
+async function addVideo(product: Product, video: { url: string; description: string, title: string, }) {
   const url = new URL(baseUrl + `/products/${product.id}/videos`);
   const token = await getToken();
   const headers = {
