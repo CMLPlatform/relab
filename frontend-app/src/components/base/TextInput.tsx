@@ -5,12 +5,15 @@ import LightTheme from '@/assets/themes/light';
 
 interface Props extends TextInputProps {
   errorOnEmpty?: boolean;
+  customValidation?: (value: string) => boolean;
   ref?: React.Ref<NativeTextInput>;
 }
 
-export function TextInput({ style, children, errorOnEmpty = false, ref, ...props }: Props) {
+export function TextInput({ style, children, errorOnEmpty = false, customValidation, ref, ...props }: Props) {
   const darkMode = useColorScheme() === 'dark';
-  const error = errorOnEmpty && (!props.value || props.value === '');
+  const emptyError = errorOnEmpty && (!props.value || props.value === '');
+  const validationError = customValidation && props.value && !customValidation(props.value);
+  const error = emptyError || validationError;
 
   return (
     <NativeTextInput

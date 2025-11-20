@@ -24,6 +24,7 @@ function toNewProduct(product: Product): any {
     ],
     physical_properties: toUpdatePhysicalProperties(product),
     product_type_id: product.productTypeID ? product.productTypeID : null,
+    videos: product.videos,
     // Only include amountInParent if this is a component (has a parent)
     ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
   };
@@ -82,6 +83,7 @@ async function saveNewProduct(product: Product): Promise<number> {
   product.id = data.id; // Update product ID to the newly assigned ID so we can add images
 
   await updateProductImages(product);
+  await updateProductVideos(product);
 
   return data.id;
 }
@@ -103,6 +105,7 @@ async function updateProduct(product: Product): Promise<number> {
   url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
   await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
   await updateProductImages(product);
+  await updateProductVideos(product);
 
   const data = await response.json();
 
@@ -168,6 +171,72 @@ function dataURItoBlob(dataURI: string) {
   }
 
   return new Blob([ab], { type: mimeString });
+}
+
+async function updateProductVideos(product: Product) {
+  const currentProduct = await getProduct(product.id);
+  const currentVideos = currentProduct.videos || [];
+  const videosToDelete = currentVideos.filter((vid) => !product.videos.some((v) => v.id === vid.id));
+  const videosToAdd = product.videos.filter((vid) => !vid.id);
+  const videosToUpdate = product.videos.filter((vid) => {
+    const orig = currentVideos.find((v) => v.id === vid.id);
+    return orig && (orig.url !== vid.url
+        || orig.description !== vid.description
+        || orig.title !== vid.title
+    );
+  });
+
+  for (const vid of videosToDelete) {
+    await deleteVideo(product, vid);
+  }
+  for (const vid of videosToAdd) {
+    await addVideo(product, vid);
+  }
+  for (const vid of videosToUpdate) {
+    await updateVideo(product, vid);
+  }
+}
+
+async function addVideo(product: Product, video: { url: string; description: string, title: string, }) {
+  const url = new URL(baseUrl + `/products/${product.id}/videos`);
+  const token = await getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+  const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
+  await fetch(url, { method: 'POST', headers, body });
+}
+
+async function deleteVideo(product: Product, video: { id?: number }) {
+  if (!video.id) {
+    return;
+  }
+
+  const url = new URL(baseUrl + `/products/${product.id}/videos/${video.id}`);
+  const token = await getToken();
+  const headers = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+  await fetch(url, { method: 'DELETE', headers });
+}
+
+async function updateVideo(product: Product, video: { id?: number; url: string; description: string, title: string, }) {
+  if (!video.id) {
+    return;
+  }
+
+  const url = new URL(baseUrl + `/products/${product.id}/videos/${video.id}`);
+  const token = await getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+  const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
+  await fetch(url, { method: 'PATCH', headers, body });
 }
 
 export async function deleteProduct(product: Product): Promise<void> {

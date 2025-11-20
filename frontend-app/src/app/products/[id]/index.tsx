@@ -15,6 +15,7 @@ import ProductMetaData from '@/components/product/ProductMetaData';
 import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
+import ProductVideo from "@/components/product/ProductVideo";
 
 import { useDialog } from '@/components/common/DialogProvider';
 
@@ -99,7 +100,7 @@ export default function ProductPage(): JSX.Element {
     } else if (id !== 'new') {
       getProduct(parseInt(id)).then(setProduct);
     }
-  }, [brand, id, isComponent, model, name, parent]);
+  }, []);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
@@ -146,6 +147,10 @@ export default function ProductPage(): JSX.Element {
 
   const onAmountInParentChange = (newAmount: number) => {
     setProduct({ ...product, amountInParent: newAmount });
+  };
+
+  const onVideoChange = (newVideos: { id?: number; url: string; description: string; title: string }[]) => {
+    setProduct({ ...product, videos: newVideos });
   };
 
   const onProductDelete = () => {
@@ -236,6 +241,7 @@ export default function ProductPage(): JSX.Element {
           editMode={editMode}
           onChangePhysicalProperties={onChangePhysicalProperties}
         />
+        <ProductVideo product={product} editMode={editMode} onVideoChange={onVideoChange} />
         <ProductComponents product={product} editMode={editMode} />
         <ProductMetaData product={product} />
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
