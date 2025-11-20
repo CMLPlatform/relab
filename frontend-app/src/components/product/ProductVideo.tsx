@@ -48,7 +48,6 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
                     onPress: (url) => {
                         if (!url || !isValidUrl(url)) return;
                         const updated = [...videos, { url: url.trim(), title: '', description: '' }];
-                        console.log(videos)
                         setVideos(updated);
                         onVideoChange?.(updated);
                     }
