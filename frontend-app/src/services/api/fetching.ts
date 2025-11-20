@@ -16,6 +16,17 @@ type ProductData = {
   updated_at: string;
   product_type_id: number;
   physical_properties: { weight_kg: number; height_cm: number; width_cm: number; depth_cm: number };
+  circularity_properties: {
+    recyclability_comment: string | null;
+    recyclability_observation: string;
+    recyclability_reference: string | null;
+    remanufacturability_comment: string | null;
+    remanufacturability_observation: string;
+    remanufacturability_reference: string | null;
+    repairability_comment: string | null;
+    repairability_observation: string;
+    repairability_reference: string | null;
+  } | null;
   components: { id: number; name: string; description: string }[];
   images: ImageData[];
   owner_id: string;
@@ -49,6 +60,29 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
       width: data.physical_properties.width_cm,
       depth: data.physical_properties.depth_cm,
     },
+    circularityProperties: data.circularity_properties
+      ? {
+          recyclabilityComment: data.circularity_properties.recyclability_comment,
+          recyclabilityObservation: data.circularity_properties.recyclability_observation,
+          recyclabilityReference: data.circularity_properties.recyclability_reference,
+          remanufacturabilityComment: data.circularity_properties.remanufacturability_comment,
+          remanufacturabilityObservation: data.circularity_properties.remanufacturability_observation,
+          remanufacturabilityReference: data.circularity_properties.remanufacturability_reference,
+          repairabilityComment: data.circularity_properties.repairability_comment,
+          repairabilityObservation: data.circularity_properties.repairability_observation,
+          repairabilityReference: data.circularity_properties.repairability_reference,
+        }
+      : {
+          recyclabilityComment: null,
+          recyclabilityObservation: '',
+          recyclabilityReference: null,
+          remanufacturabilityComment: null,
+          remanufacturabilityObservation: '',
+          remanufacturabilityReference: null,
+          repairabilityComment: null,
+          repairabilityObservation: '',
+          repairabilityReference: null,
+        },
     componentIDs: data.components.map(({ id }) => id),
     images: data.images.map((img) => ({ ...img, url: baseUrl + img.image_url })),
   };
@@ -59,7 +93,7 @@ export async function getProduct(id: number | 'new'): Promise<Product> {
     return newProduct();
   }
   const url = new URL(baseUrl + `/products/${id}`);
-  ['physical_properties', 'images', 'product_type', 'components'].forEach((inc) =>
+  ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components'].forEach((inc) =>
     url.searchParams.append('include', inc),
   );
 
@@ -91,6 +125,17 @@ export function newProduct(
       width: NaN,
       depth: NaN,
     },
+    circularityProperties: {
+      recyclabilityComment: '',
+      recyclabilityObservation: '',
+      recyclabilityReference: '',
+      remanufacturabilityComment: '',
+      remanufacturabilityObservation: '',
+      remanufacturabilityReference: '',
+      repairabilityComment: '',
+      repairabilityObservation: '',
+      repairabilityReference: '',
+    },
     componentIDs: [],
     images: [],
     ownedBy: 'me',
@@ -98,7 +143,7 @@ export function newProduct(
 }
 
 export async function allProducts(
-  include = ['physical_properties', 'images', 'product_type', 'components'],
+  include = ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components'],
   page = 1,
   size = 50,
 ): Promise<Required<Product>[]> {
@@ -121,7 +166,7 @@ export async function allProducts(
 }
 
 export async function myProducts(
-  include = ['physical_properties', 'images', 'product_type', 'components'],
+  include = ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components'],
   page = 1,
   size = 50,
 ): Promise<Required<Product>[]> {
