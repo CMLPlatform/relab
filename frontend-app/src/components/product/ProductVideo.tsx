@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Linking } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { InfoTooltip, TextInput } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
 import { Product } from '@/types/Product';
@@ -85,25 +86,42 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
             )}
 
             {videos.map((video, idx) => (
-                <View key={video.id ?? idx} style={{ marginBottom: 16 }}>
-                    <TextInput
-                        style={{ padding: 14, fontSize: 16, lineHeight: 26 }}
-                        placeholder={'Video URL'}
-                        value={video.url}
-                        onChangeText={val => handleVideoChange(idx, 'url', val)}
-                        errorOnEmpty
-                        editable={editMode}
-                    />
-                    {(editMode || Boolean(video.description)) && <TextInput
-                        style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 16 }}
-                        placeholder={'Add description (optional)'}
-                        value={video.description}
-                        onChangeText={val => handleVideoChange(idx, 'description', val)}
-                        editable={editMode}
-                    />}
+                <View key={video.id ?? idx} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ flex: 1 }}>
+                        {editMode ? (
+                            <TextInput
+                                style={{ padding: 14, fontSize: 16, lineHeight: 26 }}
+                                placeholder={'Video URL'}
+                                value={video.url}
+                                onChangeText={val => handleVideoChange(idx, 'url', val)}
+                                errorOnEmpty
+                                editable={editMode}
+                            />
+                        ) : (
+                            <TouchableOpacity onPress={() => Linking.openURL(video.url)}>
+                                <Text style={{ padding: 14, fontSize: 16, lineHeight: 26, color: 'blue', textDecorationLine: 'underline' }}>
+                                    {video.url}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                        {(editMode || Boolean(video.description)) && <TextInput
+                            style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 16 }}
+                            placeholder={'Add description (optional)'}
+                            value={video.description}
+                            onChangeText={val => handleVideoChange(idx, 'description', val)}
+                            editable={editMode}
+                        />}
+                    </View>
                     {editMode && (
-                        <TouchableOpacity onPress={() => handleRemove(idx)} style={{ marginTop: 4, paddingHorizontal: 14 }}>
-                            <Text style={{ color: 'red', textAlign: 'right' }}>Remove</Text>
+                        <TouchableOpacity
+                            onPress={() => handleRemove(idx)}
+                            style={{
+                                padding: 14,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                            }}
+                        >
+                            <MaterialCommunityIcons name="delete" size={24} color="red" />
                         </TouchableOpacity>
                     )}
                 </View>
