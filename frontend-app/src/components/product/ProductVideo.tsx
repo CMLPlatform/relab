@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { InfoTooltip, TextInput } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
 import { Product } from '@/types/Product';
+import { isValidUrl } from '@/services/api/validation/product';
 
 interface Video {
     id?: number;
@@ -43,9 +44,9 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
                 { text: 'Cancel' },
                 {
                     text: 'Add',
-                    disabled: (value) => !value || !value.trim(),
+                    disabled: (value) => !value || !value.trim() || !isValidUrl(value),
                     onPress: (url) => {
-                        if (!url) return;
+                        if (!url || !isValidUrl(url)) return;
                         const updated = [...videos, { url: url.trim(), title: '', description: '' }];
                         console.log(videos)
                         setVideos(updated);
@@ -104,6 +105,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
                                 value={video.url}
                                 onChangeText={val => handleVideoChange(idx, 'url', val)}
                                 errorOnEmpty
+                                customValidation={isValidUrl}
                                 editable={editMode}
                             />
                         ) : (
