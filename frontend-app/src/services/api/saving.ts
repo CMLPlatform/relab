@@ -174,15 +174,16 @@ function dataURItoBlob(dataURI: string) {
 }
 
 async function updateProductVideos(product: Product) {
-  console.log(product)
-
   const currentProduct = await getProduct(product.id);
   const currentVideos = currentProduct.videos || [];
   const videosToDelete = currentVideos.filter((vid) => !product.videos.some((v) => v.id === vid.id));
   const videosToAdd = product.videos.filter((vid) => !vid.id);
   const videosToUpdate = product.videos.filter((vid) => {
     const orig = currentVideos.find((v) => v.id === vid.id);
-    return orig && (orig.url !== vid.url || orig.description !== vid.description);
+    return orig && (orig.url !== vid.url
+        || orig.description !== vid.description
+        || orig.title !== vid.title
+    );
   });
 
   console.log('Videos to delete:', videosToDelete);

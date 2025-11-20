@@ -34,6 +34,7 @@ type VideoData = {
   id: number;
   url: string;
   description: string;
+  title: string;
 };
 
 async function toProduct(data: ProductData): Promise<Product> {
