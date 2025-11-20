@@ -186,10 +186,6 @@ async function updateProductVideos(product: Product) {
     );
   });
 
-  console.log('Videos to delete:', videosToDelete);
-  console.log('Videos to add:', videosToAdd);
-  console.log('Videos to update:', videosToUpdate);
-
   for (const vid of videosToDelete) {
     await deleteVideo(product, vid);
   }
