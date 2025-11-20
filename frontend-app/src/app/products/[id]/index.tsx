@@ -99,7 +99,7 @@ export default function ProductPage(): JSX.Element {
     } else if (id !== 'new') {
       getProduct(parseInt(id)).then(setProduct);
     }
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
