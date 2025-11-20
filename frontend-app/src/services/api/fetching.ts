@@ -59,7 +59,7 @@ async function toProduct(data: ProductData): Promise<Product> {
     },
     componentIDs: data.components.map(({ id }) => id),
     images: data.images.map((img) => ({ ...img, url: baseUrl + img.image_url })),
-    videos: data.videos,
+    videos: data.videos || [],
   };
 }
 
