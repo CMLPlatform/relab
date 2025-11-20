@@ -149,7 +149,7 @@ export default function ProductPage(): JSX.Element {
     setProduct({ ...product, amountInParent: newAmount });
   };
 
-  const onVideoChange = (newVideos: { id: number; url: string; description: string }[]) => {
+  const onVideoChange = (newVideos: { id?: number; url: string; description: string; title: string }[]) => {
     setProduct({ ...product, videos: newVideos });
   };
 

@@ -8,6 +8,7 @@ import { Product } from '@/types/Product';
 interface Video {
     id?: number;
     url: string;
+    title: string;
     description: string;
 }
 
@@ -21,7 +22,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
     const [videos, setVideos] = useState<Video[]>(product.videos || []);
     const dialog = useDialog();
 
-    const handleVideoChange = (idx: number, field: 'url' | 'description', value: string) => {
+    const handleVideoChange = (idx: number, field: 'url' | 'title' | 'description', value: string) => {
         const updated = videos.map((v, i) => i === idx ? { ...v, [field]: value } : v);
         setVideos(updated);
         onVideoChange?.(updated);
@@ -45,7 +46,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
                     disabled: (value) => !value || !value.trim(),
                     onPress: (url) => {
                         if (!url) return;
-                        const updated = [...videos, { url: url.trim(), description: '' }];
+                        const updated = [...videos, { url: url.trim(), title: '', description: '' }];
                         console.log(videos)
                         setVideos(updated);
                         onVideoChange?.(updated);
@@ -88,9 +89,17 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
             {videos.map((video, idx) => (
                 <View key={video.id ?? idx} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
                     <View style={{ flex: 1 }}>
+                        <TextInput
+                            style={{ paddingHorizontal: 14, fontSize: 20, fontWeight: 'bold', lineHeight: 16 }}
+                            placeholder={'Title'}
+                            value={video.title}
+                            onChangeText={val => handleVideoChange(idx, 'title', val)}
+                            editable={editMode}
+                            errorOnEmpty
+                        />
                         {editMode ? (
                             <TextInput
-                                style={{ padding: 14, fontSize: 16, lineHeight: 26 }}
+                                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 26 }}
                                 placeholder={'Video URL'}
                                 value={video.url}
                                 onChangeText={val => handleVideoChange(idx, 'url', val)}
@@ -99,7 +108,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
                             />
                         ) : (
                             <TouchableOpacity onPress={() => Linking.openURL(video.url)}>
-                                <Text style={{ padding: 14, fontSize: 16, lineHeight: 26, color: 'blue', textDecorationLine: 'underline' }}>
+                                <Text style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 26, color: 'blue', textDecorationLine: 'underline' }}>
                                     {video.url}
                                 </Text>
                             </TouchableOpacity>
