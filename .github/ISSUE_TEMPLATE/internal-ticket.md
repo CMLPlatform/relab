@@ -1,9 +1,9 @@
 ---
-name: Internal ticket
 about: For internal development
-title: ''
-labels: ''
 assignees: ''
+labels: ''
+name: Internal ticket
+title: ''
 ---
 
 ## Problem

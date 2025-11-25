@@ -42,7 +42,7 @@ class EmailChecker:
                     source=DISPOSABLE_DOMAINS_URL,
                     db_provider="redis",
                     redis_client=self.redis_client,
-            )
+                )
                 await self.checker.init_redis()
                 logger.info("Disposable email checker initialized with Redis")
 

@@ -22,19 +22,20 @@ def generate_token_link(token: str, route: str, base_url: str | AnyUrl | None = 
         base_url = str(core_settings.frontend_app_url)
     return urljoin(str(base_url), f"{route}?token={token}")
 
+
 def mask_email_for_log(email: EmailStr, mask: bool = True, max_len: int = 80) -> str:
     """Mask emails for logging.
-    
+
     Also remove non-printable characters and truncates long domains. Explicitly removes log-breaking control characters.
     """
     # Remove non-printable and log-breaking control characters
-    string = "".join(ch for ch in str(email) if ch.isprintable()).replace('\n', '').replace('\r', '')
+    string = "".join(ch for ch in str(email) if ch.isprintable()).replace("\n", "").replace("\r", "")
     local, sep, domain = string.partition("@")
     if sep and mask:
-        masked = (f"{local[0]}***@{domain}" if len(local) > 1 else f"*@{domain}")
+        masked = f"{local[0]}***@{domain}" if len(local) > 1 else f"*@{domain}"
     else:
         masked = string
-    return (f"{masked[:max_len-3]}..." if len(masked) > max_len else masked)
+    return f"{masked[: max_len - 3]}..." if len(masked) > max_len else masked
 
 
 ### Generic email function ###
@@ -63,7 +64,9 @@ async def send_email_with_template(
 
     if background_tasks:
         background_tasks.add_task(fm.send_message, message, template_name=template_name)
-        logger.info("Email queued for background sending to %s using template %s", mask_email_for_log(to_email), template_name)
+        logger.info(
+            "Email queued for background sending to %s using template %s", mask_email_for_log(to_email), template_name
+        )
     else:
         await fm.send_message(message, template_name=template_name)
         logger.info("Email sent to %s using template %s", mask_email_for_log(to_email), template_name)

@@ -149,9 +149,9 @@ async def get_user_products(
     # NOTE: If needed, we can open up this endpoint to any user by removing this ownership check
     if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
-    
-    statement=(select(Product).where(Product.owner_id == user_id))
-    
+
+    statement = select(Product).where(Product.owner_id == user_id)
+
     if not include_components_as_base_products:
         statement: SelectOfScalar[Product] = statement.where(Product.parent_id == None)
 
@@ -800,7 +800,9 @@ async def delete_product_physical_properties(
     response_model=CircularityPropertiesRead,
     summary="Get product circularity properties",
 )
-async def get_product_circularity_properties(product_id: PositiveInt, session: AsyncSessionDep) -> CircularityProperties:
+async def get_product_circularity_properties(
+    product_id: PositiveInt, session: AsyncSessionDep
+) -> CircularityProperties:
     """Get circularity properties for a product."""
     return await crud.get_circularity_properties(session, product_id)
 

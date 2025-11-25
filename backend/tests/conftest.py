@@ -9,7 +9,6 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
-from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import ProgrammingError
@@ -18,6 +17,7 @@ from sqlalchemy.ext.asyncio.engine import AsyncEngine
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from alembic import command
+from alembic.config import Config
 from app.core.config import settings
 from app.main import app
 

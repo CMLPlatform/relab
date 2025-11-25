@@ -64,7 +64,11 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             email_checker = None
         else:
             # Get email checker from app state if request is available
-            email_checker = request.app.state.email_checker if (request and request.app and hasattr(request.app.state, "email_checker")) else None
+            email_checker = (
+                request.app.state.email_checker
+                if (request and request.app and hasattr(request.app.state, "email_checker"))
+                else None
+            )
 
         try:
             user_create = await create_user_override(self.user_db, user_create, email_checker)

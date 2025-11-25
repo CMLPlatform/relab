@@ -260,11 +260,7 @@ export default function ProductPage(): JSX.Element {
         <ProductMetaData product={product} />
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
       </KeyboardAwareScrollView>
-      <Tooltip
-        title={validationResult.error || ''}
-        enterTouchDelay={0}
-        leaveTouchDelay={1500}
-      >
+      <Tooltip title={validationResult.error || ''} enterTouchDelay={0} leaveTouchDelay={1500}>
         <AnimatedFAB
           icon={FABicon}
           onPress={toggleEditMode}

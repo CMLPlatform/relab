@@ -1,9 +1,9 @@
 ---
-name: Feature request
 about: Suggest an idea for this project
-title: 'feature request: '
-labels: feature request
 assignees: ''
+labels: feature request
+name: Feature request
+title: 'feature request: '
 ---
 
 ## Problem statement
