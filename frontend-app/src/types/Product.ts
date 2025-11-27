@@ -10,6 +10,7 @@ export type Product = {
   productTypeID?: number;
   componentIDs: number[];
   physicalProperties: PhysicalProperties;
+  circularityProperties: CircularityProperties;
   images: { id?: number; url: string; description: string }[];
   videos: { id?: number; url: string; description: string; title: string; }[];
   ownedBy: 'me' | string;
@@ -22,3 +23,16 @@ export type PhysicalProperties = {
   height: number;
   depth: number;
 };
+
+export type CircularityProperties = {
+  recyclabilityComment?: string | null;
+  recyclabilityObservation: string;
+  recyclabilityReference?: string | null;
+  remanufacturabilityComment?: string | null;
+  remanufacturabilityObservation: string;
+  remanufacturabilityReference?: string | null;
+  repairabilityComment?: string | null;
+  repairabilityObservation: string;
+  repairabilityReference?: string | null;
+};
+
