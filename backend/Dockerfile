@@ -38,7 +38,6 @@ FROM python:3.14-slim
 
 # Build arguments
 ARG WORKDIR=/opt/relab/backend
-ARG APP_PORT=8000
 ARG APP_USER=appuser
 
 # Set up a non-root user
@@ -54,11 +53,11 @@ ENV PYTHONPATH=$WORKDIR \
     PYTHONUNBUFFERED=1 \
     PATH="$WORKDIR/.venv/bin:$PATH"
 
-# Expose the application port
-EXPOSE 8000
-
 # Switch to non-root user
 USER $APP_USER
+
+# Expose the application port
+EXPOSE 8000
 
 # Run the FastAPI application
 CMD [".venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
