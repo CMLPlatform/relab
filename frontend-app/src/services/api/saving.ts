@@ -23,6 +23,7 @@ function toNewProduct(product: Product): any {
       },
     ],
     physical_properties: toUpdatePhysicalProperties(product),
+    circularity_properties: toUpdateCircularityProperties(product),
     product_type_id: product.productTypeID ? product.productTypeID : null,
     videos: product.videos,
     // Only include amountInParent if this is a component (has a parent)
@@ -50,6 +51,20 @@ function toUpdatePhysicalProperties(product: Product): any {
     height_cm: product.physicalProperties.height || null,
     width_cm: product.physicalProperties.width || null,
     depth_cm: product.physicalProperties.depth || null,
+  };
+}
+
+function toUpdateCircularityProperties(product: Product): any {
+  return {
+    recyclability_comment: product.circularityProperties.recyclabilityComment ?? null,
+    recyclability_observation: product.circularityProperties.recyclabilityObservation,
+    recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
+    remanufacturability_comment: product.circularityProperties.remanufacturabilityComment ?? null,
+    remanufacturability_observation: product.circularityProperties.remanufacturabilityObservation,
+    remanufacturability_reference: product.circularityProperties.remanufacturabilityReference ?? null,
+    repairability_comment: product.circularityProperties.repairabilityComment ?? null,
+    repairability_observation: product.circularityProperties.repairabilityObservation,
+    repairability_reference: product.circularityProperties.repairabilityReference ?? null,
   };
 }
 
@@ -98,12 +113,17 @@ async function updateProduct(product: Product): Promise<number> {
 
   const productBody = JSON.stringify(toUpdateProduct(product));
   const propertiesBody = JSON.stringify(toUpdatePhysicalProperties(product));
+  const circularityBody = JSON.stringify(toUpdateCircularityProperties(product));
 
   let url = new URL(baseUrl + `/products/${product.id}`);
   const response = await fetch(url, { method: 'PATCH', headers: headers, body: productBody });
 
   url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
   await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
+
+  url = new URL(baseUrl + `/products/${product.id}/circularity_properties`);
+  await fetch(url, { method: 'PATCH', headers: headers, body: circularityBody });
+
   await updateProductImages(product);
   await updateProductVideos(product);
 

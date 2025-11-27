@@ -15,6 +15,7 @@ import ProductMetaData from '@/components/product/ProductMetaData';
 import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
+import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductVideo from "@/components/product/ProductVideo";
 
 import { useDialog } from '@/components/common/DialogProvider';
@@ -129,6 +130,10 @@ export default function ProductPage(): JSX.Element {
     setProduct({ ...product, physicalProperties: newProperties });
   };
 
+  const onChangeCircularityProperties = (newProperties: typeof product.circularityProperties) => {
+    setProduct({ ...product, circularityProperties: newProperties });
+  };
+
   const onBrandChange = (newBrand: string) => {
     setProduct({ ...product, brand: newBrand });
   };
@@ -240,6 +245,11 @@ export default function ProductPage(): JSX.Element {
           product={product}
           editMode={editMode}
           onChangePhysicalProperties={onChangePhysicalProperties}
+        />
+        <ProductCircularityProperties
+          product={product}
+          editMode={editMode}
+          onChangeCircularityProperties={onChangeCircularityProperties}
         />
         <ProductVideo product={product} editMode={editMode} onVideoChange={onVideoChange} />
         <ProductComponents product={product} editMode={editMode} />
