@@ -4,7 +4,8 @@ from enum import Enum
 from urllib.parse import urljoin
 
 from fastapi import HTTPException
-from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, Response
+from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, Response, RequestError
+import logging
 from pydantic import UUID4
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -68,5 +69,13 @@ async def fetch_from_camera_url(
                 status_code=e.response.status_code,
                 detail={"main API": error_msg, "Camera API": e.response.json().get("detail")},
             ) from e
+        except RequestError as e:
+            # Network-level errors (DNS, connection refused, timeouts).
+            logger = logging.getLogger(__name__)
+            logger.warning("Network error contacting camera %s%s: %s", camera.url, endpoint, e)
+            raise HTTPException(status_code=503, detail={
+                "main API": f"Network error contacting camera: {endpoint}",
+                "error": str(e),
+            }) from e
         else:
             return response
