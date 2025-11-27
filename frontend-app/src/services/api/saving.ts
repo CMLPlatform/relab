@@ -15,6 +15,7 @@ function toNewProduct(product: Product): any {
     brand: product.brand,
     model: product.model,
     description: product.description,
+    // TODO: Handle bill of materials properly
     bill_of_materials: [
       {
         quantity: 42,
@@ -55,7 +56,7 @@ function toUpdatePhysicalProperties(product: Product): any {
 }
 
 function toUpdateCircularityProperties(product: Product): any {
-  return {
+  const out =  {
     recyclability_comment: product.circularityProperties.recyclabilityComment ?? null,
     recyclability_observation: product.circularityProperties.recyclabilityObservation,
     recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
@@ -66,6 +67,10 @@ function toUpdateCircularityProperties(product: Product): any {
     repairability_observation: product.circularityProperties.repairabilityObservation,
     repairability_reference: product.circularityProperties.repairabilityReference ?? null,
   };
+
+  // If all values are null, return null so the caller can omit the object
+  const hasAny = Object.values(out).some((v) => v !== null);
+  return hasAny ? out : null;
 }
 
 export async function saveProduct(product: Product): Promise<number> {
