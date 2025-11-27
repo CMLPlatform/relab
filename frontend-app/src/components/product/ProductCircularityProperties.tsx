@@ -31,11 +31,7 @@ interface CircularityPropertySectionProps {
   onUpdateField: (field: 'comment' | 'observation' | 'reference', value: string) => void;
 }
 
-export default function ProductCircularityProperties({
-  product,
-  editMode,
-  onChangeCircularityProperties,
-}: Props) {
+export default function ProductCircularityProperties({ product, editMode, onChangeCircularityProperties }: Props) {
   const darkMode = useColorScheme() === 'dark';
   const theme = darkMode ? DarkTheme : LightTheme;
   const [expandedProperty, setExpandedProperty] = useState<CircularityPropertyType | null>(null);
@@ -66,12 +62,17 @@ export default function ProductCircularityProperties({
       (typeof reference === 'string' && reference.trim() !== '') ||
       // Also consider it as "having data" if comment or reference are empty strings (not null)
       // This means the property was added but not yet filled in
-      (comment !== null || reference !== null)
+      comment !== null ||
+      reference !== null
     );
   };
 
   // Helper function to update a specific field
-  const updateField = (type: CircularityPropertyType, field: 'comment' | 'observation' | 'reference', value: string) => {
+  const updateField = (
+    type: CircularityPropertyType,
+    field: 'comment' | 'observation' | 'reference',
+    value: string,
+  ) => {
     if (!product.circularityProperties) return;
 
     const key = `${type}${field.charAt(0).toUpperCase()}${field.slice(1)}` as keyof CircularityProperties;
@@ -121,8 +122,6 @@ export default function ProductCircularityProperties({
     setExpandedProperty(null);
   };
 
-
-
   const propertyTypes = ['recyclability', 'remanufacturability', 'repairability'] as CircularityPropertyType[];
   const chipsToShow = editMode ? propertyTypes.filter((type) => !hasPropertyData(type)) : [];
   const expandedPropertiesToShow = propertyTypes.filter((type) => hasPropertyData(type));
@@ -157,134 +156,135 @@ export default function ProductCircularityProperties({
       )}
 
       {/* Render expanded properties */}
-      {expandedPropertiesToShow.map((type) => (
-        product.circularityProperties && (
-          <CircularityPropertySection
-            key={type}
-            type={type}
-            circularityProperties={product.circularityProperties}
-            editMode={editMode}
-            isExpanded={expandedProperty === type}
-            onToggleExpanded={() => setExpandedProperty(expandedProperty === type ? null : type)}
-            onRemove={() => removeProperty(type)}
-            onUpdateField={(field, value) => updateField(type, field, value)}
-          />
-        )
-      ))}
+      {expandedPropertiesToShow.map(
+        (type) =>
+          product.circularityProperties && (
+            <CircularityPropertySection
+              key={type}
+              type={type}
+              circularityProperties={product.circularityProperties}
+              editMode={editMode}
+              isExpanded={expandedProperty === type}
+              onToggleExpanded={() => setExpandedProperty(expandedProperty === type ? null : type)}
+              onRemove={() => removeProperty(type)}
+              onUpdateField={(field, value) => updateField(type, field, value)}
+            />
+          ),
+      )}
     </View>
   );
 }
 
 function CircularityPropertySection({
-                                        type,
-                                        circularityProperties,
-                                        editMode,
-                                        isExpanded,
-                                        onToggleExpanded,
-                                        onRemove,
-                                        onUpdateField,
-                                    }: CircularityPropertySectionProps) {
-    const darkMode = useColorScheme() === 'dark';
-    const theme = darkMode ? DarkTheme : LightTheme;
+  type,
+  circularityProperties,
+  editMode,
+  isExpanded,
+  onToggleExpanded,
+  onRemove,
+  onUpdateField,
+}: CircularityPropertySectionProps) {
+  const darkMode = useColorScheme() === 'dark';
+  const theme = darkMode ? DarkTheme : LightTheme;
 
-    const commentKey = `${type}Comment` as keyof CircularityProperties;
-    const observationKey = `${type}Observation` as keyof CircularityProperties;
-    const referenceKey = `${type}Reference` as keyof CircularityProperties;
+  const commentKey = `${type}Comment` as keyof CircularityProperties;
+  const observationKey = `${type}Observation` as keyof CircularityProperties;
+  const referenceKey = `${type}Reference` as keyof CircularityProperties;
 
-    // Helper to check if a field has content
-    const hasContent = (value: string | null | undefined): boolean => {
-        return typeof value === 'string' && value.trim() !== '';
-    };
+  // Helper to check if a field has content
+  const hasContent = (value: string | null | undefined): boolean => {
+    return typeof value === 'string' && value.trim() !== '';
+  };
 
-    const observation = circularityProperties[observationKey];
-    const comment = circularityProperties[commentKey];
-    const reference = circularityProperties[referenceKey];
+  const observation = circularityProperties[observationKey];
+  const comment = circularityProperties[commentKey];
+  const reference = circularityProperties[referenceKey];
 
-    return (
-        <Fragment>
-            <View style={[styles.divider, darkMode && styles.dividerDark]} />
-            <View style={styles.propertySection}>
-                <View style={styles.propertyHeader}>
-                    <Text style={styles.propertyTitle}>{propertyLabels[type]}</Text>
-                    <View style={styles.propertyActions}>
-                        <Pressable
-                            onPress={onToggleExpanded}
-                            style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
-                        >
-                            <MaterialCommunityIcons
-                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                                size={24}
-                                color={theme.colors.onSurface}
-                            />
-                        </Pressable>
-                        {editMode && (
-                            <Pressable
-                                onPress={onRemove}
-                                style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
-                            >
-                                <MaterialCommunityIcons name="delete" size={24} color={theme.colors.onSurface} />
-                            </Pressable>
-                        )}
-                    </View>
-                </View>
+  return (
+    <Fragment>
+      <View style={[styles.divider, darkMode && styles.dividerDark]} />
+      <View style={styles.propertySection}>
+        <View style={styles.propertyHeader}>
+          <Text style={styles.propertyTitle}>{propertyLabels[type]}</Text>
+          <View style={styles.propertyActions}>
+            <Pressable
+              onPress={onToggleExpanded}
+              style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
+            >
+              <MaterialCommunityIcons
+                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={24}
+                color={theme.colors.onSurface}
+              />
+            </Pressable>
+            {editMode && (
+              <Pressable
+                onPress={onRemove}
+                style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
+              >
+                <MaterialCommunityIcons name="delete" size={24} color={theme.colors.onSurface} />
+              </Pressable>
+            )}
+          </View>
+        </View>
 
-                {isExpanded && (
-                    <View style={styles.propertyFields}>
-                        {/* Observation field - always show in edit mode, only show if has content in view mode */}
-                        {(editMode || hasContent(observation)) && (
-                            <View>
-                                <Text style={[styles.label, darkMode && styles.labelDark]}>Observation (Required)</Text>
-                                <TextInput
-                                    value={String(observation || '')}
-                                    onChangeText={(text) => onUpdateField('observation', text)}
-                                    multiline
-                                    numberOfLines={3}
-                                    editable={editMode}
-                                    style={[
-                                        styles.input,
-                                        styles.multilineInput,
-                                        darkMode && styles.inputDark,
-                                        editMode && !observation && styles.inputError,
-                                        editMode && !observation && darkMode && styles.inputErrorDark,
-                                    ]}
-                                    errorOnEmpty={editMode && !observation}
-                                />
-                            </View>
-                        )}
+        {isExpanded && (
+          <View style={styles.propertyFields}>
+            {/* Observation field - always show in edit mode, only show if has content in view mode */}
+            {(editMode || hasContent(observation)) && (
+              <View>
+                <Text style={[styles.label, darkMode && styles.labelDark]}>Observation (Required)</Text>
+                <TextInput
+                  value={String(observation || '')}
+                  onChangeText={(text) => onUpdateField('observation', text)}
+                  multiline
+                  numberOfLines={3}
+                  editable={editMode}
+                  style={[
+                    styles.input,
+                    styles.multilineInput,
+                    darkMode && styles.inputDark,
+                    editMode && !observation && styles.inputError,
+                    editMode && !observation && darkMode && styles.inputErrorDark,
+                  ]}
+                  errorOnEmpty={editMode && !observation}
+                />
+              </View>
+            )}
 
-                        {/* Comment field - always show in edit mode, only show if has content in view mode */}
-                        {(editMode || hasContent(comment)) && (
-                            <View>
-                                <Text style={[styles.label, darkMode && styles.labelDark]}>Comment (Optional)</Text>
-                                <TextInput
-                                    value={String(comment || '')}
-                                    onChangeText={(text) => onUpdateField('comment', text)}
-                                    multiline
-                                    numberOfLines={2}
-                                    editable={editMode}
-                                    style={[styles.input, styles.multilineInput, darkMode && styles.inputDark]}
-                                />
-                            </View>
-                        )}
+            {/* Comment field - always show in edit mode, only show if has content in view mode */}
+            {(editMode || hasContent(comment)) && (
+              <View>
+                <Text style={[styles.label, darkMode && styles.labelDark]}>Comment (Optional)</Text>
+                <TextInput
+                  value={String(comment || '')}
+                  onChangeText={(text) => onUpdateField('comment', text)}
+                  multiline
+                  numberOfLines={2}
+                  editable={editMode}
+                  style={[styles.input, styles.multilineInput, darkMode && styles.inputDark]}
+                />
+              </View>
+            )}
 
-                        {/* Reference field - always show in edit mode, only show if has content in view mode */}
-                        {(editMode || hasContent(reference)) && (
-                            <View>
-                                <Text style={[styles.label, darkMode && styles.labelDark]}>Reference (Optional)</Text>
-                                <TextInput
-                                    value={String(reference || '')}
-                                    onChangeText={(text) => onUpdateField('reference', text)}
-                                    editable={editMode}
-                                    style={[styles.input, darkMode && styles.inputDark]}
-                                    placeholder="e.g., ISO 14021:2016"
-                                />
-                            </View>
-                        )}
-                    </View>
-                )}
-            </View>
-        </Fragment>
-    );
+            {/* Reference field - always show in edit mode, only show if has content in view mode */}
+            {(editMode || hasContent(reference)) && (
+              <View>
+                <Text style={[styles.label, darkMode && styles.labelDark]}>Reference (Optional)</Text>
+                <TextInput
+                  value={String(reference || '')}
+                  onChangeText={(text) => onUpdateField('reference', text)}
+                  editable={editMode}
+                  style={[styles.input, darkMode && styles.inputDark]}
+                  placeholder="e.g., ISO 14021:2016"
+                />
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    </Fragment>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -372,4 +372,3 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 });
-

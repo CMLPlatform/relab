@@ -12,7 +12,7 @@ export type Product = {
   physicalProperties: PhysicalProperties;
   circularityProperties: CircularityProperties;
   images: { id?: number; url: string; description: string }[];
-  videos: { id?: number; url: string; description: string; title: string; }[];
+  videos: { id?: number; url: string; description: string; title: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;
 };
@@ -35,4 +35,3 @@ export type CircularityProperties = {
   repairabilityObservation: string;
   repairabilityReference?: string | null;
 };
-

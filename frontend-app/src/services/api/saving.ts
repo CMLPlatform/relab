@@ -200,10 +200,7 @@ async function updateProductVideos(product: Product) {
   const videosToAdd = product.videos.filter((vid) => !vid.id);
   const videosToUpdate = product.videos.filter((vid) => {
     const orig = currentVideos.find((v) => v.id === vid.id);
-    return orig && (orig.url !== vid.url
-        || orig.description !== vid.description
-        || orig.title !== vid.title
-    );
+    return orig && (orig.url !== vid.url || orig.description !== vid.description || orig.title !== vid.title);
   });
 
   for (const vid of videosToDelete) {
@@ -217,7 +214,7 @@ async function updateProductVideos(product: Product) {
   }
 }
 
-async function addVideo(product: Product, video: { url: string; description: string, title: string, }) {
+async function addVideo(product: Product, video: { url: string; description: string; title: string }) {
   const url = new URL(baseUrl + `/products/${product.id}/videos`);
   const token = await getToken();
   const headers = {
@@ -243,7 +240,7 @@ async function deleteVideo(product: Product, video: { id?: number }) {
   await fetch(url, { method: 'DELETE', headers });
 }
 
-async function updateVideo(product: Product, video: { id?: number; url: string; description: string, title: string, }) {
+async function updateVideo(product: Product, video: { id?: number; url: string; description: string; title: string }) {
   if (!video.id) {
     return;
   }
