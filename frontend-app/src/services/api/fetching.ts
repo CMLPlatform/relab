@@ -29,6 +29,7 @@ type ProductData = {
   } | null;
   components: { id: number; name: string; description: string }[];
   images: ImageData[];
+  videos: VideoData[];
   owner_id: string;
   parent_id?: number;
   amount_in_parent?: number;
@@ -40,11 +41,18 @@ type ImageData = {
   description: string;
 };
 
-async function toProduct(data: ProductData): Promise<Required<Product>> {
+type VideoData = {
+  id: number;
+  url: string;
+  description: string;
+  title: string;
+};
+
+async function toProduct(data: ProductData): Promise<Product> {
   const meId = await getUser().then((user) => user?.id);
   return {
     id: data.id,
-    parentID: data.parent_id,
+    parentID: data.parent_id ?? undefined,
     name: data.name,
     brand: data.brand,
     model: data.model,
@@ -53,7 +61,7 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
     updatedAt: data.updated_at,
     productTypeID: data.product_type_id,
     ownedBy: data.owner_id === meId ? 'me' : data.owner_id,
-    amountInParent: data.amount_in_parent,
+    amountInParent: data.amount_in_parent ?? undefined,
     physicalProperties: {
       weight: data.physical_properties.weight_kg,
       height: data.physical_properties.height_cm,
@@ -85,6 +93,7 @@ async function toProduct(data: ProductData): Promise<Required<Product>> {
         },
     componentIDs: data.components.map(({ id }) => id),
     images: data.images.map((img) => ({ ...img, url: baseUrl + img.image_url })),
+    videos: data.videos || [],
   };
 }
 
@@ -93,7 +102,7 @@ export async function getProduct(id: number | 'new'): Promise<Product> {
     return newProduct();
   }
   const url = new URL(baseUrl + `/products/${id}`);
-  ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components'].forEach((inc) =>
+  ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components', 'videos'].forEach((inc) =>
     url.searchParams.append('include', inc),
   );
 
@@ -115,7 +124,7 @@ export function newProduct(
 ): Product {
   return {
     id: 'new',
-    parentID: parentID,
+    parentID: isNaN(parentID) ? undefined : parentID,
     name: name,
     brand: brand,
     model: model,
@@ -138,6 +147,7 @@ export function newProduct(
     },
     componentIDs: [],
     images: [],
+    videos: [],
     ownedBy: 'me',
   };
 }
@@ -146,7 +156,7 @@ export async function allProducts(
   include = ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components'],
   page = 1,
   size = 50,
-): Promise<Required<Product>[]> {
+): Promise<Product[]> {
   const url = new URL(baseUrl + '/products');
   include.forEach((inc) => url.searchParams.append('include', inc));
   url.searchParams.append('page', page.toString());
@@ -169,7 +179,7 @@ export async function myProducts(
   include = ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components'],
   page = 1,
   size = 50,
-): Promise<Required<Product>[]> {
+): Promise<Product[]> {
   const url = new URL(baseUrl + '/users/me/products');
   include.forEach((inc) => url.searchParams.append('include', inc));
   url.searchParams.append('page', page.toString());
