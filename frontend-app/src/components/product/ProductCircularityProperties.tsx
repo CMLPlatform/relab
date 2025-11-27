@@ -1,10 +1,10 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Fragment, useState } from 'react';
-import { View, StyleSheet, Pressable, useColorScheme } from 'react-native';
-import { Chip, InfoTooltip, Text, TextInput } from '@/components/base';
-import { CircularityProperties, Product } from '@/types/Product';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
+import { Chip, InfoTooltip, Text, TextInput } from '@/components/base';
+import { CircularityProperties, Product } from '@/types/Product';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Fragment, useState } from 'react';
+import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
 
 interface Props {
   product: Product;

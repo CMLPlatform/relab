@@ -16,6 +16,7 @@ import ProductMetaData from '@/components/product/ProductMetaData';
 import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
+import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductVideo from "@/components/product/ProductVideo";
 
 import { useDialog } from '@/components/common/DialogProvider';
