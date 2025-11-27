@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from anyio import to_thread
 from fastapi import UploadFile
@@ -30,6 +30,7 @@ from app.api.file_storage.schemas import (
     VideoCreate,
     VideoCreateWithinProduct,
     VideoUpdate,
+    VideoUpdateWithinProduct,
 )
 
 logger = logging.getLogger(__name__)
@@ -269,7 +270,7 @@ async def create_video(
     return db_video
 
 
-async def update_video(db: AsyncSession, video_id: int, video: VideoUpdate) -> Video:
+async def update_video(db: AsyncSession, video_id: int, video: VideoUpdate | VideoUpdateWithinProduct) -> Video:
     """Update an existing video in the database."""
     db_video: Video = await db_get_model_with_id_if_it_exists(db, Video, video_id)
 

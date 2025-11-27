@@ -65,11 +65,11 @@ from app.api.data_collection.schemas import (
     ProductUpdate,
     ProductUpdateWithProperties,
 )
-from app.api.file_storage.crud import create_video, delete_video
+from app.api.file_storage.crud import create_video, delete_video, update_video
 from app.api.file_storage.filters import VideoFilter
 from app.api.file_storage.models.models import Video
 from app.api.file_storage.router_factories import StorageRouteMethod, add_storage_routes
-from app.api.file_storage.schemas import VideoCreateWithinProduct, VideoReadWithinProduct
+from app.api.file_storage.schemas import VideoCreateWithinProduct, VideoReadWithinProduct, VideoUpdateWithinProduct
 
 if TYPE_CHECKING:
     from sqlmodel.sql._expression_select_cls import SelectOfScalar
@@ -942,6 +942,25 @@ async def create_product_video(
 ) -> Video:
     """Create a new video associated with a specific product."""
     return await create_video(session, video, product_id=product.id)
+
+
+@product_router.patch(
+    "/{product_id}/videos/{video_id}",
+    response_model=VideoReadWithinProduct,
+    summary="Update video by ID",
+)
+async def update_product_video(
+    product: UserOwnedProductDep,
+    video_id: PositiveInt,
+    video_update: VideoUpdateWithinProduct,
+    session: AsyncSessionDep,
+) -> Video:
+    """Update a video associated with a specific product."""
+    # Validate existence of product and video
+    await get_nested_model_by_id(session, Product, product.id, Video, video_id, "product_id")
+
+    # Update video
+    return await update_video(session, video_id, video_update)
 
 
 @product_router.delete(

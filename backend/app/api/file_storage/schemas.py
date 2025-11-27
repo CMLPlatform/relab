@@ -185,7 +185,7 @@ class VideoCreate(BaseCreateSchema, VideoBase):
 
 
 class VideoReadWithinProduct(BaseReadSchemaWithTimeStamp, VideoBase):
-    """Schema for reading video information."""
+    """Schema for reading video information within a product."""
 
 
 class VideoRead(BaseReadSchemaWithTimeStamp, VideoBase):
@@ -194,11 +194,16 @@ class VideoRead(BaseReadSchemaWithTimeStamp, VideoBase):
     product_id: PositiveInt
 
 
-class VideoUpdate(BaseUpdateSchema):
-    """Schema for updating a video."""
+class VideoUpdateWithinProduct(BaseUpdateSchema):
+    """Schema for updating a video within a product."""
 
     url: AnyUrlToDB | None = Field(default=None, description="URL linking to the video")
     title: str | None = Field(default=None, max_length=100, description="Title of the video")
     description: str | None = Field(default=None, max_length=500, description="Description of the video")
     video_metadata: dict[str, Any] | None = Field(default=None, description="Video metadata as a JSON dict")
+
+
+class VideoUpdate(VideoUpdateWithinProduct):
+    """Schema for updating a video."""
+
     product_id: PositiveInt

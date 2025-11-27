@@ -7,6 +7,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AnimatedFAB, Button, Tooltip, useTheme } from 'react-native-paper';
 
 import ProductAmountInParent from '@/components/product/ProductAmountInParent';
+import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductComponents from '@/components/product/ProductComponents';
 import ProductDelete from '@/components/product/ProductDelete';
 import ProductDescription from '@/components/product/ProductDescription';
@@ -15,7 +16,6 @@ import ProductMetaData from '@/components/product/ProductMetaData';
 import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
-import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductVideo from "@/components/product/ProductVideo";
 
 import { useDialog } from '@/components/common/DialogProvider';
