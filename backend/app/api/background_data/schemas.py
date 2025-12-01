@@ -33,7 +33,7 @@ class CategoryCreateWithinCategoryWithSubCategories(BaseCreateSchema, CategoryBa
     """Schema for creating a new category within a category, with optional subcategories."""
 
     # Database model has a None default, but Pydantic model has empty set default for consistent API type handling
-    subcategories: set["CategoryCreateWithinCategoryWithSubCategories"] = Field(
+    subcategories: set[CategoryCreateWithinCategoryWithSubCategories] = Field(
         default_factory=set,
         description="List of subcategories",
     )
@@ -97,7 +97,7 @@ class CategoryReadWithRelationships(CategoryRead):
     """Schema for reading category information with all relationships."""
 
     materials: list[MaterialRead] = Field(default_factory=list, description="List of materials linked to the category")
-    product_types: list["ProductTypeRead"] = Field(
+    product_types: list[ProductTypeRead] = Field(
         default_factory=list, description="List of product types linked to the category"
     )
 
@@ -111,7 +111,7 @@ class CategoryReadWithRelationshipsAndFlatSubCategories(CategoryReadWithRelation
 class CategoryReadAsSubCategoryWithRecursiveSubCategories(CategoryReadAsSubCategory):
     """Schema for reading category information with recursive subcategories."""
 
-    subcategories: list["CategoryReadAsSubCategoryWithRecursiveSubCategories"] = Field(
+    subcategories: list[CategoryReadAsSubCategoryWithRecursiveSubCategories] = Field(
         default_factory=list, description="List of subcategories"
     )
 

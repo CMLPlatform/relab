@@ -34,8 +34,8 @@ class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, table=Tru
         foreign_key="product.id", primary_key=True, description="ID of the product with the material"
     )
 
-    material: "Material" = Relationship(back_populates="product_links", sa_relationship_kwargs={"lazy": "selectin"})
-    product: "Product" = Relationship(back_populates="bill_of_materials", sa_relationship_kwargs={"lazy": "selectin"})
+    material: Material = Relationship(back_populates="product_links", sa_relationship_kwargs={"lazy": "selectin"})
+    product: Product = Relationship(back_populates="bill_of_materials", sa_relationship_kwargs={"lazy": "selectin"})
 
     def __str__(self) -> str:
         return f"{self.quantity} {self.unit} of {self.material.name} in {self.product.name}"

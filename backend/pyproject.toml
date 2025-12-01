@@ -137,7 +137,6 @@
       "C4",     # flake8-comprehensions (fixes iterable comprehensions)
       "C90",    # mccabe
       "D",      # pydocstyle
-      "DJ",     # flake8-django
       "DTZ",    # flake8-datetimez (checks for naive datetime uses without timezone)
       "E",      # pycodestyle errors
       "EM",     # flake8-errmsgs (checks for error messages)

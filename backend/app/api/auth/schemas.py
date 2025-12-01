@@ -31,13 +31,13 @@ class OrganizationRead(OrganizationBase):
 class OrganizationReadWithRelationshipsPublic(BaseReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations, including relationships."""
 
-    members: list["UserReadPublic"] = Field(default_factory=list, description="List of users in the organization.")
+    members: list[UserReadPublic] = Field(default_factory=list, description="List of users in the organization.")
 
 
 class OrganizationReadWithRelationships(BaseReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations, including relationships."""
 
-    members: list["UserRead"] = Field(default_factory=list, description="List of users in the organization.")
+    members: list[UserRead] = Field(default_factory=list, description="List of users in the organization.")
 
 
 class OrganizationUpdate(BaseUpdateSchema):
@@ -92,7 +92,7 @@ class UserCreate(UserCreateBase):
 class UserCreateWithOrganization(UserCreateBase):
     """Create schema for users with organization to create and own."""
 
-    organization: "OrganizationCreate"
+    organization: OrganizationCreate
 
     model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
         {
@@ -140,7 +140,7 @@ class UserRead(UserBase, schemas.BaseUser[uuid.UUID]):
 class UserReadWithOrganization(UserRead):
     """Read schema for users with organization."""
 
-    organization: Optional["OrganizationRead"] = Field(default=None, description="Organization the user belongs to.")
+    organization: OrganizationRead | None = Field(default=None, description="Organization the user belongs to.")
 
 
 class UserReadWithRelationships(UserReadWithOrganization):

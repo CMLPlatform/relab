@@ -1,11 +1,11 @@
 """Utilities for the camera interaction endpoints."""
 
+import logging
 from enum import Enum
 from urllib.parse import urljoin
 
 from fastapi import HTTPException
-from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, Response, RequestError
-import logging
+from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, RequestError, Response
 from pydantic import UUID4
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -73,9 +73,12 @@ async def fetch_from_camera_url(
             # Network-level errors (DNS, connection refused, timeouts).
             logger = logging.getLogger(__name__)
             logger.warning("Network error contacting camera %s%s: %s", camera.url, endpoint, e)
-            raise HTTPException(status_code=503, detail={
-                "main API": f"Network error contacting camera: {endpoint}",
-                "error": str(e),
-            }) from e
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "main API": f"Network error contacting camera: {endpoint}",
+                    "error": str(e),
+                },
+            ) from e
         else:
             return response

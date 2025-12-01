@@ -256,7 +256,7 @@ class ComponentCreateWithComponents(ComponentCreate):
     """
 
     # Recursive components
-    components: list["ComponentCreateWithComponents"] = Field(
+    components: list[ComponentCreateWithComponents] = Field(
         default_factory=list, description="Set of component products"
     )
 
@@ -309,13 +309,13 @@ class ProductReadWithRelationships(ProductReadWithProperties):
 class ProductReadWithRelationshipsAndFlatComponents(ProductReadWithRelationships):
     """Schema for reading product information with one level of components."""
 
-    components: list["ComponentRead"] = Field(default_factory=list, description="List of component products")
+    components: list[ComponentRead] = Field(default_factory=list, description="List of component products")
 
 
 class ComponentReadWithRecursiveComponents(ComponentRead):
     """Schema for reading product information with recursive components."""
 
-    components: list["ComponentReadWithRecursiveComponents"] = Field(
+    components: list[ComponentReadWithRecursiveComponents] = Field(
         default_factory=list, description="List of component products"
     )
 

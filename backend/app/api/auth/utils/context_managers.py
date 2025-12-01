@@ -19,7 +19,7 @@ get_async_user_manager_context = asynccontextmanager(get_user_manager)
 @asynccontextmanager
 async def get_chained_async_user_manager_context(
     session: AsyncSession | None = None,
-) -> AsyncGenerator["UserManager"]:
+) -> AsyncGenerator[UserManager]:
     """Provides a user manager context using the user database and an async database session.
 
     If a session is provided, it will be used; otherwise, a new session for the default database will be created.
