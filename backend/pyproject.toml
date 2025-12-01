@@ -118,7 +118,7 @@
 [tool.ruff]
   fix            = true
   line-length    = 120
-  target-version = "py313"
+  target-version = "py314"
 
   # Exclude automatically generated files from linting
   extend-exclude = ["./alembic/versions"]
