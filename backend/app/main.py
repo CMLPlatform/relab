@@ -20,8 +20,8 @@ from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.core.config import settings
 from app.core.database import async_engine
+from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
-from app.core.utils.custom_logging import setup_logging
 
 # Initialize logging
 setup_logging()
