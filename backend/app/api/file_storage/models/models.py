@@ -65,13 +65,13 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
     )
 
     product_id: int | None = Field(default=None, foreign_key="product.id")
-    product: "Product" = Relationship(back_populates="files")
+    product: Product = Relationship(back_populates="files")
 
     material_id: int | None = Field(default=None, foreign_key="material.id")
-    material: "Material" = Relationship(back_populates="files")
+    material: Material = Relationship(back_populates="files")
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")
-    product_type: "ProductType" = Relationship(back_populates="files")
+    product_type: ProductType = Relationship(back_populates="files")
 
     # Model configuration
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
@@ -129,13 +129,13 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
     )
 
     product_id: int | None = Field(default=None, foreign_key="product.id")
-    product: "Product" = Relationship(back_populates="images")
+    product: Product = Relationship(back_populates="images")
 
     material_id: int | None = Field(default=None, foreign_key="material.id")
-    material: "Material" = Relationship(back_populates="images")
+    material: Material = Relationship(back_populates="images")
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")
-    product_type: "ProductType" = Relationship(back_populates="images")
+    product_type: ProductType = Relationship(back_populates="images")
 
     # Model configuration
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855

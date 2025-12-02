@@ -4,9 +4,10 @@ from logging.config import fileConfig
 from pathlib import Path
 
 import alembic_postgresql_enum  # noqa: F401 (Make sure the PostgreSQL ENUM type is recognized)
-from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel  # Include the SQLModel metadata
+
+from alembic import context
 
 # Load settings from the FastAPI app config
 project_root = Path(__file__).resolve().parents[1]

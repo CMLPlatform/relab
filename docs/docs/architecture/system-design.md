@@ -7,11 +7,9 @@ The Reverse Engineering Lab platform is designed as a modular application for co
 ```mermaid
 graph TD
     User["User fa:fa-user"] -->|Interacts with| Frontend[Expo UI fa:fa-mobile]
-    SuperUser["Superuser fa:fa-user-shield"] -->|Interacts with| SQLAdmin[SQL Admin fa:fa-database]
 
     %% Core backend and DB
     Frontend -->|API Requests fa:fa-arrow-right| Backend[FastAPI Backend <i class="fa fa-server" style="color:#43a047;"></i>]
-    SQLAdmin -->|Interfaces with fa:fa-link| Backend
     Backend -->|Queries fa:fa-database| PostgreSQL[(PostgreSQL <i class="fa fa-database" style="color:#1976d2;"></i>)]
 
     %% Authentication
@@ -36,7 +34,6 @@ graph TD
     style Frontend fill:#e0f7fa,stroke:#00acc1,stroke-width:2px
     style Backend fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
     style PostgreSQL fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
-    style SQLAdmin fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
     style RaspberryPi fill:#f8bbd0,stroke:#e91e63,stroke-width:2px;
     style YouTube fill:#ffe6e6,stroke:#ff0000,stroke-width:2px;
     style Alembic fill:#fce4ec,stroke:#f06292,stroke-width:2px
@@ -53,7 +50,6 @@ graph TD
 ## Technology Stack
 
 - **Backend**: [FastAPI](https://fastapi.tiangolo.com/)
-- **Admin interface**: [SQLAdmin](https://github.com/aminalaee/sqladmin)
 - **ORM layer**: [SQLModel](https://github.com/fastapi/sqlmodel)
 - **Migrations**: [Alembic](https://alembic.sqlalchemy.org/en/latest/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/)

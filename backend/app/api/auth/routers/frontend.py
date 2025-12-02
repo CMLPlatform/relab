@@ -6,7 +6,6 @@ from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.api.admin.config import settings as admin_settings
 from app.api.auth.dependencies import OptionalCurrentActiveUserDep
 from app.core.config import settings as core_settings
 
@@ -30,7 +29,6 @@ async def index(
             "user": user,
             "show_full_docs": user.is_superuser if user else False,
             "frontend_web_url": core_settings.frontend_web_url,
-            "admin_path": admin_settings.admin_base_url,
         },
     )
 

@@ -84,7 +84,7 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
 
     # Many-to-one relationship with User
     owner_id: UUID4 = Field(foreign_key="user.id")
-    owner: "User" = Relationship(  # One-way relationship to maintain plugin isolation
+    owner: User = Relationship(  # One-way relationship to maintain plugin isolation
         sa_relationship_kwargs={
             "primaryjoin": "Camera.owner_id == User.id",
             "foreign_keys": "[Camera.owner_id]",

@@ -1,27 +1,28 @@
 """Main application module for the Reverse Engineering Lab - Data collection API.
 
 This module initializes the FastAPI application, sets up the API routes,
-mounts static and upload directories, and initializes the admin interface.
+and mounts static and upload directories.
 """
 
 import logging
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
-from app.api.admin.main import init_admin
 from app.api.auth.utils.email_validation import EmailChecker
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.core.config import settings
-from app.core.database import async_engine
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 # Initialize logging
 setup_logging()
@@ -93,9 +94,6 @@ app.include_router(router)
 
 # Initialize OpenAPI documentation
 init_openapi_docs(app)
-
-# Initialize admin interface
-admin = init_admin(app, async_engine)
 
 # Mount local file storage
 app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")

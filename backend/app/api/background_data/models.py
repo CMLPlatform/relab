@@ -64,7 +64,7 @@ class Taxonomy(TaxonomyBase, TimeStampMixinBare, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
 
-    categories: list["Category"] = Relationship(back_populates="taxonomy", cascade_delete=True)
+    categories: list[Category] = Relationship(back_populates="taxonomy", cascade_delete=True)
 
     model_config: ConfigDict = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
 
@@ -89,11 +89,11 @@ class Category(CategoryBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship
     supercategory_id: int | None = Field(foreign_key="category.id", default=None, nullable=True)
-    supercategory: Optional["Category"] = Relationship(
+    supercategory: Category | None = Relationship(
         back_populates="subcategories",
         sa_relationship_kwargs={"remote_side": "Category.id", "lazy": "selectin", "join_depth": 1},
     )
-    subcategories: list["Category"] | None = Relationship(
+    subcategories: list[Category] | None = Relationship(
         back_populates="supercategory",
         sa_relationship_kwargs={"lazy": "selectin", "join_depth": 1},
         cascade_delete=True,
@@ -104,8 +104,8 @@ class Category(CategoryBase, TimeStampMixinBare, table=True):
     taxonomy: Taxonomy = Relationship(back_populates="categories")
 
     # Many-to-many relationships. This is ugly but SQLModel doesn't allow for polymorphic association.
-    materials: list["Material"] | None = Relationship(back_populates="categories", link_model=CategoryMaterialLink)
-    product_types: list["ProductType"] | None = Relationship(
+    materials: list[Material] | None = Relationship(back_populates="categories", link_model=CategoryMaterialLink)
+    product_types: list[ProductType] | None = Relationship(
         back_populates="categories", link_model=CategoryProductTypeLink
     )
 
@@ -138,7 +138,7 @@ class Material(MaterialBase, TimeStampMixinBare, table=True):
 
     # Many-to-many relationships
     categories: list[Category] | None = Relationship(back_populates="materials", link_model=CategoryMaterialLink)
-    product_links: list["MaterialProductLink"] | None = Relationship(back_populates="material")
+    product_links: list[MaterialProductLink] | None = Relationship(back_populates="material")
 
     # Magic methods
     def __str__(self) -> str:
@@ -159,7 +159,7 @@ class ProductType(ProductTypeBase, TimeStampMixinBare, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
     # One-to-many relationships
-    products: list["Product"] | None = Relationship(back_populates="product_type")
+    products: list[Product] | None = Relationship(back_populates="product_type")
     files: list[File] | None = Relationship(back_populates="product_type", cascade_delete=True)
     images: list[Image] | None = Relationship(back_populates="product_type", cascade_delete=True)
 

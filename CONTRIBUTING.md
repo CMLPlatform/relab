@@ -173,10 +173,7 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
 
    The API is now available at <http://127.0.0.1:8000>.
 
-   You can log in with the superuser details specified in the `.env` file. This gives you access to:
-
-   - Interactive API documentation at <http://127.0.0.1:8000/swagger/full>
-   - Admin panel for database management at <http://127.0.0.1:8000/dashboard>
+   You can log in with the superuser details specified in the `.env` file. This gives you access to the interactive API documentation at <http://127.0.0.1:8000/swagger/full>
 
 #### Documentation Setup
 

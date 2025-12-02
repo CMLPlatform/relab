@@ -58,7 +58,7 @@ class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True)
 
     # One-to-one relationships
     product_id: int = Field(foreign_key="product.id")
-    product: "Product" = Relationship(back_populates="physical_properties")
+    product: Product = Relationship(back_populates="physical_properties")
 
 
 class CircularityPropertiesBase(CustomBase):
@@ -87,7 +87,7 @@ class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table
 
     # One-to-one relationships
     product_id: int = Field(foreign_key="product.id")
-    product: "Product" = Relationship(back_populates="circularity_properties")
+    product: Product = Relationship(back_populates="circularity_properties")
 
 
 ### Product Model ###
@@ -124,7 +124,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship for hierarchy
     parent_id: int | None = Field(default=None, foreign_key="product.id")
-    parent: Optional["Product"] = Relationship(
+    parent: Product | None = Relationship(
         back_populates="components",
         sa_relationship_kwargs={
             "uselist": False,
@@ -134,7 +134,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
         },
     )
     amount_in_parent: int | None = Field(default=None, description="Quantity within parent product")
-    components: list["Product"] | None = Relationship(
+    components: list[Product] | None = Relationship(
         back_populates="parent",
         cascade_delete=True,
         sa_relationship_kwargs={"lazy": "selectin", "join_depth": 1},  # Eagerly load linked parent product
@@ -149,15 +149,15 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     )
 
     # Many-to-one relationships
-    files: list["File"] | None = Relationship(back_populates="product", cascade_delete=True)
-    images: list["Image"] | None = Relationship(
+    files: list[File] | None = Relationship(back_populates="product", cascade_delete=True)
+    images: list[Image] | None = Relationship(
         back_populates="product", cascade_delete=True, sa_relationship_kwargs={"lazy": "subquery"}
     )
-    videos: list["Video"] | None = Relationship(back_populates="product", cascade_delete=True)
+    videos: list[Video] | None = Relationship(back_populates="product", cascade_delete=True)
 
     # One-to-many relationships
     owner_id: UUID4 = Field(foreign_key="user.id")
-    owner: "User" = Relationship(
+    owner: User = Relationship(
         back_populates="products",
         sa_relationship_kwargs={
             "uselist": False,
@@ -168,7 +168,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     )
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")
-    product_type: "ProductType" = Relationship(back_populates="products", sa_relationship_kwargs={"uselist": False})
+    product_type: ProductType = Relationship(back_populates="products", sa_relationship_kwargs={"uselist": False})
 
     # Many-to-many relationships
     bill_of_materials: list[MaterialProductLink] | None = Relationship(
@@ -194,7 +194,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
         """Check if the product hierarchy contains cycles."""
         visited = set()
 
-        def visit(node: "Product") -> bool:
+        def visit(node: Product) -> bool:
             if node.id in visited:
                 return True  # Cycle detected
             visited.add(node.id)
@@ -210,7 +210,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     def components_resolve_to_materials(self) -> bool:
         """Ensure all leaf components have a non-empty bill of materials."""
 
-        def check(node: "Product") -> bool:
+        def check(node: Product) -> bool:
             if not node.components:
                 # Leaf node
                 if not node.bill_of_materials:

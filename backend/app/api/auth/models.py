@@ -43,7 +43,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
     id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     # One-to-many relationship with OAuthAccount
-    oauth_accounts: list["OAuthAccount"] = Relationship(
+    oauth_accounts: list[OAuthAccount] = Relationship(
         back_populates="user",
         sa_relationship_kwargs={
             "lazy": "joined",  # Required because of FastAPI-Users OAuth implementation
@@ -52,7 +52,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
         },  # TODO: Check if this is fixed in future versions of pydantic/sqlmodel and we can use automatic
         # relationship detection again
     )
-    products: list["Product"] = Relationship(
+    products: list[Product] = Relationship(
         back_populates="owner",
         sa_relationship_kwargs={
             "primaryjoin": "User.id == Product.owner_id",  # HACK: Explicitly define join condition because of
@@ -68,7 +68,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
             nullable=True,
         ),
     )
-    organization: Optional["Organization"] = Relationship(
+    organization: Organization | None = Relationship(
         back_populates="members",
         sa_relationship_kwargs={
             "lazy": "selectin",
@@ -79,7 +79,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
     organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
 
     # One-to-one relationship with owned Organization
-    owned_organization: Optional["Organization"] = Relationship(
+    owned_organization: Organization | None = Relationship(
         back_populates="owner",
         sa_relationship_kwargs={
             "uselist": False,
@@ -146,7 +146,7 @@ class Organization(OrganizationBase, TimeStampMixinBare, table=True):
     )
 
     # One-to-many relationship with member Users
-    members: list["User"] = Relationship(
+    members: list[User] = Relationship(
         back_populates="organization",
         sa_relationship_kwargs={
             "primaryjoin": "Organization.id == User.organization_id",
