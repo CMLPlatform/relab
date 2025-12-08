@@ -143,9 +143,9 @@ class CircularityPropertiesUpdate(BaseUpdateSchema, CircularityPropertiesBase):
     """Schema for updating circularity properties."""
 
     # Make all fields optional for updates
-    recyclability_observation: str | None = Field(default=None, min_length=2, max_length=500)
-    repairability_observation: str | None = Field(default=None, min_length=2, max_length=500)
-    remanufacturability_observation: str | None = Field(default=None, min_length=2, max_length=500)
+    recyclability_observation: str | None = Field(default=None, max_length=500)
+    repairability_observation: str | None = Field(default=None, max_length=500)
+    remanufacturability_observation: str | None = Field(default=None, max_length=500)
 
     model_config: ConfigDict = ConfigDict(
         json_schema_extra={

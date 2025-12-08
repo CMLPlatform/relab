@@ -2,6 +2,7 @@
 
 import logging
 from enum import Enum
+from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 from fastapi import HTTPException
@@ -11,6 +12,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.common.utils import get_user_owned_object
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
+
+if TYPE_CHECKING:
+    from pydantic import UUID4
+    from sqlmodel.ext.asyncio.session import AsyncSession
 
 
 class HttpMethod(str, Enum):
