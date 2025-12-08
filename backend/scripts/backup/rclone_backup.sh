@@ -16,8 +16,10 @@ fi
 
 # Configuration
 BACKUP_DIR="${BACKUP_DIR:-$REPO_ROOT/backend/backups}"
-BACKUP_RCLONE_REMOTE="${BACKUP_RCLONE_REMOTE?BACKUP_RCLONE_REMOTE not set}"  # e.g., "myremote:/backup/relab"
+BACKUP_RCLONE_REMOTE="${BACKUP_RCLONE_REMOTE?BACKUP_RCLONE_REMOTE not set}"
 BACKUP_RCLONE_MULTI_THREAD_STREAMS="${BACKUP_RCLONE_MULTI_THREAD_STREAMS:-16}"
+BACKUP_RCLONE_TIMEOUT="${BACKUP_RCLONE_TIMEOUT:-5m}"
+BACKUP_RCLONE_USE_COOKIES="${BACKUP_RCLONE_USE_COOKIES:-false}"
 
 # Safety Check: If the local dir has 0 files AND the remote has more than 0 files, abort.
 LOCAL_FILE_COUNT=$(find "$BACKUP_DIR" -type f | wc -l)
@@ -37,7 +39,9 @@ rclone sync "$BACKUP_DIR" "$BACKUP_RCLONE_REMOTE" \
     --retries 3 \
     --low-level-retries 10 \
     --stats=30s \
-    --stats-one-line-date
+    --stats-one-line-date \
+    --timeout="$BACKUP_RCLONE_TIMEOUT" \
+    --use-cookies="$BACKUP_RCLONE_USE_COOKIES" 
 
 echo "[$(date)] Sync complete. Remote backup stats after sync:"
 rclone size "$BACKUP_RCLONE_REMOTE" --max-depth=3 2>/dev/null | sed 's/^/  /'
