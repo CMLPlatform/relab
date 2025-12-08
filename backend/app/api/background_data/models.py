@@ -89,7 +89,7 @@ class Category(CategoryBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship
     supercategory_id: int | None = Field(foreign_key="category.id", default=None, nullable=True)
-    supercategory: Category | None = Relationship(
+    supercategory: Optional[Category] = Relationship(  # noqa: UP045 # Using 'Optional' over Category | None to avoid issues with sqlmodel type detection
         back_populates="subcategories",
         sa_relationship_kwargs={"remote_side": "Category.id", "lazy": "selectin", "join_depth": 1},
     )

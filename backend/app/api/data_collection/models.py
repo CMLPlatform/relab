@@ -124,7 +124,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship for hierarchy
     parent_id: int | None = Field(default=None, foreign_key="product.id")
-    parent: Product | None = Relationship(
+    parent: Optional[Product] = Relationship(  # noqa: UP045 # Using 'Optional' over Product | None to avoid issues with sqlmodel type detection
         back_populates="components",
         sa_relationship_kwargs={
             "uselist": False,

@@ -47,6 +47,8 @@ def add_relationship_options(
     """
     # Get all relationships from the database model in one pass
     inspector: Mapper[Any] = inspect(model, raiseerr=True)
+    # HACK: Using SQLAlchemy internals to get relationship info. This sometimes causes runtime issues with circular model definitions.
+    # TODO: Fix this by finding a better way to get relationship info without using internals.
     all_db_rels = {rel.key: (getattr(model, rel.key), rel.uselist) for rel in inspector.relationships}
 
     # Determine which relationships are in scope (db ∩ schema)

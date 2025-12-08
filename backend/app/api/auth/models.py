@@ -68,7 +68,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
             nullable=True,
         ),
     )
-    organization: Organization | None = Relationship(
+    organization: Optional[Organization] = Relationship(  # noqa: UP045 # Using 'Optional' over Organization | None to avoid issues with sqlmodel type detection
         back_populates="members",
         sa_relationship_kwargs={
             "lazy": "selectin",
@@ -79,7 +79,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
     organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
 
     # One-to-one relationship with owned Organization
-    owned_organization: Organization | None = Relationship(
+    owned_organization: Optional[Organization] = Relationship(  # noqa: UP045 # Using 'Optional' over Organization | None to avoid issues with sqlmodel type detection
         back_populates="owner",
         sa_relationship_kwargs={
             "uselist": False,
