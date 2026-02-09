@@ -91,7 +91,7 @@ async def get_users(
 @router.get(
     "/{user_id}",
     summary="View a single user by ID",
-    response_model=UserReadWithRelationships,
+    response_model=UserRead,
 )
 async def get_user(
     user_id: Annotated[UUID4, Path(description="The user's ID")],
