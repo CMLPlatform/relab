@@ -207,7 +207,7 @@ class TaxonomyRead(BaseReadSchema, TaxonomyBase):
                     {
                         "name": "Materials Taxonomy",
                         "description": "Taxonomy for materials",
-                        "domain": "materials",
+                        "domains": ["materials"],
                         "source": "DOI:10.2345/12345",
                     }
                 ]
@@ -230,7 +230,7 @@ class TaxonomyReadWithCategoryTree(TaxonomyRead):
                     {
                         "name": "Materials Taxonomy",
                         "description": "Taxonomy for materials",
-                        "domain": "materials",
+                        "domains": ["materials"],
                         "source": "DOI:10.2345/12345",
                         "categories": [
                             {

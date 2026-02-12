@@ -213,6 +213,7 @@ async def create_taxonomy(
                         "description": "Taxonomy for materials",
                         "domains": ["materials"],
                         "source": "DOI:10.2345/12345",
+                        "version": "1.0",
                     },
                 },
                 "nested": {
@@ -223,6 +224,7 @@ async def create_taxonomy(
                         "description": "Taxonomy for materials",
                         "domains": ["materials"],
                         "source": "DOI:10.2345/12345",
+                        "version": "1.0",
                         "categories": [
                             {
                                 "name": "Metals",
@@ -254,7 +256,7 @@ async def update_taxonomy(
                 },
                 "advanced": {
                     "summary": "Update domain and source",
-                    "value": {"domain": "materials", "source": "https://new-source.com/taxonomy"},
+                    "value": {"domains": ["materials"], "source": "https://new-source.com/taxonomy"},
                 },
             }
         ),

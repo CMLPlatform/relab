@@ -1,15 +1,16 @@
 """Common utilities for seeding taxonomies and categories."""
 
 import logging
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlmodel import select
 
 from app.api.background_data.models import Category, Taxonomy
 
-logger = logging.getLogger("seeding.taxonomies")
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from sqlalchemy.orm import Session
 
 
 def configure_logging(level: int = logging.INFO) -> None:
@@ -19,6 +20,9 @@ def configure_logging(level: int = logging.INFO) -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+
+logger = logging.getLogger("seeding.taxonomies.common")
 
 
 def get_or_create_taxonomy(
@@ -31,11 +35,12 @@ def get_or_create_taxonomy(
 ) -> Taxonomy:
     """Get existing taxonomy or create a new one."""
     existing: Taxonomy | None = (
-        session.execute(select(Taxonomy).where(Taxonomy.name == name, Taxonomy.version == version)).scalars().first()
+        session.execute(select(Taxonomy).where((Taxonomy.name == name) & (Taxonomy.version == version)))
+        .scalars()
+        .first()
     )
 
     if existing:
-        logger.info("Taxonomy '%s' already exists (id: %s)", name, existing.id)
         return existing
 
     taxonomy = Taxonomy(
@@ -61,14 +66,13 @@ def seed_categories_from_rows(
 
     Args:
         session: Database session
-        taxonomy: The taxonomy to add categories to
+        taxonomy: The taxonomy to add categories to (must be committed with non-None ID)
         rows: List of dictionaries with category data (must have 'external_id' and 'name')
         get_parent_id_fn: Function that takes a row and returns parent external_id or None
 
     Returns:
         Tuple of (categories_created, relationships_created)
     """
-    # Build a map of external_id -> category for parent lookup
     id_to_category: dict[str, Category] = {}
     parent_relations: dict[str, str] = {}
     count = 0

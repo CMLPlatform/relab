@@ -10,9 +10,9 @@ from typing import Any
 
 import pandas as pd
 import requests
-from sqlmodel import select
+from sqlmodel import func, select
 
-from app.api.auth.models import User  # noqa: F401 # Need to explictly import User for SQLModel relationships
+from app.api.auth.models import User  # noqa: F401 # Need to explicitly import User for SQLModel relationships
 from app.api.background_data.models import (
     Category,
     ProductType,  # Adjust import as needed
@@ -165,7 +165,8 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.query(Category).filter_by(taxonomy_id=taxonomy.id).count()
+        existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
+
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
             return
@@ -178,7 +179,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         cat_count, rel_count = seed_categories_from_rows(session, taxonomy, rows, get_parent_id_fn=get_cpv_parent_id)
 
         # Commit
-        session.commit()
+        # session.commit()
         logger.info(
             "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
             TAXONOMY_NAME,

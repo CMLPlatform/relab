@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from sqlmodel import func, select
 
 # TODO: Fix circular import issue with User model in seeding scripts
-from app.api.auth.models import User  # noqa: F401 # Need to explictly import User for SQLModel relationships
+from app.api.auth.models import User  # noqa: F401 # Need to explicitly import User for SQLModel relationships
 from app.api.background_data.models import Category, TaxonomyDomain
 from app.core.database import sync_session_context
 from scripts.seed.taxonomies.common import configure_logging, get_or_create_taxonomy, seed_categories_from_rows
@@ -97,7 +98,8 @@ def seed_taxonomy() -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.query(Category).filter_by(taxonomy_id=taxonomy.id).count()
+        existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
+
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
             return

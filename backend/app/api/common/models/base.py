@@ -4,12 +4,15 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import Any, ClassVar, Self, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
 
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
 from sqlalchemy import TIMESTAMP, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 ### Base Model ###
@@ -102,15 +105,6 @@ class CustomBaseBare:
 class CustomBase(CustomBaseBare, SQLModel):
     """Base class for all models."""
 
-    api_model_name: ClassVar[APIModelName | None] = None  # The name of the model used in API routes
-
-    @classmethod
-    def get_api_model_name(cls) -> APIModelName:
-        """Initialize api_model_name for the class."""
-        if cls.api_model_name is None:
-            cls.api_model_name = APIModelName(name_camel=cls.__name__)
-        return cls.api_model_name
-
 
 class CustomLinkingModelBase(CustomBase):
     """Base class for linking models."""
@@ -118,13 +112,6 @@ class CustomLinkingModelBase(CustomBase):
 
 # TODO: Separate schema and database model base classes. Schema models should inherit from Pydantic's BaseModel.
 # Database models should inherit from SQLModel.
-class CustomDatabaseModelBase(CustomBase, SQLModel):
-    """Base class for models with database tables."""
-
-    id: int = Field(
-        default=None,
-        primary_key=True,
-    )
 
 
 ### Mixins ###

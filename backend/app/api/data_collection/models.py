@@ -124,7 +124,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship for hierarchy
     parent_id: int | None = Field(default=None, foreign_key="product.id")
-    parent: Product | None = Relationship(
+    parent: Optional["Product"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
         back_populates="components",
         sa_relationship_kwargs={
             "uselist": False,

@@ -68,18 +68,18 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
             nullable=True,
         ),
     )
-    organization: Organization | None = Relationship(
+    organization: Optional["Organization"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
         back_populates="members",
         sa_relationship_kwargs={
             "lazy": "selectin",
-            "primaryjoin": "User.organization_id == Organization.id",  # HACK: Explicitly define join condition because of
-            "foreign_keys": "[User.organization_id]",  # pydantic / sqlmodel issues
+            "primaryjoin": "User.organization_id == Organization.id",  # HACK: Explicitly define join condition because
+            "foreign_keys": "[User.organization_id]",  # of pydantic / sqlmodel issues
         },
     )
     organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
 
     # One-to-one relationship with owned Organization
-    owned_organization: Organization | None = Relationship(
+    owned_organization: Optional["Organization"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
         back_populates="owner",
         sa_relationship_kwargs={
             "uselist": False,
