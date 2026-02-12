@@ -284,14 +284,14 @@ We use several tools to ensure code quality:
 1. [Ruff](https://docs.astral.sh/ruff/) for linting and code style enforcement (see [`pyproject.toml`](backend/pyproject.toml) for rules):
 
    ```bash
-   uv run ruff check .
-   uv run ruff format .
+   uv run ruff check
+   uv run ruff format
    ```
 
-1. [Pyright](https://github.com/microsoft/pyright) for static type checking:
+1. [Ty](https://docs.astral.sh/ty/) for static type checking:
 
    ```bash
-   uv run pyright
+   uv run ty check
    ```
 
 #### Backend Testing

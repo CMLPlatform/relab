@@ -102,13 +102,13 @@ async def client(db: AsyncSession) -> AsyncGenerator[TestClient]:
 
 ### Email fixtures
 @pytest.fixture
-def email_context() -> dict:
+def email_context() -> EmailContextFactory:
     """Return a realistic email template context dict using FactoryBoy/Faker."""
     return EmailContextFactory()
 
 
 @pytest.fixture
-def email_data() -> dict:
+def email_data() -> EmailDataFactory:
     """Return realistic test data for email functions using FactoryBoy/Faker."""
     return EmailDataFactory()
 

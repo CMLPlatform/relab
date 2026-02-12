@@ -361,7 +361,7 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
         # Create links
         await create_model_links(
             db,
-            id1=db_material.id,  # pyright: ignore[reportArgumentType] # material ID is guaranteed by database flush above,
+            id1=db_material.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
             id1_field="material_id",
             id2_set=material.category_ids,
             id2_field="category_id",
@@ -420,7 +420,7 @@ async def add_categories_to_material(
 
         await create_model_links(
             db,
-            id1=db_material.id,  # pyright: ignore[reportArgumentType] # material ID is guaranteed by database flush above,
+            id1=db_material.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
             id1_field="material_id",
             id2_set=category_ids,
             id2_field="category_id",
@@ -503,7 +503,7 @@ async def create_product_type(
     if isinstance(product_type, ProductTypeCreateWithCategories) and product_type.category_ids:
         await create_model_links(
             db,
-            id1=db_product_type.id,  # pyright: ignore[reportArgumentType] # material ID is guaranteed by database flush above,
+            id1=db_product_type.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
             id1_field="product_type",
             id2_set=product_type.category_ids,
             id2_field="category_id",
@@ -561,7 +561,7 @@ async def add_categories_to_product_type(
 
     await create_model_links(
         db,
-        id1=db_product_type.id,  # pyright: ignore[reportArgumentType] # material ID is guaranteed by database flush above,
+        id1=db_product_type.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
         id1_field="product_type",
         id2_set=category_ids,
         id2_field="category_id",

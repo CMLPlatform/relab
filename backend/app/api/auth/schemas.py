@@ -73,7 +73,7 @@ class UserCreate(UserCreateBase):
 
     organization_id: UUID4 | None = None
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [
@@ -94,7 +94,7 @@ class UserCreateWithOrganization(UserCreateBase):
 
     organization: OrganizationCreate
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [
@@ -119,7 +119,7 @@ class UserReadPublic(UserBase):
 class UserRead(UserBase, schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [
@@ -160,7 +160,7 @@ class UserUpdate(UserBase, schemas.BaseUserUpdate):
     # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [

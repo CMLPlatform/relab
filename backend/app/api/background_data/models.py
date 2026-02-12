@@ -56,7 +56,7 @@ class TaxonomyBase(CustomBase):
         default=None, max_length=500, description="Source of the taxonomy data, e.g. URL, IRI or citation key"
     )
 
-    model_config: ConfigDict = ConfigDict(use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(use_enum_values=True)
 
 
 class Taxonomy(TaxonomyBase, TimeStampMixinBare, table=True):
@@ -66,7 +66,7 @@ class Taxonomy(TaxonomyBase, TimeStampMixinBare, table=True):
 
     categories: list[Category] = Relationship(back_populates="taxonomy", cascade_delete=True)
 
-    model_config: ConfigDict = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)
 
     # Magic methods
     def __str__(self) -> str:
@@ -89,7 +89,7 @@ class Category(CategoryBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship
     supercategory_id: int | None = Field(foreign_key="category.id", default=None, nullable=True)
-    supercategory: Optional["Category"] = Relationship(
+    supercategory: Category | None = Relationship(
         back_populates="subcategories",
         sa_relationship_kwargs={"remote_side": "Category.id", "lazy": "selectin", "join_depth": 1},
     )

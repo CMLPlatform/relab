@@ -124,7 +124,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     # Self-referential relationship for hierarchy
     parent_id: int | None = Field(default=None, foreign_key="product.id")
-    parent: Optional["Product"] = Relationship(
+    parent: Product | None = Relationship(
         back_populates="components",
         sa_relationship_kwargs={
             "uselist": False,
@@ -299,7 +299,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
         await traverse(self, 1.0)
         return total_materials
 
-    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
         return f"{self.name} (id: {self.id})"

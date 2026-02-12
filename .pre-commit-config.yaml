@@ -40,9 +40,10 @@ repos:
     -   id: no-commit-to-branch # Prevent commits to main and master branches.
     -   id: trailing-whitespace
         args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
+        exclude: ^.*/build/.*\.html$ # Exclude generated HTML files because they often have intentional trailing whitespace for formatting.
 
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.10.0
+    rev: v4.13.7
     hooks:
     -   id: commitizen
         stages: [commit-msg]
@@ -54,15 +55,8 @@ repos:
         files: ^ (?!(backend/frontend-app|frontend-web)/data/)
 
     ### Backend hooks
--   repo: https://github.com/RobertCraigie/pyright-python # Lint backend code with Pyright.
-    rev: v1.1.407
-    hooks:
-    -   id: pyright
-        files: ^backend/(app|scripts|tests)/
-        entry: pyright --project backend
-
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.6
+    rev: v0.15.0
     hooks:
     -   id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
@@ -72,14 +66,16 @@ repos:
         args: ["--config", "backend/pyproject.toml"]
 
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.13
+    rev: 0.10.0
     hooks:
     -   id: uv-lock # Update the uv lockfile for the backend.
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
         entry: uv lock --project backend
 
 -   repo: local
-    hooks: # Check if Alembic migrations are up-to-date. Uses uv to ensure the right environment when executed through VS Code Git extension.
+    hooks:
+    # I use uv for local hooks to ensure the right environment when executed through VS Code Git extension.
+    # Check if Alembic migrations are up-to-date.
     -   id: backend-alembic-autogen-check
         name: check alembic migrations
         entry: bash -c 'cd backend && uv run alembic-autogen-check'
@@ -87,6 +83,13 @@ repos:
         files: ^(backend/(app|alembic)/|alembic\.ini$)
         pass_filenames: false
         stages: [pre-commit]
+    # Run Ty for static type checking.
+    -   id: ty
+        name: type check with Ty
+        files: ^backend/(app|scripts|tests)/
+        entry: bash -c 'cd backend && uv run ty check'
+        language: system
+        types: [python]
 
     ### Frontend hooks
 -   repo: local

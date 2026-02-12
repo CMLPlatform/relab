@@ -59,7 +59,7 @@ class CategoryCreateWithSubCategories(CategoryCreateWithinTaxonomyWithSubCategor
 class CategoryReadAsSubCategory(BaseReadSchema, CategoryBase):
     """Schema for reading subcategory information."""
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
@@ -78,7 +78,7 @@ class CategoryRead(CategoryReadAsSubCategory):
     taxonomy_id: PositiveInt = Field(description="ID of the taxonomy")
     supercategory_id: PositiveInt | None = None
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see
+    model_config: ConfigDict = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
@@ -115,7 +115,7 @@ class CategoryReadAsSubCategoryWithRecursiveSubCategories(CategoryReadAsSubCateg
         default_factory=list, description="List of subcategories"
     )
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
@@ -168,7 +168,7 @@ class CategoryUpdate(BaseUpdateSchema):
     name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the category")
     description: str | None = Field(default=None, max_length=500, description="Description of the category")
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [
@@ -200,7 +200,7 @@ class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
 class TaxonomyRead(BaseReadSchema, TaxonomyBase):
     """Schema for reading minimal taxonomy information."""
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [
@@ -223,7 +223,7 @@ class TaxonomyReadWithCategoryTree(TaxonomyRead):
         default_factory=set, description="Set of categories in the taxonomy"
     )
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(
         {
             "json_schema_extra": {
                 "examples": [

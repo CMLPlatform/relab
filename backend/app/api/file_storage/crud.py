@@ -108,7 +108,7 @@ async def create_file(db: AsyncSession, file_data: FileCreate) -> File:
         id=file_id,
         description=file_data.description,
         filename=original_filename,
-        file=file_data.file,  # pyright: ignore [reportArgumentType] # Incoming UploadFile cannot be preemptively cast to FileType because of how FastAPI-storages works.
+        file=file_data.file,
         parent_type=file_data.parent_type,
     )
 
@@ -192,7 +192,7 @@ async def create_image(db: AsyncSession, image_data: ImageCreateFromForm | Image
         description=image_data.description,
         image_metadata=image_data.image_metadata,
         filename=original_filename,
-        file=image_data.file,  # pyright: ignore [reportArgumentType] # Incoming UploadFile cannot be preemptively cast to FileType because of how FastAPI-storages works.
+        file=image_data.file,
         parent_type=image_data.parent_type,
     )
 

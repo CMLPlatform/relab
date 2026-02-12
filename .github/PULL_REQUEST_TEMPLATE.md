@@ -19,7 +19,7 @@ Please provide a brief description of the changes in this pull request.
 ## Checklist
 
 - [ ] I've read the [contributing guidelines](../CONTRIBUTING.md)
-- [ ] Code follows style guidelines and passes quality checks (ruff, pyright)
+- [ ] Code follows style guidelines and passes quality checks (ruff, ty)
 - [ ] Unit tests added/updated and passing locally
 - [ ] Documentation updated (if applicable)
 - [ ] Database migrations created (if applicable)

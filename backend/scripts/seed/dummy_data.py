@@ -295,14 +295,14 @@ async def seed_products(
             brand=data["brand"],
             model=data["model"],
             product_type_id=product_type.id,
-            owner_id=next(iter(user_map.values())).id,  # pyright: ignore [reportArgumentType] # ID is guaranteed because these objects have been committed to the DB earlier.
+            owner_id=next(iter(user_map.values())).id,
         )
         session.add(product)
         await session.commit()
         await session.refresh(product)  # Ensures ID for product
 
         # Now create physical properties with product_id
-        physical_props = PhysicalProperties(**data["physical_properties"], product_id=product.id)  # pyright: ignore [reportArgumentType] # ID is guaranteed because these objects have been committed to the DB earlier.
+        physical_props = PhysicalProperties(**data["physical_properties"], product_id=product.id)  # ty: ignore[invalid-argument-type] # properties ID is guaranteed by database flush above
         session.add(physical_props)
         await session.commit()
 

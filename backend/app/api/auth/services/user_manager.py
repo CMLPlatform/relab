@@ -103,7 +103,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
         return await super().update(user_update, user, safe, request)
 
-    async def validate_password(  # pyright: ignore [reportIncompatibleMethodOverride] # Allow overriding user type in method
+    async def validate_password(
         self,
         password: str | SecretStr,
         user: UserCreate | User,

@@ -74,7 +74,7 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
     product_type: ProductType = Relationship(back_populates="files")
 
     # Model configuration
-    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
     @cached_property
     def file_url(self) -> str:
@@ -138,7 +138,7 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
     product_type: ProductType = Relationship(back_populates="images")
 
     # Model configuration
-    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
     @cached_property
     def image_url(self) -> str:

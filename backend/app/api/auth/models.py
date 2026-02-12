@@ -33,7 +33,7 @@ class UserBase(BaseModel):
 
     username: str | None = Field(index=True, unique=True, default=None, min_length=2, max_length=50)
 
-    model_config = ConfigDict(use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, table=True):
@@ -68,7 +68,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
             nullable=True,
         ),
     )
-    organization: Optional["Organization"] = Relationship(
+    organization: Organization | None = Relationship(
         back_populates="members",
         sa_relationship_kwargs={
             "lazy": "selectin",
@@ -79,7 +79,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
     organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
 
     # One-to-one relationship with owned Organization
-    owned_organization: Optional["Organization"] = Relationship(
+    owned_organization: Organization | None = Relationship(
         back_populates="owner",
         sa_relationship_kwargs={
             "uselist": False,

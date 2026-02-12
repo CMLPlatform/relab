@@ -254,7 +254,7 @@ async def create_component(
     db_component = Product(
         **component_data,
         parent_id=parent_product_id,
-        owner_id=owner_id,  # pyright: ignore[reportArgumentType] # owner ID is guaranteed by database fetch above
+        owner_id=owner_id,
     )
     db.add(db_component)
     await db.flush()  # Assign component ID
@@ -263,14 +263,14 @@ async def create_component(
     if component.physical_properties:
         db_physical_property = PhysicalProperties(
             **component.physical_properties.model_dump(),
-            product_id=db_component.id,  # pyright: ignore[reportArgumentType] # component ID is guaranteed by database flush above
+            product_id=db_component.id,
         )
         db.add(db_physical_property)
 
     if component.circularity_properties:
         db_circularity_property = CircularityProperties(
             **component.circularity_properties.model_dump(),
-            product_id=db_component.id,  # pyright: ignore[reportArgumentType] # component ID is guaranteed by database flush above
+            product_id=db_component.id,
         )
         db.add(db_circularity_property)
 
@@ -291,7 +291,7 @@ async def create_component(
 
         # Create material-product links
         db.add_all(
-            MaterialProductLink(**material.model_dump(), product_id=db_component.id)  # pyright: ignore[reportArgumentType] # product ID is guaranteed by database flush above
+            MaterialProductLink(**material.model_dump(), product_id=db_component.id)
             for material in component.bill_of_materials
         )
 
@@ -301,7 +301,7 @@ async def create_component(
             await create_component(
                 db,
                 subcomponent,
-                parent_product_id=db_component.id,  # pyright: ignore[reportArgumentType] # component ID is guaranteed by database flush above
+                parent_product_id=db_component.id,  # ty: ignore[invalid-argument-type] # component ID is guaranteed by database flush above
                 owner_id=owner_id,
                 _is_recursive_call=True,
             )
@@ -347,14 +347,14 @@ async def create_product(
     if product.physical_properties:
         db_physical_properties = PhysicalProperties(
             **product.physical_properties.model_dump(),
-            product_id=db_product.id,  # pyright: ignore[reportArgumentType] # product ID is guaranteed by database flush above
+            product_id=db_product.id,
         )
         db.add(db_physical_properties)
 
     if product.circularity_properties:
         db_circularity_properties = CircularityProperties(
             **product.circularity_properties.model_dump(),
-            product_id=db_product.id,  # pyright: ignore[reportArgumentType] # product ID is guaranteed by database flush above
+            product_id=db_product.id,
         )
         db.add(db_circularity_properties)
 
@@ -375,7 +375,7 @@ async def create_product(
 
         # Create material-product links
         db.add_all(
-            MaterialProductLink(**material.model_dump(), product_id=db_product.id)  # pyright: ignore[reportArgumentType] # product ID is guaranteed by database flush above
+            MaterialProductLink(**material.model_dump(), product_id=db_product.id)
             for material in product.bill_of_materials
         )
 
@@ -386,7 +386,7 @@ async def create_product(
             await create_component(
                 db,
                 component,
-                parent_product_id=db_product.id,  # pyright: ignore[reportArgumentType] # component ID is guaranteed by database flush above
+                parent_product_id=db_product.id,  # ty: ignore[invalid-argument-type] # component ID is guaranteed by database flush above
                 owner_id=owner_id,
                 _is_recursive_call=True,
             )

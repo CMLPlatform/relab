@@ -138,12 +138,12 @@ class TimeStampMixinBare:
 
     created_at: datetime | None = Field(
         default=None,
-        sa_type=TIMESTAMP(timezone=True),  # pyright: ignore [reportArgumentType] # SQLModel mixins with SQLAlchemy Column specifications are complicated, see https://github.com/fastapi/sqlmodel/discussions/743
+        sa_type=TIMESTAMP(timezone=True),
         sa_column_kwargs={"server_default": func.now()},
     )
     updated_at: datetime | None = Field(
         default=None,
-        sa_type=TIMESTAMP(timezone=True),  # pyright: ignore [reportArgumentType]
+        sa_type=TIMESTAMP(timezone=True),
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
     )
 
@@ -160,7 +160,7 @@ class SingleParentMixin[ParentTypeEnum](SQLModel):
 
     parent_type: ParentTypeEnum  # Type of the parent object. To be overridden by derived classes.
 
-    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
     @classmethod
     def get_parent_type_description(cls, enum_class: type[Enum]) -> str:

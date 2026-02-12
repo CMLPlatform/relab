@@ -41,7 +41,7 @@ rclone sync "$BACKUP_DIR" "$BACKUP_RCLONE_REMOTE" \
     --stats=30s \
     --stats-one-line-date \
     --timeout="$BACKUP_RCLONE_TIMEOUT" \
-    --use-cookies="$BACKUP_RCLONE_USE_COOKIES" 
+    --use-cookies="$BACKUP_RCLONE_USE_COOKIES"
 
 echo "[$(date)] Sync complete. Remote backup stats after sync:"
 rclone size "$BACKUP_RCLONE_REMOTE" --max-depth=3 2>/dev/null | sed 's/^/  /'

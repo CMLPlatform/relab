@@ -66,8 +66,8 @@
   dev = [ # Development dependencies. See also https://docs.astral.sh/uv/concepts/dependencies/#development-dependencies
     "alembic-autogen-check >=1.1.1",
     "paracelsus>=0.9.0",
-    "pyright>=1.1.402",
     "ruff >=0.12.1",
+    "ty>=0.0.15",
   ]
 
   api = [
@@ -79,7 +79,7 @@
     "google-auth>=2.40.3",
     "itsdangerous>=2.2.0",
     "markupsafe >=3.0.2",
-]
+  ]
 
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "openpyxl>=3.1.5", "pandas>=2.3.3"]
 
@@ -103,13 +103,6 @@
     "app.api.file_storage.models.models",
     "app.api.plugins.rpi_cam.models",
   ]
-
-[tool.pyright]
-  # NOTE: Pyright doesn't work well by only setting exclude, so we explicitly include the directories we want to check
-  include          = ["app", "scripts", "tests"]
-  typeCheckingMode = "standard"
-  venv             = ".venv"
-  venvPath         = "."
 
 [tool.pytest.ini_options]
   asyncio_mode = "auto"
