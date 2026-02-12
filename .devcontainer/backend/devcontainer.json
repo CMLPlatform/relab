@@ -14,7 +14,7 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": ["charliermarsh.ruff", "ms-python.python", "wholroyd.jinja"],
+      "extensions": ["astral-sh.ty", "charliermarsh.ruff", "ms-python.python", "wholroyd.jinja"],
       "settings": {
         "[python][notebook]": {
           "editor.codeActionsOnSave": {

@@ -13,5 +13,6 @@
   "python.linting.ruffEnabled": true,
   "python.terminal.activateEnvInCurrentTerminal": true,
   "python.terminal.activateEnvironment": true,
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "ty.interpreter": ["${workspaceFolder}/.venv/bin/python"]
 }
