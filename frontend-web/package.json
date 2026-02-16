@@ -64,7 +64,7 @@
   "devDependencies": {
     "@babel/core": "^7.28.4",
     "@eslint/js": "^9.29.0",
-    "@hey-api/openapi-ts": "^0.77.0",
+    "@hey-api/openapi-ts": "^0.92.0",
     "@testing-library/react-native": "^13.2.0",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.0.10",
