@@ -1,15 +1,17 @@
 """Utilities for sending authentication-related emails using fastapi-mail."""
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
-from fastapi import BackgroundTasks
 from fastapi_mail import MessageSchema, MessageType
-from pydantic import AnyUrl, EmailStr
+from pydantic import AnyUrl, EmailStr, NameEmail
 
 from app.api.auth.utils.email_config import fm
 from app.core.config import settings as core_settings
+
+if TYPE_CHECKING:
+    from fastapi import BackgroundTasks
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ def generate_token_link(token: str, route: str, base_url: str | AnyUrl | None = 
     return urljoin(str(base_url), f"{route}?token={token}")
 
 
-def mask_email_for_log(email: EmailStr, mask: bool = True, max_len: int = 80) -> str:
+def mask_email_for_log(email: EmailStr, *, mask: bool = True, max_len: int = 80) -> str:
     """Mask emails for logging.
 
     Also remove non-printable characters and truncates long domains. Explicitly removes log-breaking control characters.
@@ -31,10 +33,7 @@ def mask_email_for_log(email: EmailStr, mask: bool = True, max_len: int = 80) ->
     # Remove non-printable and log-breaking control characters
     string = "".join(ch for ch in str(email) if ch.isprintable()).replace("\n", "").replace("\r", "")
     local, sep, domain = string.partition("@")
-    if sep and mask:
-        masked = f"{local[0]}***@{domain}" if len(local) > 1 else f"*@{domain}"
-    else:
-        masked = string
+    masked = (f"{local[0]}***@{domain}" if len(local) > 1 else f"*@{domain}") if sep and mask else string
     return f"{masked[: max_len - 3]}..." if len(masked) > max_len else masked
 
 
@@ -57,7 +56,7 @@ async def send_email_with_template(
     """
     message = MessageSchema(
         subject=subject,
-        recipients=[to_email],
+        recipients=[NameEmail(name=str(to_email), email=str(to_email))],
         template_body=template_body,
         subtype=MessageType.html,
     )
@@ -88,7 +87,7 @@ async def send_registration_email(
         subject=subject,
         template_name="registration.html",
         template_body={
-            "username": username if username else to_email,
+            "username": username or to_email,
             "verification_link": verification_link,
         },
         background_tasks=background_tasks,
@@ -110,7 +109,7 @@ async def send_reset_password_email(
         subject=subject,
         template_name="password_reset.html",
         template_body={
-            "username": username if username else to_email,
+            "username": username or to_email,
             "reset_link": reset_link,
         },
         background_tasks=background_tasks,
@@ -132,7 +131,7 @@ async def send_verification_email(
         subject=subject,
         template_name="verification.html",
         template_body={
-            "username": username if username else to_email,
+            "username": username or to_email,
             "verification_link": verification_link,
         },
         background_tasks=background_tasks,
@@ -152,7 +151,7 @@ async def send_post_verification_email(
         subject=subject,
         template_name="post_verification.html",
         template_body={
-            "username": username if username else to_email,
+            "username": username or to_email,
         },
         background_tasks=background_tasks,
     )

@@ -82,7 +82,7 @@ app = FastAPI(
 
 # Add CORS middleware
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware,  # ty: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

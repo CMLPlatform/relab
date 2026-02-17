@@ -13,6 +13,7 @@ from app.api.common.schemas.associations import MaterialProductLinkReadWithinMat
 from app.api.common.schemas.base import (
     BaseCreateSchema,
     BaseReadSchema,
+    BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
     MaterialRead,
     ProductRead,
@@ -33,8 +34,8 @@ class CategoryCreateWithinCategoryWithSubCategories(BaseCreateSchema, CategoryBa
     """Schema for creating a new category within a category, with optional subcategories."""
 
     # Database model has a None default, but Pydantic model has empty set default for consistent API type handling
-    subcategories: set[CategoryCreateWithinCategoryWithSubCategories] = Field(
-        default_factory=set,
+    subcategories: list[CategoryCreateWithinCategoryWithSubCategories] = Field(
+        default_factory=list,
         description="List of subcategories",
     )
 
@@ -191,13 +192,13 @@ class TaxonomyCreate(BaseCreateSchema, TaxonomyBase):
 class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
     """Schema for creating a new taxonomy, optionally with new categories."""
 
-    categories: set[CategoryCreateWithinTaxonomyWithSubCategories] = Field(
-        default_factory=set, description="Set of subcategories"
+    categories: list[CategoryCreateWithinTaxonomyWithSubCategories] = Field(
+        default_factory=list, description="Set of subcategories"
     )
 
 
 ## Read Schemas ##
-class TaxonomyRead(BaseReadSchema, TaxonomyBase):
+class TaxonomyRead(BaseReadSchemaWithTimeStamp, TaxonomyBase):
     """Schema for reading minimal taxonomy information."""
 
     model_config: ConfigDict = ConfigDict(
@@ -260,7 +261,8 @@ class TaxonomyUpdate(BaseUpdateSchema):
     version: str | None = Field(default=None, min_length=1, max_length=50)
     description: str | None = Field(default=None, max_length=500)
     domains: set[TaxonomyDomain] | None = Field(
-        description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}"
+        default=None,
+        description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}",
     )
 
     source: str | None = Field(default=None, max_length=50, description="Source of the taxonomy data")
@@ -299,12 +301,10 @@ class MaterialReadWithRelationships(MaterialRead):
 class MaterialUpdate(BaseUpdateSchema):
     """Schema for a partial update of a material."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the Material")
-    description: str | None = Field(default=None, max_length=500, description="Description of the Material")
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
     source: str | None = Field(
-        default=None,
-        max_length=50,
-        description="Source of the material data, e.g. URL, IRI or citation key",
+        default=None, max_length=50, description="Source of the material data, e.g. URL, IRI or citation key"
     )
     density_kg_m3: float | None = Field(default=None, gt=0, description="Volumetric density (kg/m³) ")
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
@@ -319,7 +319,7 @@ class ProductTypeCreate(BaseCreateSchema, ProductTypeBase):
 class ProductTypeCreateWithCategories(BaseCreateSchema, ProductTypeBase):
     """Schema for creating a product type with links to existing categories."""
 
-    category_ids: set[int] = Field(default_factory=set, description="List of category IDs")
+    category_ids: set[int] = Field(default_factory=set)
 
 
 ## Read Schemas ##
@@ -330,19 +330,15 @@ class ProductTypeRead(BaseReadSchema, ProductTypeBase):
 class ProductTypeReadWithRelationships(ProductTypeRead):
     """Schema for reading product type information with all relationships."""
 
-    products: list[ProductRead] = Field(
-        default_factory=list, description="List of products that have this product type"
-    )
-    categories: list[CategoryRead] = Field(
-        default_factory=list, description="List of categories linked to the product type"
-    )
-    images: list[ImageRead] = Field(default_factory=list, description="List of images for the product type")
-    files: list[FileRead] = Field(default_factory=list, description="List of files for the product type")
+    products: list[ProductRead] = Field(default_factory=list)
+    categories: list[CategoryRead] = Field(default_factory=list)
+    images: list[ImageRead] = Field(default_factory=list)
+    files: list[FileRead] = Field(default_factory=list)
 
 
 ## Update Schemas ##
 class ProductTypeUpdate(BaseUpdateSchema):
     """Schema for a partial update of a product type."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the Product Type.")
-    description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=500)

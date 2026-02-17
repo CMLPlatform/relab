@@ -63,11 +63,11 @@ async def capture_and_store_image(
     image_data = ImageCreateInternal(
         file=UploadFile(
             file=BytesIO(image_response.content),
-            filename=filename if filename else f"{camera.name}_{serialize_datetime_with_z(datetime.now(UTC))}.jpg",
+            filename=filename or f"{camera.name}_{serialize_datetime_with_z(datetime.now(UTC))}.jpg",
             size=len(image_response.content),
             headers=Headers({"content-type": "image/jpeg"}),
         ),
-        description=(description if description else f"Captured from camera {camera.name} at {timestamp_str}."),
+        description=(description or f"Captured from camera {camera.name} at {timestamp_str}."),
         image_metadata=capture_data.get("metadata"),
         parent_type=ImageParentType.PRODUCT,
         parent_id=product_id,

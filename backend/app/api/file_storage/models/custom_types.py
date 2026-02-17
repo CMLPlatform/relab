@@ -1,14 +1,16 @@
 """Custom types for FastAPI Storages models."""
 
-from typing import Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 from fastapi_storages import FileSystemStorage, StorageImage
 from fastapi_storages.integrations.sqlalchemy import FileType as _FileType
 from fastapi_storages.integrations.sqlalchemy import ImageType as _ImageType
-from sqlalchemy import Dialect
 
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.core.config import settings
+
+if TYPE_CHECKING:
+    from sqlalchemy import Dialect
 
 
 ## Custom error handling for file not found in storage

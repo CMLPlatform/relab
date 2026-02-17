@@ -11,6 +11,7 @@ from app.api.common.models.base import CustomBaseBare, CustomLinkingModelBase
 ### Type aliases ###
 # Type alias for ID types
 IDT = TypeVar("IDT", bound=int | UUID)
+
 ### TypeVars ###
 # TypeVar for models
 MT = TypeVar("MT", bound=CustomBaseBare)
