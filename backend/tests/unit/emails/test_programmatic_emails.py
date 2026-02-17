@@ -20,6 +20,22 @@ from app.core.config import settings as core_settings
 fake = Faker()
 
 
+@pytest.fixture
+def email_data() -> dict[str, str]:
+    """Return common data for email tests."""
+    return {
+        "email": fake.email(),
+        "username": fake.user_name(),
+        "token": fake.uuid4(),
+    }
+
+
+@pytest.fixture
+def mock_email_sender(mocker) -> AsyncMock:
+    """Mock the email sender."""
+    return mocker.patch("app.api.auth.utils.programmatic_emails.fm.send_message", new_callable=AsyncMock)
+
+
 ### Token Link Generation Tests ###
 def test_generate_token_link_default_base_url() -> None:
     """Test token link generation with default base URL from core settings."""
@@ -61,7 +77,7 @@ def test_generate_token_link_with_trailing_slash() -> None:
     link = generate_token_link(token, route, base_url=base_url_with_slash)
 
     # Should not have double slashes
-    assert "//" not in link.replace("https://", "")  # noqa: PLR2004 # Magic value for double slash
+    assert "//" not in link.split("://")[1]
     # Should still have the correct route
     assert urlparse(link).path == route
 
