@@ -28,63 +28,63 @@ def upgrade() -> None:
         "camera",
         "name",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=False,
     )
     op.alter_column(
         "material",
         "name",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=False,
     )
     op.alter_column(
         "material",
         "source",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=True,
     )
     op.alter_column(
         "organization",
         "name",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=False,
     )
     op.alter_column(
         "organization",
         "location",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=True,
     )
     op.alter_column(
         "product",
         "name",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=False,
     )
     op.alter_column(
         "producttype",
         "name",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=False,
     )
     op.alter_column(
         "taxonomy",
         "name",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=100),
+        type_=sqlmodel.AutoString(length=100),
         existing_nullable=False,
     )
     op.alter_column(
         "taxonomy",
         "source",
         existing_type=sa.VARCHAR(length=50),
-        type_=sqlmodel.sql.sqltypes.AutoString(length=500),
+        type_=sqlmodel.AutoString(length=500),
         existing_nullable=True,
     )
     # ### end Alembic commands ###
@@ -95,63 +95,63 @@ def downgrade() -> None:
     op.alter_column(
         "taxonomy",
         "source",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=500),
+        existing_type=sqlmodel.AutoString(length=500),
         type_=sa.VARCHAR(length=50),
         existing_nullable=True,
     )
     op.alter_column(
         "taxonomy",
         "name",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=False,
     )
     op.alter_column(
         "producttype",
         "name",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=False,
     )
     op.alter_column(
         "product",
         "name",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=False,
     )
     op.alter_column(
         "organization",
         "location",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=True,
     )
     op.alter_column(
         "organization",
         "name",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=False,
     )
     op.alter_column(
         "material",
         "source",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=True,
     )
     op.alter_column(
         "material",
         "name",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=False,
     )
     op.alter_column(
         "camera",
         "name",
-        existing_type=sqlmodel.sql.sqltypes.AutoString(length=100),
+        existing_type=sqlmodel.AutoString(length=100),
         type_=sa.VARCHAR(length=50),
         existing_nullable=False,
     )
