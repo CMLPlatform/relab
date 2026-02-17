@@ -4,15 +4,15 @@
 
 import asyncio
 import contextlib
+import io
 import logging
 import mimetypes
 from typing import TYPE_CHECKING
 
+import anyio
 from fastapi import UploadFile
-from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.datastructures import Headers
 
-from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.utils.programmatic_user_crud import create_user
 from app.api.background_data.models import (
@@ -38,12 +38,17 @@ from app.core.database import get_async_session
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    from app.api.auth.models import User
+
 # Set up logging
 logger: logging.Logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 ### Sample Data ###
 # TODO: Add organization and Camera models
+
 # Sample data for Users
 user_data = [
     {
@@ -174,10 +179,10 @@ product_data = [
 ]
 
 # Sample data for Images
-image_data = [
+image_data: list[dict[str, str]] = [
     {
         "description": "Example phone image",
-        "path": settings.static_files_path / "images" / "example_phone.jpg",
+        "path": str(settings.static_files_path / "images" / "example_phone.jpg"),
         "parent_product_name": "iPhone 12",
     }
 ]
@@ -326,8 +331,8 @@ async def seed_products(
 async def seed_images(session: AsyncSession, product_map: dict[str, Product]) -> None:
     """Seed the database with initial image data."""
     for data in image_data:
-        path: Path = data["path"]
-        description: str = data["description"]
+        path: Path = Path(data.get("path", None))
+        description: str = data.get("description", "")
 
         parent_type = ImageParentType.PRODUCT
         parent = product_map.get(data["parent_product_name"])
@@ -338,34 +343,40 @@ async def seed_images(session: AsyncSession, product_map: dict[str, Product]) ->
             continue
 
         filename: str = path.name
-        size: int = path.stat().st_size
+        async_path = anyio.Path(path)
+        size: int = (await async_path.stat()).st_size
         mime_type, _ = mimetypes.guess_type(path)
 
         if mime_type is None:
             err_msg = f"Could not determine MIME type for image file {filename}."
             raise ValueError(err_msg)
 
-        with path.open("rb") as file:
-            upload_file = UploadFile(
-                file=file,
-                filename=filename,
-                size=size,
-                headers=Headers(
-                    {
-                        "filename": filename,
-                        "size": str(size),
-                        "content-type": mime_type,
-                    }
-                ),
-            )
+        # Read file into memory
+        async with await async_path.open("rb") as file:
+            file_content = await file.read()
 
-            image_create = ImageCreateFromForm(
-                description=description,
-                file=upload_file,
-                parent_id=parent_id,
-                parent_type=parent_type,
-            )
-            await create_image(session, image_create)
+        # Create BytesIO object for UploadFile
+        file_obj = io.BytesIO(file_content)
+        upload_file = UploadFile(
+            file=file_obj,
+            filename=filename,
+            size=size,
+            headers=Headers(
+                {
+                    "filename": filename,
+                    "size": str(size),
+                    "content-type": mime_type,
+                }
+            ),
+        )
+
+        image_create = ImageCreateFromForm(
+            description=description,
+            file=upload_file,
+            parent_id=parent_id,
+            parent_type=parent_type,
+        )
+        await create_image(session, image_create)
 
 
 async def async_main() -> None:

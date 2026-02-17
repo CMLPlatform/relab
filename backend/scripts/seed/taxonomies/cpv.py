@@ -164,6 +164,15 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
             source=TAXONOMY_SOURCE,
         )
 
+        if taxonomy.id is None:
+            # TODO: Refactor base models so that comitted database objects always have non-None ID to avoid this check
+            logger.error(
+                "Taxonomy '%s' version '%s' has no ID after creation, cannot seed categories.",
+                TAXONOMY_NAME,
+                TAXONOMY_VERSION,
+            )
+            return
+
         # If taxonomy already existed, skip seeding
         existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
 
@@ -176,7 +185,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         logger.info("Loaded %d CPV codes from Excel", len(rows))
 
         # Seed categories
-        cat_count, rel_count = seed_categories_from_rows(session, taxonomy, rows, get_parent_id_fn=get_cpv_parent_id)
+        cat_count, rel_count = seed_categories_from_rows(session, taxonomy.id, rows, get_parent_id_fn=get_cpv_parent_id)
 
         # Commit
         # session.commit()

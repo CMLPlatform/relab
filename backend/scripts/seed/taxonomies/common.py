@@ -58,7 +58,7 @@ def get_or_create_taxonomy(
 
 def seed_categories_from_rows(
     session: Session,
-    taxonomy: Taxonomy,
+    taxonomy_id: int,
     rows: list[dict[str, Any]],
     get_parent_id_fn: Callable[[dict[str, Any]], str | None],
 ) -> tuple[int, int]:
@@ -66,7 +66,7 @@ def seed_categories_from_rows(
 
     Args:
         session: Database session
-        taxonomy: The taxonomy to add categories to (must be committed with non-None ID)
+        taxonomy_id: The taxonomy ID to add categories to (must be committed with non-None ID)
         rows: List of dictionaries with category data (must have 'external_id' and 'name')
         get_parent_id_fn: Function that takes a row and returns parent external_id or None
 
@@ -86,7 +86,7 @@ def seed_categories_from_rows(
         category = Category(
             name=name,
             external_id=external_id,
-            taxonomy_id=taxonomy.id,
+            taxonomy_id=taxonomy_id,
         )
         session.add(category)
         id_to_category[external_id] = category
