@@ -16,7 +16,8 @@ from sqlmodel import create_engine
 
 from app.core.config import settings
 
-sync_engine: Engine = create_engine(settings.sync_database_url, echo=settings.debug)
+# NOTE: Echo set to False to not mess with the shell script output. Consider using exit codes instead
+sync_engine: Engine = create_engine(settings.sync_database_url, echo=False)
 
 
 inspector: Inspector = inspect(sync_engine)
@@ -49,7 +50,7 @@ def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
 
 
 if __name__ == "__main__":
-    if database_is_empty(ignore_tables={"alembic_version"}):
+    if database_is_empty(ignore_tables={"alembic_version", "user"}):
         print("TRUE")  # noqa: T201 # for shell script usage
     else:
         print("FALSE")  # noqa: T201

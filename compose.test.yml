@@ -1,0 +1,24 @@
+name: relab_test
+
+services:
+  backend:
+    environment:
+      # URLs for the test frontend
+      FRONTEND_WEB_URL: https://web-test.cml-relab.org
+      FRONTEND_APP_URL: https://app-test.cml-relab.org
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TEST_TUNNEL_TOKEN}
+    restart: unless-stopped
+
+  backend_migrations:
+    environment:
+      SEED_DUMMY_DATA: True
+  
+
+
+
+
