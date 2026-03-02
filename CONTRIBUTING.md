@@ -14,6 +14,9 @@ Thank you for your interest in contributing to the Reverse Engineering Lab proje
     - [Backend Setup](#backend-setup)
     - [Documentation Setup](#documentation-setup)
     - [Frontend Setup](#frontend-setup)
+- [Task Runner](#task-runner)
+  - [Installation](#installation)
+  - [Basic Usage](#basic-usage)
 - [Development Workflow](#development-workflow)
   - [Pull Request Process](#pull-request-process)
   - [Backend Development](#backend-development)
@@ -116,6 +119,7 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
 
    - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
    - [uv](https://docs.astral.sh/uv/getting-started/installation)
+   - [just](https://just.systems/man/en/) (optional, but recommended - task runner for common commands)
 
 1. **Fork and clone the repository**:
 
@@ -211,6 +215,43 @@ The documentation is now available at <http://127.0.0.1:8000> with live reload.
 
    > 💡 Note: You can also use the Expo UI to run the app on a mobile device or emulator, see the [official Expo documentation](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for details.
 
+## Task Runner
+
+We use [`just`](https://just.systems) as a task runner for common development tasks (similar to npm scripts or Make). This provides convenient shortcuts for testing, linting, migrations, and more.
+
+### Installation
+
+```bash
+cargo install just
+```
+
+### Basic Usage
+
+```bash
+# List all available commands
+just --list
+
+# From root directory
+just install              # Install all dependencies
+just backend-test         # Run backend tests
+just backend-dev          # Start backend dev server
+just pre-commit           # Run pre-commit hooks
+
+# From backend directory
+cd backend
+just test                 # Run all tests
+just test-cov             # Run tests with coverage
+just lint                 # Check code style
+just fmt                  # Format code
+just check                # Run lint + typecheck
+just migrate              # Apply database migrations
+just dev                  # Start dev server
+```
+
+> 💡 **Tip:** Run `just --list` in any directory to see all available commands with descriptions.
+
+If you prefer not to install `just`, you can always use the underlying commands directly (e.g., `uv run pytest` instead of `just test`).
+
 ## Development Workflow
 
 This section explains how to contribute to Reverse Engineering Lab, including proposing changes, submitting pull requests, and following our development guidelines for backend, frontend, and documentation.
@@ -270,10 +311,12 @@ Set up your environment as described in the [Getting Started](#getting-started) 
 You can run the development server with:
 
 ```bash
-fastapi dev
+fastapi dev    # or: just dev
 ```
 
 The API will be available at <http://localhost:8000>, or <http://localhost:8011> when using a devcontainer.
+
+> 💡 **Tip:** See the [Task Runner](#task-runner) section for convenient shortcuts like `just test`, `just lint`, and `just migrate`.
 
 #### Backend Code Style
 
@@ -284,14 +327,15 @@ We use several tools to ensure code quality:
 1. [Ruff](https://docs.astral.sh/ruff/) for linting and code style enforcement (see [`pyproject.toml`](backend/pyproject.toml) for rules):
 
    ```bash
-   uv run ruff check
-   uv run ruff format
+   uv run ruff check              # or: just lint
+   uv run ruff check --fix        # or: just lint-fix
+   uv run ruff format             # or: just fmt
    ```
 
 1. [Ty](https://docs.astral.sh/ty/) for static type checking:
 
    ```bash
-   uv run ty check
+   uv run ty check                # or: just typecheck
    ```
 
 #### Backend Testing
@@ -301,7 +345,9 @@ The project uses pytest for testing:
 1. **Running Tests**
 
    ```bash
-   uv run pytest
+   uv run pytest                  # or: just test
+   uv run pytest --cov            # or: just test-cov
+   uv run pytest -m unit          # or: just test-unit
    ```
 
 1. **Writing Tests**
@@ -318,6 +364,7 @@ When making changes to the database schema:
 
    ```bash
    uv run alembic revision --autogenerate -m "Description of changes"
+   # or: just migrate-create "Description of changes"
    ```
 
 1. **Review the Generated Migration**
@@ -334,7 +381,7 @@ When making changes to the database schema:
    - For local setups, run:
 
    ```bash
-   uv run alembic upgrade head
+   uv run alembic upgrade head    # or: just migrate
    ```
 
 #### Email templates
