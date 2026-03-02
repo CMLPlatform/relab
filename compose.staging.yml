@@ -1,4 +1,4 @@
-name: relab_test
+name: relab_staging
 
 services:
   backend:
@@ -11,14 +11,9 @@ services:
     image: cloudflare/cloudflared:latest
     command: tunnel --no-autoupdate run
     environment:
-      - TUNNEL_TOKEN=${TEST_TUNNEL_TOKEN}
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN_STAGING}
     restart: unless-stopped
 
   backend_migrations:
     environment:
       SEED_DUMMY_DATA: True
-  
-
-
-
-
