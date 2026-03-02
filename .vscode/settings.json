@@ -13,5 +13,11 @@
       "envManager": "ms-python.python:venv",
       "packageManager": "ms-python.python:pip"
     }
-  ]
+  ],
+  "ty.configuration": {
+    "environment": {
+      "root": ["./backend"],
+      "python": "./backend/.venv/"
+    }
+  }
 }
