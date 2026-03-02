@@ -60,6 +60,9 @@ venv/
 # Ruff linter
 .ruff_cache/
 
+# Pytest cache
+.pytest_cache/
+
 ### Manual additions
 # Ignore all local .env files
 .env.local
