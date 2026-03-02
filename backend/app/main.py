@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
-from app.api.auth.utils.email_validation import EmailChecker
+from app.api.auth.utils.email_validation import init_email_checker
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
@@ -40,13 +40,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     app.state.redis = await init_redis()
 
     # Initialize disposable email checker and store in app.state
-    app.state.email_checker = None
-    try:
-        email_checker = EmailChecker(app.state.redis)
-        await email_checker.initialize()
-        app.state.email_checker = email_checker
-    except (RuntimeError, ValueError, ConnectionError) as e:
-        logger.warning("Failed to initialize email checker: %s", e)
+    app.state.email_checker = await init_email_checker(app.state.redis)
+
 
     logger.info("Application startup complete")
 

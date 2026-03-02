@@ -86,10 +86,7 @@ async def send_registration_email(
         to_email=to_email,
         subject=subject,
         template_name="registration.html",
-        template_body={
-            "username": username or to_email,
-            "verification_link": verification_link,
-        },
+        template_body={"username": username or to_email, "verification_link": verification_link},
         background_tasks=background_tasks,
     )
 
@@ -108,10 +105,7 @@ async def send_reset_password_email(
         to_email=to_email,
         subject=subject,
         template_name="password_reset.html",
-        template_body={
-            "username": username or to_email,
-            "reset_link": reset_link,
-        },
+        template_body={"username": username or to_email, "reset_link": reset_link},
         background_tasks=background_tasks,
     )
 
@@ -130,10 +124,7 @@ async def send_verification_email(
         to_email=to_email,
         subject=subject,
         template_name="verification.html",
-        template_body={
-            "username": username or to_email,
-            "verification_link": verification_link,
-        },
+        template_body={"username": username or to_email, "verification_link": verification_link},
         background_tasks=background_tasks,
     )
 
@@ -150,8 +141,6 @@ async def send_post_verification_email(
         to_email=to_email,
         subject=subject,
         template_name="post_verification.html",
-        template_body={
-            "username": username or to_email,
-        },
+        template_body={"username": username or to_email},
         background_tasks=background_tasks,
     )

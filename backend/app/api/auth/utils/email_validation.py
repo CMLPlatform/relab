@@ -3,11 +3,16 @@
 import asyncio
 import contextlib
 import logging
+from typing import TYPE_CHECKING
 
 from fastapi import Request
 from fastapi_mail.email_utils import DefaultChecker
-from redis.asyncio import Redis
 from redis.exceptions import RedisError
+
+from app.core.config import Environment, settings
+
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +42,25 @@ class EmailChecker:
             if self.redis_client is None:
                 self.checker = DefaultChecker(source=DISPOSABLE_DOMAINS_URL)
                 logger.info("Disposable email checker initialized without Redis")
+                # Fetch initial domains when using in-memory storage
+                await self._refresh_domains()
             else:
                 self.checker = DefaultChecker(
                     source=DISPOSABLE_DOMAINS_URL,
                     db_provider="redis",
                     redis_client=self.redis_client,
                 )
-                await self.checker.init_redis()
-                logger.info("Disposable email checker initialized with Redis")
 
-            # Fetch initial domains
-            await self._refresh_domains()
+                # Check if domains already exist in Redis cache
+                domains_exist = await self.redis_client.exists("temp_domains")
+
+                if not domains_exist:
+                    # Fetch and cache domains for the first time
+                    await self.checker.init_redis()
+                    logger.info("Disposable email checker initialized with Redis (fetched new domains)")
+                else:
+                    # Domains already cached - checker will use them automatically
+                    logger.info("Disposable email checker initialized with Redis (using cached domains)")
 
             # Start periodic refresh task
             self._refresh_task = asyncio.create_task(self._periodic_refresh())
@@ -64,7 +77,7 @@ class EmailChecker:
         try:
             await self.checker.fetch_temp_email_domains()
             logger.info("Disposable email domains refreshed successfully")
-        except (RuntimeError, ValueError, ConnectionError, OSError, RedisError):
+        except RuntimeError, ValueError, ConnectionError, OSError, RedisError:
             logger.exception("Failed to refresh disposable email domains:")
 
     async def _periodic_refresh(self) -> None:
@@ -76,7 +89,7 @@ class EmailChecker:
             except asyncio.CancelledError:
                 logger.info("Periodic domain refresh task cancelled")
                 break
-            except (RuntimeError, ValueError, ConnectionError, OSError, RedisError):
+            except RuntimeError, ValueError, ConnectionError, OSError, RedisError:
                 logger.exception("Error in periodic domain refresh:")
 
     async def close(self) -> None:
@@ -115,7 +128,7 @@ class EmailChecker:
             return False
         try:
             return await self.checker.is_disposable(email)
-        except (RuntimeError, ValueError, ConnectionError, OSError, RedisError):
+        except RuntimeError, ValueError, ConnectionError, OSError, RedisError:
             logger.exception("Failed to check if email is disposable: %s. Allowing registration.", email)
             # If check fails, allow registration (fail open)
             return False
@@ -137,3 +150,14 @@ def get_email_checker_dependency(request: Request) -> EmailChecker | None:
                 await email_checker.is_disposable("test@example.com")
     """
     return request.app.state.email_checker
+
+
+async def init_email_checker(redis: Redis | None) -> EmailChecker | None:
+    """Initialize the EmailChecker instance."""
+    if settings.environment in (Environment.DEV, Environment.TESTING):
+        return None
+    try:
+        email_checker = EmailChecker(redis)
+        await email_checker.initialize()
+    except (RuntimeError, ValueError, ConnectionError) as e:
+        logger.warning("Failed to initialize email checker: %s", e)
