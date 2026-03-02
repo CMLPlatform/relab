@@ -6,7 +6,7 @@
   description = "Reverse Engineering Lab monorepo"
   license = { text = "AGPL-3.0-or-later" }
   name = "relab"
-  requires-python = ">=3.13"
+  requires-python = ">=3.14"
   # NOTE: package versioning across the repo is managed by commitizen
   version = "0.1.0"
 
