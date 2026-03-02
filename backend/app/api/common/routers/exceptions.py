@@ -43,6 +43,17 @@ def create_exception_handler(
     return handler
 
 
+def rate_limit_handler(request: Request, exc: Exception) -> Response:
+    """Wrapper for the SlowAPI rate limit handler to ensure correct exception type is passed."""
+    if not isinstance(exc, RateLimitExceeded):
+        msg = "Rate limit handler called with wrong exception type"
+        raise TypeError(msg)
+    return _rate_limit_exceeded_handler(request, exc)
+
+
+
+    # SlowAPI rate limiting
+    app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 ### Exception handler registration ###
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""
@@ -51,6 +62,9 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     # Custom API exceptions
     app.add_exception_handler(APIError, create_exception_handler())
+
+    # SlowAPI rate limiting
+    app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 
     # Standard Python exceptions
     # TODO: These should be replaced with custom exceptions
