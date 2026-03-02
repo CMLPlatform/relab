@@ -129,7 +129,7 @@ async def start_recording(
         )
 
     # Initialize YouTube service
-    youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client)
+    youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session)
 
     # Create livestream
     now_str = serialize_datetime_with_z(datetime.now(UTC))

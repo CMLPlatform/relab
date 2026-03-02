@@ -1,15 +1,15 @@
 """Camera interaction services."""
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from io import BytesIO
+from typing import TYPE_CHECKING, cast
 
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 from fastapi.datastructures import Headers
 from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import Resource, build
+from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from httpx_oauth.clients.google import GoogleOAuth2
 from pydantic import Field, PositiveInt
 from relab_rpi_cam_models.stream import YoutubeStreamConfig
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -26,6 +26,10 @@ from app.api.file_storage.models.models import Image, ImageParentType
 from app.api.file_storage.schemas import ImageCreateInternal
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod, fetch_from_camera_url
+from app.api.plugins.rpi_cam.types import YouTubeResource
+
+if TYPE_CHECKING:
+    from httpx_oauth.clients.google import GoogleOAuth2
 
 
 async def capture_and_store_image(
@@ -85,7 +89,7 @@ class YouTubeAPIError(APIError):
         super().__init__("YouTube API error.", details)
 
 
-class YouTubePrivacyStatus(str, Enum):
+class YouTubePrivacyStatus(StrEnum):
     """Enumeration of YouTube privacy statuses."""
 
     PUBLIC = "public"
@@ -102,19 +106,37 @@ class YoutubeStreamConfigWithID(YoutubeStreamConfig):
 class YouTubeService:
     """YouTube API service for creating and managing live streams."""
 
-    def __init__(self, oauth_account: OAuthAccount, google_oauth_client: GoogleOAuth2):
+    def __init__(self, oauth_account: OAuthAccount, google_oauth_client: GoogleOAuth2, session: AsyncSession):
         self.oauth_account = oauth_account
         self.google_oauth_client = google_oauth_client
+        self.session = session
 
     async def refresh_token_if_needed(self) -> None:
-        """Refresh OAuth token if expired."""
+        """Refresh OAuth token if expired and persist to database."""
         if self.oauth_account.expires_at and self.oauth_account.expires_at < datetime.now(UTC).timestamp():
-            # TODO: if Refresh token is None, what to do? https://medium.com/starthinker/google-oauth-2-0-access-token-and-refresh-token-explained-cccf2fc0a6d9
+            # Check if refresh token exists
+            if not self.oauth_account.refresh_token:
+                raise HTTPException(
+                    status_code=401,
+                    detail=(
+                        "OAuth refresh token expired or missing."
+                        " Please re-authenticate via /auth/oauth/google/associate/authorize"
+                    ),
+                )
+
+            # Refresh the token
             new_token = await self.google_oauth_client.refresh_token(self.oauth_account.refresh_token)
+
+            # Update the OAuth account
             self.oauth_account.access_token = new_token["access_token"]
             self.oauth_account.expires_at = datetime.now(UTC).timestamp() + new_token["expires_in"]
 
-    def get_youtube_client(self) -> Resource:
+            # Persist to database
+            self.session.add(self.oauth_account)
+            await self.session.commit()
+            await self.session.refresh(self.oauth_account)
+
+    def get_youtube_client(self) -> YouTubeResource:
         """Get authenticated YouTube API client."""
         # TODO: Make Google API client thread safe and async if possible (using asyncio/asyncer): https://github.com/googleapis/google-api-python-client/blob/main/docs/thread_safety.md
         credentials = Credentials(
@@ -125,7 +147,7 @@ class YouTubeService:
             client_secret=settings.google_oauth_client_secret,
             scopes=GOOGLE_YOUTUBE_SCOPES,
         )
-        return build("youtube", "v3", credentials=credentials)
+        return cast("YouTubeResource", build("youtube", "v3", credentials=credentials))
 
     async def setup_livestream(
         self,
