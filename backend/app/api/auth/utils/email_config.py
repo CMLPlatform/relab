@@ -26,6 +26,7 @@ email_conf = ConnectionConfig(
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
     TEMPLATE_FOLDER=TEMPLATE_FOLDER,
+    SUPPRESS_SEND=core_settings.mock_emails,
 )
 
 # Create FastMail instance
