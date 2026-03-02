@@ -5,7 +5,6 @@ from typing import Annotated, Any
 from fastapi import UploadFile
 from pydantic import AfterValidator, Field, Json, PositiveInt
 
-from app.api.common.models.custom_types import IDT
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
 from app.api.common.schemas.custom_fields import AnyUrlToDB
 from app.api.file_storage.models.models import FileBase, FileParentType, ImageBase, ImageParentType, VideoBase
@@ -72,11 +71,9 @@ class FileCreateWithinParent(BaseCreateSchema, FileBase):
 class FileCreate(FileCreateWithinParent):
     """Schema for creating a file."""
 
-    # HACK: Even though the parent_id is optional, it should be required in the request.
-    # It is optional to allow for the currently messy storage crud and router factories to work
-    parent_id: IDT | None = None
-    parent_type: FileParentType | None = Field(
-        default=None, description=f"Type of the parent object, e.g. {', '.join(t.value for t in FileParentType)}"
+    parent_id: int = Field(description="ID of the parent object")
+    parent_type: FileParentType = Field(
+        description=f"Type of the parent object, e.g. {', '.join(t.value for t in FileParentType)}"
     )
 
 
@@ -125,11 +122,9 @@ class ImageCreateInternal(BaseCreateSchema, ImageBase):
         AfterValidator(validate_image_type),
         AfterValidator(lambda f: validate_file_size(f, MAX_IMAGE_SIZE_MB)),
     ]
-    # HACK: Even though the parent_id is optional, it should be required in the request.
-    # It is optional to allow for the currently messy storage crud and router factories to work
-    parent_id: IDT | None = None
-    parent_type: ImageParentType | None = Field(
-        default=None, description=f"Type of the parent object, e.g. {', '.join(t.value for t in ImageParentType)}"
+    parent_id: int = Field(description="ID of the parent object")
+    parent_type: ImageParentType = Field(
+        description=f"Type of the parent object, e.g. {', '.join(t.value for t in ImageParentType)}"
     )
 
 

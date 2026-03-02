@@ -1,16 +1,14 @@
 """Routers for data collection models."""
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Annotated
 
-from asyncache import cached
-from cachetools import LRUCache, TTLCache
 from fastapi import APIRouter, Body, HTTPException, Path, Query, Request
 from fastapi.responses import RedirectResponse
+from fastapi_cache.decorator import cache
 from fastapi_filter import FilterDepends
 from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.background_data.models import Material
@@ -26,7 +24,6 @@ from app.api.common.crud.base import (
 )
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
 from app.api.common.models.associations import MaterialProductLink
-from app.api.common.models.enums import Unit
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.associations import (
@@ -72,6 +69,8 @@ from app.api.file_storage.router_factories import StorageRouteMethod, add_storag
 from app.api.file_storage.schemas import VideoCreateWithinProduct, VideoReadWithinProduct, VideoUpdateWithinProduct
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 # Initialize API router
@@ -144,7 +143,7 @@ async def get_user_products(
         bool | None,
         Query(description="Whether to include components as base products in the response"),
     ] = None,
-) -> Sequence[Product]:
+) -> Page[Product]:
     """Get products collected by a specific user."""
     # NOTE: If needed, we can open up this endpoint to any user by removing this ownership check
     if user_id != current_user.id and not current_user.is_superuser:
@@ -153,7 +152,7 @@ async def get_user_products(
     statement = select(Product).where(Product.owner_id == user_id)
 
     if not include_components_as_base_products:
-        statement: SelectOfScalar[Product] = statement.where(Product.parent_id == None)
+        statement: SelectOfScalar[Product] = statement.where(Product.parent_id == None)  # noqa: E711 # Comparison to None should use 'is' operator, but SQLAlchemy requires this syntax for IS NULL comparison
 
     return await get_paginated_models(
         session,
@@ -227,7 +226,7 @@ async def get_products(
         bool | None,
         Query(description="Whether to include components as base products in the response"),
     ] = None,
-) -> Page[Sequence[ProductReadWithRelationshipsAndFlatComponents]]:
+) -> Page[Product]:
     """Get all products with specified relationships.
 
     Relationships that can be included:
@@ -244,7 +243,7 @@ async def get_products(
     if include_components_as_base_products:
         statement: SelectOfScalar[Product] = select(Product)
     else:
-        statement: SelectOfScalar[Product] = select(Product).where(Product.parent_id == None)
+        statement: SelectOfScalar[Product] = select(Product).where(col(Product.parent_id) is None)
 
     return await get_paginated_models(
         session,
@@ -883,7 +882,7 @@ async def delete_product_circularity_properties(
 async def get_product_videos(
     session: AsyncSessionDep,
     product: ProductByIDDep,
-    video_filter: VideoFilter = FilterDepends(VideoFilter),  # noqa: B008 # FilterDepends is a valid Depends wrapper
+    video_filter: VideoFilter = FilterDepends(VideoFilter),  # FilterDepends is a valid Depends wrapper
 ) -> Sequence[Video]:
     """Get all videos associated with a specific product."""
     # Create statement to filter by product_id
@@ -1134,24 +1133,11 @@ async def remove_materials_from_product_bulk(
 search_router = PublicAPIRouter(prefix="", include_in_schema=True)
 
 
-@search_router.get("/brands")
-@cached(cache=TTLCache(maxsize=1, ttl=60))
-async def get_brands(
-    session: AsyncSessionDep,
-) -> Sequence[str]:
+@search_router.get("/brands", summary="Get list of unique product brands")
+@cache(expire=60)
+async def get_brands(session: AsyncSessionDep) -> list[str]:
     """Get a list of unique product brands."""
     return await crud.get_unique_product_brands(session)
-
-
-### Unit Routers ###
-unit_router = PublicAPIRouter(prefix="/units", tags=["units"], include_in_schema=True)
-
-
-@unit_router.get("")
-@cached(LRUCache(maxsize=1))  # Cache units, as they are defined on app startup and do not change
-async def get_units() -> list[str]:
-    """Get a list of available units."""
-    return [unit.value for unit in Unit]
 
 
 ### Router inclusion ###
@@ -1159,4 +1145,3 @@ router.include_router(user_product_redirect_router)
 router.include_router(user_product_router)
 router.include_router(product_router)
 router.include_router(search_router)
-router.include_router(unit_router)

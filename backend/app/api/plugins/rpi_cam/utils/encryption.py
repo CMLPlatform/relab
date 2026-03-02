@@ -2,11 +2,14 @@
 
 import json
 import secrets
-from typing import Any
+from typing import TYPE_CHECKING
 
 from cryptography.fernet import Fernet, InvalidToken
 
 from app.api.plugins.rpi_cam.config import settings
+
+if TYPE_CHECKING:
+    from typing import Any
 
 # Initialize the Fernet cipher
 CIPHER = Fernet(settings.rpi_cam_plugin_secret)

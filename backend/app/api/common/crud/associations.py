@@ -1,11 +1,8 @@
 """CRUD utility functions for association models between many-to-many relationships."""
 
-from collections.abc import Sequence
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, overload
-from uuid import UUID
 
-from fastapi_filter.contrib.sqlalchemy import Filter
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -13,6 +10,10 @@ from app.api.common.crud.base import get_model_by_id, get_models
 from app.api.common.models.custom_types import DT, IDT, LMT, MT
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from uuid import UUID
+
+    from fastapi_filter.contrib.sqlalchemy import Filter
     from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 
@@ -47,7 +48,7 @@ async def get_linking_model_with_ids_if_it_exists(
     return result
 
 
-class LinkedModelReturnType(str, Enum):
+class LinkedModelReturnType(StrEnum):
     """Enum for linked model return types."""
 
     DEPENDENT = "dependent"

@@ -225,6 +225,7 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     @model_validator(mode="after")
     def validate_product(self) -> Self:
+        """Validate the product hierarchy and bill of materials constraints."""
         components: list[Product] | None = self.components
         bill_of_materials: list[MaterialProductLink] | None = self.bill_of_materials
         amount_in_parent: int | None = self.amount_in_parent

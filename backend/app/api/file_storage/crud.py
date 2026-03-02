@@ -2,11 +2,10 @@
 
 import logging
 import uuid
-from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
-from anyio import to_thread
+from anyio import Path as AnyIOPath
 from fastapi import UploadFile
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import UUID4
@@ -32,6 +31,9 @@ from app.api.file_storage.schemas import (
     VideoUpdate,
     VideoUpdateWithinProduct,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +73,9 @@ def process_uploadfile_name(
 
 async def delete_file_from_storage(file_path: Path) -> None:
     """Delete a file from the filesystem."""
-    if file_path.exists():
-        await to_thread.run_sync(file_path.unlink)
+    async_path = AnyIOPath(str(file_path))
+    if await async_path.exists():
+        await async_path.unlink()
 
 
 ### File CRUD operations ###
@@ -228,7 +231,7 @@ async def delete_image(db: AsyncSession, image_id: UUID4) -> None:
     try:
         db_image = await db_get_model_with_id_if_it_exists(db, Image, image_id)
         file_path = Path(db_image.file.path) if db_image.file else None
-    except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError):
+    except FastAPIStorageFileNotFoundError, ModelFileNotFoundError:
         # TODO: test this scenario
         # File missing from storage but exists in DB - proceed with DB cleanup
         db_image = await db.get(Image, image_id)
@@ -290,23 +293,24 @@ async def delete_video(db: AsyncSession, video_id: int) -> None:
 
 
 ### Parent CRUD operations ###
-StorageModel = TypeVar("StorageModel", File, Image)
-CreateSchema = TypeVar("CreateSchema", FileCreate, ImageCreateFromForm)
-FilterType = TypeVar("FilterType", bound=Filter)
+P = TypeVar("P")  # Parent model
+S = TypeVar("S", File, Image)  # Storage model (constrained to File or Image)
+C = TypeVar("C", FileCreate, ImageCreateFromForm)  # Create schema (constrained to available schemas)
+F = TypeVar("F", bound=Filter)  # Filter schema (must have .filter() method)
 
 
-class ParentStorageOperations[MT, StorageModel, CreateSchema, FilterType]:
+class ParentStorageOperations[P, S, C, F]:
     """Generic Create, Read, and Delete operations for managing files/images attached to a parent model."""
 
     def __init__(
         self,
         parent_model: type[MT],
-        storage_model: type[StorageModel],
+        storage_model: type[File | Image],
         parent_type: FileParentType | ImageParentType,
         parent_field: str,
-        create_func: Callable,
-        delete_func: Callable,
-    ):
+        create_func: Callable[[AsyncSession, Any], Any],
+        delete_func: Callable[[AsyncSession, UUID4], Any],
+    ) -> None:
         self.parent_model = parent_model
         self.storage_model = storage_model
         self.parent_type = parent_type
@@ -319,8 +323,8 @@ class ParentStorageOperations[MT, StorageModel, CreateSchema, FilterType]:
         db: AsyncSession,
         parent_id: int,
         *,
-        filter_params: FilterType | None = None,
-    ) -> Sequence[StorageModel]:
+        filter_params: F | None = None,
+    ) -> Sequence[File | Image]:
         """Get all storage items for a parent."""
         # TODO: Handle missing files in storage
         # Verify parent exists
@@ -332,11 +336,12 @@ class ParentStorageOperations[MT, StorageModel, CreateSchema, FilterType]:
         )
 
         if filter_params:
-            statement = filter_params.filter(statement)
+            # Cast to Filter to access the filter() method
+            statement = cast("Filter", filter_params).filter(statement)
 
-        return (await db.exec(statement)).all()
+        return list((await db.exec(statement)).all())
 
-    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> StorageModel:
+    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> File | Image:
         """Get a specific storage item for a parent."""
         # Verify parent exists
         await db_get_model_with_id_if_it_exists(db, self.parent_model, parent_id)
@@ -359,16 +364,34 @@ class ParentStorageOperations[MT, StorageModel, CreateSchema, FilterType]:
 
         return db_item
 
+    @overload
     async def create(
         self,
         db: AsyncSession,
         parent_id: int,
-        item_data: CreateSchema,
-    ) -> StorageModel:
+        item_data: FileCreate,
+    ) -> File: ...
+
+    @overload
+    async def create(
+        self,
+        db: AsyncSession,
+        parent_id: int,
+        item_data: ImageCreateFromForm,
+    ) -> Image: ...
+    async def create(
+        self,
+        db: AsyncSession,
+        parent_id: int,
+        item_data: C,
+    ) -> File | Image:
         """Create a new storage item for a parent."""
-        # Set parent data
-        item_data.parent_type = self.parent_type
-        item_data.parent_id = parent_id
+        # Set parent data on the create schema
+        # Cast to the union type to access parent_type and parent_id attributes
+        create_schema = cast("FileCreate | ImageCreateFromForm", item_data)
+        # Cast parent_type to Any since the union type checker can't verify the narrowing
+        create_schema.parent_type = cast("Any", self.parent_type)
+        create_schema.parent_id = parent_id
 
         return await self._create(db, item_data)
 
@@ -394,8 +417,9 @@ class ParentStorageOperations[MT, StorageModel, CreateSchema, FilterType]:
             List of deleted items
         """
         # Get all items for this parent
-        items: Sequence[StorageModel] = await self.get_all(db, parent_id)
+        items: Sequence[File | Image] = await self.get_all(db, parent_id)
 
         # Delete each item
         for item in items:
-            await self._delete(db, item.id)
+            if item.id is not None:
+                await self._delete(db, item.id)

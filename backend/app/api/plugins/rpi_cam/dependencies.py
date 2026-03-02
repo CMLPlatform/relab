@@ -24,8 +24,7 @@ async def get_user_owned_camera(
     current_user: CurrentActiveUserDep,
 ) -> Camera:
     """Dependency function to retrieve a camera by ID and ensure it's owned by the current user."""
-    db_camera = await get_user_owned_object(session, Camera, camera_id, current_user.id)
-    return db_camera
+    return await get_user_owned_object(session, Camera, camera_id, current_user.id)
 
 
 UserOwnedCameraDep = Annotated[Camera, Depends(get_user_owned_camera)]

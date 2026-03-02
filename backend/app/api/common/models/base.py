@@ -4,10 +4,10 @@ import re
 from datetime import datetime
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, computed_field, model_validator
-from sqlalchemy import TIMESTAMP, func
+from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
 
@@ -33,31 +33,37 @@ class APIModelName(BaseModel):
     @computed_field
     @cached_property
     def name_capital(self) -> str:
+        """Get the model name in Capital Case for display in documentation and error messages."""
         return self.camel_to_capital(self.name_camel)
 
     @computed_field
     @cached_property
     def plural_capital(self) -> str:
+        """Get the plural model name in Capital Case for display in documentation and error messages."""
         return self.camel_to_capital(self.plural_camel)
 
     @computed_field
     @cached_property
     def name_slug(self) -> str:
+        """Get the model name in slug-case for use in URL paths."""
         return self.camel_to_slug(self.name_camel)
 
     @computed_field
     @cached_property
     def plural_slug(self) -> str:
+        """Get the plural model name in slug-case for use in URL paths."""
         return self.camel_to_slug(self.plural_camel)
 
     @computed_field
     @cached_property
     def name_snake(self) -> str:
+        """Get the model name in snake_case for use in variable names and database table names."""
         return self.camel_to_snake(self.name_camel)
 
     @computed_field
     @cached_property
     def plural_snake(self) -> str:
+        """Get the plural model name in snake_case for use in variable names and database table names."""
         return self.camel_to_snake(self.plural_camel)
 
     @staticmethod
@@ -125,12 +131,12 @@ class TimeStampMixinBare:
 
     created_at: datetime | None = Field(
         default=None,
-        sa_type=TIMESTAMP(timezone=True),
+        sa_type=cast("Any", DateTime(timezone=True)),
         sa_column_kwargs={"server_default": func.now()},
     )
     updated_at: datetime | None = Field(
         default=None,
-        sa_type=TIMESTAMP(timezone=True),
+        sa_type=cast("Any", DateTime(timezone=True)),
         sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
     )
 
@@ -145,7 +151,7 @@ class SingleParentMixin[ParentTypeEnum](SQLModel):
 
     # TODO: Implement improved polymorphic associations in SQLModel after this issue is resolved: https://github.com/fastapi/sqlmodel/pull/1226
 
-    parent_type: ParentTypeEnum  # Type of the parent object. To be overridden by derived classes.
+    parent_type: Enum  # Type of the parent object. To be overridden by derived classes.
 
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
@@ -157,7 +163,8 @@ class SingleParentMixin[ParentTypeEnum](SQLModel):
     @cached_property
     def possible_parent_fields(self) -> list[str]:
         """Get all possible parent ID field names."""
-        return [f"{t.value!s}_id" for t in type(self.parent_type)]
+        enum_class = type(self.parent_type)
+        return [f"{t.value!s}_id" for t in enum_class]
 
     @cached_property
     def set_parent_fields(self) -> list[str]:
@@ -184,7 +191,7 @@ class SingleParentMixin[ParentTypeEnum](SQLModel):
         field = f"{self.parent_type.value!s}_id"
         return getattr(self, field)
 
-    def set_parent(self, parent_type: ParentTypeEnum, parent_id: int) -> None:
+    def set_parent(self, parent_type: Enum, parent_id: int) -> None:
         """Set the parent type and ID."""
         self.parent_type = parent_type
 

@@ -1,17 +1,20 @@
 """FastAPI exception handlers to raise HTTP errors for common exceptions."""
 
-import logging
-from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
+from loguru import logger
 from pydantic import ValidationError
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.api.common.exceptions import APIError
 
-### Generic exception handlers ###
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
-logger = logging.getLogger()
+### Generic exception handlers ###
 
 
 def create_exception_handler(
@@ -29,14 +32,13 @@ def create_exception_handler(
             status_code = default_status_code
             detail = {"message": str(exc)}
 
-        # TODO: Add traceback location to log message (perhaps easier by  just using loguru)
         # Log based on status code severity. Can be made more granular if needed.
         if status_code >= 500:
-            logger.error("%s: %s", exc.__class__.__name__, str(exc), exc_info=exc)
+            logger.opt(exception=True).error(f"{exc.__class__.__name__}: {exc!s}")
         elif status_code >= 400 and status_code != 404:
-            logger.warning("%s: %s", exc.__class__.__name__, str(exc))
+            logger.warning(f"{exc.__class__.__name__}: {exc!s}")
         else:
-            logger.info("%s: %s", exc.__class__.__name__, str(exc))
+            logger.info(f"{exc.__class__.__name__}: {exc!s}")
 
         return JSONResponse(status_code=status_code, content={"detail": detail})
 
@@ -51,9 +53,6 @@ def rate_limit_handler(request: Request, exc: Exception) -> Response:
     return _rate_limit_exceeded_handler(request, exc)
 
 
-
-    # SlowAPI rate limiting
-    app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
 ### Exception handler registration ###
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""

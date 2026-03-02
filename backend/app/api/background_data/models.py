@@ -1,6 +1,6 @@
 """Database models for background data."""
 
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 
 from pydantic import ConfigDict
@@ -32,7 +32,7 @@ class CategoryProductTypeLink(CustomLinkingModelBase, table=True):
 
 
 ### Taxonomy Model ###
-class TaxonomyDomain(str, Enum):
+class TaxonomyDomain(StrEnum):
     """Enumeration of taxonomy domains."""
 
     MATERIALS = "materials"

@@ -1,8 +1,8 @@
 """Common generator functions for routers."""
 
-from collections.abc import Callable, Sequence
-from enum import Enum
-from typing import Annotated, Any, TypeVar
+from collections.abc import Callable
+from enum import StrEnum
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Form, Path, Security, UploadFile
 from fastapi import File as FastAPIFile
@@ -14,7 +14,7 @@ from app.api.common.models.custom_types import IDT
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud import ParentStorageOperations
 from app.api.file_storage.filters import FileFilter, ImageFilter
-from app.api.file_storage.models.models import File, Image
+from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType
 from app.api.file_storage.schemas import (
     FileCreate,
     FileReadWithinParent,
@@ -23,11 +23,6 @@ from app.api.file_storage.schemas import (
     empty_str_to_none,
 )
 
-StorageModel = TypeVar("StorageModel", File, Image)
-ReadSchema = TypeVar("ReadSchema", FileReadWithinParent, ImageReadWithinParent)
-CreateSchema = TypeVar("CreateSchema", FileCreate, ImageCreateFromForm)
-FilterSchema = TypeVar("FilterSchema", FileFilter, ImageFilter)
-
 BaseDep = Callable[[], Any]  # Base auth dependency
 ParentIdDep = Callable[[IDT], Any]  # Dependency with parent_id parameter
 
@@ -35,7 +30,7 @@ ParentIdDep = Callable[[IDT], Any]  # Dependency with parent_id parameter
 STORAGE_EXTENSION_MAP: dict = {"image": "jpg", "file": "csv"}
 
 
-class StorageRouteMethod(str, Enum):
+class StorageRouteMethod(StrEnum):
     """Enum for storage route methods."""
 
     GET = "get"
@@ -44,7 +39,12 @@ class StorageRouteMethod(str, Enum):
 
 
 # TODO: Simplify, or split it up in read and modify factories, or just create the routes manually for clarity
-def add_storage_type_routes(
+def add_storage_type_routes[
+    StorageModel: (File, Image),
+    ReadSchema: (FileReadWithinParent, ImageReadWithinParent),
+    CreateSchema: (FileCreate, ImageCreateFromForm),
+    FilterSchema: (FileFilter, ImageFilter),
+](
     router: APIRouter,
     *,
     parent_api_model_name: APIModelName,
@@ -111,7 +111,6 @@ def add_storage_type_routes(
             f"/{{{parent_id_param}}}/{storage_type_slug_plural}",
             description=f"Get all {storage_type_title_plural} associated with the {parent_title}",
             dependencies=[Security(read_auth_dep)] if read_auth_dep else None,
-            response_model=list[read_schema],
             responses={
                 200: {
                     "description": f"List of {storage_type_title_plural} associated with the {parent_title}",
@@ -122,7 +121,7 @@ def add_storage_type_routes(
                                     "id": 1,
                                     "filename": f"example.{storage_ext}",
                                     "description": f"{parent_title} {storage_type_title}",
-                                    f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
+                                    f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",  # noqa: E501
                                     "created_at": "2025-09-22T14:30:45Z",
                                     "updated_at": "2025-09-22T14:30:45Z",
                                 }
@@ -138,15 +137,15 @@ def add_storage_type_routes(
             session: AsyncSessionDep,
             parent_id: Annotated[int, Depends(read_parent_auth_dep)],
             item_filter: FilterSchema = FilterDepends(filter_schema),
-        ) -> Sequence[StorageModel]:
+        ) -> list[ReadSchema]:
             """Get all storage items associated with the parent."""
-            return await storage_crud.get_all(session, parent_id, filter_params=item_filter)
+            items = await storage_crud.get_all(session, parent_id, filter_params=item_filter)
+            return [read_schema.model_validate(item) for item in items]
 
         @router.get(
             f"/{{{parent_id_param}}}/{storage_type_slug_plural}/{{{storage_type_slug}_id}}",
             dependencies=[Security(read_auth_dep)] if read_auth_dep else None,
             description=f"Get specific {parent_title} {storage_type_title} by ID",
-            response_model=read_schema,
             responses={
                 200: {
                     "description": f"{storage_type.title()} found",
@@ -171,9 +170,10 @@ def add_storage_type_routes(
             parent_id: Annotated[int, Depends(read_parent_auth_dep)],
             item_id: Annotated[UUID4, Path(alias=f"{storage_type_slug}_id", description=f"ID of the {storage_type}")],
             session: AsyncSessionDep,
-        ) -> StorageModel:
+        ) -> ReadSchema:
             """Get a specific storage item associated with the parent."""
-            return await storage_crud.get_by_id(session, parent_id, item_id)
+            item = await storage_crud.get_by_id(session, parent_id, item_id)
+            return read_schema.model_validate(item)
 
     if StorageRouteMethod.POST in include_methods:
         # HACK: This is an ugly way to differentiate between file and image uploads
@@ -181,7 +181,6 @@ def add_storage_type_routes(
             "path": f"/{{{parent_id_param}}}/{storage_type_slug_plural}",
             "dependencies": [Security(modify_auth_dep)] if modify_auth_dep else None,
             "description": f"Upload a new {storage_type_title} for the {parent_title}",
-            "response_model": read_schema,
             "responses": {
                 200: {
                     "description": f"{storage_type_title} successfully uploaded",
@@ -220,13 +219,20 @@ def add_storage_type_routes(
                     ),
                     BeforeValidator(empty_str_to_none),
                 ] = None,
-            ) -> StorageModel:
+            ) -> ReadSchema:
                 """Upload a new image for the parent.
 
                 Note that the parent id and type setting is handled in the crud operation.
                 """
-                item_data = ImageCreateFromForm(file=file, description=description, image_metadata=image_metadata)
-                return await storage_crud.create(session, parent_id, item_data)
+                item_data = ImageCreateFromForm(
+                    file=file,
+                    description=description,
+                    image_metadata=image_metadata,
+                    parent_id=parent_id,
+                    parent_type=ImageParentType(parent_api_model_name.name_snake),
+                )
+                item = await storage_crud.create(session, parent_id, item_data)
+                return read_schema.model_validate(item)
 
         elif create_schema is FileCreate:
 
@@ -236,13 +242,19 @@ def add_storage_type_routes(
                 parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
                 file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
                 description: Annotated[str | None, Form()] = None,
-            ) -> StorageModel:
+            ) -> ReadSchema:
                 """Upload a new file for the parent.
 
                 Note that the parent id and type setting is handled in the crud operation.
                 """
-                item_data = FileCreate(file=file, description=description)
-                return await storage_crud.create(session, parent_id, item_data)
+                item_data = FileCreate(
+                    file=file,
+                    description=description,
+                    parent_id=parent_id,
+                    parent_type=FileParentType(parent_api_model_name.name_snake),
+                )
+                item = await storage_crud.create(session, parent_id, item_data)
+                return read_schema.model_validate(item)
 
         else:
             err_msg = "Invalid create schema"

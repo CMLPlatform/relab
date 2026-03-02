@@ -9,7 +9,6 @@ from pydantic import PositiveInt
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
-from app.api.common.models.custom_types import IDT
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.filters import MaterialProductLinkFilter, ProductFilterWithRelationships
 from app.api.data_collection.models import Product
@@ -46,6 +45,6 @@ async def get_user_owned_product(
 UserOwnedProductDep = Annotated[Product, Depends(get_user_owned_product)]
 
 
-async def get_user_owned_product_id(user_owned_product: UserOwnedProductDep) -> IDT | None:
+async def get_user_owned_product_id(user_owned_product: UserOwnedProductDep) -> int | None:
     """Get the ID of a user owned product."""
     return user_owned_product.id

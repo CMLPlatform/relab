@@ -1,6 +1,6 @@
 """Routers for the Raspberry Pi Camera plugin."""
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends
 from pydantic import UUID4
@@ -8,10 +8,12 @@ from pydantic import UUID4
 from app.api.auth.dependencies import current_active_superuser
 from app.api.common.crud.base import get_model_by_id, get_models
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.dependencies import CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
 from app.api.plugins.rpi_cam.schemas import CameraRead
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 ### Camera admin router ###
 
@@ -42,10 +44,9 @@ async def get_all_cameras(
 @router.get("/{camera_id}", summary="Get Raspberry Pi camera by ID", response_model=CameraRead)
 async def get_camera(camera_id: UUID4, session: AsyncSessionDep) -> Camera:
     """Get single Raspberry Pi camera by ID."""
-    db_camera = await get_model_by_id(session, Camera, camera_id)
     # TODO: Can we deduplicate these standard translations of exceptions to HTTP exceptions across the codebase?
 
-    return db_camera
+    return await get_model_by_id(session, Camera, camera_id)
 
 
 @router.get("/{camera_id}/status", summary="Get Raspberry Pi camera online status")
@@ -63,4 +64,7 @@ async def delete_camera(
     session: AsyncSessionDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
-    await crud.force_delete_camera(session, camera_id)
+    db_camera = await get_model_by_id(session, Camera, camera_id)
+
+    await session.delete(db_camera)
+    await session.commit()

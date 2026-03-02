@@ -1,7 +1,7 @@
 """Database models for the Raspberry Pi Camera plugin."""
 
 import uuid
-from enum import Enum
+from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 ### Utility models ###
-class CameraConnectionStatus(str, Enum):
+class CameraConnectionStatus(StrEnum):
     """Camera connection status."""
 
     ONLINE = "online"
@@ -112,13 +112,17 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
     @cached_property
     def verify_ssl(self) -> bool:
         """Whether to verify SSL certificates based on URL scheme."""
-        return HttpUrl(self.url).scheme == "https"
+        return HttpUrl(self.url).scheme == "https"  # noqa: PLR2004
 
     def __hash__(self) -> int:
         """Make Camera instances hashable using their id. Used for caching."""
         return hash(self.id)
 
     async def get_status(self, *, force_refresh: bool = False) -> CameraStatus:
+        """Get the current connection status of the camera, using cache if not force_refresh.
+
+        Status is cached for 15 seconds to avoid excessive requests to the camera API.
+        """
         if force_refresh:
             return await self._fetch_status()
 

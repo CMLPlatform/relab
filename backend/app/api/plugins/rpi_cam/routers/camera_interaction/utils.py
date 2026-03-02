@@ -1,7 +1,7 @@
 """Utilities for the camera interaction endpoints."""
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from sqlmodel.ext.asyncio.session import AsyncSession
 
 
-class HttpMethod(str, Enum):
+class HttpMethod(StrEnum):
     """HTTP method type."""
 
     GET = "GET"

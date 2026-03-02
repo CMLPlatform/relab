@@ -33,11 +33,10 @@ class FileType(_FileType):
     This supports alembic migrations on FastAPI Storages models.
     """
 
-    def __init__(
-        self, *args: Any, **kwargs: Any
-    ) -> None:  # Any-type args and kwargs are expected by the parent class signature
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # Any-type args and kwargs are expected by the parent class signature
         storage = CustomFileSystemStorage(path=str(settings.file_storage_path))
-        super().__init__(*args, storage=storage, **kwargs)
+        args = (storage, *args)
+        super().__init__(*args, **kwargs)
 
 
 class ImageType(_ImageType):
@@ -46,13 +45,12 @@ class ImageType(_ImageType):
     This supports alembic migrations on FastAPI Storages models.
     """
 
-    def __init__(
-        self, *args: Any, **kwargs: Any
-    ) -> None:  # Any-type args and kwargs are expected by the parent class signature
+    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # Any-type args and kwargs are expected by the parent class signature
         storage = CustomFileSystemStorage(path=str(settings.image_storage_path))
-        super().__init__(*args, storage=storage, **kwargs)
+        args = (storage, *args)
+        super().__init__(*args, **kwargs)
 
-    def process_result_value(self, value: Any, dialect: Dialect) -> StorageImage | None:
+    def process_result_value(self, value: Any, dialect: Dialect) -> StorageImage | None:  # noqa: ANN401 # Any-type value is expected by the parent class signature
         """Override the default process_result_value method to raise a custom error if the file is not found."""
         try:
             return super().process_result_value(value, dialect)

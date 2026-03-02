@@ -285,9 +285,7 @@ async def watch_preview(
     # Validate camera ownership
     await get_user_owned_camera(session, camera_id, current_user.id)
 
-    response = templates.TemplateResponse(
+    return templates.TemplateResponse(
         "plugins/rpi_cam/remote_stream_viewer.html",
         {"request": request, "camera_id": camera_id, "hls_manifest_file": HLS_MANIFEST_FILENAME},
     )
-
-    return response

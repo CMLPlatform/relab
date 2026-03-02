@@ -1,6 +1,6 @@
 """Camera CRUD operations for Raspberry Pi Camera plugin."""
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from fastapi import Query
 from pydantic import UUID4
@@ -21,6 +21,9 @@ from app.api.plugins.rpi_cam.schemas import (
     CameraReadWithStatus,
     CameraUpdate,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 # TODO improve exception handling, add custom exceptions and return more granular HTTP codes
 # (.e.g. 404 on missing camera, 403 on unauthorized access)
@@ -122,9 +125,7 @@ async def update_user_camera(
     *, session: AsyncSessionDep, db_camera: UserOwnedCameraDep, camera_in: CameraUpdate
 ) -> Camera:
     """Update Raspberry Pi camera."""
-    db_camera = await crud.update_camera(session, db_camera, camera_in)
-
-    return db_camera
+    return await crud.update_camera(session, db_camera, camera_in)
 
 
 ## DELETE

@@ -22,7 +22,7 @@ from app.api.common.schemas.base import (
 from app.api.common.schemas.custom_fields import HttpUrlToDB
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus
-from app.api.plugins.rpi_cam.utils.encryption import decrypt_str
+from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str
 
 
 ### Filters ###
@@ -118,12 +118,6 @@ class CameraRead(BaseReadSchemaWithTimeStamp, CameraBase):
 
     owner_id: UUID4
 
-    @classmethod
-    def _get_base_fields(cls, db_model: Camera) -> dict:
-        return {
-            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
-        }
-
 
 class CameraReadWithStatus(CameraRead):
     """Schema for camera read with online status."""
@@ -132,7 +126,11 @@ class CameraReadWithStatus(CameraRead):
 
     @classmethod
     async def from_db_model_with_status(cls, db_model: Camera) -> Self:
-        return cls(**CameraRead._get_base_fields(db_model), status=await db_model.get_status())
+        """Create CameraReadWithStatus instance from Camera database model, fetching the online status."""
+        return cls(
+            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
+            status=await db_model.get_status(),
+        )
 
 
 class CameraReadWithCredentials(CameraRead):
@@ -143,10 +141,11 @@ class CameraReadWithCredentials(CameraRead):
 
     @classmethod
     def from_db_model_with_credentials(cls, db_model: Camera) -> Self:
-        decrypted_headers = db_model._decrypt_auth_headers() if db_model.encrypted_auth_headers else None
+        """Create CameraReadWithCredentials instance from Camera database model, decrypting the auth headers."""
+        decrypted_headers = decrypt_dict(db_model.encrypted_auth_headers) if db_model.encrypted_auth_headers else None
 
         return cls(
-            **CameraRead._get_base_fields(db_model),
+            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
             api_key=decrypt_str(db_model.encrypted_api_key),
             auth_headers=decrypted_headers,
         )

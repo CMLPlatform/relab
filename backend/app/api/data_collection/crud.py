@@ -1,11 +1,10 @@
 """CRUD operations for the models related to data collection."""
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import UUID4
-from sqlalchemy import Delete, delete
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
@@ -16,8 +15,8 @@ from app.api.background_data.models import (
     ProductType,
 )
 from app.api.common.crud.associations import get_linking_model_with_ids_if_it_exists
+from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.utils import (
-    db_get_model_with_id_if_it_exists,
     db_get_models_with_ids_if_they_exist,
     validate_linked_items_exist,
     validate_no_duplicate_linked_items,
@@ -49,6 +48,8 @@ from app.api.file_storage.schemas import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pydantic import EmailStr
     from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
@@ -61,7 +62,7 @@ if TYPE_CHECKING:
 ### PhysicalProperty CRUD operations ###
 async def get_physical_properties(db: AsyncSession, product_id: int) -> PhysicalProperties:
     """Get physical properties for a product."""
-    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product: Product = await get_model_by_id(db, Product, product_id, include_relationships={"physical_properties"})
 
     if not product.physical_properties:
         err_msg: str = f"Physical properties for product with id {product_id} not found"
@@ -77,7 +78,7 @@ async def create_physical_properties(
 ) -> PhysicalProperties:
     """Create physical properties for a product."""
     # Validate that product exists and doesn't have physical properties
-    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product: Product = await get_model_by_id(db, Product, product_id, include_relationships={"physical_properties"})
     if product.physical_properties:
         err_msg: str = f"Product with id {product_id} already has physical properties"
         raise ValueError(err_msg)
@@ -87,6 +88,7 @@ async def create_physical_properties(
         **physical_properties.model_dump(),
         product_id=product_id,
     )
+    product.physical_properties = db_physical_property
     db.add(db_physical_property)
     await db.commit()
     await db.refresh(db_physical_property)
@@ -99,7 +101,7 @@ async def update_physical_properties(
 ) -> PhysicalProperties:
     """Update physical properties for a product."""
     # Validate that product exists and has physical properties
-    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product: Product = await get_model_by_id(db, Product, product_id, include_relationships={"physical_properties"})
     if not (db_physical_properties := product.physical_properties):
         err_msg: EmailStr = f"Physical properties for product with id {product_id} not found"
         raise ValueError(err_msg)
@@ -127,7 +129,7 @@ async def delete_physical_properties(db: AsyncSession, product: Product) -> None
 ### CircularityProperty CRUD operations ###
 async def get_circularity_properties(db: AsyncSession, product_id: int) -> CircularityProperties:
     """Get circularity properties for a product."""
-    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product: Product = await get_model_by_id(db, Product, product_id, include_relationships={"circularity_properties"})
 
     if not product.circularity_properties:
         err_msg: str = f"Circularity properties for product with id {product_id} not found"
@@ -143,7 +145,7 @@ async def create_circularity_properties(
 ) -> CircularityProperties:
     """Create circularity properties for a product."""
     # Validate that product exists and doesn't have circularity properties
-    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product: Product = await get_model_by_id(db, Product, product_id, include_relationships={"circularity_properties"})
     if product.circularity_properties:
         err_msg: str = f"Product with id {product_id} already has circularity properties"
         raise ValueError(err_msg)
@@ -153,6 +155,7 @@ async def create_circularity_properties(
         **circularity_properties.model_dump(),
         product_id=product_id,
     )
+    product.circularity_properties = db_circularity_property
     db.add(db_circularity_property)
     await db.commit()
     await db.refresh(db_circularity_property)
@@ -165,7 +168,7 @@ async def update_circularity_properties(
 ) -> CircularityProperties:
     """Update circularity properties for a product."""
     # Validate that product exists and has circularity properties
-    product: Product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product: Product = await get_model_by_id(db, Product, product_id)
     if not (db_circularity_properties := product.circularity_properties):
         err_msg: EmailStr = f"Circularity properties for product with id {product_id} not found"
         raise ValueError(err_msg)
@@ -205,18 +208,24 @@ async def get_product_trees(
     """
     # Validate that parent product exists
     if parent_id:
-        await db_get_model_with_id_if_it_exists(db, Product, parent_id)
+        await get_model_by_id(db, Product, parent_id)
 
     statement: SelectOfScalar[Product] = (
         select(Product)
         .where(Product.parent_id == parent_id)
-        .options(selectinload(Product.components, recursion_depth=recursion_depth))
+        .options(
+            selectinload(cast("QueryableAttribute[Any]", Product.components), recursion_depth=recursion_depth),
+            selectinload(cast("QueryableAttribute[Any]", Product.product_type)),
+            selectinload(cast("QueryableAttribute[Any]", Product.videos)),
+            selectinload(cast("QueryableAttribute[Any]", Product.files)),
+            selectinload(cast("QueryableAttribute[Any]", Product.images)),
+        )
     )
 
     if product_filter:
         statement = product_filter.filter(statement)
 
-    return (await db.exec(statement)).all()
+    return list((await db.exec(statement)).all())
 
 
 # TODO: refactor this function and create_product to use a common function for creating components.
@@ -237,7 +246,7 @@ async def create_component(
 
     if not _is_recursive_call:
         # Validate that parent product exists and fetch its owner ID
-        db_parent_product = await db_get_model_with_id_if_it_exists(db, Product, parent_product_id)
+        db_parent_product = await get_model_by_id(db, Product, parent_product_id)
         owner_id = db_parent_product.owner_id
 
     # Create component
@@ -301,7 +310,7 @@ async def create_component(
             await create_component(
                 db,
                 subcomponent,
-                parent_product_id=db_component.id,  # ty: ignore[invalid-argument-type] # component ID is guaranteed by database flush above
+                parent_product_id=db_component.id,
                 owner_id=owner_id,
                 _is_recursive_call=True,
             )
@@ -322,11 +331,11 @@ async def create_product(
     """Create a new product in the database."""
     # Validate that product type exists
     if product.product_type_id:
-        await db_get_model_with_id_if_it_exists(db, ProductType, product.product_type_id)
+        await get_model_by_id(db, ProductType, product.product_type_id)
 
     # Validate that owner exists
     # TODO: Replace all these existence and auth checks with dependencies on the router level
-    await db_get_model_with_id_if_it_exists(db, User, owner_id)
+    await get_model_by_id(db, User, owner_id)
 
     # Create product
     product_data: dict[str, Any] = product.model_dump(
@@ -386,7 +395,7 @@ async def create_product(
             await create_component(
                 db,
                 component,
-                parent_product_id=db_product.id,  # ty: ignore[invalid-argument-type] # component ID is guaranteed by database flush above
+                parent_product_id=db_product.id,
                 owner_id=owner_id,
                 _is_recursive_call=True,
             )
@@ -405,11 +414,11 @@ async def update_product(
     # product by id on the CRUD layer, to reduce the load on the DB, for all RUD operations in the app
 
     # Validate that product exists
-    db_product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    db_product = await get_model_by_id(db, Product, product_id)
 
     # Validate that product type exists
     if product.product_type_id:
-        await db_get_model_with_id_if_it_exists(db, ProductType, product.product_type_id)
+        await get_model_by_id(db, ProductType, product.product_type_id)
 
     product_data: dict[str, Any] = product.model_dump(
         exclude_unset=True, exclude={"physical_properties", "circularity_properties"}
@@ -432,7 +441,7 @@ async def update_product(
 async def delete_product(db: AsyncSession, product_id: int) -> None:
     """Delete a product from the database."""
     # Validate that product exists
-    db_product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    db_product = await get_model_by_id(db, Product, product_id)
 
     # Delete stored files
     await product_files_crud.delete_all(db, product_id)
@@ -468,7 +477,7 @@ async def add_materials_to_product(
 ) -> list[MaterialProductLink]:
     """Add materials to a product."""
     # Validate that product exists
-    db_product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    db_product = await get_model_by_id(db, Product, product_id)
 
     # Validate materials exist
     material_ids: set[int] = {material_link.material_id for material_link in material_links}
@@ -523,7 +532,7 @@ async def update_material_within_product(
 ) -> MaterialProductLink:
     """Update material in a product bill of materials."""
     # Validate that product exists
-    await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    await get_model_by_id(db, Product, product_id)
 
     # Validate that material exists in the product
     db_material_link: MaterialProductLink = await get_linking_model_with_ids_if_it_exists(
@@ -551,27 +560,32 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
         material_ids = {material_ids}
 
     # Validate that product exists
-    product = await db_get_model_with_id_if_it_exists(db, Product, product_id)
+    product = await get_model_by_id(db, Product, product_id)
 
     # Validate materials exist
-    await db_get_models_with_ids_if_they_exist(db, MaterialProductLink, material_ids)
+    await db_get_models_with_ids_if_they_exist(db, Material, material_ids)
 
     # Validate materials are actually assigned to the product
     validate_linked_items_exist(material_ids, product.bill_of_materials, "Materials", "material_id")
 
-    statement: Delete = (
-        delete(MaterialProductLink)
+    # Fetch material-product links to delete
+    statement = (
+        select(MaterialProductLink)
         .where(col(MaterialProductLink.product_id) == product_id)
         .where(col(MaterialProductLink.material_id).in_(material_ids))
     )
-    await db.execute(statement)
+    results = await db.exec(statement)
+
+    # Delete each material-product link
+    for material_link in results.all():
+        await db.delete(material_link)
+
     await db.commit()
 
 
 ### Ancillary Search CRUD operations ###
 async def get_unique_product_brands(db: AsyncSession) -> list[str]:
     """Get all unique product brands."""
-    statement = select(Product.brand).distinct().order_by(Product.brand).where(Product.brand.is_not(None))
-    results = (await db.exec(statement)).all()
-    unique_brands = sorted({brand.strip().title() for brand in results if brand and brand.strip()})
-    return unique_brands
+    statement = select(Product.brand).distinct().order_by(Product.brand).where(col(Product.brand).is_not(None))
+    results = list((await db.exec(statement)).all())
+    return sorted({brand.strip().title() for brand in results if brand and brand.strip()})

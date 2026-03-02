@@ -1,6 +1,6 @@
 """FastAPI-Filter classes for filtering database queries."""
 
-from datetime import datetime
+from datetime import datetime  # noqa: TC003 # Runtime import is required for FastAPI-Filter field definitions
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter

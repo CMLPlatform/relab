@@ -1,11 +1,9 @@
 """Base CRUD operations for SQLAlchemy models."""
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from fastapi_filter.contrib.sqlalchemy import Filter
-from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlmodel import apaginate
-from sqlalchemy import Select
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
@@ -18,6 +16,9 @@ from app.api.common.crud.utils import (
     validate_model_with_id_exists,
 )
 from app.api.common.models.custom_types import DT, IDT, MT
+
+if TYPE_CHECKING:
+    from fastapi_pagination import Page
 
 
 def should_apply_filter(filter_obj: Filter) -> bool:
@@ -32,11 +33,11 @@ def should_apply_filter(filter_obj: Filter) -> bool:
 
 
 def add_filter_joins(
-    statement: Select,
+    statement: SelectOfScalar[MT],
     model: type[MT],
     filter_obj: Filter,
     path: list[str] | None = None,
-) -> Select:
+) -> SelectOfScalar[MT]:
     """Recursively add joins for filter relationships."""
     path = path or []
 
@@ -115,7 +116,7 @@ async def get_models(
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
     statement: SelectOfScalar[MT] | None = None,
-) -> Sequence[MT]:
+) -> list[MT]:
     """Generic function to get models with optional filtering and relationships."""
     statement, relationships_to_exclude = get_models_query(
         model,
@@ -123,7 +124,7 @@ async def get_models(
         model_filter=model_filter,
         statement=statement,
     )
-    result: Sequence[MT] = (await db.exec(statement)).unique().all()
+    result: list[MT] = list((await db.exec(statement)).unique().all())
 
     return set_empty_relationships(result, relationships_to_exclude)
 
@@ -136,7 +137,7 @@ async def get_paginated_models(
     model_filter: Filter | None = None,
     statement: SelectOfScalar[MT] | None = None,
     read_schema: type[MT] | None = None,
-) -> Page[Sequence[DT]]:
+) -> Page[DT]:
     """Generic function to get paginated models with optional filtering and relationships."""
     statement, relationships_to_exclude = get_models_query(
         model,
@@ -146,7 +147,7 @@ async def get_paginated_models(
         read_schema=read_schema,
     )
 
-    result_page: Page[Sequence[DT]] = await apaginate(db, statement, params=None)
+    result_page: Page[DT] = await apaginate(db, statement, params=None)
 
     result_page.items = set_empty_relationships(
         result_page.items, relationships_to_exclude, setattr_strat=AttributeSettingStrategy.PYDANTIC

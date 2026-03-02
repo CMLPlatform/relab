@@ -1,8 +1,7 @@
 """Pydantic models used to validate CRUD operations for data collection data."""
 
-from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import (
     AfterValidator,
@@ -37,6 +36,9 @@ from app.api.file_storage.schemas import (
     VideoCreateWithinProduct,
     VideoReadWithinProduct,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
 
 ### Constants ###
 
@@ -262,6 +264,7 @@ class ComponentCreateWithComponents(ComponentCreate):
 
     @model_validator(mode="after")
     def has_material_or_components(self) -> Self:
+        """Validation to ensure product has either materials or components."""
         validate_material_or_components(self.bill_of_materials, self.components)
         return self
 
@@ -279,6 +282,7 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 
     @model_validator(mode="after")
     def has_material_or_components(self) -> Self:
+        """Validation to ensure product has either materials or components."""
         validate_material_or_components(self.bill_of_materials, self.components)
         return self
 

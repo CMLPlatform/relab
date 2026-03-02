@@ -1,7 +1,7 @@
 """Service for creating and verifying JWT tokens for newsletter confirmation."""
 
 from datetime import UTC, datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 
 import jwt
 from pydantic import SecretStr
@@ -12,7 +12,7 @@ ALGORITHM = "HS256"  # Algorithm used for JWT encoding/decoding
 SECRET: SecretStr = settings.newsletter_secret
 
 
-class JWTType(str, Enum):
+class JWTType(StrEnum):
     """Enum for different newsletter-related JWT types."""
 
     NEWSLETTER_CONFIRMATION = "newsletter_confirmation"
@@ -45,5 +45,5 @@ def verify_jwt_token(token: str, expected_token_type: JWTType) -> str | None:
         if payload["type"] != expected_token_type.value:
             return None
         return payload["sub"]  # Returns the email address from the token
-    except (jwt.PyJWTError, KeyError):
+    except jwt.PyJWTError, KeyError:
         return None

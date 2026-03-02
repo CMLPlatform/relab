@@ -1,7 +1,7 @@
 """Database models for files, images and videos."""
 
 import uuid
-from enum import Enum
+from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -28,7 +28,7 @@ PLACEHOLDER_IMAGE_PATH: Path = settings.static_files_path / "images " / "placeho
 
 
 ### File Model ###
-class FileParentType(Enum):
+class FileParentType(StrEnum):
     """Enumeration of types that can have files."""
 
     PRODUCT = "product"
@@ -89,7 +89,7 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
 ### Image Model ###
 
 
-class ImageParentType(str, Enum):
+class ImageParentType(StrEnum):
     """Enumeration of types that can have images."""
 
     PRODUCT = "product"
