@@ -179,6 +179,7 @@ cookie_transport = CookieTransport(
     cookie_name="auth",
     cookie_max_age=ACCESS_TOKEN_TTL,
     cookie_domain=cookie_domain,
+    cookie_secure=core_settings.secure_cookies,
 )
 
 

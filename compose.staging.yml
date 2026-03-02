@@ -3,6 +3,7 @@ name: relab_staging
 services:
   backend:
     environment:
+      ENVIRONMENT: staging
       # URLs for the test frontend
       FRONTEND_WEB_URL: https://web-test.cml-relab.org
       FRONTEND_APP_URL: https://app-test.cml-relab.org

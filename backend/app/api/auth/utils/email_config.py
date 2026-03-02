@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi_mail import ConnectionConfig, FastMail
 
 from app.api.auth.config import settings as auth_settings
+from app.core.config import settings as core_settings
 
 # Path to pre-compiled HTML email templates
 TEMPLATE_FOLDER = Path(__file__).parent.parent.parent.parent / "templates" / "emails" / "build"

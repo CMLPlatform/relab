@@ -6,6 +6,7 @@ services:
     build:
       dockerfile: Dockerfile.dev
     environment:
+      ENVIRONMENT: dev
       FRONTEND_WEB_URL: http://localhost:8010 # Point to local frontend dev server
       FRONTEND_APP_URL: http://localhost:8013
     ports:

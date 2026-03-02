@@ -10,8 +10,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR: Path = (Path(__file__).parents[2]).resolve()
 
 
+class Environment(StrEnum):
+    """Application execution environment."""
+
+    DEV = "dev"
+    STAGING = "staging"
+    PROD = "prod"
+    TESTING = "testing"
+
+
 class CoreSettings(BaseSettings):
     """Settings class to store all the configurations for the app."""
+
+    # Application Environment
+    environment: Environment = Environment.DEV
 
     # Database settings from .env file
     database_host: str = "localhost"
@@ -37,7 +49,14 @@ class CoreSettings(BaseSettings):
     # Network settings
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
-    allowed_origins: list[str] = [str(frontend_web_url), str(frontend_app_url)]
+
+    @computed_field
+    @cached_property
+    def allowed_origins(self) -> list[str]:
+        """Get allowed CORS origins based on environment."""
+        if self.environment == Environment.DEV:
+            return ["*"]  # Be permissive locally
+        return [str(self.frontend_web_url), str(self.frontend_app_url)]
 
     # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
@@ -83,7 +102,40 @@ class CoreSettings(BaseSettings):
     @cached_property
     def sync_test_database_url(self) -> str:
         """Get test database URL."""
-        return self._build_database_url("psycopg", self.postgres_test_db)
+        return self.build_database_url("psycopg", self.postgres_test_db)
+
+    @computed_field
+    @cached_property
+    def cache_url(self) -> str:
+        """Get Redis cache URL."""
+        return (
+            f"redis://:{self.redis_password.get_secret_value() or ''}"
+            f"@{self.redis_host}:{self.redis_port}/{self.redis_db}"
+        )
+
+    @computed_field
+    @cached_property
+    def enable_caching(self) -> bool:
+        """Disable caching logic if we are running in development or testing."""
+        return self.environment not in (Environment.DEV, Environment.TESTING)
+
+    @computed_field
+    @cached_property
+    def is_prod(self) -> bool:
+        """Return True if the application is running in production."""
+        return self.environment == Environment.PROD
+
+    @computed_field
+    @property
+    def secure_cookies(self) -> bool:
+        """Set cookie 'Secure' flag to False in DEV so HTTP works on localhost."""
+        return self.environment in (Environment.PROD, Environment.STAGING)
+
+    @computed_field
+    @property
+    def mock_emails(self) -> bool:
+        """Set email sending to False in DEV and TESTING."""
+        return self.environment in (Environment.DEV, Environment.TESTING)
 
 
 # Create a settings instance that can be imported throughout the app
