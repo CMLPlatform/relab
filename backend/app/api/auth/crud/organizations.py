@@ -7,11 +7,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.auth.exceptions import (
     AlreadyMemberError,
     OrganizationHasMembersError,
-    OrganizationNameExistsError,
     UserDoesNotOwnOrgError,
     UserHasNoOrgError,
     UserIsNotMemberError,
     UserOwnsOrgError,
+    handle_organization_integrity_error,
 )
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.schemas import OrganizationCreate, OrganizationUpdate
@@ -19,7 +19,6 @@ from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
 
 ### Constants ###
-UNIQUE_VIOLATION_PG_CODE = "23505"
 
 
 ## Create Organization ##
@@ -41,11 +40,7 @@ async def create_organization(db: AsyncSession, organization: OrganizationCreate
         db.add(db_organization)
         await db.flush()
     except IntegrityError as e:
-        # TODO: Reuse this in general exception handling
-        if getattr(e.orig, "pgcode", None) == UNIQUE_VIOLATION_PG_CODE:
-            raise OrganizationNameExistsError from e
-        err_msg = f"Error creating organization: {e}"
-        raise RuntimeError(err_msg) from e
+        handle_organization_integrity_error(e, "creating")
 
     db.add(owner)
     await db.commit()
@@ -74,11 +69,7 @@ async def update_user_organization(
         db.add(db_organization)
         await db.flush()
     except IntegrityError as e:
-        # TODO: Reuse this in general exception handling
-        if getattr(e.orig, "pgcode", None) == UNIQUE_VIOLATION_PG_CODE:
-            raise OrganizationNameExistsError from e
-        err_msg = f"Error updating organization: {e}"
-        raise RuntimeError(err_msg) from e
+        handle_organization_integrity_error(e, "updating")
 
     # Save to database
     await db.commit()

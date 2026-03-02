@@ -17,10 +17,7 @@ router = APIRouter(include_in_schema=False)
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request,
-    user: OptionalCurrentActiveUserDep,
-) -> HTMLResponse:
+async def index(request: Request, user: OptionalCurrentActiveUserDep) -> HTMLResponse:
     """Render the landing page."""
     return templates.TemplateResponse(
         "index.html",

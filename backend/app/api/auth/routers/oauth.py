@@ -1,24 +1,19 @@
 """OAuth-related routes."""
 
-from fastapi import APIRouter, Security
+from fastapi import APIRouter
 
 from app.api.auth.config import settings
-from app.api.auth.dependencies import current_active_superuser
 from app.api.auth.schemas import UserRead
 from app.api.auth.services.oauth import github_oauth_client, google_oauth_client
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend, fastapi_user_manager
 
 # TODO: include simple UI for OAuth login and association on login page
 # TODO: Create single callback endpoint for each provider at /auth/oauth/{provider}/callback
-# This requires us to manually set up a single callback route that can handle multiple actions
-# (token login, session login, association)
+# Note: Refresh tokens and sessions are now automatically created via UserManager.on_after_login hook
 
 router = APIRouter(
     prefix="/auth/oauth",
     tags=["oauth"],
-    dependencies=[  # TODO: Remove superuser dependency when enabling public OAuth login
-        Security(current_active_superuser)
-    ],
 )
 
 for oauth_client in (github_oauth_client, google_oauth_client):

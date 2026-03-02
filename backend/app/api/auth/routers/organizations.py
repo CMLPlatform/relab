@@ -1,7 +1,6 @@
 """Public routes for managing organizations."""
 
-from collections.abc import Sequence
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
@@ -21,6 +20,9 @@ from app.api.auth.schemas import (
 from app.api.common.crud.base import get_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import mark_router_routes_public
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
@@ -49,9 +51,7 @@ async def create_organization(
     organization: OrganizationCreate, current_user: CurrentActiveVerifiedUserDep, session: AsyncSessionDep
 ) -> Organization:
     """Create new organization with current user as owner."""
-    db_org = await crud.create_organization(session, organization, current_user)
-
-    return db_org
+    return await crud.create_organization(session, organization, current_user)
 
 
 ## Organization member routes ##

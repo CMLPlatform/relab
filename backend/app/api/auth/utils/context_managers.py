@@ -1,6 +1,5 @@
 """Async context managers for user database and user manager."""
 
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -10,6 +9,8 @@ from app.api.auth.services.user_manager import get_user_db, get_user_manager
 from app.core.database import async_session_context
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from app.api.auth.services.user_manager import UserManager
 
 get_async_user_db_context = asynccontextmanager(get_user_db)

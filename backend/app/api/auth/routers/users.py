@@ -1,5 +1,7 @@
 """Public user management routes."""
 
+from __future__ import annotations
+
 from fastapi import APIRouter, HTTPException, Security
 
 from app.api.auth import crud
@@ -61,9 +63,7 @@ async def update_organization(
     session: AsyncSessionDep,
 ) -> Organization:
     """Update organization as owner."""
-    db_org = await crud.update_user_organization(session, db_organization, organization_in)
-
-    return db_org
+    return await crud.update_user_organization(session, db_organization, organization_in)
 
 
 @router.delete("/me/organization", status_code=204, summary="Delete your organization as owner")

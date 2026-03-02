@@ -1,7 +1,6 @@
 """Admin routes for managing users."""
 
-from collections.abc import Sequence
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Path, Query, Security
 from fastapi.responses import RedirectResponse
@@ -16,6 +15,9 @@ from app.api.auth.routers.users import router as public_user_router
 from app.api.auth.schemas import UserRead, UserReadWithRelationships
 from app.api.common.crud.base import get_models
 from app.api.common.routers.dependencies import AsyncSessionDep
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
 

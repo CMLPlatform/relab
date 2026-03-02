@@ -40,10 +40,18 @@ class AuthSettings(BaseSettings):
         email_reply_to = email_username
 
     # Time to live for access (login) and verification tokens
-    access_token_ttl_seconds: int = 60 * 60 * 3  # 3 hours
+    access_token_ttl_seconds: int = 60 * 15  # 15 minutes (Redis token lifetime)
     reset_password_token_ttl_seconds: int = 60 * 60  # 1 hour
     verification_token_ttl_seconds: int = 60 * 60 * 24  # 1 day
-    newsletter_unsubscription_token_ttl_seconds: int = 60 * 60 * 24 * 30  # 7 days
+    newsletter_unsubscription_token_ttl_seconds: int = 60 * 60 * 24 * 30  # 30 days
+
+    # Auth settings - Refresh tokens and sessions
+    refresh_token_expire_days: int = 30  # 30 days for long-lived refresh tokens
+    session_id_length: int = 32
+
+    # Auth settings - Rate limiting
+    rate_limit_login_attempts: int = 5
+    rate_limit_window_seconds: int = 300  # 5 minutes
 
     # Youtube API settings
     youtube_api_scopes: list[str] = [

@@ -2,6 +2,7 @@
 
 from fastapi import status
 from pydantic import UUID4
+from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import APIError
 from app.api.common.models.custom_types import IDT, MT
@@ -136,3 +137,14 @@ class DisposableEmailError(AuthCRUDError):
     def __init__(self, email: str) -> None:
         msg = f"The email address '{email}' is from a disposable email provider, which is not allowed."
         super().__init__(msg)
+
+
+UNIQUE_VIOLATION_PG_CODE = "23505"
+
+
+def handle_organization_integrity_error(e: IntegrityError, action: str) -> None:
+    """Handle integrity errors when creating or updating an organization, and raise appropriate exceptions."""
+    if getattr(e.orig, "pgcode", None) == UNIQUE_VIOLATION_PG_CODE:
+        raise OrganizationNameExistsError from e
+    err_msg = f"Error {action} organization: {e}"
+    raise RuntimeError(err_msg) from e

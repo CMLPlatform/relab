@@ -1,10 +1,12 @@
 """DTO schemas for users."""
 
-import uuid
-from typing import Annotated, Optional
+from __future__ import annotations
 
-from fastapi_users import schemas
-from pydantic import UUID4, ConfigDict, EmailStr, Field, StringConstraints
+import uuid
+from typing import Annotated
+
+from fastapi_users import schemas as fastapi_users_schemas
+from pydantic import UUID4, BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
 from app.api.auth.models import OrganizationBase, UserBase
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema, ProductRead
@@ -58,7 +60,7 @@ ValidatedUsername = Annotated[
 ]
 
 
-class UserCreateBase(UserBase, schemas.BaseUserCreate):
+class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
     """Base schema for user creation."""
 
     # Override for username field validation
@@ -116,7 +118,7 @@ class UserReadPublic(UserBase):
     email: EmailStr
 
 
-class UserRead(UserBase, schemas.BaseUser[uuid.UUID]):
+class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
     model_config: ConfigDict = ConfigDict(
@@ -149,7 +151,7 @@ class UserReadWithRelationships(UserReadWithOrganization):
     products: list[ProductRead] = Field(default_factory=list, description="List of products owned by the user.")
 
 
-class UserUpdate(UserBase, schemas.BaseUserUpdate):
+class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
     # Override for username field validation
@@ -177,3 +179,33 @@ class UserUpdate(UserBase, schemas.BaseUserUpdate):
             }
         }
     )
+
+
+### Authentication & Sessions ###
+class RefreshTokenRequest(BaseModel):
+    """Request schema for refreshing access token."""
+
+    refresh_token: str = Field(description="Refresh token obtained from login")
+
+
+class RefreshTokenResponse(BaseModel):
+    """Response for token refresh."""
+
+    access_token: str = Field(description="New JWT access token")
+    token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
+    expires_in: int = Field(description="Access token expiration time in seconds")
+
+
+class LogoutAllRequest(BaseModel):
+    """Request schema for logging out from all devices."""
+
+    refresh_token: str | None = Field(
+        default=None, description="Refresh token for the current session to exclude from logout"
+    )
+
+
+class LogoutAllResponse(BaseModel):
+    """Response for logout from all devices."""
+
+    message: str = Field(description="Logout confirmation message")
+    sessions_revoked: int = Field(description="Number of sessions revoked")

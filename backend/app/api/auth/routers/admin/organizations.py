@@ -1,7 +1,6 @@
 """Admin routes for managing organizations."""
 
-from collections.abc import Sequence
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Query, Security
 from pydantic import UUID4
@@ -12,6 +11,9 @@ from app.api.auth.models import Organization
 from app.api.auth.schemas import OrganizationReadWithRelationships
 from app.api.common.crud.base import get_model_by_id, get_models
 from app.api.common.routers.dependencies import AsyncSessionDep
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
 

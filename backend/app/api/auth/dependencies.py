@@ -3,11 +3,12 @@
 from typing import Annotated
 
 from fastapi import Depends, Security
+from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from pydantic import UUID4
 
 from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserIsNotMemberError
 from app.api.auth.models import Organization, OrganizationRole, User
-from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_manager
+from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_db, get_user_manager
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
 from app.api.common.routers.dependencies import AsyncSessionDep
 
@@ -18,6 +19,7 @@ current_active_superuser = fastapi_user_manager.current_user(active=True, superu
 optional_current_active_user = fastapi_user_manager.current_user(optional=True)
 
 # Annotated dependency types. For example usage, see the `authenticated_route` function in the auth.routers module.
+UserDBDep = Annotated[SQLModelUserDatabaseAsync[User, UUID4], Depends(get_user_db)]
 UserManagerDep = Annotated[UserManager, Depends(get_user_manager)]
 CurrentActiveUserDep = Annotated[User, Security(current_active_user)]
 CurrentActiveVerifiedUserDep = Annotated[User, Security(current_active_verified_user)]
@@ -26,8 +28,6 @@ OptionalCurrentActiveUserDep = Annotated[User | None, Security(optional_current_
 
 
 # Organizations
-
-
 async def get_org_by_id(
     organization_id: UUID4,
     session: AsyncSessionDep,

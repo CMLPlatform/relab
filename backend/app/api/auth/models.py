@@ -1,26 +1,25 @@
 """Database models related to platform users."""
 
 import uuid
-from enum import Enum
+from datetime import datetime
+from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from fastapi_users_db_sqlmodel import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
 from pydantic import UUID4, BaseModel, ConfigDict
+from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey
 from sqlmodel import Column, Field, Relationship
 
 from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare
-
-if TYPE_CHECKING:
-    from app.api.data_collection.models import Product
+from app.api.data_collection.models import Product
 
 
 # TODO: Refactor into separate files for each model.
 # This is tricky due to circular imports and the way SQLAlchemy and Pydantic handle schema building.
 ### Enums ###
-class OrganizationRole(str, Enum):
+class OrganizationRole(StrEnum):
     """Enum for organization roles."""
 
     OWNER = "owner"
@@ -42,8 +41,12 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo (see https://github.com/fastapi/sqlmodel/issues/1623)
     id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
+    # Login tracking
+    last_login_at: datetime | None = Field(default=None, nullable=True, sa_type=DateTime(timezone=True))
+    last_login_ip: str | None = Field(default=None, max_length=45, nullable=True)  # Max 45 for IPv6
+
     # One-to-many relationship with OAuthAccount
-    oauth_accounts: list[OAuthAccount] = Relationship(
+    oauth_accounts: list["OAuthAccount"] = Relationship(
         back_populates="user",
         sa_relationship_kwargs={
             "lazy": "joined",  # Required because of FastAPI-Users OAuth implementation
@@ -68,7 +71,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
             nullable=True,
         ),
     )
-    organization: Optional["Organization"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
+    organization: Optional["Organization"] = Relationship(  # `Optional` and quotes needed for proper sqlalchemy mapping
         back_populates="members",
         sa_relationship_kwargs={
             "lazy": "selectin",
@@ -79,17 +82,20 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
     organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
 
     # One-to-one relationship with owned Organization
-    owned_organization: Optional["Organization"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
-        back_populates="owner",
-        sa_relationship_kwargs={
-            "uselist": False,
-            "primaryjoin": "User.id == Organization.owner_id",  # HACK: Explicitly define join condition because of
-            "foreign_keys": "[Organization.owner_id]",  # pydantic / sqlmodel issues
-        },
+    owned_organization: Optional["Organization"] = (
+        Relationship(  # `Optional` and quotes needed for proper sqlalchemy mapping
+            back_populates="owner",
+            sa_relationship_kwargs={
+                "uselist": False,
+                "primaryjoin": "User.id == Organization.owner_id",  # HACK: Explicitly define join condition because of
+                "foreign_keys": "[Organization.owner_id]",  # pydantic / sqlmodel issues
+            },
+        )
     )
 
     @cached_property
     def is_organization_owner(self) -> bool:
+        """Check if the user is an organization owner."""
         return self.organization_role == OrganizationRole.OWNER
 
     def __str__(self) -> str:

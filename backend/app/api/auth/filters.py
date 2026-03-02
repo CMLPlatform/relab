@@ -1,11 +1,14 @@
 """Fastapi-filter schemas for filtering User and Organization models."""
 
-from typing import ClassVar
+from typing import TYPE_CHECKING
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
 
 from app.api.auth.models import Organization, User
+
+if TYPE_CHECKING:
+    from typing import ClassVar
 
 
 class UserFilter(Filter):
