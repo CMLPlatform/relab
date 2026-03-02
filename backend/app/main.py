@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
 from app.api.auth.utils.email_validation import init_email_checker
+from app.api.auth.utils.rate_limit import limiter
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
@@ -74,6 +75,9 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
+
+# Add SlowAPI rate limiter state
+app.state.limiter = limiter
 
 # Add CORS middleware
 app.add_middleware(
