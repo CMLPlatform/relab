@@ -1,31 +1,32 @@
 # noqa: D100, INP001 (the alembic folder should not be recognized as a module)
+import logging
 import sys
-from logging.config import fileConfig
 from pathlib import Path
 
 import alembic_postgresql_enum  # noqa: F401 (Make sure the PostgreSQL ENUM type is recognized)
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.engine.url import make_url
 from sqlmodel import SQLModel  # Include the SQLModel metadata
 
 from alembic import context
+from app.core.config import settings
+from app.core.logging import setup_logging
 
 # Load settings from the FastAPI app config
 project_root = Path(__file__).resolve().parents[1]
 sys.path.append(str(project_root))
 
-from app.core.config import settings  # noqa: E402, I001 # Allow the settings to be imported after the project root is added to the path
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# Set up custom logging configuration for Alembic
+setup_logging()
+logger = logging.getLogger("alembic.env")
 
-# Set the database URL dynamically from the loaded settings
-config.set_main_option("sqlalchemy.url", settings.sync_database_url)
+# Set the synchronous database URL if not already set in the test environment
+if config.get_alembic_option("is_test") != "true":  # noqa: PLR2004 # This variable is set in tests/conftest.py to indicate a test environment
+    config.set_main_option("sqlalchemy.url", settings.sync_database_url)
 
 # Import your models to include their metadata
 from app.api.auth.models import OAuthAccount, Organization, User  # noqa: E402, F401
@@ -37,10 +38,7 @@ from app.api.background_data.models import (  # noqa: E402, F401
     ProductType,
     Taxonomy,
 )
-from app.api.data_collection.models import (  # noqa: E402, F401
-    PhysicalProperties,
-    Product,
-)
+from app.api.data_collection.models import PhysicalProperties, Product  # noqa: E402, F401
 from app.api.file_storage.models.models import File, Image, Video  # noqa: E402, F401
 from app.api.newsletter.models import NewsletterSubscriber  # noqa: E402, F401
 from app.api.plugins.rpi_cam.models import Camera  # noqa: E402, F401
@@ -50,7 +48,7 @@ target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
+# my_important_option = config.get_main_option("my_important_option") # noqa: ERA001
 # ... etc.
 
 
@@ -66,7 +64,10 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option("sqlalchemy.url", "")
+
+    logger.info("Running migrations offline on database: %s", make_url(url).render_as_string(hide_password=True))
+
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -85,11 +86,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    url = config.get_main_option("sqlalchemy.url", "")
+    engine_config = config.get_section(config.config_ini_section, {"sqlalchemy.url": url})
+
+    connectable = engine_from_config(engine_config, prefix="sqlalchemy.", poolclass=pool.NullPool)
+
+    logger.info("Running migrations online on database: %s", make_url(url).render_as_string(hide_password=True))
 
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

@@ -92,6 +92,23 @@
   ]
 
 ### Tool configuration
+[tool.alembic]
+  path_separator   = "os"
+  prepend_sys_path = ["."]
+  script_location  = "alembic"
+
+  [[tool.alembic.post_write_hooks]]
+    executable = "%(here)s/.venv/bin/ruff"
+    name       = "ruff"
+    options    = "check --fix REVISION_SCRIPT_FILENAME"
+    type       = "exec"
+
+  [[tool.alembic.post_write_hooks]]
+    executable = "%(here)s/.venv/bin/ruff"
+    name       = "ruff_format"
+    options    = "format REVISION_SCRIPT_FILENAME"
+    type       = "exec"
+
 [tool.paracelsus]
   base = "app.api.common.models.base:CustomBase"
   column_sort = "preserve-order"
