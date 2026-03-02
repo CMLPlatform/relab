@@ -6,10 +6,11 @@ Utilities for testing Alembic migrations, schema changes, and database evolution
 from pathlib import Path
 
 import pytest
-from alembic import command
 from alembic.config import Config
-from app.core.config import settings
 from sqlalchemy import Engine, create_engine, inspect, text
+
+from alembic import command
+from app.core.config import settings
 
 
 class MigrationHelper:
@@ -39,14 +40,14 @@ class MigrationHelper:
         """
         command.downgrade(self.alembic_cfg, revision)
 
-    def current_revision(self) -> str:
+    def current_revision(self) -> str | None:
         """Get current database revision."""
         with self.sync_engine.connect() as connection:
             result = connection.execute(
                 text("SELECT version_num FROM alembic_version ORDER BY version_num DESC LIMIT 1")
             )
             row = result.first()
-            return row[0] if row else None
+            return str(row[0]) if row else None
 
     def table_exists(self, table_name: str) -> bool:
         """Check if table exists in database.
@@ -122,7 +123,7 @@ class MigrationHelper:
         """
         with self.sync_engine.connect() as connection:
             result = connection.execute(text(sql))
-            return result.fetchall()
+            return list(result.fetchall())
 
 
 @pytest.fixture

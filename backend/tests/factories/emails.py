@@ -4,6 +4,7 @@ Using Polyfactory TypedDictFactory to replace legacy FactoryBoy DictFactory.
 """
 
 from typing import TypedDict
+
 from polyfactory.factories.typed_dict_factory import TypedDictFactory
 
 
@@ -20,35 +21,42 @@ class EmailContext(TypedDict):
 
 class EmailContextFactory(TypedDictFactory[EmailContext]):
     """Produce realistic email template context dicts for tests."""
-    
+
     __model__ = EmailContext
 
     @classmethod
     def username(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.user_name()
 
     @classmethod
     def verification_link(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.url()
 
     @classmethod
     def reset_link(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.url()
 
     @classmethod
     def confirmation_link(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.url()
 
     @classmethod
     def unsubscribe_link(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.url()
 
     @classmethod
     def subject(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.sentence(nb_words=5)
 
     @classmethod
     def newsletter_content(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.text(max_nb_chars=200)
 
 
@@ -63,25 +71,30 @@ class EmailData(TypedDict):
 
 class EmailDataFactory(TypedDictFactory[EmailData]):
     """Produce test data for email sending functions."""
-    
+
     __model__ = EmailData
 
     @classmethod
     def email(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.email()
 
     @classmethod
     def username(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.user_name()
 
     @classmethod
     def token(cls) -> str:
+        """Generate mock value."""
         return str(cls.__faker__.uuid4())
 
     @classmethod
     def subject(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.sentence(nb_words=5)
 
     @classmethod
     def body(cls) -> str:
+        """Generate mock value."""
         return cls.__faker__.text(max_nb_chars=200)

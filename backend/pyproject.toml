@@ -84,11 +84,29 @@
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "openpyxl>=3.1.5", "pandas>=2.3.3"]
 
   tests = [
-    "factory-boy>=3.3.3",
-    "pytest >=8.4.1",
-    "pytest-alembic>=0.12.1",
-    "pytest-asyncio >=1.0.0",
-    "pytest-cov >=6.2.1",
+    # Core testing frameworks
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+    "pytest-xdist>=3.5.0",   # Parallel test execution
+    "pytest>=8.4.1",
+
+    # HTTP and async testing
+    "httpx>=0.27.0", # Modern async HTTP client
+
+    # Test data generation
+    "faker>=33.3.0",       # Realistic test data
+    "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
+
+    # Database testing
+    "pytest-alembic>=0.12.1", # Migration testing - verify schema changes
+
+    # Redis testing
+    "fakeredis[lua]>=2.25.0", # In-memory Redis for testing
+
+    # Mocking and assertions
+    "dirty-equals>=0.8.0", # Flexible assertions for dynamic data
+    "pytest-mock>=3.14.0", # Better mocking with cleaner pytest integration
+    "syrupy>=4.6.0",       # Snapshot testing for API responses
   ]
 
 ### Tool configuration
@@ -122,7 +140,32 @@
   ]
 
 [tool.pytest.ini_options]
+  addopts = "-ra -q --strict-markers --strict-config"
+  asyncio_default_fixture_loop_scope = "function"
   asyncio_mode = "auto"
+  markers = [
+    "api: API endpoint tests (E2E, full stack)",
+    "auth: Authentication/authorization tests",
+    "integration: Tests requiring database (schema, relationships)",
+    "migration: Database migration tests",
+    "slow: Tests that take >1s",
+    "unit: Fast unit tests without database (schemas, utilities)",
+  ]
+  python_classes = ["Test*"]
+  python_files = ["test_*.py"]
+  python_functions = ["test_*"]
+  testpaths = ["tests"]
+
+[tool.coverage.run]
+  branch = true
+  omit   = ["*/__pycache__/*", "*/alembic/*", "*/migrations/*", "*/tests/*"]
+  source = ["app"]
+
+[tool.coverage.report]
+  fail_under   = 80    # Target 80%+ coverage
+  precision    = 2
+  show_missing = true
+  skip_covered = false
 
 [tool.ruff]
   fix            = true

@@ -1,74 +1,101 @@
 """Integration tests for background data models (with database)."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.api.background_data.models import (
     Category,
-    CategoryMaterialLink,
-    CategoryProductTypeLink,
     Material,
     ProductType,
     Taxonomy,
     TaxonomyDomain,
 )
-from tests.fixtures.database import DBOperations
+from tests.factories.models import (
+    CategoryFactory,
+    CategoryMaterialLinkFactory,
+    CategoryProductTypeLinkFactory,
+    MaterialFactory,
+    ProductTypeFactory,
+    TaxonomyFactory,
+)
+
+if TYPE_CHECKING:
+    from sqlmodel.ext.asyncio.session import AsyncSession
+
+    from tests.fixtures.database import DBOperations
+
+# Constants for test values
+MATERIALS_TAXONOMY = "Materials Taxonomy"
+TAXONOMY_VERSION = "v1.0.0"
+DESCRIPTION = "Test taxonomy"
+SOURCE_URL = "https://example.com"
+MULTI_DOMAIN_TAXONOMY = "Multi-domain Taxonomy"
+TEST_CATEGORY = "Test Category"
+METALS_CATEGORY = "Metals"
+METALS_DESC = "Metal materials"
+EXTERNAL_ID = "EXT123"
+FERROUS_METALS = "Ferrous Metals"
+FERROUS_DESC = "Iron-based metals"
+STEEL_MATERIAL = "Steel"
+STEEL_DESC = "Iron-carbon alloy"
+ELECTRONICS_TYPE = "Electronics"
+ELECTRONICS_DESC = "Electronic products"
+STEEL_DENSITY = 7850.0
+FERROUS = "Ferrous"
 
 
 @pytest.mark.integration
 class TestTaxonomyModel:
     """Integration tests for Taxonomy model."""
 
-    async def test_create_taxonomy(self, session: AsyncSession):
+    async def test_create_taxonomy(self, session: AsyncSession) -> None:
         """Test creating taxonomy in database."""
-        taxonomy = Taxonomy(
-            name="Materials Taxonomy",
-            version="v1.0.0",
-            description="Test taxonomy",
+        taxonomy = await TaxonomyFactory.create_async(
+            session,
+            name=MATERIALS_TAXONOMY,
+            version=TAXONOMY_VERSION,
+            description=DESCRIPTION,
             domains={TaxonomyDomain.MATERIALS},
-            source="https://example.com",
+            source=SOURCE_URL,
         )
-        session.add(taxonomy)
-        await session.flush()
-        await session.refresh(taxonomy)
 
         assert taxonomy.id is not None
-        assert taxonomy.name == "Materials Taxonomy"
+        assert taxonomy.name == MATERIALS_TAXONOMY
         assert taxonomy.created_at is not None
         assert taxonomy.updated_at is not None
 
-    async def test_taxonomy_str_representation(self, db_taxonomy: Taxonomy):
+    async def test_taxonomy_str_representation(self, db_taxonomy: Taxonomy) -> None:
         """Test Taxonomy __str__ method."""
         expected = f"{db_taxonomy.name} (id: {db_taxonomy.id})"
         assert str(db_taxonomy) == expected
 
-    async def test_taxonomy_with_multiple_domains(self, session: AsyncSession):
+    async def test_taxonomy_with_multiple_domains(self, session: AsyncSession) -> None:
         """Test taxonomy with multiple domains."""
-        taxonomy = Taxonomy(
-            name="Multi-domain Taxonomy",
-            version="v1.0.0",
+        taxonomy = await TaxonomyFactory.create_async(
+            session,
+            name=MULTI_DOMAIN_TAXONOMY,
+            version=TAXONOMY_VERSION,
             description="Test",
             domains={TaxonomyDomain.MATERIALS, TaxonomyDomain.PRODUCTS},
         )
-        session.add(taxonomy)
-        await session.flush()
-        await session.refresh(taxonomy)
 
         assert len(taxonomy.domains) == 2
         assert TaxonomyDomain.MATERIALS in taxonomy.domains
         assert TaxonomyDomain.PRODUCTS in taxonomy.domains
 
-    async def test_taxonomy_cascades_delete_categories(self, session: AsyncSession, db_taxonomy: Taxonomy):
+    async def test_taxonomy_cascades_delete_categories(self, session: AsyncSession, db_taxonomy: Taxonomy) -> None:
         """Test deleting taxonomy cascades to categories."""
-        category = Category(
-            name="Test Category",
+        category = await CategoryFactory.create_async(
+            session,
+            name=TEST_CATEGORY,
             taxonomy_id=db_taxonomy.id,
         )
-        session.add(category)
-        await session.flush()
         category_id = category.id
 
         # Delete taxonomy
@@ -79,16 +106,16 @@ class TestTaxonomyModel:
         result = await session.get(Category, category_id)
         assert result is None
 
-    async def test_list_taxonomies(self, session: AsyncSession, db_ops: DBOperations):
+    async def test_list_taxonomies(self, session: AsyncSession, db_ops: DBOperations) -> None:
         """Test querying multiple taxonomies."""
         # Create multiple taxonomies
         for i in range(3):
-            taxonomy = Taxonomy(
+            await TaxonomyFactory.create_async(
+                session,
                 name=f"Taxonomy {i}",
                 version=f"v{i}.0.0",
                 domains={TaxonomyDomain.MATERIALS},
             )
-            await db_ops.create(taxonomy)
 
         # Query all
         taxonomies = await db_ops.get_all(Taxonomy)
@@ -99,101 +126,93 @@ class TestTaxonomyModel:
 class TestCategoryModel:
     """Integration tests for Category model."""
 
-    async def test_create_category(self, session: AsyncSession, db_taxonomy: Taxonomy):
+    async def test_create_category(self, session: AsyncSession, db_taxonomy: Taxonomy) -> None:
         """Test creating category in database."""
-        category = Category(
-            name="Metals",
-            description="Metal materials",
-            external_id="EXT123",
+        category = await CategoryFactory.create_async(
+            session,
+            name=METALS_CATEGORY,
+            description=METALS_DESC,
+            external_id=EXTERNAL_ID,
             taxonomy_id=db_taxonomy.id,
         )
-        session.add(category)
-        await session.flush()
-        await session.refresh(category)
 
         assert category.id is not None
-        assert category.name == "Metals"
-        assert category.external_id == "EXT123"
+        assert category.name == METALS_CATEGORY
+        assert category.external_id == EXTERNAL_ID
         assert category.taxonomy_id == db_taxonomy.id
 
-    async def test_category_requires_taxonomy(self, session: AsyncSession):
+    async def test_category_requires_taxonomy(self, session: AsyncSession) -> None:
         """Test category requires taxonomy_id (foreign key constraint)."""
-        category = Category(name="Invalid Category")
+        category = CategoryFactory.build(name="Invalid Category")
         session.add(category)
 
         with pytest.raises(IntegrityError):
             await session.flush()
 
-    async def test_category_with_subcategories(self, session: AsyncSession, db_category: Category):
+    async def test_category_with_subcategories(self, session: AsyncSession, db_category: Category) -> None:
         """Test self-referential relationship."""
-        subcategory = Category(
-            name="Ferrous Metals",
-            description="Iron-based metals",
+        subcategory = await CategoryFactory.create_async(
+            session,
+            name=FERROUS_METALS,
+            description=FERROUS_DESC,
             taxonomy_id=db_category.taxonomy_id,
             supercategory_id=db_category.id,
         )
-        session.add(subcategory)
-        await session.flush()
         await session.refresh(db_category)
-        await session.refresh(subcategory)
 
         assert subcategory.supercategory_id == db_category.id
+        assert db_category.subcategories is not None
         assert len(db_category.subcategories) == 1
         assert db_category.subcategories[0].id == subcategory.id
 
-    async def test_recursive_category_structure(self, session: AsyncSession, db_taxonomy: Taxonomy):
+    async def test_recursive_category_structure(self, session: AsyncSession, db_taxonomy: Taxonomy) -> None:
         """Test multi-level category hierarchy."""
         # Create 3-level hierarchy: Metals -> Ferrous -> Steel
-        metals = Category(name="Metals", taxonomy_id=db_taxonomy.id)
-        session.add(metals)
-        await session.flush()
+        metals = await CategoryFactory.create_async(session, name=METALS_CATEGORY, taxonomy_id=db_taxonomy.id)
 
-        ferrous = Category(
-            name="Ferrous",
+        ferrous = await CategoryFactory.create_async(
+            session,
+            name=FERROUS,
             taxonomy_id=db_taxonomy.id,
             supercategory_id=metals.id,
         )
-        session.add(ferrous)
-        await session.flush()
 
-        steel = Category(
-            name="Steel",
+        await CategoryFactory.create_async(
+            session,
+            name=STEEL_MATERIAL,
             taxonomy_id=db_taxonomy.id,
             supercategory_id=ferrous.id,
         )
-        session.add(steel)
-        await session.flush()
 
         # Verify structure
         await session.refresh(metals)
+        assert metals.subcategories is not None
         assert len(metals.subcategories) == 1
-        assert metals.subcategories[0].name == "Ferrous"
+        assert metals.subcategories[0].name == FERROUS
 
 
 @pytest.mark.integration
 class TestMaterialModel:
     """Integration tests for Material model."""
 
-    async def test_create_material(self, session: AsyncSession):
+    async def test_create_material(self, session: AsyncSession) -> None:
         """Test creating material in database."""
-        material = Material(
-            name="Steel",
-            description="Iron-carbon alloy",
-            source="https://example.com/steel",
-            density_kg_m3=7850.0,
+        material = await MaterialFactory.create_async(
+            session,
+            name=STEEL_MATERIAL,
+            description=STEEL_DESC,
+            source=SOURCE_URL,
+            density_kg_m3=STEEL_DENSITY,
             is_crm=False,
         )
-        session.add(material)
-        await session.flush()
-        await session.refresh(material)
 
         assert material.id is not None
-        assert material.name == "Steel"
-        assert material.density_kg_m3 == 7850.0
+        assert material.name == STEEL_MATERIAL
+        assert material.density_kg_m3 == STEEL_DENSITY
 
-    async def test_material_with_minimal_fields(self, session: AsyncSession):
+    async def test_material_with_minimal_fields(self, session: AsyncSession) -> None:
         """Test material with only required fields."""
-        material = Material(name="Minimal Material")
+        material = MaterialFactory.build(name="Minimal Material", description=None, density_kg_m3=None)
         session.add(material)
         await session.flush()
         await session.refresh(material)
@@ -207,18 +226,16 @@ class TestMaterialModel:
 class TestProductTypeModel:
     """Integration tests for ProductType model."""
 
-    async def test_create_product_type(self, session: AsyncSession):
+    async def test_create_product_type(self, session: AsyncSession) -> None:
         """Test creating product type in database."""
-        product_type = ProductType(
-            name="Electronics",
-            description="Electronic products",
+        product_type = await ProductTypeFactory.create_async(
+            session,
+            name=ELECTRONICS_TYPE,
+            description=ELECTRONICS_DESC,
         )
-        session.add(product_type)
-        await session.flush()
-        await session.refresh(product_type)
 
         assert product_type.id is not None
-        assert product_type.name == "Electronics"
+        assert product_type.name == ELECTRONICS_TYPE
 
 
 @pytest.mark.integration
@@ -227,14 +244,13 @@ class TestRelationships:
 
     async def test_category_material_many_to_many(
         self, session: AsyncSession, db_category: Category, db_material: Material
-    ):
+    ) -> None:
         """Test many-to-many relationship between Category and Material."""
-        link = CategoryMaterialLink(
+        await CategoryMaterialLinkFactory.create_async(
+            session,
             category_id=db_category.id,
             material_id=db_material.id,
         )
-        session.add(link)
-        await session.flush()
 
         # Reload with relationships eagerly loaded
         stmt = select(Category).where(Category.id == db_category.id).options(selectinload(Category.materials))
@@ -245,39 +261,41 @@ class TestRelationships:
         result = await session.exec(stmt)
         material = result.one()
 
+        assert category.materials is not None
         assert len(category.materials) == 1
         assert category.materials[0].id == db_material.id
+        assert material.categories is not None
         assert len(material.categories) == 1
         assert material.categories[0].id == db_category.id
 
     async def test_category_product_type_many_to_many(
         self, session: AsyncSession, db_category: Category, db_product_type: ProductType
-    ):
+    ) -> None:
         """Test many-to-many relationship between Category and ProductType."""
-        link = CategoryProductTypeLink(
+        await CategoryProductTypeLinkFactory.create_async(
+            session,
             category_id=db_category.id,
             product_type_id=db_product_type.id,
         )
-        session.add(link)
-        await session.flush()
 
         # Reload with relationships eagerly loaded
         stmt = select(Category).where(Category.id == db_category.id).options(selectinload(Category.product_types))
         result = await session.exec(stmt)
         category = result.one()
 
+        assert category.product_types is not None
         assert len(category.product_types) == 1
         assert category.product_types[0].id == db_product_type.id
 
-    async def test_taxonomy_categories_relationship(self, session: AsyncSession, db_taxonomy: Taxonomy):
+    async def test_taxonomy_categories_relationship(self, session: AsyncSession, db_taxonomy: Taxonomy) -> None:
         """Test one-to-many relationship between Taxonomy and Categories."""
         # Create multiple categories
         for i in range(3):
-            category = Category(
+            await CategoryFactory.create_async(
+                session,
                 name=f"Category {i}",
                 taxonomy_id=db_taxonomy.id,
             )
-            session.add(category)
 
         await session.flush()
 

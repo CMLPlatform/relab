@@ -2,6 +2,7 @@
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.background_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
 from tests.factories.models import (
     CategoryFactory,
@@ -14,59 +15,47 @@ from tests.factories.models import (
 @pytest.fixture
 async def db_taxonomy(session: AsyncSession) -> Taxonomy:
     """Create and return a test taxonomy in database."""
-    taxonomy = Taxonomy(
+    return await TaxonomyFactory.create_async(
+        session,
         name="Test Materials Taxonomy",
         version="v1.0.0",
         description="A test taxonomy for materials",
         domains={TaxonomyDomain.MATERIALS},
         source="https://test.example.com",
     )
-    session.add(taxonomy)
-    await session.flush()
-    await session.refresh(taxonomy)
-    return taxonomy
 
 
 @pytest.fixture
 async def db_category(session: AsyncSession, db_taxonomy: Taxonomy) -> Category:
     """Create and return a test category in database."""
-    category = Category(
+    return await CategoryFactory.create_async(
+        session,
         name="Test Category",
         description="A test category",
         taxonomy_id=db_taxonomy.id,
     )
-    session.add(category)
-    await session.flush()
-    await session.refresh(category)
-    return category
 
 
 @pytest.fixture
 async def db_material(session: AsyncSession) -> Material:
     """Create and return a test material in database."""
-    material = Material(
+    return await MaterialFactory.create_async(
+        session,
         name="Test Material",
         description="A test material",
         density_kg_m3=7850.0,
         is_crm=True,
     )
-    session.add(material)
-    await session.flush()
-    await session.refresh(material)
-    return material
 
 
 @pytest.fixture
 async def db_product_type(session: AsyncSession) -> ProductType:
     """Create and return a test product type in database."""
-    product_type = ProductType(
+    return await ProductTypeFactory.create_async(
+        session,
         name="Test Product Type",
         description="A test product type",
     )
-    session.add(product_type)
-    await session.flush()
-    await session.refresh(product_type)
-    return product_type
 
 
 # Factory fixtures for convenient access

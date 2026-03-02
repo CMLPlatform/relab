@@ -4,11 +4,13 @@ Tests validate that get_user_owned_object correctly enforces user ownership
 and raises appropriate exceptions when access is denied.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from pydantic import UUID4
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.auth.exceptions import UserOwnershipError
@@ -16,13 +18,24 @@ from app.api.auth.models import User
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.utils.ownership import get_user_owned_object
 
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+# Constants for test values to avoid magic value warnings
+HTTP_FORBIDDEN = 403
+CUSTOM_FK = "custom_owner_field"
+MODEL_NAME_TEST = "TestModel"
+MODEL_NAME_DATA = "DataCollection"
+MODEL_NAME_BASIC = "ModelName"
+OWNER_ID_KEY = "owner_id"
+
 
 @pytest.mark.unit
 class TestGetUserOwnedObjectSuccess:
     """Tests for successful get_user_owned_object calls."""
 
     @pytest.mark.asyncio
-    async def test_returns_object_when_user_owns_it(self, mocker):
+    async def test_returns_object_when_user_owns_it(self, mocker: MockerFixture) -> None:
         """Verify function returns object when user owns it."""
         user_id = uuid4()
         model_id = uuid4()
@@ -49,7 +62,7 @@ class TestGetUserOwnedObjectSuccess:
         mock_get_nested.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_passes_correct_parameters_to_get_nested_model(self, mocker):
+    async def test_passes_correct_parameters_to_get_nested_model(self, mocker: MockerFixture) -> None:
         """Verify correct parameters are passed to get_nested_model_by_id."""
         user_id = uuid4()
         model_id = uuid4()
@@ -77,14 +90,13 @@ class TestGetUserOwnedObjectSuccess:
         assert call_args.kwargs["parent_id"] == user_id
         assert call_args.kwargs["dependent_model"] == mock_model
         assert call_args.kwargs["dependent_id"] == model_id
-        assert call_args.kwargs["parent_fk_name"] == "owner_id"
+        assert call_args.kwargs["parent_fk_name"] == OWNER_ID_KEY
 
     @pytest.mark.asyncio
-    async def test_uses_custom_user_fk_parameter(self, mocker):
+    async def test_uses_custom_user_fk_parameter(self, mocker: MockerFixture) -> None:
         """Verify custom user_fk parameter is passed through."""
         user_id = uuid4()
         model_id = uuid4()
-        custom_fk = "custom_owner_field"
         expected_object = MagicMock()
 
         mock_get_nested = mocker.patch(
@@ -101,11 +113,11 @@ class TestGetUserOwnedObjectSuccess:
             model=mock_model,
             model_id=model_id,
             owner_id=user_id,
-            user_fk=custom_fk,
+            user_fk=CUSTOM_FK,
         )
 
         call_args = mock_get_nested.call_args
-        assert call_args.kwargs["parent_fk_name"] == custom_fk
+        assert call_args.kwargs["parent_fk_name"] == CUSTOM_FK
 
 
 @pytest.mark.unit
@@ -113,7 +125,7 @@ class TestGetUserOwnedObjectFailure:
     """Tests for get_user_owned_object error handling."""
 
     @pytest.mark.asyncio
-    async def test_raises_user_ownership_error_on_dependent_model_error(self, mocker):
+    async def test_raises_user_ownership_error_on_dependent_model_error(self, mocker: MockerFixture) -> None:
         """Verify UserOwnershipError is raised when DependentModelOwnershipError occurs."""
         user_id = uuid4()
         model_id = uuid4()
@@ -132,7 +144,7 @@ class TestGetUserOwnedObjectFailure:
 
         db = AsyncMock(spec=AsyncSession)
         mock_model = MagicMock()
-        mock_model.get_api_model_name.return_value.name_capital = "TestModel"
+        mock_model.get_api_model_name.return_value.name_capital = MODEL_NAME_TEST
 
         with pytest.raises(UserOwnershipError) as exc_info:
             await get_user_owned_object(
@@ -143,12 +155,12 @@ class TestGetUserOwnedObjectFailure:
             )
 
         error = exc_info.value
-        assert error.http_status_code == 403
+        assert error.http_status_code == HTTP_FORBIDDEN
         assert str(user_id) in error.message
         assert str(model_id) in error.message
 
     @pytest.mark.asyncio
-    async def test_error_message_contains_model_name(self, mocker):
+    async def test_error_message_contains_model_name(self, mocker: MockerFixture) -> None:
         """Verify error message includes the model name."""
         user_id = uuid4()
         model_id = uuid4()
@@ -166,8 +178,7 @@ class TestGetUserOwnedObjectFailure:
 
         db = AsyncMock(spec=AsyncSession)
         mock_model = MagicMock()
-        model_name = "DataCollection"
-        mock_model.get_api_model_name.return_value.name_capital = model_name
+        mock_model.get_api_model_name.return_value.name_capital = MODEL_NAME_DATA
 
         with pytest.raises(UserOwnershipError) as exc_info:
             await get_user_owned_object(
@@ -177,10 +188,10 @@ class TestGetUserOwnedObjectFailure:
                 owner_id=user_id,
             )
 
-        assert model_name in exc_info.value.message
+        assert MODEL_NAME_DATA in exc_info.value.message
 
     @pytest.mark.asyncio
-    async def test_error_contains_forbidden_status_code(self, mocker):
+    async def test_error_contains_forbidden_status_code(self, mocker: MockerFixture) -> None:
         """Verify UserOwnershipError has 403 Forbidden status code."""
         user_id = uuid4()
         model_id = uuid4()
@@ -208,7 +219,7 @@ class TestGetUserOwnedObjectFailure:
                 owner_id=user_id,
             )
 
-        assert exc_info.value.http_status_code == 403
+        assert exc_info.value.http_status_code == HTTP_FORBIDDEN
 
 
 @pytest.mark.unit
@@ -216,7 +227,7 @@ class TestGetUserOwnedObjectParameterVariations:
     """Tests for various parameter combinations."""
 
     @pytest.mark.asyncio
-    async def test_with_uuid4_ids(self, mocker):
+    async def test_with_uuid4_ids(self, mocker: MockerFixture) -> None:
         """Verify function works with various UUID4 IDs."""
         uuid_ids = [uuid4() for _ in range(3)]
 
@@ -241,7 +252,7 @@ class TestGetUserOwnedObjectParameterVariations:
         assert mock_get_nested.call_count == len(uuid_ids) ** 2
 
     @pytest.mark.asyncio
-    async def test_with_integer_model_id(self, mocker):
+    async def test_with_integer_model_id(self, mocker: MockerFixture) -> None:
         """Verify function works with integer model IDs."""
         user_id = uuid4()
         model_id = 12345
@@ -266,11 +277,11 @@ class TestGetUserOwnedObjectParameterVariations:
         assert call_args.kwargs["dependent_id"] == model_id
 
     @pytest.mark.asyncio
-    async def test_with_string_user_fk(self, mocker):
+    async def test_with_string_user_fk(self, mocker: MockerFixture) -> None:
         """Verify function works with different string user_fk values."""
         user_id = uuid4()
         model_id = uuid4()
-        fk_values = ["owner_id", "created_by_id", "responsible_user_id", "author_id"]
+        fk_values = [OWNER_ID_KEY, "created_by_id", "responsible_user_id", "author_id"]
 
         mock_get_nested = mocker.patch(
             "app.api.common.utils.ownership.get_nested_model_by_id",
@@ -303,7 +314,7 @@ class TestGetUserOwnedObjectIntegration:
     """Tests for integration aspects of ownership validation."""
 
     @pytest.mark.asyncio
-    async def test_chain_of_responsibility_flow(self, mocker):
+    async def test_chain_of_responsibility_flow(self, mocker: MockerFixture) -> None:
         """Verify correct flow: valid object -> returned, invalid -> UserOwnershipError."""
         user_id = uuid4()
         model_id = uuid4()
@@ -345,7 +356,7 @@ class TestGetUserOwnedObjectIntegration:
             )
 
     @pytest.mark.asyncio
-    async def test_preserves_exception_chain(self, mocker):
+    async def test_preserves_exception_chain(self, mocker: MockerFixture) -> None:
         """Verify exception chain suppression with 'from None'."""
         user_id = uuid4()
         model_id = uuid4()
@@ -365,7 +376,7 @@ class TestGetUserOwnedObjectIntegration:
 
         db = AsyncMock(spec=AsyncSession)
         mock_model = MagicMock()
-        mock_model.get_api_model_name.return_value.name_capital = "ModelName"
+        mock_model.get_api_model_name.return_value.name_capital = MODEL_NAME_BASIC
 
         with pytest.raises(UserOwnershipError) as exc_info:
             await get_user_owned_object(
@@ -380,14 +391,14 @@ class TestGetUserOwnedObjectIntegration:
         assert exc_info.value.__context__ is original_error
 
     @pytest.mark.asyncio
-    async def test_async_context_is_maintained(self, mocker):
+    async def test_async_context_is_maintained(self, mocker: MockerFixture) -> None:
         """Verify async execution context is maintained."""
         user_id = uuid4()
         model_id = uuid4()
 
         async_call_counter = AsyncMock(return_value=None)
 
-        async def mock_get_nested(*args, **kwargs):
+        async def mock_get_nested(*_args: object, **_kwargs: object) -> MagicMock:
             await async_call_counter()
             return MagicMock()
 
@@ -410,7 +421,7 @@ class TestGetUserOwnedObjectIntegration:
         async_call_counter.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_database_session_not_modified(self, mocker):
+    async def test_database_session_not_modified(self, mocker: MockerFixture) -> None:
         """Verify database session is passed through without modification."""
         user_id = uuid4()
         model_id = uuid4()
@@ -441,7 +452,7 @@ class TestGetUserOwnedObjectEdgeCases:
     """Tests for edge cases and boundary conditions."""
 
     @pytest.mark.asyncio
-    async def test_with_many_consecutive_calls(self, mocker):
+    async def test_with_many_consecutive_calls(self, mocker: MockerFixture) -> None:
         """Verify function handles many consecutive calls correctly."""
         mock_get_nested = mocker.patch(
             "app.api.common.utils.ownership.get_nested_model_by_id",
@@ -465,7 +476,7 @@ class TestGetUserOwnedObjectEdgeCases:
         assert mock_get_nested.call_count == 100
 
     @pytest.mark.asyncio
-    async def test_error_on_first_call(self, mocker):
+    async def test_error_on_first_call(self, mocker: MockerFixture) -> None:
         """Verify error handling on first call."""
         user_id = uuid4()
         model_id = uuid4()
@@ -494,7 +505,7 @@ class TestGetUserOwnedObjectEdgeCases:
             )
 
     @pytest.mark.asyncio
-    async def test_same_user_and_model_ids_different_models(self, mocker):
+    async def test_same_user_and_model_ids_different_models(self, mocker: MockerFixture) -> None:
         """Verify function works correctly with multiple different model types."""
         user_id = uuid4()
         model_id = uuid4()
