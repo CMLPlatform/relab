@@ -1,9 +1,11 @@
 """Admin routers for background data models."""
 
-from collections.abc import Sequence
-from typing import Annotated
+from http import HTTPMethod
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from fastapi import APIRouter, Path, Query
+from fastapi.types import DecoratedCallable
+from fastapi_cache.decorator import cache
 from pydantic import PositiveInt
 from sqlmodel import select
 
@@ -34,9 +36,14 @@ from app.api.background_data.schemas import (
 )
 from app.api.common.crud.associations import get_linked_model_by_id, get_linked_models
 from app.api.common.crud.base import get_model_by_id, get_models, get_nested_model_by_id
+from app.api.common.models.enums import Unit
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.file_storage.router_factories import StorageRouteMethod, add_storage_routes
+from app.core.config import CacheNamespace, settings
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
 
 # TODO: Extract common logic and turn into router-factory functions.
 # See FileStorageRouterFactory in common/router_factories.py for an example.
@@ -52,8 +59,30 @@ from app.api.file_storage.router_factories import StorageRouteMethod, add_storag
 # Initialize API router
 router = APIRouter()
 
+
+class BackgroundDataAPIRouter(PublicAPIRouter):
+    """Public background data router that caches all GET endpoints."""
+
+    def api_route(self, path: str, *args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: ANN401 # Any-typed (kw)args are expected by the parent method signatures
+        """Override api_route to apply caching to all GET endpoints."""
+        methods = {method.upper() for method in (kwargs.get("methods") or [])}
+        decorator = super().api_route(path, *args, **kwargs)
+
+        if HTTPMethod.GET.value not in methods:
+            return decorator
+
+        def wrapper(func: DecoratedCallable) -> DecoratedCallable:
+            cached = cache(
+                expire=settings.cache.ttls[CacheNamespace.BACKGROUND_DATA],
+                namespace=CacheNamespace.BACKGROUND_DATA,
+            )(func)
+            return cast("DecoratedCallable", decorator(cached))
+
+        return wrapper
+
+
 ### Category routers ###
-category_router = PublicAPIRouter(prefix="/categories", tags=["categories"])
+category_router = BackgroundDataAPIRouter(prefix="/categories", tags=["categories"])
 
 
 ## Utilities ##
@@ -417,95 +446,20 @@ async def get_subcategory(
 
 
 ### Taxonomy routers ###
-taxonomy_router = PublicAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
+taxonomy_router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 
 
 ## GET routers ##
-@taxonomy_router.get(
-    "",
-    response_model=list[TaxonomyRead],
-    summary="Get all taxonomies with optional filtering and base categories",
-    responses={
-        200: {
-            "description": "List of taxonomies",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "basic": {
-                            "summary": "Basic taxonomies",
-                            "value": [
-                                {
-                                    "id": 1,
-                                    "name": "Materials",
-                                    "description": "Materials taxonomy",
-                                    "domains": ["materials"],
-                                    "categories": [],
-                                }
-                            ],
-                        },
-                        "with_categories": {
-                            "summary": "With categories",
-                            "value": [{"id": 1, "name": "Materials", "categories": [{"id": 1, "name": "Metals"}]}],
-                        },
-                    }
-                }
-            },
-        }
-    },
-)
-async def get_taxonomies(
-    taxonomy_filter: TaxonomyFilterDep,
-    session: AsyncSessionDep,
-    *,
-    include_base_categories: Annotated[
-        bool,
-        Query(description="Whether to include base categories"),
-    ] = False,
-) -> Sequence[Taxonomy]:
-    """Get all taxonomies with specified relationships."""
-    return await crud.get_taxonomies(
-        session, taxonomy_filter=taxonomy_filter, include_base_categories=include_base_categories
-    )
+@taxonomy_router.get("", response_model=list[TaxonomyRead])
+async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> list[Taxonomy]:
+    """Get all taxonomies with optional filtering."""
+    return await get_models(session, Taxonomy, model_filter=taxonomy_filter)
 
 
-@taxonomy_router.get(
-    "/{taxonomy_id}",
-    response_model=TaxonomyRead,
-    responses={
-        200: {
-            "description": "Taxonomy found",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "basic": {
-                            "summary": "Basic taxonomy",
-                            "value": {"id": 1, "name": "Materials", "categories": []},
-                        },
-                        "with_categories": {
-                            "summary": "With categories",
-                            "value": {"id": 1, "name": "Materials", "categories": [{"id": 1, "name": "Metals"}]},
-                        },
-                    }
-                }
-            },
-        },
-        404: {
-            "description": "Taxonomy not found",
-            "content": {"application/json": {"example": {"detail": "Taxonomy with id 999 not found"}}},
-        },
-    },
-)
-async def get_taxonomy(
-    taxonomy_id: PositiveInt,
-    session: AsyncSessionDep,
-    *,
-    include_base_categories: Annotated[
-        bool,
-        Query(description="Whether to include base categories"),
-    ] = False,
-) -> Taxonomy:
-    """Get taxonomy by ID with base categories."""
-    return await crud.get_taxonomy_by_id(session, taxonomy_id, include_base_categories=include_base_categories)
+@taxonomy_router.get("/{taxonomy_id}", response_model=TaxonomyRead)
+async def get_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) -> Taxonomy:
+    """Get taxonomy by ID."""
+    return await get_model_by_id(session, Taxonomy, taxonomy_id)
 
 
 ## Taxonomy Category routers ##
@@ -564,7 +518,7 @@ async def get_taxonomy_category_tree(
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[CategoryReadWithRecursiveSubCategories]:
     """Get a taxonomy with its category tree structure."""
-    categories: Sequence[Category] = await crud.get_category_trees(
+    categories: list[Category] = await crud.get_category_trees(
         session, recursion_depth, taxonomy_id=taxonomy_id, category_filter=category_filter
     )
     return [
@@ -608,7 +562,7 @@ async def get_taxonomy_category(
 
 
 ### Material routers ###
-material_router = PublicAPIRouter(prefix="/materials", tags=["materials"])
+material_router = BackgroundDataAPIRouter(prefix="/materials", tags=["materials"])
 
 
 ## GET routers ##
@@ -845,7 +799,7 @@ add_storage_routes(
 )
 
 ### ProductType routers ###
-product_type_router = PublicAPIRouter(prefix="/product-types", tags=["product-types"])
+product_type_router = BackgroundDataAPIRouter(prefix="/product-types", tags=["product-types"])
 
 
 ## Basic CRUD routers ##
@@ -1051,8 +1005,20 @@ add_storage_routes(
     include_methods={StorageRouteMethod.GET},  # Non-superusers can only read ProductType files
 )
 
+
+### Unit Routers ###
+unit_router = BackgroundDataAPIRouter(prefix="/units", tags=["units"], include_in_schema=True)
+
+
+@unit_router.get("")
+async def get_units() -> list[str]:
+    """Get a list of available units."""
+    return [unit.value for unit in Unit]
+
+
 ### Router inclusion ###
 router.include_router(category_router)
 router.include_router(taxonomy_router)
 router.include_router(material_router)
 router.include_router(product_type_router)
+router.include_router(unit_router)

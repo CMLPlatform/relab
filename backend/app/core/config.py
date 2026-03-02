@@ -1,13 +1,34 @@
 """Configuration settings for the FastAPI app."""
 
+from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
 
-from pydantic import EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field
+from pydantic import BaseModel, EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Set the project base directory and .env file
 BASE_DIR: Path = (Path(__file__).parents[2]).resolve()
+
+
+class CacheNamespace(StrEnum):
+    """Cache namespace identifiers for different application areas."""
+
+    BACKGROUND_DATA = "background-data"
+    DOCS = "docs"
+
+
+class CacheSettings(BaseModel):
+    """Centralized cache configuration for the application."""
+
+    # FastAPI Cache settings
+    prefix: str = "fastapi-cache"
+
+    # Namespace-specific TTL settings (in seconds)
+    ttls: dict[CacheNamespace, int] = {
+        CacheNamespace.BACKGROUND_DATA: 86400,  # 24 hours
+        CacheNamespace.DOCS: 3600,  # 1 hour
+    }
 
 
 class Environment(StrEnum):
@@ -61,6 +82,9 @@ class CoreSettings(BaseSettings):
     # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
+    # Cache settings
+    cache: CacheSettings = CacheSettings()
+
     # Construct directory paths
     uploads_path: Path = BASE_DIR / "data" / "uploads"
     file_storage_path: Path = uploads_path / "files"
@@ -71,7 +95,7 @@ class CoreSettings(BaseSettings):
     docs_path: Path = BASE_DIR / "docs" / "site"  # Mkdocs site directory
 
     # Construct database URLs
-    def _build_database_url(self, driver: str, database: str) -> str:
+    def build_database_url(self, driver: str, database: str) -> str:
         """Build and validate PostgreSQL database URL."""
         url = (
             f"postgresql+{driver}://{self.postgres_user}:{self.postgres_password.get_secret_value()}"
@@ -84,19 +108,19 @@ class CoreSettings(BaseSettings):
     @cached_property
     def async_database_url(self) -> str:
         """Get async database URL."""
-        return self._build_database_url("asyncpg", self.postgres_db)
+        return self.build_database_url("asyncpg", self.postgres_db)
 
     @computed_field
     @cached_property
     def sync_database_url(self) -> str:
         """Get sync database URL."""
-        return self._build_database_url("psycopg", self.postgres_db)
+        return self.build_database_url("psycopg", self.postgres_db)
 
     @computed_field
     @cached_property
     def async_test_database_url(self) -> str:
         """Get test database URL."""
-        return self._build_database_url("asyncpg", self.postgres_test_db)
+        return self.build_database_url("asyncpg", self.postgres_test_db)
 
     @computed_field
     @cached_property
@@ -118,12 +142,6 @@ class CoreSettings(BaseSettings):
     def enable_caching(self) -> bool:
         """Disable caching logic if we are running in development or testing."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
-
-    @computed_field
-    @cached_property
-    def is_prod(self) -> bool:
-        """Return True if the application is running in production."""
-        return self.environment == Environment.PROD
 
     @computed_field
     @property

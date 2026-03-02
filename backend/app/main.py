@@ -10,14 +10,15 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
 from app.api.auth.utils.email_validation import init_email_checker
 from app.api.auth.utils.rate_limit import limiter
 from app.api.common.routers.exceptions import register_exception_handlers
+from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
+from app.core.cache import init_fastapi_cache
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
@@ -37,12 +38,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     logger.info("Starting up application...")
 
     # Initialize Redis connection and store in app.state
-    # The init_redis() function will verify the connection on startup and return None if it fails
     app.state.redis = await init_redis()
 
     # Initialize disposable email checker and store in app.state
     app.state.email_checker = await init_email_checker(app.state.redis)
 
+    # Initialize FastAPI Cache
+    init_fastapi_cache(app.state.redis)
 
     logger.info("Application startup complete")
 
@@ -94,9 +96,11 @@ app.include_router(router)
 # Initialize OpenAPI documentation
 init_openapi_docs(app)
 
-# Mount local file storage
-app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
-app.mount("/static", StaticFiles(directory=settings.static_files_path), name="static")
+# Mount static file directories
+mount_static_directories(app)
+
+# Register favicon route
+register_favicon_route(app)
 
 # Initialize exception handling
 register_exception_handlers(app)

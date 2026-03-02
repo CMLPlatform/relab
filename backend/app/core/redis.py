@@ -1,13 +1,16 @@
 """Redis connection management."""
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Request
+from fastapi import Depends, Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from app.core.config import settings
+
+if TYPE_CHECKING:
+    from redis.typing import EncodableT
 
 logger = logging.getLogger(__name__)
 
@@ -90,12 +93,12 @@ async def get_redis_value(redis_client: Redis, key: str) -> str | None:
     """
     try:
         return await redis_client.get(key)
-    except (TimeoutError, RedisError, OSError):
+    except TimeoutError, RedisError, OSError:
         logger.exception("Failed to get Redis value for key %s.", key)
         return None
 
 
-async def set_redis_value(redis_client: Redis, key: str, value: Any, ex: int | None = None) -> bool:
+async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
     """Set value in Redis.
 
     Args:
@@ -109,7 +112,7 @@ async def set_redis_value(redis_client: Redis, key: str, value: Any, ex: int | N
     """
     try:
         await redis_client.set(key, value, ex=ex)
-    except (TimeoutError, RedisError, OSError):
+    except TimeoutError, RedisError, OSError:
         logger.exception("Failed to set Redis value for key %s.", key)
         return False
     else:
@@ -133,3 +136,28 @@ def get_redis_dependency(request: Request) -> Redis | None:
             await redis.get("key")
     """
     return request.app.state.redis
+
+
+def get_redis(request: Request) -> Redis:
+    """FastAPI dependency to get Redis client from application state (raises error if unavailable).
+
+    Args:
+        request: FastAPI request object with app.state.redis
+
+    Returns:
+        Redis client from app state
+
+    Raises:
+        RuntimeError: If Redis not initialized or unavailable
+    """
+    redis_client = request.app.state.redis if hasattr(request.app.state, "redis") else None
+
+    if redis_client is None:
+        msg = "Redis not available. Check Redis connection settings."
+        raise RuntimeError(msg)
+
+    return redis_client
+
+
+# Type annotation for Redis dependency injection
+RedisDep = Annotated[Redis, Depends(get_redis)]

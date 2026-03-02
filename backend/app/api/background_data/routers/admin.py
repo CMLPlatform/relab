@@ -1,7 +1,6 @@
 """Admin routers for background data models."""
 
-from collections.abc import Sequence
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Body, Path, Security
 from pydantic import PositiveInt
@@ -35,6 +34,11 @@ from app.api.background_data.schemas import (
 from app.api.common.crud.base import get_nested_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.router_factories import StorageRouteMethod, add_storage_routes
+from app.core.cache import clear_cache_namespace
+from app.core.config import CacheNamespace
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 # TODO: Extract common logic and turn into router-factory functions.
 # See FileStorageRouterFactory in common/router_factories.py for an example.
@@ -53,6 +57,20 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Security(current_active_superuser)],
 )
+
+
+@router.post("/cache/clear/{namespace}", summary="Clear cache by namespace")
+async def clear_cache_by_namespace(
+    namespace: Annotated[CacheNamespace, Path(description="Cache namespace to clear")],
+) -> dict[str, str]:
+    """Clear cached responses for a specific namespace.
+
+    Available namespaces:
+    - background-data: All background data GET endpoints
+    - docs: OpenAPI documentation endpoints
+    """
+    await clear_cache_namespace(namespace)
+    return {"status": "cleared", "namespace": namespace}
 
 
 ### Category routers ###

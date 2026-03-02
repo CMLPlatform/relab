@@ -22,11 +22,11 @@
 
   ## Dependencies and version constraints
   dependencies = [
-    "asyncache>=0.3.1",
     # TODO: Move to Python 3.14 once asyncpg supports it (version 0.31.0+, see https://github.com/MagicStack/asyncpg/issues/1282)
     "asyncpg>=0.30.0",
     "cachetools>=5.5.2",
     "email-validator>=2.2.0",
+    "fastapi-cache2-fork>=2.3.0",
     "fastapi-filter>=2.0.1",
     "fastapi-mail",
     "fastapi-pagination>=0.13.2",
@@ -257,7 +257,5 @@
   default-groups = ["api", "dev", "migrations", "tests"]
 
   [tool.uv.sources]
-    # HACK: Fetch FastAPI-Mail from custom fork on GitHub to allow passing existing Redis client
-    fastapi-mail = { git = "https://github.com/simonvanlierde/fastapi-mail", rev = "6c6f04a7afaf3cdced82764009a2f1f2a3c3ee6c" }
-    # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
-    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "7e9c4830e53ee20c38e3de80066cb19d7c3efc43" }
+    fastapi-cache2-fork       = { git = "https://github.com/Yolley/fastapi-cache.git" }                 # Allow runtime type checks for FastAPI and Pydantic models
+    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel" } # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support

@@ -1,18 +1,13 @@
 """CRUD operations for the background data models."""
 
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Delete, delete
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import set_committed_value
 from sqlmodel import col, select
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.background_data.filters import (
     CategoryFilter,
     CategoryFilterWithRelationships,
-    TaxonomyFilter,
 )
 from app.api.background_data.models import (
     Category,
@@ -46,19 +41,18 @@ from app.api.common.crud.utils import (
     enum_set_to_str,
     set_to_str,
     validate_linked_items_exist,
-    validate_model_with_id_exists,
     validate_no_duplicate_linked_items,
 )
-from app.api.file_storage.crud import (
-    ParentStorageOperations,
-    create_file,
-    create_image,
-    delete_file,
-    delete_image,
-)
+from app.api.file_storage.crud import ParentStorageOperations, create_file, create_image, delete_file, delete_image
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 # NOTE: GET operations are implemented in the crud.common.base module
 
@@ -118,7 +112,7 @@ async def validate_category_taxonomy_domains(
         .where(col(Category.id).in_(category_ids))
         .options(selectinload(Category.taxonomy))
     )
-    categories: Sequence[Category] = (await db.exec(categories_statement)).all()
+    categories: Sequence[Category] = list((await db.exec(categories_statement)).all())
 
     if len(categories) != len(category_ids):
         missing = set(category_ids) - {c.id for c in categories}
@@ -150,7 +144,7 @@ async def get_category_trees(
     supercategory_id: int | None = None,
     taxonomy_id: int | None = None,
     category_filter: CategoryFilter | CategoryFilterWithRelationships | None = None,
-) -> Sequence[Category]:
+) -> list[Category]:
     """Get categories with their subcategories up to specified depth.
 
     If supercategory_id is None, get top-level categories.
@@ -179,7 +173,7 @@ async def get_category_trees(
     # Load subcategories recursively
     statement = statement.options(selectinload(Category.subcategories, recursion_depth=recursion_depth))
 
-    return (await db.exec(statement)).all()
+    return list((await db.exec(statement)).all())
 
 
 async def create_category(
@@ -255,51 +249,6 @@ async def delete_category(db: AsyncSession, category_id: int) -> None:
 
 ### Taxonomy CRUD operations ###
 ## Basic CRUD operations ##
-async def get_taxonomies(
-    db: AsyncSession,
-    *,
-    include_base_categories: bool = False,
-    taxonomy_filter: TaxonomyFilter | None = None,
-    statement: SelectOfScalar[Taxonomy] | None = None,
-) -> Sequence[Taxonomy]:
-    """Get taxonomies with optional filtering and base categories."""
-    if statement is None:
-        statement = select(Taxonomy)
-
-    if taxonomy_filter:
-        statement = taxonomy_filter.filter(statement)
-
-    # Only load base categories if requested
-    if include_base_categories:
-        statement = statement.options(
-            selectinload(Taxonomy.categories.and_(Category.supercategory_id == None))  # noqa: E711 # SQLalchemy 'select' statement requires '== None' for 'IS NULL'
-        )
-
-    result: Sequence[Taxonomy] = (await db.exec(statement)).all()
-
-    # Set empty categories list if not included
-    if not include_base_categories:
-        for taxonomy in result:
-            set_committed_value(taxonomy, "categories", [])
-
-    return result
-
-
-async def get_taxonomy_by_id(db: AsyncSession, taxonomy_id: int, *, include_base_categories: bool = False) -> Taxonomy:
-    """Get taxonomy by ID with specified relationships."""
-    statement: SelectOfScalar[Taxonomy] = select(Taxonomy).where(Taxonomy.id == taxonomy_id)
-
-    if include_base_categories:
-        statement = statement.options(
-            selectinload(Taxonomy.categories.and_(Category.supercategory_id == None))  # noqa: E711 # SQLalchemy 'select' statement requires '== None' for 'IS NULL'
-        )
-
-    taxonomy: Taxonomy = validate_model_with_id_exists((await db.exec(statement)).one_or_none(), Taxonomy, taxonomy_id)
-    if not include_base_categories:
-        set_committed_value(taxonomy, "categories", [])
-    return taxonomy
-
-
 async def create_taxonomy(db: AsyncSession, taxonomy: TaxonomyCreate | TaxonomyCreateWithCategories) -> Taxonomy:
     """Create a new taxonomy in the database."""
     taxonomy_data = taxonomy.model_dump(exclude={"categories"})
@@ -361,7 +310,7 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
         # Create links
         await create_model_links(
             db,
-            id1=db_material.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
+            id1=db_material.id,
             id1_field="material_id",
             id2_set=material.category_ids,
             id2_field="category_id",
@@ -420,7 +369,7 @@ async def add_categories_to_material(
 
         await create_model_links(
             db,
-            id1=db_material.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
+            id1=db_material.id,
             id1_field="material_id",
             id2_set=category_ids,
             id2_field="category_id",
@@ -458,12 +407,14 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
     # Check that categories are actually assigned
     validate_linked_items_exist(category_ids, db_material.categories, "Categories")
 
-    statement: Delete = (
-        delete(CategoryMaterialLink)
+    statement = (
+        select(CategoryMaterialLink)
         .where(col(CategoryMaterialLink.material_id) == material_id)
         .where(col(CategoryMaterialLink.category_id).in_(category_ids))
     )
-    await db.execute(statement)
+    results = await db.exec(statement)
+    for category_link in results.all():
+        await db.delete(category_link)
     await db.commit()
 
 
@@ -503,7 +454,7 @@ async def create_product_type(
     if isinstance(product_type, ProductTypeCreateWithCategories) and product_type.category_ids:
         await create_model_links(
             db,
-            id1=db_product_type.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
+            id1=db_product_type.id,
             id1_field="product_type",
             id2_set=product_type.category_ids,
             id2_field="category_id",
@@ -561,7 +512,7 @@ async def add_categories_to_product_type(
 
     await create_model_links(
         db,
-        id1=db_product_type.id,  # ty: ignore[invalid-argument-type] # material ID is guaranteed by database flush above
+        id1=db_product_type.id,
         id1_field="product_type",
         id2_set=category_ids,
         id2_field="category_id",
@@ -600,12 +551,14 @@ async def remove_categories_from_product_type(
     # Check that categories are actually assigned
     validate_linked_items_exist(category_ids, db_product_type.categories, "Categories")
 
-    statement: Delete = (
-        delete(CategoryProductTypeLink)
+    statement = (
+        select(CategoryProductTypeLink)
         .where(col(CategoryProductTypeLink.product_type_id) == product_type_id)
         .where(col(CategoryProductTypeLink.category_id).in_(category_ids))
     )
-    await db.execute(statement)
+    results = await db.exec(statement)
+    for category_link in results.all():
+        await db.delete(category_link)
     await db.commit()
 
 
