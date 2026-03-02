@@ -11,7 +11,10 @@ from pathlib import Path
 
 from mjml.mjml2html import mjml_to_html
 
-logging.basicConfig(level=logging.INFO)
+from app.core.logging import setup_logging
+
+# Set up logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Paths
@@ -63,5 +66,10 @@ def compile_mjml_templates() -> None:
     logger.info("Compilation complete!")
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the compile email templates script."""
     compile_mjml_templates()
+
+
+if __name__ == "__main__":
+    main()

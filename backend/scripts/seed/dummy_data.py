@@ -3,19 +3,24 @@
 """Seed the database with sample data for testing purposes."""
 
 import argparse
-import asyncio
-import contextlib
 import io
+import json
 import logging
 import mimetypes
+from functools import partial
 from pathlib import Path
 
-import anyio
+from alembic.config import Config
+from anyio import Path as AnyIOPath
+from anyio import run
+from anyio.to_thread import run_sync
 from fastapi import UploadFile
-from sqlmodel import SQLModel, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.datastructures import Headers
 
+from alembic import command
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.utils.programmatic_user_crud import create_user
@@ -26,175 +31,51 @@ from app.api.background_data.models import (
     Material,
     ProductType,
     Taxonomy,
-    TaxonomyDomain,
 )
-from app.api.common.models.associations import (
-    MaterialProductLink,
-)
-from app.api.common.models.enums import Unit
+from app.api.common.models.associations import MaterialProductLink
 from app.api.data_collection.models import PhysicalProperties, Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models.models import ImageParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
 from app.core.config import settings
-from app.core.database import async_engine, get_async_session
+from app.core.logging import setup_logging
 
-# Set up logging
-logger: logging.Logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# Configure logging
+setup_logging()
+logger = logging.getLogger(__name__)
+
+# Database setup
+DATABASE_URL = settings.async_database_url
+engine = create_async_engine(DATABASE_URL, echo=False)
+
+
+class DryRunAsyncSession(AsyncSession):
+    """AsyncSession that flushes instead of committing for dry runs."""
+
+    async def commit(self) -> None:
+        """Override commit to flush instead for dry run mode."""
+        await self.flush()
+
 
 ### Sample Data ###
 # TODO: Add organization and Camera models
 
-# Sample data for Users
-user_data = [
-    {
-        "email": "alice@example.com",
-        "password": "fake_password_1",
-        "username": "alice",
-    },
-    {
-        "email": "bob@example.com",
-        "password": "fake_password_2",
-        "username": "bob",
-    },
-]
 
+# Load data from json
+data_file = Path(__file__).parent / "data.json"
+with data_file.open("r") as f:
+    _seed_data = json.load(f)
 
-# Sample data for Taxonomies
-taxonomy_data = [
-    {
-        "name": "Electronics Taxonomy",
-        "description": "Taxonomy for electronic products.",
-        "version": "1.0",
-        "domains": {TaxonomyDomain.PRODUCTS},
-        "source": "https://example.com/electronics-taxonomy",
-    },
-    {
-        "name": "Materials Taxonomy",
-        "description": "Taxonomy for materials.",
-        "version": "1.0",
-        "domains": {TaxonomyDomain.MATERIALS},
-        "source": "https://example.com/materials-taxonomy",
-    },
-]
-
-# Sample data for Categories
-category_data = [
-    {
-        "name": "Smartphones",
-        "description": "Category for smartphones.",
-        "taxonomy_name": "Electronics Taxonomy",
-    },
-    {
-        "name": "Laptops",
-        "description": "Category for laptops.",
-        "taxonomy_name": "Electronics Taxonomy",
-    },
-    {
-        "name": "Metals",
-        "description": "Category for metals.",
-        "taxonomy_name": "Materials Taxonomy",
-    },
-    {
-        "name": "Plastics",
-        "description": "Category for plastics.",
-        "taxonomy_name": "Materials Taxonomy",
-    },
-]
-
-# Sample data for Materials
-material_data = [
-    {
-        "name": "Aluminum",
-        "description": "Lightweight metal.",
-        "source": "https://example.com/aluminum",
-        "density_kg_m3": 2700,
-        "is_crm": False,
-        "categories": ["Metals"],
-    },
-    {
-        "name": "Polycarbonate",
-        "description": "Durable plastic.",
-        "source": "https://example.com/polycarbonate",
-        "density_kg_m3": 1200,
-        "is_crm": False,
-        "categories": ["Plastics"],
-    },
-]
-
-# Sample data for Product Types
-product_type_data = [
-    {
-        "name": "Smartphone",
-        "description": "A handheld personal computer.",
-        "categories": ["Smartphones"],
-    },
-    {
-        "name": "Laptop",
-        "description": "A portable personal computer.",
-        "categories": ["Laptops"],
-    },
-]
-
-# Sample data for Products
-product_data = [
-    {
-        "name": "iPhone 12",
-        "description": "Apple smartphone.",
-        "brand": "Apple",
-        "model": "A2403",
-        "product_type_name": "Smartphone",
-        "physical_properties": {
-            "weight_g": 164,
-            "height_cm": 14.7,
-            "width_cm": 7.15,
-            "depth_cm": 0.74,
-        },
-        "bill_of_materials": [
-            {"material": "Aluminum", "quantity": 0.025, "unit": Unit.KILOGRAM},
-            {"material": "Polycarbonate", "quantity": 0.050, "unit": Unit.KILOGRAM},
-        ],
-    },
-    {
-        "name": "Dell XPS 13",
-        "description": "Dell laptop.",
-        "brand": "Dell",
-        "model": "XPS9380",
-        "product_type_name": "Laptop",
-        "physical_properties": {
-            "weight_g": 1230,
-            "height_cm": 1.16,
-            "width_cm": 30.2,
-            "depth_cm": 19.9,
-        },
-        "bill_of_materials": [
-            {"material": "Aluminum", "quantity": 0.5, "unit": Unit.KILOGRAM},
-            {"material": "Polycarbonate", "quantity": 0.3, "unit": Unit.KILOGRAM},
-        ],
-    },
-]
-
-# Sample data for Images
-image_data: list[dict[str, str]] = [
-    {
-        "description": "Example phone image",
-        "path": str(settings.static_files_path / "images" / "example_phone.jpg"),
-        "parent_product_name": "iPhone 12",
-    }
-]
+user_data = _seed_data["user_data"]
+taxonomy_data = _seed_data["taxonomy_data"]
+category_data = _seed_data["category_data"]
+material_data = _seed_data["material_data"]
+product_type_data = _seed_data["product_type_data"]
+product_data = _seed_data["product_data"]
+image_data = _seed_data["image_data"]
 
 
 ### Async Functions ###
-async def reset_db() -> None:
-    """Reset the database by dropping and recreating all tables."""
-    logger.info("Resetting database...")
-    async with async_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-        await conn.run_sync(SQLModel.metadata.create_all)
-    logger.info("Database reset successfully.")
-
-
 async def seed_users(session: AsyncSession) -> dict[str, User]:
     """Seed the database with sample user data."""
     user_map = {}
@@ -205,7 +86,7 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
         existing_user = result.first()
 
         if existing_user:
-            logger.info(f"User {user_dict['email']} already exists, skipping creation.")
+            logger.info("User %s already exists, skipping creation.", user_dict["email"])
             user_map[existing_user.email] = existing_user
             continue
 
@@ -221,8 +102,8 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
         try:
             user = await create_user(session, user_create, send_registration_email=False)
             user_map[user.email] = user
-        except Exception as e:
-            logger.warning(f"Failed to create user {user_dict['email']}: {e}")
+        except ValueError as e:
+            logger.warning("Failed to create user %s: %s", user_dict["email"], e)
             # Try to fetch again just in case
             stmt = select(User).where(User.email == user_dict["email"])
             result = await session.exec(stmt)
@@ -331,8 +212,9 @@ async def seed_product_types(session: AsyncSession, category_map: dict[str, Cate
         if (await session.exec(stmt)).first():
             # fetch existing
             stmt = select(ProductType).where(ProductType.name == data["name"])
-            product_type = (await session.exec(stmt)).first()
-            product_type_map[product_type.name] = product_type
+            product_type_fetched = (await session.exec(stmt)).first()
+            if product_type_fetched:
+                product_type_map[product_type_fetched.name] = product_type_fetched
             continue
 
         product_type = ProductType(
@@ -377,7 +259,7 @@ async def seed_products(
             continue
 
         user = next(iter(user_map.values()), None)
-        if not user:
+        if not user or not user.id:
             continue
 
         # Create product first
@@ -393,8 +275,11 @@ async def seed_products(
         await session.commit()
         await session.refresh(product)  # Ensures ID for product
 
+        if not product.id:
+            continue
+
         # Now create physical properties with product_id
-        physical_props = PhysicalProperties(**data["physical_properties"], product_id=product.id)  # ty: ignore[invalid-argument-type] # properties ID is guaranteed by database flush above
+        physical_props = PhysicalProperties(**data["physical_properties"], product_id=product.id)
         session.add(physical_props)
         await session.commit()
 
@@ -418,31 +303,29 @@ async def seed_products(
 async def seed_images(session: AsyncSession, product_map: dict[str, Product]) -> None:
     """Seed the database with initial image data."""
     for data in image_data:
-        path: Path = Path(data.get("path", None))
+        filename = data.get("filename")
+        if not filename:
+            continue
+        path: Path = settings.static_files_path / "images" / filename
 
         # Check if file exists to avoid crashes
-        if not path.exists():
-            logger.warning(f"Image not found at {path}, skipping.")
+        async_path = AnyIOPath(path)
+        if not await async_path.is_file():
+            logger.warning("Image not found at %s, skipping.", path)
             continue
 
         description: str = data.get("description", "")
 
         parent_type = ImageParentType.PRODUCT
         parent = product_map.get(data["parent_product_name"])
-        if parent:
+        if parent and parent.id:
             parent_id = parent.id
-
-            # crude check for existence: verify if any image for this parent has this description
-            # (better would be filename check but filename is inside database file path)
-            # For now, we skip if we are not resetting, or we accept duplicate images if run twice.
-            # Ideally checking checksums. But let's assume if we didn't reset, we might duplicate.
-            # actually let's just skip for now to be safe.
         else:
             logger.warning("Skipping image %s: parent not found", path.name)
             continue
 
         filename: str = path.name
-        async_path = anyio.Path(path)
+        async_path = AnyIOPath(path)
         size: int = (await async_path.stat()).st_size
         mime_type, _ = mimetypes.guess_type(path)
 
@@ -478,14 +361,35 @@ async def seed_images(session: AsyncSession, product_map: dict[str, Product]) ->
         await create_image(session, image_create)
 
 
-async def async_main(reset: bool = False) -> None:
+async def reset_db() -> None:
+    """Reset the database using Alembic."""
+    logger.info("Resetting database with Alembic...")
+
+    # Run alembic in a synchronous thread since it's fundamentally synchronous
+    def run_alembic_reset() -> None:
+        # Add project root to path to allow imports when running as a standalone script
+        project_root = Path(__file__).resolve().parents[2]
+        alembic_cfg = Config(toml_file=str(project_root / "pyproject.toml"))
+        command.downgrade(alembic_cfg, "base")
+        command.upgrade(alembic_cfg, "head")
+
+    await run_sync(run_alembic_reset)
+    logger.info("Database reset successfully.")
+
+
+async def async_main(*, reset: bool = False, dry_run: bool = False) -> None:
     """Seed the database with sample data."""
+    if dry_run and reset:
+        logger.warning("Dry run requested; skipping reset to avoid destructive changes.")
+        reset = False
+
     if reset:
         await reset_db()
 
-    get_async_session_context = contextlib.asynccontextmanager(get_async_session)
+    session_class = DryRunAsyncSession if dry_run else AsyncSession
+    session_factory = async_sessionmaker(engine, class_=session_class, expire_on_commit=False)
 
-    async with get_async_session_context() as session:
+    async with session_factory() as session:
         # Seed all data
         user_map = await seed_users(session)
         taxonomy_map = await seed_taxonomies(session)
@@ -494,17 +398,26 @@ async def async_main(reset: bool = False) -> None:
         product_type_map = await seed_product_types(session, category_map)
         product_map = await seed_products(session, product_type_map, material_map, user_map)
         await seed_images(session, product_map)
-        logger.info("Database seeded with test data.")
+        if dry_run:
+            await session.rollback()
+            logger.info("Dry run complete; all changes rolled back.")
+        else:
+            logger.info("Database seeded with test data.")
+
+    await engine.dispose()
 
 
 def main() -> None:
     """Run the async main function."""
     parser = argparse.ArgumentParser(description="Seed the database with dummy data.")
     parser.add_argument("--reset", action="store_true", help="Reset the database before seeding.")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Seed data but rollback the transaction instead of committing."
+    )
     args = parser.parse_args()
 
     # Run async main
-    asyncio.run(async_main(reset=args.reset))
+    run(partial(async_main, reset=args.reset, dry_run=args.dry_run))
 
 
 if __name__ == "__main__":

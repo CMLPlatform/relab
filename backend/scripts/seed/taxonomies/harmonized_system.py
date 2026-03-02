@@ -3,16 +3,19 @@
 import csv
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from sqlmodel import func, select
 
-# TODO: Fix circular import issue with User model in seeding scripts
 from app.api.auth.models import User  # noqa: F401 # Need to explicitly import User for SQLModel relationships
 from app.api.background_data.models import Category, TaxonomyDomain
 from app.core.database import sync_session_context
-from scripts.seed.taxonomies.common import configure_logging, get_or_create_taxonomy, seed_categories_from_rows
+from app.core.logging import setup_logging
+from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
+
+if TYPE_CHECKING:
+    from typing import Any
 
 logger = logging.getLogger("seeding.taxonomies.harmonized_system")
 
@@ -131,5 +134,5 @@ def seed_taxonomy() -> None:
 
 
 if __name__ == "__main__":
-    configure_logging()
+    setup_logging()
     seed_taxonomy()

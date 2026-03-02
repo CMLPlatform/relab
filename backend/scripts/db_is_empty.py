@@ -9,12 +9,15 @@ Usage:
     Run this script directly to print 1 if the database is empty, or 0 if it is not.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CursorResult, Engine, Inspector, MetaData, Select, Table, inspect, select
 from sqlmodel import create_engine
 
 from app.core.config import settings
+
+if TYPE_CHECKING:
+    from typing import Any
 
 # NOTE: Echo set to False to not mess with the shell script output. Consider using exit codes instead
 sync_engine: Engine = create_engine(settings.sync_database_url, echo=False)
@@ -49,8 +52,13 @@ def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
     return True
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the database is empty check script."""
     if database_is_empty(ignore_tables={"alembic_version", "user"}):
         print("TRUE")  # noqa: T201 # for shell script usage
     else:
         print("FALSE")  # noqa: T201
+
+
+if __name__ == "__main__":
+    main()

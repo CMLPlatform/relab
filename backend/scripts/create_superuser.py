@@ -48,5 +48,10 @@ async def create_superuser() -> None:
             logger.warning("Superuser creation failed: %s", e)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the create superuser script."""
     anyio.run(create_superuser)
+
+
+if __name__ == "__main__":
+    main()
