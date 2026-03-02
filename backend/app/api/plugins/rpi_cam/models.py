@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import httpx
-from asyncache import cached
 from cachetools import TTLCache
 from pydantic import UUID4, BaseModel, HttpUrl, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
@@ -16,6 +15,7 @@ from sqlmodel import AutoString, Field, Relationship
 from app.api.common.models.base import CustomBase, TimeStampMixinBare
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
+from app.core.cache import async_ttl_cache
 
 if TYPE_CHECKING:
     from app.api.auth.models import User
@@ -124,7 +124,7 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
 
         return await self._get_cached_status()
 
-    @cached(cache=TTLCache(maxsize=1, ttl=15))
+    @async_ttl_cache(TTLCache(maxsize=1, ttl=15))
     async def _get_cached_status(self) -> CameraStatus:
         """Cached version of status fetch."""
         return await self._fetch_status()
