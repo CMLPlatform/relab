@@ -20,7 +20,7 @@ from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.core.cache import init_fastapi_cache
 from app.core.config import settings
-from app.core.logging import setup_logging
+from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis
 
 if TYPE_CHECKING:
@@ -69,6 +69,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     logger.info("Application shutdown complete")
 
+    # Clean up logging queues
+    await cleanup_logging()
+
 
 # Initialize FastAPI application with lifespan
 app = FastAPI(
@@ -83,7 +86,7 @@ app.state.limiter = limiter
 
 # Add CORS middleware
 app.add_middleware(
-    CORSMiddleware,  # ty: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
+    CORSMiddleware,  # type: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

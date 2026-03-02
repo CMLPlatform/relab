@@ -1,86 +1,180 @@
 """Main logger setup."""
 
 import logging
-import time
-from logging.handlers import TimedRotatingFileHandler
-from pathlib import Path
+import sys
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-import coloredlogs
+import loguru
 
-from app.core.config import settings
+from app.core.config import Environment, settings
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 ### Logging formats
-
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOG_FORMAT = (
+    "<green>{time:YYYY-MM-DD HH:mm:ss!UTC}</green> | "
+    "<level>{level: <8}</level> | "
+    "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+    "<level>{message}</level>"
+)
 LOG_DIR = settings.log_path
 
-LOG_CONFIG = {
-    # (level, rotation interval, backup count)
-    "debug": (logging.DEBUG, "midnight", 3),  # All logs, 3 days
-    "info": (logging.INFO, "midnight", 14),  # INFO and above, 14 days
-    "error": (logging.ERROR, "W0", 12),  # ERROR and above, 12 weeks
-}
-
-BASE_LOG_LEVEL = logging.DEBUG if settings.debug else logging.INFO
+BASE_LOG_LEVEL = "DEBUG" if settings.debug else "INFO"
 
 
-### Logging utils ###
-# TODO: Move from coloredlogs to loguru for simpler logging configuration
-def set_utc_logging() -> None:
-    """Configure logging to use UTC timestamps."""
-    logging.Formatter.converter = time.gmtime
+@dataclass
+class OriginalLogInfo:
+    """Original log info used when intercepting standard logging."""
+
+    original_name: str
+    original_func: str
+    original_line: int
 
 
-def create_file_handlers(log_dir: Path, fmt: str, datefmt: str) -> dict[str, logging.Handler]:
-    """Create file handlers for each log level."""
-    handler_dict: dict[str, logging.Handler] = {}
-    for name, (level, interval, count) in LOG_CONFIG.items():
-        handler = TimedRotatingFileHandler(
-            filename=log_dir / f"{name}.log",
-            when=interval,
-            backupCount=count,
-            encoding="utf-8",
-            utc=True,
-        )
-        handler.setFormatter(logging.Formatter(fmt=fmt, datefmt=datefmt))
-        handler.setLevel(level)
-        handler_dict[name] = handler
-    return handler_dict
+class InterceptHandler(logging.Handler):
+    """Intercept standard logging messages and route them to loguru."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Override emit to route standard logging to loguru."""
+        try:
+            level = loguru.logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        frame, depth = logging.currentframe(), 0
+        while frame and (
+            depth < 2
+            or frame.f_code.co_filename == logging.__file__
+            or frame.f_code.co_filename.endswith("logging/__init__.py")
+        ):
+            frame = frame.f_back
+            depth += 1
+
+        # Preserve the original log record info
+        loguru.logger.bind(
+            original_info=OriginalLogInfo(
+                original_name=record.name,
+                original_func=record.funcName,
+                original_line=record.lineno,
+            )
+        ).opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+
+def patch_log_record(record: loguru.Record) -> None:
+    """Patch loguru record to use the original standard logger name/function/line if intercepted."""
+    if original_info := record["extra"].get("original_info"):
+        record["name"] = original_info.original_name
+        record["function"] = original_info.original_func
+        record["line"] = original_info.original_line
+
+
+def configure_loguru_handlers(log_dir: Path, base_log_level: str) -> None:
+    """Setup loguru sinks."""
+    is_enqueued = settings.environment in (Environment.PROD, Environment.STAGING)
+
+    # Console handler
+    loguru.logger.add(
+        sys.stderr,
+        level=base_log_level,
+        format=LOG_FORMAT,
+        colorize=True,
+        backtrace=True,
+        diagnose=True,
+        enqueue=is_enqueued,
+    )
+
+    # Debug file sync - keep 3 days
+    loguru.logger.add(
+        log_dir / "debug.log",
+        level="DEBUG",
+        rotation="00:00",
+        retention="3 days",
+        format=LOG_FORMAT,
+        backtrace=True,
+        diagnose=True,
+        enqueue=is_enqueued,
+        encoding="utf-8",
+    )
+
+    # Info file sync - keep 14 days
+    loguru.logger.add(
+        log_dir / "info.log",
+        level="INFO",
+        rotation="00:00",
+        retention="14 days",
+        format=LOG_FORMAT,
+        backtrace=True,
+        diagnose=True,
+        enqueue=is_enqueued,
+        encoding="utf-8",
+    )
+
+    # Error file sync - keep 12 weeks
+    loguru.logger.add(
+        log_dir / "error.log",
+        level="ERROR",
+        rotation="1 week",
+        retention="12 weeks",
+        format=LOG_FORMAT,
+        backtrace=True,
+        diagnose=True,
+        enqueue=is_enqueued,
+        encoding="utf-8",
+    )
 
 
 def setup_logging(
-    *,
-    fmt: str = LOG_FORMAT,
-    datefmt: str = DATE_FORMAT,
     log_dir: Path = LOG_DIR,
-    base_log_level: int = BASE_LOG_LEVEL,
+    base_log_level: str = BASE_LOG_LEVEL,
 ) -> None:
-    """Setup logging configuration with consistent handlers."""
-    # Set UTC timezone for all logging
-    set_utc_logging()
-
-    # Create log directory if it doesn't exist
+    """Setup loguru logging configuration and intercept standard logging."""
     log_dir.mkdir(exist_ok=True)
 
-    # Configure root logger
-    root_logger: logging.Logger = logging.getLogger()
-    root_logger.setLevel(base_log_level)
+    # Remove standard loguru stdout handler to avoid duplicates
+    loguru.logger.remove()
 
-    # Install colored console logging
-    coloredlogs.install(level=base_log_level, fmt=fmt, datefmt=datefmt, logger=root_logger)
+    loguru.logger.configure(patcher=patch_log_record)
+    configure_loguru_handlers(log_dir, base_log_level)
 
-    # Add file handlers to root logger
-    file_handlers: dict[str, logging.Handler] = create_file_handlers(log_dir, fmt, datefmt)
-    for handler in file_handlers.values():
-        root_logger.addHandler(handler)
+    # Clear any existing root handlers
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
 
-    # Ensure uvicorn loggers propagate to root and have no handlers of their own
-    for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
-        logger = logging.getLogger(logger_name)
-        logger.handlers.clear()
-        logger.propagate = True
+    # Intercept everything at the root logger
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
-    # Optionally, quiet noisy loggers
-    for logger_name in ["watchfiles.main"]:
-        logging.getLogger(logger_name).setLevel(logging.WARNING)
+    # Ensure uvicorn and other noisy loggers propagate correctly so that they are not duplicated in the logs
+    watchfiles_logger = "watchfiles.main"
+
+    noisy_loggers = [
+        watchfiles_logger,
+        "uvicorn",
+        "uvicorn.error",
+        "uvicorn.access",
+        "watchfiles.main",
+        "sqlalchemy",
+        "sqlalchemy.engine",
+        "sqlalchemy.engine.Engine",
+        "sqlalchemy.pool",
+        "sqlalchemy.dialects",
+        "sqlalchemy.orm",
+        "fastapi",
+        "asyncio",
+        "starlette",
+    ]
+    for logger_name in noisy_loggers:
+        logging_logger = logging.getLogger(logger_name)
+        logging_logger.handlers = []  # Clear existing handlers
+        logging_logger.propagate = True  # Propagate to InterceptHandler at the root
+
+        # Set watchfiles to warning to further reduce noise
+        if logger_name == watchfiles_logger:
+            logging_logger.setLevel(logging.WARNING)
+
+
+async def cleanup_logging() -> None:
+    """Cleanup loguru queues on shutdown."""
+    loguru.logger.remove()
+    await loguru.logger.complete()
