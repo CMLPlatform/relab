@@ -41,7 +41,7 @@
     "pillow >=11.2.1",
     "psycopg[binary] >=3.2.9",
     # TODO: Investigate pydantic v2.12 compatibility issues (might have to do with custom fastapi-users-db-sqlmodel fork)
-    "pydantic >=2.11,<2.12",
+    "pydantic >=2.12,<2.13",
     "pydantic-extra-types >=2.10.5",
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
@@ -248,4 +248,4 @@
 
   [tool.uv.sources]
     # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
-    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "7e9c4830e53ee20c38e3de80066cb19d7c3efc43" }
+    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "ed96f72964e091796e06be28f5513eb1539f2a92" }
