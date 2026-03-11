@@ -155,6 +155,12 @@ class CoreSettings(BaseSettings):
         """Set email sending to False in DEV and TESTING."""
         return self.environment in (Environment.DEV, Environment.TESTING)
 
+    @computed_field
+    @property
+    def enable_rate_limit(self) -> bool:
+        """Disable rate limiting in DEV and TESTING."""
+        return self.environment not in (Environment.DEV, Environment.TESTING)
+
 
 # Create a settings instance that can be imported throughout the app
 settings = CoreSettings()

@@ -15,6 +15,7 @@ limiter = Limiter(
     default_limits=[],  # No default limits, set per route
     storage_uri=core_settings.cache_url,
     strategy="fixed-window",
+    enabled=core_settings.enable_rate_limit,
 )
 
 # Rate limit strings for common use cases
