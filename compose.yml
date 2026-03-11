@@ -32,7 +32,7 @@ services:
       - user_uploads:/opt/relab/backend/data/uploads
 
   database:
-    image: postgres:18@sha256:b6b4d0b75c699a2c94dfc5a94fe09f38630f3b67ab0e1653ede1b7ac8e13c197
+    image: postgres:18@sha256:69e8582b781cb44fa4557b98ed586fe68361e320d9b12f9707494335634f4f3d
     env_file: ./backend/.env
     healthcheck:
       test: # Check if the database is ready to accept connections
@@ -45,7 +45,7 @@ services:
       - database_data:/var/lib/postgresql
 
   docs:
-    image: squidfunk/mkdocs-material:9@sha256:8f41b6089700e1c32212c3857936f14e88a3306a35be4ffd1826420e2f3e4197
+    image: squidfunk/mkdocs-material:9@sha256:c3739993c3e7c92cfe649ba03cbc04f4fa9b1497886abd16267eb413cda8aecf
     restart: unless-stopped
     volumes:
       - ./docs:/docs
