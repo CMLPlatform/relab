@@ -112,6 +112,16 @@ class UserCreateWithOrganization(UserCreateBase):
     )
 
 
+class OAuthAccountRead(BaseModel):
+    """Read schema for OAuth accounts."""
+
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+    oauth_name: str
+    account_id: str
+    account_email: str
+
+
 class UserReadPublic(UserBase):
     """Public read schema for users."""
 
@@ -120,6 +130,8 @@ class UserReadPublic(UserBase):
 
 class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
+
+    oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
 
     model_config: ConfigDict = ConfigDict(
         {
