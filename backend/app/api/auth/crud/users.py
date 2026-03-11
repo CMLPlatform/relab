@@ -113,7 +113,7 @@ async def update_user_override(user_db: SQLModelUserDatabaseAsync, user: User, u
     """Override base user update with organization validation."""
     if user_update.username is not None:
         # Check username uniqueness
-        query = select(exists().where((User.username == user_update.username) & (User.id != user.id)))
+        query = select(exists().where((col(User.username) == user_update.username) & (col(User.id) != user.id)))
         if (await user_db.session.exec(query)).one():
             raise UserNameAlreadyExistsError(user_update.username)
 

@@ -2,19 +2,20 @@
 
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import tldextract
 from fastapi import Depends
-from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin
+from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, schemas
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, CookieTransport, RedisStrategy
 from fastapi_users.manager import BaseUserManager
 from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from pydantic import UUID4, SecretStr
 
 from app.api.auth.config import settings as auth_settings
+from app.api.auth.crud.users import update_user_override
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import UserCreate, UserUpdate
 from app.api.auth.services import refresh_token_service, session_service
 from app.api.auth.utils.programmatic_emails import (
     send_post_verification_email,
@@ -69,6 +70,24 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spellchecker: i
             raise InvalidPasswordException(reason="Password should not contain e-mail")
         if user.username and user.username in password:
             raise InvalidPasswordException(reason="Password should not contain username")
+        if user.username and user.username in password:
+            raise InvalidPasswordException(reason="Password should not contain username")
+
+    async def update(
+        self,
+        user_update: schemas.UU,
+        user: User,
+        safe: bool = False,  # noqa: FBT002, FBT001 # Expected by parent class signature
+        request: Request | None = None,
+    ) -> User:
+        """Update a user, injecting custom organization & username validation first."""
+        # Will raise exceptions like UserNameAlreadyExistsError if validation fails
+        real_user_update = cast("UserUpdate", user_update)
+        real_user_update = await update_user_override(self.user_db, user, real_user_update)
+        user_update = cast("schemas.UU", real_user_update)
+
+        # Proceed with base FastAPI User update logic
+        return await super().update(user_update, user, safe=safe, request=request)
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send verification email after verification is requested."""
@@ -101,15 +120,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spellchecker: i
             device_info = request.headers.get("User-Agent", "Unknown")
             ip_address = request.client.host if request.client else "unknown"
 
+            user_id = cast("UUID4", user.id)
+
             # Create refresh token
             refresh_token = await refresh_token_service.create_refresh_token(
                 redis,
-                user.id,
+                user_id,
                 "",  # Session ID will be set after session creation
             )
 
             # Create session
-            await session_service.create_session(redis, user.id, device_info, refresh_token, ip_address)
+            await session_service.create_session(redis, user_id, device_info, refresh_token, ip_address)
 
             # Set refresh token cookie if response available
             if response:
