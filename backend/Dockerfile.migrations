@@ -26,7 +26,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-default-groups --group=migrations --no-install-project
 
 # Copy alembic migrations, scripts, and source code
-COPY alembic.ini ./
 COPY alembic/ alembic/
 COPY scripts/ scripts/
 COPY app/ app/
