@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { User } from '@/types/User';
 
 const apiURL = `${process.env.EXPO_PUBLIC_API_URL}`;
@@ -6,12 +7,23 @@ let token: string | undefined;
 let user: User | undefined;
 
 export async function login(username: string, password: string): Promise<string | undefined> {
-  const url = new URL(apiURL + '/auth/bearer/login');
+  const authPath = Platform.OS === 'web' ? '/auth/cookie/login' : '/auth/bearer/login';
+  const url = new URL(apiURL + authPath);
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
   const body = new URLSearchParams({ username, password }).toString();
+  const fetchOptions: RequestInit = { method: 'POST', headers, body };
+  if (Platform.OS === 'web') {
+    fetchOptions.credentials = 'include';
+  }
 
   try {
-    const response = await fetch(url, { method: 'POST', headers, body });
+    const response = await fetch(url, fetchOptions);
+    
+    if (response.status === 204) {
+      // Cookie login returns 204 No Content
+      return 'success';
+    }
+
     let data;
     try {
       data = await response.json();
@@ -27,11 +39,14 @@ export async function login(username: string, password: string): Promise<string 
       // Throw error with HTTP status and message
       throw new Error(`HTTP ${response.status}: ${data?.detail || JSON.stringify(data) || 'Login failed.'}`);
     }
-    // TODO: use cookies for frontend auth instead of storing credentials in local storage
-    await AsyncStorage.setItem('username', username);
-    await AsyncStorage.setItem('password', password);
-    token = data.access_token;
-    return token;
+    if (Platform.OS !== 'web' && data.access_token) {
+      await AsyncStorage.setItem('access_token', data.access_token);
+      token = data.access_token;
+      return token;
+    }
+    
+    // For web, the cookie is set by the server. We don't have a token.
+    return 'success';
   } catch (err: any) {
     console.error('[Login Fetch Error]:', err);
     throw new Error('Unable to reach server. Please try again later.');
@@ -41,8 +56,15 @@ export async function login(username: string, password: string): Promise<string 
 export async function logout(): Promise<void> {
   token = undefined;
   user = undefined;
-  await AsyncStorage.removeItem('username');
-  await AsyncStorage.removeItem('password');
+  if (Platform.OS !== 'web') {
+    await AsyncStorage.removeItem('access_token');
+  } else {
+    try {
+      await fetch(new URL(apiURL + '/auth/cookie/logout'), { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error('[Logout Fetch Error]:', err);
+    }
+  }
 }
 
 export async function getToken(): Promise<string | undefined> {
@@ -50,38 +72,41 @@ export async function getToken(): Promise<string | undefined> {
     return token;
   }
 
-  const username = await AsyncStorage.getItem('username');
-  const password = await AsyncStorage.getItem('password');
-  if (!username || !password) {
-    return undefined;
+  if (Platform.OS === 'web') {
+    return undefined; // Tokens are not used on the frontend for Web (managed by browser cookies)
   }
 
   try {
-    const success = await login(username, password);
-    if (!success) {
-      return undefined;
+    const storedToken = await AsyncStorage.getItem('access_token');
+    if (storedToken) {
+      token = storedToken;
+      return token;
     }
-    return token;
   } catch (err) {
     console.error('[GetToken Error]:', err);
-    return undefined;
   }
+  return undefined;
 }
 
-export async function getUser(): Promise<User | undefined> {
+export async function getUser(forceRefresh = false): Promise<User | undefined> {
   try {
-    if (user) {
+    if (user && !forceRefresh) {
       return user;
     }
 
     const url = new URL(apiURL + '/users/me');
-    const authToken = await getToken();
-    if (!authToken) {
-      return undefined;
+    const headers: any = { Accept: 'application/json' };
+    
+    if (Platform.OS !== 'web') {
+      const authToken = await getToken();
+      if (!authToken) {
+        return undefined;
+      }
+      headers.Authorization = `Bearer ${authToken}`;
     }
 
-    const headers = { Authorization: `Bearer ${authToken}`, Accept: 'application/json' };
-    const response = await fetch(url, { method: 'GET', headers });
+    // Include credentials for web so cookies are sent
+    const response = await fetch(url, { method: 'GET', headers, credentials: 'include' });
 
     let data;
     try {
@@ -103,6 +128,7 @@ export async function getUser(): Promise<User | undefined> {
       isSuperuser: data.is_superuser,
       isVerified: data.is_verified,
       username: data.username || 'Username not defined',
+      oauth_accounts: data.oauth_accounts || [],
     };
 
     return user;
@@ -153,4 +179,74 @@ export async function verify(email: string): Promise<boolean> {
 
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
   return response.ok;
+}
+
+export async function updateUser(updates: Partial<User>): Promise<User | undefined> {
+  const url = new URL(apiURL + '/users/me');
+  const headers: any = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  
+  if (Platform.OS !== 'web') {
+    const authToken = await getToken();
+    if (!authToken) throw new Error("Not authenticated");
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(updates),
+      ...(Platform.OS === 'web' ? { credentials: 'include' } : {})
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      let errorMessage = 'Failed to update user profile';
+      if (errorData?.detail) {
+        if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail;
+        } else if (typeof errorData.detail === 'object') {
+          errorMessage = errorData.detail.message || errorData.detail.reason || JSON.stringify(errorData.detail);
+        }
+      }
+      throw new Error(errorMessage);
+    }
+    
+    // Force refresh the user with fresh data from backend
+    return await getUser(true);
+  } catch (error) {
+    console.error('[UpdateUser Error]:', error);
+    throw error;
+  }
+}
+
+export async function unlinkOAuth(provider: string): Promise<boolean> {
+  const url = new URL(apiURL + `/auth/oauth/${provider}/associate`);
+  const headers: any = { Accept: 'application/json' };
+  
+  if (Platform.OS !== 'web') {
+    const authToken = await getToken();
+    if (!authToken) throw new Error("Not authenticated");
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers,
+      ...(Platform.OS === 'web' ? { credentials: 'include' } : {})
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.detail || `Failed to unlink ${provider} account`);
+    }
+    
+    // Clear user cache so next profile fetch is crisp
+    user = undefined;
+    return true;
+  } catch (error) {
+    console.error('[UnlinkOAuth Error]:', error);
+    throw error;
+  }
 }

@@ -1,5 +1,5 @@
 import { getToken } from '@/services/api/authentication';
-import { getProduct } from '@/services/api/fetching';
+import { getProduct, apiFetch } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
 
 // TODO: Break up the saving logic into smaller files
@@ -96,7 +96,14 @@ async function saveNewProduct(product: Product): Promise<number> {
   };
   const body = JSON.stringify(toNewProduct(product));
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: body });
+  const response = await apiFetch(url, { method: 'POST', headers: headers, body: body });
+  
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    console.error('[saveNewProduct Error]:', errData || response.statusText);
+    throw new Error(`Failed to save product: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+  }
+  
   const data = await response.json();
 
   console.log('Created product:', data);
@@ -121,13 +128,28 @@ async function updateProduct(product: Product): Promise<number> {
   const circularityBody = JSON.stringify(toUpdateCircularityProperties(product));
 
   let url = new URL(baseUrl + `/products/${product.id}`);
-  const response = await fetch(url, { method: 'PATCH', headers: headers, body: productBody });
+  let response = await apiFetch(url, { method: 'PATCH', headers: headers, body: productBody });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(`Failed to update product: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+  }
 
   url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
-  await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
+  response = await apiFetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
+  if (!response.ok && response.status !== 404) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(`Failed to update physical properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+  } else if (response.status === 404 && circularityBody !== 'null') {
+      // If 404, it might not exist yet, we could POST if required by backend, but for now just log
+      console.warn('Physical properties 404 on PATCH');
+  }
 
   url = new URL(baseUrl + `/products/${product.id}/circularity_properties`);
-  await fetch(url, { method: 'PATCH', headers: headers, body: circularityBody });
+  response = await apiFetch(url, { method: 'PATCH', headers: headers, body: circularityBody });
+  if (!response.ok && response.status !== 404) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(`Failed to update circularity properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+  }
 
   await updateProductImages(product);
   await updateProductVideos(product);
@@ -143,7 +165,9 @@ async function updateProductImages(product: Product) {
   const imagesToAdd = product.images.filter((img) => !img.id);
 
   for (const img of imagesToDelete) {
-    await deleteImage(product, img);
+    if (img.id !== undefined) {
+      await deleteImage(product, img as { id: number });
+    }
   }
 
   for (const img of imagesToAdd) {
@@ -158,7 +182,7 @@ async function deleteImage(product: Product, image: { id: number }) {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  return await fetch(url, { method: 'DELETE', headers: headers });
+  return await apiFetch(url, { method: 'DELETE', headers: headers });
 }
 
 async function addImage(product: Product, image: { url: string; description: string }) {
@@ -184,7 +208,7 @@ async function addImage(product: Product, image: { url: string; description: str
 
   console.log('[AddImage] Uploading image:', image.url);
 
-  await fetch(url, { method: 'POST', headers: headers, body: body });
+  await apiFetch(url, { method: 'POST', headers: headers, body: body });
 }
 
 function dataURItoBlob(dataURI: string) {
@@ -230,7 +254,7 @@ async function addVideo(product: Product, video: { url: string; description: str
     Authorization: `Bearer ${token}`,
   };
   const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
-  await fetch(url, { method: 'POST', headers, body });
+  await apiFetch(url, { method: 'POST', headers, body });
 }
 
 async function deleteVideo(product: Product, video: { id?: number }) {
@@ -244,7 +268,7 @@ async function deleteVideo(product: Product, video: { id?: number }) {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  await fetch(url, { method: 'DELETE', headers });
+  await apiFetch(url, { method: 'DELETE', headers });
 }
 
 async function updateVideo(product: Product, video: { id?: number; url: string; description: string; title: string }) {
@@ -260,7 +284,7 @@ async function updateVideo(product: Product, video: { id?: number; url: string; 
     Authorization: `Bearer ${token}`,
   };
   const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
-  await fetch(url, { method: 'PATCH', headers, body });
+  await apiFetch(url, { method: 'PATCH', headers, body });
 }
 
 export async function deleteProduct(product: Product): Promise<void> {
@@ -273,6 +297,6 @@ export async function deleteProduct(product: Product): Promise<void> {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  await fetch(url, { method: 'DELETE', headers: headers });
+  await apiFetch(url, { method: 'DELETE', headers: headers });
   return;
 }

@@ -1,7 +1,19 @@
 import { getToken, getUser } from '@/services/api/authentication';
 import { Product } from '@/types/Product';
+import { Platform } from 'react-native';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
+
+// Wrapper for fetch to automatically include credentials on Web
+export async function apiFetch(url: string | URL, options: RequestInit = {}): Promise<Response> {
+  const fetchOptions = { ...options };
+  
+  if (Platform.OS === 'web') {
+    fetchOptions.credentials = 'include';
+  }
+  
+  return fetch(url, fetchOptions);
+}
 
 // TODO: Break up the fetching logic into smaller files
 // TODO: Refactor the types to build on the generated API client from OpenAPI spec
@@ -106,7 +118,7 @@ export async function getProduct(id: number | 'new'): Promise<Product> {
     url.searchParams.append('include', inc),
   );
 
-  const response = await fetch(url, { method: 'GET' });
+  const response = await apiFetch(url, { method: 'GET' });
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -162,7 +174,7 @@ export async function allProducts(
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', size.toString());
 
-  const response = await fetch(url, { method: 'GET' });
+  const response = await apiFetch(url, { method: 'GET' });
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -195,7 +207,7 @@ export async function myProducts(
     Accept: 'application/json',
   };
 
-  const response = await fetch(url, { method: 'GET', headers });
+  const response = await apiFetch(url, { method: 'GET', headers });
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -210,7 +222,7 @@ export async function myProducts(
 
 export async function allBrands(): Promise<string[]> {
   const url = new URL(baseUrl + `/brands`);
-  const response = await fetch(url, { method: 'GET' });
+  const response = await apiFetch(url, { method: 'GET' });
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);
