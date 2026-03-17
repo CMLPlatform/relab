@@ -1,6 +1,6 @@
 # --- Builder stage ---
 FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
-WORKDIR /opt/relab/backend_migrations
+WORKDIR /opt/relab/backend-migrations
 
 # Install git for custom dependencies (fastapi-users-db-sqlmodel)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -34,7 +34,7 @@ COPY app/ app/
 FROM python:3.14-slim
 
 # Build arguments
-ARG WORKDIR=/opt/relab/backend_migrations
+ARG WORKDIR=/opt/relab/backend-migrations
 ARG APP_USER=appuser
 
 # Set up a non-root user

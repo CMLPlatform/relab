@@ -375,7 +375,7 @@ When making changes to the database schema:
    - For docker setups, run the migration service:
 
    ```bash
-   docker compose up backend_migrations
+   docker compose up backend-migrations
    ```
 
    - For local setups, run:

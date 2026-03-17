@@ -17,7 +17,7 @@ services:
       - user_uploads:/opt/relab/backend/data/uploads
       - backend_logs:/opt/relab/backend/logs
 
-  backend_migrations:
+  backend-migrations:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
