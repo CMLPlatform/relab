@@ -1,2 +1,8 @@
-# MkDocs
+# Cache files
+.cache/
+
+# Environments
+.venv/
+
+# Zensical
 site/

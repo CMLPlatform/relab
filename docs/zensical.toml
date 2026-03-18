@@ -1,0 +1,87 @@
+[project]
+  # Site settings
+  site_author      = "Simon van Lierde"
+  site_description = "Documentation of the Reverse Engineering Lab data platform"
+  site_name        = "Reverse Engineering Lab"
+  site_url         = "https://docs.cml-relab.org"
+
+  # Repository settings
+  edit_uri  = "edit/main/docs/docs/"
+  repo_name = "CMLPlatform/relab"
+  repo_url  = "https://github.com/CMLPlatform/relab"
+
+  # Navigation settings
+  nav = [
+    { "Technical Architecture" = [
+      { "API Structure" = "architecture/api.md" },
+      { "Authentication" = "architecture/auth.md" },
+      { "Database Schema" = "architecture/datamodel.md" },
+      { "RPI Camera Plugin" = "architecture/rpi-cam.md" },
+      { "System Design" = "architecture/system-design.md" },
+    ] },
+    { "User Guides" = [
+      { "API Documentation" = "user-guides/api.md" },
+      { "Data Collection" = "user-guides/data-collection.md" },
+      { "Getting Started" = "user-guides/getting-started.md" },
+      { "Raspberry Pi Camera Setup" = "user-guides/rpi-cam.md" },
+    ] },
+    { Dataset = [
+      { Overview = "dataset/index.md" },
+    ] },
+    { Home = "index.md" },
+  ]
+
+  [project.theme]
+    features = [
+      "content.action.edit",
+      "content.action.view",
+      "content.code.annotate",
+      "navigation.expand",
+      "navigation.indexes",
+      "navigation.instant",
+      "navigation.instant.prefetch",
+      "navigation.instant.progress",
+      "navigation.path",
+      "navigation.sections",
+      "navigation.tabs",
+      "navigation.tabs.sticky",
+      "navigation.top",
+      "navigation.tracking",
+      "search.highlight",
+      "search.suggest",
+      "toc.follow",
+    ]
+
+    favicon   = "static/images/favicon.ico"
+    icon.repo = "fontawesome/brands/github"
+    logo      = "static/images/logo.png"
+
+    # Palette toggle for automatic mode
+    [[project.theme.palette]]
+      accent      = "amber"
+      media       = "(prefers-color-scheme)"
+      primary     = "deep purple"
+      toggle.icon = "lucide/sun-moon"
+      toggle.name = "Switch to light mode"
+
+    # Palette toggle for light mode
+    [[project.theme.palette]]
+      accent      = "amber"
+      media       = "(prefers-color-scheme: light)"
+      primary     = "deep purple"
+      scheme      = "default"
+      toggle.icon = "lucide/sun"
+      toggle.name = "Switch to dark mode"
+
+    # Palette toggle for dark mode
+    [[project.theme.palette]]
+      accent      = "amber"
+      media       = "(prefers-color-scheme: dark)"
+      primary     = "deep purple"
+      scheme      = "slate"
+      toggle.icon = "lucide/moon"
+      toggle.name = "Switch to system preference"
+
+  [project.extra]
+    # Remove Zensical badge from footer
+    generator = false

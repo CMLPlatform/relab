@@ -1,0 +1,28 @@
+# Development Dockerfile for Zensical
+FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim
+
+# # Install system dependencies
+# RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+#     --mount=type=cache,target=/var/lib/apt,sharing=locked \
+#     apt-get update && apt-get install -y --no-install-recommends \
+#     git \
+#     && apt-get dist-clean
+
+WORKDIR /opt/relab/docs
+
+# uv optimizations
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install build dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --build
+
+EXPOSE 8000
+
+# Run zensical serve with hot-reloading
+CMD ["uv", "run", "zensical", "serve", "--dev-addr", "0.0.0.0:8000"]

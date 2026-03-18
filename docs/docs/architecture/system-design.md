@@ -10,6 +10,7 @@ graph TD
 
     %% Core backend and DB
     Frontend -->|API Requests fa:fa-arrow-right| Backend[FastAPI Backend <i class="fa fa-server" style="color:#43a047;"></i>]
+    Backend -->|Cache reads/writes fa:fa-bolt| Redis[(Redis Cache fa:fa-database)]
     Backend -->|Queries fa:fa-database| PostgreSQL[(PostgreSQL <i class="fa fa-database" style="color:#1976d2;"></i>)]
 
     %% Authentication
@@ -33,6 +34,7 @@ graph TD
 
     style Frontend fill:#e0f7fa,stroke:#00acc1,stroke-width:2px
     style Backend fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style Redis fill:#fff3e0,stroke:#ff6f00,stroke-width:2px;
     style PostgreSQL fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
     style RaspberryPi fill:#f8bbd0,stroke:#e91e63,stroke-width:2px;
     style YouTube fill:#ffe6e6,stroke:#ff0000,stroke-width:2px;
@@ -53,7 +55,8 @@ graph TD
 - **ORM layer**: [SQLModel](https://github.com/fastapi/sqlmodel)
 - **Migrations**: [Alembic](https://alembic.sqlalchemy.org/en/latest/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/)
-- **Frontend**: [Expo](https://docs.expo.dev/) (planned)
+- **Caching**: [Redis](https://redis.io/)
+- **Frontend**: [Expo](https://docs.expo.dev/)
 - **Machine learning**: [PyTorch](https://pytorch.org/) (planned)
 
 ## Backend Application Structure
