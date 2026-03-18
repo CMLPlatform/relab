@@ -56,8 +56,8 @@ docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
 
 This runs:
 
-- `backend_user_upload_backups`: Scheduled user upload backups, backed up to `$BACKUP_DIR/user_upload_backups` directory
-- `database_backups`: Scheduled PostgreSQL backups, backed up to `$BACKUP_DIR/postgres_db` directory
+- `backend-user-upload-backups`: Scheduled user upload backups, backed up to `$BACKUP_DIR/user_upload_backups` directory
+- `database-backups`: Scheduled PostgreSQL backups, backed up to `$BACKUP_DIR/postgres_db` directory
 
 Backup schedules and retention policies are configured in [`compose.prod.yml`](../../../compose.prod.yml).
 
