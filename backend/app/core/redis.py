@@ -119,25 +119,6 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
         return True
 
 
-def get_redis_dependency(request: Request) -> Redis | None:
-    """FastAPI dependency to get Redis client from app state.
-
-    Args:
-        request: FastAPI request object
-
-    Returns:
-        Redis client instance, or None if Redis is not available
-
-    Usage:
-        @app.get("/example")
-        async def example(redis: Redis | None = Depends(get_redis_dependency)):
-            if redis is None:
-                raise HTTPException(status_code=503, detail="Redis is not available")
-            await redis.get("key")
-    """
-    return request.app.state.redis
-
-
 def get_redis(request: Request) -> Redis:
     """FastAPI dependency to get Redis client from application state (raises error if unavailable).
 

@@ -16,6 +16,7 @@ from app.api.auth.utils.email_validation import init_email_checker
 from app.api.auth.utils.rate_limit import limiter
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
+from app.api.common.routers.health import router as health_router
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.core.cache import init_fastapi_cache
@@ -92,6 +93,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Include health check routes (liveness and readiness probes)
+app.include_router(health_router)
 
 # Include main API routes
 app.include_router(router)
