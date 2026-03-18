@@ -11,7 +11,16 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_HOST: database # Point to the database service
+      DATABASE_PORT: 5432
       REDIS_HOST: cache # Point to the cache service
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request;\ntry:\n    code = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).getcode()\nexcept Exception:\n    sys.exit(1)\nsys.exit(0 if code == 200 else 1)",
+        ]
     restart: unless-stopped
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
@@ -57,23 +66,44 @@ services:
     restart: unless-stopped
 
   docs:
-    image: squidfunk/mkdocs-material:9@sha256:f5c556a6d30ce0c1c0df10e3c38c79bbcafdaea4b1c1be366809d0d4f6f9d57f
+    build:
+      context: ./docs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request;\ntry:\n    code = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).getcode()\nexcept Exception:\n    sys.exit(1)\nsys.exit(0 if code == 200 else 1)",
+        ]
     restart: unless-stopped
-    volumes:
-      - ./docs:/docs
 
   frontend-app:
     build:
       context: ./frontend-app
     depends_on:
       - backend
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8081/health/').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))",
+        ]
     restart: unless-stopped
 
   frontend-web:
     build:
       context: ./frontend-web
-    depends_on:
-      - backend
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8081/health').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))",
+        ]
     restart: unless-stopped
 
 volumes:

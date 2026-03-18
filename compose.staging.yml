@@ -1,6 +1,11 @@
 name: relab_staging
 
 services:
+  frontend-web:
+    build:
+      args:
+        BUILD_MODE: staging
+
   backend:
     environment:
       ENVIRONMENT: staging

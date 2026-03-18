@@ -25,8 +25,14 @@ services:
       - "5433:5432"
 
   docs:
+    build:
+      context: ./docs
+      dockerfile: Dockerfile.dev
     ports:
       - "8012:8000"
+    volumes:
+      - ./docs:/opt/relab/docs # Mount source code for hot reload
+      - /opt/relab/docs/.venv # Prevent overwriting local virtual environment
 
   frontend-app:
     build:
@@ -44,6 +50,6 @@ services:
     volumes:
       - ./frontend-web:/opt/relab/frontend-web # Mount source code for hot reload
       - /opt/relab/frontend-web/node_modules # Prevent overwriting local node_modules
-      - /opt/relab/frontend-web/.expo # Prevent overwriting local Expo files
+      - /opt/relab/frontend-web/.astro # Prevent overwriting local Astro files
     ports:
       - "8010:8081"
