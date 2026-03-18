@@ -71,6 +71,7 @@ Only needed for: custom development, institutional deployment, offline usage, or
    - Platform: <http://127.0.0.1:8010>
    - API Documentation: <http://127.0.0.1:8011>
    - Documentation: <http://127.0.0.1:8012>
+   - App: <http://127.0.0.1:8013>
 
    Log in with the superuser credentials from your `backend/.env` file to explore the platform.
 
@@ -88,7 +89,8 @@ To host the Reverse Engineering Lab platform using Cloudflare and Docker, follow
 
    - Configure the tunnel to forward traffic directly from the docker services:
 
-     - `frontend:8081`
+     - `frontend-app:8081`
+     - `frontend-web:8081`
      - `backend:8000`
      - `docs:8000`
 

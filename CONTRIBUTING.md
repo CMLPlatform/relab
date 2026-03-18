@@ -406,7 +406,7 @@ This project uses [MJML](https://mjml.io/) to write email templates and [Jinja2]
 
   ```bash
   cd backend
-  python scripts/compile_email_templates.py
+  uv run python -m scripts.compile_email_templates
   ```
 
 - **Interactive Preview**
