@@ -3,29 +3,40 @@
 from __future__ import annotations
 
 import json
+import secrets
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import status
+from fastapi import HTTPException, status
 from fastapi_users.exceptions import UserAlreadyExists
+from fastapi_users.jwt import decode_jwt
 
+from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import (
     DisposableEmailError,
     UserNameAlreadyExistsError,
 )
-from app.api.auth.models import User
 from app.api.auth.schemas import (
     UserCreate,
     UserCreateWithOrganization,
+    UserUpdate,
 )
-from app.api.auth.services.session_service import create_session
+from app.api.auth.services.oauth import (
+    CSRF_TOKEN_KEY,
+    BaseOAuthRouterBuilder,
+    OAuthCookieSettings,
+    generate_csrf_token,
+    generate_state_token,
+)
+from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
     from httpx import AsyncClient
     from redis import Redis
+    from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Constants for test values
 TEST_EMAIL = "newuser@example.com"
@@ -119,7 +130,6 @@ class TestRegistrationEndpoint:
             "username": EXISTING_USERNAME,
         }
 
-
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
             mock_create_override.side_effect = UserNameAlreadyExistsError(user_data["username"])
 
@@ -135,7 +145,6 @@ class TestRegistrationEndpoint:
             "password": TEST_PASSWORD,
             "username": "tempuser",
         }
-
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
             mock_create_override.side_effect = DisposableEmailError(user_data["email"])
@@ -217,7 +226,7 @@ class TestLoginEndpoint:
                 try:
                     data = response.json()
                     assert "access_token" in data or len(data) > 0  # noqa: PLR2004
-                except (ValueError, json.JSONDecodeError):
+                except ValueError, json.JSONDecodeError:
                     # Response may be empty (204 No Content) with token in header
                     pass
             # Refresh token is set as httpOnly cookie via on_after_login
@@ -308,96 +317,6 @@ class TestLogoutEndpoint:
 
 
 @pytest.mark.asyncio
-class TestLogoutAllDevices:
-    """Tests for logout from all devices."""
-
-    async def test_logout_all_devices(self, async_client: AsyncClient, superuser_client: AsyncClient) -> None:
-        """Test logging out from all devices."""
-        del async_client
-        # Use superuser client for authenticated request
-        response = await superuser_client.post("/auth/logout-all")
-
-        if response.status_code == status.HTTP_200_OK:
-            data = response.json()
-            assert "message" in data  # noqa: PLR2004
-            assert "sessions_revoked" in data  # noqa: PLR2004
-            assert data["sessions_revoked"] >= 0
-
-    async def test_logout_all_devices_with_body_token(
-        self, async_client: AsyncClient, superuser_client: AsyncClient
-    ) -> None:
-        """Test logging out from all devices using Bearer auth (refresh token in JSON body)."""
-        del async_client
-        logout_data = {"refresh_token": DUMMY_REFRESH_TOKEN}
-        response = await superuser_client.post("/auth/logout-all", json=logout_data)
-
-        if response.status_code == status.HTTP_200_OK:
-            data = response.json()
-            assert "message" in data  # noqa: PLR2004
-            assert "sessions_revoked" in data  # noqa: PLR2004
-            assert data["sessions_revoked"] >= 0
-
-    async def test_logout_all_devices_unauthenticated(self, async_client: AsyncClient) -> None:
-        """Test logout all requires authentication."""
-        response = await async_client.post("/auth/logout-all")
-
-        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
-
-
-@pytest.mark.asyncio
-class TestSessionManagement:
-    """Tests for session management endpoints."""
-
-    async def test_list_sessions_empty(self, async_client: AsyncClient, superuser_client: AsyncClient) -> None:
-        """Test listing sessions when user has none."""
-        del async_client
-        response = await superuser_client.get("/auth/sessions")
-
-        if response.status_code == status.HTTP_200_OK:
-            data = response.json()
-            assert isinstance(data, list)
-
-    async def test_list_sessions_unauthenticated(self, async_client: AsyncClient) -> None:
-        """Test listing sessions requires authentication."""
-        response = await async_client.get("/auth/sessions")
-
-        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
-
-    async def test_revoke_session(
-        self,
-        superuser_client: AsyncClient,
-        mock_redis_dependency: Redis,
-        superuser: User,
-    ) -> None:
-        """Test revoking a specific session."""
-        # Create a session for the superuser
-        session_id = await create_session(
-            mock_redis_dependency,
-            superuser.id,  # Use superuser's actual ID
-            USER_AGENT,
-            SESSION_REFRESH_TOKEN,
-            IP_ADDRESS,
-        )
-
-        # Try to revoke
-        response = await superuser_client.delete(f"/auth/sessions/{session_id}")
-
-        # Should succeed or fail gracefully
-        assert response.status_code in [
-            status.HTTP_200_OK,
-            status.HTTP_204_NO_CONTENT,
-            status.HTTP_401_UNAUTHORIZED,
-            status.HTTP_404_NOT_FOUND,
-        ]
-
-    async def test_revoke_session_unauthenticated(self, async_client: AsyncClient) -> None:
-        """Test revoking session requires authentication."""
-        response = await async_client.delete("/auth/sessions/fake-session-id")
-
-        assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
-
-
-@pytest.mark.asyncio
 class TestRateLimiting:
     """Tests for rate limiting on auth endpoints - should be DISABLED in tests."""
 
@@ -417,3 +336,238 @@ class TestRateLimiting:
         # Should get 400 (bad credentials) or 500 (other errors), not 429 (rate limit)
         # The limiter might not be fully disabled, so just verify no 429
         assert status.HTTP_429_TOO_MANY_REQUESTS not in responses, f"Rate limiting not disabled: {responses}"
+
+
+# Constants
+USER1_EMAIL = "update_user1@example.com"
+USER1_USERNAME = "user_one_unique"
+USER2_EMAIL = "update_user2@example.com"
+USER2_USERNAME = "user_two_unique"
+NEW_USERNAME = "totally_fresh_username"
+TAKEN_USERNAME = "already_taken_user"
+FRONTEND_REDIRECT_URI = "http://localhost:3000"
+JWT_DOT_COUNT = 2
+
+
+# ============================================================
+# Unit tests (no DB needed): OAuth helper functions
+# ============================================================
+
+
+@pytest.mark.unit
+class TestOAuthHelpers:
+    """Unit tests for OAuth helper functions in custom_oauth.py."""
+
+    def test_generate_csrf_token_is_url_safe_string(self) -> None:
+        """Verify generate_csrf_token() returns a non-empty URL-safe string."""
+        token = generate_csrf_token()
+
+        assert isinstance(token, str)
+        assert len(token) > 0
+
+    def test_generate_csrf_token_is_unique(self) -> None:
+        """Verify repeated calls to generate_csrf_token() produce different tokens."""
+        token1 = generate_csrf_token()
+        token2 = generate_csrf_token()
+
+        assert token1 != token2
+
+    def test_generate_state_token_returns_jwt(self) -> None:
+        """Verify generate_state_token() returns a JWT string."""
+        data = {CSRF_TOKEN_KEY: "test-csrf"}
+        secret = "test-secret"  # noqa: S105
+
+        token = generate_state_token(data, secret)
+
+        assert isinstance(token, str)
+        # JWT has 3 dot-separated parts
+        assert token.count(".") == JWT_DOT_COUNT
+
+    def test_generate_state_token_embeds_csrf(self) -> None:
+        """Verify the generated state token contains the CSRF data when decoded."""
+        csrf = secrets.token_urlsafe(16)
+        data = {CSRF_TOKEN_KEY: csrf}
+        secret = "my-secret"  # noqa: S105
+
+        token = generate_state_token(data, secret)
+        decoded = decode_jwt(token, secret, ["fastapi-users:oauth-state"])
+
+        assert decoded[CSRF_TOKEN_KEY] == csrf
+
+
+@pytest.mark.unit
+class TestOAuthRouterBuilderCSRF:
+    """Unit tests for BaseOAuthRouterBuilder CSRF verification."""
+
+    def _make_builder(self) -> BaseOAuthRouterBuilder:
+        """Create a builder with a dummy OAuth client."""
+        mock_client = MagicMock()
+        mock_client.name = "github"
+        settings = OAuthCookieSettings(secure=False)
+        return BaseOAuthRouterBuilder(
+            oauth_client=mock_client,
+            state_secret="my-state-secret",  # noqa: S106
+            cookie_settings=settings,
+        )
+
+    def test_verify_state_raises_on_invalid_jwt(self) -> None:
+        """Verify verify_state() raises HTTPException for invalid state JWT."""
+        builder = self._make_builder()
+        mock_request = MagicMock()
+        mock_request.cookies = {}
+
+        with pytest.raises(HTTPException) as exc_info:
+            builder.verify_state(mock_request, "not-a-valid-jwt")
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_verify_state_raises_on_csrf_mismatch(self) -> None:
+        """Verify verify_state() raises HTTPException when CSRF tokens don't match."""
+        builder = self._make_builder()
+
+        # Generate a valid state with CSRF token
+        csrf_token = generate_csrf_token()
+        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, "my-state-secret")
+
+        # Provide a different (wrong) CSRF token in the cookie
+        mock_request = MagicMock()
+        mock_request.cookies = {OAuthCookieSettings.name: "wrong-csrf-token"}
+
+        with pytest.raises(HTTPException) as exc_info:
+            builder.verify_state(mock_request, state)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_verify_state_succeeds_with_matching_csrf(self) -> None:
+        """Verify verify_state() returns state data when CSRF tokens match."""
+        builder = self._make_builder()
+
+        csrf_token = generate_csrf_token()
+        state = generate_state_token(
+            {CSRF_TOKEN_KEY: csrf_token, "frontend_redirect_uri": FRONTEND_REDIRECT_URI},
+            "my-state-secret",
+        )
+
+        mock_request = MagicMock()
+        mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
+
+        state_data = builder.verify_state(mock_request, state)
+
+        assert state_data[CSRF_TOKEN_KEY] == csrf_token
+        assert state_data["frontend_redirect_uri"] == FRONTEND_REDIRECT_URI
+
+
+# ============================================================
+# Integration tests (DB required): user update validation
+# ============================================================
+
+
+@pytest.mark.integration
+class TestUpdateUserValidation:
+    """Integration tests for update_user_override() username uniqueness logic."""
+
+    @pytest.mark.asyncio
+    async def test_update_username_to_available_name_succeeds(self, session: AsyncSession) -> None:
+        """Verify updating to a free username returns the updated schema unchanged."""
+        user = await UserFactory.create_async(
+            session,
+            email=USER1_EMAIL,
+            username=USER1_USERNAME,
+            hashed_password="pw",  # noqa: S106
+        )
+
+        user_db = MagicMock()
+        user_db.session = session
+
+        user_update = UserUpdate(username=NEW_USERNAME)
+        result = await update_user_override(user_db, user, user_update)
+
+        assert result.username == NEW_USERNAME
+
+    @pytest.mark.asyncio
+    async def test_update_username_to_same_name_succeeds(self, session: AsyncSession) -> None:
+        """Verify a user can 'update' their username to their own current username without error."""
+        user = await UserFactory.create_async(
+            session,
+            email=USER1_EMAIL,
+            username=USER1_USERNAME,
+            hashed_password="pw",  # noqa: S106
+        )
+
+        user_db = MagicMock()
+        user_db.session = session
+
+        # Updating to own username should not raise
+        user_update = UserUpdate(username=USER1_USERNAME)
+        result = await update_user_override(user_db, user, user_update)
+
+        assert result.username == USER1_USERNAME
+
+    @pytest.mark.asyncio
+    async def test_update_username_to_taken_name_raises(self, session: AsyncSession) -> None:
+        """Verify UserNameAlreadyExistsError is raised when username is already taken."""
+        # Create two users
+        await UserFactory.create_async(
+            session,
+            email=USER1_EMAIL,
+            username=TAKEN_USERNAME,
+            hashed_password="pw",  # noqa: S106
+        )
+        user2 = await UserFactory.create_async(
+            session,
+            email=USER2_EMAIL,
+            username=USER2_USERNAME,
+            hashed_password="pw",  # noqa: S106
+        )
+
+        user_db = MagicMock()
+        user_db.session = session
+
+        # user2 tries to take user1's username
+        user_update = UserUpdate(username=TAKEN_USERNAME)
+
+        with pytest.raises(UserNameAlreadyExistsError):
+            await update_user_override(user_db, user2, user_update)
+
+    @pytest.mark.asyncio
+    async def test_update_without_username_change_passes_through(self, session: AsyncSession) -> None:
+        """Verify update_user_override does not reject updates that don't change username."""
+        user = await UserFactory.create_async(
+            session,
+            email=USER1_EMAIL,
+            username=USER1_USERNAME,
+            hashed_password="pw",  # noqa: S106
+        )
+
+        user_db = MagicMock()
+        user_db.session = session
+
+        # No username in the update
+        user_update = UserUpdate(username=None)
+        result = await update_user_override(user_db, user, user_update)
+
+        assert result.username is None
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+class TestUpdateUserEndpoint:
+    """Integration tests for the user update API endpoint (PATCH /users/me).
+
+    Note: The full authentication flow for PATCH /users/me goes through the
+    FastAPI-Users internal auth, which cannot be fully bypassed via dependency
+    overrides in tests. The core username validation is covered comprehensively
+    by TestUpdateUserValidation above. These tests cover the HTTP layer.
+    """
+
+    async def test_update_user_unauthenticated_returns_401(self, async_client: AsyncClient) -> None:
+        """Verify PATCH /users/me returns 401 without authentication."""
+        response = await async_client.patch("/users/me", json={"username": "any_name"})
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_get_me_unauthenticated_returns_401(self, async_client: AsyncClient) -> None:
+        """Verify GET /users/me returns 401 without authentication."""
+        response = await async_client.get("/users/me")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

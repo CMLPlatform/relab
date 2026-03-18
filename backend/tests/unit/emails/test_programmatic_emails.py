@@ -95,9 +95,7 @@ async def test_send_registration_email(email_data: dict[str, str], mock_email_se
 
 
 @pytest.mark.asyncio
-async def test_send_registration_email_no_username(
-    email_data: dict[str, str], mock_email_sending: AsyncMock
-) -> None:
+async def test_send_registration_email_no_username(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration email works without username."""
     await send_registration_email(email_data["email"], None, email_data["token"])
     mock_email_sending.assert_called_once()

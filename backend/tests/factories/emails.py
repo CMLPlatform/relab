@@ -10,6 +10,7 @@ from polyfactory.factories.typed_dict_factory import TypedDictFactory
 
 class EmailContext(TypedDict):
     """Type definition for email context."""
+
     username: str
     verification_link: str
     reset_link: str
@@ -62,6 +63,7 @@ class EmailContextFactory(TypedDictFactory[EmailContext]):
 
 class EmailData(TypedDict):
     """Type definition for email data."""
+
     email: str
     username: str
     token: str

@@ -15,6 +15,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_same_args_same_key(self) -> None:
         """Test that identical arguments produce the same cache key."""
+
         # Setup: Mock function
         def mock_func() -> None:
             pass
@@ -43,6 +44,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_different_args_different_keys(self) -> None:
         """Test that different arguments produce different cache keys."""
+
         # Setup
         def mock_func() -> None:
             pass
@@ -70,6 +72,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_excludes_async_session(self, mocker: pytest_mock.MockerFixture) -> None:
         """Test that AsyncSession instances are excluded from cache key generation."""
+
         # Setup
         def mock_func() -> None:
             pass
@@ -101,6 +104,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_includes_non_excluded_params(self, mocker: pytest_mock.MockerFixture) -> None:
         """Test that non-excluded parameters are included in cache key."""
+
         # Setup
         def mock_func() -> None:
             pass
@@ -130,6 +134,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_handles_none_kwargs(self) -> None:
         """Test that None kwargs are handled gracefully."""
+
         # Setup
         def mock_func() -> None:
             pass
@@ -151,6 +156,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_includes_positional_args(self) -> None:
         """Test that positional arguments are included in cache key."""
+
         # Setup
         def mock_func() -> None:
             pass
@@ -178,6 +184,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_includes_function_identity(self) -> None:
         """Test that different functions produce different cache keys."""
+
         # Setup
         def func1() -> None:
             pass
@@ -210,6 +217,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_namespace_affects_key(self) -> None:
         """Test that different namespaces produce different cache keys."""
+
         # Setup
         def mock_func() -> None:
             pass
@@ -239,6 +247,7 @@ class TestKeyBuilderExcludingDependencies:
 
     def test_empty_namespace(self) -> None:
         """Test that empty namespace produces valid cache key."""
+
         # Setup
         def mock_func() -> None:
             pass

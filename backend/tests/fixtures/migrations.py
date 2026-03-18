@@ -3,6 +3,7 @@
 Utilities for testing Alembic migrations, schema changes, and database evolution.
 """
 
+import os
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,17 @@ from alembic.config import Config
 from sqlalchemy import Engine, create_engine, inspect, text
 
 from alembic import command
-from app.core.config import settings
+
+
+def _build_test_database_url() -> str:
+    """Build test database URL from environment (set by pytest_configure)."""
+    host = os.environ["DATABASE_HOST"]
+    port = os.environ["DATABASE_PORT"]
+    user = os.environ["POSTGRES_USER"]
+    password = os.environ["POSTGRES_PASSWORD"]
+    test_db = os.getenv("POSTGRES_TEST_DB", "test_relab")
+
+    return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{test_db}"
 
 
 class MigrationHelper:
@@ -20,7 +31,7 @@ class MigrationHelper:
         """Initialize migration helper with Alembic config."""
         self.alembic_cfg = alembic_cfg
         self.sync_engine: Engine = create_engine(
-            settings.sync_database_url,
+            _build_test_database_url(),
             isolation_level="AUTOCOMMIT",
         )
 
@@ -136,7 +147,7 @@ def alembic_config() -> Config:
     config = Config()
     project_root: Path = Path(__file__).parents[2]  # Navigate to backend/
     config.set_main_option("script_location", str(project_root / "alembic"))
-    config.set_main_option("sqlalchemy.url", settings.sync_database_url)
+    config.set_main_option("sqlalchemy.url", _build_test_database_url())
     return config
 
 

@@ -11,7 +11,6 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 from app.core.redis import (
     close_redis,
     get_redis,
-    get_redis_dependency,
     get_redis_value,
     init_redis,
     ping_redis,
@@ -117,14 +116,6 @@ class TestRedisCore:
         mock_redis.set.side_effect = RedisError(ERROR_MSG)
         result = await set_redis_value(mock_redis, TEST_KEY, TEST_VALUE, ex=60)
         assert result is False
-
-    def test_get_redis_dependency(self) -> None:
-        """Test getting Redis client from request app state (dependency style)."""
-        mock_request = MagicMock(spec=Request)
-        mock_request.app.state.redis = FAKE_REDIS
-
-        result = get_redis_dependency(mock_request)
-        assert result == FAKE_REDIS
 
     def test_get_redis_success(self) -> None:
         """Test successful retrieval of Redis client from request."""

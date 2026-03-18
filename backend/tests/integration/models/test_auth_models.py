@@ -178,10 +178,9 @@ class TestUserModelTimestamps:
             updated_at=None,
         )
 
-        after_create = datetime.now(UTC)
-
         assert user.created_at is not None
-        assert before_create <= user.created_at <= after_create
+        # Allow minor clock skew between Python and the Database
+        assert abs((user.created_at - before_create).total_seconds()) < 5
 
     @pytest.mark.asyncio
     async def test_updated_at_set_on_insert(self, session: AsyncSession) -> None:
@@ -196,10 +195,9 @@ class TestUserModelTimestamps:
             updated_at=None,
         )
 
-        after_create = datetime.now(UTC)
-
         assert user.updated_at is not None
-        assert before_create <= user.updated_at <= after_create
+        # Allow minor clock skew between Python and the Database
+        assert abs((user.updated_at - before_create).total_seconds()) < 5
 
     @pytest.mark.asyncio
     async def test_timestamps_are_equal_on_creation(self, session: AsyncSession) -> None:

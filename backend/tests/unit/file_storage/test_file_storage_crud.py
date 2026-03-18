@@ -10,6 +10,7 @@ import pytest
 from fastapi import UploadFile
 from pydantic import HttpUrl
 
+from app.api.data_collection.models import Product
 from app.api.file_storage import crud
 from app.api.file_storage.crud import (
     create_file,
@@ -184,7 +185,7 @@ class TestImageStorageCrud:
         )
 
         with (
-            patch("app.api.file_storage.crud.get_file_parent_type_model"),
+            patch("app.api.file_storage.crud.get_file_parent_type_model", return_value=Product),
             patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists"),
         ):
             result = await crud.create_image(mock_session, image_create)

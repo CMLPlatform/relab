@@ -252,9 +252,7 @@ class TestCameraStreamRouters:
 
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.templates")
-    async def test_watch_preview(
-        self, mock_templates: MagicMock, mock_get_cam: MagicMock, mock_camera: Camera
-    ) -> None:
+    async def test_watch_preview(self, mock_templates: MagicMock, mock_get_cam: MagicMock, mock_camera: Camera) -> None:
         """Test rendering the preview watch page."""
         mock_get_cam.return_value = mock_camera
         mock_templates.TemplateResponse.return_value = TEMPLATE_HTML_CONTENT

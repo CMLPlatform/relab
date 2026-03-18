@@ -13,13 +13,9 @@ import pytest
 from fastapi import status
 from sqlmodel import select
 
-from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
-from app.api.auth.services import (
-    refresh_token_service,
-    session_service,
-)
+from app.api.auth.services import refresh_token_service
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -105,13 +101,8 @@ class TestCompleteAuthFlow:
         assert access_token is not None
         assert refresh_token is not None
 
-        # Step 3: Verify session was created in Redis
-        # Note: May be empty if user_id in response doesn't match DB - that's ok for this test
-        await mock_redis_dependency.smembers(f"user_sessions:{user_id}")  # type: ignore[invalid-await] # redis-py stubs incorrectly include synchronous return types in the async client
-
-        # Step 4: Use access token to access protected endpoint
-        headers = {"Authorization": f"Bearer {access_token}"}
-        await async_client.get("/auth/sessions", headers=headers)
+        # Step 3: Use access token to access protected endpoint
+        # (Skipping session check since sessions have been removed)
 
         # Step 5: Refresh the access token
         refresh_data = {"refresh_token": refresh_token}
@@ -132,132 +123,12 @@ class TestCompleteAuthFlow:
             assert "message" in logout_result  # noqa: PLR2004
 
             # Verify token is now blacklisted in Redis
-            is_blacklisted = mock_redis_dependency.exists(f"blacklist:{refresh_token}")
+            is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token}")
             assert is_blacklisted
 
             # Step 7: Try to use blacklisted token (should fail)
             retry_refresh = await async_client.post("/auth/refresh", json=refresh_data)
             assert retry_refresh.status_code == status.HTTP_401_UNAUTHORIZED
-
-    async def test_multi_device_login_and_session_management(
-        self, async_client: AsyncClient, mock_redis_dependency: Redis, session: AsyncSession
-    ) -> None:
-        """Test logging in from multiple devices and managing sessions."""
-        del mock_redis_dependency
-        # Step 1: Register user
-        register_data = {
-            "email": MULTI_DEVICE_EMAIL,
-            "password": FLOW_TEST_PASSWORD,
-            "username": MULTI_DEVICE_USERNAME,
-        }
-
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(**register_data)
-            register_response = await async_client.post("/auth/register", json=register_data)
-
-        if register_response.status_code != status.HTTP_201_CREATED:
-            pytest.skip("Registration failed")
-
-        # Fetch user from database to get ID (registration response doesn't include it)
-        user = await get_user_by_email(session, register_data["email"])
-        assert user is not None, "User not found in database after registration"
-
-        # Step 2: Login from "device 1" (mobile)
-        login_data = {"username": register_data["email"], "password": register_data["password"]}
-
-        # Simulate different user agents
-        device_1_headers = {"User-Agent": UA_MOBILE}
-        login_1 = await async_client.post("/auth/bearer/login", data=login_data, headers=device_1_headers)
-
-        if login_1.status_code != status.HTTP_200_OK:
-            pytest.skip("Login failed")
-
-        # Extract tokens from response and cookies
-        device_1_result = login_1.json() if login_1.text else {}
-        device_1_access = device_1_result.get("access_token")
-        device_1_refresh = login_1.cookies.get("refresh_token")
-
-        if not device_1_access or not device_1_refresh:
-            pytest.skip("Tokens not available")
-
-        # Step 3: Login from "device 2" (desktop)
-        device_2_headers = {"User-Agent": UA_DESKTOP}
-        login_2 = await async_client.post("/auth/bearer/login", data=login_data, headers=device_2_headers)
-
-        if login_2.status_code != status.HTTP_200_OK:
-            pytest.skip("Second login failed")
-
-        device_2_result = login_2.json() if login_2.text else {}
-        device_2_access = device_2_result.get("access_token")
-        device_2_refresh = login_2.cookies.get("refresh_token")
-
-        if not device_2_access or not device_2_refresh:
-            pytest.skip("Tokens not available")
-
-        # Verify we have different refresh tokens for each device
-        assert device_1_refresh != device_2_refresh
-
-        # Step 4: List all sessions using device 1 access token
-        auth_headers = {"Authorization": f"Bearer {device_1_access}"}
-        await async_client.get("/auth/sessions", headers=auth_headers)
-
-        # Step 5: Logout from device 1 only
-        logout_data = {"refresh_token": device_1_refresh}
-        await async_client.post("/auth/bearer/logout", json=logout_data)
-
-    async def test_logout_all_devices(
-        self, async_client: AsyncClient, mock_redis_dependency: Redis, session: AsyncSession
-    ) -> None:
-        """Test logging out from all devices simultaneously."""
-        del session
-        del mock_redis_dependency
-        # Step 1: Register and login from multiple devices
-        register_data = {
-            "email": LOGOUT_ALL_EMAIL,
-            "password": FLOW_TEST_PASSWORD,
-            "username": LOGOUT_ALL_USERNAME,
-        }
-
-        with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(**register_data)
-            register_response = await async_client.post("/auth/register", json=register_data)
-
-        if register_response.status_code != status.HTTP_201_CREATED:
-            pytest.skip("Registration failed")
-
-        login_data = {"username": register_data["email"], "password": register_data["password"]}
-
-        # Login from 3 devices
-        device_logins = []
-        for ua in [
-            UA_MOBILE,
-            UA_DESKTOP,
-            "Mozilla/5.0 (Macintosh)",
-        ]:
-            headers = {"User-Agent": ua}
-            response = await async_client.post("/auth/bearer/login", data=login_data, headers=headers)
-            if response.status_code == status.HTTP_200_OK:
-                result = response.json() if response.text else {}
-                access_token = result.get("access_token")
-                refresh_token = response.cookies.get("refresh_token")
-                if access_token and refresh_token:
-                    device_logins.append({"access_token": access_token, "refresh_token": refresh_token})
-
-        if len(device_logins) < 2:
-            pytest.skip("Not enough successful logins to test multi-device")
-
-        # Step 2: Use first device to logout from all devices
-        auth_headers = {"Authorization": f"Bearer {device_logins[0]['access_token']}"}
-        logout_all_response = await async_client.post("/auth/logout-all", headers=auth_headers)
-
-        if logout_all_response.status_code == status.HTTP_200_OK:
-            result = logout_all_response.json()
-            assert "sessions_revoked" in result  # noqa: PLR2004
-
-            # Step 3: Verify all refresh tokens are blacklisted
-            for tokens in device_logins:
-                refresh_data = {"refresh_token": tokens["refresh_token"]}
-                await async_client.post("/auth/bearer/refresh", json=refresh_data)
 
     async def test_login_tracking(
         self, async_client: AsyncClient, mock_redis_dependency: Redis, session: AsyncSession
@@ -320,60 +191,9 @@ class TestCompleteAuthFlow:
         assert len(cookies) > 0 or "set-cookie" in login_response.headers  # noqa: PLR2004
 
         # Step 3: Access protected endpoint using cookies
-        # Cookies should automatically be included in subsequent requests
-        await async_client.get("/auth/sessions")
 
         # Step 4: Logout (clear cookies)
         await async_client.post("/auth/cookie/logout")
-
-
-@pytest.mark.asyncio
-class TestSessionPersistence:
-    """Test session persistence and TTL behavior."""
-
-    async def test_session_ttl_matches_refresh_token(self, mock_redis_dependency: Redis) -> None:
-        """Test that session TTL matches refresh token expiry."""
-        user_id = TEST_USER_ID
-        session_id = TEST_SESSION_ID
-
-        # Create refresh token and session
-        refresh_token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id, session_id)
-        session_created_id = await session_service.create_session(
-            mock_redis_dependency, user_id, "Mozilla/5.0", refresh_token, TEST_IP
-        )
-
-        # Check TTLs
-        token_ttl = await mock_redis_dependency.ttl(f"refresh_token:{refresh_token}")
-        session_ttl = await mock_redis_dependency.ttl(f"session:{user_id}:{session_created_id}")
-
-        expected_ttl = auth_settings.refresh_token_expire_days * 24 * 60 * 60
-
-        # Both should have approximately the same TTL
-        assert abs(token_ttl - expected_ttl) < 5
-        assert abs(session_ttl - expected_ttl) < 5
-        assert abs(token_ttl - session_ttl) < 5
-
-    async def test_session_activity_extends_ttl(self, mock_redis_dependency: Redis) -> None:
-        """Test that session activity updates extend TTL."""
-        user_id = TEST_USER_ID
-        session_created_id = await session_service.create_session(
-            mock_redis_dependency, user_id, "Mozilla/5.0", "test-token-123", TEST_IP
-        )
-
-        session_key = f"session:{user_id}:{session_created_id}"
-
-        # Reduce TTL to simulate passage of time
-        await mock_redis_dependency.expire(session_key, 1000)
-        reduced_ttl = await mock_redis_dependency.ttl(session_key)
-        assert reduced_ttl < 1100
-
-        # Update activity
-        await session_service.update_session_activity(mock_redis_dependency, session_created_id, user_id)
-
-        # TTL should be restored
-        new_ttl = await mock_redis_dependency.ttl(session_key)
-        expected_ttl = auth_settings.refresh_token_expire_days * 24 * 60 * 60
-        assert abs(new_ttl - expected_ttl) < 5
 
 
 @pytest.mark.asyncio
@@ -384,32 +204,17 @@ class TestErrorHandling:
         """Test refreshing with an expired token returns 401."""
         # Create a refresh token manually and then delete it (simulate expiry)
         user_id = TEST_USER_ID
-        session_id = TEST_SESSION_ID
 
-        token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id, session_id)
+        token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id)
 
         # Delete the token (simulate expiry)
-        await mock_redis_dependency.delete(f"refresh_token:{token}")
+        await mock_redis_dependency.delete(f"auth:rt:{token}")
 
         # Try to refresh
         refresh_data = {"refresh_token": token}
         response = await async_client.post("/auth/refresh", json=refresh_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    async def test_revoke_nonexistent_session(self, async_client: AsyncClient, superuser_client: AsyncClient) -> None:
-        """Test revoking a non-existent session returns 404."""
-        del async_client
-        response = await superuser_client.delete("/auth/sessions/nonexistent-session-id-12345")
-
-        # Should return 401 (not authenticated via token), 404, succeed silently, or error
-        assert response.status_code in [
-            status.HTTP_200_OK,
-            status.HTTP_204_NO_CONTENT,
-            status.HTTP_401_UNAUTHORIZED,
-            status.HTTP_404_NOT_FOUND,
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-        ]
 
     async def test_concurrent_logout_and_refresh(self, async_client: AsyncClient, mock_redis_dependency: Redis) -> None:
         """Test handling of concurrent logout and refresh operations."""

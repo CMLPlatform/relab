@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
+from sqlmodel import select
 
 from app.api.data_collection.models import Product
 from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
@@ -87,8 +88,6 @@ class TestDataCollectionEndpoints:
         )
 
         # Verify product was created in session
-        from sqlmodel import select
-
         stmt = select(Product).where(Product.id == product.id)
         result = await session.exec(stmt)
         assert result.first() is not None
@@ -105,7 +104,6 @@ class TestDataCollectionEndpoints:
     ) -> None:
         """Test GET /products/tree retrieves product hierarchy."""
         # Verify product exists in session
-        from sqlmodel import select
 
         stmt = select(Product).where(Product.id == setup_product.id)
         result = await session.exec(stmt)
