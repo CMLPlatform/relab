@@ -99,3 +99,6 @@ MANIFEST
 
 # Include built email templates
 !app/templates/emails/build/
+
+# Test coverage reports
+reports/coverage/*

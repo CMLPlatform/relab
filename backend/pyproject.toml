@@ -159,15 +159,22 @@
   testpaths = ["tests"]
 
 [tool.coverage.run]
-  branch = true
-  omit   = ["*/__pycache__/*", "*/alembic/*", "*/migrations/*", "*/tests/*"]
-  source = ["app"]
+  branch    = true
+  data_file = "reports/coverage/.coverage"
+  omit      = ["*/__pycache__/*", "*/alembic/*", "*/tests/*"]
+  source    = ["app"]
 
 [tool.coverage.report]
   fail_under   = 80    # Target 80%+ coverage
   precision    = 2
   show_missing = true
   skip_covered = false
+
+[tool.coverage.html]
+  directory = "reports/coverage/html"
+
+[tool.coverage.xml]
+  output = "reports/coverage/coverage.xml"
 
 [tool.ruff]
   fix            = true

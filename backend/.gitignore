@@ -83,3 +83,7 @@ backups/*
 
 # Include built email templates
 !app/templates/emails/build/
+
+# Test coverage reports
+reports/coverage/*
+!reports/coverage/badge.svg
