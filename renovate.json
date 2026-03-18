@@ -7,18 +7,39 @@
     ":preserveSemverRanges",
     "schedule:weekly"
   ],
+  "pep621": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
+  "helpers": [
+    "pinDigests:true"
+  ],
   "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackagePatterns": ["*"],
+      "automerge": true,
+      "labels": ["automerge"]
+    },
     {
       "groupName": "backend",
       "matchFileNames": ["backend/pyproject.toml", "backend/.python-version", "backend/Dockerfile*"]
     },
     {
-      "groupName": "frontend",
-      "matchFileNames": ["frontend/package.json", "frontend/Dockerfile*"]
+      "groupName": "frontend-web",
+      "matchFileNames": ["frontend-web/package.json", "frontend-web/Dockerfile*"]
+    },
+    {
+      "groupName": "frontend-app",
+      "matchFileNames": ["frontend-app/package.json", "frontend-app/Dockerfile*"]
     },
     {
       "groupName": "infrastructure",
-      "matchFileNames": ["**/compose.*.yml", "**/compose.yml"]
+      "matchFileNames": ["**/compose.*.yml", "**/compose.yml", ".github/workflows/**"],
+      "pinDigests": true
     }
   ],
   "labels": ["dependencies", "renovate"]
