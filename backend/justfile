@@ -13,12 +13,19 @@ default:
 # Run all tests
 
 test *ARGS:
+    mkdir -p reports/coverage
     uv run pytest {{ ARGS }}
 
 # Run tests with coverage report
 
 test-cov:
+    mkdir -p reports/coverage
     uv run pytest --cov --cov-report=html --cov-report=term
+
+# Run tests with XML coverage report (for CI)
+test-cov-ci:
+    mkdir -p reports/coverage
+    uv run pytest --cov --cov-report=xml --cov-report=term
 
 # Run only unit tests (fast)
 
@@ -35,47 +42,22 @@ test-integration:
 test-api:
     uv run pytest -m api
 
-# Run tests in parallel
-
-test-parallel:
-    uv run pytest -n auto
-
-# Run tests and open coverage report
-
-test-cov-open: test-cov
-    open htmlcov/index.html
-
 # ============================================================================
 # Linting & Formatting
 # ============================================================================
-# Lint code with ruff
+# Run backend quality checks (lint, format, type check)
 
-lint:
+check:
     uv run ruff check
-
-# Lint and auto-fix issues
-
-lint-fix:
-    uv run ruff check --fix
-
-# Format code with ruff
-
-fmt:
-    uv run ruff format
-
-# Type check with Ty
-
-typecheck:
     uv run ty check
+    uv run alembic check
+    @echo "✓ All backend checks passed"
 
-# Run all checks (lint + typecheck)
+# Automatically fix code issues (lint + format)
 
-check: lint typecheck
-    @echo "✓ All checks passed"
-
-# Fix and format code
-
-fix: lint-fix fmt
+fix:
+    uv run ruff check --fix
+    uv run ruff format
     @echo "✓ Code fixed and formatted"
 
 # ============================================================================
@@ -99,7 +81,7 @@ migrate-create MESSAGE:
 # Check if migrations are up to date
 
 migrate-check:
-    uv run alembic-autogen-check
+    uv run alembic check
 
 # Show migration history
 
@@ -122,23 +104,33 @@ migrate-reset:
 # ============================================================================
 # Create superuser account
 
-superuser:
-    uv run relab-create-superuser
+create-superuser:
+    uv run python -m scripts.create_superuser
 
 # Check if database is empty
 
 db-is-empty:
-    uv run relab-db-is-empty
+    uv run python -m scripts.db_is_empty
 
 # Seed database with dummy data
 
-seed:
-    uv run relab-seed
+seed-dummy-data:
+    uv run python -m scripts.seed.dummy_data
 
 # Clear Redis cache (specify namespace: background-data, docs)
 
 clear-cache NAMESPACE="background-data":
-    uv run relab-clear-cache {{ NAMESPACE }}
+    uv run python -m scripts.clear_cache {{ NAMESPACE }}
+
+# Compile MJML email templates to HTML
+
+compile-email:
+    uv run python -m scripts.compile_email_templates
+
+# Render entity relationship diagrams
+
+render-erd:
+    uv run python -m scripts.render_erd
 
 # ============================================================================
 # Development
@@ -158,51 +150,6 @@ serve:
 shell:
     uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models import *"
 
-# ============================================================================
-# Utilities
-# ============================================================================
-# Compile MJML email templates to HTML
-
-compile-email:
-    uv run relab-compile-email
-
-# Render entity relationship diagrams
-
-render-erd:
-    uv run relab-render-erd
-
-# Generate coverage badge
-
-coverage-badge:
-    uv run coverage-badge -o coverage.svg -f
-
-# ============================================================================
-# Documentation
-# ============================================================================
-# Generate OpenAPI schema
-
-openapi:
-    uv run python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" > openapi.json
-    @echo "✓ OpenAPI schema saved to openapi.json"
-
-# ============================================================================
-# Docker
-# ============================================================================
-# Build backend Docker image
-
-docker-build:
-    docker compose build backend
-
-docker-up:
-    docker compose up backend db redis
-
-# Stop Docker services
-
-docker-down:
-    docker compose down
-
-docker-logs:
-    docker compose logs -f backend
 
 # ============================================================================
 # Maintenance
@@ -226,6 +173,5 @@ clean:
     @echo "✓ Cleaned caches and build artifacts"
 
 # Run full CI pipeline locally
-
 ci: check test migrate-check
     @echo "✓ CI pipeline passed"

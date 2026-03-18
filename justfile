@@ -13,29 +13,62 @@ install:
 update:
     uv lock --upgrade
 
-# Run pre-commit hooks on all files
-pre-commit:
-    pre-commit run --all-files
-
-# Run pre-commit hooks with auto-update
-pre-commit-update:
-    pre-commit autoupdate
-
-# Install pre-commit hooks
+# Install pre-commit hooks (run once after clone)
 pre-commit-install:
-    pre-commit install --hook-type pre-commit --hook-type commit-msg
+    uv run pre-commit install
+    @echo "✓ Pre-commit hooks installed"
 
-# Format all markdown files
-fmt-md:
-    pre-commit run mdformat --all-files
+# Run all pre-commit hooks on all files (useful before big commits)
+pre-commit:
+    uv run pre-commit run --all-files
+    @echo "✓ Pre-commit hooks passed"
 
-# Check for secrets/leaks
-check-secrets:
-    pre-commit run gitleaks --all-files
+# Update pre-commit hook versions (monthly maintenance)
+pre-commit-update:
+    uv run pre-commit autoupdate
+    @echo "✓ Pre-commit hooks updated"
 
-# Run commitizen check
-check-commit:
-    pre-commit run commitizen --all-files
+# ============================================================================
+# Quality Checks
+# ============================================================================
+
+# Run all quality checks (pre-commit + backend + frontend specific checks)
+# Pre-commit validates: markdown, YAML, ruff format/lint, gitleaks, secrets, etc
+# Then run backend-specific checks: alembic, type checking
+check:
+    uv run pre-commit run --all-files
+    @just backend/check
+    @just frontend-web/check
+    @echo "✓ All quality checks passed"
+
+# Auto-fix code issues
+fix:
+    @just backend/fix
+    @echo "✓ Code fixed"
+
+# ============================================================================
+# Frontend Web tasks (delegates to frontend-web/justfile)
+# ============================================================================
+
+# Run frontend-web quality checks
+frontend-web-check:
+    @just frontend-web/check
+
+# Build frontend-web for production
+frontend-web-build:
+    @just frontend-web/build
+
+# Build frontend-web for staging
+frontend-web-build-staging:
+    @just frontend-web/build-staging
+
+# Run frontend-web tests
+frontend-web-test:
+    @just frontend-web/test
+
+# Start frontend-web dev server
+frontend-web-dev:
+    @just frontend-web/dev
 
 # ============================================================================
 # Backend tasks (delegates to backend/justfile)
@@ -49,56 +82,33 @@ backend-test *ARGS:
 backend-test-cov:
     @just backend/test-cov
 
-# Lint backend code
-backend-lint:
-    @just backend/lint
-
-# Format backend code
-backend-fmt:
-    @just backend/fmt
-
-# Type check backend code
-backend-typecheck:
-    @just backend/typecheck
-
-# Run all backend checks (lint + typecheck)
-backend-check:
-    @just backend/check
-
 # Run backend migrations
 backend-migrate:
     @just backend/migrate
-
-# Create backend superuser
-backend-superuser:
-    @just backend/superuser
-
-# Seed backend database
-backend-seed:
-    @just backend/seed
 
 # Start backend dev server
 backend-dev:
     @just backend/dev
 
 # ============================================================================
-# Git shortcuts
+# Testing & CI
 # ============================================================================
 
-# Stage all changes
-add:
-    git add -A
+# Full local testing before PR submission
+test: check backend-test-cov frontend-web-test
+    @echo "✅ All code + tests passed"
 
-# Show git status
-status:
-    git status
+# Quick tests - Run on every commit
+test-quick:
+    @just backend/test
 
-# Show git diff
-diff:
-    git diff
+# ============================================================================
+# Clean & Maintenance
+# ============================================================================
 
 # Clean build artifacts and caches
 clean:
+    @just backend/clean
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
     find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
@@ -108,46 +118,22 @@ clean:
     @echo "✓ Cleaned caches and build artifacts"
 
 # ============================================================================
-# Docker Integration Testing
+# Docker
 # ============================================================================
 
-# Run the backend API integration test suite against a fully built production docker container
-docker-test:
-    @echo "🚀 Starting Docker CI Test Emulation..."
-    @echo "🧹 Tearing down existing containers..."
-    docker compose -f compose.yml -f compose.ci.yml down -v
-    
-    @echo "🏗️ Building and starting Docker containers..."
-    docker compose -f compose.yml -f compose.ci.yml up --build -d
-    
-    @echo "⏳ Waiting for the backend API to be healthy..."
-    sleep 10
-    docker compose -f compose.yml -f compose.ci.yml logs backend
-    
-    @echo "🔗 Grabbing dynamically allocated ephemeral ports and running tests..."
-    @just _docker-test-runner
-    
-    @echo "🧹 Tearing down the Docker test environment..."
-    docker compose -f compose.yml -f compose.ci.yml down -v
+docker_compose := "docker compose -p relab_ci -f compose.yml"
 
-[no-exit-message]
-_docker-test-runner:
+# Docker smoke tests: spin up full stack and verify all services are healthy
+docker-smoke-services:
     #!/usr/bin/env bash
-    set -e
-    
-    BACKEND_PORT=$(docker compose -f compose.yml -f compose.ci.yml port backend 8000 | cut -d: -f2)
-    DB_PORT=$(docker compose -f compose.yml -f compose.ci.yml port database 5432 | cut -d: -f2)
-    
-    echo "🔗 Evaluated Ports -> Backend: $BACKEND_PORT | Postgres: $DB_PORT"
-    echo "🧪 Running API Tests against Docker container..."
-    
-    cd backend
-    BASE_URL="http://localhost:${BACKEND_PORT}" DATABASE_HOST="localhost" DATABASE_PORT="${DB_PORT}" POSTGRES_USER="postgres" POSTGRES_PASSWORD="postgres" POSTGRES_DB="test_relab" POSTGRES_TEST_DB="test_relab" uv run pytest tests/integration/api -v --tb=short
-    TEST_EXIT_CODE=$?
-    
-    if [ "$TEST_EXIT_CODE" -eq 0 ]; then
-      echo "✅ Docker tests PASSED!"
-    else
-      echo "❌ Docker tests FAILED!"
-    fi
-    exit "$TEST_EXIT_CODE"
+    set -euo pipefail
+    trap '{{ docker_compose }} --profile migrations down -v --remove-orphans || true' EXIT
+
+    echo "🚀 Starting Docker smoke tests..."
+    {{ docker_compose }} up --build -d --wait --wait-timeout 120 database cache backend docs
+
+    echo "✅ All services healthy — Docker smoke tests passed"
+
+# ============================================================================
+# Clean & Maintenance
+# ============================================================================
