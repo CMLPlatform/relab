@@ -1,7 +1,7 @@
 {
   "name": "relab-fullstack",
   "dockerComposeFile": ["../compose.yml", "../compose.override.yml"],
-  "service": "frontend-web",
+  "service": "frontend-app",
   "workspaceFolder": "/opt/relab",
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "features": {
@@ -9,11 +9,12 @@
     "ghcr.io/devcontainers-extra/features/expo-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
   },
-  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n💡 Frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012 (all forwarded ports)'",
+  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n💡 Web frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012\n💡 App frontend: http://localhost:8013'",
   "customizations": {
     "vscode": {
       "extensions": [
         // Frontend
+        "astro-build.astro-vscode",
         "msjsdiag.vscode-react-native",
         "christian-kohler.npm-intellisense",
         "esbenp.prettier-vscode",
