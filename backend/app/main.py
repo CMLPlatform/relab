@@ -38,6 +38,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Manage application lifespan: startup and shutdown events."""
     # Startup
     logger.info("Starting up application...")
+    logger.info(
+        "Security config: allowed_hosts=%s allowed_origins=%s",
+        settings.allowed_hosts,
+        settings.allowed_origins,
+    )
 
     # Initialize Redis connection and store in app.state
     app.state.redis = await init_redis()

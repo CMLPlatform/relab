@@ -148,3 +148,21 @@ class TestCoreSettingsCors:
             "https://web-test.cml-relab.org",
             "https://app-test.cml-relab.org",
         ]
+
+    def test_allowed_hosts_dev_defaults(self) -> None:
+        """DEV environment should trust only local hostnames."""
+        settings = CoreSettings(environment=Environment.DEV)
+        assert settings.allowed_hosts == ["127.0.0.1", "localhost"]
+
+    def test_allowed_hosts_derive_from_backend_api_url(self) -> None:
+        """Trusted hosts should derive from backend_api_url in non-DEV environments."""
+        settings = CoreSettings(
+            environment=Environment.STAGING,
+            backend_api_url="https://api-test.cml-relab.org",
+        )
+
+        assert settings.allowed_hosts == [
+            "api-test.cml-relab.org",
+            "127.0.0.1",
+            "localhost",
+        ]

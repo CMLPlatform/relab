@@ -82,7 +82,7 @@ class CoreSettings(BaseSettings):
     @computed_field
     @cached_property
     def allowed_origins(self) -> list[str]:
-        """Get allowed CORS origins based on environment."""
+        """Get CORS Origin allowlist (scheme + host + optional port)."""
         if self.environment == Environment.DEV:
             return ["*"]  # Be permissive locally
         return [
