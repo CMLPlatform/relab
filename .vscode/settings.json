@@ -1,12 +1,7 @@
 {
+  "biome.requireConfiguration": true,
   "editor.formatOnSave": true,
   "python-envs.pythonProjects": [
-    {
-      "name": "relab",
-      "path": "./",
-      "envManager": "ms-python.python:venv",
-      "packageManager": "ms-python.python:pip"
-    },
     {
       "name": "relab-backend",
       "path": "./backend",
@@ -19,5 +14,21 @@
       "root": ["./backend"],
       "python": "./backend/.venv/"
     }
-  }
+  },
+  "cSpell.words": [
+    "categoryproducttypelink",
+    "circularityproperties",
+    "datname",
+    "imageparenttype",
+    "materialproductlink",
+    "newslettersubscriber",
+    "organizationrole",
+    "physicalproperties",
+    "producttype",
+    "remanufacturability",
+    "repairability",
+    "smembers",
+    "supercategory",
+    "taxonomydomain"
+  ]
 }
