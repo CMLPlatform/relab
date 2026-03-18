@@ -19,7 +19,8 @@ from app.core.config import settings
 if TYPE_CHECKING:
     from typing import Any
 
-# NOTE: Echo set to False to not mess with the shell script output. Consider using exit codes instead
+# NOTE: Echo set to False to not mess with the shell script output.
+# TODO: Consider using exit codes instead
 sync_engine: Engine = create_engine(settings.sync_database_url, echo=False)
 
 

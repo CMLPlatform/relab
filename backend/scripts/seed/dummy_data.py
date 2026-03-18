@@ -33,6 +33,7 @@ from app.api.background_data.models import (
     Taxonomy,
 )
 from app.api.common.models.associations import MaterialProductLink
+from app.api.common.models.enums import Unit
 from app.api.data_collection.models import PhysicalProperties, Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models.models import ImageParentType
@@ -62,7 +63,7 @@ class DryRunAsyncSession(AsyncSession):
 
 
 # Load data from json
-data_file = Path(__file__).parent / "data.json"
+data_file = Path(__file__).parent / "dummy_data.json"
 with data_file.open("r") as f:
     _seed_data = json.load(f)
 
@@ -241,17 +242,20 @@ async def seed_products(
     product_type_map: dict[str, ProductType],
     material_map: dict[str, Material],
     user_map: dict[str, User],
-) -> dict[str, Product]:
+) -> dict[str, int]:
     """Seed the database with sample product data."""
-    product_map = {}
+    product_id_map: dict[str, int] = {}
     for data in product_data:
-        if data["name"] in product_map:
+        if data["name"] in product_id_map:
             continue  # simplistic check
 
-        stmt = select(Product).where(Product.name == data["name"])
-        existing = (await session.exec(stmt)).first()
-        if existing:
-            product_map[existing.name] = existing
+        # Fetch only scalar columns to avoid eager-loading image rows that may point
+        # to missing files in storage from previous runs.
+        stmt = select(Product.id, Product.name).where(Product.name == data["name"])
+        existing_row = (await session.exec(stmt)).first()
+        if existing_row:
+            existing_id, existing_name = existing_row
+            product_id_map[existing_name] = existing_id
             continue
 
         product_type = product_type_map.get(data["product_type_name"])
@@ -287,20 +291,35 @@ async def seed_products(
         for material_data in data["bill_of_materials"]:
             material = material_map.get(material_data["material"])
             if material and material.id and product.id:
+                raw_unit = material_data.get("unit")
+                if isinstance(raw_unit, str):
+                    try:
+                        # Accept enum values from seed JSON, e.g. "kg".
+                        normalized_unit = Unit(raw_unit)
+                    except ValueError:
+                        # Fallback to enum names if provided, e.g. "KILOGRAM".
+                        try:
+                            normalized_unit = Unit[raw_unit.upper()]
+                        except KeyError:
+                            logger.warning("Unknown unit '%s' for %s, defaulting to kilogram.", raw_unit, data["name"])
+                            normalized_unit = Unit.KILOGRAM
+                else:
+                    normalized_unit = Unit.KILOGRAM
+
                 link = MaterialProductLink(
                     material_id=material.id,
                     product_id=product.id,
                     quantity=material_data["quantity"],
-                    unit=material_data["unit"],
+                    unit=normalized_unit,
                 )
                 session.add(link)
 
         await session.commit()
-        product_map[product.name] = product
-    return product_map
+        product_id_map[product.name] = product.id
+    return product_id_map
 
 
-async def seed_images(session: AsyncSession, product_map: dict[str, Product]) -> None:
+async def seed_images(session: AsyncSession, product_id_map: dict[str, int]) -> None:
     """Seed the database with initial image data."""
     for data in image_data:
         filename = data.get("filename")
@@ -317,10 +336,8 @@ async def seed_images(session: AsyncSession, product_map: dict[str, Product]) ->
         description: str = data.get("description", "")
 
         parent_type = ImageParentType.PRODUCT
-        parent = product_map.get(data["parent_product_name"])
-        if parent and parent.id:
-            parent_id = parent.id
-        else:
+        parent_id = product_id_map.get(data["parent_product_name"])
+        if not parent_id:
             logger.warning("Skipping image %s: parent not found", path.name)
             continue
 
@@ -396,8 +413,8 @@ async def async_main(*, reset: bool = False, dry_run: bool = False) -> None:
         category_map = await seed_categories(session, taxonomy_map)
         material_map = await seed_materials(session, category_map)
         product_type_map = await seed_product_types(session, category_map)
-        product_map = await seed_products(session, product_type_map, material_map, user_map)
-        await seed_images(session, product_map)
+        product_id_map = await seed_products(session, product_type_map, material_map, user_map)
+        await seed_images(session, product_id_map)
         if dry_run:
             await session.rollback()
             logger.info("Dry run complete; all changes rolled back.")
