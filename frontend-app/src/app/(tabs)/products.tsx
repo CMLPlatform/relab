@@ -40,6 +40,10 @@ export default function ProductsTab() {
       .then((products) => {
         setProductList(products);
       })
+      .catch((error) => {
+        console.error('[ProductsTab] Failed to load products:', error);
+        setProductList([]);
+      })
       .finally(() => setLoading(false));
   }, [filterMode]);
 

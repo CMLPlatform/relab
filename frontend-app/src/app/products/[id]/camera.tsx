@@ -173,23 +173,6 @@ export default function ProductCamera() {
         <Text variant="headlineSmall">Add Product Image</Text>
       </View>
 
-      {isDesktopWeb && (
-        <View style={{ flex: 1 }}>
-          {webCamPermission?.granted ? (
-            <CameraView ref={camRef} style={{ flex: 1, borderRadius: 8, overflow: 'hidden' }} facing="back" />
-          ) : (
-            <View style={styles.permissionBox}>
-              <Text variant="bodyLarge" style={{ marginBottom: 12 }}>
-                Allow camera access to take a photo
-              </Text>
-              <Button mode="contained" icon="camera" onPress={ensureWebcamPermission} style={styles.button}>
-                Enable Camera
-              </Button>
-            </View>
-          )}
-        </View>
-      )}
-
       <View style={styles.actions}>
         <Button mode="contained" icon="camera" onPress={takePhoto} style={styles.button}>
           Take Photo

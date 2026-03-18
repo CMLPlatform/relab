@@ -56,7 +56,7 @@ function toUpdatePhysicalProperties(product: Product): any {
 }
 
 function toUpdateCircularityProperties(product: Product): any {
-  const out =  {
+  const out = {
     recyclability_comment: product.circularityProperties.recyclabilityComment ?? null,
     recyclability_observation: product.circularityProperties.recyclabilityObservation,
     recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
@@ -97,13 +97,13 @@ async function saveNewProduct(product: Product): Promise<number> {
   const body = JSON.stringify(toNewProduct(product));
 
   const response = await apiFetch(url, { method: 'POST', headers: headers, body: body });
-  
+
   if (!response.ok) {
     const errData = await response.json().catch(() => null);
     console.error('[saveNewProduct Error]:', errData || response.statusText);
     throw new Error(`Failed to save product: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
   }
-  
+
   const data = await response.json();
 
   console.log('Created product:', data);
@@ -138,17 +138,21 @@ async function updateProduct(product: Product): Promise<number> {
   response = await apiFetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
   if (!response.ok && response.status !== 404) {
     const errData = await response.json().catch(() => null);
-    throw new Error(`Failed to update physical properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+    throw new Error(
+      `Failed to update physical properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`,
+    );
   } else if (response.status === 404 && circularityBody !== 'null') {
-      // If 404, it might not exist yet, we could POST if required by backend, but for now just log
-      console.warn('Physical properties 404 on PATCH');
+    // If 404, it might not exist yet, we could POST if required by backend, but for now just log
+    console.warn('Physical properties 404 on PATCH');
   }
 
   url = new URL(baseUrl + `/products/${product.id}/circularity_properties`);
   response = await apiFetch(url, { method: 'PATCH', headers: headers, body: circularityBody });
   if (!response.ok && response.status !== 404) {
     const errData = await response.json().catch(() => null);
-    throw new Error(`Failed to update circularity properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+    throw new Error(
+      `Failed to update circularity properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`,
+    );
   }
 
   await updateProductImages(product);

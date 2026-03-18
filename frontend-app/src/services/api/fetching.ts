@@ -1,17 +1,17 @@
+import { Platform } from 'react-native';
 import { getToken, getUser } from '@/services/api/authentication';
 import { Product } from '@/types/Product';
-import { Platform } from 'react-native';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
 // Wrapper for fetch to automatically include credentials on Web
 export async function apiFetch(url: string | URL, options: RequestInit = {}): Promise<Response> {
   const fetchOptions = { ...options };
-  
+
   if (Platform.OS === 'web') {
     fetchOptions.credentials = 'include';
   }
-  
+
   return fetch(url, fetchOptions);
 }
 
@@ -197,17 +197,23 @@ export async function myProducts(
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', size.toString());
 
-  const authToken = await getToken();
-  if (!authToken) {
-    throw new Error('Authentication required');
-  }
-
-  const headers = {
-    Authorization: `Bearer ${authToken}`,
+  const headers: Record<string, string> = {
     Accept: 'application/json',
   };
 
+  if (Platform.OS !== 'web') {
+    const authToken = await getToken();
+    if (!authToken) {
+      return [];
+    }
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
   const response = await apiFetch(url, { method: 'GET', headers });
+
+  if (response.status === 401) {
+    return [];
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);

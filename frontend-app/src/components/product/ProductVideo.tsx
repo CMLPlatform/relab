@@ -1,10 +1,10 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Linking, Text, TouchableOpacity, View } from 'react-native';
 import { InfoTooltip, TextInput } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
 import { isValidUrl } from '@/services/api/validation/product';
 import { Product } from '@/types/Product';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Linking, Text, TouchableOpacity, View } from 'react-native';
 
 interface Video {
   id?: number;

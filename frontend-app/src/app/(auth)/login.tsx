@@ -5,12 +5,12 @@ import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import Animated, { SensorType, useAnimatedSensor, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
-import { useDialog } from '@/components/common/DialogProvider';
-import { getToken, login, getUser } from '@/services/api/authentication';
 import { ImageBackground } from 'expo-image';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getToken, login, getUser } from '@/services/api/authentication';
+import { useDialog } from '@/components/common/DialogProvider';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -82,7 +82,7 @@ export default function Login() {
         });
         return;
       }
-      
+
       const u = await getUser(true);
       if (!u || !u.username || u.username === 'Username not defined') {
         router.replace('/(auth)/onboarding');
@@ -105,7 +105,7 @@ export default function Login() {
 
       // The backend returns a JSON payload containing the actual authorization URL
       const response = await fetch(authUrl, {
-        ...(Platform.OS === 'web' ? { credentials: 'include' } : {})
+        ...(Platform.OS === 'web' ? { credentials: 'include' } : {}),
       });
       if (!response.ok) {
         throw new Error('Failed to reach authorization endpoint.');
@@ -113,7 +113,7 @@ export default function Login() {
       const data = await response.json();
 
       const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
-      
+
       if (result.type === 'success' && result.url) {
         if (transport === 'token') {
           // Parse token from fragment or query params
@@ -123,7 +123,7 @@ export default function Login() {
             await AsyncStorage.setItem('access_token', accessToken);
           }
         }
-        
+
         const u = await getUser(true);
         if (!u || !u.username || u.username === 'Username not defined') {
           router.replace('/(auth)/onboarding');

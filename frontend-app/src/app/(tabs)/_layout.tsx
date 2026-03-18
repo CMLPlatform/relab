@@ -8,11 +8,13 @@ export default function Layout() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    getUser().then((user) => {
-      setIsAuthenticated(!!user);
-    }).catch(() => {
-      setIsAuthenticated(false);
-    });
+    getUser()
+      .then((user) => {
+        setIsAuthenticated(!!user);
+      })
+      .catch(() => {
+        setIsAuthenticated(false);
+      });
   }, []);
 
   if (isAuthenticated === null) {
@@ -34,7 +36,9 @@ export default function Layout() {
         options={{
           title: 'Products',
           headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => <MaterialCommunityIcons name="database" color={color} size={size} />,
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <MaterialCommunityIcons name="database" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -42,7 +46,9 @@ export default function Layout() {
         options={{
           title: 'Profile',
           headerShown: false,
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => <MaterialCommunityIcons name="account" color={color} size={size} />,
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <MaterialCommunityIcons name="account" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

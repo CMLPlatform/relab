@@ -1,19 +1,17 @@
-import { Chip, Text } from '@/components/base';
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, TextStyle, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextStyle, View } from 'react-native';
 import { Button, Dialog, Divider, IconButton, Portal, TextInput } from 'react-native-paper';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { Chip, Text } from '@/components/base';
 
 import { getUser, getToken, logout, verify, unlinkOAuth, updateUser } from '@/services/api/authentication';
 import { User } from '@/types/User';
 
 export default function ProfileTab() {
-  // Hooks
   const router = useRouter();
 
-  // States
   const [profile, setProfile] = useState<User | undefined>(undefined);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
@@ -22,15 +20,11 @@ export default function ProfileTab() {
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
 
-  // Effects
   useEffect(() => {
     getUser(true).then(setProfile);
   }, []);
 
-  // callbacks
-  const onLogout = () => {
-    setLogoutDialogVisible(true);
-  };
+  const onLogout = () => setLogoutDialogVisible(true);
 
   const confirmLogout = () => {
     setLogoutDialogVisible(false);
@@ -43,32 +37,21 @@ export default function ProfileTab() {
   const onVerifyAccount = () => {
     if (!profile) return;
     verify(profile.email)
-      .then(() => {
-        alert('Verification email sent. Please check your inbox.');
-      })
-      .catch(() => {
-        alert('Failed to send verification email. Please try again later.');
-      });
+      .then(() => alert('Verification email sent. Please check your inbox.'))
+      .catch(() => alert('Failed to send verification email. Please try again later.'));
   };
 
-  const onDeleteAccount = () => {
-    setDeleteDialogVisible(true);
-  };
-
-  const confirmDeleteAccount = () => {
-    setDeleteDialogVisible(false);
-  };
+  const onDeleteAccount = () => setDeleteDialogVisible(true);
+  const confirmDeleteAccount = () => setDeleteDialogVisible(false);
 
   const handleUpdateUsername = async () => {
     try {
       if (newUsername.length < 2) {
-        alert("Username must be at least 2 characters.");
+        alert('Username must be at least 2 characters.');
         return;
       }
       const updatedUser = await updateUser({ username: newUsername });
-      if (updatedUser) {
-        setProfile(updatedUser);
-      }
+      if (updatedUser) setProfile(updatedUser);
       setEditUsernameVisible(false);
     } catch (err: any) {
       alert(`Failed to update username: ${err.message}`);
@@ -90,26 +73,21 @@ export default function ProfileTab() {
     try {
       const redirectUri = Linking.createURL('/profile');
       const associateUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/oauth/${provider}/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
-      
-      // Request needs the current user's token or session to link properly
+
       const token = await getToken();
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       const response = await fetch(associateUrl, {
         headers,
-        ...(Platform.OS === 'web' ? { credentials: 'include' } : {})
+        ...(Platform.OS === 'web' ? { credentials: 'include' } : {}),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to reach association endpoint.');
-      }
+      if (!response.ok) throw new Error('Failed to reach association endpoint.');
       const data = await response.json();
 
       const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
-      
       if (result.type === 'success') {
-        // Refresh user profile bypassing cache
         getUser(true).then(setProfile);
       }
     } catch (err: any) {
@@ -117,116 +95,109 @@ export default function ProfileTab() {
     }
   };
 
-  // Sub Render >> No profile (not logged in)
-  if (!profile) {
-    return null;
-  }
+  if (!profile) return null;
 
-  // Render
+  const isGoogleLinked = profile.oauth_accounts?.some((a) => a.oauth_name === 'google');
+  const isGithubLinked = profile.oauth_accounts?.some((a) => a.oauth_name === 'github');
+  const googleAccount = profile.oauth_accounts?.find((a) => a.oauth_name === 'google');
+  const githubAccount = profile.oauth_accounts?.find((a) => a.oauth_name === 'github');
+
   return (
-    <View style={{ flex: 1, padding: 20 }}>
-      <Text
-        style={{
-          marginTop: 80,
-          fontSize: 40,
-        }}
-      >
-        {'Hi'}
-      </Text>
-      <Pressable onPress={() => { setNewUsername(profile.username); setEditUsernameVisible(true); }}>
-        <Text
-          style={{
-            fontSize: Platform.OS === 'web' ? 40 : 80,
-            fontWeight: 'bold',
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* ── Hero section ── */}
+      <View style={styles.hero}>
+        <Text style={styles.hiText}>Hi,</Text>
+        <Pressable
+          onPress={() => {
+            setNewUsername(profile.username);
+            setEditUsernameVisible(true);
           }}
-          numberOfLines={Platform.OS === 'web' ? undefined : 1}
-          adjustsFontSizeToFit={true}
         >
-          {profile.username + '.'}
-        </Text>
-      </Pressable>
+          <Text style={styles.usernameText} numberOfLines={Platform.OS === 'web' ? undefined : 1} adjustsFontSizeToFit>
+            {profile.username + '.'}
+          </Text>
+        </Pressable>
 
-      {/* User Info */}
-      <View
-        style={{ marginTop: 25, marginBottom: 15, gap: 8 }}
-        //TODO: Allow change of email. Requires backend support to change and re-verify email address
-      >
-        <Text style={{ fontSize: 16, opacity: 0.6 }}>{profile.email}</Text>
-        <Text style={{ fontSize: 12, opacity: 0.4 }}>ID: {profile.id}</Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.metaText}>{profile.email}</Text>
+          <Text style={styles.idText}>ID: {profile.id}</Text>
+        </View>
+
+        <View style={styles.chipRow}>
+          {profile.isActive ? <Chip>Active</Chip> : <Chip style={styles.greyChip}>Inactive</Chip>}
+          {profile.isSuperuser && <Chip>Superuser</Chip>}
+          {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={styles.greyChip}>Unverified</Chip>}
+        </View>
       </View>
 
-      <View
-        style={{ marginTop: 12, marginBottom: 15, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}
-        //TODO: Add public user profile page with stats and optional contact info
-      >
-        {profile.isActive ? <Chip>Active</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Inactive</Chip>}
-        {profile.isSuperuser && <Chip>Superuser</Chip>}
-        {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={{ backgroundColor: 'lightgrey' }}>Unverified</Chip>}
+      {/* ── Account section ── */}
+      <SectionHeader title="Account" />
+      <View style={styles.section}>
+        <ProfileAction
+          title="Logout"
+          subtitle="Switch to another account"
+          onPress={onLogout}
+          titleStyle={styles.danger}
+        />
+        {!profile.isVerified && (
+          <ProfileAction
+            title="Verify email address"
+            subtitle="Resend the verification email"
+            onPress={onVerifyAccount}
+          />
+        )}
       </View>
 
-      <Divider style={{ marginBottom: 20 }} />
-
-      {/* Actions */}
-      <ProfileAction 
-        title={'Logout'} 
-        subtitle={'Change to another account'} 
-        onPress={onLogout} 
-        titleStyle={{ color: '#d32f2f' }} 
-      />
-      {profile.isVerified || (
-        <ProfileAction
-          title={'Verify your email address'}
-          subtitle={'Resend the verification email'}
-          onPress={onVerifyAccount}
-        />
-      )}
-
-      <Divider style={{ marginVertical: 20 }} />
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Linked Accounts</Text>
-      
-      {profile.oauth_accounts?.some(acc => acc.oauth_name === 'google') ? (
-        <ProfileAction
-            title={'Unlink Google Account'}
-            subtitle={'Connected as ' + profile.oauth_accounts.find(a => a.oauth_name === 'google')?.account_email!}
-            onPress={() => { setProviderToUnlink('google'); setUnlinkDialogVisible(true); }}
-            titleStyle={{ color: '#d32f2f' }}
-        />
-      ) : (
-        <ProfileAction
-            title={'Link Google Account'}
-            subtitle={'Continue with Google'}
+      {/* ── Linked Accounts ── */}
+      <SectionHeader title="Linked Accounts" />
+      <View style={styles.section}>
+        {isGoogleLinked ? (
+          <ProfileAction
+            title="Unlink Google"
+            subtitle={`Connected as ${googleAccount?.account_email ?? ''}`}
+            onPress={() => {
+              setProviderToUnlink('google');
+              setUnlinkDialogVisible(true);
+            }}
+            titleStyle={styles.danger}
+          />
+        ) : (
+          <ProfileAction
+            title="Link Google Account"
+            subtitle="Continue with Google"
             onPress={() => handleLinkOAuth('google')}
-        />
-      )}
-
-      {profile.oauth_accounts?.some(acc => acc.oauth_name === 'github') ? (
-        <ProfileAction
-            title={'Unlink GitHub Account'}
-            subtitle={'Connected as ' + profile.oauth_accounts.find(a => a.oauth_name === 'github')?.account_email!}
-            onPress={() => { setProviderToUnlink('github'); setUnlinkDialogVisible(true); }}
-            titleStyle={{ color: '#d32f2f' }}
-        />
-      ) : (
-        <ProfileAction
-            title={'Link GitHub Account'}
-            subtitle={'Continue with GitHub'}
+          />
+        )}
+        {isGithubLinked ? (
+          <ProfileAction
+            title="Unlink GitHub"
+            subtitle={`Connected as ${githubAccount?.account_email ?? ''}`}
+            onPress={() => {
+              setProviderToUnlink('github');
+              setUnlinkDialogVisible(true);
+            }}
+            titleStyle={styles.danger}
+          />
+        ) : (
+          <ProfileAction
+            title="Link GitHub Account"
+            subtitle="Continue with GitHub"
             onPress={() => handleLinkOAuth('github')}
-        />
-      )}
+          />
+        )}
+      </View>
 
-      {
-        /* Delete Account */
-        // TODO: Implement in-app account deletion. For now, just provide instructions to email support
-      }
-      <View style={{ marginTop: 20 }}>
+      <SectionHeader title="Danger Zone" />
+      <View style={[styles.section, { marginBottom: 40 }]}>
         <ProfileAction
-          title={'Delete Account?'}
+          title="Delete Account?"
           onPress={onDeleteAccount}
-          titleStyle={{ fontSize: 15, fontWeight: 'bold', color: '#d32f2f', opacity: 0.8 }}
-          hideChevron={true}
+          titleStyle={{ ...styles.danger, fontSize: 15 }}
+          hideChevron
         />
       </View>
 
+      {/* ────────── Dialogs ────────── */}
       <Portal>
         <Dialog visible={editUsernameVisible} onDismiss={() => setEditUsernameVisible(false)}>
           <Dialog.Title>Edit Username</Dialog.Title>
@@ -249,22 +220,26 @@ export default function ProfileTab() {
         <Dialog visible={unlinkDialogVisible} onDismiss={() => setUnlinkDialogVisible(false)}>
           <Dialog.Title>Unlink Account</Dialog.Title>
           <Dialog.Content>
-            <Text>Are you sure you want to disconnect this {providerToUnlink} account from your profile?</Text>
+            <Text>Are you sure you want to disconnect this {providerToUnlink} account?</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setUnlinkDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleUnlinkOAuthConfirm} textColor="#d32f2f">Unlink</Button>
+            <Button onPress={handleUnlinkOAuthConfirm} textColor="#d32f2f">
+              Unlink
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
         <Dialog visible={logoutDialogVisible} onDismiss={() => setLogoutDialogVisible(false)}>
           <Dialog.Title>Logout</Dialog.Title>
           <Dialog.Content>
-            <Text>Are you sure you want to log out of your account?</Text>
+            <Text>Are you sure you want to log out?</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setLogoutDialogVisible(false)}>Cancel</Button>
-            <Button onPress={confirmLogout} textColor="#d32f2f">Logout</Button>
+            <Button onPress={confirmLogout} textColor="#d32f2f">
+              Logout
+            </Button>
           </Dialog.Actions>
         </Dialog>
 
@@ -282,7 +257,16 @@ export default function ProfileTab() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-    </View>
+    </ScrollView>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <>
+      <Divider style={styles.divider} />
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </>
   );
 }
 
@@ -300,41 +284,90 @@ function ProfileAction({
   hideChevron?: boolean;
 }) {
   return (
-    <Pressable
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginVertical: 5,
-      }}
-      onPress={onPress}
-    >
-      <View style={{ flexDirection: 'column' }}>
-        <Text
-          style={{
-            flex: 1,
-            marginRight: 10,
-            fontSize: 18,
-            fontWeight: 'bold',
-            ...titleStyle,
-          }}
-        >
-          {title}
-        </Text>
-        {subtitle && (
-          <Text
-            style={{
-              flex: 1,
-              marginRight: 10,
-              fontSize: 15,
-              opacity: 0.7,
-            }}
-          >
-            {subtitle}
-          </Text>
-        )}
+    <Pressable style={styles.action} onPress={onPress}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.actionTitle, titleStyle]}>{title}</Text>
+        {subtitle && <Text style={styles.actionSubtitle}>{subtitle}</Text>}
       </View>
-      {!hideChevron && <IconButton icon="chevron-right" size={30} onPress={onPress} />}
+      {!hideChevron && <IconButton icon="chevron-right" size={26} onPress={onPress} />}
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingBottom: 40,
+  },
+  hero: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 24,
+  },
+  hiText: {
+    fontSize: 28,
+    opacity: 0.6,
+  },
+  usernameText: {
+    fontSize: Platform.OS === 'web' ? 48 : 72,
+    fontWeight: 'bold',
+    lineHeight: Platform.OS === 'web' ? 56 : 80,
+  },
+  metaRow: {
+    marginTop: 16,
+    gap: 4,
+  },
+  metaText: {
+    fontSize: 15,
+    opacity: 0.65,
+  },
+  idText: {
+    fontSize: 12,
+    opacity: 0.35,
+  },
+  chipRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  greyChip: {
+    backgroundColor: 'lightgrey',
+  },
+  divider: {
+    marginTop: 24,
+    marginBottom: 4,
+    marginHorizontal: 20,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.45,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  section: {
+    marginHorizontal: 4,
+  },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  actionSubtitle: {
+    fontSize: 13,
+    opacity: 0.55,
+    marginTop: 1,
+  },
+  danger: {
+    color: '#d32f2f',
+  },
+});

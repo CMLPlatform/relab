@@ -39,7 +39,7 @@ export default function Onboarding() {
       });
       return;
     }
-    
+
     setLoading(true);
     try {
       await updateUser({ username });
@@ -113,7 +113,13 @@ export default function Onboarding() {
           placeholder="e.g. awesome_user"
           onSubmitEditing={submitUsername}
         />
-        <Button mode="contained" loading={loading} disabled={loading} style={{ width: '100%', padding: 5 }} onPress={submitUsername}>
+        <Button
+          mode="contained"
+          loading={loading}
+          disabled={loading}
+          style={{ width: '100%', padding: 5 }}
+          onPress={submitUsername}
+        >
           Continue
         </Button>
       </View>
