@@ -1,6 +1,5 @@
 # --- Builder stage ---
 FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
-
 WORKDIR /opt/relab/docs
 
 # uv optimizations
@@ -15,7 +14,17 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --only-group build
 
-COPY docs/ zensical.toml ./
+# Copy source files
+COPY zensical.toml ./
+COPY docs ./docs
+
+# HACK: Replace the base URL in zensical.toml for staging builds to point to the staging docs site. This is needed until zensical support dynamic base URLs or environment variable substitution.
+ARG BUILD_MODE=production
+RUN if [ "$BUILD_MODE" = "staging" ]; then \
+    sed -i 's#https://docs.cml-relab.org#https://docs-test.cml-relab.org#g' zensical.toml; \
+    fi
+
+# Build the static site with zensical
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv run zensical build --clean
 
@@ -25,6 +34,7 @@ WORKDIR /opt/relab/docs
 
 # Copy dependency files for runtime sync
 COPY pyproject.toml uv.lock ./
+
 # Install serve dependencies ONLY
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --only-group serve

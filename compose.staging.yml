@@ -11,6 +11,11 @@ services:
       args:
         BUILD_MODE: staging
 
+  docs:
+    build:
+      args:
+        BUILD_MODE: staging
+
   backend:
     environment:
       ENVIRONMENT: staging
