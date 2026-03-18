@@ -1,0 +1,50 @@
+# Frontend Web Task Runner
+# Run `just --list` to see all available commands
+# Run from root: `just frontend-web/<recipe>` or from frontend-web/: `just <recipe>`
+
+default:
+    @just --list
+
+# ============================================================================
+# Development
+# ============================================================================
+
+# Start development server
+dev:
+    npm run dev
+
+# ============================================================================
+# Building
+# ============================================================================
+
+# Build for production
+build:
+    npm run build
+
+# Build for staging (loads .env.staging via --mode staging)
+build-staging:
+    npm run build:staging
+
+# ============================================================================
+# Quality Checks
+# ============================================================================
+
+# Run all checks: Biome lint/format + Astro type and template checks
+check:
+    npm run check
+
+# Auto-format code with Biome
+format:
+    npm run format
+
+# Lint with Biome (read-only)
+lint:
+    npm run lint
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+# Run unit tests
+test:
+    npm run test

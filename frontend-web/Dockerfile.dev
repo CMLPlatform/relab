@@ -10,5 +10,5 @@ RUN npm ci
 
 EXPOSE 8081
 
-# Start the Expo dev server
-CMD ["npx", "expo", "start", "--port", "8081", "--web"]
+# Start the Astro dev server
+CMD ["npm", "run", "dev"]

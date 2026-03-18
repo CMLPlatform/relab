@@ -2,6 +2,8 @@
 # --- Builder stage ---
 FROM node:24-slim AS builder
 
+ARG BUILD_MODE=production
+
 WORKDIR /opt/relab/frontend-web
 
 # Copy package files
@@ -9,11 +11,11 @@ COPY package*.json ./
 
 # Install dependencies
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --include prod
+    npm ci
 
 # Copy source code and build
 COPY . ./
-RUN npx expo export -p web -c
+RUN npm run build${BUILD_MODE:+:$BUILD_MODE}
 
 # --- Production stage ---
 FROM node:24-slim

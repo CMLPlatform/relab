@@ -1,0 +1,137 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Reverse Engineering Lab — bottom-up product data collection for circular economy research.',
+} = Astro.props;
+const linkedInUrl = import.meta.env.PUBLIC_LINKEDIN_URL;
+const contactEmail = import.meta.env.PUBLIC_CONTACT_EMAIL ?? 'relab@cml.leidenuniv.nl';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="nav-shell">
+        <a href="/" aria-label="Home" class="brand-link">
+          <img src="/favicon.png" alt="ReLab logo" width="28" height="28" />
+          <span>ReLab</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <a href="/privacy">Privacy Policy</a>
+      <span aria-hidden="true">·</span>
+      <a href="https://github.com/CMLPlatform/relab" target="_blank" rel="noopener noreferrer">GitHub</a>
+      {
+        linkedInUrl && (
+          <>
+            <span aria-hidden="true">·</span>
+            <a href={linkedInUrl} target="_blank" rel="noopener noreferrer">
+              LinkedIn Group
+            </a>
+          </>
+        )
+      }
+      <span aria-hidden="true">·</span>
+      <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    backdrop-filter: blur(8px);
+    background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .nav-shell {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0.85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: var(--color-on-surface);
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .brand-link img {
+    border-radius: 7px;
+  }
+
+  .page-shell {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .site-footer {
+    max-width: 1080px;
+    margin: 1rem auto 2rem;
+    padding: 1.1rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+  }
+
+  .site-footer a {
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+
+  .site-footer a:hover {
+    color: var(--color-on-surface);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 640px) {
+    .nav-shell {
+      padding: 0.8rem 1rem;
+    }
+
+    .page-shell {
+      padding: 1.8rem 1rem;
+    }
+
+    .nav-links {
+      gap: 0.7rem;
+    }
+  }
+</style>

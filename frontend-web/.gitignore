@@ -1,18 +1,14 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 ### Auto-generated
 # dependencies
 node_modules/
 
-# Expo
-.expo/
+# Astro
 dist/
-web-build/
-expo-env.d.ts
+.astro/
 
-# Native
-.kotlin/
-*.orig.*
+# Environment
+.env
+
 *.jks
 *.p8
 *.p12

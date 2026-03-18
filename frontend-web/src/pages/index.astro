@@ -1,0 +1,296 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { joinApiUrl } from '@/utils/url';
+import '../styles/global.css';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+const appUrl = import.meta.env.PUBLIC_APP_URL;
+const mkdocsUrl = import.meta.env.PUBLIC_MKDOCS_URL;
+const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
+---
+
+<Layout title="Reverse Engineering Lab">
+  <section class="hero card" data-animate>
+    <p class="eyebrow">Circular Product Intelligence</p>
+    <h1>Reverse Engineering Lab</h1>
+    <p class="lead">
+      A research platform for bottom-up product data collection, teardown documentation, and circularity analysis.
+    </p>
+
+    <div class="cta-row">
+      <a href={appUrl} class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open Demo</a>
+      <a href={mkdocsUrl} class="btn btn-ghost" target="_blank" rel="noopener noreferrer">Read Docs</a>
+    </div>
+  </section>
+
+  <section class="card" data-animate>
+    <h2>Stay Updated</h2>
+    <p>Subscribe for product updates, new methods, and relevant publications.</p>
+
+    <div class="input-row">
+      <input
+        id="email"
+        type="email"
+        placeholder="you@institution.edu"
+        autocomplete="email"
+        aria-label="Email address"
+      />
+      <button id="subscribe-btn" class="btn btn-primary">Subscribe</button>
+    </div>
+
+    <p class="muted-text">
+      By subscribing, you agree to our <a href="/privacy">Privacy Policy</a>. We only send project and research updates.
+    </p>
+
+    <div id="message" class="message" role="alert" aria-live="polite"></div>
+  </section>
+</Layout>
+
+<script is:inline define:vars={{ newsletterSubscribeUrl }}>
+  const btn = document.getElementById('subscribe-btn');
+  const emailInput = document.getElementById('email');
+  const messageEl = document.getElementById('message');
+  const animatedBlocks = document.querySelectorAll('[data-animate]');
+
+  animatedBlocks.forEach((block, index) => {
+    setTimeout(() => {
+      block.classList.add('is-visible');
+    }, 80 * index);
+  });
+
+  function showMessage(text, isError) {
+    messageEl.textContent = text;
+    messageEl.className = 'message ' + (isError ? 'message-error' : 'message-success');
+  }
+
+  btn.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    if (!email.includes('@')) {
+      showMessage('Please enter a valid email address.', true);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Subscribing…';
+
+    try {
+      const res = await fetch(newsletterSubscribeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(email),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showMessage('Thanks for subscribing! Please check your email for confirmation.', false);
+        emailInput.value = '';
+      } else {
+        showMessage(data.detail || 'Subscription failed. Please try again.', true);
+      }
+    } catch {
+      showMessage('An error occurred, please try again later.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Subscribe';
+    }
+  });
+
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btn.click();
+  });
+</script>
+
+<style>
+  h1 {
+    font-size: clamp(2.05rem, 4.4vw, 3.25rem);
+    font-weight: 700;
+    margin: 0 0 0.9rem;
+    max-width: 18ch;
+    line-height: 1.08;
+  }
+
+  h2 {
+    font-size: clamp(1.25rem, 2.8vw, 1.75rem);
+    font-weight: 600;
+    margin: 0 0 0.8rem;
+  }
+
+  p {
+    margin: 0 0 1rem;
+    line-height: 1.65;
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 1.55rem;
+    box-shadow: var(--shadow-soft);
+  }
+
+  [data-animate] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 420ms ease,
+      transform 420ms ease;
+  }
+
+  [data-animate].is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 1.8rem;
+    background:
+      radial-gradient(circle at 6% 8%, rgba(14, 90, 79, 0.14), transparent 42%),
+      radial-gradient(circle at 90% 12%, rgba(194, 130, 43, 0.14), transparent 46%), var(--color-surface);
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: auto -15% -60% auto;
+    width: min(420px, 65vw);
+    aspect-ratio: 1 / 1;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(14, 90, 79, 0.12) 0%, transparent 68%);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0 0 0.7rem;
+    font-size: 0.77rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    color: var(--color-primary-strong);
+  }
+
+  .lead {
+    color: var(--color-muted);
+    font-size: clamp(1rem, 1.8vw, 1.12rem);
+    max-width: 62ch;
+  }
+
+  .cta-row {
+    margin-top: 1.1rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.62rem 1.1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition:
+      transform 130ms ease,
+      box-shadow 160ms ease,
+      background 160ms ease;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+    white-space: nowrap;
+    box-shadow: 0 8px 22px rgba(14, 90, 79, 0.25);
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-strong);
+  }
+
+  .btn-ghost {
+    background: var(--color-surface-soft);
+    color: var(--color-primary-strong);
+    border-color: var(--color-border);
+  }
+
+  .btn-ghost:hover {
+    background: var(--color-primary-light);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  input[type='email'] {
+    flex: 1;
+    padding: 0.6rem 0.9rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    min-width: 0;
+  }
+
+  input[type='email']:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px var(--color-ring);
+    outline: none;
+  }
+
+  .muted-text {
+    font-size: 0.86rem;
+    color: var(--color-muted);
+    margin: 0 0 0.5rem;
+  }
+
+  .message {
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    min-height: 1.5rem;
+  }
+  .message-success {
+    color: #2e7d32;
+  }
+  .message-error {
+    color: #c62828;
+  }
+
+  @media (max-width: 640px) {
+    .card {
+      padding: 1.15rem;
+      border-radius: 18px;
+    }
+
+    .hero {
+      padding: 1.3rem;
+    }
+
+    .input-row {
+      flex-direction: column;
+    }
+
+    .btn,
+    .btn-primary,
+    .btn-ghost {
+      width: 100%;
+    }
+  }
+</style>

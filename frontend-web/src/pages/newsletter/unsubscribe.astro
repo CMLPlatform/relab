@@ -1,0 +1,101 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { joinApiUrl } from '@/utils/url';
+import '../../styles/global.css';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+const newsletterUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/unsubscribe');
+---
+
+<Layout title="Unsubscribe from Newsletter — ReLab">
+  <div class="card">
+    <h1>Unsubscribe from Newsletter</h1>
+    <div id="status" class="status status-loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Unsubscribing from the newsletter…</p>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline define:vars={{ newsletterUnsubscribeUrl }}>
+  const statusEl = document.getElementById('status');
+
+  function show(message, state) {
+    statusEl.className = 'status status-' + state;
+    statusEl.innerHTML = `<p>${message}</p>`;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (!token) {
+    show('No token provided. Please check your email.', 'error');
+  } else {
+    fetch(newsletterUnsubscribeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(token),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          show('Successfully unsubscribed. Redirecting to the homepage…', 'success');
+          setTimeout(() => (window.location.href = '/'), 3000);
+        } else {
+          const data = await res.json();
+          show(data.detail || 'Unsubscription failed. Please try again.', 'error');
+        }
+      })
+      .catch(() => show('An error occurred during unsubscription. Please try again later.', 'error'));
+  }
+</script>
+
+<style>
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem;
+  }
+
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .status p {
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .status-success p {
+    color: #2e7d32;
+  }
+  .status-error p {
+    color: #c62828;
+  }
+  .status-loading p {
+    color: var(--color-muted);
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

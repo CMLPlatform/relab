@@ -1,0 +1,86 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  --color-primary: #5b57d4;
+  --color-primary-strong: #322ea7;
+  --color-primary-light: #d1cff7;
+  --color-accent: #c2822b;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f7faf9;
+  --color-on-surface: #15201d;
+  --color-muted: #4f5f5c;
+  --color-border: #dce8e4;
+  --color-ring: rgba(14, 90, 79, 0.25);
+  --shadow-soft: 0 10px 30px rgba(12, 46, 41, 0.08);
+  --radius-md: 14px;
+  --radius-lg: 22px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #7ad2c2;
+    --color-primary-strong: #58b5a4;
+    --color-primary-light: #112623;
+    --color-accent: #f0bb74;
+    --color-surface: #101917;
+    --color-surface-soft: #15211e;
+    --color-on-surface: #e6f0ed;
+    --color-muted: #a4b9b4;
+    --color-border: #2a3b37;
+    --color-ring: rgba(122, 210, 194, 0.28);
+    --shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.35);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(14, 90, 79, 0.12), transparent 40%),
+    radial-gradient(circle at 88% 8%, rgba(194, 130, 43, 0.14), transparent 45%),
+    linear-gradient(180deg, var(--color-surface-soft), #eef4f2 42%, #f8f9f8 100%);
+  color: var(--color-on-surface);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(circle at 12% 16%, rgba(122, 210, 194, 0.08), transparent 45%),
+      radial-gradient(circle at 88% 8%, rgba(240, 187, 116, 0.09), transparent 42%),
+      linear-gradient(180deg, #0c1412 0%, #101917 40%, #0d1412 100%);
+  }
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--color-primary);
+  transition: color 160ms ease;
+}
+
+a:hover {
+  color: var(--color-primary-strong);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(14, 90, 79, 0.2);
+}
