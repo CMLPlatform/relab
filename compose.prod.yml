@@ -11,10 +11,10 @@ services:
       DEBUG: False
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
-  backend_user_upload_backups: # Automated user uploads backups to local file system
+  backend-user-upload-backups: # Automated user uploads backups to local file system
     build:
       context: ./backend
-      dockerfile: Dockerfile.user_upload_backups
+      dockerfile: Dockerfile.user-upload-backups
     depends_on:
       - backend
     environment:
@@ -44,7 +44,7 @@ services:
     pull_policy: always
     restart: unless-stopped
 
-  database_backups: # Automated database backups to local file system
+  database-backups: # Automated database backups to local file system
     image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f
     depends_on:
       - database
