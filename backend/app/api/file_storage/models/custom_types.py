@@ -51,8 +51,14 @@ class ImageType(_ImageType):
         super().__init__(*args, **kwargs)
 
     def process_result_value(self, value: Any, dialect: Dialect) -> StorageImage | None:  # noqa: ANN401 # Any-type value is expected by the parent class signature
-        """Override the default process_result_value method to raise a custom error if the file is not found."""
+        """Override the default process_result_value method to return None if the file is not found.
+
+        Returning None instead of raising allows graceful handling at the application layer:
+        - image_url falls back to the placeholder image
+        - list endpoints can filter out images with missing files
+        - only direct single-item fetch endpoints raise an error
+        """
         try:
             return super().process_result_value(value, dialect)
-        except FileNotFoundError as e:
-            raise FastAPIStorageFileNotFoundError(value, str(e)) from e
+        except FileNotFoundError:
+            return None

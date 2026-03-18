@@ -235,7 +235,7 @@ async def delete_image(db: AsyncSession, image_id: UUID4) -> None:
     try:
         db_image = await db_get_model_with_id_if_it_exists(db, Image, image_id)
         file_path = Path(db_image.file.path) if db_image.file else None
-    except FastAPIStorageFileNotFoundError, ModelFileNotFoundError:
+    except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError):
         # TODO: test this scenario
         # File missing from storage but exists in DB - proceed with DB cleanup
         db_image = await db.get(Image, image_id)
@@ -329,8 +329,7 @@ class ParentStorageOperations[P, S, C, F]:
         *,
         filter_params: F | None = None,
     ) -> Sequence[File | Image]:
-        """Get all storage items for a parent."""
-        # TODO: Handle missing files in storage
+        """Get all storage items for a parent, excluding items with missing files."""
         # Verify parent exists
         await db_get_model_with_id_if_it_exists(db, self.parent_model, parent_id)
 
@@ -343,10 +342,21 @@ class ParentStorageOperations[P, S, C, F]:
             # Cast to Filter to access the filter() method
             statement = cast("Filter", filter_params).filter(statement)
 
-        return list((await db.exec(statement)).all())
+        items = list((await db.exec(statement)).all())
+        valid_items = [item for item in items if item.file_exists]
+        if len(valid_items) < len(items):
+            missing = len(items) - len(valid_items)
+            logger.warning(
+                "%d %s(s) for %s %s have missing files in storage and will be excluded from the response.",
+                missing,
+                self.storage_model.__name__,
+                self.parent_model.__name__,
+                parent_id,
+            )
+        return valid_items
 
     async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> File | Image:
-        """Get a specific storage item for a parent."""
+        """Get a specific storage item for a parent, raising an error if the file is missing."""
         # Verify parent exists
         await db_get_model_with_id_if_it_exists(db, self.parent_model, parent_id)
 
@@ -365,6 +375,9 @@ class ParentStorageOperations[P, S, C, F]:
         if getattr(db_item, self.parent_field) != parent_id:
             err_msg: str = f"{storage_model_name} {item_id} does not belong to {parent_model_name} {parent_id}"
             raise ValueError(err_msg)
+
+        if not db_item.file_exists:
+            raise FastAPIStorageFileNotFoundError(filename=getattr(db_item, "filename", str(item_id)))
 
         return db_item
 

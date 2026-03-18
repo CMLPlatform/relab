@@ -81,7 +81,7 @@ class FileReadWithinParent(BaseReadSchemaWithTimeStamp, FileBase):
     """Schema for reading file information within a parent object."""
 
     filename: str
-    file_url: str
+    file_url: str | None
 
 
 class FileRead(FileReadWithinParent):

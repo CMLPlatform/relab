@@ -40,9 +40,8 @@ services:
     profiles:
       - migrations
     restart: on-failure:3
-    volumes: # Ensure migrations have access to seed data and user uploads (for seeding example images)
-      - ./backend/data/seed:/opt/relab/backend/data/seed:ro
-      - user_uploads:/opt/relab/backend/data/uploads
+    volumes: # Ensure migrations have access to user uploads (for seeding example images)
+      - user_uploads:/opt/relab/backend-migrations/data/uploads
 
   database:
     image: postgres:18@sha256:78f1aed6e8c0185d3c6963c8343dd018c63e8ba5ebd78c159c7c772a05e75b30

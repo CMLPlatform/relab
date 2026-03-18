@@ -15,7 +15,6 @@ from sqlmodel import Enum as SAEnum
 
 from app.api.common.models.base import APIModelName, CustomBase, SingleParentMixin, TimeStampMixinBare
 from app.api.data_collection.models import Product
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.custom_types import FileType, ImageType
 from app.core.config import settings
 
@@ -76,14 +75,18 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
     # Model configuration
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
 
+    @property
+    def file_exists(self) -> bool:
+        """Return True if the underlying file exists in storage."""
+        return self.file is not None and Path(self.file.path).exists()
+
     @cached_property
-    def file_url(self) -> str:
-        """Return the URL to the file."""
+    def file_url(self) -> str | None:
+        """Return the URL to the file, or None if the file is missing from storage."""
         if self.file and Path(self.file.path).exists():
             relative_path: Path = Path(self.file.path).relative_to(settings.file_storage_path)
             return f"/uploads/files/{quote(str(relative_path))}"
-
-        raise FastAPIStorageFileNotFoundError(filename=self.filename)
+        return None
 
 
 ### Image Model ###
@@ -139,6 +142,11 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
 
     # Model configuration
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
+
+    @property
+    def file_exists(self) -> bool:
+        """Return True if the underlying image file exists in storage."""
+        return self.file is not None
 
     @cached_property
     def image_url(self) -> str:

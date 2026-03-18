@@ -36,7 +36,7 @@ from app.api.common.models.associations import MaterialProductLink
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models import PhysicalProperties, Product
 from app.api.file_storage.crud import create_image
-from app.api.file_storage.models.models import ImageParentType
+from app.api.file_storage.models.models import Image, ImageParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -339,6 +339,12 @@ async def seed_images(session: AsyncSession, product_id_map: dict[str, int]) -> 
         parent_id = product_id_map.get(data["parent_product_name"])
         if not parent_id:
             logger.warning("Skipping image %s: parent not found", path.name)
+            continue
+
+        # Skip if this product already has images to keep seeding idempotent
+        existing_stmt = select(Image.id).where(Image.product_id == parent_id).limit(1)
+        if (await session.exec(existing_stmt)).first():
+            logger.info("Product %s already has images, skipping.", data["parent_product_name"])
             continue
 
         filename: str = path.name
