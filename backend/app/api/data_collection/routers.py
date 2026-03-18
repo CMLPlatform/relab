@@ -243,7 +243,7 @@ async def get_products(
     if include_components_as_base_products:
         statement: SelectOfScalar[Product] = select(Product)
     else:
-        statement: SelectOfScalar[Product] = select(Product).where(col(Product.parent_id) is None)
+        statement: SelectOfScalar[Product] = select(Product).where(col(Product.parent_id).is_(None))
 
     return await get_paginated_models(
         session,

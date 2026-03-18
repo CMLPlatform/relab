@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 ### Constants ###
-PLACEHOLDER_IMAGE_PATH: Path = settings.static_files_path / "images " / "placeholder.png"
+PLACEHOLDER_IMAGE_PATH = "static/images/placeholder.png"
 
 
 ### File Model ###
@@ -146,7 +146,7 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
         if self.file and Path(self.file.path).exists():
             relative_path = Path(self.file.path).relative_to(settings.image_storage_path)
             return f"/uploads/images/{quote(str(relative_path))}"
-        return str(PLACEHOLDER_IMAGE_PATH)
+        return PLACEHOLDER_IMAGE_PATH
 
     def image_preview(self, size: int = 100) -> str:
         """HTML preview of the image with a specified size."""

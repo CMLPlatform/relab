@@ -70,7 +70,7 @@ async def perform_health_checks(request: Request) -> dict[str, dict[str, str]]:
 
 
 @router.get("/live", include_in_schema=False)
-async def liveness_probe() -> dict[str, str]:
+async def liveness_probe() -> JSONResponse:
     """Liveness probe: signals the container is running."""
     return JSONResponse(content={"status": "alive"}, status_code=200)
 

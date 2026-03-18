@@ -22,7 +22,6 @@ from app.core.config import settings
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-    from types import FunctionType
 
     from cachetools import TTLCache
     from redis.asyncio import Redis
@@ -42,7 +41,7 @@ _HTML_RESPONSE_TYPE = "HTMLResponse"
 JSONValue = HTMLResponse | dict[str, Any] | list[Any] | str | float | bool | None
 
 
-class HTMLCoder(Coder):  # noqa: ALL
+class HTMLCoder(Coder):
     """Custom coder for caching HTMLResponse objects.
 
     This coder handles serialization and deserialization of HTMLResponse objects
@@ -108,7 +107,7 @@ _EXCLUDED_TYPES = (AsyncSession,)
 
 
 def key_builder_excluding_dependencies(
-    func: FunctionType[..., Any],
+    func: Callable[..., Any],
     namespace: str = "",
     *,
     request: Request | None = None,  # noqa: ARG001 # request is expected by fastapi-cache but not used in key generation
@@ -142,7 +141,9 @@ def key_builder_excluding_dependencies(
 
     # Build cache key from function identity and filtered parameters
     # Using sha1 is faster than sha256 and sufficient for cache keys
-    cache_key_source = f"{func.__module__}:{func.__name__}:{args}:{filtered_kwargs}"
+    module_name = getattr(func, "__module__", "")
+    function_name = getattr(func, "__name__", func.__class__.__name__)
+    cache_key_source = f"{module_name}:{function_name}:{args}:{filtered_kwargs}"
     cache_key = hashlib.sha1(cache_key_source.encode(), usedforsecurity=False).hexdigest()
 
     return f"{namespace}:{cache_key}"

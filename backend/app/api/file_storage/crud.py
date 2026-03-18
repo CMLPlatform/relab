@@ -14,6 +14,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.common.crud.base import get_models
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.utils import db_get_model_with_id_if_it_exists, get_file_parent_type_model
 from app.api.common.models.custom_types import MT
 from app.api.data_collection.models import Product
@@ -186,9 +187,12 @@ async def create_image(db: AsyncSession, image_data: ImageCreateFromForm | Image
     # Generate ID before creating File to store in local filesystem
     image_data.file, image_id, original_filename = process_uploadfile_name(image_data.file)
 
-    # Verify parent exists (will raise ModelNotFoundError if not)
+    # Verify parent exists via scalar ID lookup to avoid eager-loading relations.
     parent_model = get_file_parent_type_model(image_data.parent_type)
-    await db_get_model_with_id_if_it_exists(db, parent_model, image_data.parent_id)
+    parent_id_column = cast("Any", parent_model.id)
+    parent_exists = (await db.exec(select(parent_id_column).where(parent_id_column == image_data.parent_id))).first()
+    if parent_exists is None:
+        raise ModelNotFoundError(parent_model, image_data.parent_id)
 
     db_image = Image(
         id=image_id,

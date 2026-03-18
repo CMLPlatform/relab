@@ -23,8 +23,6 @@ email_conf = ConnectionConfig(
     MAIL_SERVER=auth_settings.email_host,
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True,
     TEMPLATE_FOLDER=TEMPLATE_FOLDER,
     SUPPRESS_SEND=core_settings.mock_emails,
 )
