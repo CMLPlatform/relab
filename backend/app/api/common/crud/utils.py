@@ -1,12 +1,11 @@
 """Common utility functions for CRUD operations."""
 
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 from sqlalchemy import inspect
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm import InspectionAttr, joinedload, noload, selectinload
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
@@ -14,14 +13,13 @@ from sqlmodel.sql._expression_select_cls import SelectOfScalar
 from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.models.base import CustomBase
-from app.api.common.models.custom_types import ET, IDT, MT
+from app.api.common.models.custom_types import ET, IDT, MT, FetchedModelT, HasID
 from app.api.data_collection.models import Product
 from app.api.file_storage.models.models import FileParentType, ImageParentType
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from uuid import UUID
-
-    from sqlalchemy.orm.mapper import Mapper
 
 
 ### SQLALchemy Select Utilities ###
@@ -32,6 +30,26 @@ class RelationshipLoadStrategy(StrEnum):
     JOINED = "joined"
 
 
+def _get_model_relationships(model: type[MT]) -> dict[str, tuple[InspectionAttr, bool]]:
+    """Get all relationships from a model with their collection status.
+
+    Args:
+        model: The model class to inspect
+
+    Returns:
+        dict: {relationship_name: (relationship_attribute, is_collection)}
+    """
+    mapper = inspect(model)
+    if not mapper:
+        return {}
+
+    relationships: dict[str, tuple[InspectionAttr, bool]] = {}
+    for rel in mapper.relationships:
+        relationships[rel.key] = (getattr(model, rel.key), rel.uselist)
+
+    return relationships
+
+
 def add_relationship_options(
     statement: SelectOfScalar,
     model: type[MT],
@@ -39,231 +57,184 @@ def add_relationship_options(
     *,
     read_schema: type[BaseModel] | None = None,
     load_strategy: RelationshipLoadStrategy = RelationshipLoadStrategy.SELECTIN,
-) -> tuple[SelectOfScalar, dict[str, bool]]:
-    """Add selectinload options and return info about relationships to exclude.
+) -> tuple[SelectOfScalar, set[str]]:
+    """Add eager loading options for relationships and return unloaded relationship names.
+
+    Args:
+        statement: SQLAlchemy select statement
+        model: Model class to load relationships for
+        include: Set of relationship names to eagerly load
+        read_schema: Optional schema to filter relationships
+        load_strategy: Strategy for loading (selectin or joined)
 
     Returns:
-        tuple: (modified statement, dict of {rel_name: is_collection} to exclude)
+        tuple: (modified statement, set of excluded relationship names)
     """
-    # Get all relationships from the database model in one pass
-    inspector: Mapper[Any] = inspect(model, raiseerr=True)
-    # HACK: Using SQLAlchemy internals to get relationship info. This is known to clash with circular model definitions.
-    # TODO: Fix this by finding a better way to get relationship info without using internals.
-    all_db_rels = {rel.key: (getattr(model, rel.key), rel.uselist) for rel in inspector.relationships}
+    # Get all relationships from the model
+    all_db_rels = _get_model_relationships(model)
 
     # Determine which relationships are in scope (db ∩ schema)
-    in_scope_rels = (
+    in_scope_rel_names = (
         {name for name in all_db_rels if name in read_schema.model_fields} if read_schema else set(all_db_rels.keys())
     )
 
     # Valid relationships to include (user_input ∩ in_scope)
-    to_include = set(include or []) & in_scope_rels
+    to_include = (set(include) if include else set()) & in_scope_rel_names
 
-    # Add selectinload for included relationships
+    # Add eager loading for included relationships
     for rel_name in to_include:
         rel_attr = all_db_rels[rel_name][0]
         option = joinedload(rel_attr) if load_strategy == RelationshipLoadStrategy.JOINED else selectinload(rel_attr)
         statement = statement.options(option)
 
-    # Build exclusion dict (in_scope - included)
-    relationships_to_exclude = {
-        rel_name: all_db_rels[rel_name][1]  # rel_name: is_collection
-        for rel_name in (in_scope_rels - to_include)
-    }
+    # Apply noload for excluded relationships so serializers don't trigger lazy loads
+    # and endpoints that don't request a relation still return stable empty/null values.
+    relationships_to_exclude = in_scope_rel_names - to_include
+    for rel_name in relationships_to_exclude:
+        rel_attr = all_db_rels[rel_name][0]
+        statement = statement.options(noload(rel_attr))
 
     return statement, relationships_to_exclude
 
 
-# HACK: This is a quick way to set relationships to empty values in SQLAlchemy models.
-# Ideally we make a clear distinction between database model and Pydantic models throughout the codebase via typing.
-class AttributeSettingStrategy(StrEnum):
-    """Model type for relationship setting strategy."""
+def clear_unloaded_relationships[T](
+    results: T,
+    relationships_to_clear: set[str],
+    db: AsyncSession | None = None,
+) -> T:
+    """Compatibility hook for historical call sites.
 
-    SQLALCHEMY = "sqlalchemy"  # SQLAlchemy method (uses set_committed_value)
-    PYDANTIC = "pydantic"  # Pydantic method (uses setattr)
-
-
-@overload
-def set_empty_relationships(
-    results: MT,
-    relationships_to_exclude: dict[str, bool],
-    setattr_strat: AttributeSettingStrategy = AttributeSettingStrategy.SQLALCHEMY,
-) -> MT: ...
-
-
-@overload
-def set_empty_relationships(
-    results: list[MT],
-    relationships_to_exclude: dict[str, bool],
-    setattr_strat: AttributeSettingStrategy = AttributeSettingStrategy.SQLALCHEMY,
-) -> list[MT]: ...
-
-
-def set_empty_relationships(
-    results: MT | list[MT],
-    relationships_to_exclude: dict[str, bool],
-    setattr_strat: AttributeSettingStrategy = AttributeSettingStrategy.SQLALCHEMY,
-) -> MT | list[MT]:
-    """Set relationships to empty values for SQLAlchemy models.
-
-    Args:
-        results: Single model instance or list of instances
-        relationships_to_exclude: Dict of {rel_name: is_collection} to set to empty
-        setattr_strat: Strategy for setting attributes (SQLAlchemy or Pydantic)
-
-    Returns:
-        MT | list[MT]: Original result(s) with empty relationships set
+    Relationship suppression is now handled at query time by `add_relationship_options`
+    via `noload`, so no post-query mutation is needed here.
     """
-    if not results or not relationships_to_exclude:
-        return results
-
-    # Process single item or list
-    items = results if isinstance(results, list) else [results]
-
-    for item in items:
-        for rel_name, is_collection in relationships_to_exclude.items():
-            if setattr_strat == AttributeSettingStrategy.PYDANTIC:
-                # Use setattr to set the attribute directly
-                setattr(item, rel_name, [] if is_collection else None)
-            elif setattr_strat == AttributeSettingStrategy.SQLALCHEMY:
-                # Settattr cannot be used directly on SQLAlchemy models as they are linked to the session
-                set_committed_value(item, rel_name, [] if is_collection else None)
-            else:
-                err_msg = f"Invalid setting strategy: {setattr_strat}"
-                raise ValueError(err_msg)
-
+    del relationships_to_clear, db
     return results
 
 
 ### Error Handling Utilities ###
-def validate_model_with_id_exists(db_get_response: MT | None, model_type: type[MT], model_id: IDT) -> MT:
-    """Validate that a model with a given id from a db.get() response exists.
+def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: IDT) -> FetchedModelT:
+    """Ensure a model with a given ID exists, providing type-safe return.
 
     Args:
-        db_get_response: Model instance to check
-        model_type: Type of the model instance
+        db_result: Model instance from database query (may be None)
+        model_type: Type of the model class
         model_id: ID that was queried
 
     Returns:
-        MT: The model instance if it exists
+        FetchedModelT: The model instance with guaranteed ID
 
     Raises:
         ModelNotFoundError: If model instance is None
     """
-    if not db_get_response:
+    if not db_result:
         raise ModelNotFoundError(model_type, model_id)
-    return db_get_response
+    # Type casting: after validation, we know the model exists and has an ID
+    return db_result  # type: ignore[return-value]
 
 
-async def db_get_model_with_id_if_it_exists(db: AsyncSession, model_type: type[MT], model_id: IDT) -> MT:
-    """Get a model instance with a given id if it exists in the database.
+async def get_model_or_404(db: AsyncSession, model_type: type[MT], model_id: IDT) -> FetchedModelT:
+    """Get a model by ID or raise 404 error.
 
     Args:
-        db: AsyncSession to use for the database query
-        model_type: Type of the model instance
-        model_id: ID that was queried
+        db: AsyncSession for database operations
+        model_type: Type of the model class
+        model_id: ID to fetch
 
     Returns:
-        MT: The model instance if it exists
-    Raises:
-        ModelNotFoundError if the model is not found
+        FetchedModelT: The model instance with guaranteed ID
 
+    Raises:
+        ModelNotFoundError: If the model is not found
     """
-    return validate_model_with_id_exists(await db.get(model_type, model_id), model_type, model_id)
+    result = await db.get(model_type, model_id)
+    return ensure_model_exists(result, model_type, model_id)
 
 
-async def db_get_models_with_ids_if_they_exist(
+async def get_models_by_ids_or_404(
     db: AsyncSession, model_type: type[MT], model_ids: set[int] | set[UUID]
-) -> list[MT]:
-    """Get model instances with given ids, throwing error if any don't exist.
+) -> list[FetchedModelT]:
+    """Get multiple models by IDs, raising error if any don't exist.
 
     Args:
-        db: AsyncSession to use for the database query
-        model_type: Type of the model instance
-        model_ids: IDs that must exist
+        db: AsyncSession for database operations
+        model_type: Type of the model class
+        model_ids: Set of IDs that must all exist
 
     Returns:
-        list[MT]: The model instances
+        list[FetchedModelT]: The model instances with guaranteed IDs
 
     Raises:
+        ValueError: If model type doesn't have an id field
         ValueError: If any requested ID doesn't exist
     """
     if not hasattr(model_type, "id"):
         err_msg = f"{model_type} does not have an 'id' attribute"
         raise ValueError(err_msg)
 
-    # TODO: Fix typing issues by implementing databasemodel typevar in utils.typing
     statement = select(model_type).where(col(model_type.id).in_(model_ids))
     found_models = list((await db.exec(statement)).all())
 
     if len(found_models) != len(model_ids):
         found_ids: set[int] | set[UUID] = {model.id for model in found_models}
         missing_ids = model_ids - found_ids
-        err_msg = f"The following {model_type.get_api_model_name().plural_capital} do not exist: {missing_ids}"
+        model_name = model_type.get_api_model_name().plural_capital
+        err_msg = f"The following {model_name} do not exist: {format_id_set(missing_ids)}"
         raise ValueError(err_msg)
 
     return found_models
 
 
-def validate_no_duplicate_linked_items(
-    new_ids: set[int] | set[UUID], existing_items: list[MT] | None, model_name_plural: str, id_field: str = "id"
+### Linked Item Validation ###
+def validate_linked_items(
+    item_ids: set[int] | set[UUID],
+    existing_items: Sequence[HasID] | None,
+    model_name_plural: str,
+    *,
+    check_duplicates: bool = True,
+    check_existence: bool = True,
+    id_field: str = "id",
 ) -> None:
-    """Validate that no linked items are already assigned.
+    """Validate linked items for both duplicates and existence.
 
     Args:
-        new_ids: Set of new IDs to validate
-        existing_items: list of existing items to check against
+        item_ids: Set of IDs to validate
+        existing_items: Sequence of existing items to check against
         model_name_plural: Name of the item model for error messages
+        check_duplicates: Whether to check if items are already assigned
+        check_existence: Whether to check if items exist in the list
         id_field: Field name for the ID in the model (default: "id")
 
     Raises:
-        ValueError: If any items are duplicates
-    """
-    if not existing_items:
-        err_msg = f"No {model_name_plural.lower()} are assigned"
-        raise ValueError
-
-    existing_ids = {getattr(item, id_field) for item in existing_items}
-    duplicates = new_ids & existing_ids
-    if duplicates:
-        err_msg = f"{model_name_plural} with id {set_to_str(duplicates)} are already assigned"
-        raise ValueError(err_msg)
-
-
-def validate_linked_items_exist(
-    item_ids: set[int] | set[UUID], existing_items: list[MT] | None, model_name_plural: str, id_field: str = "id"
-) -> None:
-    """Validate that all item IDs exist in the given items.
-
-    Args:
-        item_ids: IDs to validate
-        existing_items: Items to check against
-        model_name_plural: Name of the item model for error messages
-        id_field: Field name for the ID in the model (default: "id")
-
-    Raises:
-        ValueError: If items don't exist or no items are assigned
+        ValueError: If no items exist, items are duplicates, or items don't exist
     """
     if not existing_items:
         err_msg = f"No {model_name_plural.lower()} are assigned"
         raise ValueError(err_msg)
 
     existing_ids = {getattr(item, id_field) for item in existing_items}
-    missing = item_ids - existing_ids
-    if missing:
-        err_msg = f"{model_name_plural} with id {set_to_str(missing)} not found"
-        raise ValueError(err_msg)
+
+    if check_duplicates:
+        duplicates = item_ids & existing_ids
+        if duplicates:
+            err_msg = f"{model_name_plural} with id {format_id_set(duplicates)} are already assigned"
+            raise ValueError(err_msg)
+
+    if check_existence:
+        missing = item_ids - existing_ids
+        if missing:
+            err_msg = f"{model_name_plural} with id {format_id_set(missing)} not found"
+            raise ValueError(err_msg)
 
 
-### Printing Utilities ###
-def set_to_str(set_: set[Any]) -> str:
-    """Convert a set of strings to a comma-separated string."""
-    return ", ".join(map(str, set_))
+### Formatting Utilities ###
+def format_id_set(id_set: set[Any]) -> str:
+    """Format a set of IDs as a comma-separated string."""
+    return ", ".join(map(str, sorted(id_set)))
 
 
-def enum_set_to_str(set_: set[ET]) -> str:
-    """Convert a set of enum types to a comma-separated string."""
-    return ", ".join(str(e.value) for e in set_)
+def format_enum_set(enum_set: set[ET]) -> str:
+    """Format a set of enum values as a comma-separated string."""
+    return ", ".join(str(e.value) for e in sorted(enum_set, key=lambda x: x.value))
 
 
 ### Parent Type Utilities ###
@@ -277,3 +248,46 @@ def get_file_parent_type_model(parent_type: FileParentType | ImageParentType) ->
         return Material
     err_msg = f"Invalid parent type: {parent_type}"
     raise ValueError(err_msg)
+
+
+### Backward Compatibility Aliases ###
+# These aliases maintain backward compatibility with existing code
+# NOTE: Consider migrating to new function names in future refactorings
+db_get_model_with_id_if_it_exists = get_model_or_404
+db_get_models_with_ids_if_they_exist = get_models_by_ids_or_404
+set_to_str = format_id_set
+enum_set_to_str = format_enum_set
+
+
+def validate_no_duplicate_linked_items(
+    new_ids: set[int] | set[UUID],
+    existing_items: Sequence[HasID] | None,
+    model_name_plural: str,
+    id_field: str = "id",
+) -> None:
+    """Deprecated: Use validate_linked_items with check_duplicates=True instead."""
+    validate_linked_items(
+        new_ids,
+        existing_items,
+        model_name_plural,
+        check_duplicates=True,
+        check_existence=False,
+        id_field=id_field,
+    )
+
+
+def validate_linked_items_exist(
+    item_ids: set[int] | set[UUID],
+    existing_items: Sequence[HasID] | None,
+    model_name_plural: str,
+    id_field: str = "id",
+) -> None:
+    """Deprecated: Use validate_linked_items with check_existence=True instead."""
+    validate_linked_items(
+        item_ids,
+        existing_items,
+        model_name_plural,
+        check_duplicates=False,
+        check_existence=True,
+        id_field=id_field,
+    )

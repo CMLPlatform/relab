@@ -9,13 +9,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.common.crud.exceptions import DependentModelOwnershipError
-from app.api.common.crud.utils import (
-    AttributeSettingStrategy,
-    add_relationship_options,
-    set_empty_relationships,
-    validate_model_with_id_exists,
-)
-from app.api.common.models.custom_types import DT, IDT, MT
+from app.api.common.crud.utils import add_relationship_options, clear_unloaded_relationships, ensure_model_exists
+from app.api.common.models.custom_types import DT, IDT, MT, FetchedModelT
 
 if TYPE_CHECKING:
     from fastapi_pagination import Page
@@ -83,10 +78,18 @@ def get_models_query(
     model_filter: Filter | None = None,
     statement: SelectOfScalar[MT] | None = None,
     read_schema: type[MT] | None = None,
-) -> tuple[SelectOfScalar[MT], dict[str, bool]]:
-    """Generic function to get models with optional filtering and relationships.
+) -> tuple[SelectOfScalar[MT], set[str]]:
+    """Build a query for fetching models with optional filtering and relationships.
 
-    It returns the SQLAlchemy statement and relationship info.
+    Args:
+        model: The model class to query
+        include_relationships: Set of relationship names to eagerly load
+        model_filter: Optional filter to apply
+        statement: Optional base statement (defaults to select(model))
+        read_schema: Optional schema to validate relationships against
+
+    Returns:
+        tuple: (SQLAlchemy statement, set of excluded relationship names)
     """
     if statement is None:
         statement = select(model)
@@ -96,12 +99,10 @@ def get_models_query(
         statement = add_filter_joins(statement, model, model_filter)
         # Apply the filter
         statement = model_filter.filter(statement)
-        # Apply sorting if specified
-        # HACK: Inspect sort vars to see if any sorting is defined
+        # Apply sorting if specified (check if any sort fields are defined)
         if vars(model_filter.sort):
             statement = model_filter.sort(statement)
 
-    relationships_to_exclude = []
     statement, relationships_to_exclude = add_relationship_options(
         statement, model, include_relationships, read_schema=read_schema
     )
@@ -116,8 +117,19 @@ async def get_models(
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
     statement: SelectOfScalar[MT] | None = None,
-) -> list[MT]:
-    """Generic function to get models with optional filtering and relationships."""
+) -> list[FetchedModelT]:
+    """Get models with optional filtering and relationships.
+
+    Args:
+        db: Database session
+        model: Model class to query
+        include_relationships: Set of relationship names to eagerly load
+        model_filter: Optional filter to apply
+        statement: Optional base statement
+
+    Returns:
+        list[FetchedModelT]: List of model instances with guaranteed IDs
+    """
     statement, relationships_to_exclude = get_models_query(
         model,
         include_relationships=include_relationships,
@@ -126,7 +138,7 @@ async def get_models(
     )
     result: list[MT] = list((await db.exec(statement)).unique().all())
 
-    return set_empty_relationships(result, relationships_to_exclude)
+    return clear_unloaded_relationships(result, relationships_to_exclude)  # type: ignore[return-value]
 
 
 async def get_paginated_models(
@@ -138,7 +150,19 @@ async def get_paginated_models(
     statement: SelectOfScalar[MT] | None = None,
     read_schema: type[MT] | None = None,
 ) -> Page[DT]:
-    """Generic function to get paginated models with optional filtering and relationships."""
+    """Get paginated models with optional filtering and relationships.
+
+    Args:
+        db: Database session
+        model: Model class to query
+        include_relationships: Set of relationship names to eagerly load
+        model_filter: Optional filter to apply
+        statement: Optional base statement
+        read_schema: Optional schema to validate relationships against
+
+    Returns:
+        Page[DT]: Paginated results
+    """
     statement, relationships_to_exclude = get_models_query(
         model,
         include_relationships=include_relationships,
@@ -149,41 +173,42 @@ async def get_paginated_models(
 
     result_page: Page[DT] = await apaginate(db, statement, params=None)
 
-    result_page.items = set_empty_relationships(
-        result_page.items, relationships_to_exclude, setattr_strat=AttributeSettingStrategy.PYDANTIC
-    )
+    # Clear unloaded relationships for serialization
+    result_page.items = clear_unloaded_relationships(result_page.items, relationships_to_exclude, db=db)
 
     return result_page
 
 
 async def get_model_by_id(
     db: AsyncSession, model: type[MT], model_id: IDT, *, include_relationships: set[str] | None = None
-) -> MT:
-    """Generic function to get a model by ID with specified relationships.
+) -> FetchedModelT:
+    """Get a model by ID with specified relationships.
 
     Args:
-        db: AsyncSession for database operations
-        model: The SQLAlchemy model class
+        db: Database session
+        model: The model class to query
         model_id: ID of the model instance to retrieve
-        include_relationships: Optional set of relationship names to include
+        include_relationships: Optional set of relationship names to eagerly load
 
     Returns:
-        Model instance
+        FetchedModelT: Model instance with guaranteed ID
+
+    Raises:
+        ValueError: If model doesn't have an id field
+        ModelNotFoundError: If model with given ID doesn't exist
     """
     if not hasattr(model, "id"):
         err_msg: str = f"Model {model} does not have an id field."
         raise ValueError(err_msg)
 
-    statement: SelectOfScalar[MT] = select(model).where(
-        model.id == model_id  # TODO: Fix this type error by creating a custom database model type that has id.
-    )
+    statement: SelectOfScalar[MT] = select(model).where(model.id == model_id)
 
     statement, relationships_to_exclude = add_relationship_options(statement, model, include_relationships)
 
     result: MT | None = (await db.exec(statement)).unique().one_or_none()
 
-    result = validate_model_with_id_exists(result, model, model_id)
-    return set_empty_relationships(result, relationships_to_exclude)
+    result = ensure_model_exists(result, model, model_id)
+    return clear_unloaded_relationships(result, relationships_to_exclude, db=db)
 
 
 async def get_nested_model_by_id(
@@ -195,7 +220,7 @@ async def get_nested_model_by_id(
     parent_fk_name: str,
     *,
     include_relationships: set[str] | None = None,
-) -> DT:
+) -> FetchedModelT:
     """Get nested model by checking foreign key relationship.
 
     Args:
@@ -205,10 +230,16 @@ async def get_nested_model_by_id(
         dependent_model: Dependent model class
         dependent_id: Dependent ID
         parent_fk_name: Name of parent foreign key in dependent model
-        include_relationships: Optional relationships to include
+        include_relationships: Optional relationships to eagerly load
+
+    Returns:
+        FetchedModelT: Dependent model instance with guaranteed ID
+
+    Raises:
+        KeyError: If dependent model doesn't have the specified foreign key
+        DependentModelOwnershipError: If dependent doesn't belong to parent
     """
     dependent_model_name = dependent_model.get_api_model_name().name_capital
-    parent_model_name = parent_model.get_api_model_name().name_capital
 
     # Validate foreign key exists on dependent
     if not hasattr(dependent_model, parent_fk_name):
@@ -217,13 +248,12 @@ async def get_nested_model_by_id(
 
     # Get both models and validate existence
     await get_model_by_id(db, parent_model, parent_id)
-    dependent: DT = await get_model_by_id(
+    dependent: FetchedModelT = await get_model_by_id(
         db, dependent_model, dependent_id, include_relationships=include_relationships
     )
 
     # Check relationship
     if getattr(dependent, parent_fk_name) != parent_id:
-        err_msg = f"{dependent_model_name} {dependent_id} does not belong to {parent_model_name} {parent_id}"
         raise DependentModelOwnershipError(
             dependent_model=dependent_model,
             dependent_id=dependent_id,
