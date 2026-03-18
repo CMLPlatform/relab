@@ -6,6 +6,11 @@ services:
       args:
         BUILD_MODE: staging
 
+  frontend-app:
+    build:
+      args:
+        BUILD_MODE: staging
+
   backend:
     environment:
       ENVIRONMENT: staging

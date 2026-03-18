@@ -49,3 +49,6 @@ yarn-error.*
 
 # ESLint cache
 .eslintcache
+
+# coverage
+coverage/

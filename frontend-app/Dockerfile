@@ -13,6 +13,13 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy source code and build
 COPY . ./
+
+# Accept BUILD_MODE argument
+ARG BUILD_MODE=production
+
+# If BUILD_MODE is not production, copy the corresponding env file
+RUN if [ "$BUILD_MODE" != "production" ] && [ -f ".env.$BUILD_MODE" ]; then cp ".env.$BUILD_MODE" .env; fi
+
 RUN npx expo export -p web -c
 
 # --- Production stage ---
