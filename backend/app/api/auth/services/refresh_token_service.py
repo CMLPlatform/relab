@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 import secrets
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -20,40 +18,25 @@ if TYPE_CHECKING:
 async def create_refresh_token(
     redis: Redis,
     user_id: UUID4,
-    session_id: str,
 ) -> str:
     """Create a new refresh token.
 
     Args:
         redis: Redis client
         user_id: User's UUID
-        session_id: Associated session ID
 
     Returns:
         Refresh token string
     """
     token = secrets.token_urlsafe(48)
-    now = datetime.now(UTC).isoformat()
 
-    token_data = {
-        "user_id": str(user_id),
-        "session_id": session_id,
-        "created_at": now,
-    }
-
-    # Store token data
-    token_key = f"refresh_token:{token}"
+    # Store token with user_id mapping
+    token_key = f"auth:rt:{token}"
     await redis.setex(
         token_key,
         settings.refresh_token_expire_days * 86400,  # TTL in seconds
-        json.dumps(token_data),
+        str(user_id),
     )
-
-    # Add token to user's token index (for bulk revocation)
-    user_tokens_key = f"user_refresh_tokens:{user_id}"
-
-    await redis.sadd(user_tokens_key, token)  # type: ignore[invalid-await] # redis-py stubs incorrectly include synchronous return types in the async client
-    await redis.expire(user_tokens_key, settings.refresh_token_expire_days * 86400)
 
     return token
 
@@ -61,21 +44,21 @@ async def create_refresh_token(
 async def verify_refresh_token(
     redis: Redis,
     token: str,
-) -> dict:
-    """Verify a refresh token and return its data.
+) -> UUID:
+    """Verify a refresh token and return the user ID.
 
     Args:
         redis: Redis client
         token: Refresh token to verify
 
     Returns:
-        dict with user_id and session_id
+        UUID of the user
 
     Raises:
         HTTPException: If token is invalid, expired, or blacklisted
     """
     # Check if token is blacklisted
-    blacklist_key = f"blacklist:{token}"
+    blacklist_key = f"auth:rt_blacklist:{token}"
     if await redis.exists(blacklist_key):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -83,20 +66,16 @@ async def verify_refresh_token(
         )
 
     # Get token data
-    token_key = f"refresh_token:{token}"
-    token_data_str = await redis.get(token_key)
+    token_key = f"auth:rt:{token}"
+    user_id_str = await redis.get(token_key)
 
-    if not token_data_str:
+    if not user_id_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
         )
 
-    token_data = json.loads(token_data_str)
-    return {
-        "user_id": UUID(token_data["user_id"]),
-        "session_id": token_data["session_id"],
-    }
+    return UUID(user_id_str if isinstance(user_id_str, str) else user_id_str.decode("utf-8"))
 
 
 async def blacklist_token(
@@ -104,39 +83,26 @@ async def blacklist_token(
     token: str,
     ttl_seconds: int | None = None,
 ) -> None:
-    """Blacklist a refresh token.
+    """Blacklist a refresh token and delete it.
 
     Args:
         redis: Redis client
         token: Refresh token to blacklist
         ttl_seconds: TTL for blacklist entry (if None, uses remaining token TTL)
     """
+    token_key = f"auth:rt:{token}"
+
     if ttl_seconds is None:
         # Get remaining TTL from the token itself
-        token_key = f"refresh_token:{token}"
-
         ttl_seconds = await redis.ttl(token_key)
         if ttl_seconds <= 0:
             ttl_seconds = 3600  # Default 1 hour if token already expired
 
     # Add to blacklist
-    blacklist_key = f"blacklist:{token}"
-    # redis-py stubs incorrectly return Awaitable[int | bool] instead of Awaitable[bool]
+    blacklist_key = f"auth:rt_blacklist:{token}"
     await redis.setex(blacklist_key, ttl_seconds, "1")
 
     # Delete the token
-    token_key = f"refresh_token:{token}"
-    # redis-py stubs incorrectly return Awaitable[str | bytes | None] in a Union
-    token_data_str = await redis.get(token_key)
-    if token_data_str:
-        token_data = json.loads(token_data_str)
-        user_id = token_data["user_id"]
-
-        # Remove from user's token index
-        user_tokens_key = f"user_refresh_tokens:{user_id}"
-
-        await redis.srem(user_tokens_key, token)  # type: ignore[invalid-await] # redis-py stubs incorrectly include synchronous return types in the async client
-
     await redis.delete(token_key)
 
 
@@ -157,14 +123,10 @@ async def rotate_refresh_token(
         HTTPException: If old token is invalid
     """
     # Verify old token
-    token_data = await verify_refresh_token(redis, old_token)
+    user_id = await verify_refresh_token(redis, old_token)
 
     # Create new token
-    new_token = await create_refresh_token(
-        redis,
-        token_data["user_id"],
-        token_data["session_id"],
-    )
+    new_token = await create_refresh_token(redis, user_id)
 
     # Blacklist old token
     await blacklist_token(redis, old_token)

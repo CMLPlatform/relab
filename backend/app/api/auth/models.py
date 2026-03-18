@@ -8,7 +8,7 @@ from typing import Optional
 
 from fastapi_users_db_sqlmodel import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
 from pydantic import UUID4, BaseModel, ConfigDict
-from sqlalchemy import DateTime, ForeignKey
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Column, Field, Relationship
 
@@ -120,6 +120,7 @@ class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare,
             "foreign_keys": "[OAuthAccount.user_id]",
         },
     )
+    __table_args__ = (UniqueConstraint("oauth_name", "account_id", name="uq_oauth_account_identity"),)
 
 
 ### Organization Model ###

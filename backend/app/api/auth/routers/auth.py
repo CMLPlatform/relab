@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from fastapi.routing import APIRoute
 from pydantic import EmailStr  # Needed for Fastapi dependency injection
 
-from app.api.auth.routers import refresh, register, sessions
+from app.api.auth.routers import refresh, register
 from app.api.auth.schemas import UserRead
 from app.api.auth.services.user_manager import (
     bearer_auth_backend,
@@ -46,9 +46,6 @@ router.include_router(refresh.router, tags=["auth"])
 
 # Mark all routes in the auth router thus far as public
 mark_router_routes_public(router)
-
-# Session management routes (require authentication)
-router.include_router(sessions.router, tags=["sessions"])
 
 # Verification and password reset routes (keep FastAPI-Users defaults)
 router.include_router(fastapi_user_manager.get_verify_router(user_schema=UserRead))

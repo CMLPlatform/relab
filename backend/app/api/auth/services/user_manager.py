@@ -16,7 +16,7 @@ from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import UserCreate, UserUpdate
-from app.api.auth.services import refresh_token_service, session_service
+from app.api.auth.services import refresh_token_service
 from app.api.auth.utils.programmatic_emails import (
     send_post_verification_email,
     send_reset_password_email,
@@ -41,6 +41,10 @@ SECRET: SecretStr = auth_settings.fastapi_users_secret
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
+
+
+_AUTH_COOKIE_PREFIX = "auth="
+_SET_COOKIE_HEADER = "set-cookie"
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spellchecker: ignore UUIDID
@@ -114,23 +118,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spellchecker: i
             user.last_login_ip = request.client.host
         await self.user_db.session.commit()
 
-        # Create refresh token and session if Redis is available
+        # Create refresh token if Redis is available
         if request and hasattr(request.app.state, "redis") and request.app.state.redis:
             redis = request.app.state.redis
-            device_info = request.headers.get("User-Agent", "Unknown")
-            ip_address = request.client.host if request.client else "unknown"
-
             user_id = cast("UUID4", user.id)
 
             # Create refresh token
             refresh_token = await refresh_token_service.create_refresh_token(
                 redis,
                 user_id,
-                "",  # Session ID will be set after session creation
             )
-
-            # Create session
-            await session_service.create_session(redis, user_id, device_info, refresh_token, ip_address)
 
             # Set refresh token cookie if response available
             if response:

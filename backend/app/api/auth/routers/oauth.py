@@ -6,54 +6,52 @@ from sqlmodel import select
 from app.api.auth.config import settings
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.models import OAuthAccount
-from app.api.auth.routers.custom_oauth import (
+from app.api.auth.schemas import UserRead
+from app.api.auth.services.oauth import (
     CustomOAuthAssociateRouterBuilder,
     CustomOAuthRouterBuilder,
+    github_oauth_client,
+    google_oauth_client,
 )
-from app.api.auth.schemas import UserRead
-from app.api.auth.services.oauth import github_oauth_client, google_oauth_client
-from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend, fastapi_user_manager
+from app.api.auth.services.user_manager import (
+    bearer_auth_backend,
+    cookie_auth_backend,
+    fastapi_user_manager,
+)
 from app.api.common.routers.dependencies import AsyncSessionDep
-
-# TODO: include simple UI for OAuth login and association on login page
-# TODO: Create single callback endpoint for each provider at /auth/oauth/{provider}/callback
-# Note: Refresh tokens and sessions are now automatically created via UserManager.on_after_login hook
 
 router = APIRouter(
     prefix="/auth/oauth",
     tags=["oauth"],
 )
 
-for oauth_client in (github_oauth_client, google_oauth_client):
-    provider_name = oauth_client.name
+for client in (github_oauth_client, google_oauth_client):
+    provider_name = client.name
 
-    # Authentication router for token (bearer transport) and session (cookie transport) methods
-
-    # TODO: Investigate: Session-based Oauth login is currently not redirecting from the auth provider to the callback.
-    for auth_backend, transport_method in ((bearer_auth_backend, "token"), (cookie_auth_backend, "session")):
+    # Authentication routers
+    for auth_backend, transport in ((bearer_auth_backend, "token"), (cookie_auth_backend, "session")):
         router.include_router(
             CustomOAuthRouterBuilder(
-                oauth_client,
+                client,
                 auth_backend,
-                fastapi_user_manager.get_user_manager,
                 settings.fastapi_users_secret.get_secret_value(),
                 associate_by_email=True,
                 is_verified_by_default=True,
             ).build(),
-            prefix=f"/{provider_name}/{transport_method}",
+            prefix=f"/{provider_name}/{transport}",
         )
 
     # Association router
     router.include_router(
         CustomOAuthAssociateRouterBuilder(
-            oauth_client,
+            client,
             fastapi_user_manager.authenticator,
-            fastapi_user_manager.get_user_manager,
             UserRead,
             settings.fastapi_users_secret.get_secret_value(),
         ).build(),
         prefix=f"/{provider_name}/associate",
     )
+
 
 @router.delete("/{provider}/associate", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_oauth_association(
