@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 import pytest
 from pydantic import BaseModel, Field, ValidationError, computed_field
 
+from app.core.config import CoreSettings, Environment
+
 # Constants for test values to avoid magic value warnings
 USER_PW = "MyPassword123"  # pragma: allowlist secret
 SHORT_PW = "short"  # pragma: allowlist secret
@@ -123,3 +125,26 @@ class TestCustomConfigurationLogic:
         # Invalid config: min > max
         with pytest.raises(ValueError, match="min_connections cannot be greater"):
             ConnectionConfig(min_connections=20, max_connections=5)
+
+
+@pytest.mark.unit
+class TestCoreSettingsCors:
+    """Test CORS configuration behavior in CoreSettings."""
+
+    def test_allowed_origins_dev_is_wildcard(self) -> None:
+        """DEV environment should allow all origins."""
+        settings = CoreSettings(environment=Environment.DEV)
+        assert settings.allowed_origins == ["*"]
+
+    def test_allowed_origins_staging_are_normalized(self) -> None:
+        """Staging origins should match browser Origin format (no trailing slash)."""
+        settings = CoreSettings(
+            environment=Environment.STAGING,
+            frontend_web_url="https://web-test.cml-relab.org/",
+            frontend_app_url="https://app-test.cml-relab.org/",
+        )
+
+        assert settings.allowed_origins == [
+            "https://web-test.cml-relab.org",
+            "https://app-test.cml-relab.org",
+        ]

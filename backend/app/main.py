@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.auth.utils.email_validation import init_email_checker
 from app.api.auth.utils.rate_limit import limiter
@@ -84,6 +85,12 @@ app = FastAPI(
 
 # Add SlowAPI rate limiter state
 app.state.limiter = limiter
+
+# Add host header validation middleware
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.allowed_hosts,
+)
 
 # Add CORS middleware
 app.add_middleware(

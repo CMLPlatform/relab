@@ -3,6 +3,7 @@
 from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -68,8 +69,15 @@ class CoreSettings(BaseSettings):
     superuser_password: SecretStr = SecretStr("")
 
     # Network settings
+    backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
+
+    @staticmethod
+    def _normalize_origin(url: HttpUrl) -> str:
+        """Normalize URL-like values to browser Origin format."""
+        parsed = urlsplit(str(url))
+        return f"{parsed.scheme}://{parsed.netloc}"
 
     @computed_field
     @cached_property
@@ -77,7 +85,22 @@ class CoreSettings(BaseSettings):
         """Get allowed CORS origins based on environment."""
         if self.environment == Environment.DEV:
             return ["*"]  # Be permissive locally
-        return [str(self.frontend_web_url), str(self.frontend_app_url)]
+        return [
+            self._normalize_origin(self.frontend_web_url),
+            self._normalize_origin(self.frontend_app_url),
+        ]
+
+    @computed_field
+    @cached_property
+    def allowed_hosts(self) -> list[str]:
+        """Get trusted Host header values for backend requests."""
+        if self.environment == Environment.DEV:
+            return ["127.0.0.1", "localhost"]
+
+        backend_host = urlsplit(str(self.backend_api_url)).hostname
+        if backend_host:
+            return [backend_host, "127.0.0.1", "localhost"]
+        return ["127.0.0.1", "localhost"]
 
     # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")

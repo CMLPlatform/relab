@@ -59,5 +59,5 @@ USER $APP_USER
 # Expose the application port
 EXPOSE 8000
 
-# Run the FastAPI application
-CMD [".venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+# Run the FastAPI application. Trust forwarded headers only from explicitly allowed proxy IPs.
+CMD ["sh", "-c", ".venv/bin/fastapi run app/main.py --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=${FORWARDED_ALLOW_IPS:-127.0.0.1}"]

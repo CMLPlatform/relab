@@ -14,6 +14,9 @@ services:
   backend:
     environment:
       ENVIRONMENT: staging
+      BACKEND_API_URL: https://api-test.cml-relab.org
+      # Trust forwarded headers only from Docker-internal proxy addresses.
+      FORWARDED_ALLOW_IPS: 172.16.0.0/12
       # URLs for the test frontend
       FRONTEND_WEB_URL: https://web-test.cml-relab.org
       FRONTEND_APP_URL: https://app-test.cml-relab.org

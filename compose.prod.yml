@@ -5,6 +5,9 @@ services:
   backend:
     environment:
       ENVIRONMENT: prod
+      BACKEND_API_URL: https://api.cml-relab.org
+      # Trust forwarded headers only from Docker-internal proxy addresses.
+      FORWARDED_ALLOW_IPS: 172.16.0.0/12
       # The public URL of the frontend, used for email generation and cookie management
       FRONTEND_WEB_URL: https://cml-relab.org
       FRONTEND_APP_URL: https://app.cml-relab.org

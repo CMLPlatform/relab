@@ -11,14 +11,17 @@ COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --include prod
 
+# Copy config files
+COPY app.json tsconfig.json expo-env.d.ts ./
+
 # Copy source code and build
-COPY . ./
+COPY src/ ./src/
 
 # Accept BUILD_MODE argument
 ARG BUILD_MODE=production
 
-# If BUILD_MODE is not production, copy the corresponding env file
-RUN if [ "$BUILD_MODE" != "production" ] && [ -f ".env.$BUILD_MODE" ]; then cp ".env.$BUILD_MODE" .env; fi
+# Copy the appropriate .env file based on BUILD_MODE
+COPY ".env.$BUILD_MODE" .env
 
 RUN npx expo export -p web -c
 
