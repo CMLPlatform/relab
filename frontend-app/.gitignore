@@ -46,3 +46,6 @@ yarn-error.*
 # VS Code settings
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# ESLint cache
+.eslintcache
