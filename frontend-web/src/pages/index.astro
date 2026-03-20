@@ -5,7 +5,7 @@ import '../styles/global.css';
 
 const apiUrl = import.meta.env.PUBLIC_API_URL;
 const appUrl = import.meta.env.PUBLIC_APP_URL;
-const mkdocsUrl = import.meta.env.PUBLIC_DOCS_URL;
+const docsUrl = import.meta.env.PUBLIC_DOCS_URL;
 const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
 ---
 
@@ -19,7 +19,7 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
 
     <div class="cta-row">
       <a href={appUrl} class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open Demo</a>
-      <a href={mkdocsUrl} class="btn btn-ghost" target="_blank" rel="noopener noreferrer">Read Docs</a>
+      <a href={docsUrl} class="btn btn-ghost" target="_blank" rel="noopener noreferrer">Read Docs</a>
     </div>
   </section>
 

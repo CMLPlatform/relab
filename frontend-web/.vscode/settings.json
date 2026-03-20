@@ -1,6 +1,5 @@
 {
   "editor.formatOnSave": true,
-  "biome.lsp.bin": "./node_modules/@biomejs/cli-darwin-arm64/biome",
   "biome.requireConfiguration": true,
   "[astro][javascript][typescript][javascriptreact][typescriptreact][json][jsonc]": {
     "editor.defaultFormatter": "biomejs.biome",

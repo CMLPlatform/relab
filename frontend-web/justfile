@@ -5,6 +5,10 @@
 default:
     @just --list
 
+# Install dependencies
+install:
+    npm ci
+
 # ============================================================================
 # Development
 # ============================================================================
@@ -33,6 +37,10 @@ build-staging:
 check:
     npm run check
 
+# Run Astro's project validation without rerunning Biome
+astro-check:
+    npx astro check
+
 # Auto-format code with Biome
 format:
     npm run format
@@ -48,3 +56,29 @@ lint:
 # Run unit tests
 test:
     npm run test
+
+# Run tests with coverage report (for CI)
+test-cov:
+    npm run test:coverage
+
+# Run end-to-end tests (requires a prior `just build`)
+test-e2e:
+    npm run test:e2e
+
+# Open Playwright UI for interactive e2e test development
+test-e2e-ui:
+    npm run test:e2e:ui
+
+# ============================================================================
+# Security
+# ============================================================================
+
+# Scan dependencies for known vulnerabilities
+audit:
+    npm audit --audit-level=high --omit=dev
+    @echo "✓ Dependency audit complete"
+
+# Clean caches and build artifacts
+clean:
+    rm -rf .astro coverage dist playwright-report test-results
+    @echo "✓ Cleaned caches and build artifacts"

@@ -8,23 +8,31 @@
   ],
   "scripts": {
     "dev": "astro dev --port 8081 --host",
-    "build": "astro build",
-    "build:production": "astro build --mode production",
+    "build": "astro build --mode prod",
+    "build:prod": "astro build --mode prod",
     "build:staging": "astro build --mode staging",
     "preview": "astro preview --port 8081 --host",
     "check": "biome check . && astro check",
     "format": "biome format --write .",
     "lint": "biome lint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "vitest run && playwright test"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.0",
     "astro": "^5.5.0",
+    "playwright": "^1.58.2",
     "tailwindcss": "^4.1.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
+    "@axe-core/playwright": "^4.11.1",
     "@biomejs/biome": "^2.4.7",
+    "@playwright/test": "^1.51.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",
     "vite": "6.4.1",
