@@ -6,7 +6,7 @@ import uuid
 from typing import Annotated
 
 from fastapi_users import schemas as fastapi_users_schemas
-from pydantic import UUID4, BaseModel, ConfigDict, EmailStr, Field, StringConstraints
+from pydantic import UUID4, BaseModel, ConfigDict, EmailStr, Field, SecretStr, StringConstraints
 
 from app.api.auth.models import OrganizationBase, UserBase
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema, ProductRead
@@ -197,7 +197,7 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
 class RefreshTokenRequest(BaseModel):
     """Request schema for refreshing access token."""
 
-    refresh_token: str = Field(description="Refresh token obtained from login")
+    refresh_token: SecretStr = Field(description="Refresh token obtained from login")
 
 
 class RefreshTokenResponse(BaseModel):

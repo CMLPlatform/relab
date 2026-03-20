@@ -72,7 +72,6 @@ class HeaderCreate(BaseModel):
         Field(description="Header key", min_length=1, max_length=100, pattern=r"^[a-zA-Z][-.a-zA-Z0-9]*$"),
         AfterValidator(validate_auth_header_key),
     ]
-    # TODO: Consider adding SecretStr for any secret values in all schemas. Requires custom (de-)serialization logic
     value: SecretStr = Field(description="Header value", min_length=1, max_length=500)
 
 
@@ -136,18 +135,19 @@ class CameraReadWithStatus(CameraRead):
 class CameraReadWithCredentials(CameraRead):
     """Schema for camera read with credentials."""
 
-    api_key: str
-    auth_headers: dict[str, str] | None
+    api_key: SecretStr
+    auth_headers: dict[str, SecretStr] | None
 
     @classmethod
     def from_db_model_with_credentials(cls, db_model: Camera) -> Self:
         """Create CameraReadWithCredentials instance from Camera database model, decrypting the auth headers."""
         decrypted_headers = decrypt_dict(db_model.encrypted_auth_headers) if db_model.encrypted_auth_headers else None
+        auth_headers = {k: SecretStr(v) for k, v in decrypted_headers.items()} if decrypted_headers else None
 
         return cls(
             **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
-            api_key=decrypt_str(db_model.encrypted_api_key),
-            auth_headers=decrypted_headers,
+            api_key=SecretStr(decrypt_str(db_model.encrypted_api_key)),
+            auth_headers=auth_headers,
         )
 
 

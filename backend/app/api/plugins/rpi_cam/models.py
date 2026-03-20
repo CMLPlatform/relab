@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 import httpx
 from cachetools import TTLCache
-from pydantic import UUID4, BaseModel, HttpUrl, computed_field
+from pydantic import UUID4, BaseModel, HttpUrl, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
 
@@ -93,11 +93,12 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
 
     @computed_field
     @cached_property
-    def auth_headers(self) -> dict[str, str]:
+    def auth_headers(self) -> dict[str, SecretStr]:
         """Get all authentication headers including server-generated x-api-key."""
-        headers = {settings.api_key_header_name: decrypt_str(self.encrypted_api_key)}
+        headers = {settings.api_key_header_name: SecretStr(decrypt_str(self.encrypted_api_key))}
         if self.encrypted_auth_headers:
-            headers.update(self._decrypt_auth_headers())
+            decrypted = self._decrypt_auth_headers()
+            headers.update({k: SecretStr(v) for k, v in decrypted.items()})
         return headers
 
     def _decrypt_auth_headers(self) -> dict[str, str]:
@@ -112,7 +113,7 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
     @cached_property
     def verify_ssl(self) -> bool:
         """Whether to verify SSL certificates based on URL scheme."""
-        return HttpUrl(self.url).scheme == "https"  # noqa: PLR2004
+        return HttpUrl(self.url).scheme == "https"
 
     def __hash__(self) -> int:
         """Make Camera instances hashable using their id. Used for caching."""
@@ -138,7 +139,8 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
 
         async with httpx.AsyncClient(timeout=2.0, verify=self.verify_ssl) as client:
             try:
-                response = await client.get(status_url, headers=self.auth_headers)
+                headers = {k: v.get_secret_value() for k, v in self.auth_headers.items()}
+                response = await client.get(status_url, headers=headers)
                 match response.status_code:
                     case 200:
                         return CameraStatus(
