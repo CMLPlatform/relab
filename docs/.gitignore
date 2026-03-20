@@ -1,8 +1,13 @@
-# Cache files
-.cache/
-
-# Environments
+# Virtual environment (uv)
 .venv/
 
-# Zensical
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Zensical build output
 site/
+
+# Zensical cache
+.cache/

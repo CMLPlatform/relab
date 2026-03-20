@@ -1,44 +1,30 @@
 ### Auto-generated
-# dependencies
+# Dependencies
 node_modules/
 
 # Astro
 dist/
 .astro/
 
-# Environment
-.env
+# TypeScript
+*.tsbuildinfo
 
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-android/
-ios/
-
-# Metro
-.metro-health-check*
-
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
+# Local env overrides
+.env.local
 
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-#
-!lib/
+# Playwright
+playwright-report/
+test-results/
 
 ### Manual additions
 # VS Code settings
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# Test coverage
+coverage/

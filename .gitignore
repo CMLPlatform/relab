@@ -41,6 +41,8 @@
 
 ## VS Code
 .vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.code-workspace
 .history/
 
@@ -51,11 +53,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Environments
-.env
+# Virtual environments (uv uses .venv)
 .venv
-env/
-venv/
 
 # Ruff linter
 **/.ruff_cache/
@@ -67,14 +66,16 @@ venv/
 **/node_modules/
 
 ### Manual additions
-# Ignore all local .env files
-.env.local
-.env.*.local
-!.env.*
+# Local environment variable files (but allow example files)
+.env
+.env.*
+
+!.env.example
+!.env.*.example
 
 # Local architecture diagrams
 LOCAL_DIAGRAMS.md
 
-# VS Code settings
-!.vscode/settings.json
-!.vscode/extensions.json
+# LLM config
+.claude
+AGENTS.md
