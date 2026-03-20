@@ -9,7 +9,7 @@
     "ghcr.io/devcontainers-extra/features/expo-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
   },
-  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n💡 Web frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012\n💡 App frontend: http://localhost:8013'",
+  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n📦 If node_modules/.venv are missing, run npm ci and uv sync in the relevant subrepo\\n💡 Web frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012\\n💡 App frontend: http://localhost:8013'",
   "customizations": {
     "vscode": {
       "extensions": [

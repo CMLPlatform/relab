@@ -7,7 +7,7 @@
   // The local workspace is mounted in /opt/relab for git integration
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "overrideCommand": true,
-  "postAttachCommand": "echo '🚀 Backend dev container ready!\\n💡 To start the FastAPI dev server, run: fastapi dev\\n🔄 If that fails, try: uv run fastapi dev\\n🌐 The server will be available at http://localhost:8011 (forwarded port)'",
+  "postAttachCommand": "echo '🚀 Backend dev container ready!\\n📦 If .venv is missing, run: uv sync\\n💡 To start the FastAPI dev server, run: fastapi dev\\n🔄 If that fails, try: uv run fastapi dev\\n🌐 The server will be available at http://localhost:8011 (forwarded port)'",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
