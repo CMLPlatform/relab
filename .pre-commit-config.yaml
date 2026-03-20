@@ -33,7 +33,6 @@ repos:
       - id: check-shebang-scripts-are-executable
       - id: check-toml
       - id: check-yaml
-        exclude: ^docs/mkdocs.yml$ # Exclude mkdocs.yml because it uses an obscure tag to allow for mermaid formatting
       - id: detect-private-key
       - id: end-of-file-fixer # Ensure files end with a newline.
       - id: mixed-line-ending
@@ -41,6 +40,14 @@ repos:
       - id: trailing-whitespace
         args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
         exclude: ^.*/build/.*\.html$ # Exclude generated HTML files because they often have intentional trailing whitespace for formatting.
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        # Allow sourcing other scripts in the same directory and the repo root for accessing .env files.
+        args: ["--external-sources", "--source-path=SCRIPTDIR:."]
+        exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.13.9
