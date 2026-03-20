@@ -9,6 +9,7 @@ Thank you for your interest in contributing to the Reverse Engineering Lab proje
   - [Recommended: Devcontainer Setup](#recommended-devcontainer-setup)
     - [Initial Setup](#initial-setup)
     - [Using Devcontainers](#using-devcontainers)
+  - [Alternative: Docker Compose Watch](#alternative-docker-compose-watch)
   - [Alternative: Local Development Setup](#alternative-local-development-setup)
     - [Root Setup](#root-setup)
     - [Backend Setup](#backend-setup)
@@ -73,10 +74,10 @@ If you prefer, you can also set up your [environment manually](#alternative-loca
    - Copy the example environment file for the backend:
 
      ```bash
-     cp backend/.env.example backend/.env
+     cp backend/.env.dev.example backend/.env.dev
      ```
 
-   - Configure the necessary values in `backend/.env` (marked with 🔀).
+   - Configure the necessary values in `backend/.env.dev` (marked with 🔀).
 
 #### Using Devcontainers
 
@@ -94,7 +95,7 @@ If you prefer, you can also set up your [environment manually](#alternative-loca
      | ----------------- | --------------------- | ----------------------------- |
      | `relab-backend`   | Backend development   | `fastapi dev`                 |
      | `relab-frontend`  | Frontend development  | `npx expo start --web`        |
-     | `relab-docs`      | Documentation         | MkDocs server auto-starts     |
+     | `relab-docs`      | Documentation         | Zensical server auto-starts   |
      | `relab-fullstack` | Fullstack development | Both servers auto-start       |
 
 1. **Service Ports**
@@ -103,7 +104,58 @@ If you prefer, you can also set up your [environment manually](#alternative-loca
    - **Frontend:** [http://127.0.0.1:8010](http://127.0.0.1:8010)
    - **Backend:** [http://127.0.0.1:8011](http://127.0.0.1:8011)
    - **Docs:** [http://127.0.0.1:8012](http://127.0.0.1:8012)
-   - **PostgreSQL:** `5433`
+   - **PostgreSQL:** `5432`
+   - **Redis:** `6379`
+
+### Alternative: Docker Compose Watch
+
+If you want to run the full stack in Docker with hot reload but without opening VS Code devcontainers, use `docker compose watch`. This is the recommended approach for Docker-based development outside of devcontainers.
+
+**Prerequisites**: [Docker Desktop](https://docs.docker.com/get-docker/)
+
+1. **Configure Environment**
+
+   ```bash
+   cp backend/.env.dev.example backend/.env.dev
+   ```
+
+   Set up the necessary values in `backend/.env.dev` (marked with 🔀).
+
+1. **Start All Services with Hot Reload**
+
+   ```bash
+   just dev                  # or: docker compose watch
+   ```
+
+   This starts all services and automatically:
+
+   - **Syncs** source file changes from your host into the running containers (hot reload)
+   - **Rebuilds** the affected service image when a lockfile (`package-lock.json`, `uv.lock`) changes and restarts the container with fresh dependencies
+
+1. **Seed the Database** (first run only)
+
+   In a separate terminal:
+
+   ```bash
+   just dev-migrate          # or: docker compose --profile migrations up backend-migrations
+   ```
+
+1. **Access Your Local Instance**
+
+   - Platform: <http://127.0.0.1:8010>
+   - Backend: <http://127.0.0.1:8011>
+   - Docs: <http://127.0.0.1:8012>
+   - App: <http://127.0.0.1:8013>
+
+**Other useful dev Docker commands:**
+
+```bash
+just dev-up                 # Start without hot reload (uses baked-in source snapshot)
+just dev-build              # Rebuild images (e.g. after a Dockerfile change)
+just dev-logs               # Tail logs from all services
+just dev-down               # Stop and remove containers
+just dev-reset              # Wipe all volumes for a clean slate (re-run dev-migrate after)
+```
 
 ### Alternative: Local Development Setup
 
@@ -140,6 +192,7 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
 
    - [uv](https://docs.astral.sh/uv/getting-started/installation) (should have been installed in the root setup)
    - [PostgreSQL](https://pipenv.pypa.io/en/latest/install/). Make sure PostgreSQL is installed and running.
+   - [Redis](https://redis.io/docs/getting-started/installation/) (optional, only needed for caching features)
 
 1. **Install Python Dependencies**
 
@@ -153,17 +206,17 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
    Copy the example environment file:
 
    ```bash
-   cp .env.example .env
+   cp .env.dev.example .env.dev
    ```
 
-   Configure the necessary values in `.env` (marked with 🔀).
+   Configure the necessary values in `.env.dev` (marked with 🔀).
 
-   > 💡 Note: Make sure to create the PostgreSQL database and user as specified in your `.env` file.
+   > 💡 Note: Make sure to create the PostgreSQL database and user as specified in your `.env.dev` file.
 
 1. **Run Setup Script**
-   The [`local_setup.sh`](backend/local_setup.sh) script creates the database tables, runs the migrations, and sets up initial test data.
+   The [`local_setup.sh`](backend/scripts/local_setup.sh) script creates the database tables, runs the migrations, and sets up initial test data.
 
-   **For Linux/macOS**: `./local_setup.sh`
+   **For Linux/macOS**: `./scripts/local_setup.sh`
 
    **For Windows**: It is recommended to use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) or a Linux VM for development.
 
@@ -177,15 +230,15 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
 
    The API is now available at <http://127.0.0.1:8000>.
 
-   You can log in with the superuser details specified in the `.env` file. This gives you access to the interactive API documentation at <http://127.0.0.1:8000/swagger/full>
+   You can log in with the superuser details specified in the `.env.dev` file. This gives you access to the interactive API documentation at <http://127.0.0.1:8000/swagger/full>
 
 #### Documentation Setup
 
-You can use `uv` to manage the documentation dependencies and run the MkDocs server.
+You can use `uv` to manage the documentation dependencies and run the Zensical server.
 
 ```bash
 cd docs
-uv run mkdocs serve
+uv run zensical serve
 ```
 
 The documentation is now available at <http://127.0.0.1:8000> with live reload.
@@ -269,7 +322,7 @@ If you’re new, start with the [Architecture Documentation](https://docs.cml-re
 
 1. **Make and Commit Changes**
 
-   - Implement your feature or fix, following the [code style guidelines](#code-style-guidelines).
+   - Implement your feature or fix, following the code style guidelines in the [Backend](#backend-code-style) and [Frontend](#frontend-code-style) sections below.
 
    - [Pre-commit](https://pre-commit.com/) hooks will automatically check and format your code before each commit.\
      You can also run all checks manually:
@@ -336,6 +389,13 @@ We use several tools to ensure code quality:
 
    ```bash
    uv run ty check                # or: just typecheck
+   ```
+
+1. [ShellCheck](https://www.shellcheck.net/) for shell script linting:
+
+   ```bash
+   just backend/shellcheck        # from the repo root
+   just shellcheck                # or from the backend directory
    ```
 
 #### Backend Testing
@@ -432,18 +492,64 @@ The app will be available at <http://localhost:8081>, or <http://localhost:8010>
 
 #### Frontend Testing
 
-- Write unit tests for new components and features.
-- Follow the [Expo testing guidelines](https://docs.expo.dev/develop/unit-testing/).
-- Run tests with `npm run test` before submitting a pull request.
+The two frontend sub-projects use different frameworks for good reasons. Here is a quick reference so you know what to run and where to add tests.
+
+##### frontend-app (React Native / Expo)
+
+| Layer | Tool | Location |
+| ----- | ---- | -------- |
+| Unit & component tests | Jest + `@testing-library/react-native` | `src/**/__tests__/` |
+| Network mocking | MSW (`msw/node`) | `src/test-utils/server.ts` |
+| Shared helpers | Custom render + API mocks | `src/test-utils/` |
+
+**Running tests:**
+
+```bash
+npm run test            # run all tests once
+npm run test:watch      # watch mode for local development
+npm run test:ci         # single run with coverage (for CI)
+npm run test:coverage   # explicit coverage report
+```
+
+**Writing tests:**
+
+- Import `renderWithProviders` from `@/test-utils` instead of wrapping manually in `PaperProvider`/`DialogProvider`. Pass `{ withDialog: true }` for screens that use `DialogProvider`.
+- Import `mockResponse` and `setupFetchMock` from `@/test-utils` for service-layer unit tests that need to control HTTP responses directly.
+- For integration tests that exercise the full component → service → HTTP chain, add handlers to `src/test-utils/server.ts` and use `server.use(...)` to override per test.
+- Coverage must stay at or above 80 % (enforced by `jest.config.ts`).
+
+##### frontend-web (Astro)
+
+| Layer | Tool | Location |
+| ----- | ---- | -------- |
+| Unit tests | Vitest | `src/**/*.test.ts` |
+| E2E tests | Playwright (Chromium + Firefox) | `e2e/` |
+| Accessibility | axe-core / `@axe-core/playwright` | `e2e/accessibility.spec.ts` |
+
+**Running tests:**
+
+```bash
+npm run test            # Vitest unit tests
+npm run test:e2e        # Playwright E2E (all browsers)
+npm run test:e2e:ui     # Playwright interactive UI
+npm run test:all        # unit + E2E in one command (for CI)
+```
+
+**Writing tests:**
+
+- Unit tests belong in `src/utils/` alongside the code they test (e.g. `url.test.ts` next to `url.ts`). Only TypeScript utility functions need unit tests; `.astro` templates are covered by E2E.
+- E2E tests use `page.route()` for API mocking — define route intercepts at the top of each test, not in a global setup, so tests remain self-contained.
+- When adding a new public page, add at minimum: one E2E smoke test in a `*.spec.ts` file and one accessibility check in `e2e/accessibility.spec.ts`.
+- Unit test coverage threshold is 80 % (enforced by `vitest.config.ts`).
 
 ### Docs Development
 
 Set up your environment as described in the [Getting Started](#getting-started) section.
 
-You can run the MkDocs server with:
+You can run the Zensical server with:
 
 ```bash
-uv run mkdocs serve
+uv run zensical serve
 ```
 
 The docs will be available at <http://localhost:8000>, or <http://localhost:8012> when using a devcontainer.
@@ -454,7 +560,7 @@ The docs will be available at <http://localhost:8000>, or <http://localhost:8012
 - Prefer [GitHub-flavored Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax) and [Mermaid](https://mermaid-js.github.io/) for diagrams.
 - Avoid raw HTML unless absolutely necessary.
 - Format markdown with `mdformat` (see [.pre-commit-config.yaml](.pre-commit-config.yaml) for the configuration).
-- Refer to the [MkDocs](https://www.mkdocs.org/) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) documentation to see available features and best practices.
+- Refer to the [Zensical](https://stefanbschneider.github.io/zensical/) documentation to see available features and best practices.
 
 ## License
 

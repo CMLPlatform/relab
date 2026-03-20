@@ -13,9 +13,11 @@
 
 **The easiest way to use Reverse Engineering Lab:**
 
-🌐 **[cml-relab.org](https://cml-relab.org)** - No installation required, just register and start collecting data.
+🌐 **[app.cml-relab.org](https://app.cml-relab.org)** - No installation required, just register and start collecting data.
 
 📱 **Mobile App** - Coming soon
+
+> 💡 **Note**: For a high-level overview of the project and access to the live platform, please see the [README.md](README.md).
 
 ______________________________________________________________________
 
@@ -33,6 +35,7 @@ Only needed for: custom development, institutional deployment, offline usage, or
 **Prerequisites**:
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
+- [just](https://just.systems/man/en/) (optional, but recommended — simplifies commands)
 
 **Steps**:
 
@@ -46,24 +49,23 @@ Only needed for: custom development, institutional deployment, offline usage, or
 1. **Configure Environment**
 
    ```bash
-   cd backend
-   cp .env.example .env
+   cp backend/.env.dev.example backend/.env.dev
    ```
 
-   Set up the necessary values in `.env` (marked with 🔀).
+   Set up the necessary values in `backend/.env.dev` (marked with 🔀).
 
-1. **Build and Run Containers**
+1. **Seed the Database and Start**
 
-   To seed the database for the first time, run the `migrations` profile:
+   First run (creates tables and seeds initial data):
 
    ```bash
-   docker compose --profile migrations up
+   just dev-migrate          # or: docker compose --profile migrations up backend-migrations
    ```
 
-   After the initial setup, you can start the application as usual:
+   Then start the application:
 
    ```bash
-   docker compose up
+   just dev-up               # or: docker compose up
    ```
 
 1. **Access Your Local Instance**
@@ -73,7 +75,7 @@ Only needed for: custom development, institutional deployment, offline usage, or
    - Documentation: <http://127.0.0.1:8012>
    - App: <http://127.0.0.1:8013>
 
-   Log in with the superuser credentials from your `backend/.env` file to explore the platform.
+   Log in with the superuser credentials from your `backend/.env.dev` file to explore the platform.
 
 ______________________________________________________________________
 
@@ -101,28 +103,25 @@ To host the Reverse Engineering Lab platform using Cloudflare and Docker, follow
    In the [`backend`](backend) directory, copy the example environment file:
 
    ```bash
-   cd backend
-   cp .env.example .env
+   cp backend/.env.prod.example backend/.env.prod
    ```
 
-   Set up the necessary values in `.env` (marked with 🔀).
+   Set up the necessary values in `backend/.env.prod` (marked with 🔀).
 
 1. **Build and Run Containers**
 
-   To deploy, run:
-
    ```bash
-   docker compose -f compose.yml -f compose.prod.yml up -d
+   just prod-up              # or: docker compose -p relab_prod -f compose.yml -f compose.prod.yml up -d
    ```
 
    The application will be available at your configured domain.
 
 1. **Seed the Database**
 
-   If this is your first launch or after schema changes, run the migrations profile:
+   If this is your first launch or after schema changes, run the migrations:
 
    ```bash
-   docker compose -f compose.yml -f compose.prod.yml --profile migrations up
+   just prod-migrate         # or: docker compose -p relab_prod -f compose.yml -f compose.prod.yml --profile migrations up backend-migrations
    ```
 
 1. **Enable Backups (optional, but recommended):**
@@ -133,20 +132,14 @@ To host the Reverse Engineering Lab platform using Cloudflare and Docker, follow
    - Run the backups profile:
 
      ```bash
-     docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
+     just prod-backups-up    # or: docker compose -p relab_prod -f compose.yml -f compose.prod.yml --profile backups up -d
      ```
 
 1. **Manage Containers**
-   To monitor logs, run:
 
    ```bash
-   docker compose -p relab_prod logs -f
-   ```
-
-   To stop the application, run:
-
-   ```bash
-   docker compose -p relab_prod down
+   just prod-logs            # or: docker compose -p relab_prod -f compose.yml -f compose.prod.yml logs -f
+   just prod-down            # or: docker compose -p relab_prod -f compose.yml -f compose.prod.yml down
    ```
 
 ______________________________________________________________________
