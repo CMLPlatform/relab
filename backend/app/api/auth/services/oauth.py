@@ -1,10 +1,9 @@
 """Consolidation of OAuth services and builders."""
 
-import json
 import logging
 import secrets
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import jwt
@@ -29,6 +28,7 @@ from app.api.auth.services.user_manager import (
     UserManager,
     fastapi_user_manager,
 )
+from app.core.config import settings as core_settings
 
 if TYPE_CHECKING:
     from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token
@@ -161,16 +161,14 @@ class BaseOAuthRouterBuilder:
         self,
         frontend_redirect: str,
         response: Response,
-        token_str: str | None = None,
     ) -> Response:
-        """Create a redirect to the frontend with cookies and an optional access token."""
+        """Create a redirect to the frontend with cookies and success status."""
         parts = list(urlparse(frontend_redirect))
         query = dict(parse_qsl(parts[4]))
 
-        if token_str:
-            query[ACCESS_TOKEN_KEY] = token_str
-        else:
-            query["success"] = "true"
+        # Do not propagate access tokens through URL query params.
+        query.pop(ACCESS_TOKEN_KEY, None)
+        query["success"] = "true"
 
         parts[4] = urlencode(query)
         redirect_response = RedirectResponse(urlunparse(parts))
@@ -179,6 +177,64 @@ class BaseOAuthRouterBuilder:
             if raw_header[0].lower() == SET_COOKIE_HEADER:
                 redirect_response.headers.append("set-cookie", raw_header[1].decode("latin-1"))
         return redirect_response
+
+    @staticmethod
+    def _create_error_redirect(frontend_redirect: str, detail: str) -> Response:
+        """Create a redirect to the frontend with an error detail in the query string."""
+        parts = list(urlparse(frontend_redirect))
+        query = dict(parse_qsl(parts[4]))
+        query.pop(ACCESS_TOKEN_KEY, None)
+        query["success"] = "false"
+        query["detail"] = detail
+        parts[4] = urlencode(query)
+        return RedirectResponse(urlunparse(parts))
+
+    @staticmethod
+    def _normalize_origin(url: str) -> str:
+        """Normalize a URL into scheme://host[:port]."""
+        parsed = urlparse(url)
+        return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}".rstrip("/")
+
+    @staticmethod
+    def _normalize_redirect_target(url: str) -> str:
+        """Normalize a redirect target to scheme://netloc/path with no query/fragment."""
+        parsed = urlparse(url)
+        return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, "", "", "")).rstrip("/")
+
+    def _is_allowed_frontend_redirect(self, redirect_uri: str) -> bool:
+        """Validate whether a frontend redirect URI is explicitly allowed."""
+        parsed = urlparse(redirect_uri)
+        if not parsed.scheme:
+            return False
+
+        # Prevent credentials in URL and prevent fragment smuggling.
+        if parsed.username or parsed.password or parsed.fragment:
+            return False
+
+        if parsed.scheme in {"http", "https"}:
+            if not parsed.netloc:
+                return False
+
+            allowed_origins = {
+                self._normalize_origin(str(core_settings.frontend_web_url)),
+                self._normalize_origin(str(core_settings.frontend_app_url)),
+                *{self._normalize_origin(origin) for origin in settings.oauth_allowed_redirect_origins},
+            }
+
+            redirect_origin = self._normalize_origin(redirect_uri)
+            if redirect_origin not in allowed_origins:
+                return False
+
+            if settings.oauth_allowed_redirect_paths:
+                return parsed.path in settings.oauth_allowed_redirect_paths
+
+            return True
+
+        normalized_redirect = self._normalize_redirect_target(redirect_uri)
+        allowed_native_redirects = {
+            self._normalize_redirect_target(uri) for uri in settings.oauth_allowed_native_redirect_uris
+        }
+        return normalized_redirect in allowed_native_redirects
 
 
 class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
@@ -254,6 +310,8 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
 
         redirect_uri = request.query_params.get("redirect_uri")
         if redirect_uri:
+            if not self._is_allowed_frontend_redirect(redirect_uri):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid redirect_uri")
             state_data["frontend_redirect_uri"] = redirect_uri
 
         state = generate_state_token(state_data, self.state_secret)
@@ -275,9 +333,12 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
     ) -> Response:
         token, state = access_token_state
         state_data = self.verify_state(request, state)
+        frontend_redirect = state_data.get("frontend_redirect_uri")
 
         account_id, account_email = await self.oauth_client.get_id_email(token["access_token"])
         if account_email is None:
+            if frontend_redirect:
+                return self._create_error_redirect(frontend_redirect, ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL.value)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL)
 
         try:
@@ -292,13 +353,17 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
                 associate_by_email=self.associate_by_email,
                 is_verified_by_default=self.is_verified_by_default,
             )
-        except UserAlreadyExists as err:
+        except UserAlreadyExists:
+            if frontend_redirect:
+                return self._create_error_redirect(frontend_redirect, ErrorCode.OAUTH_USER_ALREADY_EXISTS.value)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=ErrorCode.OAUTH_USER_ALREADY_EXISTS,
-            ) from err
+            )
 
         if not user.is_active:
+            if frontend_redirect:
+                return self._create_error_redirect(frontend_redirect, ErrorCode.LOGIN_BAD_CREDENTIALS.value)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=ErrorCode.LOGIN_BAD_CREDENTIALS,
@@ -307,23 +372,10 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         response = await self.backend.login(strategy, user)
         await user_manager.on_after_login(user, request, response)
 
-        frontend_redirect = state_data.get("frontend_redirect_uri")
         if frontend_redirect:
-            access_token_str = self._extract_access_token_from_response(response)
-            return self._create_success_redirect(frontend_redirect, response, access_token_str)
+            return self._create_success_redirect(frontend_redirect, response)
 
         return response
-
-    def _extract_access_token_from_response(self, response: Response) -> str | None:
-        try:
-            if hasattr(response, "body"):
-                body_content = cast("bytes", response.body) if hasattr(response, "body") else b"{}"
-                body = json.loads(body_content) if body_content else {}
-                if ACCESS_TOKEN_KEY in body:
-                    return body[ACCESS_TOKEN_KEY]
-        except (json.JSONDecodeError, AttributeError) as e:
-            logger.warning("Failed to parse access_token from response body: %s", e)
-        return None
 
 
 class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
@@ -403,6 +455,8 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
 
         redirect_uri = request.query_params.get("redirect_uri")
         if redirect_uri:
+            if not self._is_allowed_frontend_redirect(redirect_uri):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid redirect_uri")
             state_data["frontend_redirect_uri"] = redirect_uri
 
         state = generate_state_token(state_data, self.state_secret)

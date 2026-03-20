@@ -42,7 +42,7 @@ async def refresh_access_token(
     Validates refresh token and issues new access token.
     Updates session activity timestamp.
     """
-    actual_refresh_token = (request.refresh_token if request else None) or cookie_refresh_token
+    actual_refresh_token = (request.refresh_token.get_secret_value() if request else None) or cookie_refresh_token
     if not actual_refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -62,9 +62,11 @@ async def refresh_access_token(
 
     # Generate new access token
     access_token = await strategy.write_token(user)
+    new_refresh_token = await refresh_token_service.rotate_refresh_token(redis, actual_refresh_token)
 
     return RefreshTokenResponse(
         access_token=access_token,
+        refresh_token=new_refresh_token,
         token_type="bearer",  # noqa: S106
         expires_in=auth_settings.access_token_ttl_seconds,
     )
@@ -97,7 +99,7 @@ async def refresh_access_token_cookie(
             detail="Refresh token not found",
         )
 
-    # Verify refresh token
+    # Verify token first, then rotate after user validation succeeds.
     user_id = await refresh_token_service.verify_refresh_token(redis, refresh_token)
 
     # Get user
@@ -110,10 +112,19 @@ async def refresh_access_token_cookie(
 
     # Generate new access token and set cookie
     access_token = await strategy.write_token(user)
+    new_refresh_token = await refresh_token_service.rotate_refresh_token(redis, refresh_token)
     response.set_cookie(
         key="auth",
         value=access_token,
         max_age=auth_settings.access_token_ttl_seconds,
+        httponly=True,
+        secure=core_settings.secure_cookies,
+        samesite="lax",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        max_age=auth_settings.refresh_token_expire_days * 86_400,
         httponly=True,
         secure=core_settings.secure_cookies,
         samesite="lax",

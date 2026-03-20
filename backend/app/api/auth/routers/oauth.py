@@ -27,6 +27,9 @@ router = APIRouter(
 
 for client in (github_oauth_client, google_oauth_client):
     provider_name = client.name
+    # Google verifies email ownership, so auto-linking by email is safe.
+    # GitHub does not guarantee verified emails, so we keep it off to prevent account takeover.
+    associate_by_email = client is google_oauth_client
 
     # Authentication routers
     for auth_backend, transport in ((bearer_auth_backend, "token"), (cookie_auth_backend, "session")):
@@ -35,8 +38,8 @@ for client in (github_oauth_client, google_oauth_client):
                 client,
                 auth_backend,
                 settings.fastapi_users_secret.get_secret_value(),
-                associate_by_email=True,
                 is_verified_by_default=True,
+                associate_by_email=associate_by_email,
             ).build(),
             prefix=f"/{provider_name}/{transport}",
         )

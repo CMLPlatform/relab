@@ -24,6 +24,14 @@ class AuthSettings(BaseSettings):
     github_oauth_client_id: SecretStr = SecretStr("")
     github_oauth_client_secret: SecretStr = SecretStr("")
 
+    # OAuth frontend redirect hardening
+    # Origins should be provided as scheme://host[:port], for example: https://app.cml-relab.org
+    oauth_allowed_redirect_origins: list[str] = []
+    # Optional path allowlist. When empty, any path on an allowed origin is accepted.
+    oauth_allowed_redirect_paths: list[str] = []
+    # Optional exact allowlist for native deep-link callbacks (scheme://host/path, no query/fragment).
+    oauth_allowed_native_redirect_uris: list[str] = []
+
     # Settings used to configure the email server for sending emails from the app.
     email_host: str = ""
     email_port: int = 587  # Default SMTP port for TLS
