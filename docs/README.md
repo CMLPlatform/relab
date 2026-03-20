@@ -1,6 +1,6 @@
 # ReLab Documentation
 
-The documentation for the ReLab project is built using [MkDocs-Material](https://squidfunk.github.io/mkdocs-material/).
+The documentation for the ReLab project is built using [Zensical](https://stefanbschneider.github.io/zensical/).
 
 For documentation-specific contribution and workflow details, see:
 

@@ -1,0 +1,21 @@
+# Docs Task Runner
+# Run `just --list` to see all available commands
+# Run from root: `just docs/<recipe>` or from docs/: `just <recipe>`
+
+default:
+    @just --list
+
+# Install dependencies
+install:
+    uv sync --all-groups
+
+# Build the documentation site
+build:
+    uv run zensical build
+
+# Clean caches and generated site output
+clean:
+    rm -rf .cache .ruff_cache __pycache__ site
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    @echo "✓ Cleaned caches and build artifacts"

@@ -16,6 +16,7 @@
       { "API Structure" = "architecture/api.md" },
       { "Authentication" = "architecture/auth.md" },
       { "Database Schema" = "architecture/datamodel.md" },
+      { "Deployment & Operations" = "architecture/deployment.md" },
       { "RPI Camera Plugin" = "architecture/rpi-cam.md" },
       { "System Design" = "architecture/system-design.md" },
     ] },
@@ -32,10 +33,13 @@
   ]
 
   [project.theme]
+    variant = "modern"
+
     features = [
       "content.action.edit",
       "content.action.view",
       "content.code.annotate",
+      "content.code.copy",
       "navigation.expand",
       "navigation.indexes",
       "navigation.instant",
