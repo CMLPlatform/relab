@@ -7,6 +7,10 @@
     ":preserveSemverRanges",
     "schedule:weekly"
   ],
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "platformAutomerge": true,
   "pep621": {
     "enabled": true
   },
@@ -14,8 +18,12 @@
     "enabled": true,
     "automerge": true
   },
-  "helpers": [
-    "pinDigests:true"
+  "managers": [
+    {
+      "managerFilePatterns": [".github/workflows/*.yml"],
+      "manager": "github-actions",
+      "pinDigests": true
+    }
   ],
   "packageRules": [
     {
@@ -23,6 +31,13 @@
       "matchPackagePatterns": ["*"],
       "automerge": true,
       "labels": ["automerge"]
+    },
+    {
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "automerge": true,
+      "labels": ["automerge", "github-actions"]
     },
     {
       "groupName": "backend",
@@ -38,7 +53,7 @@
     },
     {
       "groupName": "infrastructure",
-      "matchFileNames": ["**/compose.*.yml", "**/compose.yml", ".github/workflows/**"],
+      "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
       "pinDigests": true
     }
   ],
