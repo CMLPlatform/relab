@@ -1,0 +1,73 @@
+# E2E test infrastructure — backend services only.
+#
+# Usage:
+#   docker compose -p relab_e2e -f compose.e2e.yml up -d --wait
+#   docker compose -p relab_e2e -f compose.e2e.yml run --rm backend-migrations
+#   docker compose -p relab_e2e -f compose.e2e.yml exec backend python scripts/create_superuser.py
+#   docker compose -p relab_e2e -f compose.e2e.yml down -v
+#
+# Frontends are intentionally NOT included here. They are built and served
+# on the host, so that Playwright runs on the host and can freely reach both
+# services on localhost.
+
+name: relab_e2e
+
+services:
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    env_file: ./backend/.env.test
+    environment:
+      DATABASE_HOST: database
+      REDIS_HOST: cache
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 5s
+      retries: 6
+
+  backend-migrations:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.migrations
+    depends_on:
+      database:
+        condition: service_healthy
+    env_file: ./backend/.env.test
+    environment:
+      DATABASE_HOST: database
+      REDIS_HOST: cache
+    profiles:
+      - migrations
+
+  cache:
+    image: redis:8@sha256:315270d166080f537bbdf1b489b603aaaa213cb55a544acfa51feb7481abb1c0
+    # No password for test environment — simplifies healthcheck and connection strings
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      start_interval: 5s
+      retries: 5
+
+  database:
+    image: postgres:18@sha256:78f1aed6e8c0185d3c6963c8343dd018c63e8ba5ebd78c159c7c772a05e75b30
+    env_file: ./backend/.env.test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U postgres -d relab_e2e_db"]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      start_interval: 5s
+      retries: 5

@@ -1,0 +1,18 @@
+# CI overlay — used by justfile smoke tests.
+# Provides credentials via .env.test so services can start without real secrets.
+name: relab_ci
+
+services:
+  backend:
+    env_file: ./backend/.env.test
+    environment:
+      ENVIRONMENT: testing
+
+  backend-migrations:
+    env_file: ./backend/.env.test
+
+  database:
+    env_file: ./backend/.env.test
+
+  cache:
+    env_file: ./backend/.env.test

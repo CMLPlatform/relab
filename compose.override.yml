@@ -1,55 +1,112 @@
-# docker-compose.override.yml (DEVELOPMENT - automatically used with docker-compose up)
+# compose.override.yml (DEVELOPMENT - automatically used with docker-compose up)
+# Run with: docker compose watch
 name: relab_dev # Separate dev containers, networks, and volumes from prod
 
 services:
   backend:
     build:
       dockerfile: Dockerfile.dev
+    restart: "no"
+    env_file: ./backend/.env.dev
     environment:
       ENVIRONMENT: dev
-      FRONTEND_WEB_URL: http://localhost:8010 # Point to local frontend dev server
-      FRONTEND_APP_URL: http://localhost:8013
+      BACKEND_API_URL: "http://localhost:8011"
+      FRONTEND_APP_URL: "http://localhost:8013"
+      FRONTEND_WEB_URL: "http://localhost:8010"
     ports:
       - "8011:8000"
-    volumes:
-      - ./backend:/opt/relab/backend # Mount source code for hot reload
-      - /opt/relab/backend/.venv # Prevent overwriting local virtual environment
-      - /opt/relab/backend/logs # Prevent overwriting local logs
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /opt/relab/backend
+          ignore:
+            - .venv/
+            - __pycache__/
+            - "*.pyc"
+            - logs/
+            - data/
+        - action: rebuild
+          path: ./backend/uv.lock
+        - action: rebuild
+          path: ./backend/pyproject.toml
 
   cache:
+    env_file: ./backend/.env.dev
     ports:
       - "6379:6379"
 
   database:
+    env_file: ./backend/.env.dev
     ports:
-      - "5433:5432"
+      - "5432:5432"
+
+  backend-migrations:
+    env_file: ./backend/.env.dev
 
   docs:
     build:
       context: ./docs
       dockerfile: Dockerfile.dev
+    restart: "no"
     ports:
       - "8012:8000"
-    volumes:
-      - ./docs:/opt/relab/docs # Mount source code for hot reload
-      - /opt/relab/docs/.venv # Prevent overwriting local virtual environment
+    develop:
+      watch:
+        - action: sync
+          path: ./docs
+          target: /opt/relab/docs
+          ignore:
+            - .venv/
+            - __pycache__/
+            - "*.pyc"
+            - site/
+        - action: rebuild
+          path: ./docs/uv.lock
+        - action: rebuild
+          path: ./docs/pyproject.toml
 
   frontend-app:
     build:
       dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend-app:/opt/relab/frontend-app # Mount source code for hot reload
-      - /opt/relab/frontend-app/node_modules # Prevent overwriting local node_modules
-      - /opt/relab/frontend-app/.expo # Prevent overwriting local Expo files
+    environment:
+      EXPO_PUBLIC_API_URL: "http://localhost:8011"
+      EXPO_PUBLIC_DOCS_URL: "http://localhost:8012"
+      EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
+    restart: "no"
     ports:
       - "8013:8081"
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend-app
+          target: /opt/relab/frontend-app
+          ignore:
+            - node_modules/
+            - .expo/
+            - dist/
+            - web-build/
+        - action: rebuild
+          path: ./frontend-app/package-lock.json
 
   frontend-web:
     build:
       dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend-web:/opt/relab/frontend-web # Mount source code for hot reload
-      - /opt/relab/frontend-web/node_modules # Prevent overwriting local node_modules
-      - /opt/relab/frontend-web/.astro # Prevent overwriting local Astro files
+    environment:
+      PUBLIC_API_URL: "http://localhost:8011"
+      PUBLIC_DOCS_URL: "http://localhost:8012"
+      PUBLIC_APP_URL: "http://localhost:8013"
+    restart: "no"
     ports:
       - "8010:8081"
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend-web
+          target: /opt/relab/frontend-web
+          ignore:
+            - node_modules/
+            - .astro/
+            - dist/
+        - action: rebuild
+          path: ./frontend-web/package-lock.json
