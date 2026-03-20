@@ -1,8 +1,6 @@
 # Production Dockerfile for Web Frontend
 # --- Builder stage ---
-FROM node:24-slim AS builder
-
-ARG BUILD_MODE=production
+FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS builder
 
 WORKDIR /opt/relab/frontend-web
 
@@ -12,6 +10,9 @@ COPY package*.json ./
 # Install dependencies
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
+
+# Copy config files
+COPY astro.config.ts tsconfig.json ./
 
 # Copy source code and build
 COPY public/ ./public/
@@ -25,27 +26,12 @@ COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
 RUN npm run build:$BUILD_MODE
 
 # --- Production stage ---
-FROM node:24-slim
+FROM caddy:2-alpine
 
-# Build arguments
-ARG WORKDIR=/opt/relab/frontend-web
-ARG APP_USER=appuser
-
-# Set the working directory
-WORKDIR $WORKDIR
-
-# Install serve for static file serving
-RUN npm install -g serve
-
-# Set up a non-root user
-RUN useradd $APP_USER
-
-# Copy the build output
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/dist $WORKDIR/dist
+COPY --from=builder /opt/relab/frontend-web/dist /srv
+COPY Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8081
 
-USER $APP_USER
-
-# Serve the static build
-CMD ["serve", "-s", "dist", "-l", "8081"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- http://localhost:8081/health || exit 1

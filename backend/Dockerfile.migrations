@@ -6,8 +6,7 @@ WORKDIR /opt/relab/backend-migrations
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    && apt-get dist-clean
+    git
 
 # Create needed directories data uploads for seeding example images and files
 RUN mkdir -p data/uploads/files data/uploads/images
@@ -23,7 +22,7 @@ COPY .python-version pyproject.toml uv.lock ./
 # Install dependencies
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-default-groups --group=migrations --no-install-project
+    uv sync --locked --no-default-groups --group=migrations --no-install-project
 
 # Copy alembic migrations, scripts, and source code
 COPY alembic/ alembic/
@@ -31,27 +30,21 @@ COPY scripts/ scripts/
 COPY app/ app/
 
 # --- Final runtime stage ---
-FROM python:3.14-slim
+FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9
 
-# Build arguments
 ARG WORKDIR=/opt/relab/backend-migrations
 ARG APP_USER=appuser
 
-# Set up a non-root user
 RUN useradd $APP_USER
-
-# Copy built app and environment from builder
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
 
 WORKDIR $WORKDIR
 
-# Set Python variables
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
+
 ENV PYTHONPATH=$WORKDIR \
     PYTHONUNBUFFERED=1 \
     PATH="$WORKDIR/.venv/bin:$PATH"
 
-# Switch to non-root user
 USER $APP_USER
 
-# Run the entrypoint
 ENTRYPOINT ["./scripts/seed/migrations_entrypoint.sh"]

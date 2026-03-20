@@ -1,10 +1,18 @@
 [project]
-  dependencies    = []
-  description     = "Documentation for the Reverse Engineering Lab"
-  name            = "docs"
-  requires-python = ">=3.13"
+  ## Project metadata
+  authors     = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
+  description = "Documentation for the reverse engineering lab project at CML."
+  license     = { text = "AGPL-3.0-or-later" }
+  maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
+  name        = "relab-docs"
+  readme      = "README.md"
+
+  ## Dependencies and version constraints
+  dependencies    = ["zensical>=0.0.27"]
+  requires-python = ">= 3.10"
   version         = "0.1.0"
 
-[dependency-groups]
-  build = ["zensical>=0.0.27"]
-  serve = ["fastapi>=0.115.0", "uvicorn>=0.42.0"]
+  [project.urls]
+    Homepage   = "https://github.com/CMLPlatform/relab"
+    Issues     = "https://github.com/CMLPlatform/relab/issues"
+    Repository = "https://github.com/CMLPlatform/relab.git"

@@ -3,106 +3,94 @@ services:
   backend:
     build:
       context: ./backend
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     depends_on:
       database:
         condition: service_healthy
       cache:
         condition: service_healthy
-    env_file: ./backend/.env
     environment:
       DATABASE_HOST: database # Point to the database service
       DATABASE_PORT: 5432
       REDIS_HOST: cache # Point to the cache service
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import sys, urllib.request;\ntry:\n    code = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).getcode()\nexcept Exception:\n    sys.exit(1)\nsys.exit(0 if code == 200 else 1)",
-        ]
-    restart: unless-stopped
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
       - backend_logs:/opt/relab/backend/logs
+    restart: unless-stopped
 
   backend-migrations:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     depends_on:
       database:
         condition: service_healthy
-    env_file: ./backend/.env
     environment:
       DATABASE_HOST: database
       REDIS_HOST: cache
+    volumes: # Ensure migrations have access to user uploads (for seeding example images)
+      - user_uploads:/opt/relab/backend-migrations/data/uploads
     profiles:
       - migrations
     restart: on-failure:3
-    volumes: # Ensure migrations have access to user uploads (for seeding example images)
-      - user_uploads:/opt/relab/backend-migrations/data/uploads
+
+  cache:
+    image: redis:8@sha256:315270d166080f537bbdf1b489b603aaaa213cb55a544acfa51feb7481abb1c0
+    command: ["sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      start_interval: 5s
+      retries: 3
+    restart: unless-stopped
 
   database:
     image: postgres:18@sha256:78f1aed6e8c0185d3c6963c8343dd018c63e8ba5ebd78c159c7c772a05e75b30
-    env_file: ./backend/.env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
       start_period: 5s
       start_interval: 5s
-    restart: unless-stopped
+      retries: 3
     volumes:
       - database_data:/var/lib/postgresql
-
-  cache:
-    image: redis:8
-    command: ["sh", "-c", "redis-server --appendonly yes --save 60 1 --requirepass $${REDIS_PASSWORD}"]
-    env_file: ./backend/.env
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping"]
-      start_period: 5s
-      start_interval: 5s
     restart: unless-stopped
 
   docs:
     build:
       context: ./docs
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import sys, urllib.request;\ntry:\n    code = urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).getcode()\nexcept Exception:\n    sys.exit(1)\nsys.exit(0 if code == 200 else 1)",
-        ]
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     restart: unless-stopped
 
   frontend-app:
     build:
       context: ./frontend-app
-    depends_on:
-      - backend
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:8081/health/').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     restart: unless-stopped
 
   frontend-web:
     build:
       context: ./frontend-web
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:8081/health').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     restart: unless-stopped
 
 volumes:

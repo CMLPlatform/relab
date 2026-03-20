@@ -1,0 +1,15 @@
+{
+    admin off
+}
+
+:8081 {
+    root * /srv
+    encode zstd gzip
+
+    handle /health {
+        respond "ok" 200
+    }
+
+    try_files {path} /index.html
+    file_server
+}
