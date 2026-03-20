@@ -14,8 +14,15 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
 # Copy source code and build
-COPY . ./
-RUN npm run build${BUILD_MODE:+:$BUILD_MODE}
+COPY public/ ./public/
+COPY src/ ./src/
+
+# Accept BUILD_MODE argument
+ARG BUILD_MODE=prod
+
+COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
+
+RUN npm run build:$BUILD_MODE
 
 # --- Production stage ---
 FROM node:24-slim

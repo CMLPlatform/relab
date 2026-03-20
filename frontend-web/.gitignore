@@ -28,3 +28,9 @@ test-results/
 
 # Test coverage
 coverage/
+
+# Env files (frontend env files are all public)
+!.env.dev
+!.env.staging
+!.env.prod
+!.env.test

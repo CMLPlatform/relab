@@ -5,6 +5,8 @@ from pathlib import Path
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.env import get_env_file
+
 # Set the project base directory and .env file
 BASE_DIR: Path = (Path(__file__).parents[3]).resolve()
 
@@ -31,7 +33,7 @@ class AuthSettings(BaseSettings):
     email_reply_to: str = ""
 
     # Initialize the settings configuration from the .env file (or direct environment variables in Docker)
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=get_env_file(BASE_DIR), extra="ignore")
 
     # Set default values for email settings if not provided
     if not email_from:

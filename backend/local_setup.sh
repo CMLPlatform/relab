@@ -2,19 +2,23 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Check if .env file exists, if not, prompt the user and exit
-if [ ! -f ".env" ]; then
-    echo ".env not found. Please create it by copying from .env.example:"
-    echo "cp .env.example .env"
+# Check if .env.dev file exists, if not, prompt the user and exit
+if [ ! -f ".env.dev" ]; then
+    echo ".env.dev not found. Please create it by copying from .env.dev.example:"
+    echo "cp .env.dev.example .env.dev"
     exit 1
 fi
 
 echo "Setting up local development environment..."
 
-# Load database environment variables from .env file
+# Load database environment variables from .env.dev file
 set -a
-source .env
+# shellcheck source=.env.dev
+source .env.dev
 set +a
+
+# Set PGPASSWORD for non-interactive authentication with PostgreSQL
+export PGPASSWORD="$POSTGRES_PASSWORD"
 
 MAX_RETRIES=10
 RETRY_COUNT=0

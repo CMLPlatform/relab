@@ -44,6 +44,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Ensure settings modules load from .env.test when no ENVIRONMENT is set.
+# This must happen before pytest_plugins triggers fixture-module imports
+# (which in turn import app packages that instantiate settings at module level).
+os.environ.setdefault("ENVIRONMENT", "testing")
+
 pytest_plugins = ["tests.fixtures.client", "tests.fixtures.data", "tests.fixtures.database", "tests.fixtures.redis"]
 
 _DEFAULT_TEST_DB_NAME = "test_relab"

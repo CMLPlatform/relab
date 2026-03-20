@@ -4,7 +4,14 @@ set -e
 
 # Load backend and root .env files
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PG_ENV_FILE="$SCRIPT_DIR/../../.env"
+BACKEND_ENV_NAME="${ENVIRONMENT:-dev}"
+case "$BACKEND_ENV_NAME" in
+    dev) BACKEND_ENV_FILENAME=".env.dev" ;;
+    staging) BACKEND_ENV_FILENAME=".env.staging" ;;
+    prod) BACKEND_ENV_FILENAME=".env.prod" ;;
+    *) BACKEND_ENV_FILENAME=".env.$BACKEND_ENV_NAME" ;;
+esac
+PG_ENV_FILE="$SCRIPT_DIR/../../$BACKEND_ENV_FILENAME"
 ROOT_ENV_FILE="$SCRIPT_DIR/../../../.env"
 
 if [ -f "$PG_ENV_FILE" ]; then

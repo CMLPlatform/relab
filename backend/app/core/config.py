@@ -8,6 +8,11 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.env import get_env_file
+
+if TYPE_CHECKING:
+    from typing import Self
+
 # Set the project base directory and .env file
 BASE_DIR: Path = (Path(__file__).parents[2]).resolve()
 
@@ -73,6 +78,9 @@ class CoreSettings(BaseSettings):
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
 
+    # Initialize the settings configuration from the environment (Docker) or .env file (local)
+    model_config = SettingsConfigDict(env_file=get_env_file(BASE_DIR), extra="ignore")
+
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
         """Normalize URL-like values to browser Origin format."""
@@ -101,9 +109,6 @@ class CoreSettings(BaseSettings):
         if backend_host:
             return [backend_host, "127.0.0.1", "localhost"]
         return ["127.0.0.1", "localhost"]
-
-    # Initialize the settings configuration from the environment (Docker) or .env file (local)
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
     # Cache settings
     cache: CacheSettings = CacheSettings()
@@ -183,6 +188,33 @@ class CoreSettings(BaseSettings):
     def enable_rate_limit(self) -> bool:
         """Disable rate limiting in DEV and TESTING."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> Self:
+        """Refuse to start in production/staging with empty or default credentials."""
+        if self.environment not in (Environment.PROD, Environment.STAGING):
+            return self
+
+        errors: list[str] = []
+
+        if not self.postgres_password.get_secret_value():
+            errors.append("POSTGRES_PASSWORD must not be empty in production")
+
+        if not self.redis_password.get_secret_value():
+            errors.append("REDIS_PASSWORD must not be empty in production")
+
+        if not self.superuser_password.get_secret_value():
+            errors.append("SUPERUSER_PASSWORD must not be empty in production")
+
+        if self.superuser_email == "your-email@example.com":
+            errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
+
+        if errors:
+            formatted = "\n  - ".join(errors)
+            msg = f"Production security check failed:\n  - {formatted}"
+            raise ValueError(msg)
+
+        return self
 
 
 # Create a settings instance that can be imported throughout the app
