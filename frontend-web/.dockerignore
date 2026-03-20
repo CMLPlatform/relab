@@ -1,39 +1,39 @@
-# dependencies
+# Dependencies
 node_modules/
 
-# Builds
+# Build outputs
 dist/
 web-build/
+.astro/
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Testing
+e2e/
+coverage/
+test-results/
+vitest.config.ts
+playwright.config.ts
 
-# Metro
-.metro-health-check*
+# Dev tooling / config
+.vscode/
+biome.json
+justfile
+Dockerfile.dev
+README.md
+.prettierrc
+.env.local
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# Docker and git
+Dockerfile
+Dockerfile.*
+.dockerignore
+.git
+.gitignore
 
 # macOS
 .DS_Store
 *.pem
 
-# Docker and git files
-Dockerfile
-.dockerignore
-.git
-.gitignore
-
-# Development configurations
-.vscode
-eslint.config.js
-.prettierrc
-.env.local
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*

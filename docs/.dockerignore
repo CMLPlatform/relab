@@ -6,24 +6,13 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Local runtime artifacts
-data/
-logs/
-reports/
-
-# Test code
-tests/
+# Build output
+site/
 
 # Dev tooling
 .vscode/
-.ruff_cache/
 justfile
 README.md
-local_setup.*
-
-# Secrets
-.env
-.env.*
 
 # Docker and git
 Dockerfile
@@ -34,9 +23,3 @@ Dockerfile.*
 
 # macOS
 .DS_Store
-
-# Linux system files
-**/.fuse_hidden*
-**/.directory
-**/.Trash-*
-**/.nfs*
