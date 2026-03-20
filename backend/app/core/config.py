@@ -1,11 +1,14 @@
 """Configuration settings for the FastAPI app."""
 
+from __future__ import annotations
+
 from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field
+from pydantic import BaseModel, EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.env import get_env_file
@@ -58,7 +61,6 @@ class CoreSettings(BaseSettings):
     postgres_user: str = "postgres"
     postgres_password: SecretStr = SecretStr("")
     postgres_db: str = "relab_db"
-    postgres_test_db: str = "relab_test_db"
 
     # Redis settings for caching
     redis_host: str = "localhost"
@@ -66,15 +68,12 @@ class CoreSettings(BaseSettings):
     redis_db: int = 0
     redis_password: SecretStr = SecretStr("")
 
-    # Debug settings
-    debug: bool = False
-
     # Superuser settings
     superuser_email: EmailStr = "your-email@example.com"
     superuser_password: SecretStr = SecretStr("")
 
     # Network settings
-    backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
+    backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
 
@@ -91,8 +90,6 @@ class CoreSettings(BaseSettings):
     @cached_property
     def allowed_origins(self) -> list[str]:
         """Get CORS Origin allowlist (scheme + host + optional port)."""
-        if self.environment == Environment.DEV:
-            return ["*"]  # Be permissive locally
         return [
             self._normalize_origin(self.frontend_web_url),
             self._normalize_origin(self.frontend_app_url),
@@ -102,8 +99,8 @@ class CoreSettings(BaseSettings):
     @cached_property
     def allowed_hosts(self) -> list[str]:
         """Get trusted Host header values for backend requests."""
-        if self.environment == Environment.DEV:
-            return ["127.0.0.1", "localhost"]
+        if self.environment in (Environment.DEV, Environment.TESTING):
+            return ["127.0.0.1", "localhost", "test"]
 
         backend_host = urlsplit(str(self.backend_api_url)).hostname
         if backend_host:
@@ -120,7 +117,7 @@ class CoreSettings(BaseSettings):
     static_files_path: Path = BASE_DIR / "app" / "static"
     templates_path: Path = BASE_DIR / "app" / "templates"
     log_path: Path = BASE_DIR / "logs"
-    docs_path: Path = BASE_DIR / "docs" / "site"  # Mkdocs site directory
+    docs_path: Path = BASE_DIR / "docs" / "site"  # Zensical site directory
 
     # Construct database URLs
     def build_database_url(self, driver: str, database: str) -> str:
@@ -146,24 +143,18 @@ class CoreSettings(BaseSettings):
 
     @computed_field
     @cached_property
-    def async_test_database_url(self) -> str:
-        """Get test database URL."""
-        return self.build_database_url("asyncpg", self.postgres_test_db)
-
-    @computed_field
-    @cached_property
-    def sync_test_database_url(self) -> str:
-        """Get test database URL."""
-        return self.build_database_url("psycopg", self.postgres_test_db)
-
-    @computed_field
-    @cached_property
     def cache_url(self) -> str:
         """Get Redis cache URL."""
         return (
             f"redis://:{self.redis_password.get_secret_value() or ''}"
             f"@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         )
+
+    @computed_field
+    @property
+    def debug(self) -> bool:
+        """Enable debug mode (SQL echo, DEBUG log level) only in development."""
+        return self.environment == Environment.DEV
 
     @computed_field
     @cached_property

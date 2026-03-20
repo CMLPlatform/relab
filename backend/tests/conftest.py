@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
+from alembic import command
 from alembic.config import Config
 from loguru import logger as loguru_logger
 from sqlalchemy import create_engine, text
@@ -34,8 +35,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 from sqlalchemy.pool import NullPool
 from sqlmodel.ext.asyncio.session import AsyncSession
 from testcontainers.postgres import PostgresContainer
-
-from alembic import command
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
@@ -64,28 +63,27 @@ def pytest_configure(config: pytest.Config) -> None:
 
     This hook runs before pytest imports test modules, ensuring that when
     app.core.config.settings loads, it uses the container coordinates.
-    """
-    if os.environ.get("IN_DOCKER") == "true":
-        logger.info("Running inside Docker, skipping Testcontainers...")
-        return
 
+    Skipped during collection-only mode (e.g. VS Code test discovery) to avoid
+    spinning up containers that would never be cleaned up.
+    """
     global _GLOBAL_POSTGRES_CONTAINER  # noqa: PLW0603
 
-    # Start Postgres container
+    if config.option.collectonly:
+        return
+
     logger.info("Starting Testcontainers Postgres...")
     _GLOBAL_POSTGRES_CONTAINER = PostgresContainer(
-        "postgres:17-alpine",
+        "postgres:18-alpine",
         username="postgres",
         password="postgres",
         dbname="postgres",
     )
     _GLOBAL_POSTGRES_CONTAINER.start()
 
-    # Extract connection details
     host = _GLOBAL_POSTGRES_CONTAINER.get_container_host_ip()
     port = _GLOBAL_POSTGRES_CONTAINER.get_exposed_port(5432)
 
-    # Set environment variables for application config to use
     os.environ["DATABASE_HOST"] = str(host)
     os.environ["DATABASE_PORT"] = str(port)
     os.environ["POSTGRES_USER"] = "postgres"
@@ -98,9 +96,6 @@ def pytest_configure(config: pytest.Config) -> None:
 def pytest_unconfigure(config: pytest.Config) -> None:
     """Stop Testcontainers after all tests complete."""
     global _GLOBAL_POSTGRES_CONTAINER  # noqa: PLW0603
-
-    if os.environ.get("IN_DOCKER") == "true":
-        return
 
     if _GLOBAL_POSTGRES_CONTAINER:
         logger.info("Stopping Testcontainers Postgres...")
@@ -130,15 +125,11 @@ def _build_database_url(driver: str, database_name: str) -> str:
     port = os.environ["DATABASE_PORT"]
     user = os.environ["POSTGRES_USER"]
     password = os.environ["POSTGRES_PASSWORD"]
-
-    # When running in Docker (CI), we might need to use 'localhost' if running tests from host,
-    # but since tests run INSIDE the container, DATABASE_HOST should already be 'database'.
     return f"postgresql+{driver}://{user}:{password}@{host}:{port}/{database_name}"
 
 
 def create_test_database(test_database_name: str) -> None:
     """Create the test database. Recreate if it exists."""
-    # Connect to default 'postgres' database to create test database
     sync_admin_url = _build_database_url("psycopg", "postgres")
     sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
 
@@ -202,11 +193,6 @@ def _setup_test_database(test_database_name: str, async_engine: AsyncEngine) -> 
     """Create test database and run migrations once per test session."""
     create_test_database(test_database_name)
 
-    if os.environ.get("IN_DOCKER") == "true":
-        logger.info("Running inside Docker, skipping internal Alembic upgrade...")
-        yield
-        return
-
     alembic_cfg = get_alembic_config(test_database_name)
     logger.info("Running Alembic upgrade head...")
     command.upgrade(alembic_cfg, "head")
@@ -214,7 +200,6 @@ def _setup_test_database(test_database_name: str, async_engine: AsyncEngine) -> 
 
     yield
 
-    # Cleanup: drop test database
     sync_admin_url = _build_database_url("psycopg", "postgres")
     sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
     with sync_engine.connect() as connection:
