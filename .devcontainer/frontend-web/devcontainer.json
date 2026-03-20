@@ -9,15 +9,13 @@
   "overrideCommand": true,
   "postAttachCommand": "echo '🚀 Web frontend dev container ready!\\n💡 To start the Astro dev server, run: npx astro dev\\n🌐 The server will be available at http://localhost:8010 (forwarded port)'",
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers-extra/features/expo-cli:1": {}
+    "ghcr.io/devcontainers/features/git:1": {}
   },
   "customizations": {
     "vscode": {
       "extensions": ["astro-build.astro-vscode", "biomejs.biome", "christian-kohler.npm-intellisense"],
       "settings": {
         "editor.formatOnSave": true,
-        "biome.lsp.bin": "./node_modules/@biomejs/cli-darwin-arm64/biome",
         "biome.requireConfiguration": true,
         "[astro][javascript][typescript][javascriptreact][typescriptreact][json][jsonc]": {
           "editor.defaultFormatter": "biomejs.biome",
