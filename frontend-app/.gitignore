@@ -4,6 +4,7 @@ node_modules/
 
 # Expo
 .expo/
+expo-env.d.ts
 dist/
 web-build/
 
@@ -45,3 +46,9 @@ yarn-error.*
 
 # Test coverage
 coverage/
+
+# Env files (frontend env files are all public)
+!.env.development
+!.env.staging
+!.env.production
+!.env.test

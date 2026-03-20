@@ -1,0 +1,51 @@
+# Frontend App Tasks
+
+default:
+    @just --list
+
+# Install dependencies
+install:
+    npm ci
+
+# Run typecheck and lint
+check:
+    npm run lint
+
+# Auto-format code
+format:
+    npm run format
+
+# Run tests
+test:
+    npm run test
+
+# Run tests with coverage (for CI)
+test-cov:
+    npm run test:coverage
+
+# Start dev server
+dev:
+    npm start
+
+# Scan dependencies for known vulnerabilities
+audit:
+    npm audit --audit-level=high --omit=dev
+    @echo "✓ Dependency audit complete"
+
+# Build Expo web app for E2E testing (exports static SPA to dist/)
+# APP_ENV=test tells Expo to load .env.test for EXPO_PUBLIC_* variables
+build-web:
+    APP_ENV=test npm run build:web
+
+# Run E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
+test-e2e:
+    npm run test:e2e
+
+# Open Playwright UI for interactive E2E test development
+test-e2e-ui:
+    npm run test:e2e:ui
+
+# Clean caches and build artifacts
+clean:
+    rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
+    @echo "✓ Cleaned caches and build artifacts"
