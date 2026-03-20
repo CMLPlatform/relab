@@ -15,6 +15,7 @@ PG_ENV_FILE="$SCRIPT_DIR/../../$BACKEND_ENV_FILENAME"
 ROOT_ENV_FILE="$SCRIPT_DIR/../../../.env"
 
 if [ -f "$PG_ENV_FILE" ]; then
+    # shellcheck source=../../.env.prod
     . "$PG_ENV_FILE"
     echo "[$(date)] Loaded backend env file: $PG_ENV_FILE"
 else
@@ -23,6 +24,7 @@ else
 fi
 
 if [ -f "$ROOT_ENV_FILE" ]; then
+    # shellcheck source=../../../.env
     . "$ROOT_ENV_FILE"
     echo "[$(date)] Loaded root env file: $ROOT_ENV_FILE"
 else

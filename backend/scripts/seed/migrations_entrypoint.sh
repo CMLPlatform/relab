@@ -36,14 +36,18 @@ fi
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     echo "Dummy data seeding is enabled."
     echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
-    DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
 
-    # TODO: Printing "True" and checking for that is really fragile, improve this nested script functionality
-    if [ "$(lc "$DB_EMPTY")" = "true" ]; then
+    if .venv/bin/python -m scripts.db_is_empty --quiet; then
         echo "All tables are empty, proceeding to seed dummy data..."
         .venv/bin/python -m scripts.seed.dummy_data
     else
-        echo "Database already has data, skipping seeding of dummy data."
+        status=$?
+        if [ "$status" -eq 10 ]; then
+            echo "Database already has data, skipping seeding of dummy data."
+        else
+            echo "Failed to determine whether the database is empty." >&2
+            exit "$status"
+        fi
     fi
 else
     echo "Dummy data seeding is disabled."

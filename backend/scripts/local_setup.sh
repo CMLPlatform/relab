@@ -2,10 +2,15 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKEND_DIR="$SCRIPT_DIR/.."
+echo "Running local setup script from $SCRIPT_DIR"
+echo "Backend directory: $BACKEND_DIR"
+echo "dev env file: $BACKEND_DIR/.env.dev"
 # Check if .env.dev file exists, if not, prompt the user and exit
-if [ ! -f ".env.dev" ]; then
+if [ ! -f "$BACKEND_DIR/.env.dev" ]; then
     echo ".env.dev not found. Please create it by copying from .env.dev.example:"
-    echo "cp .env.dev.example .env.dev"
+    echo "cp ""$BACKEND_DIR""/.env.dev.example ""$BACKEND_DIR""/.env.dev"
     exit 1
 fi
 
@@ -13,8 +18,9 @@ echo "Setting up local development environment..."
 
 # Load database environment variables from .env.dev file
 set -a
-# shellcheck source=.env.dev
-source .env.dev
+# shellcheck source=../.env.dev
+echo "Loading environment variables from $BACKEND_DIR/.env.dev"
+source "$BACKEND_DIR/.env.dev"
 set +a
 
 # Set PGPASSWORD for non-interactive authentication with PostgreSQL
@@ -59,20 +65,21 @@ uv run alembic upgrade head
 # Check if all tables are empty
 echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
 
-# Run the script and temporarily disable exit-on-error to capture the exit code
-DB_EMPTY=$(.venv/bin/python -m scripts.db_is_empty)
-
-if [ "$DB_EMPTY" = "TRUE" ]; then
+if uv run python -m scripts.db_is_empty --quiet; then
     echo "All tables are empty, proceeding to seed dummy data..."
-    .venv/bin/python -m scripts.seed.dummy_data
+    uv run python -m scripts.seed.dummy_data
 else
-    echo "Database already has data, skipping seeding."
+    status=$?
+    if [ "$status" -eq 10 ]; then
+        echo "Database already has data, skipping seeding."
+    else
+        echo "Failed to determine whether the database is empty."
+        exit "$status"
+    fi
 fi
 
 # Create a superuser if the required environment variables are set
 echo "Creating a superuser..."
 uv run -m scripts.create_superuser
 
-# Activate the virtual environment
-echo "Activating the virtual environment..."
-source .venv/bin/activate
+echo "Local setup complete."

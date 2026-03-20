@@ -10,6 +10,7 @@ import mimetypes
 from functools import partial
 from pathlib import Path
 
+from alembic import command
 from alembic.config import Config
 from anyio import Path as AnyIOPath
 from anyio import run
@@ -20,7 +21,6 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.datastructures import Headers
 
-from alembic import command
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.utils.programmatic_user_crud import create_user

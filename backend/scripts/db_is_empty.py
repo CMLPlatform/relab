@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 
-"""Check if the database is empty to determine if seeding is required.
+"""Check whether the database is empty.
 
-database_is_empty inspects all tables to check if they contain any data. If all tables are empty,
-it returns True, indicating that seeding is required. Otherwise, it returns False.
+The shell-facing contract uses exit codes instead of parsing printed text:
+- 0: database is empty
+- 10: database contains data
 
-Usage:
-    Run this script directly to print 1 if the database is empty, or 0 if it is not.
+By default the CLI also prints a short human-readable message. Pass ``--quiet``
+when using it from shell scripts that only care about the exit status.
 """
 
+import argparse
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CursorResult, Engine, Inspector, MetaData, Select, Table, inspect, select
@@ -19,13 +22,10 @@ from app.core.config import settings
 if TYPE_CHECKING:
     from typing import Any
 
-# NOTE: Echo set to False to not mess with the shell script output.
-# TODO: Consider using exit codes instead
+EXIT_EMPTY = 0
+EXIT_NOT_EMPTY = 10
+
 sync_engine: Engine = create_engine(settings.sync_database_url, echo=False)
-
-
-inspector: Inspector = inspect(sync_engine)
-metadata = MetaData()
 
 
 def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
@@ -33,6 +33,9 @@ def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
     # Ignore the alembic_version table by default
     if ignore_tables is None:
         ignore_tables = {"alembic_version"}
+
+    inspector: Inspector = inspect(sync_engine)
+    metadata = MetaData()
 
     tables: list[str] = inspector.get_table_names()
     if not tables:
@@ -53,13 +56,27 @@ def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
     return True
 
 
-def main() -> None:
-    """Entry point for the database is empty check script."""
-    if database_is_empty(ignore_tables={"alembic_version", "user"}):
-        print("TRUE")  # noqa: T201 # for shell script usage
-    else:
-        print("FALSE")  # noqa: T201
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse CLI arguments."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress text output and communicate the result only via exit code.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Return a shell-friendly exit code for the database emptiness check."""
+    args = parse_args(argv)
+    is_empty = database_is_empty(ignore_tables={"alembic_version", "user"})
+
+    if not args.quiet:
+        print("Database is empty." if is_empty else "Database contains data.")  # noqa: T201
+
+    return EXIT_EMPTY if is_empty else EXIT_NOT_EMPTY
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
