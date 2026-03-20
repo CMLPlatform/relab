@@ -235,7 +235,7 @@ async def delete_image(db: AsyncSession, image_id: UUID4) -> None:
     try:
         db_image = await db_get_model_with_id_if_it_exists(db, Image, image_id)
         file_path = Path(db_image.file.path) if db_image.file else None
-    except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError):
+    except FastAPIStorageFileNotFoundError, ModelFileNotFoundError:
         # TODO: test this scenario
         # File missing from storage but exists in DB - proceed with DB cleanup
         db_image = await db.get(Image, image_id)
