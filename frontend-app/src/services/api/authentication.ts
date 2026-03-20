@@ -3,10 +3,27 @@ import { Platform } from 'react-native';
 import { User } from '@/types/User';
 
 const apiURL = `${process.env.EXPO_PUBLIC_API_URL}`;
+const ACCESS_TOKEN_KEY = 'access_token';
 let token: string | undefined;
 let user: User | undefined;
-// Prevent concurrent refresh attempts
 let isRefreshing = false;
+
+const isWeb = () => Platform.OS === 'web';
+
+async function persistAccessToken(nextToken: string): Promise<void> {
+  token = nextToken;
+  if (!isWeb()) {
+    await AsyncStorage.setItem(ACCESS_TOKEN_KEY, nextToken);
+  }
+}
+
+async function clearCachedAuthState(): Promise<void> {
+  token = undefined;
+  user = undefined;
+  if (!isWeb()) {
+    await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
+  }
+}
 
 // ─────────────────────────────────────────────
 // Core auth helpers
@@ -14,10 +31,10 @@ let isRefreshing = false;
 
 export async function getToken(): Promise<string | undefined> {
   if (token) return token;
-  if (Platform.OS === 'web') return undefined; // Handled via cookies on web
+  if (isWeb()) return undefined;
 
   try {
-    const storedToken = await AsyncStorage.getItem('access_token');
+    const storedToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
     if (storedToken) {
       token = storedToken;
       return token;
@@ -28,46 +45,29 @@ export async function getToken(): Promise<string | undefined> {
   return undefined;
 }
 
-/**
- * Attempts to refresh the access token via the backend.
- * On web: relies on the HttpOnly refresh_token cookie.
- * On native: same – React Native's fetch automatically sends cookies.
- * Returns true if a new access token was successfully obtained.
- */
 export async function refreshAuthToken(): Promise<boolean> {
   if (isRefreshing) return false;
   isRefreshing = true;
 
-  // Both web (cookie) and native (cookie via RN networking) use the same endpoint
-  const authPath = Platform.OS === 'web' ? '/auth/cookie/refresh' : '/auth/refresh';
+  const authPath = isWeb() ? '/auth/cookie/refresh' : '/auth/refresh';
   const url = new URL(apiURL + authPath);
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: { Accept: 'application/json' },
-      credentials: 'include', // ensures cookies are sent on both web and RN
+      credentials: 'include',
     });
 
     if (!response.ok) return false;
+    if (isWeb()) return true;
 
-    // Bearer refresh returns a new access_token in the body
-    if (Platform.OS !== 'web') {
-      try {
-        const data = await response.json();
-        if (data.access_token) {
-          await AsyncStorage.setItem('access_token', data.access_token);
-          token = data.access_token;
-          return true;
-        }
-        return false;
-      } catch {
-        return false;
-      }
+    const data = await response.json().catch(() => null);
+    if (typeof data?.access_token === 'string') {
+      await persistAccessToken(data.access_token);
+      return true;
     }
-
-    // Cookie refresh sets a new auth cookie automatically – nothing else needed
-    return true;
+    return false;
   } catch (err) {
     console.error('[Refresh Token Error]:', err);
     return false;
@@ -76,28 +76,19 @@ export async function refreshAuthToken(): Promise<boolean> {
   }
 }
 
-/**
- * Wrapper around fetch that:
- *  1. Injects the Authorization header on native.
- *  2. Sends credentials (cookies) on web.
- *  3. On 401, attempts an automatic token refresh and retries once.
- *  4. On refresh failure, clears local auth state.
- */
 async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
 
-  if (Platform.OS !== 'web') {
-    const authToken = await getToken();
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
+  const authToken = await getToken();
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
 
   const makeRequest = () =>
     fetch(url, {
       ...options,
       headers,
-      credentials: 'include', // no-op on native but essential on web
+      credentials: 'include',
     });
 
   let response = await makeRequest();
@@ -105,31 +96,19 @@ async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Prom
   if (response.status === 401) {
     const refreshed = await refreshAuthToken();
     if (refreshed) {
-      // Update header with new token for native
-      if (Platform.OS !== 'web') {
-        const newToken = await getToken();
-        if (newToken) headers['Authorization'] = `Bearer ${newToken}`;
-      }
+      const newToken = await getToken();
+      if (newToken) headers['Authorization'] = `Bearer ${newToken}`;
       response = await makeRequest();
     } else {
-      // Refresh failed – clear local state so UI can redirect to login
-      token = undefined;
-      user = undefined;
-      if (Platform.OS !== 'web') {
-        await AsyncStorage.removeItem('access_token');
-      }
+      await clearCachedAuthState();
     }
   }
 
   return response;
 }
 
-// ─────────────────────────────────────────────
-// Auth actions
-// ─────────────────────────────────────────────
-
 export async function login(username: string, password: string): Promise<string | undefined> {
-  const authPath = Platform.OS === 'web' ? '/auth/cookie/login' : '/auth/bearer/login';
+  const authPath = isWeb() ? '/auth/cookie/login' : '/auth/bearer/login';
   const url = new URL(apiURL + authPath);
   const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
   const body = new URLSearchParams({ username, password }).toString();
@@ -138,29 +117,22 @@ export async function login(username: string, password: string): Promise<string 
   try {
     const response = await fetch(url, fetchOptions);
 
-    if (response.status === 204) {
-      // Cookie login – backend set cookies, nothing to parse
-      return 'success';
-    }
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (err: any) {
-      throw new Error(err.message || 'Unable to parse server response.');
-    }
-
+    if (response.status === 204) return 'success';
     if (response.status === 400) {
       token = undefined;
       return undefined;
     }
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${data?.detail || JSON.stringify(data) || 'Login failed.'}`);
+      const errorData = await response.json().catch(() => null);
+      throw new Error(`HTTP ${response.status}: ${errorData?.detail || JSON.stringify(errorData) || 'Login failed.'}`);
     }
-    if (Platform.OS !== 'web' && data.access_token) {
-      await AsyncStorage.setItem('access_token', data.access_token);
-      token = data.access_token;
-      return token;
+
+    if (isWeb()) return 'success';
+
+    const data = await response.json().catch(() => null);
+    if (typeof data?.access_token === 'string') {
+      await persistAccessToken(data.access_token);
+      return data.access_token;
     }
 
     return 'success';
@@ -171,23 +143,14 @@ export async function login(username: string, password: string): Promise<string 
 }
 
 export async function logout(): Promise<void> {
-  token = undefined;
-  user = undefined;
+  await clearCachedAuthState();
 
   try {
     await fetch(new URL(apiURL + '/auth/logout'), { method: 'POST', credentials: 'include' });
   } catch (err) {
     console.error('[Logout Fetch Error]:', err);
   }
-
-  if (Platform.OS !== 'web') {
-    await AsyncStorage.removeItem('access_token');
-  }
 }
-
-// ─────────────────────────────────────────────
-// User
-// ─────────────────────────────────────────────
 
 export async function getUser(forceRefresh = false): Promise<User | undefined> {
   try {
@@ -304,7 +267,7 @@ export async function unlinkOAuth(provider: string): Promise<boolean> {
       throw new Error(errorData?.detail || `Failed to unlink ${provider} account`);
     }
 
-    user = undefined; // bust cache
+    user = undefined;
     return true;
   } catch (error) {
     console.error('[UnlinkOAuth Error]:', error);
