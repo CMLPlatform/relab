@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
 const PrivacyPolicy = () => (
   <Text style={styles.privacyText}>
     By creating an account, you agree to our{' '}
-    <Link href="https://cml-relab.org/privacy">
+    <Link href={`${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` as any}>
       <Text style={styles.privacyLink}>Privacy Policy</Text>
     </Link>
   </Text>
