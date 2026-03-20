@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reverse Engineering Labs API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/styles.css" />
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
     <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
@@ -26,7 +29,7 @@
       </div>
 
       <div class="section">
-        <h2>API Login</h2>
+        <h2>User Access</h2>
         {% if user %}
           <a href="#" onclick="logout()" class="secondary-btn">Logout</a>
         {% else %}
@@ -38,7 +41,7 @@
     <script>
       async function logout() {
         try {
-          await fetch('{{ url_for("auth:cookie.logout") }}', { method: 'POST', credentials: 'include' })
+          await fetch('{{ url_for("auth:logout") }}', { method: 'POST', credentials: 'include' })
           window.location.reload()
         } catch (error) {
           console.error('Logout failed:', error)
