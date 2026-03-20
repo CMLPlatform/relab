@@ -177,9 +177,6 @@
   line-length    = 120
   target-version = "py314"
 
-  # Exclude automatically generated files from linting
-  extend-exclude = ["./alembic/versions"]
-
   [tool.ruff.format]
     docstring-code-format = true
 
@@ -208,6 +205,7 @@
       extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi_filter.FilterDepends"]
 
     [tool.ruff.lint.flake8-type-checking]
+      # Allow runtime imports for FastAPI dependency injection and Pydantic validation
       exempt-modules = ["app", "fastapi", "fastapi_users", "pydantic", "sqlalchemy", "sqlmodel", "typing.Annotated"]
       runtime-evaluated-base-classes = [
         "fastapi_filter.contrib.sqlalchemy.FilterSet",
@@ -215,10 +213,23 @@
         "sqlmodel.SQLModel",
       ]
 
-    # Allow runtime imports for FastAPI dependency injection and Pydantic validation
     [tool.ruff.lint.per-file-ignores]
+      "**/alembic/versions/*.py" = [
+        "D103",   # Up and downgrade functions are self-explanatory
+        "D415",   # Alembic auto-generates script docs without punctuation
+        "F401",   # Ignore unused imports, which are often required for schema changes but not directly referenced in the code
+        "INP001", # The alembic scripts are not meant to be a package
+        "TC003",  # Allow runtime evaluation of base classes
+      ]
       # Ignore security issues over use of `assert` in test files
       "test*.py" = ["S101"]
+
+    [tool.ruff.lint.isort]
+      # Explicitly add known first-party and third-party modules to allow invocation from the project root
+      known-first-party = ["app", "scripts", "tests"]
+
+      # Prevent the alembic directory from shadowing the alembic PyPI package
+      known-third-party = ["alembic"]
 
     [tool.ruff.lint.pydocstyle]
       convention = "google"

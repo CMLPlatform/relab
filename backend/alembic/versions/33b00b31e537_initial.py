@@ -11,11 +11,11 @@ from typing import Union
 
 import sqlalchemy as sa
 import sqlmodel
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 import app.api.common.models.custom_types
 import app.api.file_storage.models.custom_types as file_storage_custom_types
-from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "33b00b31e537"

@@ -4,11 +4,11 @@ import sys
 from pathlib import Path
 
 import alembic_postgresql_enum  # noqa: F401 (Make sure the PostgreSQL ENUM type is recognized)
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url
 from sqlmodel import SQLModel  # Include the SQLModel metadata
 
-from alembic import context
 from app.core.config import settings
 from app.core.logging import setup_logging
 

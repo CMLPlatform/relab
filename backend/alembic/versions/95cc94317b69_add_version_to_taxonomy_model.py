@@ -11,9 +11,9 @@ from typing import Union
 
 import sqlalchemy as sa
 import sqlmodel
+from alembic import op
 
 import app.api.common.models.custom_types
-from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "95cc94317b69"
