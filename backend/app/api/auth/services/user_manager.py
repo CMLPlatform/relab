@@ -1,10 +1,11 @@
 """User management service."""
 
+import ipaddress
 import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, cast
+from urllib.parse import urlparse
 
-import tldextract
 from fastapi import Depends
 from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, schemas
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport, CookieTransport, RedisStrategy
@@ -161,9 +162,15 @@ bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
 
 # Cookie Transport
 
-# Set the cookie domain to the main host, including subdomains (hence the dot prefix)
-url_extract = tldextract.extract(str(core_settings.frontend_web_url))
-cookie_domain = f".{url_extract.domain}.{url_extract.suffix}" if url_extract.domain and url_extract.suffix else None
+# Set the cookie domain to the main host, including subdomains (hence the dot prefix).
+# IP addresses don't support cookie domain scoping, so leave it as None for those.
+_hostname = urlparse(str(core_settings.frontend_web_url)).hostname or ""
+try:
+    ipaddress.ip_address(_hostname)
+    cookie_domain = None
+except ValueError:
+    _parts = _hostname.split(".")
+    cookie_domain = f".{'.'.join(_parts[-2:])}" if len(_parts) >= 2 else None
 
 cookie_transport = CookieTransport(
     cookie_name="auth",
