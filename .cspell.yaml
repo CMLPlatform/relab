@@ -1,0 +1,81 @@
+version: "0.2"
+dictionaries:
+  - coding-terms
+  - cpp-compound-words
+  - docker
+  - filetypes
+  - fullstack
+  - npm
+  - python
+  - python-common
+  - software-tools
+enabled: true
+enabledFileTypes:
+  "*": true
+ignorePaths:
+  - .devcontainer
+  - .dockerignore
+  - .git
+  - .gitignore
+  - .vscode
+  - package-lock.json
+  - uv.lock
+  - "frontend-app/src/assets/data/**"
+language: en_us,nl
+words:
+  - categorymateriallink
+  - categoryproducttypelink
+  - circularityproperties
+  - crowdsource
+  - dismissable
+  - Donati
+  - ERD
+  - fileparenttype
+  - imageparenttype
+  - Lierde
+  - materialproductlink
+  - newslettersubscriber
+  - orcid
+  - organizationrole
+  - oauthaccount
+  - physicalproperties
+  - pressable
+  - primaryjoin
+  - producttype
+  - relab
+  - remanufacturability
+  - remanufacturable
+  - repairability
+  - selectinload
+  - shellcheck
+  - subcomponent
+  - subcomponents
+  - subrepo
+  - subrepos
+  - supercategory
+  - taxonomydomain
+  - tsquery
+  - tsvector
+  - trixie
+  - UNEP
+  - viewability
+  - zenodo
+
+  # Temp
+  - ASGI
+  - Caddyfile
+  - cloudflared
+  - Fernet
+  - fontawesome
+  - justfile
+  - mdformat
+  - mjml
+  - rclone
+  - Zensical
+
+ignoreWords:
+  - ellipsize
+  - htmlcov
+  - piexif
+  - worklets
+  - xdist

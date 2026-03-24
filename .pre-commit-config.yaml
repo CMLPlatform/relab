@@ -61,6 +61,13 @@ repos:
       - id: check-json5
         files: ^ (?!(backend/frontend-app|frontend-web)/data/)
 
+  - repo: https://github.com/streetsidesoftware/cspell-cli
+    rev: v9.7.0
+    hooks:
+      - id: cspell
+        args: ["--config", ".cspell.yaml", "--dot", "--gitignore"]
+
+ 
   ### Backend hooks
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.6
