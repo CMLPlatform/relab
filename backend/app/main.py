@@ -68,6 +68,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     mount_static_directories(app)
     register_favicon_route(app)
 
+    # Shared outbound HTTP client for external APIs.
+    app.state.http_client = create_http_client()
+
+
+
     logger.info("Application startup complete")
 
     yield
@@ -96,7 +101,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         except Exception as e:  # noqa: BLE001
             logger.warning("Error closing file cleanup manager: %s", e)
 
-
+    # Close outbound HTTP client
+    if getattr(app.state, "http_client", None) is not None:
+        try:
+            await app.state.http_client.aclose()
+        except CloseError as e:
+            logger.warning("Error closing outbound HTTP client: %s", e)
 
     logger.info("Application shutdown complete")
 
