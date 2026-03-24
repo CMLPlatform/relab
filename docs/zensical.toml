@@ -5,6 +5,9 @@
   site_name        = "Reverse Engineering Lab"
   site_url         = "https://docs.cml-relab.org"
 
+  # NOTE: we use <year> as a placeholder for the current year, which is substituted in staging and production Docker builds
+  copyright = "Copyright &copy; <year> CML, Leiden University"
+
   # Repository settings
   edit_uri  = "edit/main/docs/docs/"
   repo_name = "CMLPlatform/relab"
@@ -12,24 +15,36 @@
 
   # Navigation settings
   nav = [
-    { "Technical Architecture" = [
-      { "API Structure" = "architecture/api.md" },
-      { "Authentication" = "architecture/auth.md" },
-      { "Database Schema" = "architecture/datamodel.md" },
-      { "Deployment & Operations" = "architecture/deployment.md" },
-      { "RPI Camera Plugin" = "architecture/rpi-cam.md" },
-      { "System Design" = "architecture/system-design.md" },
-    ] },
-    { "User Guides" = [
-      { "API Documentation" = "user-guides/api.md" },
-      { "Data Collection" = "user-guides/data-collection.md" },
-      { "Getting Started" = "user-guides/getting-started.md" },
-      { "Raspberry Pi Camera Setup" = "user-guides/rpi-cam.md" },
-    ] },
+    { Home = "index.md" },
+
     { Dataset = [
       { Overview = "dataset/index.md" },
     ] },
-    { Home = "index.md" },
+
+    { "Technical Architecture" = [
+      { "System Design" = "architecture/system-design.md" },
+
+      { "Database Schema" = "architecture/datamodel.md" },
+
+      { "API Structure" = "architecture/api.md" },
+
+      { "Authentication" = "architecture/auth.md" },
+
+      { "RPI Camera Plugin" = "architecture/rpi-cam.md" },
+
+      { "Deployment & Operations" = "architecture/deployment.md" },
+    ] },
+
+    { "User Guides" = [
+      { "Getting Started" = "user-guides/getting-started.md" },
+
+      { "API Documentation" = "user-guides/api.md" },
+
+      { "Data Collection" = "user-guides/data-collection.md" },
+
+      { "Raspberry Pi Camera Setup" = "user-guides/rpi-cam.md" },
+    ] },
+
   ]
 
   [project.theme]
@@ -41,6 +56,7 @@
       "content.code.annotate",
       "content.code.copy",
       "navigation.expand",
+      "navigation.footer",
       "navigation.indexes",
       "navigation.instant",
       "navigation.instant.prefetch",
@@ -89,3 +105,11 @@
   [project.extra]
     # Remove Zensical badge from footer
     generator = false
+
+    [[project.extra.social]]
+      icon = "fontawesome/brands/github"
+      link = "https://github.com/CMLPlatform/relab"
+
+    [[project.extra.social]]
+      icon = "fontawesome/brands/linkedin"
+      link = "https://www.linkedin.com/groups/15671021"

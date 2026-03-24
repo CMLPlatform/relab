@@ -58,6 +58,6 @@ If you're interested in contributing to the platform or setting up your own inst
 ## User Guides
 
 - [Getting Started with the Platform](user-guides/getting-started.md)
-- [COllectin Product Data](user-guides/data-collection.md)
+- [Collecting Product Data](user-guides/data-collection.md)
 - [Raspberry Pi Camera Setup](user-guides/rpi-cam.md)
 - [Using the API](user-guides/api.md)
