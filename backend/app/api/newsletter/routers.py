@@ -1,14 +1,15 @@
 """Basic newsletter subscription endpoint."""
 
-from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Security
 from fastapi.params import Body
+from fastapi_pagination import Page
 from pydantic import EmailStr
 from sqlmodel import select
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.common.crud.base import get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.newsletter.models import NewsletterSubscriber
 from app.api.newsletter.schemas import NewsletterSubscriberRead
@@ -132,11 +133,10 @@ async def unsubscribe_with_token(token: Annotated[str, Body()], db: AsyncSession
 admin_router = APIRouter(prefix="/admin/newsletter", dependencies=[Security(current_active_superuser)])
 
 
-@admin_router.get("/subscribers", response_model=Sequence[NewsletterSubscriberRead])
-async def get_subscribers(db: AsyncSessionDep) -> Sequence[NewsletterSubscriber]:
+@admin_router.get("/subscribers", response_model=Page[NewsletterSubscriberRead])
+async def get_subscribers(db: AsyncSessionDep) -> Page[NewsletterSubscriber]:
     """Get all newsletter subscribers. Only accessible by superusers."""
-    subscribers = await db.exec(select(NewsletterSubscriber))
-    return subscribers.all()
+    return await get_paginated_models(db, NewsletterSubscriber, read_schema=NewsletterSubscriberRead)
 
 
 ### Router registration ###

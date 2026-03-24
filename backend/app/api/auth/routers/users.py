@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Security
+from fastapi_pagination import Page
 
 from app.api.auth import crud
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OrgAsOwner, current_active_user
@@ -43,17 +44,23 @@ async def get_user_organization(current_user: CurrentActiveVerifiedUserDep) -> O
 
 @router.get(
     "/me/organization/members",
-    response_model=list[UserReadPublic],
+    response_model=Page[UserReadPublic],
     summary="Get the members of the organization of the current user",
 )
 async def get_user_organization_members(
     current_user: CurrentActiveVerifiedUserDep,
     session: AsyncSessionDep,
-) -> list[User]:
+) -> Page[User]:
     """Get the members of the organization of the current user."""
     if current_user.organization_id is None:
         raise HTTPException(status_code=404, detail="User does not belong to an organization.")
-    return await crud.get_organization_members(session, current_user.organization_id, current_user)
+    return await crud.get_organization_members(
+        session,
+        current_user.organization_id,
+        current_user,
+        paginate=True,
+        read_schema=UserReadPublic,
+    )
 
 
 @router.patch("/me/organization", response_model=OrganizationRead, summary="Update your organization")

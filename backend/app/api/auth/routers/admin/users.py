@@ -1,10 +1,11 @@
 """Admin routes for managing users."""
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Path, Query, Security
 from fastapi.responses import RedirectResponse
 from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
 from pydantic import UUID4, EmailStr
 
 from app.api.auth.crud import get_user_by_username
@@ -12,12 +13,9 @@ from app.api.auth.dependencies import UserManagerDep, current_active_superuser
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.routers.users import router as public_user_router
-from app.api.auth.schemas import UserRead, UserReadWithRelationships
-from app.api.common.crud.base import get_models
+from app.api.auth.schemas import UserRead
+from app.api.common.crud.base import get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
@@ -26,7 +24,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security
 @router.get(
     "",
     summary="View all users",
-    response_model=list[UserRead] | list[UserReadWithRelationships],
+    response_model=Page[UserRead],
     responses={
         200: {
             "description": "List of users",
@@ -85,9 +83,11 @@ async def get_users(
             },
         ),
     ] = None,
-) -> Sequence[User]:
+) -> Page[User]:
     """Get a list of all users with optional filtering and relationships."""
-    return await get_models(session, User, include_relationships=include, model_filter=user_filter)
+    return await get_paginated_models(
+        session, User, include_relationships=include, model_filter=user_filter, read_schema=UserRead
+    )
 
 
 @router.get(

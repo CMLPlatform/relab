@@ -1,4 +1,5 @@
 """Admin routers for background data models."""
+# spell-checker: disable apaginate
 
 from http import HTTPMethod
 from typing import TYPE_CHECKING, Annotated, Any, cast
@@ -6,7 +7,10 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 from fastapi import APIRouter, Path, Query
 from fastapi.types import DecoratedCallable
 from fastapi_cache.decorator import cache
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlmodel import apaginate
 from pydantic import PositiveInt
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.api.background_data import crud
@@ -35,7 +39,7 @@ from app.api.background_data.schemas import (
     TaxonomyRead,
 )
 from app.api.common.crud.associations import get_linked_model_by_id, get_linked_models
-from app.api.common.crud.base import get_model_by_id, get_models, get_nested_model_by_id
+from app.api.common.crud.base import get_model_by_id, get_nested_model_by_id, get_paginated_models
 from app.api.common.models.enums import Unit
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -112,7 +116,7 @@ RecursionDepthQueryParam = Annotated[int, Query(ge=1, le=5, description="Maximum
 ## GET routers ##
 @category_router.get(
     "",
-    response_model=list[CategoryReadWithRelationshipsAndFlatSubCategories],
+    response_model=Page[CategoryReadWithRelationshipsAndFlatSubCategories],
     summary="Get all categories with optional filtering and relationships",
     responses={
         200: {
@@ -166,9 +170,15 @@ async def get_categories(
             },
         ),
     ] = None,
-) -> Sequence[Category]:
+) -> Page[Category]:
     """Get all categories with specified relationships."""
-    return await get_models(session, Category, include_relationships=include, model_filter=category_filter)
+    return await get_paginated_models(
+        session,
+        Category,
+        include_relationships=include,
+        model_filter=category_filter,
+        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
+    )
 
 
 @category_router.get(
@@ -325,7 +335,7 @@ async def get_category(
 ## Subcategory routers ##
 @category_router.get(
     "{category_id}/subcategories",
-    response_model=list[CategoryReadWithRelationshipsAndFlatSubCategories],
+    response_model=Page[CategoryReadWithRelationshipsAndFlatSubCategories],
     summary="Get category subcategories with optional filtering and relationships",
 )
 async def get_subcategories(
@@ -343,15 +353,19 @@ async def get_subcategories(
             },
         ),
     ] = None,
-) -> Sequence[Category]:
-    """Get all categories with specified relationships."""
+) -> Page[Category]:
+    """Get paginated subcategories of a category with specified relationships."""
     # Validate existence of category
     await get_model_by_id(session, Category, category_id)
 
-    # Get subcategories
     statement = select(Category).where(Category.supercategory_id == category_id)
-    return await get_models(
-        session, Category, include_relationships=include, model_filter=category_filter, statement=statement
+    return await get_paginated_models(
+        session,
+        Category,
+        include_relationships=include,
+        model_filter=category_filter,
+        statement=statement,
+        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
 
 
@@ -450,10 +464,10 @@ taxonomy_router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomie
 
 
 ## GET routers ##
-@taxonomy_router.get("", response_model=list[TaxonomyRead])
-async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> list[Taxonomy]:
+@taxonomy_router.get("", response_model=Page[TaxonomyRead])
+async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[Taxonomy]:
     """Get all taxonomies with optional filtering."""
-    return await get_models(session, Taxonomy, model_filter=taxonomy_filter)
+    return await get_paginated_models(session, Taxonomy, model_filter=taxonomy_filter, read_schema=TaxonomyRead)
 
 
 @taxonomy_router.get("/{taxonomy_id}", response_model=TaxonomyRead)
@@ -465,7 +479,7 @@ async def get_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) -> Ta
 ## Taxonomy Category routers ##
 @taxonomy_router.get(
     "/{taxonomy_id}/categories",
-    response_model=list[CategoryReadWithRecursiveSubCategories],
+    response_model=Page[CategoryReadWithRecursiveSubCategories],
     summary="Get the categories of a taxonomy",
     responses={
         200: {
@@ -516,12 +530,21 @@ async def get_taxonomy_category_tree(
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
     recursion_depth: RecursionDepthQueryParam = 1,
-) -> list[CategoryReadWithRecursiveSubCategories]:
-    """Get a taxonomy with its category tree structure."""
-    categories: list[Category] = await crud.get_category_trees(
-        session, recursion_depth, taxonomy_id=taxonomy_id, category_filter=category_filter
+) -> Page[CategoryReadWithRecursiveSubCategories]:
+    """Get paginated top-level categories of a taxonomy with their recursive subcategory trees."""
+    await get_model_by_id(session, Taxonomy, taxonomy_id)
+
+    statement = (
+        select(Category)
+        .where(Category.taxonomy_id == taxonomy_id)
+        .where(Category.supercategory_id == None)  # noqa: E711 # SQLAlchemy requires `== None` for IS NULL
+        .options(selectinload(Category.subcategories, recursion_depth=recursion_depth))
     )
-    return [
+    if category_filter:
+        statement = category_filter.filter(statement)
+
+    page: Page[Category] = await apaginate(session, statement)
+    page.items = [
         CategoryReadWithRecursiveSubCategories.model_validate(
             category,
             update={
@@ -530,8 +553,9 @@ async def get_taxonomy_category_tree(
                 )
             },
         )
-        for category in categories
+        for category in page.items
     ]
+    return page
 
 
 @taxonomy_router.get(
@@ -568,7 +592,7 @@ material_router = BackgroundDataAPIRouter(prefix="/materials", tags=["materials"
 ## GET routers ##
 @material_router.get(
     "",
-    response_model=list[MaterialReadWithRelationships],
+    response_model=Page[MaterialReadWithRelationships],
     summary="Get all materials with optional relationships",
     responses={
         200: {
@@ -623,9 +647,15 @@ async def get_materials(
             },
         ),
     ] = None,
-) -> Sequence[Material]:
+) -> Page[Material]:
     """Get all materials with specified relationships."""
-    return await get_models(session, Material, include_relationships=include, model_filter=material_filter)
+    return await get_paginated_models(
+        session,
+        Material,
+        include_relationships=include,
+        model_filter=material_filter,
+        read_schema=MaterialReadWithRelationships,
+    )
 
 
 @material_router.get(
@@ -805,6 +835,7 @@ product_type_router = BackgroundDataAPIRouter(prefix="/product-types", tags=["pr
 ## Basic CRUD routers ##
 @product_type_router.get(
     "",
+    response_model=Page[ProductTypeReadWithRelationships],
     summary="Get all product types",
     responses={
         200: {
@@ -859,9 +890,15 @@ async def get_product_types(
             },
         ),
     ] = None,
-) -> Sequence[ProductType]:
+) -> Page[ProductType]:
     """Get a list of all product types."""
-    return await get_models(session, ProductType, include_relationships=include, model_filter=product_type_filter)
+    return await get_paginated_models(
+        session,
+        ProductType,
+        include_relationships=include,
+        model_filter=product_type_filter,
+        read_schema=ProductTypeReadWithRelationships,
+    )
 
 
 @product_type_router.get(

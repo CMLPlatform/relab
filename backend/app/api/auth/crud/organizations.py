@@ -1,7 +1,10 @@
 """CRUD operations for organizations."""
 
-from pydantic import UUID4
+from fastapi_filter.contrib.sqlalchemy import Filter
+from fastapi_pagination import Page
+from pydantic import UUID4, BaseModel
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.auth.exceptions import (
@@ -15,8 +18,8 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.schemas import OrganizationCreate, OrganizationUpdate
-from app.api.common.crud.base import get_model_by_id
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
+from app.api.common.crud.base import get_model_by_id, get_paginated_models
+from app.api.common.crud.utils import get_model_or_404
 
 ### Constants ###
 
@@ -50,6 +53,23 @@ async def create_organization(db: AsyncSession, organization: OrganizationCreate
 
 
 ## Read Organization ##
+async def get_organizations(
+    db: AsyncSession,
+    *,
+    include_relationships: set[str] | None = None,
+    model_filter: Filter | None = None,
+    read_schema: type[BaseModel] | None = None,
+) -> Page[Organization]:
+    """Get organizations with optional filtering, relationships, and pagination."""
+    return await get_paginated_models(
+        db,
+        Organization,
+        include_relationships=include_relationships,
+        model_filter=model_filter,
+        read_schema=read_schema,
+    )
+
+
 async def get_user_organization(user: User) -> Organization:
     """Get the organization of a user, optionally including related models."""
     if not user.organization:
@@ -95,7 +115,7 @@ async def delete_organization_as_owner(db: AsyncSession, owner: User) -> None:
 
 async def force_delete_organization(db: AsyncSession, organization_id: UUID4) -> None:
     """Force delete a organization from the database."""
-    db_organization = await db_get_model_with_id_if_it_exists(db, Organization, organization_id)
+    db_organization = await get_model_or_404(db, Organization, organization_id)
 
     await db.delete(db_organization)
     await db.commit()
@@ -128,15 +148,26 @@ async def user_join_organization(
     return user
 
 
-async def get_organization_members(db: AsyncSession, organization_id: UUID4, user: User) -> list[User]:
+async def get_organization_members(
+    db: AsyncSession,
+    organization_id: UUID4,
+    user: User,
+    *,
+    paginate: bool = False,
+    read_schema: type[BaseModel] | None = None,
+) -> list[User] | Page[User]:
     """Get organization members if user is a member or superuser."""
     # Verify user is member or superuser
     if not user.is_superuser and user.organization_id != organization_id:
         raise UserIsNotMemberError
 
+    if paginate:
+        await get_model_by_id(db, Organization, organization_id)
+        statement = select(User).where(User.organization_id == organization_id)
+        return await get_paginated_models(db, User, statement=statement, read_schema=read_schema)
+
     organization = await get_model_by_id(db, Organization, organization_id, include_relationships={"members"})
 
-    # TODO: Add pagination when there are many members
     return organization.members
 
 

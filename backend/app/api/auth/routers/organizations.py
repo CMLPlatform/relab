@@ -1,9 +1,10 @@
 """Public routes for managing organizations."""
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
 from pydantic import UUID4
 
 from app.api.auth import crud
@@ -17,23 +18,19 @@ from app.api.auth.schemas import (
     UserReadPublic,
     UserReadWithOrganization,
 )
-from app.api.common.crud.base import get_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import mark_router_routes_public
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
 
 
 ### Main organization routes ###
-@router.get("", summary="View all organizations", response_model=list[OrganizationReadPublic])
+@router.get("", summary="View all organizations", response_model=Page[OrganizationReadPublic])
 async def get_organizations(
     org_filter: Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)], session: AsyncSessionDep
-) -> Sequence[Organization]:
+) -> Page[Organization]:
     """Get a list of all organizations with optional filtering."""
-    return await get_models(session, Organization, model_filter=org_filter)
+    return await crud.get_organizations(session, model_filter=org_filter, read_schema=OrganizationReadPublic)
 
 
 @router.get(
@@ -56,13 +53,19 @@ async def create_organization(
 
 ## Organization member routes ##
 @router.get(
-    "/{organization_id}/members", response_model=list[UserReadPublic], summary="Get the members of an organization"
+    "/{organization_id}/members", response_model=Page[UserReadPublic], summary="Get the members of an organization"
 )
 async def get_organization_members(
     organization_id: UUID4, current_user: CurrentActiveVerifiedUserDep, session: AsyncSessionDep
-) -> list[User]:
+) -> Page[User]:
     """Get the members of an organization."""
-    return await crud.get_organization_members(session, organization_id, current_user)
+    return await crud.get_organization_members(
+        session,
+        organization_id,
+        current_user,
+        paginate=True,
+        read_schema=UserReadPublic,
+    )
 
 
 @router.post(

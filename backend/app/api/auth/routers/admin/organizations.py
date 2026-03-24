@@ -1,26 +1,27 @@
 """Admin routes for managing organizations."""
 
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Security
+from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
 from pydantic import UUID4
 
-from app.api.auth.crud import force_delete_organization
+from app.api.auth import crud
 from app.api.auth.dependencies import current_active_superuser
+from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization
 from app.api.auth.schemas import OrganizationReadWithRelationships
-from app.api.common.crud.base import get_model_by_id, get_models
+from app.api.common.crud.base import get_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
 
-@router.get("", response_model=list[OrganizationReadWithRelationships], summary="Get all organizations")
+@router.get("", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations")
 async def get_all_organizations(
     session: AsyncSessionDep,
+    org_filter: Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)],
     include: Annotated[
         set[str] | None,
         Query(
@@ -31,9 +32,14 @@ async def get_all_organizations(
             },
         ),
     ] = None,
-) -> Sequence[Organization]:
+) -> Page[Organization]:
     """Get all organizations with optional relationships. Only superusers can access this route."""
-    return await get_models(session, Organization, include_relationships=include)
+    return await crud.get_organizations(
+        session,
+        include_relationships=include,
+        model_filter=org_filter,
+        read_schema=OrganizationReadWithRelationships,
+    )
 
 
 @router.get("/{organization_id}", response_model=OrganizationReadWithRelationships, summary="Get organization by ID")
@@ -58,4 +64,4 @@ async def get_organization_with_relationships(
 @router.delete("/{organization_id}", status_code=204, summary="Delete organization by ID")
 async def delete_organization(organization_id: UUID4, session: AsyncSessionDep) -> None:
     """Delete organization by ID. Only superusers can access this route."""
-    await force_delete_organization(session, organization_id)
+    await crud.force_delete_organization(session, organization_id)

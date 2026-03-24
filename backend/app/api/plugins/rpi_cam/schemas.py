@@ -35,6 +35,8 @@ class CameraFilter(Filter):
 
     search: str | None = None
 
+    order_by: list[str] | None = None
+
     class Constants(Filter.Constants):  # Standard FastAPI-filter class
         """FilterAPI class configuration."""
 
