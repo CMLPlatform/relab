@@ -7,11 +7,19 @@ from typing import TYPE_CHECKING, cast
 from urllib.parse import urlparse
 
 from fastapi import Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, schemas
-from fastapi_users.authentication import AuthenticationBackend, BearerTransport, CookieTransport, RedisStrategy
+from fastapi_users.authentication import (
+    AuthenticationBackend,
+    BearerTransport,
+    CookieTransport,
+    JWTStrategy,
+    RedisStrategy,
+)
 from fastapi_users.manager import BaseUserManager
 from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
-from pydantic import UUID4, SecretStr
+from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
+from sqlmodel import select
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
@@ -25,7 +33,7 @@ from app.api.auth.utils.programmatic_emails import (
 )
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.core.config import settings as core_settings
-from app.core.redis import RedisDep
+from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -48,7 +56,7 @@ _AUTH_COOKIE_PREFIX = "auth="
 _SET_COOKIE_HEADER = "set-cookie"
 
 
-class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spellchecker: ignore UUIDID
+class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
     """User manager class for FastAPI-Users."""
 
     # We will initialize the user manager with a SQLModelUserDatabaseAsync instance in the dependency function below
@@ -197,14 +205,22 @@ cookie_transport = CookieTransport(
 )
 
 
-def get_redis_strategy(redis: RedisDep) -> RedisStrategy:
-    """Get a Redis strategy for token storage with server-side invalidation."""
-    return RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL)
+def get_token_strategy(redis: OptionalRedisDep) -> object:
+    """Return an authentication token strategy.
+
+    If a Redis client is available, use server-side RedisStrategy so tokens can be invalidated.
+    Otherwise fall back to JWTStrategy so the app works without Redis (useful for dev/testing).
+    """
+    if redis:
+        return RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL)
+
+    # Fallback to JWT strategy when Redis is unavailable (development/testing)
+    return JWTStrategy(secret=SECRET.get_secret_value(), lifetime_seconds=ACCESS_TOKEN_TTL)
 
 
 # Authentication backends with Redis strategy
-bearer_auth_backend = AuthenticationBackend(name="bearer", transport=bearer_transport, get_strategy=get_redis_strategy)
-cookie_auth_backend = AuthenticationBackend(name="cookie", transport=cookie_transport, get_strategy=get_redis_strategy)
+bearer_auth_backend = AuthenticationBackend(name="bearer", transport=bearer_transport, get_strategy=get_token_strategy)
+cookie_auth_backend = AuthenticationBackend(name="cookie", transport=cookie_transport, get_strategy=get_token_strategy)
 
 # User manager singleton
 fastapi_user_manager = FastAPIUsers[User, UUID4](get_user_manager, [bearer_auth_backend, cookie_auth_backend])

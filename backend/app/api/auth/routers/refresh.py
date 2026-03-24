@@ -15,7 +15,7 @@ from app.api.auth.schemas import (
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
 from app.core.config import settings as core_settings
-from app.core.redis import RedisDep
+from app.core.redis import OptionalRedisDep
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/bearer/login", auto_error=False)
 
@@ -33,7 +33,7 @@ router = APIRouter()
 async def refresh_access_token(
     user_manager: UserManagerDep,
     strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
-    redis: RedisDep,
+    redis: OptionalRedisDep,
     request: RefreshTokenRequest | None = None,
     cookie_refresh_token: Annotated[str | None, Cookie(alias="refresh_token")] = None,
 ) -> RefreshTokenResponse:
@@ -85,7 +85,7 @@ async def refresh_access_token_cookie(
     response: Response,
     user_manager: UserManagerDep,
     strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
-    redis: RedisDep,
+    redis: OptionalRedisDep,
     refresh_token: Annotated[str | None, Cookie()] = None,
 ) -> None:
     """Refresh access token using refresh token from cookie.
@@ -140,7 +140,7 @@ async def logout(
     response: Response,
     current_user: CurrentActiveUserDep,
     strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
-    redis: RedisDep,
+    redis: OptionalRedisDep,
     cookie_refresh_token: Annotated[str | None, Cookie(alias="refresh_token")] = None,
     cookie_auth_token: Annotated[str | None, Cookie(alias="auth")] = None,
     bearer_token: Annotated[str | None, Depends(oauth2_scheme)] = None,
