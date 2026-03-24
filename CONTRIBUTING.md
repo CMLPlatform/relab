@@ -211,6 +211,8 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
 
    Configure the necessary values in `.env.dev` (marked with 🔀).
 
+   > 💡 Note: OAuth frontend redirect origin checks reuse the same frontend URL and `CORS_ORIGIN_REGEX` policy as backend CORS. In local dev, the regex can stay permissive for LAN testing; in staging and production it is disabled automatically, so OAuth falls back to the explicit `FRONTEND_WEB_URL` and `FRONTEND_APP_URL` origins.
+   >
    > 💡 Note: Make sure to create the PostgreSQL database and user as specified in your `.env.dev` file.
 
 1. **Run Setup Script**
@@ -267,6 +269,8 @@ The documentation is now available at <http://127.0.0.1:8000> with live reload.
    This will launch the Expo development server for the web frontend. By default, it opens [http://localhost:8081](http://localhost:8081) in your browser.
 
    > 💡 Note: You can also use the Expo UI to run the app on a mobile device or emulator, see the [official Expo documentation](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for details.
+   >
+   > 💡 **Testing on a physical device (Expo Go):** Your phone needs to reach the backend over the network. Create `frontend-app/.env.local` (gitignored) and point the URLs at your machine's LAN IP, e.g. `EXPO_PUBLIC_API_URL=http://192.168.x.x:8011`. On the backend side, set `CORS_ORIGIN_REGEX` in `backend/.env.dev` to cover your LAN subnet if the default does not already match it. OAuth redirect validation reuses that same dev-only regex, so there is no separate OAuth redirect regex to maintain.
 
 ## Task Runner
 

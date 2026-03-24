@@ -39,9 +39,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Startup
     logger.info("Starting up application...")
     logger.info(
-        "Security config: allowed_hosts=%s allowed_origins=%s",
+        "Security config: allowed_hosts=%s allowed_origins=%s cors_origin_regex=%s",
         settings.allowed_hosts,
         settings.allowed_origins,
+        settings.cors_origin_regex,
     )
 
     # Initialize Redis connection and store in app.state

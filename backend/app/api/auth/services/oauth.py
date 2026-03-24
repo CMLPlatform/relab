@@ -1,6 +1,7 @@
 """Consolidation of OAuth services and builders."""
 
 import logging
+import re
 import secrets
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Annotated, Any, Literal
@@ -29,6 +30,7 @@ from app.api.auth.services.user_manager import (
     fastapi_user_manager,
 )
 from app.core.config import settings as core_settings
+from app.core.constants import HOUR
 
 if TYPE_CHECKING:
     from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token
@@ -38,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Constants
 STATE_TOKEN_AUDIENCE = "fastapi-users:oauth-state"  # noqa: S105
 CSRF_TOKEN_KEY = "csrftoken"  # noqa: S105
-CSRF_TOKEN_COOKIE_NAME = "fastapiusersoauthcsrf"  # noqa: S105
+CSRF_TOKEN_COOKIE_NAME = "fastapiusersoauthcsrf"  # noqa: S105 # spell-checker: ignore fastapiusersoauthcsrf
 SET_COOKIE_HEADER = b"set-cookie"
 ACCESS_TOKEN_KEY = "access_token"  # noqa: S105
 
@@ -75,7 +77,7 @@ class OAuth2AuthorizeResponse(BaseModel):
     authorization_url: str
 
 
-def generate_state_token(data: dict[str, str], secret: SecretType, lifetime_seconds: int = 3600) -> str:
+def generate_state_token(data: dict[str, str], secret: SecretType, lifetime_seconds: int = HOUR) -> str:
     """Generate a JWT state token for OAuth flows."""
     data["aud"] = STATE_TOKEN_AUDIENCE
     return generate_jwt(data, secret, lifetime_seconds)
@@ -93,7 +95,9 @@ class OAuthCookieSettings:
     name: str = CSRF_TOKEN_COOKIE_NAME
     path: str = "/"
     domain: str | None = None
-    secure: bool = True
+    # Use the core settings to determine whether cookies should be Secure.
+    # In development/testing we allow non-HTTPS cookies so localhost flows work.
+    secure: bool = core_settings.secure_cookies
     httponly: bool = True
     samesite: Literal["lax", "strict", "none"] = "lax"
 
@@ -119,7 +123,7 @@ class BaseOAuthRouterBuilder:
         response.set_cookie(
             self.cookie_settings.name,
             csrf_token,
-            max_age=3600,
+            max_age=HOUR,
             path=self.cookie_settings.path,
             domain=self.cookie_settings.domain,
             secure=self.cookie_settings.secure,
@@ -201,40 +205,41 @@ class BaseOAuthRouterBuilder:
         parsed = urlparse(url)
         return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, "", "", "")).rstrip("/")
 
-    def _is_allowed_frontend_redirect(self, redirect_uri: str) -> bool:
-        """Validate whether a frontend redirect URI is explicitly allowed."""
-        parsed = urlparse(redirect_uri)
-        if not parsed.scheme:
+    @staticmethod
+    def _is_allowed_redirect_path(path: str) -> bool:
+        """Validate the redirect path against the optional allowlist."""
+        return not settings.oauth_allowed_redirect_paths or path in settings.oauth_allowed_redirect_paths
+
+    def _is_allowed_http_redirect(self, redirect_uri: str, parsed_redirect: Any) -> bool:  # noqa: ANN401
+        """Validate an HTTP(S) frontend redirect against trusted origins."""
+        if not parsed_redirect.netloc:
             return False
 
-        # Prevent credentials in URL and prevent fragment smuggling.
-        if parsed.username or parsed.password or parsed.fragment:
-            return False
+        redirect_origin = self._normalize_origin(redirect_uri)
+        if core_settings.cors_origin_regex and re.fullmatch(core_settings.cors_origin_regex, redirect_origin):
+            return self._is_allowed_redirect_path(parsed_redirect.path)
 
-        if parsed.scheme in {"http", "https"}:
-            if not parsed.netloc:
-                return False
+        return redirect_origin in core_settings.allowed_origins and self._is_allowed_redirect_path(parsed_redirect.path)
 
-            allowed_origins = {
-                self._normalize_origin(str(core_settings.frontend_web_url)),
-                self._normalize_origin(str(core_settings.frontend_app_url)),
-                *{self._normalize_origin(origin) for origin in settings.oauth_allowed_redirect_origins},
-            }
-
-            redirect_origin = self._normalize_origin(redirect_uri)
-            if redirect_origin not in allowed_origins:
-                return False
-
-            if settings.oauth_allowed_redirect_paths:
-                return parsed.path in settings.oauth_allowed_redirect_paths
-
-            return True
-
+    def _is_allowed_native_redirect(self, redirect_uri: str) -> bool:
+        """Validate a native deep-link callback against the explicit allowlist."""
         normalized_redirect = self._normalize_redirect_target(redirect_uri)
         allowed_native_redirects = {
             self._normalize_redirect_target(uri) for uri in settings.oauth_allowed_native_redirect_uris
         }
         return normalized_redirect in allowed_native_redirects
+
+    def _is_allowed_frontend_redirect(self, redirect_uri: str) -> bool:
+        """Validate whether a frontend redirect URI is explicitly allowed."""
+        parsed = urlparse(redirect_uri)
+        # Prevent credentials in URL and prevent fragment smuggling.
+        if not parsed.scheme or parsed.username or parsed.password or parsed.fragment:
+            return False
+
+        if parsed.scheme in {"http", "https"}:
+            return self._is_allowed_http_redirect(redirect_uri, parsed)
+
+        return self._is_allowed_native_redirect(redirect_uri)
 
 
 class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
@@ -353,13 +358,13 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
                 associate_by_email=self.associate_by_email,
                 is_verified_by_default=self.is_verified_by_default,
             )
-        except UserAlreadyExists:
+        except UserAlreadyExists as err:
             if frontend_redirect:
                 return self._create_error_redirect(frontend_redirect, ErrorCode.OAUTH_USER_ALREADY_EXISTS.value)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=ErrorCode.OAUTH_USER_ALREADY_EXISTS,
-            )
+            ) from err
 
         if not user.is_active:
             if frontend_redirect:

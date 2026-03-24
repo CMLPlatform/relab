@@ -25,8 +25,8 @@ class AuthSettings(BaseSettings):
     github_oauth_client_secret: SecretStr = SecretStr("")
 
     # OAuth frontend redirect hardening
-    # Origins should be provided as scheme://host[:port], for example: https://app.cml-relab.org
-    oauth_allowed_redirect_origins: list[str] = []
+    # NOTE: Origin validation reuses the same normalized frontend URLs and dev-only regex as CORS.
+
     # Optional path allowlist. When empty, any path on an allowed origin is accepted.
     oauth_allowed_redirect_paths: list[str] = []
     # Optional exact allowlist for native deep-link callbacks (scheme://host/path, no query/fragment).

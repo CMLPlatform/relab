@@ -75,7 +75,11 @@ class CoreSettings(BaseSettings):
     # Network settings
     backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
-    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8004")
+    frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
+    # Regex pattern matched against the Origin header — useful in dev to allow a whole subnet without listing every IP.
+    # Default covers localhost, 127.0.0.1, and any 192.168.x.x origin with any port.
+    # When set, origins matching this pattern are echoed back (credentials still work, unlike allow_origins=["*"]).
+    cors_origin_regex: str | None = Field(default=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?")
 
     # Initialize the settings configuration from the environment (Docker) or .env file (local)
     model_config = SettingsConfigDict(env_file=get_env_file(BASE_DIR), extra="ignore")
@@ -100,7 +104,7 @@ class CoreSettings(BaseSettings):
     def allowed_hosts(self) -> list[str]:
         """Get trusted Host header values for backend requests."""
         if self.environment in (Environment.DEV, Environment.TESTING):
-            return ["127.0.0.1", "localhost", "test"]
+            return ["*"]
 
         backend_host = urlsplit(str(self.backend_api_url)).hostname
         if backend_host:
@@ -199,6 +203,9 @@ class CoreSettings(BaseSettings):
 
         if self.superuser_email == "your-email@example.com":
             errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
+
+        if self.cors_origin_regex:
+            errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
         if errors:
             formatted = "\n  - ".join(errors)
