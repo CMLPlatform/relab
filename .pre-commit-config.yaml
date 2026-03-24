@@ -1,7 +1,5 @@
 # Configuration of Pre-commit Hooks. For more information, see https://pre-commit.com.
 # NOTE: pre-commit does not support multiple config files, hence this file is used for both global and subrepo-specific hooks.
-# TODO: Consider moving to from monorepo to multiple repos for easier CI/CD management.
-# Alternatively, move to lefthook for extensible git hook management.
 
 repos:
   ### Global hooks
@@ -67,10 +65,26 @@ repos:
       - id: cspell
         args: ["--config", ".cspell.yaml", "--dot", "--gitignore"]
 
- 
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.10.12
+    hooks:
+      # Update uv lockfiles
+      - id: uv-lock
+        name: uv-lock-root
+        files: ^(uv\.lock|pyproject\.toml|uv\.toml)$
+        entry: uv lock
+      - id: uv-lock
+        name: uv-lock-backend
+        files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
+        entry: uv lock --project backend
+      - id: uv-lock
+        name: uv-lock-docs
+        files: ^docs/(uv\.lock|pyproject\.toml|uv\.toml)$
+        entry: uv lock --project docs
+
   ### Backend hooks
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.6
+    rev: v0.15.7
     hooks:
       - id: ruff-check # Lint code
         files: ^backend/(app|scripts|tests)/
@@ -78,13 +92,6 @@ repos:
       - id: ruff-format # Format code
         files: ^backend/(app|scripts|tests)/
         args: ["--config", "backend/pyproject.toml"]
-
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.11
-    hooks:
-      - id: uv-lock # Update the uv lockfile for the backend.
-        files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
-        entry: uv lock --project backend
 
   - repo: local
     hooks:
@@ -96,7 +103,7 @@ repos:
         language: system
         files: ^(backend/(app|alembic)/|alembic\.ini$)
         pass_filenames: false
-      # Run Ty for static type checking.
+        # Run Ty for static type checking.
       - id: ty
         name: type check with Ty
         files: ^backend/(app|scripts|tests)/
