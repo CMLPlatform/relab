@@ -10,9 +10,14 @@ from sqlmodel import Session
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
+from app.core.model_registry import load_sqlmodel_models
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
+
+
+# Ensure ORM class registry is populated before sessions are created.
+load_sqlmodel_models()
 
 ### Async database connection
 async_engine: AsyncEngine = create_async_engine(settings.async_database_url, future=True, echo=settings.debug)

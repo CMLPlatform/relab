@@ -1,9 +1,9 @@
-# noqa: D100, INP001 (the alembic folder should not be recognized as a module)
+# noqa: D100 (the alembic folder should not be recognized as a module)
 import logging
 import sys
 from pathlib import Path
 
-import alembic_postgresql_enum  # noqa: F401 (Make sure the PostgreSQL ENUM type is recognized)
+import alembic_postgresql_enum
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url
@@ -11,6 +11,7 @@ from sqlmodel import SQLModel  # Include the SQLModel metadata
 
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.model_registry import load_sqlmodel_models
 
 # Load settings from the FastAPI app config
 project_root = Path(__file__).resolve().parents[1]
@@ -20,28 +21,19 @@ sys.path.append(str(project_root))
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set up custom logging configuration for Alembic
-setup_logging()
-logger = logging.getLogger("alembic.env")
-
 # Set the synchronous database URL if not already set in the test environment
 if config.get_alembic_option("is_test") != "true":  # noqa: PLR2004 # This variable is set in tests/conftest.py to indicate a test environment
+    setup_logging()
     config.set_main_option("sqlalchemy.url", settings.sync_database_url)
+else:
+    # In tests, logging is already configured in conftest.py.
+    # We just need to ensure the alembic.env logger exists.
+    pass
 
-# Import your models to include their metadata
-from app.api.auth.models import OAuthAccount, Organization, User  # noqa: E402, F401
-from app.api.background_data.models import (  # noqa: E402, F401
-    Category,
-    CategoryMaterialLink,
-    CategoryProductTypeLink,
-    Material,
-    ProductType,
-    Taxonomy,
-)
-from app.api.data_collection.models import PhysicalProperties, Product  # noqa: E402, F401
-from app.api.file_storage.models.models import File, Image, Video  # noqa: E402, F401
-from app.api.newsletter.models import NewsletterSubscriber  # noqa: E402, F401
-from app.api.plugins.rpi_cam.models import Camera  # noqa: E402, F401
+logger = logging.getLogger("alembic.env")
+
+# Import all models so SQLModel.metadata is complete for autogenerate
+load_sqlmodel_models()
 
 # Combine metadata from all imported models
 target_metadata = SQLModel.metadata
