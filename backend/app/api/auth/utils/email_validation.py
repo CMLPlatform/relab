@@ -1,7 +1,5 @@
 """Utilities for validating email addresses."""
 
-import asyncio
-import contextlib
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,6 +7,7 @@ from fastapi import Request
 from fastapi_mail.email_utils import DefaultChecker
 from redis.exceptions import RedisError
 
+from app.core.background_tasks import PeriodicBackgroundTask
 from app.core.config import Environment, settings
 
 if TYPE_CHECKING:
@@ -19,8 +18,10 @@ logger = logging.getLogger(__name__)
 # Custom source for disposable domains
 DISPOSABLE_DOMAINS_URL = "https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt"
 
+_EMAIL_CHECKER_ERRORS = (RuntimeError, ValueError, ConnectionError, OSError, RedisError)
 
-class EmailChecker:
+
+class EmailChecker(PeriodicBackgroundTask):
     """Email checker that manages disposable domain validation."""
 
     def __init__(self, redis_client: Redis | None) -> None:
@@ -29,9 +30,9 @@ class EmailChecker:
         Args:
             redis_client: Redis client instance to use for caching
         """
+        super().__init__(interval_seconds=60 * 60 * 24)  # 24 hours
         self.redis_client = redis_client
         self.checker: DefaultChecker | None = None
-        self._refresh_task: asyncio.Task | None = None
 
     async def initialize(self) -> None:
         """Initialize the disposable email checker.
@@ -63,11 +64,15 @@ class EmailChecker:
                     logger.info("Disposable email checker initialized with Redis (using cached domains)")
 
             # Start periodic refresh task
-            self._refresh_task = asyncio.create_task(self._periodic_refresh())
+            await super().initialize()
 
-        except (RuntimeError, ValueError, ConnectionError, OSError, RedisError) as e:
+        except _EMAIL_CHECKER_ERRORS as e:
             logger.warning("Failed to initialize disposable email checker: %s", e)
             self.checker = None
+
+    async def run_once(self) -> None:
+        """Refresh disposable domains (called periodically by the base class loop)."""
+        await self._refresh_domains()
 
     async def _refresh_domains(self) -> None:
         """Refresh the list of disposable email domains from the source."""
@@ -77,31 +82,15 @@ class EmailChecker:
         try:
             await self.checker.fetch_temp_email_domains()
             logger.info("Disposable email domains refreshed successfully")
-        except RuntimeError, ValueError, ConnectionError, OSError, RedisError:
+        except _EMAIL_CHECKER_ERRORS:
             logger.exception("Failed to refresh disposable email domains:")
-
-    async def _periodic_refresh(self) -> None:
-        """Periodically refresh disposable domains every 24 hours."""
-        while True:
-            try:
-                await asyncio.sleep(60 * 60 * 24)  # 24 hours
-                await self._refresh_domains()
-            except asyncio.CancelledError:
-                logger.info("Periodic domain refresh task cancelled")
-                break
-            except RuntimeError, ValueError, ConnectionError, OSError, RedisError:
-                logger.exception("Error in periodic domain refresh:")
 
     async def close(self) -> None:
         """Close the email checker and cleanup resources.
 
         Should be called during application shutdown.
         """
-        # Cancel periodic refresh task
-        if self._refresh_task is not None:
-            self._refresh_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._refresh_task
+        await super().close()
 
         # Close checker connections if initialized
         if self.checker is not None and self.redis_client is not None:
@@ -109,7 +98,7 @@ class EmailChecker:
             try:
                 await self.checker.close_connections()
                 logger.info("Email checker closed successfully")
-            except (RuntimeError, ValueError, ConnectionError, OSError, RedisError) as e:
+            except _EMAIL_CHECKER_ERRORS as e:
                 logger.warning("Error closing email checker: %s", e)
             finally:
                 self.checker = None
@@ -128,7 +117,7 @@ class EmailChecker:
             return False
         try:
             return await self.checker.is_disposable(email)
-        except RuntimeError, ValueError, ConnectionError, OSError, RedisError:
+        except _EMAIL_CHECKER_ERRORS:
             logger.exception("Failed to check if email is disposable: %s. Allowing registration.", email)
             # If check fails, allow registration (fail open)
             return False
@@ -161,3 +150,6 @@ async def init_email_checker(redis: Redis | None) -> EmailChecker | None:
         await email_checker.initialize()
     except (RuntimeError, ValueError, ConnectionError) as e:
         logger.warning("Failed to initialize email checker: %s", e)
+        return None
+    else:
+        return email_checker
