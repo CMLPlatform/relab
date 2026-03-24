@@ -8,16 +8,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, EmailStr, HttpUrl, PostgresDsn, SecretStr, computed_field, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, PostgresDsn, SecretStr, model_validator
 
-from app.core.env import get_env_file
+from app.core.constants import DAY, HOUR
+from app.core.env import BACKEND_DIR, RelabBaseSettings
 
 if TYPE_CHECKING:
     from typing import Self
 
-# Set the project base directory and .env file
-BASE_DIR: Path = (Path(__file__).parents[2]).resolve()
+# Default superuser credentials (must be overridden in production)
+DEFAULT_SUPERUSER_EMAIL = "your-email@example.com"
 
 
 class CacheNamespace(StrEnum):
@@ -34,10 +34,12 @@ class CacheSettings(BaseModel):
     prefix: str = "fastapi-cache"
 
     # Namespace-specific TTL settings (in seconds)
-    ttls: dict[CacheNamespace, int] = {
-        CacheNamespace.BACKGROUND_DATA: 86400,  # 24 hours
-        CacheNamespace.DOCS: 3600,  # 1 hour
-    }
+    ttls: dict[CacheNamespace, int] = Field(
+        default_factory=lambda: {
+            CacheNamespace.BACKGROUND_DATA: DAY,  # 24 hours
+            CacheNamespace.DOCS: HOUR,  # 1 hour
+        }
+    )
 
 
 class Environment(StrEnum):
@@ -49,7 +51,7 @@ class Environment(StrEnum):
     TESTING = "testing"
 
 
-class CoreSettings(BaseSettings):
+class CoreSettings(RelabBaseSettings):
     """Settings class to store all the configurations for the app."""
 
     # Application Environment
@@ -69,7 +71,7 @@ class CoreSettings(BaseSettings):
     redis_password: SecretStr = SecretStr("")
 
     # Superuser settings
-    superuser_email: EmailStr = "your-email@example.com"
+    superuser_email: EmailStr = DEFAULT_SUPERUSER_EMAIL
     superuser_password: SecretStr = SecretStr("")
 
     # Network settings
@@ -81,16 +83,12 @@ class CoreSettings(BaseSettings):
     # When set, origins matching this pattern are echoed back (credentials still work, unlike allow_origins=["*"]).
     cors_origin_regex: str | None = Field(default=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?")
 
-    # Initialize the settings configuration from the environment (Docker) or .env file (local)
-    model_config = SettingsConfigDict(env_file=get_env_file(BASE_DIR), extra="ignore")
-
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
         """Normalize URL-like values to browser Origin format."""
         parsed = urlsplit(str(url))
         return f"{parsed.scheme}://{parsed.netloc}"
 
-    @computed_field
     @cached_property
     def allowed_origins(self) -> list[str]:
         """Get CORS Origin allowlist (scheme + host + optional port)."""
@@ -99,7 +97,6 @@ class CoreSettings(BaseSettings):
             self._normalize_origin(self.frontend_app_url),
         ]
 
-    @computed_field
     @cached_property
     def allowed_hosts(self) -> list[str]:
         """Get trusted Host header values for backend requests."""
@@ -112,16 +109,22 @@ class CoreSettings(BaseSettings):
         return ["127.0.0.1", "localhost"]
 
     # Cache settings
-    cache: CacheSettings = CacheSettings()
+    cache: CacheSettings = Field(default_factory=CacheSettings)
+
+    # File cleanup settings
+    file_cleanup_enabled: bool = True
+    file_cleanup_interval_hours: int = 24
+    file_cleanup_min_file_age_minutes: int = 30
+    file_cleanup_dry_run: bool = False
 
     # Construct directory paths
-    uploads_path: Path = BASE_DIR / "data" / "uploads"
+    uploads_path: Path = BACKEND_DIR / "data" / "uploads"
     file_storage_path: Path = uploads_path / "files"
     image_storage_path: Path = uploads_path / "images"
-    static_files_path: Path = BASE_DIR / "app" / "static"
-    templates_path: Path = BASE_DIR / "app" / "templates"
-    log_path: Path = BASE_DIR / "logs"
-    docs_path: Path = BASE_DIR / "docs" / "site"  # Zensical site directory
+    static_files_path: Path = BACKEND_DIR / "app" / "static"
+    templates_path: Path = BACKEND_DIR / "app" / "templates"
+    log_path: Path = BACKEND_DIR / "logs"
+    docs_path: Path = BACKEND_DIR / "docs" / "site"  # Zensical site directory
 
     # Construct database URLs
     def build_database_url(self, driver: str, database: str) -> str:
@@ -133,19 +136,16 @@ class CoreSettings(BaseSettings):
         PostgresDsn(url)  # Validate URL format
         return url
 
-    @computed_field
     @cached_property
     def async_database_url(self) -> str:
         """Get async database URL."""
         return self.build_database_url("asyncpg", self.postgres_db)
 
-    @computed_field
     @cached_property
     def sync_database_url(self) -> str:
         """Get sync database URL."""
         return self.build_database_url("psycopg", self.postgres_db)
 
-    @computed_field
     @cached_property
     def cache_url(self) -> str:
         """Get Redis cache URL."""
@@ -154,43 +154,41 @@ class CoreSettings(BaseSettings):
             f"@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         )
 
-    @computed_field
     @property
     def debug(self) -> bool:
         """Enable debug mode (SQL echo, DEBUG log level) only in development."""
         return self.environment == Environment.DEV
 
-    @computed_field
     @cached_property
     def enable_caching(self) -> bool:
         """Disable caching logic if we are running in development or testing."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
 
-    @computed_field
     @property
     def secure_cookies(self) -> bool:
         """Set cookie 'Secure' flag to False in DEV so HTTP works on localhost."""
         return self.environment in (Environment.PROD, Environment.STAGING)
 
-    @computed_field
     @property
     def mock_emails(self) -> bool:
         """Set email sending to False in DEV and TESTING."""
         return self.environment in (Environment.DEV, Environment.TESTING)
 
-    @computed_field
     @property
     def enable_rate_limit(self) -> bool:
         """Disable rate limiting in DEV and TESTING."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
 
     @model_validator(mode="after")
-    def validate_production_secrets(self) -> Self:
-        """Refuse to start in production/staging with empty or default credentials."""
+    def validate_security_settings(self) -> Self:
+        """Validate environment-specific security settings."""
         if self.environment not in (Environment.PROD, Environment.STAGING):
             return self
 
         errors: list[str] = []
+
+        if self.cors_origin_regex:
+            errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
         if not self.postgres_password.get_secret_value():
             errors.append("POSTGRES_PASSWORD must not be empty in production")
@@ -201,11 +199,8 @@ class CoreSettings(BaseSettings):
         if not self.superuser_password.get_secret_value():
             errors.append("SUPERUSER_PASSWORD must not be empty in production")
 
-        if self.superuser_email == "your-email@example.com":
+        if self.superuser_email == DEFAULT_SUPERUSER_EMAIL:
             errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
-
-        if self.cors_origin_regex:
-            errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
         if errors:
             formatted = "\n  - ".join(errors)

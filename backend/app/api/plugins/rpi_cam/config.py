@@ -1,23 +1,13 @@
 """Configuration for the Raspberry Pi Camera plugin."""
 
-from pathlib import Path
-
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from app.core.env import get_env_file
-
-# Set the project base directory and .env file
-BASE_DIR: Path = (Path(__file__).parents[4]).resolve()
+from app.core.env import RelabBaseSettings
 
 
-class RPiCamSettings(BaseSettings):
+class RPiCamSettings(RelabBaseSettings):
     """Settings class to store settings related to the Raspberry Pi Camera plugin."""
 
     # Authentication settings
     rpi_cam_plugin_secret: str = ""
-
-    # Initialize the settings configuration from the .env file (or direct environment variables in Docker)
-    model_config = SettingsConfigDict(env_file=get_env_file(BASE_DIR), extra="ignore")
 
     api_key_header_name: str = "X-API-Key"
 
