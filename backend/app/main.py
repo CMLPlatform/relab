@@ -56,6 +56,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Initialize FastAPI Cache
     init_fastapi_cache(app.state.redis)
 
+    # Initialize File Cleanup Manager and store in app.state
+    app.state.file_cleanup_manager = FileCleanupManager(async_sessionmaker_factory)
+    await app.state.file_cleanup_manager.initialize()
+
+    # Ensure storage directories exist and mark as ready
+    ensure_storage_directories()
+    app.state.storage_ready = True
+
+    # Mount static file directories and register favicon after storage is ready
+    mount_static_directories(app)
+    register_favicon_route(app)
+
     logger.info("Application startup complete")
 
     yield
@@ -76,6 +88,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             await close_redis(app.state.redis)
         except (ConnectionError, OSError) as e:
             logger.warning("Error closing Redis: %s", e)
+
+    # Close File Cleanup Manager
+    if app.state.file_cleanup_manager is not None:
+        try:
+            await app.state.file_cleanup_manager.close()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Error closing file cleanup manager: %s", e)
+
+
 
     logger.info("Application shutdown complete")
 
@@ -117,12 +138,6 @@ app.include_router(router)
 
 # Initialize OpenAPI documentation
 init_openapi_docs(app)
-
-# Mount static file directories
-mount_static_directories(app)
-
-# Register favicon route
-register_favicon_route(app)
 
 # Initialize exception handling
 register_exception_handlers(app)

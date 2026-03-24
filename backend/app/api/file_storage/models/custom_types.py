@@ -1,5 +1,6 @@
 """Custom types for FastAPI Storages models."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO
 
 from fastapi_storages import FileSystemStorage, StorageImage
@@ -17,6 +18,13 @@ if TYPE_CHECKING:
 class CustomFileSystemStorage(FileSystemStorage):
     """File system storage with custom error handling."""
 
+    def __init__(self, path: str) -> None:
+        # Do not create the path at import-time. Creating directories during
+        # module import (e.g. when alembic loads models) can trigger
+        # PermissionError if a runtime volume is mounted and owned by root.
+        # Defer directory creation until a write is attempted.
+        self._path = Path(path)
+
     def open(self, name: str) -> BinaryIO:
         """Override of base class 'open' method for custom error handling."""
         try:
@@ -24,6 +32,19 @@ class CustomFileSystemStorage(FileSystemStorage):
         except FileNotFoundError as e:
             details = str(e) if settings.debug else None
             raise FastAPIStorageFileNotFoundError(name, details=details) from e
+
+    def write(self, file: BinaryIO, name: str) -> str:
+        """Ensure the storage directory exists before writing the file.
+
+        This creates directories lazily on the first write, avoiding mkdir at
+        import time which breaks migrations.
+        """
+        # Try to create the storage directory; allow PermissionError to
+        # propagate so callers can handle it if the runtime volume is not
+        # writable.
+        self._path.mkdir(parents=True, exist_ok=True)
+
+        return super().write(file=file, name=name)
 
 
 ## File and Image types with custom storage paths

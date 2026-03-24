@@ -15,8 +15,26 @@ def mount_static_directories(app: FastAPI) -> None:
     Args:
         app: FastAPI application instance
     """
-    app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
-    app.mount("/static", StaticFiles(directory=settings.static_files_path), name="static")
+    # Mount the uploads directory if it exists. Note: if this is called
+    # from lifespan, the directory should have been ensured already.
+    if settings.uploads_path.exists():
+        app.mount("/uploads", StaticFiles(directory=settings.uploads_path), name="uploads")
+    else:
+        err_msg = (
+            f"Uploads path '{settings.uploads_path}' does not exist. Ensure storage directories are created at startup."
+        )
+        raise RuntimeError(err_msg)
+
+    # Static files directory is part of the repo and should exist; mount
+    # it if present, otherwise skip to avoid raising at import time.
+    if settings.static_files_path.exists():
+        app.mount("/static", StaticFiles(directory=settings.static_files_path), name="static")
+    else:
+        err_msg = (
+            f"Static files path '{settings.static_files_path}' does not exist."
+            " Ensure storage directories are created at startup."
+        )
+        raise RuntimeError(err_msg)
 
 
 def register_favicon_route(app: FastAPI) -> None:
