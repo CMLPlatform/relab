@@ -16,6 +16,8 @@ class TaxonomyFilter(Filter):
 
     search: str | None = None
 
+    order_by: list[str] | None = None
+
     # TODO: Add custom domain filtering (given a list of domains, return all taxonomies that have at least one of them).
     # See https://github.com/arthurio/fastapi-filter/issues/556 for inspiration. Or move to https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters.
 
@@ -38,6 +40,8 @@ class CategoryFilter(Filter):
     external_id__ilike: str | None = None
 
     search: str | None = None
+
+    order_by: list[str] | None = None
 
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""
@@ -68,6 +72,8 @@ class MaterialFilter(Filter):
 
     search: str | None = None
 
+    order_by: list[str] | None = None
+
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""
 
@@ -90,9 +96,12 @@ class ProductTypeFilter(Filter):
     """FastAPI-Filter class for ProductType filtering."""
 
     name__ilike: str | None = None
+    name__in: list[str] | None = None
     description__ilike: str | None = None
 
     search: str | None = None
+
+    order_by: list[str] | None = None
 
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""

@@ -21,14 +21,15 @@ class UserFilter(Filter):
     is_superuser: bool | None = None
     is_verified: bool | None = None
 
-    search_model_fields: ClassVar[list[str]] = [
-        "email",
-        "username",
-        "organization",
-    ]
+    search: str | None = None
 
     class Constants(Filter.Constants):  # noqa: D106 # Standard FastAPI-filter class
         model = User
+
+        search_model_fields: ClassVar[list[str]] = [
+            "email",
+            "username",
+        ]
 
 
 class OrganizationFilter(Filter):
@@ -38,14 +39,18 @@ class OrganizationFilter(Filter):
     location__ilike: str | None = None
     description__ilike: str | None = None
 
-    search_model_fields: ClassVar[list[str]] = [
-        "name",
-        "location",
-        "description",
-    ]
+    search: str | None = None
+
+    order_by: list[str] | None = None
 
     class Constants(Filter.Constants):  # noqa: D106 # Standard FastAPI-filter class
         model = Organization
+
+        search_model_fields: ClassVar[list[str]] = [
+            "name",
+            "location",
+            "description",
+        ]
 
 
 class UserFilterWithRelationships(UserFilter):
