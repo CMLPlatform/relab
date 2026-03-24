@@ -2,7 +2,7 @@
 
 import logging
 import time
-from pathlib import Path
+from typing import Any, cast
 
 from anyio import Path as AnyIOPath
 from sqlmodel import select
@@ -14,30 +14,30 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
-async def get_referenced_files(session: AsyncSession) -> set[Path]:
+async def get_referenced_files(session: AsyncSession) -> set[AnyIOPath]:
     """Get all file paths referenced in the database.
 
     Returns:
         Set of absolute Paths to referenced files.
     """
-    referenced_paths: set[Path] = set()
+    referenced_paths: set[AnyIOPath] = set()
 
-    file_stmt = select(File.file)  # ty: ignore[no-matching-overload]
+    file_stmt = select(cast("Any", File.file))
     files = (await session.exec(file_stmt)).all()
     for f in files:
         if f and hasattr(f, "path"):
-            referenced_paths.add(Path(f.path).resolve())  # noqa: ASYNC240
+            referenced_paths.add(await AnyIOPath(f.path).resolve())
 
-    image_stmt = select(Image.file)  # ty: ignore[no-matching-overload]
+    image_stmt = select(cast("Any", Image.file))
     images = (await session.exec(image_stmt)).all()
     for img in images:
         if img and hasattr(img, "path"):
-            referenced_paths.add(Path(img.path).resolve())  # noqa: ASYNC240
+            referenced_paths.add(await AnyIOPath(img.path).resolve())
 
     return referenced_paths
 
 
-async def get_files_on_disk() -> set[Path]:
+async def get_files_on_disk() -> set[AnyIOPath]:
     """Get all file paths on disk in the upload directories that are old enough to delete.
 
     Only files older than ``settings.file_cleanup_min_file_age_minutes`` are
@@ -47,7 +47,7 @@ async def get_files_on_disk() -> set[Path]:
     Returns:
         Set of absolute Paths to eligible files on disk.
     """
-    files_on_disk: set[Path] = set()
+    files_on_disk: set[AnyIOPath] = set()
     min_age_seconds = settings.file_cleanup_min_file_age_minutes * 60
     now = time.time()
 
@@ -58,12 +58,12 @@ async def get_files_on_disk() -> set[Path]:
                 if await path.is_file():
                     stat = await path.stat()
                     if now - stat.st_mtime >= min_age_seconds:
-                        files_on_disk.add(Path(str(path)).resolve())  # noqa: ASYNC240
+                        files_on_disk.add(await path.resolve())
 
     return files_on_disk
 
 
-async def get_unreferenced_files(session: AsyncSession) -> list[Path]:
+async def get_unreferenced_files(session: AsyncSession) -> list[AnyIOPath]:
     """Identify files on disk that are not referenced in the database.
 
     Returns:
@@ -71,10 +71,10 @@ async def get_unreferenced_files(session: AsyncSession) -> list[Path]:
     """
     referenced = await get_referenced_files(session)
     on_disk = await get_files_on_disk()
-    return sorted(on_disk - referenced)
+    return cast("list[AnyIOPath]", sorted(on_disk - referenced, key=str))
 
 
-async def cleanup_unreferenced_files(session: AsyncSession, *, dry_run: bool = True) -> list[Path]:
+async def cleanup_unreferenced_files(session: AsyncSession, *, dry_run: bool = True) -> list[AnyIOPath]:
     """Delete files from disk that are not referenced in the database.
 
     Args:
