@@ -26,10 +26,6 @@
     "fastapi-filter>=2.0.1",
     "fastapi-mail",
     "fastapi-pagination>=0.13.2",
-    # NOTE: This is a heavy dependency (~40MB) due to its use of boto3, even though we don't use any cloud storage
-    # TODO: We should consider using a more lightweight alternative if it becomes available.
-    # Alternatively, we could write the local file storage backend ourselves.
-    "fastapi-storages >=0.3.0",
     # NOTE: We use a custom fork of fastapi-users-db-sqlmodel to support Pydantic V2
     "fastapi-users-db-sqlmodel",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",

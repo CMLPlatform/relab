@@ -21,6 +21,9 @@ from app.api.common.models.custom_types import MT
 from app.api.data_collection.models import Product
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
 from app.api.file_storage.filters import FileFilter, ImageFilter
+from app.api.file_storage.models.custom_types import FileType as StoredFileType
+from app.api.file_storage.models.custom_types import ImageType as StoredImageType
+from app.api.file_storage.models.custom_types import get_file_storage, get_image_storage
 from app.api.file_storage.models.models import File, Image, MediaParentType, Video
 from app.api.file_storage.schemas import (
     FileCreate,
@@ -85,7 +88,7 @@ async def delete_file_from_storage(file_path: Path) -> None:
 ## Basic CRUD operations ##
 async def get_files(db: AsyncSession, *, file_filter: FileFilter | None = None) -> Sequence[File]:
     """Get all files from the database."""
-    # TODO: Handle missing files in storage
+    # Missing files are handled when individual items are accessed.
     return await get_models(db, File, model_filter=file_filter)
 
 
@@ -110,11 +113,13 @@ async def create_file(db: AsyncSession, file_data: FileCreate) -> File:
     parent_model = get_file_parent_type_model(file_data.parent_type)
     await get_model_or_404(db, parent_model, file_data.parent_id)
 
+    stored_name = await get_file_storage().write_upload(file_data.file, file_data.file.filename)
+
     db_file = File(
         id=file_id,
         description=file_data.description,
         filename=original_filename,
-        file=file_data.file,
+        file=cast("StoredFileType", stored_name),
         parent_type=file_data.parent_type,
     )
 
@@ -152,7 +157,7 @@ async def delete_file(db: AsyncSession, file_id: UUID4) -> None:
         file_path = Path(db_file.file.path) if db_file.file else None
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
         # File missing from storage but exists in DB - proceed with DB cleanup
-        # TODO: Test this scenario
+        # This fallback keeps the database consistent even if the underlying file was removed manually.
         db_file = await db.get(File, file_id)
         file_path = None
         logger.warning("File %s not found in storage: %s. File instance will be deleted from the database.", file_id, e)
@@ -168,7 +173,7 @@ async def delete_file(db: AsyncSession, file_id: UUID4) -> None:
 ## Basic CRUD operations ##
 async def get_images(db: AsyncSession, *, image_filter: ImageFilter | None = None) -> Sequence[Image]:
     """Get all images from the database."""
-    # TODO: Handle missing files in storage
+    # Missing files are handled when individual items are accessed.
     return await get_models(db, Image, model_filter=image_filter)
 
 
@@ -196,12 +201,14 @@ async def create_image(db: AsyncSession, image_data: ImageCreateFromForm | Image
     if parent_exists is None:
         raise ModelNotFoundError(parent_model, image_data.parent_id)
 
+    stored_name = await get_image_storage().write_image_upload(image_data.file, image_data.file.filename)
+
     db_image = Image(
         id=image_id,
         description=image_data.description,
         image_metadata=image_data.image_metadata,
         filename=original_filename,
-        file=image_data.file,
+        file=cast("StoredImageType", stored_name),
         parent_type=image_data.parent_type,
     )
 
@@ -432,8 +439,17 @@ class ParentStorageOperations[P, S, C, F]:
         # Verify parent exists
         await get_model_or_404(db, self.parent_model, parent_id)
 
-        # First verify the item exists and belongs to the parent
-        await self.get_by_id(db, parent_id, item_id)
+        storage_model_name: str = self.storage_model.get_api_model_name().name_capital
+        parent_model_name: str = self.parent_model.get_api_model_name().name_capital
+
+        db_item = await db.get(self.storage_model, item_id)
+        if not db_item:
+            err_msg = f"{storage_model_name} with id {item_id} not found"
+            raise ValueError(err_msg)
+
+        if getattr(db_item, self.parent_field) != parent_id:
+            err_msg = f"{storage_model_name} {item_id} does not belong to {parent_model_name} {parent_id}"
+            raise ValueError(err_msg)
 
         # Then delete it
         await self._delete(db, item_id)

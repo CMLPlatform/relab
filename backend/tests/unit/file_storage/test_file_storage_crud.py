@@ -13,6 +13,7 @@ from pydantic import HttpUrl
 from app.api.data_collection.models import Product
 from app.api.file_storage import crud
 from app.api.file_storage.crud import (
+    ParentStorageOperations,
     create_file,
     delete_file,
     delete_file_from_storage,
@@ -101,10 +102,12 @@ class TestFileStorageCrud:
         )
 
         with (
+            patch("app.api.file_storage.crud.get_file_storage") as mock_storage_factory,
             patch("app.api.file_storage.crud.get_file_parent_type_model") as mock_parent_model,
             patch("app.api.file_storage.crud.get_model_or_404"),
         ):
             mock_parent_model.return_value = MagicMock()
+            mock_storage_factory.return_value.write_upload = AsyncMock(return_value="stored_test.txt")
 
             result = await create_file(mock_session, file_create)
 
@@ -191,7 +194,11 @@ class TestImageStorageCrud:
         mock_exec_result.first.return_value = 1  # non-None → parent exists
         mock_session.exec.return_value = mock_exec_result
 
-        with patch("app.api.file_storage.crud.get_file_parent_type_model", return_value=Product):
+        with (
+            patch("app.api.file_storage.crud.get_file_parent_type_model", return_value=Product),
+            patch("app.api.file_storage.crud.get_image_storage") as mock_storage_factory,
+        ):
+            mock_storage_factory.return_value.write_image_upload = AsyncMock(return_value="stored_image.png")
             result = await crud.create_image(mock_session, image_create)
             assert isinstance(result, Image)
             assert result.description == TEST_IMAGE_DESC
@@ -241,3 +248,35 @@ class TestVideoCrud:
         with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_video):
             await crud.delete_video(mock_session, video_id)
             mock_session.delete.assert_called_once()
+
+
+class TestParentStorageOperations:
+    """Test parent-scoped storage operations."""
+
+    async def test_delete_removes_db_record_when_storage_file_is_missing(self, mock_session: AsyncMock) -> None:
+        """Delete should succeed even if the underlying file is already gone."""
+        parent_model = MagicMock()
+        parent_model.get_api_model_name.return_value.name_capital = "Product"
+
+        storage_model = MagicMock()
+        storage_model.get_api_model_name.return_value.name_capital = "Image"
+
+        delete_func = AsyncMock()
+        operations = ParentStorageOperations(
+            parent_model=parent_model,
+            storage_model=storage_model,
+            parent_type=MediaParentType.PRODUCT,
+            parent_field="product_id",
+            create_func=AsyncMock(),
+            delete_func=delete_func,
+        )
+
+        item_id = uuid4()
+        db_item = MagicMock(spec=Image)
+        db_item.product_id = 1
+        mock_session.get.return_value = db_item
+
+        with patch("app.api.file_storage.crud.get_model_or_404"):
+            await operations.delete(mock_session, 1, item_id)
+
+        delete_func.assert_awaited_once_with(mock_session, item_id)

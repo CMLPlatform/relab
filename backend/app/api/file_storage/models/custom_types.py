@@ -1,16 +1,25 @@
-"""Custom types for FastAPI Storages models."""
+"""Custom storage-backed SQLAlchemy types."""
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO
 
-from fastapi_storages import FileSystemStorage, StorageImage
-from fastapi_storages.integrations.sqlalchemy import FileType as _FileType
-from fastapi_storages.integrations.sqlalchemy import ImageType as _ImageType
-
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
+from app.api.file_storage.models.storage import (
+    FileSystemStorage,
+    StorageImage,
+)
+from app.api.file_storage.models.storage import (
+    FileType as _FileType,
+)
+from app.api.file_storage.models.storage import (
+    ImageType as _ImageType,
+)
 from app.core.config import settings
 
 if TYPE_CHECKING:
+    from fastapi import UploadFile
     from sqlalchemy import Dialect
 
 
@@ -46,6 +55,26 @@ class CustomFileSystemStorage(FileSystemStorage):
 
         return super().write(file=file, name=name)
 
+    async def write_upload(self, upload_file: UploadFile, name: str) -> str:
+        """Ensure the storage directory exists before an async upload write."""
+        self._path.mkdir(parents=True, exist_ok=True)
+        return await super().write_upload(upload_file, name)
+
+    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
+        """Ensure the storage directory exists before an async image write."""
+        self._path.mkdir(parents=True, exist_ok=True)
+        return await super().write_image_upload(upload_file, name)
+
+
+def get_file_storage() -> CustomFileSystemStorage:
+    """Return the configured local file storage backend."""
+    return CustomFileSystemStorage(path=str(settings.file_storage_path))
+
+
+def get_image_storage() -> CustomFileSystemStorage:
+    """Return the configured local image storage backend."""
+    return CustomFileSystemStorage(path=str(settings.image_storage_path))
+
 
 ## File and Image types with custom storage paths
 class FileType(_FileType):
@@ -55,7 +84,7 @@ class FileType(_FileType):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # Any-type args and kwargs are expected by the parent class signature
-        storage = CustomFileSystemStorage(path=str(settings.file_storage_path))
+        storage = get_file_storage()
         args = (storage, *args)
         super().__init__(*args, **kwargs)
 
@@ -67,7 +96,7 @@ class ImageType(_ImageType):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401 # Any-type args and kwargs are expected by the parent class signature
-        storage = CustomFileSystemStorage(path=str(settings.image_storage_path))
+        storage = get_image_storage()
         args = (storage, *args)
         super().__init__(*args, **kwargs)
 
