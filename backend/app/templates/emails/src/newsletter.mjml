@@ -3,31 +3,22 @@
     <mj-title>{{subject}}</mj-title>
     {{include:styles}}
   </mj-head>
-  <mj-body background-color="#f4f4f4">
+  <mj-body background-color="#eef5f8">
     {{include:header}}
 
-    <mj-section background-color="#ffffff" padding="20px 40px">
+    <mj-section background-color="#fbfcfe" padding="20px 40px">
       <mj-column>
         <mj-text> {{content}} </mj-text>
       </mj-column>
     </mj-section>
 
-    <mj-section background-color="#ffffff" padding="20px 40px">
-      <mj-column>
-        <mj-divider border-color="#e0e0e0" />
-        <mj-text align="center" css-class="footer" padding-top="20px">
-          Best regards,<br />
-          The Reverse Engineering Lab Team
-        </mj-text>
-      </mj-column>
-    </mj-section>
+    {{include:footer}}
 
-    <mj-section padding="20px">
+    <mj-section background-color="#eef5f8" padding="0 40px 16px">
       <mj-column>
-        <mj-divider border-color="#e0e0e0" />
-        <mj-text align="center" css-class="footer" padding-top="10px">
+        <mj-text css-class="footer-text" align="center">
           You're receiving this email because you subscribed to the Reverse Engineering Lab newsletter.<br />
-          <a href="{{unsubscribe_link}}" style="color: #007bff">Unsubscribe</a>
+          <a href="{{unsubscribe_link}}" style="color: #006783">Unsubscribe</a>
         </mj-text>
       </mj-column>
     </mj-section>

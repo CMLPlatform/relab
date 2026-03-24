@@ -1,15 +1,20 @@
-<mj-section background-color="#ffffff" padding="20px 40px">
+<mj-section background-color="#fbfcfe" padding="20px 40px 0">
   <mj-column>
-    <mj-divider border-color="#e0e0e0" />
-    <mj-text align="center" css-class="footer" padding-top="20px">
+    <mj-divider border-color="#dce4e9" border-width="1px" padding="0" />
+  </mj-column>
+</mj-section>
+<mj-section background-color="#fbfcfe" padding="20px 40px">
+  <mj-column>
+    <mj-text css-class="footer-text" align="left">
       Best regards,<br />
       The Reverse Engineering Lab Team
     </mj-text>
   </mj-column>
 </mj-section>
-
-<mj-section padding="20px">
+<mj-section background-color="#eef5f8" padding="16px 40px">
   <mj-column>
-    <mj-text align="center" css-class="footer"> This email was sent from Reverse Engineering Lab </mj-text>
+    <mj-text css-class="footer-text" align="center">
+      This email was sent from Reverse Engineering Lab
+    </mj-text>
   </mj-column>
 </mj-section>
