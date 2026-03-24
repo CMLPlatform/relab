@@ -131,4 +131,4 @@ async def test_camera_required_fields(auth_client: AsyncClient) -> None:
     response = await auth_client.post("/plugins/rpi-cam/cameras", json=camera_data)
     if response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
         pytest.skip("Auth module error preventing test execution")
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

@@ -56,28 +56,3 @@ async def db_product_type(session: AsyncSession) -> ProductType:
         name="Test Product Type",
         description="A test product type",
     )
-
-
-# Factory fixtures for convenient access
-@pytest.fixture
-def taxonomy_factory() -> type[TaxonomyFactory]:
-    """Provide TaxonomyFactory."""
-    return TaxonomyFactory
-
-
-@pytest.fixture
-def category_factory() -> type[CategoryFactory]:
-    """Provide CategoryFactory."""
-    return CategoryFactory
-
-
-@pytest.fixture
-def material_factory() -> type[MaterialFactory]:
-    """Provide MaterialFactory."""
-    return MaterialFactory
-
-
-@pytest.fixture
-def product_type_factory() -> type[ProductTypeFactory]:
-    """Provide ProductTypeFactory."""
-    return ProductTypeFactory

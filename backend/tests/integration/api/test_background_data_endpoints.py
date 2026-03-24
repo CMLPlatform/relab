@@ -58,8 +58,8 @@ class TestTaxonomyAPI:
         json_data = response.json()
         assert json_data["name"] == TAXONOMY_NAME
         assert json_data["version"] == TAXONOMY_VERSION
-        assert "id" in json_data  # noqa: PLR2004
-        assert "created_at" in json_data  # noqa: PLR2004
+        assert "id" in json_data
+        assert "created_at" in json_data
 
     async def test_get_taxonomy(self, async_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
         """Test GET /taxonomies/{id} retrieves a taxonomy."""
@@ -90,8 +90,8 @@ class TestTaxonomyAPI:
 
         assert response.status_code == status.HTTP_200_OK
         json_data = response.json()
-        assert isinstance(json_data, list)
-        assert len(json_data) >= 3
+        assert "items" in json_data
+        assert len(json_data["items"]) >= 3
 
     async def test_update_taxonomy(self, superuser_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
         """Test PATCH /admin/taxonomies/{id} updates a taxonomy."""
@@ -191,7 +191,7 @@ class TestMaterialAPI:
         }
 
         response = await superuser_client.post("/admin/materials", json=data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.api
@@ -247,4 +247,4 @@ class TestUnitsAPI:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert isinstance(data, list)
-        assert "kg" in data or "g" in data  # noqa: PLR2004
+        assert "kg" in data or "g" in data

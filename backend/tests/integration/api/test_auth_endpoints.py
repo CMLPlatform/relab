@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import json
 import secrets
+from http.cookies import SimpleCookie
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Response, status
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.jwt import decode_jwt
+from fastapi_users.router.common import ErrorCode
 
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import (
@@ -25,10 +28,13 @@ from app.api.auth.schemas import (
 from app.api.auth.services.oauth import (
     CSRF_TOKEN_KEY,
     BaseOAuthRouterBuilder,
+    CustomOAuthAssociateRouterBuilder,
+    CustomOAuthRouterBuilder,
     OAuthCookieSettings,
     generate_csrf_token,
     generate_state_token,
 )
+from app.api.auth.services.refresh_token_service import create_refresh_token
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -45,7 +51,7 @@ TEST_USERNAME = "newuser"
 DUPLICATE_EMAIL = "existing@example.com"
 UNIQUE_USERNAME = "uniqueuser"
 DIFFERENT_EMAIL = "different@example.com"
-EXISTING_USERNAME = "existinguser"
+EXISTING_USERNAME = "existing_user"
 DISPOSABLE_EMAIL = "temp@tempmail.com"
 WEAK_PASSWORD = "short"  # noqa: S105
 OWNER_EMAIL = "owner@example.com"
@@ -54,8 +60,8 @@ ORG_LOCATION = "Test City"
 ORG_DESC = "Test Description"
 LOGIN_EMAIL = "logintest@example.com"
 LOGIN_USERNAME = "logintest"
-COOKIE_EMAIL = "cookietest@example.com"
-COOKIE_USERNAME = "cookietest"
+COOKIE_EMAIL = "cookie_test@example.com"
+COOKIE_USERNAME = "cookie_test"
 INVALID_EMAIL = "nonexistent@example.com"
 INVALID_PASSWORD = "WrongPassword123"  # noqa: S105
 INVALID_REFRESH_TOKEN = "invalid-token-1234567890123456789012345678"  # noqa: S105
@@ -87,8 +93,8 @@ class TestRegistrationEndpoint:
         data = response.json()
         assert data["email"] == user_data["email"]
         assert data["username"] == user_data["username"]
-        assert "password" not in data  # noqa: PLR2004
-        assert "hashed_password" not in data  # noqa: PLR2004
+        assert "password" not in data
+        assert "hashed_password" not in data
 
     async def test_register_duplicate_email(self, async_client: AsyncClient) -> None:
         """Test registration with duplicate email."""
@@ -120,7 +126,7 @@ class TestRegistrationEndpoint:
                 response = await async_client.post("/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_409_CONFLICT
-        assert "already exists" in response.json()["detail"].lower()  # noqa: PLR2004
+        assert "already exists" in response.json()["detail"].lower()
 
     async def test_register_duplicate_username(self, async_client: AsyncClient) -> None:
         """Test registration with duplicate username."""
@@ -136,7 +142,7 @@ class TestRegistrationEndpoint:
             response = await async_client.post("/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_409_CONFLICT
-        assert "username" in response.json()["detail"].lower()  # noqa: PLR2004
+        assert "username" in response.json()["detail"].lower()
 
     async def test_register_disposable_email(self, async_client: AsyncClient) -> None:
         """Test registration with disposable email."""
@@ -152,7 +158,7 @@ class TestRegistrationEndpoint:
             response = await async_client.post("/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "disposable" in response.json()["detail"].lower()  # noqa: PLR2004
+        assert "disposable" in response.json()["detail"].lower()
 
     async def test_register_weak_password(self, async_client: AsyncClient) -> None:
         """Test registration with weak password - password validation happens in Pydantic."""
@@ -165,7 +171,7 @@ class TestRegistrationEndpoint:
         response = await async_client.post("/auth/register", json=user_data)
 
         # Pydantic validates before reaching route
-        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY]
+        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT]
 
     async def test_register_with_organization(self, async_client: AsyncClient) -> None:
         """Test registration with organization creation."""
@@ -225,12 +231,12 @@ class TestLoginEndpoint:
                 # Some versions return JSON with access_token
                 try:
                     data = response.json()
-                    assert "access_token" in data or len(data) > 0  # noqa: PLR2004
+                    assert "access_token" in data or len(data) > 0
                 except ValueError, json.JSONDecodeError:
                     # Response may be empty (204 No Content) with token in header
                     pass
             # Refresh token is set as httpOnly cookie via on_after_login
-            assert "refresh_token" in response.cookies or "set-cookie" in response.headers  # noqa: PLR2004
+            assert "refresh_token" in response.cookies or "set-cookie" in response.headers
 
     async def test_bearer_login_invalid_credentials(self, async_client: AsyncClient) -> None:
         """Test bearer login with invalid credentials."""
@@ -266,7 +272,7 @@ class TestLoginEndpoint:
         if response.status_code in [status.HTTP_200_OK, status.HTTP_204_NO_CONTENT]:
             # Check cookies were set
             cookies = response.cookies
-            assert len(cookies) > 0 or "set-cookie" in response.headers  # noqa: PLR2004
+            assert len(cookies) > 0 or "set-cookie" in response.headers
 
 
 @pytest.mark.asyncio
@@ -290,6 +296,89 @@ class TestRefreshTokenEndpoint:
         response = await async_client.post("/auth/refresh", json=refresh_data)
 
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
+
+    async def test_bearer_refresh_rotates_and_replay_fails(
+        self,
+        async_client: AsyncClient,
+        mock_redis_dependency: Redis,
+        session: AsyncSession,
+    ) -> None:
+        """Verify refresh rotation issues a new token and invalidates the old token immediately."""
+        user = await UserFactory.create_async(
+            session,
+            email="refresh-rotation@example.com",
+            username="refresh_rotation_user",
+            hashed_password="pw",  # noqa: S106
+            is_active=True,
+            is_verified=True,
+        )
+        assert user.id is not None
+
+        old_refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
+
+        # First refresh should succeed and return a rotated refresh token.
+        response = await async_client.post("/auth/refresh", json={"refresh_token": old_refresh_token})
+        assert response.status_code == status.HTTP_200_OK
+
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        new_refresh_token = data["refresh_token"]
+        assert new_refresh_token != old_refresh_token
+
+        # Replaying the old token should fail.
+        replay_response = await async_client.post("/auth/refresh", json={"refresh_token": old_refresh_token})
+        assert replay_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+        # The newly issued token should be valid.
+        second_refresh = await async_client.post("/auth/refresh", json={"refresh_token": new_refresh_token})
+        assert second_refresh.status_code == status.HTTP_200_OK
+
+    async def test_cookie_refresh_rotates_and_replay_fails(
+        self,
+        async_client: AsyncClient,
+        mock_redis_dependency: Redis,
+        session: AsyncSession,
+    ) -> None:
+        """Verify cookie refresh rotates refresh token and rejects immediate replay of the old token."""
+        user = await UserFactory.create_async(
+            session,
+            email="cookie-refresh-rotation@example.com",
+            username="cookie_refresh_rotation_user",
+            hashed_password="pw",  # noqa: S106
+            is_active=True,
+            is_verified=True,
+        )
+        assert user.id is not None
+
+        old_refresh_token = await create_refresh_token(mock_redis_dependency, user.id)
+
+        async_client.cookies.set("refresh_token", old_refresh_token)
+        first_response = await async_client.post("/auth/cookie/refresh")
+        assert first_response.status_code == status.HTTP_204_NO_CONTENT
+
+        set_cookie_headers = first_response.headers.get_list("set-cookie")
+        parsed_cookies = SimpleCookie()
+        for header in set_cookie_headers:
+            parsed_cookies.load(header)
+
+        assert "refresh_token" in parsed_cookies
+        new_refresh_token = parsed_cookies["refresh_token"].value
+        assert new_refresh_token
+        assert new_refresh_token != old_refresh_token
+
+        async_client.cookies.clear()
+        async_client.cookies.set("refresh_token", old_refresh_token)
+        replay_response = await async_client.post("/auth/cookie/refresh")
+        assert replay_response.status_code == status.HTTP_401_UNAUTHORIZED
+
+        async_client.cookies.clear()
+        async_client.cookies.set("refresh_token", new_refresh_token)
+        second_response = await async_client.post("/auth/cookie/refresh")
+        assert second_response.status_code == status.HTTP_204_NO_CONTENT
+
+        # Cleanup test cookie jar to avoid accidental leakage to later tests.
+        async_client.cookies.clear()
 
 
 @pytest.mark.asyncio
@@ -455,6 +544,307 @@ class TestOAuthRouterBuilderCSRF:
 
         assert state_data[CSRF_TOKEN_KEY] == csrf_token
         assert state_data["frontend_redirect_uri"] == FRONTEND_REDIRECT_URI
+
+
+# ruff: noqa: SLF001 # Private method accessed for testing purposes
+
+
+@pytest.mark.unit
+class TestOAuthRedirectValidation:
+    """Unit tests for OAuth redirect allowlist and URL token safety."""
+
+    def _make_auth_builder(self) -> CustomOAuthRouterBuilder:
+        """Create a custom OAuth builder with mocked dependencies."""
+        mock_client = MagicMock()
+        mock_client.name = "github"
+        mock_client.get_authorization_url = AsyncMock(return_value="https://github.com/login/oauth/authorize")
+
+        mock_backend = MagicMock()
+        mock_backend.name = "cookie"
+
+        return CustomOAuthRouterBuilder(
+            oauth_client=mock_client,
+            backend=mock_backend,
+            state_secret="my-state-secret",  # noqa: S106
+            cookie_settings=OAuthCookieSettings(secure=False),
+        )
+
+    @pytest.mark.asyncio
+    async def test_authorize_rejects_untrusted_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify authorize handler rejects redirect_uri values outside the allowlist."""
+        builder = self._make_auth_builder()
+
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.allowed_origins", ["https://app.example.com"])
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.cors_origin_regex", None)
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_redirect_paths", ["/auth/callback"])
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_native_redirect_uris", [])
+
+        mock_request = MagicMock()
+        mock_request.query_params = {"redirect_uri": "https://evil.example.org/auth/callback"}
+        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+
+        with pytest.raises(HTTPException) as exc_info:
+            await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert exc_info.value.detail == "Invalid redirect_uri"
+
+    @pytest.mark.asyncio
+    async def test_authorize_accepts_trusted_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify authorize handler accepts allowlisted redirect_uri values."""
+        builder = self._make_auth_builder()
+
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.allowed_origins", ["https://app.example.com"])
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.cors_origin_regex", None)
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_redirect_paths", ["/auth/callback"])
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_native_redirect_uris", [])
+
+        mock_request = MagicMock()
+        mock_request.query_params = {"redirect_uri": "https://app.example.com/auth/callback"}
+        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+
+        result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+
+        assert result.authorization_url == "https://github.com/login/oauth/authorize"
+
+    @pytest.mark.asyncio
+    async def test_authorize_accepts_dev_regex_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify dev-only CORS regex also permits matching OAuth frontend redirects."""
+        builder = self._make_auth_builder()
+
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.allowed_origins", [])
+        monkeypatch.setattr(
+            "app.api.auth.services.oauth.core_settings.cors_origin_regex",
+            r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?",
+        )
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_redirect_paths", ["/auth/callback"])
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_native_redirect_uris", [])
+
+        mock_request = MagicMock()
+        mock_request.query_params = {"redirect_uri": "http://192.168.1.50:3000/auth/callback"}
+        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+
+        result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+
+        assert result.authorization_url == "https://github.com/login/oauth/authorize"
+
+    @pytest.mark.asyncio
+    async def test_authorize_accepts_allowlisted_native_redirect_uri(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify native deep-link callback URIs are validated against explicit allowlist."""
+        builder = self._make_auth_builder()
+
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.allowed_origins", [])
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.cors_origin_regex", None)
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_redirect_paths", [])
+        monkeypatch.setattr(
+            "app.api.auth.services.oauth.settings.oauth_allowed_native_redirect_uris",
+            ["relab://oauth-callback"],
+        )
+
+        mock_request = MagicMock()
+        mock_request.query_params = {"redirect_uri": "relab://oauth-callback"}
+        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+
+        result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+
+        assert result.authorization_url == "https://github.com/login/oauth/authorize"
+
+    @pytest.mark.asyncio
+    async def test_authorize_rejects_redirect_uri_with_embedded_credentials(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify redirect_uri is rejected when userinfo credentials are present in the URL."""
+        builder = self._make_auth_builder()
+
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.allowed_origins", ["https://app.example.com"])
+        monkeypatch.setattr("app.api.auth.services.oauth.core_settings.cors_origin_regex", None)
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_redirect_paths", ["/auth/callback"])
+        monkeypatch.setattr("app.api.auth.services.oauth.settings.oauth_allowed_native_redirect_uris", [])
+
+        mock_request = MagicMock()
+        mock_request.query_params = {"redirect_uri": "https://user:pass@app.example.com/auth/callback"}
+        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+
+        with pytest.raises(HTTPException) as exc_info:
+            await builder._get_authorize_handler(mock_request, Response(), scopes=None)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert exc_info.value.detail == "Invalid redirect_uri"
+
+    def test_success_redirect_removes_access_token_from_query(self) -> None:
+        """Verify frontend success redirect never includes access_token query parameters."""
+        builder = BaseOAuthRouterBuilder(
+            oauth_client=MagicMock(name="github"),
+            state_secret="my-state-secret",  # noqa: S106
+            cookie_settings=OAuthCookieSettings(secure=False),
+        )
+
+        response = builder._create_success_redirect(
+            "https://app.example.com/auth/callback?foo=bar&access_token=leaky",
+            Response(),
+        )
+
+        location = response.headers["location"]
+        query = parse_qs(urlparse(location).query)
+
+        assert "access_token" not in query
+        assert query.get("success") == ["true"]
+
+
+@pytest.mark.unit
+class TestOAuthCallbackLinkingPolicy:
+    """Unit tests for OAuth callback account-linking behavior."""
+
+    def _make_auth_builder(self) -> CustomOAuthRouterBuilder:
+        """Create a custom OAuth builder with mocked dependencies."""
+        mock_client = MagicMock()
+        mock_client.name = "github"
+        mock_client.get_id_email = AsyncMock(return_value=("provider-account-id", TEST_EMAIL))
+
+        mock_backend = MagicMock()
+        mock_backend.name = "cookie"
+        mock_backend.login = AsyncMock(return_value=Response(status_code=status.HTTP_200_OK))
+
+        return CustomOAuthRouterBuilder(
+            oauth_client=mock_client,
+            backend=mock_backend,
+            state_secret="my-state-secret",  # noqa: S106
+            cookie_settings=OAuthCookieSettings(secure=False),
+        )
+
+    def _make_request_with_valid_state(self) -> tuple[MagicMock, tuple[dict[str, str], str]]:
+        """Create a request/access-token-state pair with valid CSRF state."""
+        csrf_token = generate_csrf_token()
+        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, "my-state-secret")
+
+        mock_request = MagicMock()
+        mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
+
+        return mock_request, ({"access_token": "provider-access-token"}, state)
+
+    @pytest.mark.asyncio
+    async def test_callback_passes_associate_by_email_false(self) -> None:
+        """Verify OAuth callback does not auto-link accounts by email."""
+        builder = self._make_auth_builder()
+        request, access_token_state = self._make_request_with_valid_state()
+
+        user = MagicMock()
+        user.is_active = True
+
+        user_manager = MagicMock()
+        user_manager.oauth_callback = AsyncMock(return_value=user)
+        user_manager.on_after_login = AsyncMock()
+
+        strategy = MagicMock()
+
+        response = await builder._get_callback_handler(request, access_token_state, user_manager, strategy)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
+
+    @pytest.mark.asyncio
+    async def test_callback_returns_stable_existing_user_error(self) -> None:
+        """Verify OAuth callback returns stable conflict error when account already exists but is not linked."""
+        builder = self._make_auth_builder()
+        request, access_token_state = self._make_request_with_valid_state()
+
+        user_manager = MagicMock()
+        user_manager.oauth_callback = AsyncMock(side_effect=UserAlreadyExists())
+        user_manager.on_after_login = AsyncMock()
+
+        strategy = MagicMock()
+
+        with pytest.raises(HTTPException) as exc_info:
+            await builder._get_callback_handler(request, access_token_state, user_manager, strategy)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert exc_info.value.detail == ErrorCode.OAUTH_USER_ALREADY_EXISTS
+
+
+@pytest.mark.unit
+class TestOAuthAssociateFlow:
+    """Unit tests for explicit OAuth provider association flow."""
+
+    def _make_associate_builder(self) -> CustomOAuthAssociateRouterBuilder:
+        """Create an associate builder with mocked dependencies."""
+        mock_client = MagicMock()
+        mock_client.name = "github"
+        mock_client.get_id_email = AsyncMock(return_value=("provider-account-id", TEST_EMAIL))
+
+        mock_authenticator = MagicMock()
+
+        mock_schema = MagicMock()
+        mock_schema.model_validate.side_effect = lambda value: {"user_id": str(value.id), "email": value.email}
+
+        return CustomOAuthAssociateRouterBuilder(
+            oauth_client=mock_client,
+            authenticator=mock_authenticator,
+            user_schema=mock_schema,
+            state_secret="my-state-secret",  # noqa: S106
+            cookie_settings=OAuthCookieSettings(secure=False),
+        )
+
+    def _make_associate_request_with_valid_state(self, user_id: str) -> tuple[MagicMock, tuple[dict[str, str], str]]:
+        """Create a request/access-token-state pair with valid CSRF state for association."""
+        csrf_token = generate_csrf_token()
+        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token, "sub": user_id}, "my-state-secret")
+
+        mock_request = MagicMock()
+        mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
+
+        return mock_request, ({"access_token": "provider-access-token"}, state)
+
+    @pytest.mark.asyncio
+    async def test_associate_callback_links_provider_for_current_user(self) -> None:
+        """Verify explicit association flow links provider to the current user."""
+        builder = self._make_associate_builder()
+        current_user = MagicMock()
+        current_user.id = USER1_EMAIL
+        current_user.email = TEST_EMAIL
+
+        request, access_token_state = self._make_associate_request_with_valid_state(str(current_user.id))
+
+        mock_session = MagicMock()
+        mock_exec_result = MagicMock()
+        mock_exec_result.first.return_value = None
+        mock_session.exec = AsyncMock(return_value=mock_exec_result)
+
+        user_manager = MagicMock()
+        user_manager.user_db.session = mock_session
+        user_manager.oauth_associate_callback = AsyncMock(return_value=current_user)
+
+        result = await builder._get_callback_handler(request, current_user, access_token_state, user_manager)
+
+        assert result["email"] == TEST_EMAIL
+        assert user_manager.oauth_associate_callback.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_associate_callback_rejects_provider_linked_to_other_user(self) -> None:
+        """Verify association flow rejects a provider account already linked to another user."""
+        builder = self._make_associate_builder()
+        current_user = MagicMock()
+        current_user.id = USER1_EMAIL
+        current_user.email = TEST_EMAIL
+
+        request, access_token_state = self._make_associate_request_with_valid_state(str(current_user.id))
+
+        existing_account = MagicMock()
+        existing_account.user_id = USER2_EMAIL
+
+        mock_session = MagicMock()
+        mock_exec_result = MagicMock()
+        mock_exec_result.first.return_value = existing_account
+        mock_session.exec = AsyncMock(return_value=mock_exec_result)
+
+        user_manager = MagicMock()
+        user_manager.user_db.session = mock_session
+        user_manager.oauth_associate_callback = AsyncMock()
+
+        with pytest.raises(HTTPException) as exc_info:
+            await builder._get_callback_handler(request, current_user, access_token_state, user_manager)
+
+        assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert exc_info.value.detail == "This account is already linked to another user."
 
 
 # ============================================================

@@ -65,10 +65,6 @@ class TestUserModelBasics:
         """Verify User model has organization_role field."""
         assert hasattr(User, "organization_role")
 
-    def test_user_model_has_products_relationship(self) -> None:
-        """Verify User model has products relationship."""
-        assert hasattr(User, "products")
-
     def test_user_model_has_oauth_accounts(self) -> None:
         """Verify User model has oauth_accounts relationship."""
         assert hasattr(User, "oauth_accounts")
@@ -308,7 +304,7 @@ class TestUserUniquenessConstraints:
 
         await UserFactory.create_async(session, email=email, hashed_password="hashed1")  # noqa: S106
 
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError, match="unique"):
             await UserFactory.create_async(session, email=email, hashed_password="hashed2")  # noqa: S106
 
     @pytest.mark.asyncio
@@ -323,7 +319,7 @@ class TestUserUniquenessConstraints:
             hashed_password="hashed1",  # noqa: S106
         )
 
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError, match="unique"):
             await UserFactory.create_async(
                 session,
                 email=USER2_EMAIL,

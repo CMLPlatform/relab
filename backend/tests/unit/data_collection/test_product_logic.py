@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -17,6 +17,21 @@ ERR_MISSING_AMOUNT = "must have amount_in_parent set"
 @pytest.mark.unit
 class TestProductLogic:
     """Tests for product model business logic like cycle detection and validation."""
+
+    def test_thumbnail_url_uses_first_image_id(self) -> None:
+        """Test that thumbnail_url is derived from the mapped first image ID."""
+        product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
+        first_image_id = UUID("12345678-1234-5678-1234-567812345678")
+        object.__setattr__(product, "first_image_id", first_image_id)
+
+        assert product.thumbnail_url == f"/images/{first_image_id}/resized?width=200"
+
+    def test_thumbnail_url_is_none_without_first_image_id(self) -> None:
+        """Test that thumbnail_url is None when no first image is available."""
+        product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
+        object.__setattr__(product, "first_image_id", None)
+
+        assert product.thumbnail_url is None
 
     def test_has_cycles_no_cycle(self) -> None:
         """Test that a valid tree has no cycles."""

@@ -8,10 +8,12 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from httpx import Request, Response
 
 from app.api.auth.models import OAuthAccount
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.services import (
+    YouTubeAPIError,
     YouTubeService,
     capture_and_store_image,
 )
@@ -30,6 +32,17 @@ CAPTURE_TIME = "2023-01-01T00:00:00Z"
 IMG_BYTES = b"fake image bytes"
 
 
+def build_camera() -> Camera:
+    """Build a camera for service tests."""
+    return Camera(
+        id=uuid4(),
+        name="Test Camera",
+        url="http://192.168.1.100:8080",
+        encrypted_api_key=encrypt_str("secret"),
+        owner_id=uuid4(),
+    )
+
+
 @pytest.fixture
 def mock_session() -> AsyncMock:
     """Return a mock database session."""
@@ -41,6 +54,12 @@ def mock_session() -> AsyncMock:
 @pytest.fixture
 def mock_google_oauth_client() -> AsyncMock:
     """Return a mock Google OAuth client."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_http_client() -> AsyncMock:
+    """Return a mock shared HTTP client."""
     return AsyncMock()
 
 
@@ -60,16 +79,10 @@ class TestCaptureAndStoreImage:
 
     async def test_capture_and_store_image_success(self, mock_session: AsyncMock) -> None:
         """Test capture and storage of an image from a camera."""
-        camera = Camera(
-            id=uuid4(),
-            name="Test Camera",
-            url="http://192.168.1.100:8080",
-            encrypted_api_key=encrypt_str("secret"),
-            owner_id=uuid4(),
-        )
+        camera = build_camera()
 
         with (
-            patch("app.api.plugins.rpi_cam.services.db_get_model_with_id_if_it_exists") as mock_check_product,
+            patch("app.api.plugins.rpi_cam.services.get_model_or_404") as mock_check_product,
             patch("app.api.plugins.rpi_cam.services.fetch_from_camera_url") as mock_fetch,
             patch("app.api.plugins.rpi_cam.services.create_image") as mock_create_image,
         ):
@@ -103,10 +116,14 @@ class TestYouTubeService:
 
     @pytest.fixture
     def youtube_service(
-        self, mock_oauth_account: MagicMock, mock_google_oauth_client: AsyncMock, mock_session: AsyncMock
+        self,
+        mock_oauth_account: MagicMock,
+        mock_google_oauth_client: AsyncMock,
+        mock_session: AsyncMock,
+        mock_http_client: AsyncMock,
     ) -> YouTubeService:
         """Return a YouTubeService instance with mocked dependencies."""
-        return YouTubeService(mock_oauth_account, mock_google_oauth_client, mock_session)
+        return YouTubeService(mock_oauth_account, mock_google_oauth_client, mock_session, mock_http_client)
 
     async def test_refresh_token_if_needed_not_expired(self, youtube_service: YouTubeService) -> None:
         """Test that token is not refreshed if not expired."""
@@ -139,59 +156,59 @@ class TestYouTubeService:
         with pytest.raises(HTTPException, match="OAuth refresh token expired or missing"):
             await youtube_service.refresh_token_if_needed()
 
-    @patch("app.api.plugins.rpi_cam.services.build")
-    @patch("app.api.plugins.rpi_cam.services.Credentials")
-    def test_get_youtube_client(
-        self, mock_creds: MagicMock, mock_build: MagicMock, youtube_service: YouTubeService
-    ) -> None:
-        """Test YouTube client initialization."""
-        client = youtube_service.get_youtube_client()
-        mock_creds.assert_called_once()
-        mock_build.assert_called_once_with("youtube", "v3", credentials=mock_creds.return_value)
-        assert client == mock_build.return_value
+    async def test_request_youtube_api_uses_bearer_auth(self, youtube_service: YouTubeService) -> None:
+        """Test YouTube API requests use the async shared client with bearer auth."""
+        response = Response(200, json={"ok": True}, request=Request("GET", "https://www.googleapis.com/youtube/v3/test-endpoint"))
+        youtube_service.http_client.request.return_value = response
 
-    @patch.object(YouTubeService, "get_youtube_client")
+        result = await youtube_service.request_youtube_api("GET", "test-endpoint")
+
+        assert result == {"ok": True}
+        youtube_service.http_client.request.assert_awaited_once_with(
+            "GET",
+            "https://www.googleapis.com/youtube/v3/test-endpoint",
+            params=None,
+            json=None,
+            headers={"Authorization": f"Bearer {FAKE_ACCESS_TOKEN}"},
+        )
+
+    @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
     @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
     async def test_end_livestream_success(
-        self, mock_refresh: AsyncMock, mock_get_client: MagicMock, youtube_service: YouTubeService
+        self,
+        mock_refresh: AsyncMock,
+        mock_request_youtube_api: AsyncMock,
+        youtube_service: YouTubeService,
     ) -> None:
         """Test successful termination of a livestream."""
         del mock_refresh
-        mock_youtube = MagicMock()
-        mock_get_client.return_value = mock_youtube
 
         await youtube_service.end_livestream(FAKE_BROADCAST_ID)
 
-        mock_youtube.liveBroadcasts().delete.assert_called_once_with(id=FAKE_BROADCAST_ID)
+        mock_request_youtube_api.assert_awaited_once_with(
+            "DELETE",
+            "liveBroadcasts",
+            params={"id": FAKE_BROADCAST_ID},
+        )
 
-    @patch.object(YouTubeService, "get_youtube_client")
+    @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
     @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
     async def test_setup_livestream_success(
-        self, mock_refresh: AsyncMock, mock_get_client: MagicMock, youtube_service: YouTubeService
+        self,
+        mock_refresh: AsyncMock,
+        mock_request_youtube_api: AsyncMock,
+        youtube_service: YouTubeService,
     ) -> None:
         """Test successful setup of a new livestream."""
         del mock_refresh
-        mock_youtube = MagicMock()
-        mock_get_client.return_value = mock_youtube
-
-        mock_broadcasts = MagicMock()
-        mock_youtube.liveBroadcasts.return_value = mock_broadcasts
-        mock_insert_broadcast = MagicMock()
-        mock_broadcasts.insert.return_value = mock_insert_broadcast
-        mock_insert_broadcast.execute.return_value = {"id": FAKE_BROADCAST_ID}
-
-        mock_bind_broadcast = MagicMock()
-        mock_broadcasts.bind.return_value = mock_bind_broadcast
-        mock_bind_broadcast.execute.return_value = {"id": FAKE_BROADCAST_ID}
-
-        mock_streams = MagicMock()
-        mock_youtube.liveStreams.return_value = mock_streams
-        mock_insert_stream = MagicMock()
-        mock_streams.insert.return_value = mock_insert_stream
-        mock_insert_stream.execute.return_value = {
-            "id": FAKE_STREAM_ID,
-            "cdn": {"ingestionInfo": {"streamName": FAKE_STREAM_NAME}},
-        }
+        mock_request_youtube_api.side_effect = [
+            {"id": FAKE_BROADCAST_ID},
+            {
+                "id": FAKE_STREAM_ID,
+                "cdn": {"ingestionInfo": {"streamName": FAKE_STREAM_NAME}},
+            },
+            {"id": FAKE_BROADCAST_ID},
+        ]
 
         result = await youtube_service.setup_livestream(TEST_STREAM_TITLE)
 
@@ -199,21 +216,54 @@ class TestYouTubeService:
         assert result.broadcast_key == FAKE_BROADCAST_ID
         assert result.stream_id == FAKE_STREAM_ID
 
-    @patch.object(YouTubeService, "get_youtube_client")
+    @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
     @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
     async def test_validate_stream_status_active(
-        self, mock_refresh: AsyncMock, mock_get_client: MagicMock, youtube_service: YouTubeService
+        self,
+        mock_refresh: AsyncMock,
+        mock_request_youtube_api: AsyncMock,
+        youtube_service: YouTubeService,
     ) -> None:
         """Test validation of an active stream status."""
         del mock_refresh
-        mock_youtube = MagicMock()
-        mock_get_client.return_value = mock_youtube
-
-        mock_streams = MagicMock()
-        mock_youtube.liveStreams.return_value = mock_streams
-        mock_list = MagicMock()
-        mock_streams.list.return_value = mock_list
-        mock_list.execute.return_value = {"items": [{"status": {"streamStatus": "active"}}]}
+        mock_request_youtube_api.return_value = {"items": [{"status": {"streamStatus": "active"}}]}
 
         result = await youtube_service.validate_stream_status(FAKE_STREAM_ID)
         assert result is True
+
+    @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
+    @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
+    async def test_setup_livestream_invalid_stream_response(
+        self,
+        mock_refresh: AsyncMock,
+        mock_request_youtube_api: AsyncMock,
+        youtube_service: YouTubeService,
+    ) -> None:
+        """Test invalid stream payloads are surfaced as API errors."""
+        del mock_refresh
+        mock_request_youtube_api.side_effect = [
+            {"id": FAKE_BROADCAST_ID},
+            {"id": FAKE_STREAM_ID},
+        ]
+
+        with pytest.raises(YouTubeAPIError) as exc_info:
+            await youtube_service.setup_livestream(TEST_STREAM_TITLE)
+        assert exc_info.value.details is not None
+        assert "Invalid YouTube stream response" in exc_info.value.details
+
+    @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)
+    @patch.object(YouTubeService, "refresh_token_if_needed", new_callable=AsyncMock)
+    async def test_validate_stream_status_missing_items(
+        self,
+        mock_refresh: AsyncMock,
+        mock_request_youtube_api: AsyncMock,
+        youtube_service: YouTubeService,
+    ) -> None:
+        """Test missing stream items are treated as a YouTube API error."""
+        del mock_refresh
+        mock_request_youtube_api.return_value = {"items": []}
+
+        with pytest.raises(YouTubeAPIError) as exc_info:
+            await youtube_service.validate_stream_status(FAKE_STREAM_ID)
+        assert exc_info.value.details is not None
+        assert "stream not found" in exc_info.value.details

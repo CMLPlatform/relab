@@ -189,7 +189,7 @@ class TestFastAPICacheIntegration:
             # First request - MISS
             response1 = await client.get("/cached-with-dependency?value=test")
             assert response1.status_code == 200, response1.text
-            assert response1.json()["result"] == "processed_test"  # noqa: PLR2004
+            assert response1.json()["result"] == "processed_test"
             assert response1.headers.get(X_CACHE_HEADER) == CACHE_MISS
 
             # Second request with same value parameter - should be HIT

@@ -10,6 +10,7 @@ from fastapi import Request
 from httpx import Response
 
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.oauth import google_youtube_oauth_client
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
     YouTubePrivacyStatus,
@@ -23,6 +24,7 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
     watch_preview,
 )
 from app.api.plugins.rpi_cam.services import YoutubeStreamConfigWithID
+from tests.factories.models import UserFactory
 
 # Constants for test values
 TEST_EMAIL = "test@example.com"
@@ -49,7 +51,18 @@ HLS_DATA_CONTENT = b"hls data"
 @pytest.fixture
 def mock_user() -> User:
     """Return a mock user for testing."""
-    return User(
+    return UserFactory.build(
+        id=uuid4(),
+        email=TEST_EMAIL,
+        is_active=True,
+        is_verified=True,
+        hashed_password=TEST_HASHED_PASSWORD,
+    )
+
+
+def build_user() -> User:
+    """Build a user for stream router tests."""
+    return UserFactory.build(
         id=uuid4(),
         email=TEST_EMAIL,
         is_active=True,
@@ -92,7 +105,7 @@ class TestCameraStreamRouters:
         )
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
 
         result = await get_camera_stream_status(mock_camera.id, session_mock, user_mock)
         assert str(result.url) == f"{TEST_STREAM_URL}/"
@@ -105,7 +118,7 @@ class TestCameraStreamRouters:
         mock_fetch.return_value = Response(HTTP_NO_CONTENT)
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
 
         await stop_all_streams(mock_camera.id, session_mock, user_mock)
         mock_fetch.assert_called_once()
@@ -113,7 +126,7 @@ class TestCameraStreamRouters:
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.fetch_from_camera_url")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.YouTubeService")
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.db_get_model_with_id_if_it_exists")
+    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_model_or_404")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.create_video")
     async def test_start_recording(
         self,
@@ -162,11 +175,13 @@ class TestCameraStreamRouters:
 
         mock_create_video.return_value = VIDEO_CREATED_MSG
 
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
+        http_client = AsyncMock()
 
         result = await start_recording(
             mock_camera.id,
             session_mock,
+            http_client,
             user_mock,
             product_id=1,
             title="Test",
@@ -174,6 +189,12 @@ class TestCameraStreamRouters:
             privacy_status=YouTubePrivacyStatus.PRIVATE,
         )
         assert result == VIDEO_CREATED_MSG
+        mock_yt_service_class.assert_called_once_with(
+            oauth_account,
+            google_youtube_oauth_client,
+            session_mock,
+            http_client,
+        )
 
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.fetch_from_camera_url")
@@ -195,7 +216,7 @@ class TestCameraStreamRouters:
         ]
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
 
         result = await stop_recording(mock_camera.id, session_mock, user_mock)
         assert str(result["video_url"]) == f"{YOUTUBE_STREAM_URL}/"
@@ -216,7 +237,7 @@ class TestCameraStreamRouters:
         )
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
 
         result = await start_preview(mock_camera.id, session_mock, user_mock)
         assert str(result.url) == f"{PREVIEW_STREAM_URL}/"
@@ -229,7 +250,7 @@ class TestCameraStreamRouters:
         mock_fetch.return_value = Response(HTTP_NO_CONTENT)
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
 
         await stop_preview(mock_camera.id, session_mock, user_mock)
         mock_fetch.assert_called_once()
@@ -240,11 +261,13 @@ class TestCameraStreamRouters:
         """Test proxying HLS files from the camera to the client."""
         mock_get_cam.return_value = mock_camera
         mock_fetch.return_value = Response(
-            HTTP_OK, content=HLS_DATA_CONTENT, headers={"content-type": "application/vnd.apple.mpegurl"}
+            HTTP_OK,
+            content=HLS_DATA_CONTENT,
+            headers={"content-type": "application/vnd.apple.mpegurl"},  # spell-checker: ignore mpegurl
         )
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
 
         result = await hls_file_proxy(mock_camera.id, TEST_PLAYLIST_FILE, session_mock, user_mock)
         assert result.status_code == HTTP_OK
@@ -258,7 +281,7 @@ class TestCameraStreamRouters:
         mock_templates.TemplateResponse.return_value = TEMPLATE_HTML_CONTENT
 
         session_mock = AsyncMock()
-        user_mock = User(id=uuid4(), email=TEST_EMAIL, is_active=True, hashed_password=TEST_HASHED_PASSWORD)
+        user_mock = build_user()
         request_mock = AsyncMock(spec=Request)
 
         result = await watch_preview(request_mock, mock_camera.id, session_mock, user_mock)

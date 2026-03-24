@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import status
+from sqlalchemy.exc import IntegrityError
 
 from app.api.auth.exceptions import (
     AlreadyMemberError,
@@ -21,6 +22,7 @@ from app.api.auth.exceptions import (
     UserNameAlreadyExistsError,
     UserOwnershipError,
     UserOwnsOrgError,
+    handle_organization_integrity_error,
 )
 from app.api.common.exceptions import APIError
 
@@ -415,7 +417,7 @@ class TestExceptionInheritanceChain:
         except APIError:
             pass  # Expected
         else:
-            pytest.fail("UserNameAlreadyExistsError should be catchable as APIError")
+            pytest.fail("UserNameAlreadyExistsError should be able to be caught as APIError")
 
     def test_exception_can_be_caught_as_auth_crud_error(self) -> None:
         """Verify AuthCRUDError subclasses can be caught as AuthCRUDError."""
@@ -424,7 +426,7 @@ class TestExceptionInheritanceChain:
         except AuthCRUDError:
             pass  # Expected
         else:
-            pytest.fail("UserNameAlreadyExistsError should be catchable as AuthCRUDError")
+            pytest.fail("UserNameAlreadyExistsError should be able to be caught as AuthCRUDError")
 
 
 @pytest.mark.unit
@@ -475,3 +477,26 @@ class TestExceptionStatusCodes:
             user_id=uuid4(),
         )
         assert error.http_status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.unit
+class TestHandleOrganizationIntegrityError:
+    """Tests for handle_organization_integrity_error."""
+
+    def test_raises_org_name_exists_on_unique_violation(self) -> None:
+        """Test that unique violation raises OrganizationNameExistsError."""
+        mock_orig = Mock()
+        mock_orig.pgcode = "23505"
+        e = IntegrityError("statement", {}, mock_orig)
+
+        with pytest.raises(OrganizationNameExistsError):
+            handle_organization_integrity_error(e, "creating")
+
+    def test_raises_runtime_error_on_other_db_error(self) -> None:
+        """Test that non-unique violations raise RuntimeError."""
+        mock_orig = Mock()
+        mock_orig.pgcode = "23503"  # Foreign key violation
+        e = IntegrityError("statement", {}, mock_orig)
+
+        with pytest.raises(RuntimeError, match="creating"):
+            handle_organization_integrity_error(e, "creating")

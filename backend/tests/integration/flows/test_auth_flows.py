@@ -32,8 +32,8 @@ LOGOUT_ALL_EMAIL = "logoutall@example.com"
 LOGOUT_ALL_USERNAME = "logoutall"
 TRACKING_TEST_EMAIL = "trackingtest@example.com"
 TRACKING_TEST_USERNAME = "trackingtest"
-COOKIE_FLOW_EMAIL = "cookieflow@example.com"
-COOKIE_FLOW_USERNAME = "cookieflow"
+COOKIE_FLOW_EMAIL = "cookie_flow@example.com"
+COOKIE_FLOW_USERNAME = "cookie_flow"
 TEST_USER_ID = "test-user-123"
 TEST_SESSION_ID = "test-session-456"
 TEST_IP = "192.168.1.1"
@@ -69,10 +69,9 @@ class TestCompleteAuthFlow:
 
         assert register_response.status_code == status.HTTP_201_CREATED, "Registration failed"
 
-        # Fetch user from database to get ID (registration response doesn't include it)
+        # Fetch user from database to verify registration
         user = await get_user_by_email(session, register_data["email"])
         assert user is not None, "User not found in database after registration"
-        user_id = user.id
 
         # Step 2: Login with bearer authentication
         login_data = {
@@ -101,9 +100,6 @@ class TestCompleteAuthFlow:
         assert access_token is not None
         assert refresh_token is not None
 
-        # Step 3: Use access token to access protected endpoint
-        # (Skipping session check since sessions have been removed)
-
         # Step 5: Refresh the access token
         refresh_data = {"refresh_token": refresh_token}
         refresh_response = await async_client.post("/auth/refresh", json=refresh_data)
@@ -120,7 +116,7 @@ class TestCompleteAuthFlow:
 
         if logout_response.status_code == status.HTTP_200_OK:
             logout_result = logout_response.json()
-            assert "message" in logout_result  # noqa: PLR2004
+            assert "message" in logout_result
 
             # Verify token is now blacklisted in Redis
             is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token}")
@@ -163,6 +159,13 @@ class TestCompleteAuthFlow:
         if login_response.status_code != status.HTTP_200_OK:
             pytest.skip("Login failed")
 
+        # Step 3: Verify login tracking was updated
+        # Clear session cache to ensure we get fresh data from DB
+        session.expire_all()
+        user_after = await get_user_by_email(session, register_data["email"])
+        assert user_after is not None
+        assert user_after.last_login_at is not None, "last_login_at was not updated"
+
     async def test_cookie_auth_flow(self, async_client: AsyncClient, mock_redis_dependency: Redis) -> None:
         """Test cookie-based authentication flow."""
         del mock_redis_dependency
@@ -188,7 +191,7 @@ class TestCompleteAuthFlow:
 
         # Verify cookies were set
         cookies = login_response.cookies
-        assert len(cookies) > 0 or "set-cookie" in login_response.headers  # noqa: PLR2004
+        assert len(cookies) > 0 or "set-cookie" in login_response.headers
 
         # Step 3: Access protected endpoint using cookies
 

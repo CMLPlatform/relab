@@ -18,10 +18,14 @@ Architecture:
 - This ensures consistent URL usage across fixtures and application code
 """
 
+from __future__ import annotations
+
+# spell-checker: ignore datname, collectonly
 import asyncio
 import logging
 import os
 import re
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
@@ -36,6 +40,8 @@ from sqlalchemy.pool import NullPool
 from sqlmodel.ext.asyncio.session import AsyncSession
 from testcontainers.postgres import PostgresContainer
 
+from app.core.logging import LOG_FORMAT, setup_logging
+
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
 
@@ -48,7 +54,13 @@ logger = logging.getLogger(__name__)
 # (which in turn import app packages that instantiate settings at module level).
 os.environ.setdefault("ENVIRONMENT", "testing")
 
-pytest_plugins = ["tests.fixtures.client", "tests.fixtures.data", "tests.fixtures.database", "tests.fixtures.redis"]
+pytest_plugins = [
+    "tests.fixtures.client",
+    "tests.fixtures.data",
+    "tests.fixtures.database",
+    "tests.fixtures.migrations",
+    "tests.fixtures.redis",
+]
 
 _DEFAULT_TEST_DB_NAME = "test_relab"
 _MASTER_WORKER = "master"
@@ -72,11 +84,20 @@ def pytest_configure(config: pytest.Config) -> None:
     if config.option.collectonly:
         return
 
+    # Initialize logging for the test session
+    setup_logging()
+    # Remove all sinks initially to prevent logs from bypassing pytest's capture/filtering
+    loguru_logger.remove()
+
+    # If -s (no capture) is active, add back a stderr sink for live output
+    if config.getoption("capture") == "no":
+        loguru_logger.add(sys.stderr, format=LOG_FORMAT, level="INFO")
+
     logger.info("Starting Testcontainers Postgres...")
     _GLOBAL_POSTGRES_CONTAINER = PostgresContainer(
         "postgres:18-alpine",
         username="postgres",
-        password="postgres",
+        password="postgres",  # noqa: S106 # Test-password only
         dbname="postgres",
     )
     _GLOBAL_POSTGRES_CONTAINER.start()
@@ -87,13 +108,13 @@ def pytest_configure(config: pytest.Config) -> None:
     os.environ["DATABASE_HOST"] = str(host)
     os.environ["DATABASE_PORT"] = str(port)
     os.environ["POSTGRES_USER"] = "postgres"
-    os.environ["POSTGRES_PASSWORD"] = "postgres"
+    os.environ["POSTGRES_PASSWORD"] = "postgres"  # noqa: S105 # Test-password only
     os.environ["POSTGRES_DB"] = "postgres"
 
     logger.info("Testcontainers Postgres started: %s:%s", host, port)
 
 
-def pytest_unconfigure(config: pytest.Config) -> None:
+def pytest_unconfigure(config: pytest.Config) -> None:  # noqa: ARG001
     """Stop Testcontainers after all tests complete."""
     global _GLOBAL_POSTGRES_CONTAINER  # noqa: PLW0603
 
@@ -128,8 +149,8 @@ def _build_database_url(driver: str, database_name: str) -> str:
     return f"postgresql+{driver}://{user}:{password}@{host}:{port}/{database_name}"
 
 
-def create_test_database(test_database_name: str) -> None:
-    """Create the test database. Recreate if it exists."""
+def _drop_test_database(test_database_name: str) -> None:
+    """Terminate connections and drop the test database."""
     sync_admin_url = _build_database_url("psycopg", "postgres")
     sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
 
@@ -141,11 +162,21 @@ def create_test_database(test_database_name: str) -> None:
             AND pid <> pg_backend_pid();
         """)
         connection.execute(term_query, {"db_name": test_database_name})
-
         connection.execute(text(f"DROP DATABASE IF EXISTS {test_database_name}"))
-        connection.execute(text(f"CREATE DATABASE {test_database_name}"))
 
     sync_engine.dispose()
+
+
+def create_test_database(test_database_name: str) -> None:
+    """Create the test database. Recreate if it exists."""
+    _drop_test_database(test_database_name)
+
+    sync_admin_url = _build_database_url("psycopg", "postgres")
+    sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
+    with sync_engine.connect() as connection:
+        connection.execute(text(f"CREATE DATABASE {test_database_name}"))
+    sync_engine.dispose()
+
     logger.info("Test database created successfully: %s", test_database_name)
 
 
@@ -189,7 +220,7 @@ def async_engine(test_database_name: str) -> Generator[AsyncEngine]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _setup_test_database(test_database_name: str, async_engine: AsyncEngine) -> Generator[None]:
+def _setup_test_database(test_database_name: str) -> Generator[None]:
     """Create test database and run migrations once per test session."""
     create_test_database(test_database_name)
 
@@ -200,18 +231,7 @@ def _setup_test_database(test_database_name: str, async_engine: AsyncEngine) -> 
 
     yield
 
-    sync_admin_url = _build_database_url("psycopg", "postgres")
-    sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
-    with sync_engine.connect() as connection:
-        term_query = text("""
-            SELECT pg_terminate_backend(pg_stat_activity.pid)
-            FROM pg_stat_activity
-            WHERE pg_stat_activity.datname = :db_name
-            AND pid <> pg_backend_pid();
-        """)
-        connection.execute(term_query, {"db_name": test_database_name})
-        connection.execute(text(f"DROP DATABASE IF EXISTS {test_database_name}"))
-    sync_engine.dispose()
+    _drop_test_database(test_database_name)
 
 
 @pytest.fixture
@@ -254,3 +274,20 @@ def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
         "app.api.auth.utils.programmatic_emails.fm.send_message",
         new_callable=AsyncMock,
     )
+
+
+@pytest.fixture(autouse=True)
+def caplog_loguru(caplog: pytest.LogCaptureFixture) -> Generator[None]:
+    """Propagate Loguru logs to Pytest's caplog handler.
+
+    This allows loguru logs to be captured by pytest and shown in the CLI
+    according to the log_cli settings in pyproject.toml.
+    """
+    sink_id = loguru_logger.add(
+        caplog.handler,
+        format="{message}",
+        level=0,
+        filter=lambda record: record["level"].no >= caplog.handler.level,
+    )
+    yield
+    loguru_logger.remove(sink_id)

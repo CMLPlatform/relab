@@ -146,7 +146,7 @@ class TestCategoryModel:
         category = CategoryFactory.build(name="Invalid Category")
         session.add(category)
 
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError, match="taxonomy_id"):
             await session.flush()
 
     async def test_category_with_subcategories(self, session: AsyncSession, db_category: Category) -> None:

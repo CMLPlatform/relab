@@ -1,12 +1,14 @@
 """Unit tests for cache utilities."""
 
 import asyncio
-from unittest.mock import AsyncMock
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from cachetools import TTLCache
+from fastapi.responses import HTMLResponse
 
-from app.core.cache import async_ttl_cache
+from app.core.cache import HTMLCoder, async_ttl_cache, clear_cache_namespace, init_fastapi_cache
 
 # Constants for test values to avoid magic value warnings
 TEST_RESULT = "result"
@@ -217,3 +219,128 @@ class TestAsyncTTLCache:
         assert len(results) == 3
         assert all(isinstance(r, str) for r in results)
         assert all(r.startswith("result_") for r in results)
+
+
+class TestHTMLCoder:
+    """Tests for HTMLCoder encode/decode."""
+
+    def test_encode_html_response(self) -> None:
+        """Test encoding an HTMLResponse extracts body and metadata."""
+        response = HTMLResponse(content="<h1>Hello</h1>", status_code=200)
+        encoded = HTMLCoder.encode(response)
+
+        decoded = json.loads(encoded)
+        assert decoded["type"] == "HTMLResponse"
+        assert decoded["body"] == "<h1>Hello</h1>"
+        assert decoded["status_code"] == 200
+
+    def test_encode_dict(self) -> None:
+        """Test encoding a regular dict uses JSON."""
+        data = {"key": "value", "count": 42}
+        encoded = HTMLCoder.encode(data)
+
+        decoded = json.loads(encoded)
+        assert decoded == data
+
+    def test_decode_html_response(self) -> None:
+        """Test decoding reconstructs an HTMLResponse."""
+        payload = json.dumps(
+            {"type": "HTMLResponse", "body": "<p>Hi</p>", "status_code": 200, "media_type": "text/html", "headers": {}}
+        ).encode("utf-8")
+
+        result = HTMLCoder.decode(payload)
+
+        assert isinstance(result, HTMLResponse)
+
+    def test_decode_regular_data(self) -> None:
+        """Test decoding regular JSON data returns the original value."""
+        data = {"key": "value"}
+        encoded = json.dumps(data).encode("utf-8")
+
+        result = HTMLCoder.decode(encoded)
+
+        assert result == data
+
+    def test_decode_string_input(self) -> None:
+        """Test decoding handles string (not bytes) input."""
+        data = [1, 2, 3]
+        encoded_str = json.dumps(data)
+
+        result = HTMLCoder.decode(encoded_str)
+
+        assert result == data
+
+    def test_decode_as_type_delegates_to_decode(self) -> None:
+        """Test decode_as_type calls decode."""
+        data = "hello"
+        encoded = json.dumps(data).encode("utf-8")
+
+        result = HTMLCoder.decode_as_type(encoded)
+
+        assert result == data
+
+
+class TestInitFastapiCache:
+    """Tests for init_fastapi_cache."""
+
+    def test_init_with_redis_client(self) -> None:
+        """Test cache init uses Redis backend when redis_client is provided."""
+        redis_client = MagicMock()
+
+        with (
+            patch("app.core.cache.settings") as mock_settings,
+            patch("app.core.cache.FastAPICache") as mock_cache,
+            patch("app.core.cache.RedisBackend") as mock_backend,
+        ):
+            mock_settings.enable_caching = True
+            mock_settings.cache.prefix = "test"
+
+            init_fastapi_cache(redis_client)
+
+            mock_backend.assert_called_once_with(redis_client)
+            mock_cache.init.assert_called_once()
+
+    def test_init_without_redis_uses_in_memory(self) -> None:
+        """Test cache init falls back to in-memory when redis_client is None."""
+        with (
+            patch("app.core.cache.settings") as mock_settings,
+            patch("app.core.cache.FastAPICache") as mock_cache,
+            patch("app.core.cache.InMemoryBackend") as mock_backend,
+        ):
+            mock_settings.enable_caching = True
+            mock_settings.cache.prefix = "test"
+
+            init_fastapi_cache(None)
+
+            mock_backend.assert_called_once()
+            mock_cache.init.assert_called_once()
+
+    def test_init_caching_disabled_uses_in_memory(self) -> None:
+        """Test that when caching is disabled, InMemoryBackend is used."""
+        with (
+            patch("app.core.cache.settings") as mock_settings,
+            patch("app.core.cache.FastAPICache") as mock_cache,
+            patch("app.core.cache.InMemoryBackend") as mock_backend,
+        ):
+            mock_settings.enable_caching = False
+            mock_settings.cache.prefix = "test"
+            mock_settings.environment = "testing"
+
+            init_fastapi_cache(None)
+
+            mock_backend.assert_called_once()
+            mock_cache.init.assert_called_once()
+
+
+class TestClearCacheNamespace:
+    """Tests for clear_cache_namespace."""
+
+    @pytest.mark.asyncio
+    async def test_clear_cache_namespace(self) -> None:
+        """Test that clear_cache_namespace calls FastAPICache.clear with namespace."""
+        with patch("app.core.cache.FastAPICache") as mock_cache:
+            mock_cache.clear = AsyncMock()
+
+            await clear_cache_namespace("test-namespace")
+
+            mock_cache.clear.assert_called_once_with(namespace="test-namespace")

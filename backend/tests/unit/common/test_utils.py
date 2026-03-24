@@ -73,7 +73,7 @@ class TestAPIError:
         error = APIError(message="Test")
         assert isinstance(error, Exception)
 
-        with pytest.raises(APIError):
+        with pytest.raises(APIError, match="Test"):
             raise error
 
 
@@ -221,7 +221,7 @@ class TestValidationPatterns:
         assert validate_port(8000) == 8000
 
         # Type error
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="Port must be int"):
             validate_port("8000")
 
         # Value error

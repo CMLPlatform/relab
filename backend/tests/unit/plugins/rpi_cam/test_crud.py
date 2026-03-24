@@ -37,6 +37,11 @@ TEST_NEW_AUTH_VAL = SecretStr("456")
 TEST_ENC_HEADERS = "encrypted_headers"
 
 
+def build_camera(*, owner_id: str, name: str, encrypted_api_key: str, url: str) -> Camera:
+    """Build a camera for CRUD tests."""
+    return Camera(name=name, owner_id=owner_id, encrypted_api_key=encrypted_api_key, url=url)
+
+
 @pytest.fixture
 def mock_encryption() -> Generator[MagicMock]:
     """Mock the encryption utility."""
@@ -96,7 +101,7 @@ async def test_update_camera(session: AsyncSession, superuser: User) -> None:
     """Test updating an existing camera entry."""
     # Setup existing camera
     owner_id = superuser.id
-    camera = Camera(name=TEST_OLD_NAME, owner_id=owner_id, encrypted_api_key=TEST_OLD_KEY, url=TEST_OLD_URL)
+    camera = build_camera(owner_id=owner_id, name=TEST_OLD_NAME, encrypted_api_key=TEST_OLD_KEY, url=TEST_OLD_URL)
     session.add(camera)
     await session.commit()
     await session.refresh(camera)
@@ -128,7 +133,12 @@ async def test_regenerate_camera_api_key(
 ) -> None:
     """Test regenerating the API key for an existing camera."""
     owner_id = superuser.id
-    camera = Camera(name=TEST_CAMERA_NAME, owner_id=owner_id, encrypted_api_key=TEST_OLD_KEY, url=TEST_CAMERA_URL)
+    camera = build_camera(
+        owner_id=owner_id,
+        name=TEST_CAMERA_NAME,
+        encrypted_api_key=TEST_OLD_KEY,
+        url=TEST_CAMERA_URL,
+    )
     session.add(camera)
     await session.commit()
     await session.refresh(camera)

@@ -1,147 +1,45 @@
-"""Unit tests for custom configuration logic.
+"""Unit tests for application configuration.
 
-Tests custom validation, computed fields, and mode-based configuration.
+Tests CORS settings, host allowlists, and environment file resolution.
 """
 
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from typing import Any
-
 import pytest
-from pydantic import BaseModel, Field, ValidationError, computed_field
+from pydantic import HttpUrl, SecretStr
+from pydantic_core import ValidationError
 
 from app.core.config import CoreSettings, Environment
+from app.core.env import get_env_file
 
-# Constants for test values to avoid magic value warnings
-USER_PW = "MyPassword123"  # pragma: allowlist secret
-SHORT_PW = "short"  # pragma: allowlist secret
-NO_UPPER_PW = "mypassword123"  # pragma: allowlist secret
-
-
-@pytest.mark.unit
-class TestCustomConfigurationLogic:
-    """Test custom configuration validation and computed fields."""
-
-    def test_computed_fields(self) -> None:
-        """Test custom computed/derived fields."""
-
-        class UrlConfig(BaseModel):
-            """Configuration with computed URL field."""
-
-            protocol: str = "https"
-            host: str
-            port: int = 443
-
-            @computed_field
-            @property
-            def url(self) -> str:
-                """Compute full URL from components."""
-                return f"{self.protocol}://{self.host}:{self.port}"
-
-        # Test default protocol and port
-        config = UrlConfig(host="example.com")
-        assert config.url == "https://example.com:443"  # noqa: PLR2004
-
-        # Test custom values
-        config2 = UrlConfig(protocol="http", host="localhost", port=8000)
-        assert config2.url == "http://localhost:8000"  # noqa: PLR2004
-
-    def test_custom_validation_in_init(self) -> None:
-        """Test custom validation logic in __init__ method."""
-        error_msg = "Password must contain uppercase letter"
-
-        class PasswordConfig(BaseModel):
-            """Configuration with custom password validation."""
-
-            password: str = Field(min_length=8)
-
-            def __init__(self, **data: Any) -> None:  # noqa: ANN401
-                super().__init__(**data)
-                # Custom validation beyond Pydantic's constraints
-                if not any(c.isupper() for c in self.password):
-                    raise ValueError(error_msg)
-
-        # Valid password with uppercase
-        config = PasswordConfig(password=USER_PW)
-        assert config.password == USER_PW
-
-        # Pydantic constraint fails (too short)
-        with pytest.raises(ValidationError):
-            PasswordConfig(password=SHORT_PW)
-
-        # Custom validation fails (no uppercase)
-        with pytest.raises(ValueError, match="uppercase"):
-            PasswordConfig(password=NO_UPPER_PW)
-
-    def test_mode_based_configuration(self) -> None:
-        """Test custom logic that auto-configures based on mode."""
-        mode_dev = "development"
-        mode_prod = "production"
-
-        class ModeConfig(BaseModel):
-            """Configuration with mode-dependent behavior."""
-
-            mode: str = mode_dev
-            debug: bool = False
-
-            def __init__(self, **data: Any) -> None:  # noqa: ANN401
-                super().__init__(**data)
-                # Auto-configure debug based on mode
-                if self.mode == mode_dev:
-                    self.debug = True
-                elif self.mode == mode_prod:
-                    self.debug = False
-
-        # Development mode auto-enables debug
-        dev_config = ModeConfig(mode=mode_dev)
-        assert dev_config.debug is True
-
-        # Production mode keeps debug off
-        prod_config = ModeConfig(mode=mode_prod)
-        assert prod_config.debug is False
-
-    def test_multi_field_validation(self) -> None:
-        """Test custom validation across multiple fields."""
-
-        class ConnectionConfig(BaseModel):
-            """Configuration with cross-field validation."""
-
-            min_connections: int
-            max_connections: int
-
-            def __init__(self, **data: Any) -> None:  # noqa: ANN401
-                super().__init__(**data)
-                # Custom cross-field validation
-                if self.min_connections > self.max_connections:
-                    msg = "min_connections cannot be greater than max_connections"
-                    raise ValueError(msg)
-
-        # Valid configuration
-        config = ConnectionConfig(min_connections=5, max_connections=20)
-        assert config.min_connections == 5
-        assert config.max_connections == 20
-
-        # Invalid config: min > max
-        with pytest.raises(ValueError, match="min_connections cannot be greater"):
-            ConnectionConfig(min_connections=20, max_connections=5)
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.unit
 class TestCoreSettingsCors:
     """Test CORS configuration behavior in CoreSettings."""
 
-    def test_allowed_origins_dev_is_wildcard(self) -> None:
-        """DEV environment should allow all origins."""
-        settings = CoreSettings(environment=Environment.DEV)
-        assert settings.allowed_origins == ["*"]
+    def test_allowed_origins_dev_normalizes_frontend_urls(self) -> None:
+        """DEV environment normalizes frontend URLs to scheme+host (no trailing slash)."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            frontend_web_url=HttpUrl("http://localhost:3000/"),
+            frontend_app_url=HttpUrl("http://localhost:8081/"),
+        )
+        assert settings.allowed_origins == ["http://localhost:3000", "http://localhost:8081"]
 
     def test_allowed_origins_staging_are_normalized(self) -> None:
         """Staging origins should match browser Origin format (no trailing slash)."""
         settings = CoreSettings(
             environment=Environment.STAGING,
-            frontend_web_url="https://web-test.cml-relab.org/",
-            frontend_app_url="https://app-test.cml-relab.org/",
+            frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+            frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+            cors_origin_regex=None,
+            postgres_password=SecretStr("test-password"),
+            redis_password=SecretStr("test-password"),
+            superuser_password=SecretStr("test-password"),
+            superuser_email="test@example.com",
         )
 
         assert settings.allowed_origins == [
@@ -150,15 +48,20 @@ class TestCoreSettingsCors:
         ]
 
     def test_allowed_hosts_dev_defaults(self) -> None:
-        """DEV environment should trust only local hostnames."""
+        """DEV environment should trust all hosts (Docker/Testcontainers convenience)."""
         settings = CoreSettings(environment=Environment.DEV)
-        assert settings.allowed_hosts == ["127.0.0.1", "localhost"]
+        assert settings.allowed_hosts == ["*"]
 
     def test_allowed_hosts_derive_from_backend_api_url(self) -> None:
         """Trusted hosts should derive from backend_api_url in non-DEV environments."""
         settings = CoreSettings(
             environment=Environment.STAGING,
-            backend_api_url="https://api-test.cml-relab.org",
+            backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+            cors_origin_regex=None,
+            postgres_password=SecretStr("test-password"),
+            redis_password=SecretStr("test-password"),
+            superuser_password=SecretStr("test-password"),
+            superuser_email="test@example.com",
         )
 
         assert settings.allowed_hosts == [
@@ -166,3 +69,55 @@ class TestCoreSettingsCors:
             "127.0.0.1",
             "localhost",
         ]
+
+    def test_staging_rejects_cors_regex(self) -> None:
+        """Staging/production should reject the permissive dev CORS regex."""
+        with pytest.raises(ValidationError, match="CORS_ORIGIN_REGEX must not be set in production/staging"):
+            CoreSettings(
+                environment=Environment.STAGING,
+                backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+                postgres_password=SecretStr("test-password"),
+                redis_password=SecretStr("test-password"),
+                superuser_password=SecretStr("test-password"),
+                superuser_email="test@example.com",
+            )
+
+    def test_production_requires_non_default_secrets(self) -> None:
+        """Production config should fail fast when required secrets are missing."""
+        with pytest.raises(ValidationError, match="Production security check failed"):
+            CoreSettings(environment=Environment.PROD)
+
+
+@pytest.mark.unit
+class TestGetEnvFile:
+    """get_env_file() should return the correct .env path for each ENVIRONMENT value."""
+
+    def test_dev_maps_to_development_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """DEV environment should map to .env.dev."""
+        monkeypatch.setenv("ENVIRONMENT", "dev")
+        assert get_env_file(tmp_path) == tmp_path / ".env.dev"
+
+    def test_staging_maps_to_staging_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """STAGING environment should map to .env.staging."""
+        monkeypatch.setenv("ENVIRONMENT", "staging")
+        assert get_env_file(tmp_path) == tmp_path / ".env.staging"
+
+    def test_prod_maps_to_production_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """PROD environment should map to .env.prod."""
+        monkeypatch.setenv("ENVIRONMENT", "prod")
+        assert get_env_file(tmp_path) == tmp_path / ".env.prod"
+
+    def test_testing_maps_to_test_file(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """TESTING environment should map to .env.test."""
+        monkeypatch.setenv("ENVIRONMENT", "testing")
+        assert get_env_file(tmp_path) == tmp_path / ".env.test"
+
+    def test_defaults_to_development_when_unset(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """When ENVIRONMENT is unset, it should default to DEV and map to .env.dev."""
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+        assert get_env_file(tmp_path) == tmp_path / ".env.dev"
+
+    def test_unknown_environment_uses_name_directly(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """An unrecognised value falls back to .env.<value> so custom envs work."""
+        monkeypatch.setenv("ENVIRONMENT", "ci")
+        assert get_env_file(tmp_path) == tmp_path / ".env.ci"

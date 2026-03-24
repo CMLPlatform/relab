@@ -19,7 +19,7 @@ from app.api.file_storage.crud import (
     process_uploadfile_name,
     sanitize_filename,
 )
-from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType, Video
+from app.api.file_storage.models.models import File, Image, MediaParentType, Video
 from app.api.file_storage.schemas import FileCreate, FileUpdate, ImageCreateInternal, ImageUpdate, VideoCreate
 
 # Constants for magic values
@@ -97,12 +97,12 @@ class TestFileStorageCrud:
         mock_file.size = 1024
 
         file_create = FileCreate(
-            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=FileParentType.PRODUCT
+            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
         )
 
         with (
             patch("app.api.file_storage.crud.get_file_parent_type_model") as mock_parent_model,
-            patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists"),
+            patch("app.api.file_storage.crud.get_model_or_404"),
         ):
             mock_parent_model.return_value = MagicMock()
 
@@ -111,7 +111,7 @@ class TestFileStorageCrud:
             assert isinstance(result, File)
             assert result.description == TEST_FILE_DESC
             assert result.filename == TEST_FILENAME
-            assert result.parent_type == FileParentType.PRODUCT
+            assert result.parent_type == MediaParentType.PRODUCT
             assert result.parent_id == 1
 
             mock_session.add.assert_called_once()
@@ -126,7 +126,7 @@ class TestFileStorageCrud:
         mock_db_file.file.path = FAKE_PATH
 
         with (
-            patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists", return_value=mock_db_file),
+            patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_file),
             patch("app.api.file_storage.crud.delete_file_from_storage") as mock_delete_from_storage,
         ):
             await delete_file(mock_session, file_id)
@@ -139,8 +139,8 @@ class TestFileStorageCrud:
         """Test the async filesystem unlink."""
         fake_path = Path("fake_storage_file.txt")
 
-        with patch("app.api.file_storage.crud.AnyIOPath") as mock_anyiopoath:
-            mock_instance = mock_anyiopoath.return_value
+        with patch("app.api.file_storage.crud.AnyIOPath") as mock_anyio_path:
+            mock_instance = mock_anyio_path.return_value
             mock_instance.exists = AsyncMock(return_value=True)
             mock_instance.unlink = AsyncMock()
 
@@ -155,7 +155,7 @@ class TestFileStorageCrud:
         mock_db_file = MagicMock(spec=File)
         file_update = FileUpdate(description=UPDATED_DESC)
 
-        with patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists", return_value=mock_db_file):
+        with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_file):
             result = await crud.update_file(mock_session, file_id, file_update)
             assert result == mock_db_file
             mock_db_file.sqlmodel_update.assert_called_once()
@@ -179,15 +179,19 @@ class TestImageStorageCrud:
         mock_file.filename = IMAGE_FILENAME
         mock_file.content_type = CONTENT_TYPE_PNG
         mock_file.size = 1024
+        mock_file.path = None  # UploadFile has no .path; set explicitly so getattr fallback works
 
         image_create = ImageCreateInternal(
-            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=ImageParentType.PRODUCT
+            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
         )
 
-        with (
-            patch("app.api.file_storage.crud.get_file_parent_type_model", return_value=Product),
-            patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists"),
-        ):
+        # create_image checks parent existence via db.exec(...).first() — set up a
+        # sync MagicMock so .first() doesn't produce an unawaited coroutine.
+        mock_exec_result = MagicMock()
+        mock_exec_result.first.return_value = 1  # non-None → parent exists
+        mock_session.exec.return_value = mock_exec_result
+
+        with patch("app.api.file_storage.crud.get_file_parent_type_model", return_value=Product):
             result = await crud.create_image(mock_session, image_create)
             assert isinstance(result, Image)
             assert result.description == TEST_IMAGE_DESC
@@ -199,7 +203,7 @@ class TestImageStorageCrud:
         mock_db_image = MagicMock(spec=Image)
         image_update = ImageUpdate(description=UPDATED_IMAGE_DESC)
 
-        with patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists", return_value=mock_db_image):
+        with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_image):
             result = await crud.update_image(mock_session, image_id, image_update)
             assert result == mock_db_image
 
@@ -210,7 +214,7 @@ class TestImageStorageCrud:
         mock_db_image.file.path = FAKE_IMAGE_PATH
 
         with (
-            patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists", return_value=mock_db_image),
+            patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_image),
             patch("app.api.file_storage.crud.delete_file_from_storage"),
         ):
             await crud.delete_image(mock_session, image_id)
@@ -224,7 +228,7 @@ class TestVideoCrud:
         """Test creating a video."""
         video_create = VideoCreate(url=YOUTUBE_URL, product_id=1, title=TEST_VIDEO_TITLE)
 
-        with patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists"):
+        with patch("app.api.file_storage.crud.get_model_or_404"):
             result = await crud.create_video(mock_session, video_create, commit=True)
             assert isinstance(result, Video)
             assert result.title == TEST_VIDEO_TITLE
@@ -234,6 +238,6 @@ class TestVideoCrud:
         video_id = 1
         mock_db_video = MagicMock(spec=Video)
 
-        with patch("app.api.file_storage.crud.db_get_model_with_id_if_it_exists", return_value=mock_db_video):
+        with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_video):
             await crud.delete_video(mock_session, video_id)
             mock_session.delete.assert_called_once()

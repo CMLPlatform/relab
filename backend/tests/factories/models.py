@@ -1,4 +1,5 @@
-"""Modern test factories using polyfactory for background data models."""
+"""Modern test factories using polyfactory for backend test models."""
+# spell-checker: ignore bothify, numerify
 
 from typing import Any, TypeVar
 
@@ -15,8 +16,7 @@ from app.api.background_data.models import (
     Taxonomy,
     TaxonomyDomain,
 )
-from app.api.common.models.associations import MaterialProductLink
-from app.api.data_collection.models import CircularityProperties, PhysicalProperties, Product
+from app.api.data_collection.models import CircularityProperties, MaterialProductLink, PhysicalProperties, Product
 
 T = TypeVar("T")
 
@@ -37,18 +37,6 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
             await session.refresh(instance)
             return instance
         return await super().create_async(**kwargs)
-
-    @classmethod
-    async def create_batch_async(cls, size: int, session: AsyncSession | None = None, **kwargs: Any) -> list[T]:  # noqa: ANN401 #  Any-type kwargs are expected by the parent class signature
-        """Create a batch of instances, optionally using a provided session."""
-        if session:
-            instances = cls.batch(size, **kwargs)
-            session.add_all(instances)
-            await session.flush()
-            for instance in instances:
-                await session.refresh(instance)
-            return instances
-        return await super().create_batch_async(size, **kwargs)
 
 
 class UserFactory(BaseModelFactory[User]):

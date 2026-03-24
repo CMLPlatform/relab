@@ -347,7 +347,7 @@ class TestGetUserOwnedObjectIntegration:
             parent_id=user_id,
         )
 
-        with pytest.raises(UserOwnershipError):
+        with pytest.raises(UserOwnershipError, match="does not own"):
             await get_user_owned_object(
                 db=db,
                 model=mock_model,
@@ -496,7 +496,7 @@ class TestGetUserOwnedObjectEdgeCases:
         mock_model = MagicMock()
         mock_model.get_api_model_name.return_value.name_capital = "Model"
 
-        with pytest.raises(UserOwnershipError):
+        with pytest.raises(UserOwnershipError, match="does not own"):
             await get_user_owned_object(
                 db=db,
                 model=mock_model,

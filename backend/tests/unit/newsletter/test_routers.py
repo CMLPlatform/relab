@@ -78,7 +78,7 @@ async def test_subscribe_existing_unconfirmed_email(
     # Create existing subscriber
     subscriber = NewsletterSubscriber(email=EMAIL_EXISTING, is_confirmed=False)
     session.add(subscriber)
-    await session.commit()
+    await session.flush()
 
     response = await async_client.post("/newsletter/subscribe", json=EMAIL_EXISTING)
     assert response.status_code == HTTP_BAD_REQUEST
@@ -98,7 +98,7 @@ async def test_subscribe_existing_confirmed_email(
     # Create existing confirmed subscriber
     subscriber = NewsletterSubscriber(email=EMAIL_CONFIRMED, is_confirmed=True)
     session.add(subscriber)
-    await session.commit()
+    await session.flush()
 
     response = await async_client.post("/newsletter/subscribe", json=EMAIL_CONFIRMED)
     assert response.status_code == HTTP_BAD_REQUEST
@@ -114,7 +114,7 @@ async def test_confirm_subscription_success(async_client: AsyncClient, session: 
     email = EMAIL_CONFIRM_REQ
     subscriber = NewsletterSubscriber(email=email, is_confirmed=False)
     session.add(subscriber)
-    await session.commit()
+    await session.flush()
 
     test_token = create_jwt_token(email, JWTType.NEWSLETTER_CONFIRMATION)
 
@@ -144,7 +144,7 @@ async def test_request_unsubscribe_success(
     email = EMAIL_UNSUBSCRIBE
     subscriber = NewsletterSubscriber(email=email, is_confirmed=True)
     session.add(subscriber)
-    await session.commit()
+    await session.flush()
 
     response = await async_client.post("/newsletter/request-unsubscribe", json=email)
     assert response.status_code == HTTP_OK
@@ -158,7 +158,7 @@ async def test_unsubscribe_with_token_success(async_client: AsyncClient, session
     email = EMAIL_DELETE
     subscriber = NewsletterSubscriber(email=email, is_confirmed=True)
     session.add(subscriber)
-    await session.commit()
+    await session.flush()
 
     test_token = create_jwt_token(email, JWTType.NEWSLETTER_UNSUBSCRIBE)
 
@@ -167,3 +167,66 @@ async def test_unsubscribe_with_token_success(async_client: AsyncClient, session
 
     # Verify deletion
     assert await session.get(NewsletterSubscriber, subscriber.id) is None
+
+
+@pytest.mark.asyncio
+async def test_confirm_subscription_already_confirmed_returns_400(
+    async_client: AsyncClient, session: AsyncSession
+) -> None:
+    """Confirming an already-confirmed subscription must return 400."""
+    email = "already_confirmed@example.com"
+    subscriber = NewsletterSubscriber(email=email, is_confirmed=True)
+    session.add(subscriber)
+    await session.flush()
+
+    token = create_jwt_token(email, JWTType.NEWSLETTER_CONFIRMATION)
+    response = await async_client.post("/newsletter/confirm", json=token)
+
+    assert response.status_code == HTTP_BAD_REQUEST
+    assert "Already confirmed" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_confirm_subscription_unknown_email_returns_404(async_client: AsyncClient) -> None:
+    """Confirming with a valid token for a non-existent subscriber must return 404."""
+    email = "ghost@example.com"
+    token = create_jwt_token(email, JWTType.NEWSLETTER_CONFIRMATION)
+
+    response = await async_client.post("/newsletter/confirm", json=token)
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_unsubscribe_with_invalid_token_returns_400(async_client: AsyncClient) -> None:
+    """Unsubscribing with a malformed token must return 400."""
+    response = await async_client.post("/newsletter/unsubscribe", json="not-a-valid-token")
+
+    assert response.status_code == HTTP_BAD_REQUEST
+
+
+@pytest.mark.asyncio
+async def test_request_unsubscribe_unknown_email_returns_safe_message(async_client: AsyncClient) -> None:
+    """Requesting unsubscribe for a non-existent email returns the same safe message (no info leak)."""
+    response = await async_client.post("/newsletter/request-unsubscribe", json="nobody@example.com")
+
+    assert response.status_code == HTTP_OK
+    # Must not reveal whether the email is subscribed
+    assert "If you are subscribed" in response.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_admin_get_subscribers_returns_list(superuser_client: AsyncClient, session: AsyncSession) -> None:
+    """GET /admin/newsletter/subscribers returns all subscribers for a superuser."""
+    emails = ["sub1@example.com", "sub2@example.com"]
+    for email in emails:
+        session.add(NewsletterSubscriber(email=email, is_confirmed=True))
+    await session.flush()
+
+    response = await superuser_client.get("/admin/newsletter/subscribers")
+
+    assert response.status_code == HTTP_OK
+    returned_emails = {s["email"] for s in response.json()["items"]}
+    for email in emails:
+        assert email in returned_emails

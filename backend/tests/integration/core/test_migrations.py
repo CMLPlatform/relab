@@ -1,29 +1,100 @@
-"""Test that all Alembic migrations run successfully."""
+"""Tests for Alembic migration correctness."""
 
 import logging
+from typing import TYPE_CHECKING
 
 import pytest
-from alembic.config import Config
-
 from alembic import command
+
+if TYPE_CHECKING:
+    from alembic.config import Config
+
+    from tests.fixtures.migrations import MigrationHelper
 
 logger = logging.getLogger(__name__)
 
+# All tables expected to exist after upgrade head.
+# Table names are the lowercase class names SQLModel generates automatically.
+EXPECTED_TABLES = {
+    # Auth
+    "user",
+    "oauthaccount",
+    "organization",
+    # Background data
+    "taxonomy",
+    "category",
+    "material",
+    "producttype",
+    "categorymateriallink",
+    "categoryproducttypelink",
+    # Data collection
+    "product",
+    "physicalproperties",
+    "circularityproperties",
+    "materialproductlink",
+    # File storage
+    "file",
+    "image",
+    "video",
+    # Newsletter
+    "newslettersubscriber",
+}
 
-@pytest.mark.asyncio
-async def test_migrations_upgrade_head() -> None:
-    """Test that all migrations can be upgraded to head without error."""
-    # If we've reached here, migrations have already run successfully
-    # in the setup_test_database fixture, so this is a sanity check pass
-    assert True, "All migrations completed successfully"
 
+@pytest.mark.migration
+def test_all_expected_tables_exist(migration_helper: MigrationHelper) -> None:
+    """Every domain table must be present after upgrade head.
 
-@pytest.mark.asyncio
-async def test_migrations_downgrade_upgrade(relab_alembic_config: Config) -> None:
-    """Test migration downgrade and upgrade cycle.
-
-    This is optional and tests the migration reversibility.
-    Only run if your migrations support downgrade.
+    This catches migrations that were written but never applied, or table
+    renames that were not reflected in a new migration.
     """
-    command.downgrade(relab_alembic_config, "-1")  # Downgrade one migration
-    command.upgrade(relab_alembic_config, "+1")  # Upgrade one migration
+    for table in EXPECTED_TABLES:
+        assert migration_helper.table_exists(table), f"Expected table '{table}' not found in schema"
+
+
+@pytest.mark.migration
+def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> None:
+    """Core user columns must be present — guards against accidental column drops."""
+    columns = set(migration_helper.get_table_columns("user"))
+    required = {"id", "email", "hashed_password", "is_active", "is_superuser", "created_at", "updated_at"}
+    missing = required - columns
+    assert not missing, f"user table is missing columns: {missing}"
+
+
+@pytest.mark.migration
+def test_oauthaccount_foreign_key_to_user(migration_helper: MigrationHelper) -> None:
+    """Oauthaccount must have a FK back to the user table."""
+    constraints = migration_helper.get_table_constraints("oauthaccount")
+    fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
+    assert "user" in fk_tables, "oauthaccount is missing its FK to the user table"
+
+
+@pytest.mark.migration
+def test_category_foreign_key_to_taxonomy(migration_helper: MigrationHelper) -> None:
+    """Category must have a FK back to the taxonomy table."""
+    constraints = migration_helper.get_table_constraints("category")
+    fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
+    assert "taxonomy" in fk_tables, "category is missing its FK to the taxonomy table"
+
+
+@pytest.mark.migration
+def test_physical_and_circularity_fk_to_product(migration_helper: MigrationHelper) -> None:
+    """Physicalproperties and circularityproperties must each have a FK back to product."""
+    for child_table in ("physicalproperties", "circularityproperties"):
+        constraints = migration_helper.get_table_constraints(child_table)
+        fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
+        assert "product" in fk_tables, f"{child_table} is missing its FK to the product table"
+
+
+@pytest.mark.migration
+def test_alembic_version_at_head(migration_helper: MigrationHelper) -> None:
+    """alembic_version table must exist and hold a revision (i.e. head was reached)."""
+    revision = migration_helper.current_revision()
+    assert revision is not None, "No revision recorded — migrations may not have run"
+
+
+@pytest.mark.migration
+def test_migrations_downgrade_upgrade(relab_alembic_config: Config) -> None:
+    """Migration downgrade/upgrade cycle must succeed without error."""
+    command.downgrade(relab_alembic_config, "-1")
+    command.upgrade(relab_alembic_config, "+1")

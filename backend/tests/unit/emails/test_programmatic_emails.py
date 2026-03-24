@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from unittest.mock import AsyncMock
 
-fake = Faker()
+fake = Faker("en_US")
 
 # Constants for magic values
 DOUBLE_SLASH = "//"

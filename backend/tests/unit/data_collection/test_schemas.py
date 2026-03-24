@@ -8,6 +8,7 @@ and related schemas.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -20,10 +21,13 @@ from app.api.data_collection.schemas import (
     PhysicalPropertiesRead,
     PhysicalPropertiesUpdate,
     ProductCreateBaseProduct,
+    ProductReadWithRelationships,
     ValidDateTime,
     ensure_timezone,
     not_too_old,
 )
+from app.api.file_storage.models.models import MediaParentType
+from app.api.file_storage.schemas import ImageRead
 
 # Constants for test values to avoid magic value warnings
 WEIGHT_20KG = 20000.0
@@ -577,3 +581,52 @@ class TestSchemaEdgeCases:
 
         assert product.brand == BRAND_NAME
         assert product.model is None
+
+
+def test_product_read_thumbnail_url_with_images() -> None:
+    """Test that thumbnail_url is correctly computed from the first image."""
+    image1 = ImageRead(
+        id=uuid4(),
+        filename="test1.png",
+        image_url="/uploads/images/test1.png",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        parent_id=1,
+        parent_type=MediaParentType.PRODUCT,
+    )
+    image2 = ImageRead(
+        id=uuid4(),
+        filename="test2.png",
+        image_url="/uploads/images/test2.png",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        parent_id=1,
+        parent_type=MediaParentType.PRODUCT,
+    )
+
+    product = ProductReadWithRelationships(
+        id=1,
+        name="Test Product",
+        owner_id=uuid4(),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        dismantling_time_start=datetime.now(UTC),
+        images=[image1, image2],
+    )
+
+    assert product.thumbnail_url == "/uploads/images/test1.png"
+
+
+def test_product_read_thumbnail_url_without_images() -> None:
+    """Test that thumbnail_url is None when no images are present."""
+    product = ProductReadWithRelationships(
+        id=1,
+        name="Test Product",
+        owner_id=uuid4(),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        dismantling_time_start=datetime.now(UTC),
+        images=[],
+    )
+
+    assert product.thumbnail_url is None

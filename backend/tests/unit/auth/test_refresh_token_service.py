@@ -6,9 +6,11 @@ import uuid
 from typing import TYPE_CHECKING
 
 import pytest
+from fakeredis.aioredis import FakeRedis
 from fastapi import HTTPException
 
 from app.api.auth.config import settings
+from app.api.auth.services import refresh_token_service
 from app.api.auth.services.refresh_token_service import (
     blacklist_token,
     create_refresh_token,
@@ -153,3 +155,130 @@ class TestRefreshTokenService:
 
         # TTL should be close to expected (within 5 seconds)
         assert abs(token_ttl - expected_ttl) < TTL_ABS_MARGIN
+
+
+# ruff: noqa: SLF001 # Private method access is needed for testing in-memory fallback behavior
+
+
+@pytest.mark.asyncio
+class TestRefreshTokenServiceInMemory:
+    """Tests for refresh token service in-memory fallback (redis=None)."""
+
+    async def test_create_refresh_token_in_memory(self) -> None:
+        """Test creating a token with no Redis stores it in memory."""
+        refresh_token_service._memory_tokens.clear()
+        user_id = uuid.uuid4()
+
+        token = await create_refresh_token(None, user_id)
+
+        assert isinstance(token, str)
+        assert len(token) == TOKEN_LENGTH
+        assert token in refresh_token_service._memory_tokens
+        stored_user_id, _expire = refresh_token_service._memory_tokens[token]
+        assert stored_user_id == str(user_id)
+
+        refresh_token_service._memory_tokens.clear()
+
+    async def test_verify_refresh_token_in_memory_success(self) -> None:
+        """Test verifying a valid in-memory token returns the correct user ID."""
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+        user_id = uuid.uuid4()
+
+        token = await create_refresh_token(None, user_id)
+        result = await verify_refresh_token(None, token)
+
+        assert result == user_id
+
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+    async def test_verify_refresh_token_in_memory_not_found(self) -> None:
+        """Test that verifying a missing in-memory token raises 401."""
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_refresh_token(None, "nonexistent-token")
+
+        assert exc_info.value.status_code == 401
+        assert TOKEN_VAL_INVALID in exc_info.value.detail.lower()
+
+    async def test_verify_refresh_token_in_memory_blacklisted(self) -> None:
+        """Test that a blacklisted in-memory token raises 401."""
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+        user_id = uuid.uuid4()
+
+        token = await create_refresh_token(None, user_id)
+        await blacklist_token(None, token)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verify_refresh_token(None, token)
+
+        assert exc_info.value.status_code == 401
+        assert TOKEN_VAL_REVOKED in exc_info.value.detail.lower()
+
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+    async def test_blacklist_token_in_memory(self) -> None:
+        """Test blacklisting an in-memory token removes it and adds to blacklist."""
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+        user_id = uuid.uuid4()
+
+        token = await create_refresh_token(None, user_id)
+        assert token in refresh_token_service._memory_tokens
+
+        await blacklist_token(None, token)
+
+        assert token not in refresh_token_service._memory_tokens
+        assert token in refresh_token_service._memory_blacklist
+
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+    async def test_blacklist_token_in_memory_with_explicit_ttl(self) -> None:
+        """Test blacklisting with explicit TTL uses provided value."""
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+        user_id = uuid.uuid4()
+
+        token = await create_refresh_token(None, user_id)
+        await blacklist_token(None, token, ttl_seconds=3600)
+
+        assert token in refresh_token_service._memory_blacklist
+
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+    async def test_blacklist_nonexistent_token_in_memory(self) -> None:
+        """Test blacklisting a nonexistent in-memory token uses default TTL."""
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+        await blacklist_token(None, "nonexistent-token")
+
+        assert "nonexistent-token" in refresh_token_service._memory_blacklist
+
+        refresh_token_service._memory_tokens.clear()
+        refresh_token_service._memory_blacklist.clear()
+
+    async def test_blacklist_token_redis_expired_defaults_ttl(self) -> None:
+        """Test that blacklisting with Redis uses default TTL when token already expired."""
+        redis = FakeRedis(decode_responses=True, version=7)
+        user_id = uuid.uuid4()
+
+        token = await create_refresh_token(redis, user_id)
+        # Delete the token to simulate expiry
+        await redis.delete(f"auth:rt:{token}")
+
+        # Blacklisting should still work using the default 3600 TTL
+        await blacklist_token(redis, token)
+
+        bl_key = f"auth:rt_blacklist:{token}"
+        assert await redis.exists(bl_key)
+        ttl = await redis.ttl(bl_key)
+        assert ttl > 0
+        await redis.aclose()

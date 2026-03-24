@@ -1,4 +1,5 @@
 """Unit tests for newsletter tokens."""
+# spell-checker: ignore usefixtures
 
 from __future__ import annotations
 

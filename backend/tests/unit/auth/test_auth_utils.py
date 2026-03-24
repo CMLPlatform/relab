@@ -10,10 +10,10 @@ import pytest
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 from redis.exceptions import ConnectionError as RedisConnectionError
 
-from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.utils.email_validation import EmailChecker
 from app.api.auth.utils.programmatic_user_crud import create_user
+from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -161,7 +161,7 @@ class TestEmailChecker:
         mock_task.set_result(None)
         mock_task.cancel = MagicMock()
 
-        checker._refresh_task = mock_task  # noqa: SLF001
+        checker._task = mock_task  # noqa: SLF001
         mock_checker = AsyncMock()
         checker.checker = mock_checker
 
@@ -193,7 +193,7 @@ class TestProgrammaticUserCrud:
         self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test successful user creation."""
-        expected_user = User(id="uid", email=user_create.email, hashed_password="hashed")  # noqa: S106
+        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")  # noqa: S106
         mock_user_manager.create.return_value = expected_user
 
         # Mock the context manager
@@ -214,7 +214,7 @@ class TestProgrammaticUserCrud:
         self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test user creation with verification email."""
-        expected_user = User(id="uid", email=user_create.email, hashed_password="hashed")  # noqa: S106
+        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")  # noqa: S106
         mock_user_manager.create.return_value = expected_user
         mock_user_manager.request_verify = AsyncMock()
 

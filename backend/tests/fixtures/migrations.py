@@ -3,25 +3,14 @@
 Utilities for testing Alembic migrations, schema changes, and database evolution.
 """
 
-import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from alembic.config import Config
+from alembic import command
 from sqlalchemy import Engine, create_engine, inspect, text
 
-from alembic import command
-
-
-def _build_test_database_url() -> str:
-    """Build test database URL from environment (set by pytest_configure)."""
-    host = os.environ["DATABASE_HOST"]
-    port = os.environ["DATABASE_PORT"]
-    user = os.environ["POSTGRES_USER"]
-    password = os.environ["POSTGRES_PASSWORD"]
-    test_db = os.getenv("POSTGRES_TEST_DB", "test_relab")
-
-    return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{test_db}"
+if TYPE_CHECKING:
+    from alembic.config import Config
 
 
 class MigrationHelper:
@@ -30,10 +19,9 @@ class MigrationHelper:
     def __init__(self, alembic_cfg: Config):
         """Initialize migration helper with Alembic config."""
         self.alembic_cfg = alembic_cfg
-        self.sync_engine: Engine = create_engine(
-            _build_test_database_url(),
-            isolation_level="AUTOCOMMIT",
-        )
+        # Derive engine URL from the alembic config (already xdist-worker-aware)
+        url = alembic_cfg.get_main_option("sqlalchemy.url")
+        self.sync_engine: Engine = create_engine(url, isolation_level="AUTOCOMMIT")
 
     def upgrade(self, revision: str = "head") -> None:
         """Upgrade database to specific revision.
@@ -138,24 +126,10 @@ class MigrationHelper:
 
 
 @pytest.fixture
-def alembic_config() -> Config:
-    """Provide Alembic configuration for migration tests.
-
-    Returns:
-        Configured Alembic Config object
-    """
-    config = Config()
-    project_root: Path = Path(__file__).parents[2]  # Navigate to backend/
-    config.set_main_option("script_location", str(project_root / "alembic"))
-    config.set_main_option("sqlalchemy.url", _build_test_database_url())
-    return config
-
-
-@pytest.fixture
-def migration_helper(alembic_config: Config) -> MigrationHelper:
+def migration_helper(relab_alembic_config: Config) -> MigrationHelper:
     """Provide migration testing helper.
 
     Returns:
         MigrationHelper instance for testing migrations
     """
-    return MigrationHelper(alembic_config)
+    return MigrationHelper(relab_alembic_config)

@@ -148,7 +148,7 @@ class TestDataCollectionEndpoints:
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["name"] == NEW_PRODUCT_NAME
-        assert "id" in data  # noqa: PLR2004
+        assert "id" in data
 
     async def test_update_product(self, superuser_client: AsyncClient, setup_product: Product) -> None:
         """Test PATCH /products/{id} updates a product."""
@@ -223,7 +223,7 @@ class TestDataCollectionEndpoints:
         response = await async_client.get("/brands")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert BRAND_X in data
+        assert BRAND_X in data["items"]
 
     async def test_create_and_get_physical_properties(
         self, superuser_client: AsyncClient, setup_product: Product
@@ -248,3 +248,82 @@ class TestDataCollectionEndpoints:
         response = await superuser_client.get(f"/products/{setup_product.id}/circularity_properties")
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["recyclability_observation"] == RECYCLABILITY_TEST
+
+
+class TestBrandsEndpoint:
+    """Tests for GET /brands."""
+
+    async def test_returns_empty_when_no_products(self, async_client: AsyncClient) -> None:
+        """Returns an empty page when no products exist."""
+        response = await async_client.get("/brands")
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["items"] == []
+
+    async def test_returns_brands(self, async_client: AsyncClient, session: AsyncSession, superuser: User) -> None:
+        """Returns title-cased brands from existing products."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="apple")
+
+        response = await async_client.get("/brands")
+        assert response.status_code == status.HTTP_200_OK
+        assert "Apple" in response.json()["items"]
+
+    async def test_deduplicates_brands(self, async_client: AsyncClient, session: AsyncSession, superuser: User) -> None:
+        """Products with the same brand (case-insensitive) produce one entry."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="dell")
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="DELL")
+
+        response = await async_client.get("/brands")
+        assert response.status_code == status.HTTP_200_OK
+        brands = response.json()["items"]
+        assert brands.count("Dell") == 1
+
+    async def test_excludes_null_brands(
+        self, async_client: AsyncClient, session: AsyncSession, superuser: User
+    ) -> None:
+        """Products with no brand are not included."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand=None)
+
+        response = await async_client.get("/brands")
+        assert response.status_code == status.HTTP_200_OK
+        assert None not in response.json()["items"]
+
+    async def test_search_filters_brands(
+        self, async_client: AsyncClient, session: AsyncSession, superuser: User
+    ) -> None:
+        """Search param narrows results to matching brands."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="apple")
+        await ProductFactory.create_async(
+            session=session, owner_id=superuser.id, product_type_id=pt.id, brand="samsung"
+        )
+
+        response = await async_client.get("/brands", params={"search": "apple"})
+        assert response.status_code == status.HTTP_200_OK
+        brands = response.json()["items"]
+        assert "Apple" in brands
+        assert "Samsung" not in brands
+
+    async def test_order_asc(self, async_client: AsyncClient, session: AsyncSession, superuser: User) -> None:
+        """Default (asc) order returns brands alphabetically."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="zebra")
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="apple")
+
+        response = await async_client.get("/brands", params={"order": "asc"})
+        assert response.status_code == status.HTTP_200_OK
+        brands = response.json()["items"]
+        assert brands.index("Apple") < brands.index("Zebra")
+
+    async def test_order_desc(self, async_client: AsyncClient, session: AsyncSession, superuser: User) -> None:
+        """Desc order returns brands in reverse alphabetical order."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="zebra")
+        await ProductFactory.create_async(session=session, owner_id=superuser.id, product_type_id=pt.id, brand="apple")
+
+        response = await async_client.get("/brands", params={"order": "desc"})
+        assert response.status_code == status.HTTP_200_OK
+        brands = response.json()["items"]
+        assert brands.index("Zebra") < brands.index("Apple")

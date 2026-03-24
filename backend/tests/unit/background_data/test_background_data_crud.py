@@ -6,9 +6,33 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.api.background_data.crud import validate_category_creation, validate_category_taxonomy_domains
-from app.api.background_data.models import Category, Taxonomy, TaxonomyDomain
-from tests.factories.models import CategoryFactory, TaxonomyFactory
+from app.api.background_data.crud import (
+    create_material,
+    create_product_type,
+    create_taxonomy,
+    delete_category,
+    delete_material,
+    delete_product_type,
+    delete_taxonomy,
+    get_category_trees,
+    update_category,
+    update_material,
+    update_product_type,
+    update_taxonomy,
+    validate_category_creation,
+    validate_category_taxonomy_domains,
+)
+from app.api.background_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
+from app.api.background_data.schemas import (
+    CategoryUpdate,
+    MaterialCreate,
+    MaterialUpdate,
+    ProductTypeCreate,
+    ProductTypeUpdate,
+    TaxonomyCreate,
+    TaxonomyUpdate,
+)
+from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory, TaxonomyFactory
 
 # Constants for test values to avoid magic value warnings
 TAXONOMY_ID_10 = 10
@@ -39,7 +63,7 @@ class TestCategoryValidation:
         super_category = CategoryFactory.build(id=CATEGORY_ID_1, taxonomy_id=TAXONOMY_ID_10, name="Super")
 
         with patch(
-            "app.api.background_data.crud.db_get_model_with_id_if_it_exists", return_value=super_category
+            "app.api.background_data.crud.get_model_or_404", return_value=super_category
         ) as mock_get:
             # Case 1: Matching taxonomy_id
             result_id, result_cat = await validate_category_creation(
@@ -56,7 +80,7 @@ class TestCategoryValidation:
         super_category = CategoryFactory.build(id=CATEGORY_ID_1, taxonomy_id=TAXONOMY_ID_10, name="Super")
 
         with (
-            patch("app.api.background_data.crud.db_get_model_with_id_if_it_exists", return_value=super_category),
+            patch("app.api.background_data.crud.get_model_or_404", return_value=super_category),
             pytest.raises(ValueError, match=BELONG_MSG) as exc,
         ):
             # Case 2: Mismatched taxonomy_id
@@ -74,7 +98,7 @@ class TestCategoryValidation:
         mock_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10, name="Tax")
 
         with patch(
-            "app.api.background_data.crud.db_get_model_with_id_if_it_exists", return_value=mock_taxonomy
+            "app.api.background_data.crud.get_model_or_404", return_value=mock_taxonomy
         ) as mock_get:
             result_id, result_cat = await validate_category_creation(
                 mock_session, category_create, taxonomy_id=None, supercategory_id=None
@@ -163,3 +187,242 @@ class TestTaxonomyDomainValidation:
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
         assert BELONG_OUTSIDE_MSG in str(exc.value)
+
+
+def _make_session() -> AsyncMock:
+    session = AsyncMock()
+    session.add = MagicMock()
+    session.flush = AsyncMock()
+    session.commit = AsyncMock()
+    session.refresh = AsyncMock()
+    session.delete = AsyncMock()
+    session.exec = AsyncMock()
+    return session
+
+
+class TestUpdateCategory:
+    """Tests for update_category."""
+
+    async def test_update_category_name(self) -> None:
+        """Test updating a category's name."""
+        session = _make_session()
+        db_category = CategoryFactory.build(id=CATEGORY_ID_1, name="Old Name")
+        category_update = CategoryUpdate(name="New Name")
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_category):
+            result = await update_category(session, CATEGORY_ID_1, category_update)
+
+        assert result.name == "New Name"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+
+class TestDeleteCategory:
+    """Tests for delete_category."""
+
+    async def test_delete_category_success(self) -> None:
+        """Test successful category deletion."""
+        session = _make_session()
+        db_category = CategoryFactory.build(id=CATEGORY_ID_1)
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_category):
+            await delete_category(session, CATEGORY_ID_1)
+
+        session.delete.assert_called_once_with(db_category)
+        session.commit.assert_called_once()
+
+
+class TestCreateTaxonomy:
+    """Tests for create_taxonomy."""
+
+    async def test_create_taxonomy_simple(self) -> None:
+        """Test simple taxonomy creation without categories."""
+        session = _make_session()
+        taxonomy_create = TaxonomyCreate(name="Test Tax", domains={"products"}, version="1.0")
+
+        result = await create_taxonomy(session, taxonomy_create)
+
+        assert isinstance(result, Taxonomy)
+        assert result.name == "Test Tax"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+
+class TestUpdateTaxonomy:
+    """Tests for update_taxonomy."""
+
+    async def test_update_taxonomy_name(self) -> None:
+        """Test updating a taxonomy's name."""
+        session = _make_session()
+        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10, name="Old Name")
+        taxonomy_update = TaxonomyUpdate(name="New Name")
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_taxonomy):
+            result = await update_taxonomy(session, TAXONOMY_ID_10, taxonomy_update)
+
+        assert result.name == "New Name"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+
+class TestDeleteTaxonomy:
+    """Tests for delete_taxonomy."""
+
+    async def test_delete_taxonomy_success(self) -> None:
+        """Test successful taxonomy deletion."""
+        session = _make_session()
+        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10)
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_taxonomy):
+            await delete_taxonomy(session, TAXONOMY_ID_10)
+
+        session.delete.assert_called_once_with(db_taxonomy)
+        session.commit.assert_called_once()
+
+
+class TestCreateMaterial:
+    """Tests for create_material."""
+
+    async def test_create_material_simple(self) -> None:
+        """Test simple material creation without categories."""
+        session = _make_session()
+        material_create = MaterialCreate(name="Aluminum")
+
+        result = await create_material(session, material_create)
+
+        assert isinstance(result, Material)
+        assert result.name == "Aluminum"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+
+class TestUpdateMaterial:
+    """Tests for update_material."""
+
+    async def test_update_material_name(self) -> None:
+        """Test updating a material's name."""
+        session = _make_session()
+        db_material = MaterialFactory.build(id=1, name="Old Material")
+        material_update = MaterialUpdate(name="New Material")
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_material):
+            result = await update_material(session, 1, material_update)
+
+        assert result.name == "New Material"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+
+class TestDeleteMaterial:
+    """Tests for delete_material."""
+
+    async def test_delete_material_success(self) -> None:
+        """Test successful material deletion."""
+        session = _make_session()
+        db_material = MaterialFactory.build(id=1)
+
+        with (
+            patch("app.api.background_data.crud.get_model_or_404", return_value=db_material),
+            patch("app.api.background_data.crud.material_files_crud.delete_all"),
+            patch("app.api.background_data.crud.material_images_crud.delete_all"),
+        ):
+            await delete_material(session, 1)
+
+        session.delete.assert_called_once_with(db_material)
+        session.commit.assert_called_once()
+
+
+class TestGetCategoryTrees:
+    """Tests for get_category_trees."""
+
+    async def test_raises_when_both_ids_provided(self) -> None:
+        """Test error when both supercategory_id and taxonomy_id are given."""
+        session = _make_session()
+        mock_result = MagicMock()
+        mock_result.all.return_value = []
+        session.exec.return_value = mock_result
+
+        with pytest.raises(ValueError, match="not both"):
+            await get_category_trees(session, supercategory_id=1, taxonomy_id=2)
+
+    async def test_returns_top_level_categories(self) -> None:
+        """Test fetching top-level categories (no supercategory or taxonomy filter)."""
+        session = _make_session()
+        cat = CategoryFactory.build(id=CATEGORY_ID_1)
+        mock_result = MagicMock()
+        mock_result.all.return_value = [cat]
+        session.exec.return_value = mock_result
+
+        result = await get_category_trees(session)
+
+        assert result == [cat]
+
+    async def test_filters_by_taxonomy_id(self) -> None:
+        """Test that taxonomy_id narrows results."""
+        session = _make_session()
+        cat = CategoryFactory.build(id=CATEGORY_ID_1, taxonomy_id=TAXONOMY_ID_10)
+        mock_result = MagicMock()
+        mock_result.all.return_value = [cat]
+        session.exec.return_value = mock_result
+
+        with patch("app.api.background_data.crud.get_model_or_404"):
+            result = await get_category_trees(session, taxonomy_id=TAXONOMY_ID_10)
+
+        assert result == [cat]
+
+    async def test_filters_by_supercategory_id(self) -> None:
+        """Test that supercategory_id narrows results to children."""
+        session = _make_session()
+        child_cat = CategoryFactory.build(id=CATEGORY_ID_2, supercategory_id=CATEGORY_ID_1)
+        mock_result = MagicMock()
+        mock_result.all.return_value = [child_cat]
+        session.exec.return_value = mock_result
+
+        with patch("app.api.background_data.crud.get_model_or_404"):
+            result = await get_category_trees(session, supercategory_id=CATEGORY_ID_1)
+
+        assert result == [child_cat]
+
+
+class TestProductTypeCrud:
+    """Tests for ProductType CRUD operations."""
+
+    async def test_create_product_type_simple(self) -> None:
+        """Test simple ProductType creation."""
+        session = _make_session()
+        pt_create = ProductTypeCreate(name="Laptop")
+
+        result = await create_product_type(session, pt_create)
+
+        assert isinstance(result, ProductType)
+        assert result.name == "Laptop"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_update_product_type(self) -> None:
+        """Test updating a ProductType."""
+        session = _make_session()
+        db_pt = ProductTypeFactory.build(id=1, name="Old Type")
+        pt_update = ProductTypeUpdate(name="New Type")
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_pt):
+            result = await update_product_type(session, 1, pt_update)
+
+        assert result.name == "New Type"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_delete_product_type(self) -> None:
+        """Test deleting a ProductType."""
+        session = _make_session()
+        db_pt = ProductTypeFactory.build(id=1)
+
+        with (
+            patch("app.api.background_data.crud.get_model_or_404", return_value=db_pt),
+            patch("app.api.background_data.crud.product_type_files.delete_all"),
+            patch("app.api.background_data.crud.product_type_images.delete_all"),
+        ):
+            await delete_product_type(session, 1)
+
+        session.delete.assert_called_once_with(db_pt)
+        session.commit.assert_called_once()

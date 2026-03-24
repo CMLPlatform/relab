@@ -26,7 +26,6 @@ from app.api.data_collection.crud import (
     get_circularity_properties,
     get_physical_properties,
     get_product_trees,
-    get_unique_product_brands,
     remove_materials_from_product,
     update_circularity_properties,
     update_material_within_product,
@@ -211,7 +210,7 @@ class TestCircularityPropertiesCrud:
     async def test_create_circularity_properties_exists(self, mock_session: AsyncMock) -> None:
         """Test error when circularity properties already exist."""
         product = ProductFactory.build(id=1)
-        product.circularity_properties = CircularityProperties(product_id=1)
+        product.circularity_properties = CircularityPropertiesFactory.build(product_id=1)
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
             pytest.raises(ValueError, match=ALREADY_HAS_CIRC),
@@ -301,7 +300,7 @@ class TestProductCrud:
             mock_get.side_effect = [mock_type, mock_user]
 
             # Use patch for material existence check as well
-            with patch("app.api.data_collection.crud.db_get_models_with_ids_if_they_exist"):
+            with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
                 result = await create_product(mock_session, product_create, owner_id)
 
             assert isinstance(result, Product)
@@ -331,7 +330,7 @@ class TestProductCrud:
 
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.db_get_models_with_ids_if_they_exist", return_value=[]),
+            patch("app.api.data_collection.crud.get_models_by_ids_or_404", return_value=[]),
         ):
             result = await update_product(mock_session, product_id, product_update)
             assert result.name == UPDATED_NAME
@@ -377,7 +376,7 @@ class TestProductCrud:
                 bill_of_materials=[{"material_id": 1, "quantity": 1}],
             )
 
-            with patch("app.api.data_collection.crud.db_get_models_with_ids_if_they_exist"):
+            with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
                 res = await create_component(mock_session, comp_create, 1)
                 assert res.name == COMP_NAME
                 assert res.owner_id == owner_id
@@ -392,7 +391,7 @@ class TestBillOfMaterialsCrud:
         product.bill_of_materials = []
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            patch("app.api.data_collection.crud.db_get_models_with_ids_if_they_exist"),
+            patch("app.api.data_collection.crud.get_models_by_ids_or_404"),
         ):
             links = [MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)]
             res = await add_materials_to_product(mock_session, 1, links)
@@ -411,7 +410,7 @@ class TestBillOfMaterialsCrud:
 
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.db_get_models_with_ids_if_they_exist"),
+            patch("app.api.data_collection.crud.get_models_by_ids_or_404"),
             patch("app.api.data_collection.crud.add_materials_to_product") as mock_add_batch,
         ):
             expected_link = MagicMock()
@@ -453,8 +452,8 @@ class TestBillOfMaterialsCrud:
         material_ids = {10, 20}
 
         db_product = ProductFactory.build(id=product_id)
-        link1 = MagicMock(material_id=10)
-        link2 = MagicMock(material_id=20)
+        link1 = MagicMock(material_id=10, db_id=10)
+        link2 = MagicMock(material_id=20, db_id=20)
         db_product.bill_of_materials = [link1, link2]
 
         # Mock exec to return a result with material links
@@ -464,7 +463,7 @@ class TestBillOfMaterialsCrud:
 
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.db_get_models_with_ids_if_they_exist"),
+            patch("app.api.data_collection.crud.get_models_by_ids_or_404"),
         ):
             await remove_materials_from_product(mock_session, product_id, material_ids)
             # Should have executed a select statement with exec()
@@ -472,18 +471,3 @@ class TestBillOfMaterialsCrud:
             # Should have deleted each material link
             assert mock_session.delete.call_count == 2
             mock_session.commit.assert_called_once()
-
-
-class TestAncillarySearchCrud:
-    """Tests for ancillary search CRUD operations."""
-
-    async def test_get_unique_product_brands(self, mock_session: AsyncMock) -> None:
-        """Test retrieving unique product brands."""
-        # Setup mock_session to return results for exec()
-        mock_result = MagicMock()
-        mock_result.all.return_value = [BRAND_A, BRAND_B]
-        mock_session.exec = AsyncMock(return_value=mock_result)
-
-        result = await get_unique_product_brands(mock_session)
-        assert result == [BRAND_A, BRAND_B]
-        mock_session.exec.assert_called_once()

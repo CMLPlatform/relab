@@ -36,6 +36,18 @@ AUTH_HEADERS_ATTR = "auth_headers"
 VERIFY_SSL_ATTR = "verify_ssl"
 
 
+def build_camera() -> Camera:
+    """Build a camera for model tests."""
+    return Camera(
+        id=uuid4(),
+        name=TEST_CAMERA_NAME,
+        description="A test camera",
+        url=LOCAL_URL,
+        encrypted_api_key=encrypt_str(TEST_API_KEY),
+        owner_id=uuid4(),
+    )
+
+
 class TestCameraConnectionStatus:
     """Test suite for CameraConnectionStatus enum utilities."""
 
@@ -57,20 +69,13 @@ class TestCameraModel:
     @pytest.fixture
     def camera(self) -> Camera:
         """Return a camera instance for testing."""
-        return Camera(
-            id=uuid4(),
-            name=TEST_CAMERA_NAME,
-            description="A test camera",
-            url=LOCAL_URL,
-            encrypted_api_key=encrypt_str(TEST_API_KEY),
-            owner_id=uuid4(),
-        )
+        return build_camera()
 
     def test_camera_auth_headers(self, camera: Camera) -> None:
         """Test authentication header generation and caching."""
         headers = camera.auth_headers
         assert X_API_KEY in headers
-        assert headers[X_API_KEY] == TEST_API_KEY
+        assert headers[X_API_KEY].get_secret_value() == TEST_API_KEY
 
         camera.set_auth_headers({AUTHORIZATION: BEARER_TOKEN})
         assert camera.encrypted_auth_headers is not None
@@ -82,7 +87,7 @@ class TestCameraModel:
         headers_with_extra = camera.auth_headers
         assert X_API_KEY in headers_with_extra
         assert AUTHORIZATION in headers_with_extra
-        assert headers_with_extra[AUTHORIZATION] == BEARER_TOKEN
+        assert headers_with_extra[AUTHORIZATION].get_secret_value() == BEARER_TOKEN
 
     def test_decrypt_auth_headers(self, camera: Camera) -> None:
         """Test decryption of stored authentication headers."""

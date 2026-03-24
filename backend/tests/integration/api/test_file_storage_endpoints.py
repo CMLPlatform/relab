@@ -65,8 +65,8 @@ class TestFileStorageEndpoints:
         resp_data = response.json()
         assert resp_data["filename"].endswith(FILE_NAME)
         assert resp_data["description"] == FILE_DESC
-        assert "file_url" in resp_data  # noqa: PLR2004
-        assert "id" in resp_data  # noqa: PLR2004
+        assert "file_url" in resp_data
+        assert "id" in resp_data
 
         # Test GET all files
         response_all = await superuser_client.get(f"/products/{setup_product_for_files.id}/files")
@@ -102,8 +102,8 @@ class TestFileStorageEndpoints:
         resp_data = response.json()
         assert resp_data["filename"].endswith(IMAGE_NAME)
         assert resp_data["description"] == IMAGE_DESC
-        assert "image_url" in resp_data  # noqa: PLR2004
-        assert "id" in resp_data  # noqa: PLR2004
+        assert "image_url" in resp_data
+        assert "id" in resp_data
 
         # Test GET all images
         response_all = await superuser_client.get(f"/products/{setup_product_for_files.id}/images")
