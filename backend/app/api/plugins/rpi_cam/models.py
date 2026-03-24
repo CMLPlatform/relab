@@ -3,7 +3,6 @@
 import uuid
 from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import httpx
@@ -12,13 +11,11 @@ from pydantic import UUID4, BaseModel, HttpUrl, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
 
-from app.api.common.models.base import CustomBase, TimeStampMixinBare
+from app.api.auth.models import User
+from app.api.common.models.base import CustomBase, TimeStampMixinBare, UUIDPrimaryKeyMixin
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
 from app.core.cache import async_ttl_cache
-
-if TYPE_CHECKING:
-    from app.api.auth.models import User
 
 
 ### Utility models ###
@@ -72,7 +69,7 @@ class CameraBase(CustomBase):
     url: str = Field(description="HTTP(S) URL where the camera API is hosted", sa_type=AutoString)
 
 
-class Camera(CameraBase, TimeStampMixinBare, table=True):
+class Camera(CameraBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for Camera."""
 
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
@@ -113,7 +110,7 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
     @cached_property
     def verify_ssl(self) -> bool:
         """Whether to verify SSL certificates based on URL scheme."""
-        return HttpUrl(self.url).scheme == "https"
+        return HttpUrl(self.url).scheme == "https"  # noqa: PLR2004
 
     def __hash__(self) -> int:
         """Make Camera instances hashable using their id. Used for caching."""

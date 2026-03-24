@@ -25,7 +25,7 @@ from app.api.common.schemas.base import (
     ComponentRead,
     ProductRead,
 )
-from app.api.data_collection.models import (
+from app.api.data_collection.base import (
     CircularityPropertiesBase,
     PhysicalPropertiesBase,
     ProductBase,

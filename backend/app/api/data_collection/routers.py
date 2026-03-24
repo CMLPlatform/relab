@@ -1,4 +1,5 @@
 """Routers for data collection models."""
+# spell-checker: ignore apaginate
 
 from typing import TYPE_CHECKING, Annotated
 
@@ -6,6 +7,7 @@ from fastapi import APIRouter, Body, HTTPException, Path, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi_cache.decorator import cache
 from fastapi_filter import FilterDepends
+from fastapi_pagination.ext.sqlmodel import apaginate
 from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
 from sqlmodel import col, select
@@ -22,8 +24,7 @@ from app.api.common.crud.base import (
     get_nested_model_by_id,
     get_paginated_models,
 )
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
-from app.api.common.models.associations import MaterialProductLink
+from app.api.common.crud.utils import get_model_or_404
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.associations import (
@@ -41,8 +42,10 @@ from app.api.data_collection.dependencies import (
     UserOwnedProductDep,
     get_user_owned_product_id,
 )
+from app.api.data_collection.filters import get_brand_search_statement
 from app.api.data_collection.models import (
     CircularityProperties,
+    MaterialProductLink,
     PhysicalProperties,
     Product,
 )
@@ -146,7 +149,7 @@ async def get_user_products(
 ) -> Page[Product]:
     """Get products collected by a specific user."""
     # NOTE: If needed, we can open up this endpoint to any user by removing this ownership check
-    if user_id != current_user.id and not current_user.is_superuser:
+    if user_id != current_user.db_id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
 
     statement = select(Product).where(Product.owner_id == user_id)
@@ -478,7 +481,7 @@ async def create_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Create a new product."""
-    return await crud.create_product(session, product, current_user.id)
+    return await crud.create_product(session, product, current_user.db_id)
 
 
 ## PATCH routers ##
@@ -989,7 +992,7 @@ async def get_product_bill_of_materials(
 ) -> Sequence[MaterialProductLink]:
     """Get bill of materials for a product."""
     # Validate existence of product
-    await db_get_model_with_id_if_it_exists(session, Product, product_id)
+    await get_model_or_404(session, Product, product_id)
 
     statement: SelectOfScalar[MaterialProductLink] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
@@ -1133,11 +1136,24 @@ async def remove_materials_from_product_bulk(
 search_router = PublicAPIRouter(prefix="", include_in_schema=True)
 
 
-@search_router.get("/brands", summary="Get list of unique product brands")
+@search_router.get(
+    "/brands",
+    response_model=Page[str],
+    summary="Get paginated list of unique product brands",
+)
 @cache(expire=60)
-async def get_brands(session: AsyncSessionDep) -> list[str]:
-    """Get a list of unique product brands."""
-    return await crud.get_unique_product_brands(session)
+async def get_brands(
+    session: AsyncSessionDep,
+    search: Annotated[str | None, Query(description="Search brand (case-insensitive)")] = None,
+    order: Annotated[str, Query(description="Sort order: 'asc' or 'desc'", pattern="^(asc|desc)$")] = "asc",
+) -> Page[str]:
+    """Get a paginated, searchable and orderable list of unique product brands."""
+    statement = get_brand_search_statement(search=search, order=order)
+    return await apaginate(
+        session,
+        statement,
+        transformer=lambda rows: [row.brand_norm.title() for row in rows if row.brand_norm],
+    )
 
 
 ### Router inclusion ###

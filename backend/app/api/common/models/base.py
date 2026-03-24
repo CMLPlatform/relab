@@ -1,27 +1,25 @@
 """Base model and generic mixins for SQLModel models."""
 
 import re
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypeVar, cast
+from typing import Any, ClassVar, Self, cast
 
-from pydantic import BaseModel, ConfigDict, computed_field, model_validator
+from pydantic import UUID4, ConfigDict, model_validator
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
 
-if TYPE_CHECKING:
-    from datetime import datetime
-
 
 ### Base Model ###
-class APIModelName(BaseModel):
-    """Mixin to add models names for naming in API routes and documentation."""
+@dataclass
+class APIModelName:
+    """Holds derived names for a model — used in API routes and documentation."""
 
     name_camel: str  # The base name is expected to be in CamelCase
 
-    @computed_field
     @cached_property
     def plural_camel(self) -> str:
         """Get the plural form of the model name.
@@ -30,37 +28,31 @@ class APIModelName(BaseModel):
         """
         return self.pluralize(self.name_camel)
 
-    @computed_field
     @cached_property
     def name_capital(self) -> str:
         """Get the model name in Capital Case for display in documentation and error messages."""
         return self.camel_to_capital(self.name_camel)
 
-    @computed_field
     @cached_property
     def plural_capital(self) -> str:
         """Get the plural model name in Capital Case for display in documentation and error messages."""
         return self.camel_to_capital(self.plural_camel)
 
-    @computed_field
     @cached_property
     def name_slug(self) -> str:
         """Get the model name in slug-case for use in URL paths."""
         return self.camel_to_slug(self.name_camel)
 
-    @computed_field
     @cached_property
     def plural_slug(self) -> str:
         """Get the plural model name in slug-case for use in URL paths."""
         return self.camel_to_slug(self.plural_camel)
 
-    @computed_field
     @cached_property
     def name_snake(self) -> str:
         """Get the model name in snake_case for use in variable names and database table names."""
         return self.camel_to_snake(self.name_camel)
 
-    @computed_field
     @cached_property
     def plural_snake(self) -> str:
         """Get the plural model name in snake_case for use in variable names and database table names."""
@@ -116,8 +108,50 @@ class CustomLinkingModelBase(CustomBase):
     """Base class for linking models."""
 
 
-# TODO: Separate schema and database model base classes. Schema models should inherit from Pydantic's BaseModel.
-# Database models should inherit from SQLModel.
+class UUIDPrimaryKeyMixin:
+    """Mixin for models with a UUID primary key.
+
+    Provides a type-safe ``db_id`` property that returns the UUID without ``None``,
+    for use at call sites where the model is guaranteed to have been persisted to the DB.
+    The underlying ``id`` field remains ``UUID4 | None`` to satisfy SQLModel/pydantic
+    compatibility requirements (see https://github.com/fastapi/sqlmodel/issues/1623).
+    """
+
+    id: UUID4 | None  # Annotation only — actual SQLModel Field defined in the concrete model
+
+    @property
+    def db_id(self) -> UUID4:
+        """Return the non-None UUID primary key for a persisted model instance.
+
+        Raises:
+            ValueError: If ``id`` is ``None``, i.e. the model has not been committed to the DB.
+        """
+        if self.id is None:
+            msg = f"{type(self).__name__} has no ID — the instance may not have been committed to the DB yet."
+            raise ValueError(msg)
+        return self.id
+
+
+class IntPrimaryKeyMixin:
+    """Mixin for models with an integer primary key.
+
+    Provides a type-safe ``db_id`` property that returns the integer without ``None``,
+    for use at call sites where the model is guaranteed to have been persisted to the DB.
+    """
+
+    id: int | None  # Annotation only — actual SQLModel Field defined in the concrete model
+
+    @property
+    def db_id(self) -> int:
+        """Return the non-None integer primary key for a persisted model instance.
+
+        Raises:
+            ValueError: If ``id`` is ``None``, i.e. the model has not been committed to the DB.
+        """
+        if self.id is None:
+            msg = f"{type(self).__name__} has no ID — the instance may not have been committed to the DB yet."
+            raise ValueError(msg)
+        return self.id
 
 
 ### Mixins ###
@@ -137,21 +171,23 @@ class TimeStampMixinBare:
     updated_at: datetime | None = Field(
         default=None,
         sa_type=cast("Any", DateTime(timezone=True)),
-        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},
+        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},  # spell-checker: ignore onupdate
     )
 
 
 ## Quasi-Polymorphic Associations ##
-# Generic type for parent type enumeration
-ParentTypeEnum = TypeVar("ParentTypeEnum", bound=Enum)
+class SingleParentMixin[ParentTypeEnum: Enum](SQLModel):
+    """Mixin to ensure an object belongs to exactly one parent.
 
+    ``ParentTypeEnum`` must be a ``StrEnum`` whose values are the snake_case names of the
+    parent model tables (e.g. ``"product"``, ``"material"``).  The mixin derives the
+    corresponding foreign-key field names automatically (e.g. ``product_id``).
 
-class SingleParentMixin[ParentTypeEnum](SQLModel):
-    """Mixin to ensure an object belongs to exactly one parent."""
+    TODO: Replace with proper polymorphic associations once the upstream SQLModel issue is
+    resolved: https://github.com/fastapi/sqlmodel/pull/1226
+    """
 
-    # TODO: Implement improved polymorphic associations in SQLModel after this issue is resolved: https://github.com/fastapi/sqlmodel/pull/1226
-
-    parent_type: Enum  # Type of the parent object. To be overridden by derived classes.
+    parent_type: ParentTypeEnum  # type: ignore[valid-type]  # SQLModel field; concrete type set by subclass
 
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
@@ -160,13 +196,13 @@ class SingleParentMixin[ParentTypeEnum](SQLModel):
         """Generate description string for parent_type field using actual enum class."""
         return f"Type of the parent object, e.g. {', '.join(t.value for t in enum_class)}"
 
-    @cached_property
+    @property
     def possible_parent_fields(self) -> list[str]:
         """Get all possible parent ID field names."""
         enum_class = type(self.parent_type)
         return [f"{t.value!s}_id" for t in enum_class]
 
-    @cached_property
+    @property
     def set_parent_fields(self) -> list[str]:
         """Get currently set parent ID field names."""
         return [field for field in self.possible_parent_fields if getattr(self, field, None) is not None]
@@ -185,13 +221,13 @@ class SingleParentMixin[ParentTypeEnum](SQLModel):
 
         return self
 
-    @cached_property
+    @property
     def parent_id(self) -> int:
         """Get the ID of the current parent object."""
         field = f"{self.parent_type.value!s}_id"
         return getattr(self, field)
 
-    def set_parent(self, parent_type: Enum, parent_id: int) -> None:
+    def set_parent(self, parent_type: ParentTypeEnum, parent_id: int) -> None:  # type: ignore[valid-type]
         """Set the parent type and ID."""
         self.parent_type = parent_type
 

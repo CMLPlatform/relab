@@ -9,7 +9,7 @@ from pydantic import UUID4
 from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserIsNotMemberError
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_db, get_user_manager
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
+from app.api.common.crud.utils import get_model_or_404
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 # Dependencies
@@ -33,7 +33,7 @@ async def get_org_by_id(
     session: AsyncSessionDep,
 ) -> Organization:
     """Get a valid organization by ID."""
-    return await db_get_model_with_id_if_it_exists(session, Organization, organization_id)
+    return await get_model_or_404(session, Organization, organization_id)
 
 
 async def get_org_by_id_as_owner(

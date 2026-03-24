@@ -14,7 +14,7 @@ from app.api.common.models.custom_types import IDT
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud import ParentStorageOperations
 from app.api.file_storage.filters import FileFilter, ImageFilter
-from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType
+from app.api.file_storage.models.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import (
     FileCreate,
     FileReadWithinParent,
@@ -229,7 +229,7 @@ def add_storage_type_routes[
                     description=description,
                     image_metadata=image_metadata,
                     parent_id=parent_id,
-                    parent_type=ImageParentType(parent_api_model_name.name_snake),
+                    parent_type=MediaParentType(parent_api_model_name.name_snake),
                 )
                 item = await storage_crud.create(session, parent_id, item_data)
                 return read_schema.model_validate(item)
@@ -251,7 +251,7 @@ def add_storage_type_routes[
                     file=file,
                     description=description,
                     parent_id=parent_id,
-                    parent_type=FileParentType(parent_api_model_name.name_snake),
+                    parent_type=MediaParentType(parent_api_model_name.name_snake),
                 )
                 item = await storage_crud.create(session, parent_id, item_data)
                 return read_schema.model_validate(item)

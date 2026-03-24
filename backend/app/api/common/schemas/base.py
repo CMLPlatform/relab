@@ -14,7 +14,7 @@ from pydantic import (
 
 from app.api.background_data.models import MaterialBase
 from app.api.common.models.base import TimeStampMixinBare
-from app.api.data_collection.models import ProductBase
+from app.api.data_collection.base import ProductBase
 
 
 ### Common Validation ###
@@ -83,6 +83,9 @@ class ProductRead(BaseReadSchemaWithTimeStamp, ProductBase):
 
     product_type_id: PositiveInt | None = None
     owner_id: UUID4
+    owner_username: str | None = None
+
+    thumbnail_url: str | None = None
 
     # HACK: Include parent id and mount_in_parent in base product read schema
     # TODO: separate components and base products on the model level

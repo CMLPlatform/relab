@@ -7,7 +7,7 @@ from pydantic import AfterValidator, Field, Json, PositiveInt
 
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
 from app.api.common.schemas.custom_fields import AnyUrlToDB
-from app.api.file_storage.models.models import FileBase, FileParentType, ImageBase, ImageParentType, VideoBase
+from app.api.file_storage.models.models import FileBase, ImageBase, MediaParentType, VideoBase
 
 ### Constants ###
 MAX_FILE_SIZE_MB = 50
@@ -72,8 +72,8 @@ class FileCreate(FileCreateWithinParent):
     """Schema for creating a file."""
 
     parent_id: int = Field(description="ID of the parent object")
-    parent_type: FileParentType = Field(
-        description=f"Type of the parent object, e.g. {', '.join(t.value for t in FileParentType)}"
+    parent_type: MediaParentType = Field(
+        description=f"Type of the parent object, e.g. {', '.join(t.value for t in MediaParentType)}"
     )
 
 
@@ -88,8 +88,8 @@ class FileRead(FileReadWithinParent):
     """Schema for reading file information."""
 
     parent_id: PositiveInt = Field(description="ID of the parent object")
-    parent_type: FileParentType = Field(
-        description=f"Type of the parent object, e.g. {', '.join(t.value for t in FileParentType)}"
+    parent_type: MediaParentType = Field(
+        description=f"Type of the parent object, e.g. {', '.join(t.value for t in MediaParentType)}"
     )
 
 
@@ -123,8 +123,8 @@ class ImageCreateInternal(BaseCreateSchema, ImageBase):
         AfterValidator(lambda f: validate_file_size(f, MAX_IMAGE_SIZE_MB)),
     ]
     parent_id: int = Field(description="ID of the parent object")
-    parent_type: ImageParentType = Field(
-        description=f"Type of the parent object, e.g. {', '.join(t.value for t in ImageParentType)}"
+    parent_type: MediaParentType = Field(
+        description=f"Type of the parent object, e.g. {', '.join(t.value for t in MediaParentType)}"
     )
 
 
@@ -142,15 +142,16 @@ class ImageReadWithinParent(BaseReadSchemaWithTimeStamp, ImageBase):
     """Schema for reading image information within a parent object."""
 
     filename: str
-    image_url: str
+    image_url: str | None
+    thumbnail_url: str | None = None
 
 
 class ImageRead(ImageReadWithinParent):
     """Schema for reading image information."""
 
     parent_id: PositiveInt
-    parent_type: ImageParentType = Field(
-        description=f"Type of the object that the image belongs to, e.g. {', '.join(t.value for t in ImageParentType)}",
+    parent_type: MediaParentType = Field(
+        description=f"Type of the object that the image belongs to, e.g. {', '.join(t.value for t in MediaParentType)}",
     )
 
 

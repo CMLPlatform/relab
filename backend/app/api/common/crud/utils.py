@@ -1,4 +1,5 @@
 """Common utility functions for CRUD operations."""
+# spell-checker: disable joinedload
 
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
@@ -13,9 +14,9 @@ from sqlmodel.sql._expression_select_cls import SelectOfScalar
 from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.models.base import CustomBase
-from app.api.common.models.custom_types import ET, IDT, MT, FetchedModelT, HasID
+from app.api.common.models.custom_types import ET, IDT, MT, FetchedModelT, HasDBID
 from app.api.data_collection.models import Product
-from app.api.file_storage.models.models import FileParentType, ImageParentType
+from app.api.file_storage.models.models import MediaParentType
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -187,12 +188,11 @@ async def get_models_by_ids_or_404(
 ### Linked Item Validation ###
 def validate_linked_items(
     item_ids: set[int] | set[UUID],
-    existing_items: Sequence[HasID] | None,
+    existing_items: Sequence[HasDBID] | None,
     model_name_plural: str,
     *,
     check_duplicates: bool = True,
     check_existence: bool = True,
-    id_field: str = "id",
 ) -> None:
     """Validate linked items for both duplicates and existence.
 
@@ -211,7 +211,7 @@ def validate_linked_items(
         err_msg = f"No {model_name_plural.lower()} are assigned"
         raise ValueError(err_msg)
 
-    existing_ids = {getattr(item, id_field) for item in existing_items}
+    existing_ids = {item.db_id for item in existing_items}
 
     if check_duplicates:
         duplicates = item_ids & existing_ids
@@ -232,13 +232,13 @@ def format_id_set(id_set: set[Any]) -> str:
     return ", ".join(map(str, sorted(id_set)))
 
 
-def format_enum_set(enum_set: set[ET]) -> str:
+def enum_format_id_set(enum_set: set[ET]) -> str:
     """Format a set of enum values as a comma-separated string."""
     return ", ".join(str(e.value) for e in sorted(enum_set, key=lambda x: x.value))
 
 
 ### Parent Type Utilities ###
-def get_file_parent_type_model(parent_type: FileParentType | ImageParentType) -> type[CustomBase]:
+def get_file_parent_type_model(parent_type: MediaParentType) -> type[CustomBase]:
     """Return the model for the given parent type. Utility function to avoid circular imports."""
     if parent_type == parent_type.PRODUCT:
         return Product
@@ -250,44 +250,36 @@ def get_file_parent_type_model(parent_type: FileParentType | ImageParentType) ->
     raise ValueError(err_msg)
 
 
-### Backward Compatibility Aliases ###
-# These aliases maintain backward compatibility with existing code
-# NOTE: Consider migrating to new function names in future refactorings
-db_get_model_with_id_if_it_exists = get_model_or_404
-db_get_models_with_ids_if_they_exist = get_models_by_ids_or_404
-set_to_str = format_id_set
-enum_set_to_str = format_enum_set
+### Backward Compatibility (Refactored) ###
+# The previous aliases were removed in favor of using the base functions directly.
+# The following helpers are kept for readability but simplified.
 
 
 def validate_no_duplicate_linked_items(
     new_ids: set[int] | set[UUID],
-    existing_items: Sequence[HasID] | None,
+    existing_items: Sequence[HasDBID] | None,
     model_name_plural: str,
-    id_field: str = "id",
 ) -> None:
-    """Deprecated: Use validate_linked_items with check_duplicates=True instead."""
+    """Validate that new items are not already in the existing items list."""
     validate_linked_items(
         new_ids,
         existing_items,
         model_name_plural,
         check_duplicates=True,
         check_existence=False,
-        id_field=id_field,
     )
 
 
 def validate_linked_items_exist(
     item_ids: set[int] | set[UUID],
-    existing_items: Sequence[HasID] | None,
+    existing_items: Sequence[HasDBID] | None,
     model_name_plural: str,
-    id_field: str = "id",
 ) -> None:
-    """Deprecated: Use validate_linked_items with check_existence=True instead."""
+    """Validate that all item_ids are present in existing_items."""
     validate_linked_items(
         item_ids,
         existing_items,
         model_name_plural,
         check_duplicates=False,
         check_existence=True,
-        id_field=id_field,
     )

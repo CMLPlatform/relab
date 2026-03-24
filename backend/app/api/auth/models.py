@@ -12,8 +12,7 @@ from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Column, Field, Relationship
 
-from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare
-from app.api.data_collection.models import Product
+from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare, UUIDPrimaryKeyMixin
 
 
 # TODO: Refactor into separate files for each model.
@@ -35,7 +34,7 @@ class UserBase(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
 
-class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, table=True):
+class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, TimeStampMixinBare, table=True):
     """Database model for platform users."""
 
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo (see https://github.com/fastapi/sqlmodel/issues/1623)
@@ -55,14 +54,6 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
         },  # TODO: Check if this is fixed in future versions of pydantic/sqlmodel and we can use automatic
         # relationship detection again
     )
-    products: list[Product] = Relationship(
-        back_populates="owner",
-        sa_relationship_kwargs={
-            "primaryjoin": "User.id == Product.owner_id",  # HACK: Explicitly define join condition because of
-            "foreign_keys": "[Product.owner_id]",  # pydantic / sqlmodel issues
-        },
-    )
-
     # Many-to-one relationship with Organization
     organization_id: UUID4 | None = Field(
         default=None,
@@ -103,7 +94,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
 
 
 ### OAuthAccount Model ###
-class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare, table=True):
+class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for OAuth accounts. Note that the main implementation is in the base class."""
 
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
@@ -132,7 +123,7 @@ class OrganizationBase(CustomBase):
     description: str | None = Field(default=None, max_length=500)
 
 
-class Organization(OrganizationBase, TimeStampMixinBare, table=True):
+class Organization(OrganizationBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for organizations."""
 
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo

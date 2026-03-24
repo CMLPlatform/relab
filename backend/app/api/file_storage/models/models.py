@@ -4,35 +4,39 @@ import uuid
 from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING
 from urllib.parse import quote
 
-from markupsafe import Markup
 from pydantic import UUID4, ConfigDict
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Column, Field, Relationship
+from sqlmodel import Column, Field
 from sqlmodel import Enum as SAEnum
 
-from app.api.common.models.base import APIModelName, CustomBase, SingleParentMixin, TimeStampMixinBare
-from app.api.data_collection.models import Product
+from app.api.common.models.base import (
+    APIModelName,
+    CustomBase,
+    IntPrimaryKeyMixin,
+    SingleParentMixin,
+    TimeStampMixinBare,
+    UUIDPrimaryKeyMixin,
+)
 from app.api.file_storage.models.custom_types import FileType, ImageType
 from app.core.config import settings
 
 if TYPE_CHECKING:
-    from app.api.background_data.models import Material, ProductType
+    from typing import Any, ClassVar
 
 
-### Constants ###
-PLACEHOLDER_IMAGE_PATH = "static/images/placeholder.png"
-
-
-### File Model ###
-class FileParentType(StrEnum):
-    """Enumeration of types that can have files."""
+### Shared parent-type enum ###
+class MediaParentType(StrEnum):
+    """Parent entity types that can own files and images."""
 
     PRODUCT = "product"
     PRODUCT_TYPE = "product_type"
     MATERIAL = "material"
+
+
+### File Model ###
 
 
 class FileBase(CustomBase):
@@ -44,7 +48,7 @@ class FileBase(CustomBase):
     api_model_name: ClassVar[APIModelName | None] = APIModelName(name_camel="File")
 
 
-class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], table=True):
+class File(FileBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
     """Database model for generic files stored in the local file system, using FastAPI-Storages."""
 
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
@@ -58,19 +62,16 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
     # Many-to-one relationships. This is ugly but SQLModel does not play well with polymorphic associations.
     # TODO: Implement improved polymorphic associations in SQLModel after this issue is resolved: https://github.com/fastapi/sqlmodel/pull/1226
 
-    parent_type: FileParentType = Field(
-        sa_column=Column(SAEnum(FileParentType), nullable=False),
-        description=SingleParentMixin.get_parent_type_description(FileParentType),
+    parent_type: MediaParentType = Field(
+        sa_column=Column(SAEnum(MediaParentType, name="fileparenttype"), nullable=False),
+        description=SingleParentMixin.get_parent_type_description(MediaParentType),
     )
 
     product_id: int | None = Field(default=None, foreign_key="product.id")
-    product: Product = Relationship(back_populates="files")
 
     material_id: int | None = Field(default=None, foreign_key="material.id")
-    material: Material = Relationship(back_populates="files")
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")
-    product_type: ProductType = Relationship(back_populates="files")
 
     # Model configuration
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True, use_enum_values=True)
@@ -92,14 +93,6 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[FileParentType], tabl
 ### Image Model ###
 
 
-class ImageParentType(StrEnum):
-    """Enumeration of types that can have images."""
-
-    PRODUCT = "product"
-    PRODUCT_TYPE = "product_type"
-    MATERIAL = "material"
-
-
 class ImageBase(CustomBase):
     """Base model for images stored in the local file system."""
 
@@ -112,7 +105,7 @@ class ImageBase(CustomBase):
     api_model_name: ClassVar[APIModelName | None] = APIModelName(name_camel="Image")
 
 
-class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
+class Image(ImageBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
     """Database model for images stored in the local file system, using FastAPI-Storages."""
 
     # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
@@ -126,19 +119,16 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
     )
 
     # Many-to-one relationships. This is ugly but SQLModel does not play well with polymorphic associations.
-    parent_type: ImageParentType = Field(
-        sa_column=Column(SAEnum(ImageParentType), nullable=False),
-        description=SingleParentMixin.get_parent_type_description(ImageParentType),
+    parent_type: MediaParentType = Field(
+        sa_column=Column(SAEnum(MediaParentType, name="imageparenttype"), nullable=False),
+        description=SingleParentMixin.get_parent_type_description(MediaParentType),
     )
 
     product_id: int | None = Field(default=None, foreign_key="product.id")
-    product: Product = Relationship(back_populates="images")
 
     material_id: int | None = Field(default=None, foreign_key="material.id")
-    material: Material = Relationship(back_populates="images")
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")
-    product_type: ProductType = Relationship(back_populates="images")
 
     # Model configuration
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
@@ -146,22 +136,27 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin, table=True):
     @property
     def file_exists(self) -> bool:
         """Return True if the underlying image file exists in storage."""
-        return self.file is not None
+        return self.file is not None and Path(self.file.path).exists()
 
     @cached_property
-    def image_url(self) -> str:
-        """Return the URL to the image file or a placeholder if missing."""
+    def image_url(self) -> str | None:
+        """Return the URL to the image file, or None if the file is missing from storage."""
         if self.file and Path(self.file.path).exists():
             relative_path = Path(self.file.path).relative_to(settings.image_storage_path)
             return f"/uploads/images/{quote(str(relative_path))}"
-        return PLACEHOLDER_IMAGE_PATH
+        return None
 
-    def image_preview(self, size: int = 100) -> str:
-        """HTML preview of the image with a specified size."""
-        return Markup('<img src="{}" style="max-height: {}px;">').format(self.image_url, size)
+    @property
+    def thumbnail_url(self) -> str | None:
+        """Return the URL to a default-sized thumbnail of the image, or None if no file is stored."""
+        if self.file:
+            return f"/images/{self.id}/resized?width=200"
+        return None
 
 
 ### Video Model ###
+# Note: Video intentionally only supports Product as its parent (no Material or ProductType).
+# Videos are data-collection artifacts tied to dismantling sessions, not reference data.
 class VideoBase(CustomBase):
     """Base model for videos stored online."""
 
@@ -173,11 +168,10 @@ class VideoBase(CustomBase):
     )
 
 
-class Video(VideoBase, TimeStampMixinBare, table=True):
+class Video(VideoBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for videos stored online."""
 
     id: int | None = Field(default=None, primary_key=True)
 
     # Many-to-one relationships
     product_id: int = Field(foreign_key="product.id", nullable=False)
-    product: Product = Relationship(back_populates="videos")

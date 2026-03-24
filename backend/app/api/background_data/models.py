@@ -1,19 +1,15 @@
 """Database models for background data."""
 
 from enum import StrEnum
-from typing import TYPE_CHECKING, Optional
+from typing import Optional  # noqa: TC003 # Needed for runtime ORM mapping
 
 from pydantic import ConfigDict
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlmodel import Column, Field, Relationship
 
-from app.api.common.models.base import CustomBase, CustomLinkingModelBase, TimeStampMixinBare
+from app.api.common.models.base import CustomBase, CustomLinkingModelBase, IntPrimaryKeyMixin, TimeStampMixinBare
 from app.api.file_storage.models.models import File, Image
-
-if TYPE_CHECKING:
-    from app.api.common.models.associations import MaterialProductLink
-    from app.api.data_collection.models import Product
 
 
 ### Linking Models ###
@@ -59,7 +55,7 @@ class TaxonomyBase(CustomBase):
     model_config: ConfigDict = ConfigDict(use_enum_values=True)
 
 
-class Taxonomy(TaxonomyBase, TimeStampMixinBare, table=True):
+class Taxonomy(TaxonomyBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for Taxonomy."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -82,7 +78,7 @@ class CategoryBase(CustomBase):
     external_id: str | None = Field(default=None, description="ID of the category in the external taxonomy")
 
 
-class Category(CategoryBase, TimeStampMixinBare, table=True):
+class Category(CategoryBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for Category."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -127,7 +123,7 @@ class MaterialBase(CustomBase):
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
 
 
-class Material(MaterialBase, TimeStampMixinBare, table=True):
+class Material(MaterialBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for Material."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -138,7 +134,6 @@ class Material(MaterialBase, TimeStampMixinBare, table=True):
 
     # Many-to-many relationships
     categories: list[Category] | None = Relationship(back_populates="materials", link_model=CategoryMaterialLink)
-    product_links: list[MaterialProductLink] | None = Relationship(back_populates="material")
 
     # Magic methods
     def __str__(self) -> str:
@@ -153,15 +148,14 @@ class ProductTypeBase(CustomBase):
     description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
 
 
-class ProductType(ProductTypeBase, TimeStampMixinBare, table=True):
+class ProductType(ProductTypeBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for ProductType."""
 
     id: int | None = Field(default=None, primary_key=True)
 
     # One-to-many relationships
-    products: list[Product] | None = Relationship(back_populates="product_type")
-    files: list[File] | None = Relationship(back_populates="product_type", cascade_delete=True)
-    images: list[Image] | None = Relationship(back_populates="product_type", cascade_delete=True)
+    files: list[File] | None = Relationship(cascade_delete=True)
+    images: list[Image] | None = Relationship(cascade_delete=True)
 
     # Many-to-many relationships
     categories: list[Category] | None = Relationship(

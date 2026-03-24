@@ -17,18 +17,17 @@ from app.api.background_data.models import (
 from app.api.common.crud.associations import get_linking_model_with_ids_if_it_exists
 from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.utils import (
-    db_get_models_with_ids_if_they_exist,
+    get_models_by_ids_or_404,
     validate_linked_items_exist,
     validate_no_duplicate_linked_items,
 )
-from app.api.common.models.associations import MaterialProductLink
 from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProduct,
     MaterialProductLinkCreateWithinProductAndMaterial,
     MaterialProductLinkUpdate,
 )
 from app.api.data_collection.filters import ProductFilterWithRelationships
-from app.api.data_collection.models import CircularityProperties, PhysicalProperties, Product
+from app.api.data_collection.models import CircularityProperties, MaterialProductLink, PhysicalProperties, Product
 from app.api.data_collection.schemas import (
     CircularityPropertiesCreate,
     CircularityPropertiesUpdate,
@@ -41,7 +40,7 @@ from app.api.data_collection.schemas import (
 )
 from app.api.file_storage.crud import ParentStorageOperations, create_file, create_image, delete_file, delete_image
 from app.api.file_storage.filters import FileFilter, ImageFilter
-from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType, Video
+from app.api.file_storage.models.models import File, Image, MediaParentType, Video
 from app.api.file_storage.schemas import (
     FileCreate,
     ImageCreateFromForm,
@@ -272,14 +271,14 @@ async def create_component(
     if component.physical_properties:
         db_physical_property = PhysicalProperties(
             **component.physical_properties.model_dump(),
-            product_id=db_component.id,
+            product_id=db_component.db_id,
         )
         db.add(db_physical_property)
 
     if component.circularity_properties:
         db_circularity_property = CircularityProperties(
             **component.circularity_properties.model_dump(),
-            product_id=db_component.id,
+            product_id=db_component.db_id,
         )
         db.add(db_circularity_property)
 
@@ -288,7 +287,7 @@ async def create_component(
         for video in component.videos:
             db_video = Video(
                 **video.model_dump(),
-                product_id=db_component.id,
+                product_id=db_component.db_id,
             )
             db.add(db_video)
 
@@ -296,11 +295,11 @@ async def create_component(
     if component.bill_of_materials:
         # Validate materials exist
         material_ids = {material.material_id for material in component.bill_of_materials}
-        await db_get_models_with_ids_if_they_exist(db, Material, material_ids)
+        await get_models_by_ids_or_404(db, Material, material_ids)
 
         # Create material-product links
         db.add_all(
-            MaterialProductLink(**material.model_dump(), product_id=db_component.id)
+            MaterialProductLink(**material.model_dump(), product_id=db_component.db_id)
             for material in component.bill_of_materials
         )
 
@@ -310,7 +309,7 @@ async def create_component(
             await create_component(
                 db,
                 subcomponent,
-                parent_product_id=db_component.id,
+                parent_product_id=db_component.db_id,
                 owner_id=owner_id,
                 _is_recursive_call=True,
             )
@@ -380,7 +379,7 @@ async def create_product(
     if product.bill_of_materials:
         # Validate materials exist
         material_ids: set[int] = {material.material_id for material in product.bill_of_materials}
-        await db_get_models_with_ids_if_they_exist(db, Material, material_ids)
+        await get_models_by_ids_or_404(db, Material, material_ids)
 
         # Create material-product links
         db.add_all(
@@ -455,7 +454,7 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
 product_files_crud = ParentStorageOperations[Product, File, FileCreate, FileFilter](
     parent_model=Product,
     storage_model=File,
-    parent_type=FileParentType.PRODUCT,
+    parent_type=MediaParentType.PRODUCT,
     parent_field="product_id",
     create_func=create_file,
     delete_func=delete_file,
@@ -464,7 +463,7 @@ product_files_crud = ParentStorageOperations[Product, File, FileCreate, FileFilt
 product_images_crud = ParentStorageOperations[Product, Image, ImageCreateFromForm, ImageFilter](
     parent_model=Product,
     storage_model=Image,
-    parent_type=ImageParentType.PRODUCT,
+    parent_type=MediaParentType.PRODUCT,
     parent_field="product_id",
     create_func=create_image,
     delete_func=delete_image,
@@ -481,11 +480,11 @@ async def add_materials_to_product(
 
     # Validate materials exist
     material_ids: set[int] = {material_link.material_id for material_link in material_links}
-    await db_get_models_with_ids_if_they_exist(db, Material, material_ids)
+    await get_models_by_ids_or_404(db, Material, material_ids)
 
     # Validate no duplicate materials
     if db_product.bill_of_materials:
-        validate_no_duplicate_linked_items(material_ids, db_product.bill_of_materials, "Materials", "material_id")
+        validate_no_duplicate_linked_items(material_ids, db_product.bill_of_materials, "Materials")
 
     # Create material-product links
     db_material_product_links: list[MaterialProductLink] = [
@@ -563,10 +562,10 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
     product = await get_model_by_id(db, Product, product_id)
 
     # Validate materials exist
-    await db_get_models_with_ids_if_they_exist(db, Material, material_ids)
+    await get_models_by_ids_or_404(db, Material, material_ids)
 
     # Validate materials are actually assigned to the product
-    validate_linked_items_exist(material_ids, product.bill_of_materials, "Materials", "material_id")
+    validate_linked_items_exist(material_ids, product.bill_of_materials, "Materials")
 
     # Fetch material-product links to delete
     statement = (
@@ -581,11 +580,3 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
         await db.delete(material_link)
 
     await db.commit()
-
-
-### Ancillary Search CRUD operations ###
-async def get_unique_product_brands(db: AsyncSession) -> list[str]:
-    """Get all unique product brands."""
-    statement = select(Product.brand).distinct().order_by(Product.brand).where(col(Product.brand).is_not(None))
-    results = list((await db.exec(statement)).all())
-    return sorted({brand.strip().title() for brand in results if brand and brand.strip()})

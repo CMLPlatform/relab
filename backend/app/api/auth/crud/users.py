@@ -17,7 +17,7 @@ from app.api.auth.schemas import (
     UserCreateWithOrganization,
     UserUpdate,
 )
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
+from app.api.common.crud.utils import get_model_or_404
 
 if TYPE_CHECKING:
     from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
@@ -57,7 +57,7 @@ async def validate_user_create(
 
     elif user_create.organization_id:
         # Validate organization ID (will raise ValueError if not found)
-        await db_get_model_with_id_if_it_exists(user_db.session, Organization, user_create.organization_id)
+        await get_model_or_404(user_db.session, Organization, user_create.organization_id)
 
     return user_create
 
@@ -74,7 +74,7 @@ async def add_user_role_in_organization_after_registration(
 
     if organization_data := user_create_data.get("organization"):
         # Create organization
-        organization = Organization(**organization_data, owner_id=user.id)
+        organization = Organization(**organization_data, owner_id=user.db_id)
         user_db.session.add(organization)
         await user_db.session.flush()
 
@@ -101,7 +101,7 @@ async def get_user_by_username(session: AsyncSession, username: str) -> User:
     """Get a user by their username."""
     statement = select(User).where(User.username == username)
 
-    if not (user := (await session.exec(statement)).one_or_none()):
+    if not (user := (await session.exec(statement)).unique().one_or_none()):
         err_msg: EmailStr = f"User not found with username: {username}"
 
         raise ValueError(err_msg)
@@ -119,6 +119,6 @@ async def update_user_override(user_db: SQLModelUserDatabaseAsync, user: User, u
 
     if user_update.organization_id is not None:
         # Validate organization exists
-        await db_get_model_with_id_if_it_exists(user_db.session, Organization, user_update.organization_id)
+        await get_model_or_404(user_db.session, Organization, user_update.organization_id)
 
     return user_update

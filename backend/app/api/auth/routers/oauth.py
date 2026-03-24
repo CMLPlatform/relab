@@ -67,7 +67,7 @@ async def remove_oauth_association(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth provider.")
 
     query = select(OAuthAccount).where(
-        OAuthAccount.user_id == current_user.id,
+        OAuthAccount.user_id == current_user.db_id,
         OAuthAccount.oauth_name == provider,
     )
     result = await session.exec(query)

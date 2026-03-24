@@ -1,4 +1,5 @@
 """Base CRUD operations for SQLAlchemy models."""
+# spell-checker: disable apaginate, isouter
 
 from typing import TYPE_CHECKING
 
@@ -99,9 +100,11 @@ def get_models_query(
         statement = add_filter_joins(statement, model, model_filter)
         # Apply the filter
         statement = model_filter.filter(statement)
-        # Apply sorting if specified (check if any sort fields are defined)
-        if vars(model_filter.sort):
-            statement = model_filter.sort(statement)
+        # Apply sorting if `order_by` was provided (guard attribute access on Filter models)
+        if getattr(model_filter, "order_by", None):
+            sort_func = getattr(model_filter, "sort", None)
+            if callable(sort_func):
+                statement = sort_func(statement)
 
     statement, relationships_to_exclude = add_relationship_options(
         statement, model, include_relationships, read_schema=read_schema

@@ -13,7 +13,7 @@ from app.api.file_storage.schemas import ImageRead
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import get_user_owned_camera
 from app.api.plugins.rpi_cam.services import capture_and_store_image
 
-# TODO improve exception handling, add custom exceptions and return more granular HTTP codes
+# TODO: improve exception handling, add custom exceptions and return more granular HTTP codes
 # (.e.g. 404 on missing camera, 403 on unauthorized access)
 
 
@@ -40,6 +40,6 @@ async def capture_image(
     description: Annotated[str | None, Body(description="Custom description for the image", max_length=500)] = None,
 ) -> Image:
     """Capture a still image with a remote Raspberry Pi Camera."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
 
     return await capture_and_store_image(session, camera, product_id=product_id, description=description)

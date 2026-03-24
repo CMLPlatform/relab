@@ -36,16 +36,16 @@ from app.api.background_data.schemas import (
 from app.api.common.crud.associations import create_model_links
 from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.utils import (
-    db_get_model_with_id_if_it_exists,
-    db_get_models_with_ids_if_they_exist,
-    enum_set_to_str,
-    set_to_str,
+    enum_format_id_set,
+    format_id_set,
+    get_model_or_404,
+    get_models_by_ids_or_404,
     validate_linked_items_exist,
     validate_no_duplicate_linked_items,
 )
 from app.api.file_storage.crud import ParentStorageOperations, create_file, create_image, delete_file, delete_image
 from app.api.file_storage.filters import FileFilter, ImageFilter
-from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType
+from app.api.file_storage.models.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ async def validate_category_creation(
 ) -> tuple[int, Category | None]:
     """Validate category creation parameters and return taxonomy_id and supercategory."""
     if supercategory_id:
-        supercategory: Category = await db_get_model_with_id_if_it_exists(db, Category, supercategory_id)
+        supercategory: Category = await get_model_or_404(db, Category, supercategory_id)
 
         taxonomy_id = taxonomy_id or supercategory.taxonomy_id
         if supercategory.taxonomy_id != taxonomy_id:
@@ -88,7 +88,7 @@ async def validate_category_creation(
         raise ValueError(err_msg)
 
     # Check if taxonomy exists
-    await db_get_model_with_id_if_it_exists(db, Taxonomy, taxonomy_id)
+    await get_model_or_404(db, Taxonomy, taxonomy_id)
 
     return taxonomy_id, None
 
@@ -116,7 +116,7 @@ async def validate_category_taxonomy_domains(
 
     if len(categories) != len(category_ids):
         missing = set(category_ids) - {c.id for c in categories}
-        err_msg: str = f"Categories with id {set_to_str(missing)} not found"
+        err_msg: str = f"Categories with id {format_id_set(missing)} not found"
         raise ValueError(err_msg)
 
     # Cast single domain to set if needed
@@ -130,8 +130,8 @@ async def validate_category_taxonomy_domains(
     }
     if invalid:
         err_msg: str = (
-            f"Categories with id {set_to_str(invalid)} belong to taxonomies "
-            f"outside of domains: {enum_set_to_str(expected_domains)}"
+            f"Categories with id {format_id_set(invalid)} belong to taxonomies "
+            f"outside of domains: {enum_format_id_set(expected_domains)}"
         )
         raise ValueError(err_msg)
 
@@ -156,15 +156,15 @@ async def get_category_trees(
 
     # Validate that supercategory or taxonomy exists
     if supercategory_id:
-        await db_get_model_with_id_if_it_exists(db, Category, supercategory_id)
+        await get_model_or_404(db, Category, supercategory_id)
 
     if taxonomy_id:
-        await db_get_model_with_id_if_it_exists(db, Taxonomy, taxonomy_id)
+        await get_model_or_404(db, Taxonomy, taxonomy_id)
 
     statement: SelectOfScalar[Category] = select(Category).where(Category.supercategory_id == supercategory_id)
 
     if taxonomy_id:
-        await db_get_model_with_id_if_it_exists(db, Taxonomy, taxonomy_id)
+        await get_model_or_404(db, Taxonomy, taxonomy_id)
         statement = statement.where(Category.taxonomy_id == taxonomy_id)
 
     if category_filter:
@@ -228,7 +228,7 @@ async def create_category(
 
 async def update_category(db: AsyncSession, category_id: int, category: CategoryUpdate) -> Category:
     """Update an existing category in the database."""
-    db_category: Category = await db_get_model_with_id_if_it_exists(db, Category, category_id)
+    db_category: Category = await get_model_or_404(db, Category, category_id)
 
     category_data = category.model_dump(exclude_unset=True)
     db_category.sqlmodel_update(category_data)
@@ -241,7 +241,7 @@ async def update_category(db: AsyncSession, category_id: int, category: Category
 
 async def delete_category(db: AsyncSession, category_id: int) -> None:
     """Delete a category from the database."""
-    db_category: Category = await db_get_model_with_id_if_it_exists(db, Category, category_id)
+    db_category: Category = await get_model_or_404(db, Category, category_id)
 
     await db.delete(db_category)
     await db.commit()
@@ -269,7 +269,7 @@ async def create_taxonomy(db: AsyncSession, taxonomy: TaxonomyCreate | TaxonomyC
 
 async def update_taxonomy(db: AsyncSession, taxonomy_id: int, taxonomy: TaxonomyUpdate) -> Taxonomy:
     """Update an existing taxonomy in the database."""
-    db_taxonomy: Taxonomy = await db_get_model_with_id_if_it_exists(db, Taxonomy, taxonomy_id)
+    db_taxonomy: Taxonomy = await get_model_or_404(db, Taxonomy, taxonomy_id)
 
     taxonomy_data = taxonomy.model_dump(exclude_unset=True)
 
@@ -283,7 +283,7 @@ async def update_taxonomy(db: AsyncSession, taxonomy_id: int, taxonomy: Taxonomy
 
 async def delete_taxonomy(db: AsyncSession, taxonomy_id: int) -> None:
     """Delete a taxonomy from the database, including its categories."""
-    db_taxonomy: Taxonomy = await db_get_model_with_id_if_it_exists(db, Taxonomy, taxonomy_id)
+    db_taxonomy: Taxonomy = await get_model_or_404(db, Taxonomy, taxonomy_id)
 
     await db.delete(db_taxonomy)
     await db.commit()
@@ -302,7 +302,7 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
     # Add category links if provided
     if isinstance(material, MaterialCreateWithCategories) and material.category_ids:
         # Validate categories exist
-        await db_get_models_with_ids_if_they_exist(db, Category, material.category_ids)
+        await get_models_by_ids_or_404(db, Category, material.category_ids)
 
         # Validate category domains
         await validate_category_taxonomy_domains(db, material.category_ids, {TaxonomyDomain.MATERIALS})
@@ -324,7 +324,7 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
 
 async def update_material(db: AsyncSession, material_id: int, material: MaterialUpdate) -> Material:
     """Update an existing material in the database."""
-    db_material: Material = await db_get_model_with_id_if_it_exists(db, Material, material_id)
+    db_material: Material = await get_model_or_404(db, Material, material_id)
 
     material_data = material.model_dump(exclude_unset=True)
     db_material.sqlmodel_update(material_data)
@@ -337,7 +337,7 @@ async def update_material(db: AsyncSession, material_id: int, material: Material
 
 async def delete_material(db: AsyncSession, material_id: int) -> None:
     """Delete a material from the database."""
-    db_material: Material = await db_get_model_with_id_if_it_exists(db, Material, material_id)
+    db_material: Material = await get_model_or_404(db, Material, material_id)
 
     # Delete storage files
     await material_files_crud.delete_all(db, material_id)
@@ -361,7 +361,7 @@ async def add_categories_to_material(
     )
 
     # Validate categories exist and belong to the correct domain
-    db_categories: Sequence[Category] = await db_get_models_with_ids_if_they_exist(db, Category, category_ids)
+    db_categories: Sequence[Category] = await get_models_by_ids_or_404(db, Category, category_ids)
     await validate_category_taxonomy_domains(db, category_ids, {TaxonomyDomain.MATERIALS})
 
     if db_material.categories:
@@ -422,7 +422,7 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
 material_files_crud = ParentStorageOperations[Material, File, FileCreate, FileFilter](
     parent_model=Material,
     storage_model=File,
-    parent_type=FileParentType.MATERIAL,
+    parent_type=MediaParentType.MATERIAL,
     parent_field="material_id",
     create_func=create_file,
     delete_func=delete_file,
@@ -431,7 +431,7 @@ material_files_crud = ParentStorageOperations[Material, File, FileCreate, FileFi
 material_images_crud = ParentStorageOperations[Material, Image, ImageCreateFromForm, ImageFilter](
     parent_model=Material,
     storage_model=Image,
-    parent_type=ImageParentType.MATERIAL,
+    parent_type=MediaParentType.MATERIAL,
     parent_field="material_id",
     create_func=create_image,
     delete_func=delete_image,
@@ -467,7 +467,7 @@ async def create_product_type(
 
 async def update_product_type(db: AsyncSession, product_type_id: int, product_type: ProductTypeUpdate) -> ProductType:
     """Update an existing product type in the database."""
-    db_product_type: ProductType = await db_get_model_with_id_if_it_exists(db, ProductType, product_type_id)
+    db_product_type: ProductType = await get_model_or_404(db, ProductType, product_type_id)
 
     product_type_data = product_type.model_dump(exclude_unset=True)
     db_product_type.sqlmodel_update(product_type_data)
@@ -480,7 +480,7 @@ async def update_product_type(db: AsyncSession, product_type_id: int, product_ty
 
 async def delete_product_type(db: AsyncSession, product_type_id: int) -> None:
     """Delete a product type from the database."""
-    db_product_type: ProductType = await db_get_model_with_id_if_it_exists(db, ProductType, product_type_id)
+    db_product_type: ProductType = await get_model_or_404(db, ProductType, product_type_id)
 
     # Delete storage files
     await product_type_files.delete_all(db, product_type_id)
@@ -504,7 +504,7 @@ async def add_categories_to_product_type(
     )
 
     # Validate categories exist and belong to the correct domain
-    db_categories: Sequence[Category] = await db_get_models_with_ids_if_they_exist(db, Category, category_ids)
+    db_categories: Sequence[Category] = await get_models_by_ids_or_404(db, Category, category_ids)
     await validate_category_taxonomy_domains(db, category_ids, {TaxonomyDomain.PRODUCTS})
 
     if db_product_type.categories:
@@ -566,7 +566,7 @@ async def remove_categories_from_product_type(
 product_type_files = ParentStorageOperations[ProductType, File, FileCreate, FileFilter](
     parent_model=ProductType,
     storage_model=File,
-    parent_type=FileParentType.PRODUCT_TYPE,
+    parent_type=MediaParentType.PRODUCT_TYPE,
     parent_field="product_type_id",
     create_func=create_file,
     delete_func=delete_file,
@@ -575,7 +575,7 @@ product_type_files = ParentStorageOperations[ProductType, File, FileCreate, File
 product_type_images = ParentStorageOperations[ProductType, Image, ImageCreateFromForm, ImageFilter](
     parent_model=ProductType,
     storage_model=Image,
-    parent_type=ImageParentType.PRODUCT_TYPE,
+    parent_type=MediaParentType.PRODUCT_TYPE,
     parent_field="product_type_id",
     create_func=create_image,
     delete_func=delete_image,

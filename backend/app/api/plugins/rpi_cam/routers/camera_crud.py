@@ -25,7 +25,7 @@ from app.api.plugins.rpi_cam.schemas import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-# TODO improve exception handling, add custom exceptions and return more granular HTTP codes
+# TODO: improve exception handling, add custom exceptions and return more granular HTTP codes
 # (.e.g. 404 on missing camera, 403 on unauthorized access)
 
 # TODO: Decide on proper path for user-dependent operations (e.g. cameras, organizations, etc.)
@@ -47,7 +47,7 @@ async def get_user_cameras(
     include_status: bool = Query(default=False, description="Include camera online status"),
 ) -> Sequence[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
-    statement = select(Camera).where(Camera.owner_id == current_user.id)
+    statement = select(Camera).where(Camera.owner_id == current_user.db_id)
     db_cameras = await get_models(session, Camera, model_filter=camera_filter, statement=statement)
 
     return [
@@ -65,7 +65,7 @@ async def get_user_camera(
     include_status: bool = Query(default=False, description="Include camera online status"),
 ) -> Camera | CameraReadWithStatus:
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
-    db_camera = await get_user_owned_object(session, Camera, camera_id, current_user.id)
+    db_camera = await get_user_owned_object(session, Camera, camera_id, current_user.db_id)
 
     return await CameraReadWithStatus.from_db_model_with_status(db_camera) if include_status else db_camera
 
@@ -82,7 +82,7 @@ async def get_user_camera_status(
     force_refresh: bool = Query(default=False, description="Force a refresh of the status by bypassing the cache"),
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
-    db_camera = await get_user_owned_object(session, Camera, camera_id, current_user.id)
+    db_camera = await get_user_owned_object(session, Camera, camera_id, current_user.db_id)
 
     return await db_camera.get_status(force_refresh=force_refresh)
 
@@ -96,7 +96,7 @@ async def register_user_camera(
     db_camera = await crud.create_camera(
         session,
         camera,
-        current_user.id,
+        current_user.db_id,
     )
 
     return CameraReadWithCredentials.from_db_model_with_credentials(db_camera)
@@ -114,7 +114,7 @@ async def regenerate_api_key(
     current_user: CurrentActiveUserDep,
 ) -> CameraReadWithCredentials:
     """Regenerate API key for Raspberry Pi camera."""
-    db_camera = await crud.regenerate_camera_api_key(session, camera_id, current_user.id)
+    db_camera = await crud.regenerate_camera_api_key(session, camera_id, current_user.db_id)
 
     return CameraReadWithCredentials.from_db_model_with_credentials(db_camera)
 

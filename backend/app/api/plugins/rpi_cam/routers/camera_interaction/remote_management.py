@@ -17,7 +17,7 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     get_user_owned_camera,
 )
 
-# TODO improve exception handling, add custom exceptions and return more granular HTTP codes
+# TODO: improve exception handling, add custom exceptions and return more granular HTTP codes
 # (.e.g. 404 on missing camera, 403 on unauthorized access)
 
 
@@ -33,7 +33,7 @@ async def init_camera(
     mode: CameraMode = Query(default=CameraMode.PHOTO, description="Camera mode (photo or video)"),
 ) -> CameraStatus:
     """Initialize camera for a given use mode (photo or video)."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
     response = await fetch_from_camera_url(
         camera=camera,
         endpoint="/camera/open",
@@ -54,7 +54,7 @@ async def close_camera(
     current_user: CurrentActiveUserDep,
 ) -> CameraStatus:
     """Close camera and free resources."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
     response = await fetch_from_camera_url(
         camera=camera,
         endpoint="/camera/close",

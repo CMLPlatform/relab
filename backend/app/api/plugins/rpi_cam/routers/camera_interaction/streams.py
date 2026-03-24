@@ -15,8 +15,8 @@ from sqlmodel import select
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.models import OAuthAccount
 from app.api.auth.services.oauth import google_youtube_oauth_client
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
-from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.common.crud.utils import get_model_or_404
+from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import serialize_datetime_with_z
 from app.api.data_collection.models import Product
@@ -53,7 +53,7 @@ async def get_camera_stream_status(
     current_user: CurrentActiveUserDep,
 ) -> StreamView:
     """Get current stream status."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
     response = await fetch_from_camera_url(
         camera=camera,
         endpoint="/stream/status",
@@ -73,7 +73,7 @@ async def stop_all_streams(
     current_user: CurrentActiveUserDep,
 ) -> None:
     """Stop the active stream (either youtube recording or preview stream)."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
     await fetch_from_camera_url(
         camera=camera,
         endpoint="/stream/stop",
@@ -95,6 +95,7 @@ async def stop_all_streams(
 async def start_recording(
     camera_id: UUID4,
     session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
     product_id: Annotated[PositiveInt, Body(description="ID of product to associate the video with")],
     title: Annotated[str | None, Body(description="Custom video title")] = None,
@@ -108,7 +109,7 @@ async def start_recording(
 
     # Validate video data before starting stream
     if product_id is not None:
-        await db_get_model_with_id_if_it_exists(session, Product, product_id)
+        await get_model_or_404(session, Product, product_id)
     video = VideoCreate(
         url=HttpUrl("http://placeholder.com"),  # Will be updated with actual stream URL
         title=title,
@@ -119,7 +120,7 @@ async def start_recording(
     # Get Google OAuth account
     oauth_account = await session.scalar(
         select(OAuthAccount).where(
-            OAuthAccount.user_id == current_user.id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
+            OAuthAccount.user_id == current_user.db_id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
         )
     )
     if not oauth_account:
@@ -129,7 +130,7 @@ async def start_recording(
         )
 
     # Initialize YouTube service
-    youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session)
+    youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
 
     # Create livestream
     now_str = serialize_datetime_with_z(datetime.now(UTC))
@@ -141,7 +142,7 @@ async def start_recording(
     )
 
     # Fetch user camera
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
 
     # Start Youtube stream
     response = await fetch_from_camera_url(
@@ -173,7 +174,7 @@ async def stop_recording(
     current_user: CurrentActiveUserDep,
 ) -> dict[str, AnyUrl]:
     """Stop recording and save video to database."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
 
     # Get current stream info before stopping
     stream_status_response = await fetch_from_camera_url(
@@ -210,7 +211,7 @@ async def stop_recording(
 )
 async def start_preview(camera_id: UUID4, session: AsyncSessionDep, current_user: CurrentActiveUserDep) -> StreamView:
     """Start local HLS preview stream. Stream will not be recorded."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
     response = await fetch_from_camera_url(
         camera=camera,
         endpoint="/stream/start",
@@ -227,7 +228,7 @@ async def start_preview(camera_id: UUID4, session: AsyncSessionDep, current_user
 @router.delete("/{camera_id}/stream/preview/stop", status_code=204, summary="Stop preview stream")
 async def stop_preview(camera_id: UUID4, session: AsyncSessionDep, current_user: CurrentActiveUserDep) -> None:
     """Stop recording and save video to database."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
 
     await fetch_from_camera_url(
         camera=camera,
@@ -248,7 +249,7 @@ async def hls_file_proxy(
 ) -> Response:
     """Proxy HLS files from camera to client."""
     # TODO: Use StreamResponse here and in the RPI cam API instead of FileResponse
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
 
     response = await fetch_from_camera_url(
         camera=camera,
@@ -283,7 +284,7 @@ async def watch_preview(
     Note: HTML viewer makes authenticated requests directly to camera's stream endpoint.
     """
     # Validate camera ownership
-    await get_user_owned_camera(session, camera_id, current_user.id)
+    await get_user_owned_camera(session, camera_id, current_user.db_id)
 
     return templates.TemplateResponse(
         "plugins/rpi_cam/remote_stream_viewer.html",

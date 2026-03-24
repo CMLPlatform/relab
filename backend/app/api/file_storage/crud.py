@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
 from anyio import Path as AnyIOPath
+from anyio import to_thread
 from fastapi import UploadFile
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import UUID4
@@ -15,12 +16,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.common.crud.base import get_models
 from app.api.common.crud.exceptions import ModelNotFoundError
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists, get_file_parent_type_model
+from app.api.common.crud.utils import get_file_parent_type_model, get_model_or_404
 from app.api.common.models.custom_types import MT
 from app.api.data_collection.models import Product
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
 from app.api.file_storage.filters import FileFilter, ImageFilter
-from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType, Video
+from app.api.file_storage.models.models import File, Image, MediaParentType, Video
 from app.api.file_storage.schemas import (
     FileCreate,
     FileUpdate,
@@ -32,6 +33,7 @@ from app.api.file_storage.schemas import (
     VideoUpdate,
     VideoUpdateWithinProduct,
 )
+from app.core.images import process_image_for_storage
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -90,7 +92,7 @@ async def get_files(db: AsyncSession, *, file_filter: FileFilter | None = None) 
 async def get_file(db: AsyncSession, file_id: UUID4) -> File:
     """Get a file from the database."""
     try:
-        return await db_get_model_with_id_if_it_exists(db, File, file_id)
+        return await get_model_or_404(db, File, file_id)
     except FastAPIStorageFileNotFoundError as e:
         raise ModelFileNotFoundError(File, file_id, details=e.message) from e
 
@@ -106,7 +108,7 @@ async def create_file(db: AsyncSession, file_data: FileCreate) -> File:
 
     # Verify parent exists (will raise ModelNotFoundError if not)
     parent_model = get_file_parent_type_model(file_data.parent_type)
-    await db_get_model_with_id_if_it_exists(db, parent_model, file_data.parent_id)
+    await get_model_or_404(db, parent_model, file_data.parent_id)
 
     db_file = File(
         id=file_id,
@@ -129,7 +131,7 @@ async def create_file(db: AsyncSession, file_data: FileCreate) -> File:
 async def update_file(db: AsyncSession, file_id: UUID4, file: FileUpdate) -> File:
     """Update an existing file in the database."""
     try:
-        db_file = await db_get_model_with_id_if_it_exists(db, File, file_id)
+        db_file = await get_model_or_404(db, File, file_id)
     except FastAPIStorageFileNotFoundError as e:
         raise ModelFileNotFoundError(File, file_id, details=e.message) from e
     file_data: dict[str, Any] = file.model_dump(exclude_unset=True)
@@ -146,7 +148,7 @@ async def update_file(db: AsyncSession, file_id: UUID4, file: FileUpdate) -> Fil
 async def delete_file(db: AsyncSession, file_id: UUID4) -> None:
     """Delete a file from the database and remove it from storage."""
     try:
-        db_file = await db_get_model_with_id_if_it_exists(db, File, file_id)
+        db_file = await get_model_or_404(db, File, file_id)
         file_path = Path(db_file.file.path) if db_file.file else None
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
         # File missing from storage but exists in DB - proceed with DB cleanup
@@ -173,7 +175,7 @@ async def get_images(db: AsyncSession, *, image_filter: ImageFilter | None = Non
 async def get_image(db: AsyncSession, image_id: UUID4) -> Image:
     """Get an image from the database."""
     try:
-        return await db_get_model_with_id_if_it_exists(db, Image, image_id)
+        return await get_model_or_404(db, Image, image_id)
     except FastAPIStorageFileNotFoundError as e:
         raise ModelFileNotFoundError(Image, image_id, details=e.message) from e
 
@@ -210,13 +212,27 @@ async def create_image(db: AsyncSession, image_data: ImageCreateFromForm | Image
     await db.commit()
     await db.refresh(db_image)
 
+    # Process the saved image in a thread: validate dimensions, apply EXIF orientation,
+    # and strip sensitive metadata. On failure, clean up the DB record and file.
+    # The `file` relationship may be a storage object with a `path` attribute.
+    # Guard against mocks or incomplete objects by using getattr.
+    image_path_attr = getattr(db_image.file, "path", None) if db_image.file else None
+    if image_path_attr:
+        image_path = Path(image_path_attr)
+        try:
+            await to_thread.run_sync(process_image_for_storage, image_path)
+        except (ValueError, OSError) as e:
+            logger.warning("Image processing failed for image %s, rolling back: %s", image_id, e)
+            await delete_image(db, image_id)
+            raise ValueError(str(e)) from e
+
     return db_image
 
 
 async def update_image(db: AsyncSession, image_id: UUID4, image: ImageUpdate) -> Image:
     """Update an existing image in the database."""
     try:
-        db_image: Image = await db_get_model_with_id_if_it_exists(db, Image, image_id)
+        db_image: Image = await get_model_or_404(db, Image, image_id)
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
         raise ModelFileNotFoundError(Image, image_id, details=e.message) from e
 
@@ -233,10 +249,9 @@ async def update_image(db: AsyncSession, image_id: UUID4, image: ImageUpdate) ->
 async def delete_image(db: AsyncSession, image_id: UUID4) -> None:
     """Delete an image from the database and remove it from storage."""
     try:
-        db_image = await db_get_model_with_id_if_it_exists(db, Image, image_id)
-        file_path = Path(db_image.file.path) if db_image.file else None
+        db_image = await get_model_or_404(db, Image, image_id)
+        file_path = Path(getattr(db_image.file, "path", None)) if db_image.file else None
     except FastAPIStorageFileNotFoundError, ModelFileNotFoundError:
-        # TODO: test this scenario
         # File missing from storage but exists in DB - proceed with DB cleanup
         db_image = await db.get(Image, image_id)
         file_path = None
@@ -260,7 +275,7 @@ async def create_video(
     if isinstance(video, VideoCreate):
         product_id = video.product_id
     if product_id:
-        await db_get_model_with_id_if_it_exists(db, Product, product_id)
+        await get_model_or_404(db, Product, product_id)
 
     db_video = Video(
         **video.model_dump(exclude={"product_id"}),
@@ -279,7 +294,7 @@ async def create_video(
 
 async def update_video(db: AsyncSession, video_id: int, video: VideoUpdate | VideoUpdateWithinProduct) -> Video:
     """Update an existing video in the database."""
-    db_video: Video = await db_get_model_with_id_if_it_exists(db, Video, video_id)
+    db_video: Video = await get_model_or_404(db, Video, video_id)
 
     db_video.sqlmodel_update(video.model_dump(exclude_unset=True))
     db.add(db_video)
@@ -290,7 +305,7 @@ async def update_video(db: AsyncSession, video_id: int, video: VideoUpdate | Vid
 
 async def delete_video(db: AsyncSession, video_id: int) -> None:
     """Delete a video from the database."""
-    db_video: Video = await db_get_model_with_id_if_it_exists(db, Video, video_id)
+    db_video: Video = await get_model_or_404(db, Video, video_id)
 
     await db.delete(db_video)
     await db.commit()
@@ -310,7 +325,7 @@ class ParentStorageOperations[P, S, C, F]:
         self,
         parent_model: type[MT],
         storage_model: type[File | Image],
-        parent_type: FileParentType | ImageParentType,
+        parent_type: MediaParentType,
         parent_field: str,
         create_func: Callable[[AsyncSession, Any], Any],
         delete_func: Callable[[AsyncSession, UUID4], Any],
@@ -331,7 +346,7 @@ class ParentStorageOperations[P, S, C, F]:
     ) -> Sequence[File | Image]:
         """Get all storage items for a parent, excluding items with missing files."""
         # Verify parent exists
-        await db_get_model_with_id_if_it_exists(db, self.parent_model, parent_id)
+        await get_model_or_404(db, self.parent_model, parent_id)
 
         statement = select(self.storage_model).where(
             getattr(self.storage_model, self.parent_field) == parent_id,
@@ -358,7 +373,7 @@ class ParentStorageOperations[P, S, C, F]:
     async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> File | Image:
         """Get a specific storage item for a parent, raising an error if the file is missing."""
         # Verify parent exists
-        await db_get_model_with_id_if_it_exists(db, self.parent_model, parent_id)
+        await get_model_or_404(db, self.parent_model, parent_id)
 
         storage_model_name: str = self.storage_model.get_api_model_name().name_capital
         parent_model_name: str = self.parent_model.get_api_model_name().name_capital
@@ -415,7 +430,7 @@ class ParentStorageOperations[P, S, C, F]:
     async def delete(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> None:
         """Delete a storage item from a parent."""
         # Verify parent exists
-        await db_get_model_with_id_if_it_exists(db, self.parent_model, parent_id)
+        await get_model_or_404(db, self.parent_model, parent_id)
 
         # First verify the item exists and belongs to the parent
         await self.get_by_id(db, parent_id, item_id)
