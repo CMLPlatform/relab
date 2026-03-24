@@ -1,5 +1,7 @@
 #!/bin/sh
+# spell-checker: ignore crond, crontabs
 # Entrypoint script for user uploads backup service. To be used in Alpine-based Docker container.
+
 set -e
 
 # Create backup directory

@@ -12,7 +12,6 @@ import pandas as pd
 import requests
 from sqlmodel import func, select
 
-from app.api.auth.models import User  # noqa: F401 # Need to explicitly import User for SQLModel relationships
 from app.api.background_data.models import (
     Category,
     ProductType,  # Adjust import as needed
@@ -51,7 +50,7 @@ RELEVANT_SECTIONS = {
     "32000000",  # Radio, television, communication, telecommunication and related equipment
     "33000000",  # Medical equipments, pharmaceuticals and personal care products
     "34000000",  # Transport equipment and auxiliary products to transportation
-    "35000000",  # Security, fire-fighting, police and defence equipment
+    "35000000",  # Security, fire-fighting, police and defense equipment
     "37000000",  # Musical instruments, sport goods, games, toys, handicraft, art materials and accessories
     "38000000",  # Laboratory, optical and precision equipments (excl. glasses)
     "42000000",  # Industrial machinery
@@ -159,17 +158,10 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
             source=TAXONOMY_SOURCE,
         )
 
-        if taxonomy.id is None:
-            # TODO: Refactor base models so that comitted database objects always have non-None ID to avoid this check
-            logger.error(
-                "Taxonomy '%s' version '%s' has no ID after creation, cannot seed categories.",
-                TAXONOMY_NAME,
-                TAXONOMY_VERSION,
-            )
-            return
-
         # If taxonomy already existed, skip seeding
-        existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
+        existing_count = session.exec(
+            select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.db_id)
+        ).one()
 
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
@@ -182,7 +174,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         # Seed categories
         available_codes = {row["external_id"] for row in rows}
         cat_count, rel_count = seed_categories_from_rows(
-            session, taxonomy.id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
+            session, taxonomy.db_id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
         )
 
         # Commit

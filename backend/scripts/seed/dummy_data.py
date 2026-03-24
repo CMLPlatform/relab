@@ -16,7 +16,7 @@ from anyio import Path as AnyIOPath
 from anyio import run
 from anyio.to_thread import run_sync
 from fastapi import UploadFile
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.datastructures import Headers
@@ -32,22 +32,18 @@ from app.api.background_data.models import (
     ProductType,
     Taxonomy,
 )
-from app.api.common.models.associations import MaterialProductLink
 from app.api.common.models.enums import Unit
-from app.api.data_collection.models import PhysicalProperties, Product
+from app.api.data_collection.models import MaterialProductLink, PhysicalProperties, Product
 from app.api.file_storage.crud import create_image
-from app.api.file_storage.models.models import Image, ImageParentType
+from app.api.file_storage.models.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
 from app.core.config import settings
+from app.core.database import async_engine, async_session_context, close_async_engine
 from app.core.logging import setup_logging
 
 # Configure logging
 setup_logging()
 logger = logging.getLogger(__name__)
-
-# Database setup
-DATABASE_URL = settings.async_database_url
-engine = create_async_engine(DATABASE_URL, echo=False)
 
 
 class DryRunAsyncSession(AsyncSession):
@@ -59,8 +55,6 @@ class DryRunAsyncSession(AsyncSession):
 
 
 ### Sample Data ###
-# TODO: Add organization and Camera models
-
 
 # Load data from json
 data_file = Path(__file__).parent / "dummy_data.json"
@@ -237,6 +231,23 @@ async def seed_product_types(session: AsyncSession, category_map: dict[str, Cate
     return product_type_map
 
 
+def normalize_unit(raw_unit: object, product_name: str) -> Unit:
+    """Convert seed data unit values to a valid Unit enum."""
+    if not isinstance(raw_unit, str):
+        return Unit.KILOGRAM
+
+    try:
+        # Accept enum values from seed JSON, e.g. "kg".
+        return Unit(raw_unit)
+    except ValueError:
+        try:
+            # Fallback to enum names if provided, e.g. "KILOGRAM".
+            return Unit[raw_unit.upper()]
+        except KeyError:
+            logger.warning("Unknown unit '%s' for %s, defaulting to kilogram.", raw_unit, product_name)
+            return Unit.KILOGRAM
+
+
 async def seed_products(
     session: AsyncSession,
     product_type_map: dict[str, ProductType],
@@ -291,26 +302,11 @@ async def seed_products(
         for material_data in data["bill_of_materials"]:
             material = material_map.get(material_data["material"])
             if material and material.id and product.id:
-                raw_unit = material_data.get("unit")
-                if isinstance(raw_unit, str):
-                    try:
-                        # Accept enum values from seed JSON, e.g. "kg".
-                        normalized_unit = Unit(raw_unit)
-                    except ValueError:
-                        # Fallback to enum names if provided, e.g. "KILOGRAM".
-                        try:
-                            normalized_unit = Unit[raw_unit.upper()]
-                        except KeyError:
-                            logger.warning("Unknown unit '%s' for %s, defaulting to kilogram.", raw_unit, data["name"])
-                            normalized_unit = Unit.KILOGRAM
-                else:
-                    normalized_unit = Unit.KILOGRAM
-
                 link = MaterialProductLink(
                     material_id=material.id,
                     product_id=product.id,
                     quantity=material_data["quantity"],
-                    unit=normalized_unit,
+                    unit=normalize_unit(material_data.get("unit"), data["name"]),
                 )
                 session.add(link)
 
@@ -335,7 +331,7 @@ async def seed_images(session: AsyncSession, product_id_map: dict[str, int]) -> 
 
         description: str = data.get("description", "")
 
-        parent_type = ImageParentType.PRODUCT
+        parent_type = MediaParentType.PRODUCT
         parent_id = product_id_map.get(data["parent_product_name"])
         if not parent_id:
             logger.warning("Skipping image %s: parent not found", path.name)
@@ -402,32 +398,40 @@ async def reset_db() -> None:
 
 async def async_main(*, reset: bool = False, dry_run: bool = False) -> None:
     """Seed the database with sample data."""
-    if dry_run and reset:
-        logger.warning("Dry run requested; skipping reset to avoid destructive changes.")
-        reset = False
+    try:
+        if dry_run and reset:
+            logger.warning("Dry run requested; skipping reset to avoid destructive changes.")
+            reset = False
 
-    if reset:
-        await reset_db()
+        if reset:
+            await reset_db()
 
-    session_class = DryRunAsyncSession if dry_run else AsyncSession
-    session_factory = async_sessionmaker(engine, class_=session_class, expire_on_commit=False)
-
-    async with session_factory() as session:
-        # Seed all data
-        user_map = await seed_users(session)
-        taxonomy_map = await seed_taxonomies(session)
-        category_map = await seed_categories(session, taxonomy_map)
-        material_map = await seed_materials(session, category_map)
-        product_type_map = await seed_product_types(session, category_map)
-        product_id_map = await seed_products(session, product_type_map, material_map, user_map)
-        await seed_images(session, product_id_map)
         if dry_run:
-            await session.rollback()
-            logger.info("Dry run complete; all changes rolled back.")
-        else:
-            logger.info("Database seeded with test data.")
+            dry_run_factory = async_sessionmaker(async_engine, class_=DryRunAsyncSession, expire_on_commit=False)
+            async with dry_run_factory() as session:
+                user_map = await seed_users(session)
+                taxonomy_map = await seed_taxonomies(session)
+                category_map = await seed_categories(session, taxonomy_map)
+                material_map = await seed_materials(session, category_map)
+                product_type_map = await seed_product_types(session, category_map)
+                product_id_map = await seed_products(session, product_type_map, material_map, user_map)
+                await seed_images(session, product_id_map)
+                await session.rollback()
+                logger.info("Dry run complete; all changes rolled back.")
+            return
 
-    await engine.dispose()
+        async with async_session_context() as session:
+            # Seed all data
+            user_map = await seed_users(session)
+            taxonomy_map = await seed_taxonomies(session)
+            category_map = await seed_categories(session, taxonomy_map)
+            material_map = await seed_materials(session, category_map)
+            product_type_map = await seed_product_types(session, category_map)
+            product_id_map = await seed_products(session, product_type_map, material_map, user_map)
+            await seed_images(session, product_id_map)
+            logger.info("Database seeded with test data.")
+    finally:
+        await close_async_engine()
 
 
 def main() -> None:

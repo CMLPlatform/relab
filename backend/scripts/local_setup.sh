@@ -3,10 +3,13 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BACKEND_DIR="$SCRIPT_DIR/.."
+# Resolve backend directory (one level up from `scripts`)
+BACKEND_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 echo "Running local setup script from $SCRIPT_DIR"
 echo "Backend directory: $BACKEND_DIR"
 echo "dev env file: $BACKEND_DIR/.env.dev"
+
 # Check if .env.dev file exists, if not, prompt the user and exit
 if [ ! -f "$BACKEND_DIR/.env.dev" ]; then
     echo ".env.dev not found. Please create it by copying from .env.dev.example:"
@@ -18,8 +21,8 @@ echo "Setting up local development environment..."
 
 # Load database environment variables from .env.dev file
 set -a
-# shellcheck source=../.env.dev
 echo "Loading environment variables from $BACKEND_DIR/.env.dev"
+# shellcheck source=/dev/null
 source "$BACKEND_DIR/.env.dev"
 set +a
 

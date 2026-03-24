@@ -11,7 +11,6 @@ when using it from shell scripts that only care about the exit status.
 """
 
 import argparse
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CursorResult, Engine, Inspector, MetaData, Select, Table, inspect, select
@@ -20,6 +19,7 @@ from sqlmodel import create_engine
 from app.core.config import settings
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from typing import Any
 
 EXIT_EMPTY = 0

@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from sqlmodel import func, select
 
-from app.api.auth.models import User  # noqa: F401 # Need to explicitly import User for SQLModel relationships
 from app.api.background_data.models import Category, TaxonomyDomain
 from app.core.database import sync_session_context
 from app.core.logging import setup_logging
@@ -67,7 +66,7 @@ def load_hs_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
 
             rows.append(
                 {
-                    "external_id": row["hscode"].strip(),
+                    "external_id": row["hscode"].strip(),  # spell-checker: ignore hscode
                     "name": row["description"].strip()[:250],  # Truncate to 250 chars to fit DB
                     "parent_id": row["parent"].strip(),
                 }
@@ -100,17 +99,10 @@ def seed_taxonomy() -> None:
             source=TAXONOMY_SOURCE,
         )
 
-        if taxonomy.id is None:
-            # TODO: Refactor base models so that comitted database objects always have non-None ID to avoid this check
-            logger.error(
-                "Taxonomy '%s' version '%s' has no ID after creation, cannot seed categories.",
-                TAXONOMY_NAME,
-                TAXONOMY_VERSION,
-            )
-            return
-
         # If taxonomy already existed, skip seeding
-        existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
+        existing_count = session.exec(
+            select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.db_id)
+        ).one()
 
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
@@ -120,7 +112,9 @@ def seed_taxonomy() -> None:
         rows = load_hs_rows_from_csv(CSV_PATH)
 
         # Seed categories
-        cat_count, rel_count = seed_categories_from_rows(session, taxonomy.id, rows, get_parent_id_fn=get_hs_parent_id)
+        cat_count, rel_count = seed_categories_from_rows(
+            session, taxonomy.db_id, rows, get_parent_id_fn=get_hs_parent_id
+        )
 
         # Commit
         session.commit()
