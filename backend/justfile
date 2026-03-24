@@ -2,67 +2,65 @@
 # Run `just --list` to see all available commands
 # Run from root: `just backend/<recipe>` or from backend/: `just <recipe>`
 
-# Default recipe shows help
-
+# Show available recipes
 default:
     @just --list
 
 # ============================================================================
 # Testing
 # ============================================================================
+# testing options
+pytest := "uv run pytest"
 # Run all tests
-
 test *ARGS:
     mkdir -p reports/coverage
-    uv run pytest {{ ARGS }}
+    {{ pytest }} {{ ARGS }}
+
+# Run all tests with stdout/stderr output (no capture)
+test-v *ARGS:
+    mkdir -p reports/coverage
+    {{ pytest }} -s {{ ARGS }}
 
 # Run tests with coverage report
-
 test-cov:
     mkdir -p reports/coverage
-    uv run pytest --cov --cov-report=html --cov-report=term
+    {{ pytest }} --cov --cov-report=html --cov-report=term
 
 # Run tests with XML coverage report (for CI)
 test-cov-ci:
     mkdir -p reports/coverage
-    uv run pytest --cov --cov-report=xml --cov-report=term
+    {{ pytest }} --cov --cov-report=xml --cov-report=term
 
 # Run only unit tests (fast)
-
-test-unit:
-    uv run pytest -m unit
+test-unit *ARGS:
+    {{ pytest }} -m unit {{ ARGS }}
 
 # Run only integration tests
-
-test-integration:
-    uv run pytest -m integration
+test-integration *ARGS:
+    {{ pytest }} -m integration {{ ARGS }}
 
 # Run only API tests
-
-test-api:
-    uv run pytest -m api
+test-api *ARGS:
+    {{ pytest }} -m api {{ ARGS }}
 
 # ============================================================================
 # Linting & Formatting
 # ============================================================================
 # Run backend quality checks (lint, format, type check)
-
 check:
-    uv run ruff check
+    uv run ruff check --ignore FIX002
     just shellcheck -x
     uv run ty check
     uv run alembic check
     @echo "✓ All backend checks passed"
 
 # Automatically fix code issues (lint + format)
-
 fix:
-    uv run ruff check --fix
+    uv run ruff check --fix --ignore FIX002
     uv run ruff format
     @echo "✓ Code fixed and formatted"
 
 # Lint backend shell scripts with ShellCheck
-
 shellcheck:
     git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
     @echo "✓ Shell scripts passed ShellCheck"
@@ -71,37 +69,29 @@ shellcheck:
 # Database & Migrations
 # ============================================================================
 # Apply all pending migrations
-
 migrate:
     uv run alembic upgrade head
 
 # Rollback one migration
-
 migrate-down:
     uv run alembic downgrade -1
-
 # Create new migration (use: just migrate-create "description")
-
 migrate-create MESSAGE:
     uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
 
 # Check if migrations are up to date
-
 migrate-check:
     uv run alembic check
 
 # Show migration history
-
 migrate-history:
     uv run alembic history --verbose
 
 # Show current migration version
-
 migrate-current:
     uv run alembic current
 
 # Reset database (down to base, then up to head)
-
 migrate-reset:
     uv run alembic downgrade base
     uv run alembic upgrade head
@@ -110,32 +100,25 @@ migrate-reset:
 # Database Management
 # ============================================================================
 # Create superuser account
-
 create-superuser:
     uv run python -m scripts.create_superuser
 
 # Check if database is empty
-
 db-is-empty:
     uv run python -m scripts.db_is_empty
 
 # Seed database with dummy data
-
 seed-dummy-data:
     uv run python -m scripts.seed.dummy_data
-
 # Clear Redis cache (specify namespace: background-data, docs)
-
 clear-cache NAMESPACE="background-data":
     uv run python -m scripts.clear_cache {{ NAMESPACE }}
 
 # Compile MJML email templates to HTML
-
 compile-email:
     uv run python -m scripts.compile_email_templates
 
 # Render entity relationship diagrams
-
 render-erd:
     uv run python -m scripts.render_erd
 
@@ -143,17 +126,14 @@ render-erd:
 # Development
 # ============================================================================
 # Start development server
-
 dev:
     uv run fastapi dev app/main.py --reload-dir app
 
 # Start production server
-
 serve:
     uv run fastapi run app/main.py
 
 # Open Python REPL with app context
-
 shell:
     uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models import *"
 
@@ -162,17 +142,14 @@ shell:
 # Maintenance
 # ============================================================================
 # Install/sync dependencies
-
 install:
     uv sync --all-groups
 
 # Update dependencies
-
 update:
     uv lock --upgrade
 
 # Clean caches and build artifacts
-
 clean:
     rm -rf __pycache__ .pytest_cache .ruff_cache htmlcov .coverage reports/coverage
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -187,7 +164,6 @@ ci: check test migrate-check
 # Security
 # ============================================================================
 # Scan Python dependencies for known CVEs
-
 audit:
-    uv run pip-audit --fix=no --require-hashes=no
+    uv run pip-audit
     @echo "✓ Dependency audit complete"

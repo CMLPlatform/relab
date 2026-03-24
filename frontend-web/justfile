@@ -2,16 +2,17 @@
 # Run `just --list` to see all available commands
 # Run from root: `just frontend-web/<recipe>` or from frontend-web/: `just <recipe>`
 
+# Show available recipes
 default:
     @just --list
-
-# Install dependencies
-install:
-    npm ci
 
 # ============================================================================
 # Development
 # ============================================================================
+
+# Install dependencies
+install:
+    npm ci
 
 # Start development server
 dev:
@@ -23,7 +24,7 @@ dev:
 
 # Build for production
 build:
-    npm run build
+    npm run build:prod
 
 # Build for staging (loads .env.staging via --mode staging)
 build-staging:
@@ -68,6 +69,10 @@ test-e2e:
 # Open Playwright UI for interactive e2e test development
 test-e2e-ui:
     npm run test:e2e:ui
+
+# Run all tests (unit + e2e)
+test-all:
+    npm run test:all
 
 # ============================================================================
 # Security

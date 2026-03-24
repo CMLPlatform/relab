@@ -2,6 +2,7 @@
 # Run `just --list` to see all available commands
 # Run from root: `just docs/<recipe>` or from docs/: `just <recipe>`
 
+# Show available recipes
 default:
     @just --list
 
@@ -9,9 +10,37 @@ default:
 install:
     uv sync --all-groups
 
-# Build the documentation site
+# Run all quality checks (linting + build smoke test)
+check: lint build
+    @echo "✓ All documentation checks passed"
+
+# Check code style and spelling
+lint:
+    uv run mdformat --check docs README.md
+    npx cspell lint "docs/**/*.md" "README.md" --dot --config ../.cspell.yaml
+    @echo "✓ Documentation linting passed"
+
+# Automatically fix formatting issues
+fix:
+    uv run mdformat docs README.md
+    @echo "✓ Documentation formatting fixed"
+
+
+# Start development server with live reload
+dev:
+    uv run zensical serve --open
+
+# Build the documentation site locally
 build:
-    uv run zensical build
+    uv run zensical build --clean
+
+# Run all tests (smoke test build)
+test: check
+
+# Scan Python dependencies for known CVEs
+audit:
+    uv run pip-audit
+    @echo "✓ Dependency audit complete"
 
 # Clean caches and generated site output
 clean:

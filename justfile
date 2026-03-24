@@ -1,7 +1,7 @@
 # ReLab Monorepo Task Runner
 # Run `just --list` to see all available commands
 
-# Default recipe shows help
+# Show available recipes
 default:
     @just --list
 
@@ -38,14 +38,18 @@ pre-commit-install:
 # - frontends: biome lint/format + type checks
 check:
     uv run pre-commit run --all-files
+    @just spellcheck
+    @just shellcheck
     @just backend/check
+    @just docs/check
     @just frontend-web/check
     @just frontend-app/check
     @echo "✓ All quality checks passed"
 
-# Auto-fix code issues (backend only — frontends use Biome via their own justfile)
+# Auto-fix code issues (backend and docs only — frontends use Biome via their own justfile)
 fix:
     @just backend/fix
+    @just docs/fix
     @echo "✓ Code fixed"
 
 # Run all pre-commit hooks on all files (useful before big commits)
@@ -58,10 +62,10 @@ shellcheck:
     git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
     @echo "✓ Shell scripts linted"
 
-# Update pre-commit hook versions (monthly maintenance)
-pre-commit-update:
-    uv run pre-commit autoupdate
-    @echo "✓ Pre-commit hooks updated"
+# Run spell check on all files in the repo
+spellcheck:
+    npx cspell lint --dot --gitignore .
+
 
 # ============================================================================
 # Testing
@@ -72,6 +76,7 @@ test: check
     @just backend/test-cov
     @just frontend-web/test-cov
     @just frontend-app/test-cov
+    @just docs/test
     @echo "✅ All code + tests passed"
 
 # Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down
@@ -101,7 +106,29 @@ audit:
     @just backend/audit
     @just frontend-app/audit
     @just frontend-web/audit
+    @just docs/audit
     @echo "✅ All dependency audits complete"
+
+
+# ============================================================================
+# Docker — Targeted Development (subset of services with hot reload)
+# ============================================================================
+
+# Start backend + its infrastructure (database, cache) with hot reload
+dev-backend:
+    docker compose up --watch backend
+
+# Start frontend-app + backend with hot reload
+dev-frontend-app:
+    docker compose up --watch backend frontend-app
+
+# Start frontend-web + backend with hot reload
+dev-frontend-web:
+    docker compose up --watch backend frontend-web
+
+# Start docs server with hot reload
+dev-docs:
+    docker compose up --watch docs
 
 # ============================================================================
 # Docker — Development
@@ -109,7 +136,7 @@ audit:
 
 # Start full dev stack with hot reload (syncs source changes, auto-rebuilds on lockfile changes)
 dev:
-    docker compose watch
+    docker compose up --watch
 
 # Start full dev stack without hot reload (uses source snapshot baked into image)
 dev-up:
