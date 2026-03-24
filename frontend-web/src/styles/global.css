@@ -1,34 +1,36 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
+/* Light theme — Material Design 3 tokens (matches frontend-app/src/assets/themes/light.ts) */
 :root {
-  --color-primary: #5b57d4;
-  --color-primary-strong: #322ea7;
-  --color-primary-light: #d1cff7;
-  --color-accent: #c2822b;
-  --color-surface: #ffffff;
-  --color-surface-soft: #f7faf9;
-  --color-on-surface: #15201d;
-  --color-muted: #4f5f5c;
-  --color-border: #dce8e4;
-  --color-ring: rgba(14, 90, 79, 0.25);
-  --shadow-soft: 0 10px 30px rgba(12, 46, 41, 0.08);
+  --color-primary: #006783;
+  --color-primary-strong: #004d63;
+  --color-primary-light: #bce9ff;
+  --color-accent: #5c5b7d;
+  --color-surface: #fbfcfe;
+  --color-surface-soft: #eef5f8;
+  --color-on-surface: #191c1e;
+  --color-muted: #40484c;
+  --color-border: #dce4e9;
+  --color-ring: rgba(0, 103, 131, 0.25);
+  --shadow-soft: 0 10px 30px rgba(25, 28, 30, 0.08);
   --radius-md: 14px;
   --radius-lg: 22px;
 }
 
+/* Dark theme — Material Design 3 tokens (matches frontend-app/src/assets/themes/dark.ts) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-primary: #7ad2c2;
-    --color-primary-strong: #58b5a4;
-    --color-primary-light: #112623;
-    --color-accent: #f0bb74;
-    --color-surface: #101917;
-    --color-surface-soft: #15211e;
-    --color-on-surface: #e6f0ed;
-    --color-muted: #a4b9b4;
-    --color-border: #2a3b37;
-    --color-ring: rgba(122, 210, 194, 0.28);
+    --color-primary: #63d3ff;
+    --color-primary-strong: #3db5e5;
+    --color-primary-light: #004d63;
+    --color-accent: #c5c2ea;
+    --color-surface: #191c1e;
+    --color-surface-soft: #1d2529;
+    --color-on-surface: #e1e2e4;
+    --color-muted: #c0c8cd;
+    --color-border: #40484c;
+    --color-ring: rgba(99, 211, 255, 0.28);
     --shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.35);
   }
 }
@@ -40,22 +42,22 @@
 body {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at 12% 18%, rgba(14, 90, 79, 0.12), transparent 40%),
-    radial-gradient(circle at 88% 8%, rgba(194, 130, 43, 0.14), transparent 45%),
-    linear-gradient(180deg, var(--color-surface-soft), #eef4f2 42%, #f8f9f8 100%);
+    linear-gradient(180deg, rgba(251, 252, 254, 0.6) 0%, rgba(251, 252, 254, 0.68) 100%),
+    url("/bg-light.jpg") center / cover no-repeat;
   color: var(--color-on-surface);
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
     background:
-      radial-gradient(circle at 12% 16%, rgba(122, 210, 194, 0.08), transparent 45%),
-      radial-gradient(circle at 88% 8%, rgba(240, 187, 116, 0.09), transparent 42%),
-      linear-gradient(180deg, #0c1412 0%, #101917 40%, #0d1412 100%);
+      linear-gradient(180deg, rgba(25, 28, 30, 0.72) 0%, rgba(25, 28, 30, 0.8) 100%),
+      url("/bg-dark.jpg") center / cover no-repeat;
   }
 }
 
@@ -76,11 +78,23 @@ a:hover {
   color: var(--color-primary-strong);
 }
 
+/* Restore underlines for links within body text so they're distinguishable without colour alone */
+p a,
+li a {
+  text-decoration: underline;
+}
+
 :focus-visible {
   outline: 3px solid var(--color-ring);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: rgba(14, 90, 79, 0.2);
+  background: rgba(0, 103, 131, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::selection {
+    background: rgba(99, 211, 255, 0.25);
+  }
 }

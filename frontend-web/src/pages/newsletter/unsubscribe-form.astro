@@ -1,7 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
-import '../../styles/global.css';
 
 const apiUrl = import.meta.env.PUBLIC_API_URL;
 const newsletterRequestUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/request-unsubscribe');

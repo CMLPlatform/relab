@@ -1,7 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
-import '../styles/global.css';
 
 const apiUrl = import.meta.env.PUBLIC_API_URL;
 const appUrl = import.meta.env.PUBLIC_APP_URL;
@@ -145,8 +144,8 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     overflow: hidden;
     padding: 1.8rem;
     background:
-      radial-gradient(circle at 6% 8%, rgba(14, 90, 79, 0.14), transparent 42%),
-      radial-gradient(circle at 90% 12%, rgba(194, 130, 43, 0.14), transparent 46%), var(--color-surface);
+      radial-gradient(circle at 6% 8%, rgba(0, 103, 131, 0.14), transparent 42%),
+      radial-gradient(circle at 90% 12%, rgba(92, 91, 125, 0.12), transparent 46%), var(--color-surface);
   }
 
   .hero::after {
@@ -156,7 +155,7 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     width: min(420px, 65vw);
     aspect-ratio: 1 / 1;
     border-radius: 999px;
-    background: radial-gradient(circle, rgba(14, 90, 79, 0.12) 0%, transparent 68%);
+    background: radial-gradient(circle, rgba(0, 103, 131, 0.1) 0%, transparent 68%);
     pointer-events: none;
   }
 
@@ -215,7 +214,7 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     background: var(--color-primary);
     color: #fff;
     white-space: nowrap;
-    box-shadow: 0 8px 22px rgba(14, 90, 79, 0.25);
+    box-shadow: 0 8px 22px rgba(0, 103, 131, 0.25);
   }
 
   .btn-primary:hover {
@@ -247,6 +246,10 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     background: var(--color-surface);
     color: var(--color-on-surface);
     min-width: 0;
+  }
+
+  input[type='email']::placeholder {
+    color: var(--color-muted);
   }
 
   input[type='email']:focus {
