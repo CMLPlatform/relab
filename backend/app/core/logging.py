@@ -70,7 +70,7 @@ def patch_log_record(record: loguru.Record) -> None:
         record["line"] = original_info.original_line
 
 
-def configure_loguru_handlers(log_dir: Path, base_log_level: str) -> None:
+def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None:
     """Setup loguru sinks."""
     is_enqueued = settings.environment in (Environment.PROD, Environment.STAGING)
 
@@ -84,6 +84,9 @@ def configure_loguru_handlers(log_dir: Path, base_log_level: str) -> None:
         diagnose=True,
         enqueue=is_enqueued,
     )
+
+    if log_dir is None:
+        return
 
     # Debug file sync - keep 3 days
     loguru.logger.add(
@@ -126,11 +129,16 @@ def configure_loguru_handlers(log_dir: Path, base_log_level: str) -> None:
 
 
 def setup_logging(
-    log_dir: Path = LOG_DIR,
+    log_dir: Path | None = LOG_DIR,
     base_log_level: str = BASE_LOG_LEVEL,
+    *,
+    stdout_only: bool = settings.environment not in (Environment.PROD, Environment.STAGING),
 ) -> None:
     """Setup loguru logging configuration and intercept standard logging."""
-    log_dir.mkdir(exist_ok=True)
+    if not stdout_only and log_dir is not None:
+        log_dir.mkdir(exist_ok=True)
+    else:
+        log_dir = None
 
     # Remove standard loguru stdout handler to avoid duplicates
     loguru.logger.remove()
@@ -150,6 +158,8 @@ def setup_logging(
 
     noisy_loggers = [
         watchfiles_logger,
+        "faker",
+        "faker.factory",
         "uvicorn",
         "uvicorn.error",
         "uvicorn.access",
@@ -169,8 +179,8 @@ def setup_logging(
         logging_logger.handlers = []  # Clear existing handlers
         logging_logger.propagate = True  # Propagate to InterceptHandler at the root
 
-        # Set watchfiles to warning to further reduce noise
-        if logger_name == watchfiles_logger:
+        # Keep known-noisy library loggers from spamming test and app output.
+        if logger_name in {watchfiles_logger, "faker", "faker.factory"}:
             logging_logger.setLevel(logging.WARNING)
 
 

@@ -1,20 +1,34 @@
 """FastAPI-Filter classes for filtering database queries."""
 
+from __future__ import annotations
+
 from datetime import datetime  # noqa: TC003 # Runtime import is required for FastAPI-Filter field definitions
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from sqlalchemy import desc, func, literal_column, or_
-from sqlmodel import col, select
+from sqlalchemy import ColumnElement, desc, func, literal_column, or_
+from sqlmodel import select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
 from app.api.data_collection.models import MaterialProductLink, PhysicalProperties, Product
 
 if TYPE_CHECKING:
-    from typing import Any
+    from collections.abc import Callable
 
-    from sqlalchemy import ColumnElement, Select
+    from sqlalchemy import Select
+
+
+class SearchableColumn(Protocol):
+    """Minimal column interface needed for trigram search clauses."""
+
+    def op(self, opstring: str) -> Callable[[object], ColumnElement[bool]]:
+        """Build a custom SQL operator expression."""
+        ...
+
+    def is_not(self, other: object) -> ColumnElement[bool]:
+        """Build an IS NOT comparison expression."""
+        ...
 
 
 ### Association Model Filters ###
@@ -54,31 +68,33 @@ class PhysicalPropertiesFilter(Filter):
 
 
 ### TS Vector Search Filter for Product ###
-
-
 def build_product_search_clause(
     search: str,
-    brand_field,  # noqa: ANN001 — accepts InstrumentedAttribute or ColumnClause; no public SQLAlchemy union type covers both
-    search_vector_col,  # noqa: ANN001
-    name_field=None,  # noqa: ANN001
+    brand_field: SearchableColumn,
+    search_vector_col: ColumnElement[Any],
+    name_field: SearchableColumn | None = None,
 ) -> ColumnElement[bool]:
     """Reusable WHERE clause for searching products (tsvector + trigram on brand, optionally name)."""
     ts_query = func.websearch_to_tsquery("english", search)
-    conditions = [search_vector_col.op("@@")(ts_query), col(brand_field).op("%")(search)]
+    conditions = [search_vector_col.op("@@")(ts_query), brand_field.op("%")(search)]
     if name_field is not None:
-        conditions.append(col(name_field).op("%")(search))
+        conditions.append(name_field.op("%")(search))
     return or_(*conditions)
 
 
 def build_brand_search_clause(search: str) -> ColumnElement[bool]:
     """Reusable WHERE clause for searching brands (tsvector + trigram)."""
-    return build_product_search_clause(search, Product.brand, literal_column("product.search_vector"))
+    return build_product_search_clause(
+        search,
+        cast("SearchableColumn", Product.brand),
+        literal_column("product.search_vector"),
+    )
 
 
 def get_brand_search_statement(search: str | None = None, order: str = "asc") -> Select:
     """Return a SQLModel select statement for normalized, distinct brands with optional search and order."""
     brand_expr = func.trim(func.lower(Product.brand)).label("brand_norm")
-    statement = select(brand_expr).where(col(Product.brand).is_not(None))
+    statement = select(brand_expr).where(cast("SearchableColumn", Product.brand).is_not(None))
     if search:
         statement = statement.where(build_brand_search_clause(search.strip()))
     return statement.distinct().order_by(desc(brand_expr) if order == "desc" else brand_expr)  # noqa: PLR2004
@@ -124,7 +140,10 @@ class ProductFilter(Filter):
 
         if self.search:
             clause = build_product_search_clause(
-                self.search, Product.brand, literal_column("product.search_vector"), name_field=Product.name
+                self.search,
+                cast("SearchableColumn", Product.brand),
+                literal_column("product.search_vector"),
+                name_field=cast("SearchableColumn", Product.name),
             )
             query = query.where(clause).order_by(
                 func.ts_rank(

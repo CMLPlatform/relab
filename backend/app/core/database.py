@@ -21,13 +21,18 @@ load_sqlmodel_models()
 
 ### Async database connection
 async_engine: AsyncEngine = create_async_engine(settings.async_database_url, future=True, echo=settings.debug)
+async_sessionmaker_factory = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession]:
     """Get a new asynchronous database session. Can be used in FastAPI dependencies."""
-    async_session = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
-    async with async_session() as session:
+    async with async_sessionmaker_factory() as session:
         yield session
+
+
+async def close_async_engine() -> None:
+    """Dispose the shared async engine and close pooled DB connections."""
+    await async_engine.dispose()
 
 
 # Async session context manager for 'async with' statements

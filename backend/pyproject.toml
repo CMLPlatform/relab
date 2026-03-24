@@ -34,9 +34,11 @@
     "fastapi-users-db-sqlmodel",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
     "fastapi[standard] >=0.115.14",
+    "httpx[http2]>=0.28.1",
     "loguru>=0.7.3",
     "markdown>=3.8.2",
     "mjml>=0.11.1",
+    "piexif>=1.1.3",
     "pillow >=11.2.1",
     "psycopg[binary] >=3.2.9",
     "pydantic >=2.12",
@@ -62,16 +64,7 @@
 [dependency-groups]
   dev = ["paracelsus>=0.9.0", "pip-audit>=2.8", "ruff >=0.12.1", "ty>=0.0.15"]
 
-  api = [
-    "coloredlogs>=15.0.1",
-    # NOTE: This is a heavy dependency (~90MB) due to it storing all of Google's API specifications.
-    # We should consider using a more lightweight alternative if it becomes available.
-    # Alternatively, we could write the required API calls manually using `google-auth` and `google-auth-httplib2` directly.
-    "google-api-python-client>=2.174.0",
-    "google-auth>=2.40.3",
-    "itsdangerous>=2.2.0",
-    "markupsafe >=3.0.2",
-  ]
+  api = ["httpx[http2]>=0.28.1", "itsdangerous>=2.2.0"]
 
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "openpyxl>=3.1.5", "pandas>=2.3.3"]
 
@@ -81,25 +74,19 @@
     "pytest-cov>=6.2.1",
     "pytest-xdist>=3.5.0",   # Parallel test execution
     "pytest>=8.4.1",
-
     # HTTP and async testing
-    "httpx>=0.27.0", # Modern async HTTP client
-
+    "httpx[http2]>=0.27.0", # Modern async HTTP client
     # Test data generation
     "faker>=33.3.0",       # Realistic test data
     "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
-
     # Database testing
     "pytest-alembic>=0.12.1",          # Migration testing - verify schema changes
     "testcontainers[postgres]>=4.8.2", # Ephemeral PostgreSQL for integration tests
-
     # Redis testing
     "fakeredis[lua]>=2.25.0", # In-memory Redis for testing
-
     # Mocking and assertions
     "dirty-equals>=0.8.0", # Flexible assertions for dynamic data
     "pytest-mock>=3.14.0", # Better mocking with cleaner pytest integration
-    "syrupy>=4.6.0",       # Snapshot testing for API responses
   ]
 
 ### Tool configuration
@@ -133,9 +120,12 @@
   ]
 
 [tool.pytest.ini_options]
-  addopts = "-ra -q --strict-markers --strict-config"
+  addopts = "-ra --strict-markers --strict-config"
   asyncio_default_fixture_loop_scope = "function"
   asyncio_mode = "auto"
+  log_cli = false
+  log_cli_format = "%(message)s"
+  log_cli_level = "INFO"
   markers = [
     "api: API endpoint tests (E2E, full stack)",
     "auth: Authentication/authorization tests",
@@ -193,6 +183,10 @@
       # Overly strict rules
       "D105", # undocumented-magic-method (magic methods are often self-explanatory)
       "D107", # undocumented-public-init (__init__ methods are often self-explanatory)
+
+      # TODO: Re-enable these linting rules when we have more than one developer.
+      "TD002", # Allow todos without authors
+      "TD003", # Allow todos without issue links
     ]
 
     [tool.ruff.lint.flake8-bugbear]
@@ -209,15 +203,17 @@
       ]
 
     [tool.ruff.lint.per-file-ignores]
-      "**/alembic/versions/*.py" = [
+      "**/alembic/**/*.py" = [
         "D103",   # Up and downgrade functions are self-explanatory
         "D415",   # Alembic auto-generates script docs without punctuation
         "F401",   # Ignore unused imports, which are often required for schema changes but not directly referenced in the code
         "INP001", # The alembic scripts are not meant to be a package
         "TC003",  # Allow runtime evaluation of base classes
       ]
-      # Ignore security issues over use of `assert` in test files
-      "test*.py" = ["S101"]
+      "test*.py" = [
+        "PLR2004", # Allow magic values in test files
+        "S101",    # Ignore security issues over use of `assert` in test files
+      ]
 
     [tool.ruff.lint.isort]
       # Explicitly add known first-party and third-party modules to allow invocation from the project root
@@ -239,3 +235,4 @@
   [tool.uv.sources]
     fastapi-cache2-fork       = { git = "https://github.com/simonvanlierde/fastapi-cache" }             # Allow runtime type checks for FastAPI and Pydantic models
     fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel" } # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
+    slowapi                   = { git = "https://github.com/simonvanlierde/slowapi" }                   # Fork of slowapi with fixed deprecation warnings

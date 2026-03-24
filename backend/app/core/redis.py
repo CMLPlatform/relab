@@ -142,3 +142,15 @@ def get_redis(request: Request) -> Redis:
 
 # Type annotation for Redis dependency injection
 RedisDep = Annotated[Redis, Depends(get_redis)]
+
+
+def get_redis_optional(request: Request) -> Redis | None:
+    """FastAPI dependency that returns Redis client or None without raising.
+
+    Use this where Redis is optional (e.g. in development where Redis may be unavailable).
+    """
+    return request.app.state.redis if hasattr(request.app.state, "redis") else None
+
+
+# Optional Redis dependency annotation
+OptionalRedisDep = Annotated[Redis | None, Depends(get_redis_optional)]
