@@ -1,57 +1,31 @@
 """Database models for data collection on products."""
 
-import logging
-from datetime import UTC, datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Optional, Self
+from typing import (  # Needed for runtime ORM mapping, not just for type annotations
+    TYPE_CHECKING,
+    Optional,
+    Self,
+)
 
 from pydantic import UUID4, ConfigDict, computed_field, model_validator
-from sqlalchemy import TIMESTAMP
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import Column, Field, Relationship
+from sqlalchemy.orm import MappedSQLExpression, column_property
+from sqlmodel import Field, Relationship, select
 
-from app.api.common.models.associations import MaterialProductLink
-from app.api.common.models.base import CustomBase, TimeStampMixinBare
-
-if TYPE_CHECKING:
-    from app.api.auth.models import User
-    from app.api.background_data.models import ProductType
-    from app.api.file_storage.models.models import File, Image, Video
-
-
-# Initialize logger
-logger = logging.getLogger(__name__)
-
-
-### Validation Utilities ###
-def validate_start_and_end_time(start_time: datetime, end_time: datetime | None) -> None:
-    """Validate that end time is after start time if both are set."""
-    if start_time and end_time and end_time < start_time:
-        err_msg: str = f"End time {end_time:%Y-%m-%d %H:%M} must be after start time {start_time:%Y-%m-%d %H:%M}"
-        raise ValueError(err_msg)
+from app.api.auth.models import User
+from app.api.background_data.models import Material, ProductType
+from app.api.common.models.associations import MaterialProductLinkBase
+from app.api.common.models.base import IntPrimaryKeyMixin, TimeStampMixinBare
+from app.api.data_collection.base import (
+    CircularityPropertiesBase,
+    PhysicalPropertiesBase,
+    ProductBase,
+)
+from app.api.file_storage.models.models import File, Image, MediaParentType, Video
 
 
 ### Properties Models ###
-class PhysicalPropertiesBase(CustomBase):
-    """Base model to store physical properties of a product."""
-
-    weight_g: float | None = Field(default=None, gt=0)
-    height_cm: float | None = Field(default=None, gt=0)
-    width_cm: float | None = Field(default=None, gt=0)
-    depth_cm: float | None = Field(default=None, gt=0)
-
-    # Computed properties
-    @computed_field
-    @cached_property
-    def volume_cm3(self) -> float | None:
-        """Calculate the volume of the product."""
-        if self.height_cm is None or self.width_cm is None or self.depth_cm is None:
-            logger.warning("All dimensions must be set to calculate the volume.")
-            return None
-        return self.height_cm * self.width_cm * self.depth_cm
-
-
-class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True):
+class PhysicalProperties(PhysicalPropertiesBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Model to store physical properties of a product."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -61,26 +35,7 @@ class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True)
     product: Product = Relationship(back_populates="physical_properties")
 
 
-class CircularityPropertiesBase(CustomBase):
-    """Base model to store circularity properties of a product."""
-
-    # Recyclability
-    recyclability_observation: str | None = Field(default=None, max_length=500)
-    recyclability_comment: str | None = Field(default=None, max_length=100)
-    recyclability_reference: str | None = Field(default=None, max_length=100)
-
-    # Repairability
-    repairability_observation: str | None = Field(default=None, max_length=500)
-    repairability_comment: str | None = Field(default=None, max_length=100)
-    repairability_reference: str | None = Field(default=None, max_length=100)
-
-    # Remanufacturability
-    remanufacturability_observation: str | None = Field(default=None, max_length=500)
-    remanufacturability_comment: str | None = Field(default=None, max_length=100)
-    remanufacturability_reference: str | None = Field(default=None, max_length=100)
-
-
-class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table=True):
+class CircularityProperties(CircularityPropertiesBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Model to store circularity properties of a product."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -91,36 +46,16 @@ class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table
 
 
 ### Product Model ###
-class ProductBase(CustomBase):
-    """Basic model to store product information."""
-
-    name: str = Field(index=True, min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    brand: str | None = Field(default=None, max_length=100)
-    model: str | None = Field(default=None, max_length=100)
-
-    # Dismantling information
-    dismantling_notes: str | None = Field(
-        default=None, max_length=500, description="Notes on the dismantling process of the product."
-    )
-
-    dismantling_time_start: datetime = Field(
-        sa_column=Column(TIMESTAMP(timezone=True), nullable=False), default_factory=lambda: datetime.now(UTC)
-    )
-    dismantling_time_end: datetime | None = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-
-    # Time validation
-    @model_validator(mode="after")
-    def validate_times(self) -> Self:
-        """Ensure end time is after start time if both are set."""
-        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
-        return self
 
 
-class Product(ProductBase, TimeStampMixinBare, table=True):
+class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for product information."""
 
     id: int | None = Field(default=None, primary_key=True)
+
+    if TYPE_CHECKING:
+        # Populated at runtime via `column_property` below.
+        first_image_id: MappedSQLExpression[UUID4 | None]
 
     # Self-referential relationship for hierarchy
     parent_id: int | None = Field(default=None, foreign_key="product.id")
@@ -149,16 +84,13 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     )
 
     # Many-to-one relationships
-    files: list[File] | None = Relationship(back_populates="product", cascade_delete=True)
-    images: list[Image] | None = Relationship(
-        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"lazy": "subquery"}
-    )
-    videos: list[Video] | None = Relationship(back_populates="product", cascade_delete=True)
+    files: list[File] | None = Relationship(cascade_delete=True)
+    images: list[Image] | None = Relationship(cascade_delete=True, sa_relationship_kwargs={"lazy": "subquery"})
+    videos: list[Video] | None = Relationship(cascade_delete=True)
 
     # One-to-many relationships
     owner_id: UUID4 = Field(foreign_key="user.id")
     owner: User = Relationship(
-        back_populates="products",
         sa_relationship_kwargs={
             "uselist": False,
             "lazy": "selectin",
@@ -168,14 +100,20 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
     )
 
     product_type_id: int | None = Field(default=None, foreign_key="producttype.id")
-    product_type: ProductType = Relationship(back_populates="products", sa_relationship_kwargs={"uselist": False})
+    product_type: ProductType = Relationship(sa_relationship_kwargs={"uselist": False})
 
     # Many-to-many relationships
-    bill_of_materials: list[MaterialProductLink] | None = Relationship(
+    bill_of_materials: list["MaterialProductLink"] | None = Relationship(  # noqa: UP037 # forward ref — class defined below
         back_populates="product", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
     )
 
-    # Helper methods
+    @property
+    def thumbnail_url(self) -> str | None:
+        """Return thumbnail URL from the first image."""
+        if first_image_id := self.first_image_id:
+            return f"/images/{first_image_id}/resized?width=200"
+        return None
+
     @computed_field
     @cached_property
     def is_leaf_node(self) -> bool:
@@ -189,7 +127,6 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
         return self.parent_id is None
 
     # TODO: move this validation to the CRUD and schema layers
-
     def has_cycles(self) -> bool:
         """Check if the product hierarchy contains cycles."""
         visited = set()
@@ -302,5 +239,44 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
 
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
+    @property
+    def owner_username(self) -> str | None:
+        """Return the owner's username. Always available since owner is selectin-loaded."""
+        return self.owner.username if self.owner else None
+
     def __str__(self):
         return f"{self.name} (id: {self.id})"
+
+
+Product.first_image_id = column_property(
+    select(Image.id)
+    .where(Image.parent_type == MediaParentType.PRODUCT)
+    .where(Image.product_id == Product.id)
+    .correlate_except(Image)
+    .order_by(Image.created_at.asc())  # type: ignore[unresolved-attr] # created_at is guaranteed for stored Images.
+    .limit(1)
+    .scalar_subquery()
+)
+
+
+### MaterialProductLink — lives here so Product and Material are both in scope ###
+class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, table=True):
+    """Association table to link Material with Product."""
+
+    material_id: int = Field(
+        foreign_key="material.id", primary_key=True, description="ID of the material in the product"
+    )
+    product_id: int = Field(
+        foreign_key="product.id", primary_key=True, description="ID of the product with the material"
+    )
+
+    material: Material = Relationship(sa_relationship_kwargs={"lazy": "selectin"})
+    product: Product = Relationship(back_populates="bill_of_materials", sa_relationship_kwargs={"lazy": "selectin"})
+
+    @property
+    def db_id(self) -> int:
+        """Alias for material_id to satisfy HasDBID protocol."""
+        return self.material_id
+
+    def __str__(self) -> str:
+        return f"{self.quantity} {self.unit} of {self.material.name} in {self.product.name}"
