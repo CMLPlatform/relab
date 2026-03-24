@@ -12,7 +12,7 @@ test.describe('Newsletter unsubscribe form', () => {
 
   test('shows validation error for invalid email', async ({ page }) => {
     await page.goto('/newsletter/unsubscribe-form');
-    await page.getByLabel('Email address').fill('notanemail');
+    await page.getByLabel('Email address').fill('not_an_email');
     await page.getByRole('button', { name: 'Unsubscribe' }).click();
     await expect(page.locator('#message')).toContainText('Please enter a valid email address.');
   });
