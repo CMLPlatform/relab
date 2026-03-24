@@ -61,6 +61,23 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spellchecker: i
     verification_token_secret: SecretType = SECRET.get_secret_value()
     verification_token_lifetime_seconds = VERIFICATION_TOKEN_TTL
 
+    async def authenticate(self, credentials: OAuth2PasswordRequestForm) -> User | None:
+        """Support login with either email or username."""
+        is_email = False
+        try:
+            TypeAdapter(EmailStr).validate_python(credentials.username)
+            is_email = True
+        except ValidationError:
+            pass
+
+        if not is_email:
+            statement = select(User).where(User.username == credentials.username)
+            result = await self.user_db.session.exec(statement)
+            db_user = result.unique().one_or_none()
+            if db_user:
+                credentials.username = db_user.email
+        return await super().authenticate(credentials)
+
     async def validate_password(
         self,
         password: str | SecretStr,
