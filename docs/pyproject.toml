@@ -16,3 +16,6 @@
     Homepage   = "https://github.com/CMLPlatform/relab"
     Issues     = "https://github.com/CMLPlatform/relab/issues"
     Repository = "https://github.com/CMLPlatform/relab.git"
+
+[dependency-groups]
+  dev = ["mdformat-gfm>=1.0.0", "mdformat>=1.0.0", "pip-audit>=2.10.0"]
