@@ -20,6 +20,8 @@ from app.api.common.routers.file_mounts import mount_static_directories, registe
 from app.api.common.routers.health import router as health_router
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
+from app.api.file_storage.manager import FileCleanupManager
+from app.api.file_storage.models.custom_types import ensure_storage_directories
 from app.core.cache import init_fastapi_cache
 from app.core.config import settings
 from app.core.logging import cleanup_logging, setup_logging
