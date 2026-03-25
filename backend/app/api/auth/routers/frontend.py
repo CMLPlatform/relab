@@ -1,6 +1,7 @@
 """Frontend routers for the landing page, and user login, registration, and verification."""
 
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -14,6 +15,19 @@ templates = Jinja2Templates(directory=core_settings.templates_path)
 
 # Initialize the landing page router
 router = APIRouter(include_in_schema=False)
+
+
+def _safe_login_redirect_target(next_page: str | None) -> str:
+    """Allow only same-site relative redirects from the login page."""
+    if not next_page:
+        return str(router.url_path_for("index"))
+
+    normalized = next_page.replace("\\", "")
+    parsed = urlsplit(normalized)
+    if parsed.scheme or parsed.netloc or not normalized.startswith("/") or normalized.startswith("//"):
+        return str(router.url_path_for("index"))
+
+    return normalized
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -44,6 +58,6 @@ async def login_page(
 ) -> Response:
     """Render the login page."""
     if user:
-        return RedirectResponse(url=(next_page or router.url_path_for("index")), status_code=302)
+        return RedirectResponse(url=_safe_login_redirect_target(next_page), status_code=302)
 
     return templates.TemplateResponse("login.html", {"request": request, "next": next_page})
