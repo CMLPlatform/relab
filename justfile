@@ -128,11 +128,17 @@ test-e2e-full-stack:
 
 # Run dependency vulnerability audit across all subrepos
 audit:
+    @just audit-root
     @just backend/audit
     @just docs/audit
     @just frontend-app/audit
     @just frontend-web/audit
     @echo "✅ All dependency audits complete"
+
+# Run dependency vulnerability audit for root Python tooling
+audit-root:
+    uv audit --preview-features audit --frozen --no-dev
+    @echo "✓ Root dependency audit complete"
 
 
 # ============================================================================

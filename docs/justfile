@@ -9,6 +9,7 @@ default:
 # Install dependencies
 install:
     uv sync --all-groups
+    @echo "✓ Docs dependencies installed"
 
 # Update dependencies
 update:
@@ -40,6 +41,7 @@ dev:
 # Build the documentation site locally
 build:
     uv run zensical build --clean
+    @echo "✓ Docs built successfully"
 
 # Run all tests (smoke test build)
 test:
@@ -55,12 +57,12 @@ ci: check test-ci
 
 # Scan Python dependencies for known CVEs
 audit:
-    uv run pip-audit
-    @echo "✓ Dependency audit complete"
+    uv audit --preview-features audit --frozen --no-dev
+    @echo "✓ Docs: dependency audit complete"
 
 # Clean caches and generated site output
 clean:
     rm -rf .cache .ruff_cache __pycache__ site
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete 2>/dev/null || true
-    @echo "✓ Cleaned caches and build artifacts"
+    @echo "✓ Docs: Cleaned caches and build artifacts"

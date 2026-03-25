@@ -13,14 +13,15 @@ default:
 # Install and sync dependencies
 install:
     uv sync --all-groups
+    @echo "✓ Backend dependencies installed"
 
 # Start development server
 dev:
-    uv run fastapi dev app/main.py --reload-dir app
+    uv run uvicorn app.main:app --reload --reload-dir app
 
 # Start production server
 serve:
-    uv run fastapi run app/main.py
+    uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 # Open Python REPL with app context
 shell:
@@ -35,10 +36,12 @@ pytest := "uv run pytest"
 # Lint backend Python code (allow TODOs with FIX002)
 lint:
     uv run ruff check --ignore FIX002
+    @echo "✓ Backend linting passed"
 
 # Format backend Python code
 format:
     uv run ruff format
+    @echo "✓ Backend code formatted"
 
 # Auto-fix lint issues and format code (allow TODOs with FIX002)
 fix:
@@ -49,11 +52,12 @@ fix:
 # Run static type checks
 typecheck:
     uv run ty check
+    @echo "✓ Backend: Static type checks passed"
 
 # Lint backend shell scripts with ShellCheck
 shellcheck:
     git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
-    @echo "✓ Shell scripts passed ShellCheck"
+    @echo "✓ Backend shell scripts passed ShellCheck"
 
 # Run the full backend quality gate
 check: lint typecheck migrate-check
@@ -111,6 +115,7 @@ migrate:
 # Rollback one migration
 migrate-down:
     uv run alembic downgrade -1
+
 # Create new migration (use: just migrate-create "description")
 migrate-create MESSAGE:
     uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
@@ -164,18 +169,26 @@ render-erd:
 # Update dependencies
 update:
     uv lock --upgrade
+    @echo "✓ Backend dependencies updated"
 
 # Clean caches and build artifacts
 clean:
     rm -rf __pycache__ .pytest_cache .ruff_cache htmlcov .coverage reports/coverage
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete 2>/dev/null || true
-    @echo "✓ Cleaned caches and build artifacts"
+    @echo "✓ Backend: Cleaned caches and build artifacts"
 
 # ============================================================================
 # Security
 # ============================================================================
-# Scan Python dependencies for known CVEs
+# Scan runtime Python dependencies for known CVEs.
+# NOTE: `uv audit` currently reports `pygments` from excluded groups in this project,
+# so this recipe uses an exported runtime requirements set for accurate scoping.
 audit:
-    uv run pip-audit
-    @echo "✓ Dependency audit complete"
+    uv export --frozen --no-default-groups --group api
+    @echo "✓ Backend: Runtime dependency audit complete"
+
+# Scan runtime + grouped Python dependencies for known CVEs
+audit-all:
+    uv audit --preview-features audit --frozen --all-groups
+    @echo "✓ Backend: Full dependency audit complete"

@@ -1875,6 +1875,7 @@ api = [
     { name = "itsdangerous" },
 ]
 dev = [
+    { name = "mjml" },
     { name = "paracelsus" },
     { name = "pip-audit" },
     { name = "ruff" },
@@ -1938,6 +1939,7 @@ api = [
     { name = "itsdangerous", specifier = ">=2.2.0" },
 ]
 dev = [
+    { name = "mjml", specifier = ">=0.11.1" },
     { name = "paracelsus", specifier = ">=0.9.0" },
     { name = "pip-audit", specifier = ">=2.8" },
     { name = "ruff", specifier = ">=0.12.1" },
