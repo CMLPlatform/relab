@@ -1,3 +1,6 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# spell-checker: ignore dorny
+
 name: CI
 
 on:
@@ -17,17 +20,120 @@ concurrency:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 env:
   PYTHON_VERSION: "3.14"
   NODE_VERSION: "22"
 
 jobs:
-  policy:
-    name: Repository Policy
+  changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run-policy: ${{ steps.decide.outputs.run-policy }}
+      run-backend: ${{ steps.decide.outputs.run-backend }}
+      run-frontend-web: ${{ steps.decide.outputs.run-frontend-web }}
+      run-frontend-app: ${{ steps.decide.outputs.run-frontend-app }}
+      run-docs: ${{ steps.decide.outputs.run-docs }}
+      run-e2e: ${{ steps.decide.outputs.run-e2e }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
+
+      - name: Detect changed paths
+        id: filter
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            shared:
+              - '.github/**'
+              - 'justfile'
+              - 'compose*.yml'
+            policy:
+              - '.github/**'
+              - '.pre-commit-config.yaml'
+              - '.prettierrc*'
+              - '.editorconfig'
+              - 'justfile'
+              - 'pyproject.toml'
+            backend:
+              - 'backend/**'
+              - 'compose*.yml'
+            frontend-web:
+              - 'frontend-web/**'
+              - 'compose*.yml'
+            frontend-app:
+              - 'frontend-app/**'
+              - 'compose*.yml'
+            docs:
+              - 'docs/**'
+              - 'compose*.yml'
+
+      - name: Decide which CI jobs should run
+        id: decide
+        uses: actions/github-script@v8
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+          POLICY: ${{ steps.filter.outputs.policy }}
+          BACKEND: ${{ steps.filter.outputs.backend }}
+          FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
+          FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
+          DOCS: ${{ steps.filter.outputs.docs }}
+        with:
+          script: |
+            const event = process.env.EVENT_NAME;
+            const isTrue = (value) => value === 'true';
+            const set = (name, value) => core.setOutput(name, String(value));
+
+            if (event === 'schedule') {
+              set('run-policy', false);
+              set('run-backend', false);
+              set('run-frontend-web', false);
+              set('run-frontend-app', false);
+              set('run-docs', false);
+              set('run-e2e', false);
+              return;
+            }
+
+            if (event === 'workflow_dispatch' || event === 'merge_group') {
+              set('run-policy', true);
+              set('run-backend', true);
+              set('run-frontend-web', true);
+              set('run-frontend-app', true);
+              set('run-docs', true);
+              set('run-e2e', true);
+              return;
+            }
+
+            const shared = isTrue(process.env.SHARED);
+            const policy = isTrue(process.env.POLICY);
+            const backend = isTrue(process.env.BACKEND);
+            const frontendWeb = isTrue(process.env.FRONTEND_WEB);
+            const frontendApp = isTrue(process.env.FRONTEND_APP);
+            const docs = isTrue(process.env.DOCS);
+
+            set('run-policy', shared || policy);
+            set('run-backend', shared || backend);
+            set('run-frontend-web', shared || frontendWeb);
+            set('run-frontend-app', shared || frontendApp);
+            set('run-docs', shared || docs);
+            set('run-e2e', shared || backend || frontendApp);
+
+  policy:
+    name: Repository Policy
+    needs: [changes]
+    if: needs.changes.outputs.run-policy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
       - name: Set up Python tooling
         uses: ./.github/actions/setup-python-just
@@ -46,10 +152,13 @@ jobs:
 
   backend:
     name: Backend
+    needs: [changes]
+    if: needs.changes.outputs.run-backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Python tooling
         uses: ./.github/actions/setup-python-just
@@ -57,16 +166,16 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           uv-cache-dependency-glob: backend/uv.lock
 
-      - name: Install backend dependencies
+      - name: Install dependencies
         run: just backend/install
 
-      - name: Run backend checks
+      - name: Run checks
         run: just backend/check
 
-      - name: Run backend test suite
+      - name: Run test suite
         run: just backend/test-ci
 
-      - name: Upload backend coverage
+      - name: Upload coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: ./.github/actions/upload-codecov
         with:
@@ -75,9 +184,9 @@ jobs:
           flags: backend
           name: backend-coverage
 
-      - name: Archive backend reports
+      - name: Archive reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-coverage-artifacts
           path: |
@@ -87,10 +196,13 @@ jobs:
 
   frontend-web:
     name: Frontend Web
+    needs: [changes]
+    if: needs.changes.outputs.run-frontend-web == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Node tooling
         uses: ./.github/actions/setup-node-just
@@ -98,16 +210,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache-dependency-path: frontend-web/package-lock.json
 
-      - name: Install frontend-web dependencies
+      - name: Install dependencies
         run: just frontend-web/install
 
-      - name: Run frontend-web checks
+      - name: Run checks
         run: just frontend-web/check
 
-      - name: Run frontend-web test suite
+      - name: Run test suite
         run: just frontend-web/test-ci
 
-      - name: Upload frontend-web coverage
+      - name: Upload coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: ./.github/actions/upload-codecov
         with:
@@ -117,27 +229,27 @@ jobs:
           name: frontend-web-coverage
           disable-search: "true"
 
-      - name: Archive frontend-web reports
+      - name: Archive coverage reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-web-coverage-artifacts
           path: frontend-web/coverage/
           retention-days: 7
 
-      - name: Build frontend-web
+      - name: Build app
         run: just frontend-web/build
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox
         working-directory: frontend-web
 
-      - name: Run frontend-web browser E2E tests
+      - name: Run browser E2E tests
         run: just frontend-web/test-e2e-browser
 
       - name: Archive Playwright report
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-web-playwright-artifacts
           path: frontend-web/playwright-report/
@@ -145,10 +257,13 @@ jobs:
 
   frontend-app:
     name: Frontend App
+    needs: [changes]
+    if: needs.changes.outputs.run-frontend-app == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Node tooling
         uses: ./.github/actions/setup-node-just
@@ -156,16 +271,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache-dependency-path: frontend-app/package-lock.json
 
-      - name: Install frontend-app dependencies
+      - name: Install dependencies
         run: just frontend-app/install
 
-      - name: Run frontend-app checks
+      - name: Run checks
         run: just frontend-app/check
 
-      - name: Run frontend-app test suite
+      - name: Run test suite
         run: just frontend-app/test-ci
 
-      - name: Upload frontend-app coverage
+      - name: Upload coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: ./.github/actions/upload-codecov
         with:
@@ -175,9 +290,9 @@ jobs:
           name: frontend-app-coverage
           disable-search: "true"
 
-      - name: Archive frontend-app reports
+      - name: Archive coverage reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-app-coverage-artifacts
           path: frontend-app/coverage/
@@ -185,10 +300,13 @@ jobs:
 
   docs:
     name: Docs
+    needs: [changes]
+    if: needs.changes.outputs.run-docs == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Python tooling
         uses: ./.github/actions/setup-python-just
@@ -196,7 +314,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           uv-cache-dependency-glob: docs/uv.lock
 
-      - name: Install docs dependencies
+      - name: Install dependencies
         run: just docs/install
 
       - name: Run docs CI
@@ -206,6 +324,7 @@ jobs:
     name: Docker Smoke (${{ matrix.recipe }})
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -217,28 +336,29 @@ jobs:
           - docker-smoke-docs
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Install just
-        uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+        uses: extractions/setup-just@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Run smoke test
         run: just ${{ matrix.recipe }}
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
-    needs: [backend, frontend-app]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: [changes]
+    if: needs.changes.outputs.run-e2e == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Start backend infrastructure
         run: docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
@@ -274,7 +394,7 @@ jobs:
 
       - name: Archive Playwright report
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-app-playwright-artifacts
           path: frontend-app/playwright-report/

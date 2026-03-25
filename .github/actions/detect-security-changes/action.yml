@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+# spell-checker: ignore dorny
+name: Detect Security Changes
+description: Determine which security jobs should run for this monorepo.
+
+outputs:
+  run-root-python:
+    description: Whether the root Python audit should run.
+    value: ${{ steps.decide.outputs.run-root-python }}
+  run-backend-python:
+    description: Whether the backend Python audit should run.
+    value: ${{ steps.decide.outputs.run-backend-python }}
+  run-docs-python:
+    description: Whether the docs Python audit should run.
+    value: ${{ steps.decide.outputs.run-docs-python }}
+  run-frontend-app-node:
+    description: Whether the frontend-app Node audit should run.
+    value: ${{ steps.decide.outputs.run-frontend-app-node }}
+  run-frontend-web-node:
+    description: Whether the frontend-web Node audit should run.
+    value: ${{ steps.decide.outputs.run-frontend-web-node }}
+
+runs:
+  using: composite
+  steps:
+    - name: Mark all projects as changed
+      id: set-all
+      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group'
+      shell: bash
+      run: |
+        echo "shared=true" >> "$GITHUB_OUTPUT"
+        echo "root-python=true" >> "$GITHUB_OUTPUT"
+        echo "backend=true" >> "$GITHUB_OUTPUT"
+        echo "docs=true" >> "$GITHUB_OUTPUT"
+        echo "frontend-app=true" >> "$GITHUB_OUTPUT"
+        echo "frontend-web=true" >> "$GITHUB_OUTPUT"
+
+    - name: Detect changed paths
+      id: filter
+      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          shared:
+            - '.github/**'
+            - 'justfile'
+          root-python:
+            - 'pyproject.toml'
+            - 'uv.lock'
+          backend:
+            - 'backend/**'
+          docs:
+            - 'docs/**'
+          frontend-app:
+            - 'frontend-app/**'
+          frontend-web:
+            - 'frontend-web/**'
+
+    - name: Decide which security jobs should run
+      id: decide
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        SHARED: ${{ steps.set-all.outputs.shared || steps.filter.outputs.shared }}
+        ROOT_PYTHON: ${{ steps.set-all.outputs.root-python || steps.filter.outputs.root-python }}
+        BACKEND: ${{ steps.set-all.outputs.backend || steps.filter.outputs.backend }}
+        DOCS: ${{ steps.set-all.outputs.docs || steps.filter.outputs.docs }}
+        FRONTEND_APP: ${{ steps.set-all.outputs.frontend-app || steps.filter.outputs.frontend-app }}
+        FRONTEND_WEB: ${{ steps.set-all.outputs.frontend-web || steps.filter.outputs.frontend-web }}
+      run: |
+        if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+          echo "run-root-python=true" >> "$GITHUB_OUTPUT"
+          echo "run-backend-python=true" >> "$GITHUB_OUTPUT"
+          echo "run-docs-python=true" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-app-node=true" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-web-node=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if [[ "$EVENT_NAME" == "merge_group" ]]; then
+          echo "run-root-python=false" >> "$GITHUB_OUTPUT"
+          echo "run-backend-python=false" >> "$GITHUB_OUTPUT"
+          echo "run-docs-python=false" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-app-node=false" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-web-node=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "run-root-python=$([[ "$SHARED" == "true" || "$ROOT_PYTHON" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-backend-python=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-docs-python=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
