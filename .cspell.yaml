@@ -2,7 +2,10 @@ version: "0.2"
 dictionaries:
   - coding-terms
   - cpp-compound-words
+  - data-science
   - docker
+  - en-gb
+  - en-us
   - filetypes
   - fullstack
   - npm
