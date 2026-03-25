@@ -6,7 +6,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL;
 const newsletterUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/unsubscribe');
 ---
 
-<Layout title="Unsubscribe from Newsletter — ReLab">
+<Layout title="Unsubscribe from Newsletter — RELab">
   <div class="card">
     <h1>Unsubscribe from Newsletter</h1>
     <div id="status" class="status status-loading">
@@ -53,13 +53,6 @@ const newsletterUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/unsubscribe');
     font-size: 1.6rem;
     font-weight: 600;
     margin: 0 0 1.25rem;
-  }
-
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    padding: 1.5rem;
   }
 
   .status {

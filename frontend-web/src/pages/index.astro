@@ -5,43 +5,55 @@ import { joinApiUrl } from '@/utils/url';
 const apiUrl = import.meta.env.PUBLIC_API_URL;
 const appUrl = import.meta.env.PUBLIC_APP_URL;
 const docsUrl = import.meta.env.PUBLIC_DOCS_URL;
+const githubUrl = 'https://github.com/CMLPlatform/relab';
 const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
 ---
 
 <Layout title="Reverse Engineering Lab">
   <section class="hero card" data-animate>
-    <p class="eyebrow">Circular Product Intelligence</p>
     <h1>Reverse Engineering Lab</h1>
     <p class="lead">
-      A research platform for bottom-up product data collection, teardown documentation, and circularity analysis.
+      Welcome to RELab, a research platform for bottom-up product data collection, teardown documentation, and
+      circularity analysis. Open the app to work with product data, or use the links below for documentation and source.
     </p>
 
     <div class="cta-row">
-      <a href={appUrl} class="btn btn-primary" target="_blank" rel="noopener noreferrer">Open Demo</a>
-      <a href={docsUrl} class="btn btn-ghost" target="_blank" rel="noopener noreferrer">Read Docs</a>
+      <a href={appUrl} class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">Open the App</a>
+    </div>
+
+    <div class="hero-footer">
+      <p class="hero-note">Need more context?</p>
+      <div class="hero-links">
+        <a href={docsUrl} class="text-link" target="_blank" rel="noopener noreferrer">Read the Docs</a>
+        <a href={githubUrl} class="text-link" target="_blank" rel="noopener noreferrer">Browse GitHub</a>
+      </div>
     </div>
   </section>
 
-  <section class="card" data-animate>
-    <h2>Stay Updated</h2>
-    <p>Subscribe for product updates, new methods, and relevant publications.</p>
-
-    <div class="input-row">
-      <input
-        id="email"
-        type="email"
-        placeholder="you@institution.edu"
-        autocomplete="email"
-        aria-label="Email address"
-      />
-      <button id="subscribe-btn" class="btn btn-primary">Subscribe</button>
+  <section class="card newsletter-card" data-animate>
+    <div class="newsletter-copy">
+      <h2>Get project updates by email</h2>
+      <p>If you want occasional project or research updates, leave your email here. You can unsubscribe at any time.</p>
     </div>
 
-    <p class="muted-text">
-      By subscribing, you agree to our <a href="/privacy">Privacy Policy</a>. We only send project and research updates.
-    </p>
+    <div class="newsletter-form">
+      <div class="input-row">
+        <input
+          id="email"
+          type="email"
+          placeholder="you@institution.edu"
+          autocomplete="email"
+          aria-label="Email address"
+        />
+        <button id="subscribe-btn" class="btn btn-muted">Subscribe</button>
+      </div>
 
-    <div id="message" class="message" role="alert" aria-live="polite"></div>
+      <p class="muted-text">
+        By subscribing, you agree to our <a href="/privacy">Privacy Policy</a>.
+      </p>
+
+      <div id="message" class="message" role="alert" aria-live="polite"></div>
+    </div>
   </section>
 </Layout>
 
@@ -118,13 +130,7 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     line-height: 1.65;
   }
 
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: 1.55rem;
-    box-shadow: var(--shadow-soft);
-  }
+  /* card styles moved to global.css */
 
   [data-animate] {
     opacity: 0;
@@ -142,20 +148,20 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
   .hero {
     position: relative;
     overflow: hidden;
-    padding: 1.8rem;
+    padding: 2rem 2rem 1.8rem;
     background:
-      radial-gradient(circle at 6% 8%, rgba(0, 103, 131, 0.14), transparent 42%),
-      radial-gradient(circle at 90% 12%, rgba(92, 91, 125, 0.12), transparent 46%), var(--color-surface);
+      radial-gradient(circle at 7% 6%, rgba(0, 103, 131, 0.12), transparent 36%),
+      radial-gradient(circle at 92% 10%, rgba(92, 91, 125, 0.08), transparent 40%), var(--color-surface);
   }
 
   .hero::after {
     content: '';
     position: absolute;
-    inset: auto -15% -60% auto;
-    width: min(420px, 65vw);
+    inset: auto -12% -58% auto;
+    width: min(360px, 58vw);
     aspect-ratio: 1 / 1;
     border-radius: 999px;
-    background: radial-gradient(circle, rgba(0, 103, 131, 0.1) 0%, transparent 68%);
+    background: radial-gradient(circle, rgba(0, 103, 131, 0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -171,10 +177,15 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     color: var(--color-primary-strong);
   }
 
+  .eyebrow-soft {
+    color: var(--color-muted);
+  }
+
   .lead {
     color: var(--color-muted);
-    font-size: clamp(1rem, 1.8vw, 1.12rem);
-    max-width: 62ch;
+    font-size: clamp(1.02rem, 1.8vw, 1.12rem);
+    line-height: 1.78;
+    max-width: 100%;
   }
 
   .cta-row {
@@ -184,116 +195,69 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     flex-wrap: wrap;
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.62rem 1.1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.92rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition:
-      transform 130ms ease,
-      box-shadow 160ms ease,
-      background 160ms ease;
-  }
-
-  .btn:hover {
-    transform: translateY(-1px);
-  }
-
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-primary {
-    background: var(--color-primary);
-    color: #fff;
-    white-space: nowrap;
-    box-shadow: 0 8px 22px rgba(0, 103, 131, 0.25);
-  }
-
-  .btn-primary:hover {
-    background: var(--color-primary-strong);
-  }
-
-  .btn-ghost {
-    background: var(--color-surface-soft);
-    color: var(--color-primary-strong);
-    border-color: var(--color-border);
-  }
-
-  .btn-ghost:hover {
-    background: var(--color-primary-light);
-  }
-
-  .input-row {
+  .hero-footer {
+    margin-top: 1.15rem;
     display: flex;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-top: 1rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
   }
 
-  input[type='email'] {
-    flex: 1;
-    padding: 0.6rem 0.9rem;
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-md);
-    font-size: 0.95rem;
-    background: var(--color-surface);
-    color: var(--color-on-surface);
-    min-width: 0;
-  }
-
-  input[type='email']::placeholder {
-    color: var(--color-muted);
-  }
-
-  input[type='email']:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px var(--color-ring);
-    outline: none;
-  }
-
-  .muted-text {
+  .hero-note {
+    margin: 0;
     font-size: 0.86rem;
     color: var(--color-muted);
-    margin: 0 0 0.5rem;
   }
 
-  .message {
-    font-size: 0.9rem;
-    padding: 0.5rem 0;
-    min-height: 1.5rem;
-  }
-  .message-success {
-    color: #2e7d32;
-  }
-  .message-error {
-    color: #c62828;
+  .hero-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem 1rem;
   }
 
-  @media (max-width: 640px) {
-    .card {
-      padding: 1.15rem;
-      border-radius: 18px;
+  .text-link {
+    color: var(--color-primary-strong);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .text-link:hover {
+    text-decoration: underline;
+  }
+
+  .newsletter-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.85fr);
+    gap: 1rem 1.25rem;
+    align-items: start;
+    padding: 0.95rem 1.1rem;
+    background: color-mix(in srgb, var(--color-surface) 96%, var(--color-primary-light));
+    box-shadow: none;
+  }
+
+  .newsletter-card h2 {
+    margin-top: 0.1rem;
+    font-size: clamp(1.08rem, 2vw, 1.35rem);
+  }
+
+  .newsletter-card p {
+    color: var(--color-muted);
+    max-width: 66ch;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 760px) {
+    .hero {
+      padding: 1.35rem;
     }
 
-    .hero {
-      padding: 1.3rem;
+    .newsletter-card {
+      grid-template-columns: 1fr;
     }
 
     .input-row {
       flex-direction: column;
-    }
-
-    .btn,
-    .btn-primary,
-    .btn-ghost {
-      width: 100%;
     }
   }
 </style>

@@ -2,7 +2,7 @@
 import Layout from '@/layouts/Layout.astro';
 ---
 
-<Layout title="Privacy Policy — ReLab">
+<Layout title="Privacy Policy — RELab">
   <h1>Privacy Policy</h1>
   <p class="updated">Last updated: March 11, 2026</p>
   <p>This Privacy Policy explains what we collect, how we use it, and your choices.</p>
@@ -11,24 +11,22 @@ import Layout from '@/layouts/Layout.astro';
     <h2>User Information</h2>
     <p>
       When you register we collect a username and email for your account, and a password used for authentication.
-      Passwords are stored only in hashed form. We use your email for authentication and important service notifications
-      (no marketing unless you opt in).
+      Passwords are stored only in hashed form. We use your email for authentication and important service notifications.
     </p>
   </div>
 
   <div class="card">
-    <h2>Uploads &amp; Media</h2>
+    <h2>Uploads & Media</h2>
     <p>
       Files and images you upload are stored on our servers and included in regular backups. We use uploads to display
       your contributions in the app and for research purposes when you choose to contribute. Retention is managed for
       service operation and backups. You can delete your products and uploaded images yourself in the app; if you need
       assistance we will remove uploads and any linked metadata on request.
     </p>
-    <p>If research contributors' data is published it will be de-identified unless you explicitly agree otherwise.</p>
   </div>
 
   <div class="card">
-    <h2>AI &amp ; Research Use</h2>
+    <h2>AI & Research Use</h2>
     <p>
       We may use de-identified research contributions for research purposes only. We do not use personal account
       information (email, username, password) to train models. Contact us for details or to request restrictions on your
@@ -60,11 +58,13 @@ import Layout from '@/layouts/Layout.astro';
     font-weight: 700;
     margin: 0 0 0.4rem;
   }
+
   h2 {
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 0.75rem;
   }
+
   p {
     margin: 0 0 0.75rem;
     line-height: 1.6;
@@ -81,12 +81,7 @@ import Layout from '@/layouts/Layout.astro';
     margin-bottom: 1rem;
   }
 
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    padding: 1.5rem;
-  }
+  /* card styling moved to global.css */
 
   hr {
     border: none;

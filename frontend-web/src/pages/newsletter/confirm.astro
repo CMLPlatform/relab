@@ -6,7 +6,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL;
 const newsletterConfirmUrl = joinApiUrl(apiUrl, '/newsletter/confirm');
 ---
 
-<Layout title="Confirm Newsletter Subscription — ReLab">
+<Layout title="Confirm Newsletter Subscription — RELab">
   <div class="card">
     <h1>Newsletter Subscription</h1>
     <div id="status" class="status status-loading">
@@ -53,13 +53,6 @@ const newsletterConfirmUrl = joinApiUrl(apiUrl, '/newsletter/confirm');
     font-size: 1.6rem;
     font-weight: 600;
     margin: 0 0 1.25rem;
-  }
-
-  .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    padding: 1.5rem;
   }
 
   .status {

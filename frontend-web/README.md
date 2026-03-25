@@ -1,6 +1,6 @@
-# ReLab Frontend
+# RELab Frontend
 
-The frontend of the ReLab project is built using [Expo](https://expo.dev/), providing a cross-platform user interface.
+The frontend of the RELab project is built using [Expo](https://expo.dev/), providing a cross-platform user interface.
 
 For frontend-specific contribution and workflow details, see:
 

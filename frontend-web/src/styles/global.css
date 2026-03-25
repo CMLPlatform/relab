@@ -98,3 +98,110 @@ li a {
     background: rgba(99, 211, 255, 0.25);
   }
 }
+
+/* Button utility styles shared across pages */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.62rem 1.1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    transform 130ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Larger primary button for the hero CTA */
+.btn-large {
+  padding: 0.9rem 1.4rem;
+  font-size: 1.05rem;
+}
+
+/* Primary variant (used for main CTAs) */
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(0, 103, 131, 0.25);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-strong);
+}
+
+/* Subtle / muted variant for less-prominent actions */
+.btn-muted {
+  background: transparent;
+  color: var(--color-on-surface);
+  border-color: color-mix(in srgb, var(--color-border) 60%, transparent);
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .btn {
+    width: 100%;
+  }
+}
+
+/* Shared UI primitives moved here for consistency */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+input[type="email"] {
+  flex: 1;
+  padding: 0.58rem 0.85rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  min-width: 0;
+}
+
+input[type="email"]::placeholder {
+  color: var(--color-muted);
+}
+
+input[type="email"]:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-ring);
+  outline: none;
+}
+
+.muted-text {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.message {
+  font-size: 0.9rem;
+  min-height: 1.5rem;
+}
+
+.message-success {
+  color: #2e7d32;
+}
+
+.message-error {
+  color: #c62828;
+}

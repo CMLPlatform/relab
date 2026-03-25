@@ -7,8 +7,7 @@ test.describe('Responsive layout', () => {
     await expect(
       page.getByRole('heading', { name: 'Reverse Engineering Lab', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByLabel('Email address')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Subscribe' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /open( the)? app|open demo/i })).toBeVisible();
   });
 
   test('landing page is usable on tablet viewport', async ({ page }) => {
@@ -17,7 +16,8 @@ test.describe('Responsive layout', () => {
     await expect(
       page.getByRole('heading', { name: 'Reverse Engineering Lab', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open Demo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /subscribe/i })).toBeVisible();
   });
 
   test('privacy page is readable on mobile', async ({ page }) => {
