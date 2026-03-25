@@ -1,5 +1,7 @@
 """OAuth-related routes."""
 
+from urllib.parse import urljoin
+
 from fastapi import APIRouter, status
 from sqlmodel import select
 
@@ -20,11 +22,18 @@ from app.api.auth.services.user_manager import (
     fastapi_user_manager,
 )
 from app.api.common.routers.dependencies import AsyncSessionDep
+from app.core.config import settings as core_settings
 
 router = APIRouter(
     prefix="/auth/oauth",
     tags=["oauth"],
 )
+
+
+def _public_callback_url(path: str) -> str:
+    """Build an absolute callback URL from the configured public API base URL."""
+    return urljoin(f"{str(core_settings.backend_api_url).rstrip('/')}/", path.lstrip("/"))
+
 
 for client in (github_oauth_client, google_oauth_client):
     provider_name = client.name
@@ -39,6 +48,7 @@ for client in (github_oauth_client, google_oauth_client):
                 client,
                 auth_backend,
                 settings.fastapi_users_secret.get_secret_value(),
+                redirect_url=_public_callback_url(f"/auth/oauth/{provider_name}/{transport}/callback"),
                 is_verified_by_default=True,
                 associate_by_email=associate_by_email,
             ).build(),
@@ -52,6 +62,7 @@ for client in (github_oauth_client, google_oauth_client):
             fastapi_user_manager.authenticator,
             UserRead,
             settings.fastapi_users_secret.get_secret_value(),
+            redirect_url=_public_callback_url(f"/auth/oauth/{provider_name}/associate/callback"),
         ).build(),
         prefix=f"/{provider_name}/associate",
     )
