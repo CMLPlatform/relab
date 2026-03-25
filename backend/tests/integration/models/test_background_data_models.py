@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlmodel import select
 
 from app.api.background_data.models import (
@@ -253,11 +254,19 @@ class TestRelationships:
         )
 
         # Reload with relationships eagerly loaded
-        stmt = select(Category).where(Category.id == db_category.id).options(selectinload(Category.materials))
+        stmt = (
+            select(Category)
+            .where(Category.id == db_category.id)
+            .options(selectinload(cast("QueryableAttribute[Any]", Category.materials)))
+        )
         result = await session.exec(stmt)
         category = result.one()
 
-        stmt = select(Material).where(Material.id == db_material.id).options(selectinload(Material.categories))
+        stmt = (
+            select(Material)
+            .where(Material.id == db_material.id)
+            .options(selectinload(cast("QueryableAttribute[Any]", Material.categories)))
+        )
         result = await session.exec(stmt)
         material = result.one()
 
@@ -279,7 +288,11 @@ class TestRelationships:
         )
 
         # Reload with relationships eagerly loaded
-        stmt = select(Category).where(Category.id == db_category.id).options(selectinload(Category.product_types))
+        stmt = (
+            select(Category)
+            .where(Category.id == db_category.id)
+            .options(selectinload(cast("QueryableAttribute[Any]", Category.product_types)))
+        )
         result = await session.exec(stmt)
         category = result.one()
 
@@ -300,7 +313,11 @@ class TestRelationships:
         await session.flush()
 
         # Reload with relationships eagerly loaded
-        stmt = select(Taxonomy).where(Taxonomy.id == db_taxonomy.id).options(selectinload(Taxonomy.categories))
+        stmt = (
+            select(Taxonomy)
+            .where(Taxonomy.id == db_taxonomy.id)
+            .options(selectinload(cast("QueryableAttribute[Any]", Taxonomy.categories)))
+        )
         result = await session.exec(stmt)
         taxonomy = result.one()
 

@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
 from uuid import UUID, uuid4
 
 import pytest
 
+from app.api.data_collection.models import Product
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # Constants for test values to avoid magic value warnings
 AMOUNT_IN_PARENT_5 = 5
 ERR_MIN_CONTENT = "must have at least one material or one component"
 ERR_MISSING_AMOUNT = "must have amount_in_parent set"
+
+_VALIDATE_PRODUCT = cast("Callable[[Product], Product]", Product.validate_product)
 
 
 @pytest.mark.unit
@@ -93,7 +100,7 @@ class TestProductLogic:
         p = ProductFactory.build(
             name="Valid Base", owner_id=uuid4(), bill_of_materials=[link], parent_id=None, amount_in_parent=None
         )
-        p.validate_product()
+        _VALIDATE_PRODUCT(p)
 
     def test_validate_product_base_invalid_no_content(self) -> None:
         """Test validation fails for base product with no content."""
@@ -107,7 +114,7 @@ class TestProductLogic:
         )
 
         with pytest.raises(ValueError, match=ERR_MIN_CONTENT) as exc:
-            p.validate_product()
+            _VALIDATE_PRODUCT(p)
         assert ERR_MIN_CONTENT in str(exc.value)
 
     def test_validate_product_intermediate_valid(self) -> None:
@@ -122,7 +129,7 @@ class TestProductLogic:
             parent_id=uuid4(),  # Has parent
             amount_in_parent=AMOUNT_IN_PARENT_5,
         )
-        p.validate_product()
+        _VALIDATE_PRODUCT(p)
 
     def test_validate_product_intermediate_missing_amount(self) -> None:
         """Test validation fails for intermediate product without amount."""
@@ -137,7 +144,7 @@ class TestProductLogic:
         )
 
         with pytest.raises(ValueError, match=ERR_MISSING_AMOUNT) as exc:
-            p.validate_product()
+            _VALIDATE_PRODUCT(p)
         assert ERR_MISSING_AMOUNT in str(exc.value)
 
     def test_validate_cycle_detection_on_init(self) -> None:
@@ -146,4 +153,4 @@ class TestProductLogic:
         a.components = [a]
 
         with pytest.raises(ValueError, match="Cycle detected"):
-            a.validate_product()
+            _VALIDATE_PRODUCT(a)

@@ -1,14 +1,16 @@
 """Camera interaction services."""
 
+import logging
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from enum import StrEnum
 from io import BytesIO
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
-from fastapi import HTTPException, UploadFile
+from fastapi import UploadFile
 from fastapi.datastructures import Headers
 from httpx import AsyncClient, HTTPStatusError, RequestError, Response
-from pydantic import Field, PositiveInt, ValidationError
+from pydantic import UUID4, AnyUrl, BaseModel, Field, PositiveInt, ValidationError
 from relab_rpi_cam_models.stream import YoutubeStreamConfig
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -20,32 +22,124 @@ from app.api.data_collection.models import Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
+from app.api.plugins.rpi_cam.exceptions import (
+    GoogleOAuthAssociationRequiredError,
+    InvalidRecordingSessionDataError,
+    RecordingSessionNotFoundError,
+    RecordingSessionStoreError,
+)
 from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod, fetch_from_camera_url
+from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod, build_camera_request
 from app.api.plugins.rpi_cam.youtube_schemas import (
     YouTubeAPIErrorResponse,
     YouTubeBroadcastContentDetailsCreate,
     YouTubeBroadcastCreateRequest,
+    YouTubeBroadcastListResponse,
     YouTubeBroadcastResponse,
     YouTubeBroadcastStatusCreate,
+    YouTubeMonitorStreamResponse,
     YouTubeSnippetCreate,
     YouTubeStreamCDNCreate,
     YouTubeStreamCreateRequest,
     YouTubeStreamListResponse,
     YouTubeStreamResponse,
 )
+from app.core.redis import delete_redis_key, get_redis_value, set_redis_value
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from httpx_oauth.clients.google import GoogleOAuth2
+    from redis.asyncio import Redis
 
 
+logger = logging.getLogger(__name__)
 YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3"
+YOUTUBE_RECORDING_SESSION_CACHE_PREFIX = "rpi_cam:youtube_recording"
+YOUTUBE_RECORDING_SESSION_TTL_SECONDS = 60 * 60 * 12
+
+
+class YouTubeRecordingSession(BaseModel):
+    """Cached state for an in-progress YouTube recording."""
+
+    product_id: PositiveInt
+    title: str
+    description: str
+    stream_url: AnyUrl
+    broadcast_key: str
+    video_metadata: dict[str, Any] | None = None
+
+
+def get_recording_session_cache_key(camera_id: UUID4) -> str:
+    """Build the Redis key for a camera's active YouTube recording."""
+    return f"{YOUTUBE_RECORDING_SESSION_CACHE_PREFIX}:{camera_id}"
+
+
+def build_recording_text(
+    *,
+    product_id: PositiveInt,
+    title: str | None,
+    description: str | None,
+) -> tuple[str, str]:
+    """Build the final title and description for a YouTube recording."""
+    now_str = serialize_datetime_with_z(datetime.now(UTC))
+    resolved_title = title or f"Product {product_id} recording at {now_str}"
+    resolved_description = description or f"Recording of product {product_id} at {now_str}"
+    return resolved_title, resolved_description
+
+
+def serialize_stream_metadata(metadata: object | None) -> dict[str, object] | None:
+    """Convert camera stream metadata into JSON-compatible data."""
+    if metadata is None:
+        return None
+    if isinstance(metadata, BaseModel):
+        return cast("dict[str, object]", metadata.model_dump(mode="json"))
+    if isinstance(metadata, dict):
+        return cast("dict[str, object]", metadata)
+    msg = "Unsupported stream metadata type."
+    raise TypeError(msg)
+
+
+async def store_recording_session(
+    redis_client: Redis,
+    camera_id: UUID4,
+    session: YouTubeRecordingSession,
+) -> None:
+    """Persist in-progress recording state in Redis."""
+    stored = await set_redis_value(
+        redis_client,
+        get_recording_session_cache_key(camera_id),
+        session.model_dump_json(),
+        ex=YOUTUBE_RECORDING_SESSION_TTL_SECONDS,
+    )
+    if not stored:
+        raise RecordingSessionStoreError
+
+
+async def load_recording_session(redis_client: Redis, camera_id: UUID4) -> YouTubeRecordingSession:
+    """Load in-progress recording state from Redis."""
+    payload = await get_redis_value(redis_client, get_recording_session_cache_key(camera_id))
+    if payload is None:
+        raise RecordingSessionNotFoundError
+
+    try:
+        return YouTubeRecordingSession.model_validate_json(payload)
+    except ValidationError as e:
+        raise InvalidRecordingSessionDataError(str(e.errors())) from e
+
+
+async def clear_recording_session(redis_client: Redis, camera_id: UUID4) -> None:
+    """Remove in-progress recording state from Redis."""
+    cleared = await delete_redis_key(redis_client, get_recording_session_cache_key(camera_id))
+    if not cleared:
+        logger.warning("Failed to clear YouTube recording session for camera %s", camera_id)
 
 
 async def capture_and_store_image(
     session: AsyncSession,
     camera: Camera,
     *,
+    camera_request: Callable[..., Awaitable[Response]] | None = None,
     product_id: PositiveInt,
     filename: str | None = None,
     description: str | None = None,
@@ -55,9 +149,11 @@ async def capture_and_store_image(
     if product_id:
         await get_model_or_404(session, Product, product_id)
 
+    if camera_request is None:
+        camera_request = build_camera_request(camera)
+
     # Capture image
-    capture_response = await fetch_from_camera_url(
-        camera=camera,
+    capture_response = await camera_request(
         endpoint="/images",
         method=HttpMethod.POST,
         error_msg="Failed to capture image",
@@ -65,8 +161,7 @@ async def capture_and_store_image(
     capture_data = capture_response.json()
 
     # Download image
-    image_response = await fetch_from_camera_url(
-        camera=camera,
+    image_response = await camera_request(
         endpoint=capture_data["image_url"],
         method=HttpMethod.GET,
         error_msg="Failed to download image",
@@ -133,13 +228,7 @@ class YouTubeService:
         if self.oauth_account.expires_at and self.oauth_account.expires_at < datetime.now(UTC).timestamp():
             # Check if refresh token exists
             if not self.oauth_account.refresh_token:
-                raise HTTPException(
-                    status_code=401,
-                    detail=(
-                        "OAuth refresh token expired or missing."
-                        " Please re-authenticate via /auth/oauth/google/associate/authorize"
-                    ),
-                )
+                raise GoogleOAuthAssociationRequiredError from None
 
             # Refresh the token
             new_token = await self.google_oauth_client.refresh_token(self.oauth_account.refresh_token)
@@ -283,3 +372,27 @@ class YouTubeService:
         """End a YouTube livestream."""
         await self.refresh_token_if_needed()
         await self.request_youtube_api("DELETE", "liveBroadcasts", params={"id": broadcast_key})
+
+    async def get_broadcast_monitor_stream(self, broadcast_key: str) -> YouTubeMonitorStreamResponse:
+        """Get the monitor stream configuration for a YouTube livestream."""
+        await self.refresh_token_if_needed()
+
+        try:
+            response = await self.request_youtube_api(
+                "GET",
+                "liveBroadcasts",
+                params={"part": "contentDetails", "id": broadcast_key},
+            )
+            broadcast_list_response = YouTubeBroadcastListResponse.model_validate(response)
+            if not broadcast_list_response.items:
+                raise YouTubeAPIError(details="Failed to fetch livestream monitor stream: broadcast not found.")
+
+            content_details = broadcast_list_response.items[0].contentDetails
+            if content_details is None or content_details.monitorStream is None:
+                raise YouTubeAPIError(
+                    details="Failed to fetch livestream monitor stream: monitor stream configuration missing."
+                )
+        except ValidationError as e:
+            raise YouTubeAPIError(details=f"Invalid YouTube broadcast response: {e}") from e
+        else:
+            return content_details.monitorStream

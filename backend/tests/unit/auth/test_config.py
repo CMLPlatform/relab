@@ -13,11 +13,11 @@ class TestAuthSettingsDefaults:
     def test_secret_fields_accept_empty_values(self) -> None:
         """Secrets can be explicitly set to empty strings (safe for dev)."""
         settings = AuthSettings(
-            fastapi_users_secret="",
-            newsletter_secret="",
-            google_oauth_client_secret="",
-            github_oauth_client_secret="",
-            email_password="",
+            fastapi_users_secret=SecretStr(""),
+            newsletter_secret=SecretStr(""),
+            google_oauth_client_secret=SecretStr(""),
+            github_oauth_client_secret=SecretStr(""),
+            email_password=SecretStr(""),
         )
         assert settings.fastapi_users_secret.get_secret_value() == ""
         assert settings.newsletter_secret.get_secret_value() == ""
@@ -64,8 +64,9 @@ class TestAuthSettingsDefaults:
     def test_rate_limit_defaults(self) -> None:
         """Rate limiting defaults are enabled with conservative values."""
         settings = AuthSettings()
-        assert settings.rate_limit_login_attempts == 5
-        assert settings.rate_limit_window_seconds == 300  # 5 min
+        assert settings.rate_limit_login_attempts_per_minute == 3
+        assert settings.rate_limit_register_attempts_per_hour == 5
+        assert settings.rate_limit_password_reset_attempts_per_hour == 3
 
     def test_youtube_api_scopes_default(self) -> None:
         """YouTube API scopes default to the expected list of four scopes."""
@@ -80,8 +81,8 @@ class TestAuthSettingsOverrides:
 
     def test_secrets_can_be_set_via_constructor(self) -> None:
         """Secrets supplied in __init__ are stored and retrievable."""
-        secret = "my-test-jwt-secret"  # noqa: S105
-        settings = AuthSettings(fastapi_users_secret=secret)
+        secret = "my-test-jwt-secret"
+        settings = AuthSettings(fastapi_users_secret=SecretStr(secret))
         assert settings.fastapi_users_secret.get_secret_value() == secret
 
     def test_oauth_redirect_paths_can_be_set(self) -> None:
@@ -92,9 +93,9 @@ class TestAuthSettingsOverrides:
 
     def test_rate_limit_can_be_overridden(self) -> None:
         """Rate limiting parameters accept custom values."""
-        settings = AuthSettings(rate_limit_login_attempts=10, rate_limit_window_seconds=600)
-        assert settings.rate_limit_login_attempts == 10
-        assert settings.rate_limit_window_seconds == 600
+        settings = AuthSettings(rate_limit_login_attempts_per_minute=10, rate_limit_password_reset_attempts_per_hour=8)
+        assert settings.rate_limit_login_attempts_per_minute == 10
+        assert settings.rate_limit_password_reset_attempts_per_hour == 8
 
     def test_explicit_email_from_and_reply_to_are_preserved(self) -> None:
         """Explicit sender overrides should win over the username fallback."""

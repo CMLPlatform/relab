@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProduct,
     MaterialProductLinkCreateWithinProductAndMaterial,
@@ -32,6 +33,13 @@ from app.api.data_collection.crud import (
     update_physical_properties,
     update_product,
 )
+from app.api.data_collection.exceptions import (
+    MaterialIDRequiredError,
+    ProductOwnerRequiredError,
+    ProductPropertyAlreadyExistsError,
+    ProductPropertyNotFoundError,
+    ProductTreeMissingContentError,
+)
 from app.api.data_collection.models import CircularityProperties, PhysicalProperties, Product
 from app.api.data_collection.schemas import (
     CircularityPropertiesCreate,
@@ -42,12 +50,11 @@ from app.api.data_collection.schemas import (
     ProductCreateWithComponents,
     ProductUpdate,
 )
+from app.api.file_storage.schemas import VideoCreateWithinProduct
 from tests.factories.models import (
     CircularityPropertiesFactory,
     PhysicalPropertiesFactory,
     ProductFactory,
-    ProductTypeFactory,
-    UserFactory,
 )
 
 # Constants for test values to avoid magic value warnings
@@ -62,7 +69,6 @@ UPDATED_NAME = "Updated Name"
 OLD_NAME = "Old Name"
 EASY_OBS = "Easy"
 HARD_OBS = "Hard"
-TEST_EMAIL = "test@example.com"
 COMP_NAME = "Comp"
 ALREADY_HAS_PROPS = "already has physical properties"
 ALREADY_HAS_CIRC = "already has"
@@ -122,7 +128,7 @@ class TestPhysicalPropertiesCrud:
         product.physical_properties = PhysicalPropertiesFactory.build(weight_g=5.0)
 
         with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
-            with pytest.raises(ValueError, match=ALREADY_HAS_PROPS) as exc:
+            with pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_PROPS) as exc:
                 await create_physical_properties(mock_session, props_create, product_id)
 
             assert ALREADY_HAS_PROPS in str(exc.value)
@@ -144,7 +150,7 @@ class TestPhysicalPropertiesCrud:
         product.physical_properties = None
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            pytest.raises(ValueError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await get_physical_properties(mock_session, 1)
 
@@ -168,7 +174,7 @@ class TestPhysicalPropertiesCrud:
         product.physical_properties = None
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            pytest.raises(ValueError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await update_physical_properties(mock_session, 1, PhysicalPropertiesUpdate())
 
@@ -184,7 +190,7 @@ class TestPhysicalPropertiesCrud:
         """Test error when deleting missing physical properties."""
         product = ProductFactory.build(id=1)
         product.physical_properties = None
-        with pytest.raises(ValueError, match=NOT_FOUND):
+        with pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND):
             await delete_physical_properties(mock_session, product)
 
 
@@ -213,7 +219,7 @@ class TestCircularityPropertiesCrud:
         product.circularity_properties = CircularityPropertiesFactory.build(product_id=1)
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            pytest.raises(ValueError, match=ALREADY_HAS_CIRC),
+            pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_CIRC),
         ):
             await create_circularity_properties(mock_session, CircularityPropertiesCreate(), 1)
 
@@ -234,7 +240,7 @@ class TestCircularityPropertiesCrud:
         product.circularity_properties = None
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            pytest.raises(ValueError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await get_circularity_properties(mock_session, 1)
 
@@ -258,7 +264,7 @@ class TestCircularityPropertiesCrud:
         product.circularity_properties = None
         with (
             patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            pytest.raises(ValueError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await update_circularity_properties(mock_session, 1, CircularityPropertiesUpdate())
 
@@ -274,7 +280,7 @@ class TestCircularityPropertiesCrud:
         """Test error when deleting missing circularity properties."""
         product = ProductFactory.build(id=1)
         product.circularity_properties = None
-        with pytest.raises(ValueError, match=NOT_FOUND):
+        with pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND):
             await delete_circularity_properties(mock_session, product)
 
 
@@ -289,25 +295,33 @@ class TestProductCrud:
             name=NEW_PRODUCT_NAME,
             product_type_id=1,
             components=[],
-            bill_of_materials=[{"material_id": 1, "quantity": 1.0, "unit": "kg"}],
+            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
         )
 
-        mock_type = ProductTypeFactory.build(id=1, name="Type")
-        mock_user = UserFactory.build(id=owner_id, email=TEST_EMAIL)
+        with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
+            result = await create_product(mock_session, product_create, owner_id)
 
-        with patch("app.api.data_collection.crud.get_model_by_id") as mock_get:
-            # Configure mock to return type then user
-            mock_get.side_effect = [mock_type, mock_user]
+        assert isinstance(result, Product)
+        assert result.name == NEW_PRODUCT_NAME
+        assert result.owner_id == owner_id
 
-            # Use patch for material existence check as well
-            with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
-                result = await create_product(mock_session, product_create, owner_id)
+        mock_session.add.assert_called()
+        mock_session.commit.assert_called_once()
 
-            assert isinstance(result, Product)
-            assert result.name == NEW_PRODUCT_NAME
-            assert result.owner_id == owner_id
+    async def test_create_product_uses_shared_tree_helper(self, mock_session: AsyncMock) -> None:
+        """Test that product creation delegates to the shared tree builder."""
+        owner_id = uuid4()
+        product_create = ProductCreateWithComponents(
+            name=NEW_PRODUCT_NAME,
+            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
+        )
+        mock_product = ProductFactory.build(id=1, owner_id=owner_id)
 
-            mock_session.add.assert_called()
+        with patch("app.api.data_collection.crud._create_product_tree", return_value=mock_product) as mock_tree:
+            result = await create_product(mock_session, product_create, owner_id)
+
+            assert result == mock_product
+            mock_tree.assert_awaited_once_with(mock_session, product_create, owner_id=owner_id)
             mock_session.commit.assert_called_once()
 
     async def test_get_product_trees(self, mock_session: AsyncMock) -> None:
@@ -353,33 +367,76 @@ class TestProductCrud:
 
     async def test_create_component_success(self, mock_session: AsyncMock) -> None:
         """Test successful component creation."""
-        with patch("app.api.data_collection.crud.get_model_by_id") as mock_get_parent:
-            owner_id = uuid4()
-            mock_parent = ProductFactory.build(id=1, owner_id=owner_id)
-            mock_get_parent.return_value = mock_parent
+        owner_id = uuid4()
+        parent_product = ProductFactory.build(id=1, owner_id=owner_id)
 
-            comp_create = ComponentCreateWithComponents(
-                name="Comp",
-                product_type_id=1,
-                amount_in_parent=1,
-                components=[
-                    ComponentCreateWithComponents(
-                        name="Subcomp",
-                        product_type_id=1,
-                        amount_in_parent=1,
-                        bill_of_materials=[{"material_id": 1, "quantity": 1}],
-                    )
-                ],
-                physical_properties={"weight_g": 1},
-                circularity_properties={},
-                videos=[{"url": "http://ok.com", "title": "Vid"}],
-                bill_of_materials=[{"material_id": 1, "quantity": 1}],
+        comp_create = ComponentCreateWithComponents(
+            name="Comp",
+            product_type_id=1,
+            amount_in_parent=1,
+            components=[
+                ComponentCreateWithComponents(
+                    name="Subcomp",
+                    product_type_id=1,
+                    amount_in_parent=1,
+                    bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
+                )
+            ],
+            physical_properties=PhysicalPropertiesCreate(weight_g=1),
+            circularity_properties=CircularityPropertiesCreate(),
+            videos=[VideoCreateWithinProduct.model_validate({"url": "http://ok.com", "title": "Vid"})],
+            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
+        )
+
+        with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
+            res = await create_component(mock_session, comp_create, parent_product)
+            assert res.name == COMP_NAME
+            assert res.owner_id == owner_id
+
+    async def test_create_component_uses_shared_tree_helper(self, mock_session: AsyncMock) -> None:
+        """Test that component creation delegates to the shared tree builder."""
+        owner_id = uuid4()
+        parent_product = ProductFactory.build(id=1, owner_id=owner_id)
+        component_create = ComponentCreateWithComponents(
+            name=COMP_NAME,
+            amount_in_parent=1,
+            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
+        )
+        mock_component = ProductFactory.build(id=2, owner_id=owner_id, parent_id=1, amount_in_parent=1)
+
+        with patch("app.api.data_collection.crud._create_product_tree", return_value=mock_component) as mock_tree:
+            result = await create_component(mock_session, component_create, parent_product=parent_product)
+
+            assert result == mock_component
+            mock_tree.assert_awaited_once_with(
+                mock_session,
+                component_create,
+                owner_id=owner_id,
+                parent_product=parent_product,
             )
+            mock_session.commit.assert_called_once()
 
-            with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
-                res = await create_component(mock_session, comp_create, 1)
-                assert res.name == COMP_NAME
-                assert res.owner_id == owner_id
+    async def test_create_product_requires_materials_or_components(self, mock_session: AsyncMock) -> None:
+        """Product creation should fail when the payload has no materials and no components."""
+        owner_id = uuid4()
+        product_create = ProductCreateWithComponents.model_construct(
+            name=NEW_PRODUCT_NAME,
+            components=[],
+            bill_of_materials=[],
+        )
+
+        with pytest.raises(ProductTreeMissingContentError, match="needs materials or components"):
+            await create_product(mock_session, product_create, owner_id)
+
+    async def test_create_product_tree_requires_owner(self, mock_session: AsyncMock) -> None:
+        """The shared tree helper should reject creation attempts without an owner id."""
+        product_create = ProductCreateWithComponents(
+            name=NEW_PRODUCT_NAME,
+            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
+        )
+
+        with pytest.raises(ProductOwnerRequiredError, match="owner_id must be set"):
+            await create_product(mock_session, product_create, owner_id=None)
 
 
 class TestBillOfMaterialsCrud:
@@ -427,7 +484,7 @@ class TestBillOfMaterialsCrud:
         """Test error when material ID is missing."""
         link_create = MaterialProductLinkCreateWithinProductAndMaterial(quantity=5.0)
 
-        with pytest.raises(ValueError, match=MATERIAL_ID_REQ) as exc:
+        with pytest.raises(MaterialIDRequiredError, match=MATERIAL_ID_REQ) as exc:
             await add_material_to_product(mock_session, product_id=1, material_link=link_create, material_id=None)
 
         assert MATERIAL_ID_REQ in str(exc.value)

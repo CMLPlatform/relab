@@ -10,11 +10,13 @@ from typing import TYPE_CHECKING
 
 import piexif
 from PIL import Image as PILImage
-from PIL import ImageOps
+from PIL import ImageOps, UnidentifiedImageError
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Any
+    from typing import Any, BinaryIO
+
+    from fastapi import UploadFile
 
 try:
     from PIL.Image import Resampling
@@ -29,6 +31,16 @@ logger = logging.getLogger(__name__)
 FORMAT_JPEG = "JPEG"
 FORMAT_WEBP = "WEBP"
 MAX_IMAGE_DIMENSION = 8000
+ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
+    {
+        "image/bmp",
+        "image/gif",
+        "image/jpeg",
+        "image/png",
+        "image/tiff",
+        "image/webp",
+    }
+)
 
 # EXIF tag IDs that are privacy-sensitive and should be stripped on upload.
 # Technical metadata (Make, Model, exposure settings) is intentionally preserved.
@@ -93,6 +105,30 @@ def validate_image_dimensions(img: PILImage.Image, max_dimension: int = MAX_IMAG
     if width > max_dimension or height > max_dimension:
         msg = f"Image dimensions {width}x{height} exceed the maximum allowed {max_dimension}px per side."
         raise ValueError(msg)
+
+
+def validate_image_mime_type(file: UploadFile | None) -> UploadFile | None:
+    """Validate the uploaded image MIME type."""
+    if file is None:
+        return file
+    if file.content_type not in ALLOWED_IMAGE_MIME_TYPES:
+        allowed_types = ", ".join(sorted(ALLOWED_IMAGE_MIME_TYPES))
+        msg = f"Invalid file type: {file.content_type}. Allowed types: {allowed_types}"
+        raise ValueError(msg)
+    return file
+
+
+def validate_image_file(file: BinaryIO) -> None:
+    """Validate that a binary file contains a supported image."""
+    file.seek(0)
+    try:
+        with PILImage.open(file) as image_file:
+            image_file.verify()
+    except (AttributeError, OSError, TypeError, UnidentifiedImageError) as e:
+        msg = "Invalid image file"
+        raise ValueError(msg) from e
+    finally:
+        file.seek(0)
 
 
 def apply_exif_orientation(img: PILImage.Image) -> PILImage.Image:
@@ -175,10 +211,6 @@ def process_image_for_storage(image_path: Path) -> None:
         FileNotFoundError: If the image file does not exist.
         ValueError: If image dimensions exceed MAX_IMAGE_DIMENSION.
     """
-    if not image_path.exists():
-        msg = f"Image file not found: {image_path}"
-        raise FileNotFoundError(msg)
-
     with PILImage.open(image_path) as img:
         original_format = img.format or FORMAT_JPEG
         validate_image_dimensions(img)
@@ -242,10 +274,6 @@ def resize_image(image_path: Path, width: int | None = None, height: int | None 
     Raises:
         FileNotFoundError: If the image path does not exist.
     """
-    if not image_path.exists():
-        msg = f"Image file not found: {image_path}"
-        raise FileNotFoundError(msg)
-
     with PILImage.open(image_path) as img:
         current_width, current_height = img.size
         if width and not height:

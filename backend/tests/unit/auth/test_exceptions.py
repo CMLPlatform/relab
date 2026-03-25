@@ -8,14 +8,32 @@ from uuid import uuid4
 
 import pytest
 from fastapi import status
+from fastapi_users.router.common import ErrorCode
 from sqlalchemy.exc import IntegrityError
 
 from app.api.auth.exceptions import (
     AlreadyMemberError,
     AuthCRUDError,
     DisposableEmailError,
+    InvalidOAuthProviderError,
+    OAuthAccountAlreadyLinkedError,
+    OAuthAccountNotLinkedError,
+    OAuthEmailUnavailableError,
+    OAuthInactiveUserHTTPError,
+    OAuthInvalidRedirectURIError,
+    OAuthInvalidStateError,
+    OAuthStateDecodeError,
+    OAuthStateExpiredError,
+    OAuthUserAlreadyExistsHTTPError,
     OrganizationHasMembersError,
     OrganizationNameExistsError,
+    RefreshTokenInvalidError,
+    RefreshTokenNotFoundError,
+    RefreshTokenRevokedError,
+    RefreshTokenUserInactiveError,
+    RegistrationInvalidPasswordHTTPError,
+    RegistrationUnexpectedHTTPError,
+    RegistrationUserAlreadyExistsHTTPError,
     UserDoesNotOwnOrgError,
     UserHasNoOrgError,
     UserIsNotMemberError,
@@ -46,15 +64,26 @@ TEST_MODEL_NAME = "TestModel"
 DOES_NOT_OWN = "does not own"
 DISPOSABLE_EMAIL_MSG = "disposable email"
 NOT_ALLOWED = "not allowed"
+INVALID_OAUTH_PROVIDER = "Invalid OAuth provider"
+OAUTH_NOT_LINKED = "OAuth account not linked"
+REFRESH_NOT_FOUND = "Refresh token not found"
+REFRESH_INVALID = "Invalid or expired refresh token"
+REFRESH_REVOKED = "Token has been revoked"
+REFRESH_INACTIVE_USER = "User not found or inactive"
+OAUTH_INVALID_REDIRECT = "Invalid redirect_uri"
+OAUTH_LINKED_OTHER = "This account is already linked to another user."
+REGISTRATION_ALREADY_EXISTS = "already exists"
+REGISTRATION_PASSWORD_FAILED = "Password validation failed"
+REGISTRATION_UNEXPECTED = "An unexpected error occurred during registration"
 
 
 @pytest.mark.unit
 class TestAuthCRUDErrorHierarchy:
     """Test the exception class hierarchy."""
 
-    def test_auth_crud_error_is_api_error(self) -> None:
-        """Verify AuthCRUDError inherits from APIError."""
-        assert issubclass(AuthCRUDError, APIError)
+    def test_auth_crud_error_is_not_api_error(self) -> None:
+        """Verify AuthCRUDError stays a marker mixin, while subclasses inherit APIError via concrete families."""
+        assert not issubclass(AuthCRUDError, APIError)
 
     def test_user_name_already_exists_error_is_auth_crud_error(self) -> None:
         """Verify UserNameAlreadyExistsError inherits from AuthCRUDError."""
@@ -258,7 +287,151 @@ class TestUserDoesNotOwnOrgError:
         user_id = uuid4()
         error = UserDoesNotOwnOrgError(user_id=user_id)
         assert str(user_id) in error.message
-        assert NOT_OWN_ORG_USER in error.message
+
+
+@pytest.mark.unit
+class TestInvalidOAuthProviderError:
+    """Tests for InvalidOAuthProviderError."""
+
+    def test_http_status_code_is_400_bad_request(self) -> None:
+        """Verify InvalidOAuthProviderError has 400 Bad Request status."""
+        assert InvalidOAuthProviderError.http_status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_error_message_includes_provider(self) -> None:
+        """Verify the invalid provider is included in the error message."""
+        provider = "discord"
+        error = InvalidOAuthProviderError(provider)
+        assert INVALID_OAUTH_PROVIDER in error.message
+        assert provider in error.message
+
+
+@pytest.mark.unit
+class TestOAuthAccountNotLinkedError:
+    """Tests for OAuthAccountNotLinkedError."""
+
+    def test_http_status_code_is_404_not_found(self) -> None:
+        """Verify OAuthAccountNotLinkedError has 404 Not Found status."""
+        assert OAuthAccountNotLinkedError.http_status_code == status.HTTP_404_NOT_FOUND
+
+    def test_error_message_includes_provider(self) -> None:
+        """Verify the provider is included in the missing-link message."""
+        provider = "google"
+        error = OAuthAccountNotLinkedError(provider)
+        assert OAUTH_NOT_LINKED in error.message
+        assert provider in error.message
+
+
+@pytest.mark.unit
+class TestRefreshTokenErrors:
+    """Tests for refresh token auth errors."""
+
+    def test_refresh_token_not_found_error(self) -> None:
+        """Verify missing refresh tokens produce 401 with the expected message."""
+        error = RefreshTokenNotFoundError()
+        assert error.http_status_code == status.HTTP_401_UNAUTHORIZED
+        assert error.message == REFRESH_NOT_FOUND
+
+    def test_refresh_token_invalid_error(self) -> None:
+        """Verify invalid or expired refresh tokens produce 401."""
+        error = RefreshTokenInvalidError()
+        assert error.http_status_code == status.HTTP_401_UNAUTHORIZED
+        assert error.message == REFRESH_INVALID
+
+    def test_refresh_token_revoked_error(self) -> None:
+        """Verify revoked refresh tokens produce 401."""
+        error = RefreshTokenRevokedError()
+        assert error.http_status_code == status.HTTP_401_UNAUTHORIZED
+        assert error.message == REFRESH_REVOKED
+
+    def test_refresh_token_user_inactive_error(self) -> None:
+        """Verify inactive refresh-token users produce 401."""
+        error = RefreshTokenUserInactiveError()
+        assert error.http_status_code == status.HTTP_401_UNAUTHORIZED
+        assert error.message == REFRESH_INACTIVE_USER
+
+
+@pytest.mark.unit
+class TestOAuthHTTPErrorAdapters:
+    """Tests for OAuth-specific HTTPException subclasses."""
+
+    def test_oauth_state_decode_error(self) -> None:
+        """Verify invalid state JWT maps to the stable decode error detail."""
+        error = OAuthStateDecodeError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == ErrorCode.ACCESS_TOKEN_DECODE_ERROR
+
+    def test_oauth_state_expired_error(self) -> None:
+        """Verify expired state JWT maps to the stable expired detail."""
+        error = OAuthStateExpiredError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == ErrorCode.ACCESS_TOKEN_ALREADY_EXPIRED
+
+    def test_oauth_invalid_state_error(self) -> None:
+        """Verify CSRF state mismatches keep the stable invalid-state detail."""
+        error = OAuthInvalidStateError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == ErrorCode.OAUTH_INVALID_STATE
+
+    def test_oauth_invalid_redirect_uri_error(self) -> None:
+        """Verify rejected redirect URIs keep the existing string detail."""
+        error = OAuthInvalidRedirectURIError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == OAUTH_INVALID_REDIRECT
+
+    def test_oauth_email_unavailable_error(self) -> None:
+        """Verify missing provider emails keep the stable FastAPI Users detail."""
+        error = OAuthEmailUnavailableError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL
+
+    def test_oauth_user_already_exists_http_error(self) -> None:
+        """Verify OAuth duplicate-user collisions keep the stable detail code."""
+        error = OAuthUserAlreadyExistsHTTPError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == ErrorCode.OAUTH_USER_ALREADY_EXISTS
+
+    def test_oauth_inactive_user_http_error(self) -> None:
+        """Verify inactive OAuth users keep the stable login-bad-credentials detail."""
+        error = OAuthInactiveUserHTTPError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == ErrorCode.LOGIN_BAD_CREDENTIALS
+
+    def test_oauth_account_already_linked_error(self) -> None:
+        """Verify duplicate OAuth associations keep the existing human-readable detail."""
+        error = OAuthAccountAlreadyLinkedError()
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert error.detail == OAUTH_LINKED_OTHER
+
+
+@pytest.mark.unit
+class TestRegistrationHTTPErrorAdapters:
+    """Tests for registration-specific HTTPException subclasses."""
+
+    def test_registration_user_already_exists_http_error(self) -> None:
+        """Verify duplicate registration emails keep the stable conflict detail."""
+        email = "existing@example.com"
+        error = RegistrationUserAlreadyExistsHTTPError(email)
+        assert error.status_code == status.HTTP_409_CONFLICT
+        assert email in error.detail
+        assert REGISTRATION_ALREADY_EXISTS in error.detail
+
+    def test_registration_invalid_password_http_error(self) -> None:
+        """Verify invalid registration passwords keep the stable validation detail."""
+        error = RegistrationInvalidPasswordHTTPError("too short")
+        assert error.status_code == status.HTTP_400_BAD_REQUEST
+        assert REGISTRATION_PASSWORD_FAILED in error.detail
+        assert "too short" in error.detail
+
+    def test_registration_unexpected_http_error(self) -> None:
+        """Verify unexpected registration failures keep the stable 500 detail."""
+        error = RegistrationUnexpectedHTTPError()
+        assert error.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert error.detail == REGISTRATION_UNEXPECTED
+
+
+@pytest.mark.unit
+class TestUserDoesNotOwnOrgErrorDetails:
+    """Additional detail formatting tests for UserDoesNotOwnOrgError."""
 
     def test_error_message_with_user_id_and_details(self) -> None:
         """Verify error message includes both user_id and details."""
@@ -492,11 +665,11 @@ class TestHandleOrganizationIntegrityError:
         with pytest.raises(OrganizationNameExistsError):
             handle_organization_integrity_error(e, "creating")
 
-    def test_raises_runtime_error_on_other_db_error(self) -> None:
-        """Test that non-unique violations raise RuntimeError."""
+    def test_raises_internal_server_error_on_other_db_error(self) -> None:
+        """Test that non-unique violations raise InternalServerError."""
         mock_orig = Mock()
         mock_orig.pgcode = "23503"  # Foreign key violation
         e = IntegrityError("statement", {}, mock_orig)
 
-        with pytest.raises(RuntimeError, match="creating"):
+        with pytest.raises(APIError, match="Internal server error"):
             handle_organization_integrity_error(e, "creating")

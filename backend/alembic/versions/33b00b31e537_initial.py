@@ -16,7 +16,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 import app.api.common.models.custom_types
-import app.api.file_storage.models.custom_types as file_storage_custom_types
+import app.api.file_storage.models.storage as file_storage_storage
 
 # revision identifiers, used by Alembic.
 revision: str = "33b00b31e537"
@@ -243,7 +243,7 @@ def upgrade() -> None:
         sa.Column("description", sqlmodel.AutoString(length=500), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("filename", sqlmodel.AutoString(), nullable=False),
-        sa.Column("file", file_storage_custom_types.FileType(), nullable=False),
+        sa.Column("file", file_storage_storage.FileType(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="fileparenttype", create_type=False),
@@ -274,7 +274,7 @@ def upgrade() -> None:
         sa.Column("image_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("filename", sqlmodel.AutoString(), nullable=False),
-        sa.Column("file", file_storage_custom_types.ImageType(), nullable=False),
+        sa.Column("file", file_storage_storage.ImageType(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="imageparenttype", create_type=False),

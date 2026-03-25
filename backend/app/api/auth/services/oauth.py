@@ -3,103 +3,82 @@
 import logging
 import re
 import secrets
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Any, Literal
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from typing import TYPE_CHECKING, Annotated, Any, cast
+from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse, urlunparse
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.responses import Response as FastAPIResponse
-from fastapi_users import models, schemas
+from fastapi_users import schemas
 from fastapi_users.authentication import AuthenticationBackend, Authenticator, Strategy
 from fastapi_users.exceptions import UserAlreadyExists
-from fastapi_users.jwt import SecretType, decode_jwt, generate_jwt
+from fastapi_users.jwt import SecretType, decode_jwt
 from fastapi_users.router.common import ErrorCode
-from httpx_oauth.clients.github import GitHubOAuth2
-from httpx_oauth.clients.google import BASE_SCOPES as GOOGLE_BASE_SCOPES
-from httpx_oauth.clients.google import GoogleOAuth2
 from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
-from pydantic import BaseModel
+from pydantic import UUID4
 from sqlmodel import select
 
 from app.api.auth.config import settings
+from app.api.auth.exceptions import (
+    OAuthAccountAlreadyLinkedError,
+    OAuthEmailUnavailableError,
+    OAuthInactiveUserHTTPError,
+    OAuthInvalidRedirectURIError,
+    OAuthInvalidStateError,
+    OAuthStateDecodeError,
+    OAuthStateExpiredError,
+    OAuthUserAlreadyExistsHTTPError,
+)
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.oauth_clients import (
+    GOOGLE_YOUTUBE_SCOPES,
+    github_oauth_client,
+    google_oauth_client,
+    google_youtube_oauth_client,
+)
+from app.api.auth.services.oauth_utils import (
+    ACCESS_TOKEN_KEY,
+    CSRF_TOKEN_COOKIE_NAME,
+    CSRF_TOKEN_KEY,
+    SET_COOKIE_HEADER,
+    STATE_TOKEN_AUDIENCE,
+    OAuth2AuthorizeResponse,
+    OAuthCookieSettings,
+    generate_csrf_token,
+    generate_state_token,
+    set_csrf_cookie,
+)
 from app.api.auth.services.user_manager import (
     UserManager,
     fastapi_user_manager,
 )
 from app.core.config import settings as core_settings
-from app.core.constants import HOUR
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token
 
 logger = logging.getLogger(__name__)
 
-# Constants
-STATE_TOKEN_AUDIENCE = "fastapi-users:oauth-state"  # noqa: S105
-CSRF_TOKEN_KEY = "csrftoken"  # noqa: S105
-CSRF_TOKEN_COOKIE_NAME = "fastapiusersoauthcsrf"  # noqa: S105 # spell-checker: ignore fastapiusersoauthcsrf
-SET_COOKIE_HEADER = b"set-cookie"
-ACCESS_TOKEN_KEY = "access_token"  # noqa: S105
-
-### OAuth Clients ###
-
-# Google
-google_oauth_client = GoogleOAuth2(
-    settings.google_oauth_client_id.get_secret_value(),
-    settings.google_oauth_client_secret.get_secret_value(),
-    scopes=GOOGLE_BASE_SCOPES,
-)
-
-# YouTube (only used for RPi-cam plugin)
-GOOGLE_YOUTUBE_SCOPES = GOOGLE_BASE_SCOPES + settings.youtube_api_scopes
-google_youtube_oauth_client = GoogleOAuth2(
-    settings.google_oauth_client_id.get_secret_value(),
-    settings.google_oauth_client_secret.get_secret_value(),
-    scopes=GOOGLE_YOUTUBE_SCOPES,
-)
-
-# GitHub
-github_oauth_client = GitHubOAuth2(
-    settings.github_oauth_client_id.get_secret_value(),
-    settings.github_oauth_client_secret.get_secret_value(),
-)
-
-
-### Helper Functions & DTOs ###
-
-
-class OAuth2AuthorizeResponse(BaseModel):
-    """Response model for OAuth2 authorization endpoint."""
-
-    authorization_url: str
-
-
-def generate_state_token(data: dict[str, str], secret: SecretType, lifetime_seconds: int = HOUR) -> str:
-    """Generate a JWT state token for OAuth flows."""
-    data["aud"] = STATE_TOKEN_AUDIENCE
-    return generate_jwt(data, secret, lifetime_seconds)
-
-
-def generate_csrf_token() -> str:
-    """Generate a CSRF token for OAuth flows."""
-    return secrets.token_urlsafe(32)
-
-
-@dataclass
-class OAuthCookieSettings:
-    """Configuration for OAuth CSRF cookies."""
-
-    name: str = CSRF_TOKEN_COOKIE_NAME
-    path: str = "/"
-    domain: str | None = None
-    # Use the core settings to determine whether cookies should be Secure.
-    # In development/testing we allow non-HTTPS cookies so localhost flows work.
-    secure: bool = core_settings.secure_cookies
-    httponly: bool = True
-    samesite: Literal["lax", "strict", "none"] = "lax"
+__all__ = [
+    "ACCESS_TOKEN_KEY",
+    "CSRF_TOKEN_COOKIE_NAME",
+    "CSRF_TOKEN_KEY",
+    "GOOGLE_YOUTUBE_SCOPES",
+    "STATE_TOKEN_AUDIENCE",
+    "BaseOAuthRouterBuilder",
+    "CustomOAuthAssociateRouterBuilder",
+    "CustomOAuthRouterBuilder",
+    "OAuth2AuthorizeResponse",
+    "OAuthCookieSettings",
+    "generate_csrf_token",
+    "generate_state_token",
+    "github_oauth_client",
+    "google_oauth_client",
+    "google_youtube_oauth_client",
+]
 
 
 class BaseOAuthRouterBuilder:
@@ -120,31 +99,16 @@ class BaseOAuthRouterBuilder:
 
     def set_csrf_cookie(self, response: Response, csrf_token: str) -> None:
         """Set the CSRF cookie on the response."""
-        response.set_cookie(
-            self.cookie_settings.name,
-            csrf_token,
-            max_age=HOUR,
-            path=self.cookie_settings.path,
-            domain=self.cookie_settings.domain,
-            secure=self.cookie_settings.secure,
-            httponly=self.cookie_settings.httponly,
-            samesite=self.cookie_settings.samesite,
-        )
+        set_csrf_cookie(response, self.cookie_settings, csrf_token)
 
     def verify_state(self, request: Request, state: str) -> dict[str, Any]:
         """Decode the state JWT and verify CSRF protection."""
         try:
             state_data = decode_jwt(state, self.state_secret, [STATE_TOKEN_AUDIENCE])
         except jwt.DecodeError as err:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.ACCESS_TOKEN_DECODE_ERROR,
-            ) from err
+            raise OAuthStateDecodeError from err
         except jwt.ExpiredSignatureError as err:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.ACCESS_TOKEN_ALREADY_EXPIRED,
-            ) from err
+            raise OAuthStateExpiredError from err
 
         cookie_csrf_token = request.cookies.get(self.cookie_settings.name)
         state_csrf_token = state_data.get(CSRF_TOKEN_KEY)
@@ -154,10 +118,7 @@ class BaseOAuthRouterBuilder:
             or not state_csrf_token
             or not secrets.compare_digest(cookie_csrf_token, state_csrf_token)
         ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.OAUTH_INVALID_STATE,
-            )
+            raise OAuthInvalidStateError
 
         return state_data
 
@@ -210,7 +171,7 @@ class BaseOAuthRouterBuilder:
         """Validate the redirect path against the optional allowlist."""
         return not settings.oauth_allowed_redirect_paths or path in settings.oauth_allowed_redirect_paths
 
-    def _is_allowed_http_redirect(self, redirect_uri: str, parsed_redirect: Any) -> bool:  # noqa: ANN401
+    def _is_allowed_http_redirect(self, redirect_uri: str, parsed_redirect: ParseResult) -> bool:
         """Validate an HTTP(S) frontend redirect against trusted origins."""
         if not parsed_redirect.netloc:
             return False
@@ -248,7 +209,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
     def __init__(
         self,
         oauth_client: BaseOAuth2,
-        backend: AuthenticationBackend[User, models.ID],
+        backend: AuthenticationBackend[User, UUID4],
         state_secret: SecretType,
         redirect_url: str | None = None,
         cookie_settings: OAuthCookieSettings | None = None,
@@ -294,7 +255,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
             request: Request,
             access_token_state: Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
             user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-            strategy: Annotated[Strategy[User, models.ID], Depends(self.backend.get_strategy)],
+            strategy: Annotated[Strategy[User, UUID4], Depends(self.backend.get_strategy)],
         ) -> Response:
             return await self._get_callback_handler(request, access_token_state, user_manager, strategy)
 
@@ -316,7 +277,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         redirect_uri = request.query_params.get("redirect_uri")
         if redirect_uri:
             if not self._is_allowed_frontend_redirect(redirect_uri):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid redirect_uri")
+                raise OAuthInvalidRedirectURIError
             state_data["frontend_redirect_uri"] = redirect_uri
 
         state = generate_state_token(state_data, self.state_secret)
@@ -334,7 +295,7 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         request: Request,
         access_token_state: tuple[OAuth2Token, str],
         user_manager: UserManager,
-        strategy: Strategy[User, models.ID],
+        strategy: Strategy[User, UUID4],
     ) -> Response:
         token, state = access_token_state
         state_data = self.verify_state(request, state)
@@ -344,10 +305,15 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         if account_email is None:
             if frontend_redirect:
                 return self._create_error_redirect(frontend_redirect, ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL.value)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL)
+            raise OAuthEmailUnavailableError
+
+        oauth_callback = cast(
+            "Callable[..., Awaitable[User]]",
+            user_manager.oauth_callback,
+        )
 
         try:
-            user = await user_manager.oauth_callback(
+            user = await oauth_callback(
                 self.oauth_client.name,
                 token[ACCESS_TOKEN_KEY],
                 account_id,
@@ -361,18 +327,12 @@ class CustomOAuthRouterBuilder(BaseOAuthRouterBuilder):
         except UserAlreadyExists as err:
             if frontend_redirect:
                 return self._create_error_redirect(frontend_redirect, ErrorCode.OAUTH_USER_ALREADY_EXISTS.value)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.OAUTH_USER_ALREADY_EXISTS,
-            ) from err
+            raise OAuthUserAlreadyExistsHTTPError from err
 
         if not user.is_active:
             if frontend_redirect:
                 return self._create_error_redirect(frontend_redirect, ErrorCode.LOGIN_BAD_CREDENTIALS.value)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.LOGIN_BAD_CREDENTIALS,
-            )
+            raise OAuthInactiveUserHTTPError
 
         response = await self.backend.login(strategy, user)
         await user_manager.on_after_login(user, request, response)
@@ -389,7 +349,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
     def __init__(
         self,
         oauth_client: BaseOAuth2,
-        authenticator: Authenticator[User, models.ID],
+        authenticator: Authenticator[User, UUID4],
         user_schema: type[schemas.U],
         state_secret: SecretType,
         redirect_url: str | None = None,
@@ -439,7 +399,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
             user: Annotated[User, Depends(get_current_active_user)],
             access_token_state: Annotated[tuple[OAuth2Token, str], Depends(oauth2_authorize_callback)],
             user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
-        ) -> Any:  # noqa: ANN401
+        ) -> Response | schemas.U:
             return await self._get_callback_handler(request, user, access_token_state, user_manager)
 
         return router
@@ -461,7 +421,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         redirect_uri = request.query_params.get("redirect_uri")
         if redirect_uri:
             if not self._is_allowed_frontend_redirect(redirect_uri):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid redirect_uri")
+                raise OAuthInvalidRedirectURIError
             state_data["frontend_redirect_uri"] = redirect_uri
 
         state = generate_state_token(state_data, self.state_secret)
@@ -480,16 +440,16 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         user: User,
         access_token_state: tuple[OAuth2Token, str],
         user_manager: UserManager,
-    ) -> Any:  # noqa: ANN401
+    ) -> Response | schemas.U:
         token, state = access_token_state
         state_data = self.verify_state(request, state)
 
         if state_data.get("sub") != str(user.id):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.OAUTH_INVALID_STATE)
+            raise OAuthInvalidStateError
 
         account_id, account_email = await self.oauth_client.get_id_email(token["access_token"])
         if account_email is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL)
+            raise OAuthEmailUnavailableError
 
         # Pre-check: Is this account already linked somewhere else?
         session = user_manager.user_db.session
@@ -503,12 +463,14 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         ).first()
 
         if existing_account and existing_account.user_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="This account is already linked to another user.",
-            )
+            raise OAuthAccountAlreadyLinkedError
 
-        user = await user_manager.oauth_associate_callback(
+        oauth_associate_callback = cast(
+            "Callable[..., Awaitable[User]]",
+            user_manager.oauth_associate_callback,
+        )
+
+        user = await oauth_associate_callback(
             user,
             self.oauth_client.name,
             token["access_token"],
@@ -523,4 +485,4 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         if frontend_redirect:
             return self._create_success_redirect(frontend_redirect, FastAPIResponse())
 
-        return self.user_schema.model_validate(user)
+        return cast("schemas.U", self.user_schema.model_validate(user))

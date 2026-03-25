@@ -2,12 +2,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from fastapi_users.authentication import Strategy
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.dependencies import CurrentActiveUserDep, UserManagerDep
+from app.api.auth.exceptions import RefreshTokenNotFoundError, RefreshTokenUserInactiveError
 from app.api.auth.schemas import (
     RefreshTokenRequest,
     RefreshTokenResponse,
@@ -44,10 +45,7 @@ async def refresh_access_token(
     """
     actual_refresh_token = (request.refresh_token.get_secret_value() if request else None) or cookie_refresh_token
     if not actual_refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found",
-        )
+        raise RefreshTokenNotFoundError
 
     # Verify refresh token
     user_id = await refresh_token_service.verify_refresh_token(redis, actual_refresh_token)
@@ -55,10 +53,7 @@ async def refresh_access_token(
     # Get user
     user = await user_manager.get(user_id)
     if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
-        )
+        raise RefreshTokenUserInactiveError
 
     # Generate new access token
     access_token = await strategy.write_token(user)
@@ -94,10 +89,7 @@ async def refresh_access_token_cookie(
     Updates session activity timestamp.
     """
     if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found",
-        )
+        raise RefreshTokenNotFoundError
 
     # Verify token first, then rotate after user validation succeeds.
     user_id = await refresh_token_service.verify_refresh_token(redis, refresh_token)
@@ -105,10 +97,7 @@ async def refresh_access_token_cookie(
     # Get user
     user = await user_manager.get(user_id)
     if not user or not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
-        )
+        raise RefreshTokenUserInactiveError
 
     # Generate new access token and set cookie
     access_token = await strategy.write_token(user)

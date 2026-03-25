@@ -1,8 +1,8 @@
 """Admin routes for managing users."""
 
-from typing import Annotated
+from typing import Annotated, cast
 
-from fastapi import APIRouter, Path, Query, Security
+from fastapi import APIRouter, Path, Security
 from fastapi.responses import RedirectResponse
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
@@ -16,8 +16,15 @@ from app.api.auth.routers.users import router as public_user_router
 from app.api.auth.schemas import UserRead
 from app.api.common.crud.base import get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.common.routers.query_params import relationship_include_query
 
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
+
+USER_INCLUDE_EXAMPLES = {
+    "none": {"value": []},
+    "products": {"value": ["products"]},
+    "all": {"value": ["products", "organization"]},
+}
 
 
 ## GET ##
@@ -74,19 +81,15 @@ async def get_users(
     session: AsyncSessionDep,
     include: Annotated[
         set[str] | None,
-        Query(
-            description="Relationships to include",
-            openapi_examples={
-                "none": {"value": []},
-                "products": {"value": ["products"]},
-                "all": {"value": ["products", "organization"]},
-            },
-        ),
+        relationship_include_query(openapi_examples=USER_INCLUDE_EXAMPLES),
     ] = None,
-) -> Page[User]:
+) -> Page[UserRead]:
     """Get a list of all users with optional filtering and relationships."""
-    return await get_paginated_models(
-        session, User, include_relationships=include, model_filter=user_filter, read_schema=UserRead
+    return cast(
+        "Page[UserRead]",
+        await get_paginated_models(
+            session, User, include_relationships=include, model_filter=user_filter, read_schema=UserRead
+        ),
     )
 
 

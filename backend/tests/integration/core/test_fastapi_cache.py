@@ -171,17 +171,11 @@ class TestFastAPICacheIntegration:
         async def get_context() -> dict[str, str]:
             return {"request_id": "123"}
 
-        @router.get("/cached-with-dependency")
+        @router.get("/cached-with-dependency", dependencies=[Depends(get_context)])
         @cache(expire=EXPIRE_60)
-        async def cached_with_dependency(
-            value: str,
-            context: dict = Depends(get_context),  # noqa: FAST002
-        ) -> dict:
+        async def cached_with_dependency(value: str) -> dict:
             """Test endpoint with cache and dependency."""
-            return {
-                "result": f"processed_{value}",
-                "request_id": context["request_id"],
-            }
+            return {"result": f"processed_{value}"}
 
         app.include_router(router)
 

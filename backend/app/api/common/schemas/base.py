@@ -87,7 +87,7 @@ class ProductRead(BaseReadSchemaWithTimeStamp, ProductBase):
 
     thumbnail_url: str | None = None
 
-    # HACK: Include parent id and mount_in_parent in base product read schema
+    # Include component metadata here because the same read schema serves both base products and components.
     # TODO: separate components and base products on the model level
     parent_id: PositiveInt | None = None
     amount_in_parent: int | None = Field(default=None, description="Quantity within parent product")

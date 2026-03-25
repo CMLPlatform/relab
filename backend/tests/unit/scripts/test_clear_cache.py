@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from app.core.config import CacheNamespace
 from scripts import clear_cache as clear_cache_script
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.unit
@@ -15,7 +20,7 @@ class TestClearCacheScript:
     async def test_clear_cache_returns_error_when_redis_is_unavailable(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        mocker: pytest.MockFixture,
+        mocker: MockerFixture,
     ) -> None:
         """A missing Redis connection should return a non-zero exit code."""
         close_redis_mock = mocker.AsyncMock()
@@ -31,7 +36,7 @@ class TestClearCacheScript:
     async def test_clear_cache_clears_requested_namespace(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        mocker: pytest.MockFixture,
+        mocker: MockerFixture,
     ) -> None:
         """A valid Redis connection should initialize, clear, and close cleanly."""
         redis_client = object()
@@ -59,7 +64,7 @@ class TestClearCacheScript:
 
         assert exc_info.value.code == 1
 
-    def test_main_uses_default_namespace(self, monkeypatch: pytest.MonkeyPatch, mocker: pytest.MockFixture) -> None:
+    def test_main_uses_default_namespace(self, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
         """With no argument, the script should clear the default namespace."""
         clear_cache_mock = mocker.AsyncMock(return_value=0)
 

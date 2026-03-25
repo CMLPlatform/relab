@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
 from fastapi import status
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 # Constants for test values
 FLOW_TEST_EMAIL = "flowtest@example.com"
 FLOW_TEST_USERNAME = "flowtest"
-FLOW_TEST_PASSWORD = "SecurePassword123!"  # noqa: S105
+FLOW_TEST_PASSWORD = "SecurePassword123!"
 MULTI_DEVICE_EMAIL = "multidevice@example.com"
 MULTI_DEVICE_USERNAME = "multidevice"
 LOGOUT_ALL_EMAIL = "logoutall@example.com"
@@ -34,7 +35,7 @@ TRACKING_TEST_EMAIL = "trackingtest@example.com"
 TRACKING_TEST_USERNAME = "trackingtest"
 COOKIE_FLOW_EMAIL = "cookie_flow@example.com"
 COOKIE_FLOW_USERNAME = "cookie_flow"
-TEST_USER_ID = "test-user-123"
+TEST_USER_ID = UUID("11111111-1111-4111-8111-111111111111")
 TEST_SESSION_ID = "test-session-456"
 TEST_IP = "192.168.1.1"
 UA_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)"
@@ -64,7 +65,11 @@ class TestCompleteAuthFlow:
         }
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(**register_data)
+            mock_override.return_value = UserCreate(
+                email=register_data["email"],
+                password=register_data["password"],
+                username=register_data["username"],
+            )
             register_response = await async_client.post("/auth/register", json=register_data)
 
         assert register_response.status_code == status.HTTP_201_CREATED, "Registration failed"
@@ -139,7 +144,11 @@ class TestCompleteAuthFlow:
         }
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(**register_data)
+            mock_override.return_value = UserCreate(
+                email=register_data["email"],
+                password=register_data["password"],
+                username=register_data["username"],
+            )
             register_response = await async_client.post("/auth/register", json=register_data)
 
         if register_response.status_code != status.HTTP_201_CREATED:
@@ -177,7 +186,11 @@ class TestCompleteAuthFlow:
         }
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(**register_data)
+            mock_override.return_value = UserCreate(
+                email=register_data["email"],
+                password=register_data["password"],
+                username=register_data["username"],
+            )
             register_response = await async_client.post("/auth/register", json=register_data)
 
         if register_response.status_code != status.HTTP_201_CREATED:
@@ -230,7 +243,11 @@ class TestErrorHandling:
         }
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-            mock_override.return_value = UserCreate(**register_data)
+            mock_override.return_value = UserCreate(
+                email=register_data["email"],
+                password=register_data["password"],
+                username=register_data["username"],
+            )
             await async_client.post("/auth/register", json=register_data)
 
         login_data = {"username": register_data["email"], "password": register_data["password"]}

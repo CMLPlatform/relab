@@ -1,12 +1,16 @@
 """CRUD utility functions for association models between many-to-many relationships."""
 
+# ruff: noqa: PLR0913
+
 from enum import StrEnum
 from typing import TYPE_CHECKING, overload
 
+from pydantic import BaseModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.common.crud.base import get_model_by_id, get_models
+from app.api.common.exceptions import BadRequestError
 from app.api.common.models.custom_types import DT, IDT, LMT, MT
 
 if TYPE_CHECKING:
@@ -44,7 +48,7 @@ async def get_linking_model_with_ids_if_it_exists(
     if not result:
         model_name: str = model_type.get_api_model_name().name_capital
         err_msg: str = f"{model_name} with {id1_field} {id1} and {id2_field} {id2} not found"
-        raise ValueError(err_msg)
+        raise BadRequestError(err_msg)
     return result
 
 
@@ -68,6 +72,7 @@ async def get_linked_model_by_id(
     *,
     return_type: LinkedModelReturnType = LinkedModelReturnType.DEPENDENT,
     include: set[str] | None = None,
+    read_schema: type[BaseModel] | None = None,
 ) -> DT: ...
 
 
@@ -84,6 +89,7 @@ async def get_linked_model_by_id(
     *,
     return_type: LinkedModelReturnType = LinkedModelReturnType.LINK,
     include: set[str] | None = None,
+    read_schema: type[BaseModel] | None = None,
 ) -> LMT: ...
 
 
@@ -99,6 +105,7 @@ async def get_linked_model_by_id(
     *,
     return_type: LinkedModelReturnType = LinkedModelReturnType.DEPENDENT,
     include: set[str] | None = None,
+    read_schema: type[BaseModel] | None = None,
 ) -> DT | LMT:
     """Get dependent or linking model via linking table relationship.
 
@@ -113,21 +120,28 @@ async def get_linked_model_by_id(
         dependent_link_field: Dependent ID field in link model
         return_type: Type of result to return (dependent model or linking model)
         include: Optional relationships to include
+        read_schema: Optional schema to validate relationships against
     """
     # Validate both models exist
     await get_model_by_id(db, parent_model, parent_id)
-    dependent: DT = await get_model_by_id(db, dependent_model, dependent_id, include_relationships=include)
+    dependent: DT = await get_model_by_id(
+        db,
+        dependent_model,
+        dependent_id,
+        include_relationships=include,
+        read_schema=read_schema,
+    )
 
     # Validate link exists
     try:
         link: LMT = await get_linking_model_with_ids_if_it_exists(
             db, link_model, parent_id, dependent_id, parent_link_field, dependent_link_field
         )
-    except ValueError as e:
+    except BadRequestError as e:
         dependent_model_name: str = dependent_model.get_api_model_name().name_capital
         parent_model_name: str = parent_model.get_api_model_name().name_capital
         err_msg: str = f"{dependent_model_name} is not linked to {parent_model_name}"
-        raise ValueError(err_msg) from e
+        raise BadRequestError(err_msg) from e
 
     return link if return_type == LinkedModelReturnType.LINK else dependent
 
@@ -142,6 +156,7 @@ async def get_linked_models(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
+    read_schema: type[BaseModel] | None = None,
 ) -> Sequence[DT]:
     """Get all linked dependent models for a parent."""
     # Validate parent exists
@@ -154,7 +169,12 @@ async def get_linked_models(
 
     # Get filtered models with includes
     return await get_models(
-        db, dependent_model, include_relationships=include_relationships, model_filter=model_filter, statement=statement
+        db,
+        dependent_model,
+        include_relationships=include_relationships,
+        model_filter=model_filter,
+        statement=statement,
+        read_schema=read_schema,
     )
 
 

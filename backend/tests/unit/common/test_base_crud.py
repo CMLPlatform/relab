@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi_filter.contrib.sqlalchemy import Filter
+from sqlmodel import select
 
 from app.api.background_data.models import Material
 from app.api.common.crud.base import (
@@ -14,7 +16,8 @@ from app.api.common.crud.base import (
     get_nested_model_by_id,
     should_apply_filter,
 )
-from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
+from app.api.common.crud.utils import add_relationship_options
 from app.api.data_collection.models import PhysicalProperties
 
 
@@ -56,15 +59,15 @@ class TestShouldApplyFilter:
 class TestGetModelByIdErrors:
     """Tests for get_model_by_id error paths."""
 
-    async def test_raises_value_error_for_model_without_id(self) -> None:
-        """Test that ValueError is raised when model has no id field."""
+    async def test_raises_crud_configuration_error_for_model_without_id(self) -> None:
+        """Test that CRUDConfigurationError is raised when model has no id field."""
         session = AsyncMock()
 
         class NoIdModel:
             pass
 
-        with pytest.raises(ValueError, match="does not have an id field"):
-            await get_model_by_id(session, NoIdModel, 1)
+        with pytest.raises(CRUDConfigurationError, match="does not have an id field"):
+            await get_model_by_id(session, cast("type[Any]", NoIdModel), 1)
 
 
 @pytest.mark.unit
@@ -86,13 +89,22 @@ class TestGetModelsQueryOrderBy:
 
         mock_filter.sort.assert_called_once()
 
+    def test_does_not_apply_noload_without_read_schema(self) -> None:
+        """Internal CRUD fetches should keep normal ORM relationship behavior by default."""
+        statement = select(Material)
+
+        updated_statement, relationships_to_exclude = add_relationship_options(statement, Material)
+
+        assert str(updated_statement) == str(statement)
+        assert relationships_to_exclude == set()
+
 
 @pytest.mark.unit
 class TestGetNestedModelById:
     """Tests for get_nested_model_by_id error paths."""
 
-    async def test_raises_key_error_when_fk_missing(self) -> None:
-        """Test KeyError when dependent model doesn't have the FK field."""
+    async def test_raises_crud_configuration_error_when_fk_missing(self) -> None:
+        """Test CRUDConfigurationError when dependent model doesn't have the FK field."""
         session = AsyncMock()
 
         class ParentModel:
@@ -113,8 +125,15 @@ class TestGetNestedModelById:
                 m.name_capital = "Child"
                 return m
 
-        with pytest.raises(KeyError, match="does not have a"):
-            await get_nested_model_by_id(session, ParentModel, 1, ChildModel, 2, "parent_id")
+        with pytest.raises(CRUDConfigurationError, match="does not have a"):
+            await get_nested_model_by_id(
+                session,
+                cast("type[Any]", ParentModel),
+                1,
+                cast("type[Any]", ChildModel),
+                2,
+                "parent_id",
+            )
 
     async def test_raises_ownership_error_when_fk_mismatch(self) -> None:
         """Test DependentModelOwnershipError when FK doesn't match parent ID."""

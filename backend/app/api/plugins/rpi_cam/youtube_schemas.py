@@ -3,26 +3,27 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+# ruff: noqa: N815 # PascalCase field names match YouTube API conventions; ignore snake_case naming violation
 class YouTubeSnippetCreate(BaseModel):
     """Common YouTube snippet payload."""
 
     title: str
     description: str = ""
-    scheduledStartTime: str | None = None  # noqa: N815 # Matches YouTube API field name
+    scheduledStartTime: str | None = None
 
 
 class YouTubeBroadcastStatusCreate(BaseModel):
     """Broadcast status payload."""
 
-    privacyStatus: str  # noqa: N815 # Matches YouTube API field name
-    selfDeclaredMadeForKids: bool = False  # noqa: N815 # Matches YouTube API field name
+    privacyStatus: str
+    selfDeclaredMadeForKids: bool = False
 
 
 class YouTubeBroadcastContentDetailsCreate(BaseModel):
     """Broadcast content details payload."""
 
-    enableAutoStart: bool = True  # noqa: N815 # Matches YouTube API field name
-    enableAutoStop: bool = True  # noqa: N815 # Matches YouTube API field name
+    enableAutoStart: bool = True
+    enableAutoStop: bool = True
 
 
 class YouTubeBroadcastCreateRequest(BaseModel):
@@ -30,14 +31,14 @@ class YouTubeBroadcastCreateRequest(BaseModel):
 
     snippet: YouTubeSnippetCreate
     status: YouTubeBroadcastStatusCreate
-    contentDetails: YouTubeBroadcastContentDetailsCreate  # noqa: N815 # Matches YouTube API field name
+    contentDetails: YouTubeBroadcastContentDetailsCreate
 
 
 class YouTubeStreamCDNCreate(BaseModel):
     """Stream CDN configuration payload."""
 
-    frameRate: str = "30fps"  # noqa: N815 # Matches YouTube API field name
-    ingestionType: str = "hls"  # noqa: N815 # Matches YouTube API field name
+    frameRate: str = "30fps"
+    ingestionType: str = "hls"
     resolution: str = "720p"
 
 
@@ -55,16 +56,43 @@ class YouTubeBroadcastResponse(BaseModel):
     id: str
 
 
+class YouTubeMonitorStreamResponse(BaseModel):
+    """Subset of monitor stream fields used by the app."""
+
+    enableMonitorStream: bool
+    broadcastStreamDelayMs: int | None = None
+    embedHtml: str | None = None
+
+
+class YouTubeBroadcastContentDetailsResponse(BaseModel):
+    """Subset of broadcast content details fields used by the app."""
+
+    monitorStream: YouTubeMonitorStreamResponse | None = None
+
+
+class YouTubeBroadcastItemResponse(BaseModel):
+    """Single broadcast item from list response."""
+
+    id: str
+    contentDetails: YouTubeBroadcastContentDetailsResponse | None = None
+
+
+class YouTubeBroadcastListResponse(BaseModel):
+    """List-broadcasts response payload."""
+
+    items: list[YouTubeBroadcastItemResponse] = Field(default_factory=list)
+
+
 class YouTubeIngestionInfoResponse(BaseModel):
     """Subset of ingestion info fields used by the app."""
 
-    streamName: str  # noqa: N815 # Matches YouTube API field name
+    streamName: str
 
 
 class YouTubeCDNResponse(BaseModel):
     """Subset of CDN response fields used by the app."""
 
-    ingestionInfo: YouTubeIngestionInfoResponse  # noqa: N815 # Matches YouTube API field name
+    ingestionInfo: YouTubeIngestionInfoResponse
 
 
 class YouTubeStreamResponse(BaseModel):
@@ -77,7 +105,7 @@ class YouTubeStreamResponse(BaseModel):
 class YouTubeStreamStatusResponse(BaseModel):
     """Subset of stream status response fields used by the app."""
 
-    streamStatus: str  # noqa: N815 # Matches YouTube API field name
+    streamStatus: str
 
 
 class YouTubeStreamItemResponse(BaseModel):

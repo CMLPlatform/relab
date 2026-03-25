@@ -5,16 +5,20 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from anyio import open_file, to_thread
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator, Unicode
 
+from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
+from app.core.config import settings
+from app.core.images import validate_image_file
+
 if TYPE_CHECKING:
-    from collections.abc import BinaryIO
-    from typing import Protocol, Self
+    from collections.abc import Callable
+    from typing import BinaryIO, Protocol, Self
 
     from fastapi import UploadFile
 
@@ -24,11 +28,8 @@ if TYPE_CHECKING:
         file: BinaryIO
         filename: str
 
+
 _FILENAME_ASCII_STRIP_RE = re.compile(r"[^A-Za-z0-9_.-]")
-
-
-class ValidationError(Exception):
-    """Raised when an uploaded file fails storage validation."""
 
 
 def secure_filename(filename: str) -> str:
@@ -145,8 +146,13 @@ class FileSystemStorage(BaseStorage):
 
     default_chunk_size = 64 * 1024
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, *, create_path: bool = False) -> None:
         self._path = Path(path)
+        if create_path:
+            self._ensure_path()
+
+    def _ensure_path(self) -> None:
+        """Create the storage directory if needed."""
         self._path.mkdir(parents=True, exist_ok=True)
 
     def get_name(self, name: str) -> str:
@@ -167,6 +173,7 @@ class FileSystemStorage(BaseStorage):
 
     def write(self, file: BinaryIO, name: str) -> str:
         """Write a binary file to local storage."""
+        self._ensure_path()
         filename = secure_filename(name)
         path = self._path / Path(filename)
 
@@ -191,6 +198,7 @@ class FileSystemStorage(BaseStorage):
 
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Write an uploaded file using async file I/O."""
+        self._ensure_path()
         filename = self.get_name(name)
         path = self._path / filename
 
@@ -204,26 +212,26 @@ class FileSystemStorage(BaseStorage):
 
     async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
         """Validate and write an uploaded image using async file I/O."""
-        await upload_file.seek(0)
-        try:
-            await to_thread.run_sync(self._validate_image_file, upload_file.file)
-        except UnidentifiedImageError as e:
-            error_message = "Invalid image file"
-            raise ValidationError(error_message) from e
+        self._ensure_path()
+        await to_thread.run_sync(validate_image_file, upload_file.file)
 
         return await self.write_upload(upload_file, name)
 
-    @staticmethod
-    def _validate_image_file(file: BinaryIO) -> None:
-        """Validate that a binary file contains a supported image."""
-        file.seek(0)
-        with Image.open(file) as image_file:
-            image_file.verify()
-        file.seek(0)
+
+class CustomFileSystemStorage(FileSystemStorage):
+    """Filesystem storage with custom error handling for the app."""
+
+    def open(self, name: str) -> BinaryIO:
+        """Map missing files to the API-specific not-found error."""
+        try:
+            return super().open(name)
+        except FileNotFoundError as e:
+            details = str(e) if settings.debug else None
+            raise FastAPIStorageFileNotFoundError(name, details=details) from e
 
 
-class FileType(TypeDecorator):
-    """Store uploaded files on disk and persist only the file name."""
+class _BaseStorageType(TypeDecorator):
+    """Shared SQLAlchemy type behavior for storage-backed columns."""
 
     impl = Unicode
     cache_ok = True
@@ -233,7 +241,7 @@ class FileType(TypeDecorator):
         super().__init__(*args, **kwargs)
 
     def process_bind_param(self, value: UploadValue | None, dialect: Dialect) -> str | None:
-        """Persist an uploaded file and return the stored file name."""
+        """Persist an uploaded value and return the stored file name."""
         del dialect
         if value is None:
             return value
@@ -245,10 +253,22 @@ class FileType(TypeDecorator):
             return None
 
         file_obj.seek(0)
+        try:
+            return self._process_upload_value(value, file_obj)
+        finally:
+            file_obj.close()
+
+    def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
+        """Persist an uploaded file-like value and return the stored name."""
+        raise NotImplementedError
+
+
+class _FileType(_BaseStorageType):
+    """Store uploaded files on disk and persist only the file name."""
+
+    def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
         file = StorageFile(name=value.filename, storage=self.storage)
         file.write(file=file_obj)
-
-        file_obj.close()
         return file.name
 
     def process_result_value(self, value: str | None, dialect: Dialect) -> StorageFile | None:
@@ -260,42 +280,17 @@ class FileType(TypeDecorator):
         return StorageFile(name=value, storage=self.storage)
 
 
-class ImageType(TypeDecorator):
+class _ImageType(_BaseStorageType):
     """Store uploaded images on disk and persist only the file name."""
 
-    impl = Unicode
-    cache_ok = True
-
-    def __init__(self, storage: BaseStorage, *args: object, **kwargs: object) -> None:
-        self.storage = storage
-        super().__init__(*args, **kwargs)
-
-    def process_bind_param(self, value: UploadValue | None, dialect: Dialect) -> str | None:
-        """Validate, persist, and return the stored image file name."""
-        del dialect
-        if value is None:
-            return value
-        if isinstance(value, str):
-            return self.storage.get_name(value)
-
-        file_obj = value.file
-        if len(file_obj.read(1)) != 1:
-            return None
-
-        file_obj.seek(0)
-        try:
-            with Image.open(file_obj) as image_file:
-                width, height = image_file.size
-                image_file.verify()
-        except UnidentifiedImageError as e:
-            error_message = "Invalid image file"
-            raise ValidationError(error_message) from e
+    def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
+        validate_image_file(file_obj)
+        with Image.open(file_obj) as image_file:
+            width, height = image_file.size
 
         file_obj.seek(0)
         image = StorageImage(name=value.filename, storage=self.storage, height=height, width=width)
         image.write(file=file_obj)
-
-        file_obj.close()
         return image.name
 
     def process_result_value(self, value: str | None, dialect: Dialect) -> StorageImage | None:
@@ -308,3 +303,46 @@ class ImageType(TypeDecorator):
             width, height = image.size
 
         return StorageImage(name=value, storage=self.storage, height=height, width=width)
+
+
+def get_storage(path: Path) -> CustomFileSystemStorage:
+    """Build a storage backend for a configured filesystem path."""
+    return CustomFileSystemStorage(path=str(path))
+
+
+class _ConfiguredStorageTypeMixin:
+    """Inject a configured storage backend into a SQLAlchemy type."""
+
+    storage_factory: ClassVar[Callable[[], CustomFileSystemStorage]]
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super_init = cast("Any", super().__init__)
+        super_init(type(self).storage_factory(), *args, **kwargs)
+
+
+class _MissingFileReturnsNoneMixin:
+    """Normalize missing files to None for graceful application-level handling."""
+
+    def process_result_value(self, value: Any, dialect: Dialect) -> StorageImage | None:  # noqa: ANN401 # Any-type value is expected by the parent class signature
+        try:
+            return cast("Any", super()).process_result_value(value, dialect)
+        except FileNotFoundError:
+            return None
+
+
+class FileType(_ConfiguredStorageTypeMixin, _FileType):
+    """Custom file type with the configured local file storage."""
+
+    @staticmethod
+    def storage_factory() -> CustomFileSystemStorage:
+        """Build the storage backend used by file columns."""
+        return get_storage(settings.file_storage_path)
+
+
+class ImageType(_MissingFileReturnsNoneMixin, _ConfiguredStorageTypeMixin, _ImageType):
+    """Custom image type with the configured local image storage."""
+
+    @staticmethod
+    def storage_factory() -> CustomFileSystemStorage:
+        """Build the storage backend used by image columns."""
+        return get_storage(settings.image_storage_path)

@@ -33,7 +33,10 @@ from app.api.background_data.models import (
     Taxonomy,
 )
 from app.api.common.models.enums import Unit
-from app.api.data_collection.models import MaterialProductLink, PhysicalProperties, Product
+from app.api.common.schemas.associations import MaterialProductLinkCreateWithinProduct
+from app.api.data_collection.crud import create_product
+from app.api.data_collection.models import Product
+from app.api.data_collection.schemas import PhysicalPropertiesCreate, ProductCreateWithComponents
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
@@ -277,41 +280,40 @@ async def seed_products(
         if not user or not user.id:
             continue
 
-        # Create product first
-        product = Product(
+        physical_properties_data = data.get("physical_properties")
+        bill_of_materials_data = data.get("bill_of_materials", [])
+
+        if not physical_properties_data:
+            logger.warning("Skipping product %s: missing physical properties.", data["name"])
+            continue
+
+        bill_of_materials = []
+        for material_data in bill_of_materials_data:
+            material = material_map.get(material_data["material"])
+            if not material or not material.id:
+                logger.warning("Skipping material link for %s: material %s not found.", data["name"], material_data)
+                continue
+            bill_of_materials.append(
+                MaterialProductLinkCreateWithinProduct(
+                    material_id=material.id,
+                    quantity=material_data["quantity"],
+                    unit=normalize_unit(material_data.get("unit"), data["name"]),
+                )
+            )
+
+        product_create = ProductCreateWithComponents(
             name=data["name"],
             description=data["description"],
             brand=data["brand"],
             model=data["model"],
             product_type_id=product_type.id,
-            owner_id=user.id,
+            physical_properties=PhysicalPropertiesCreate(**physical_properties_data),
+            bill_of_materials=bill_of_materials,
         )
-        session.add(product)
-        await session.commit()
-        await session.refresh(product)  # Ensures ID for product
+        product = await create_product(session, product_create, owner_id=user.id)
 
-        if not product.id:
-            continue
-
-        # Now create physical properties with product_id
-        physical_props = PhysicalProperties(**data["physical_properties"], product_id=product.id)
-        session.add(physical_props)
-        await session.commit()
-
-        # Add bill of materials
-        for material_data in data["bill_of_materials"]:
-            material = material_map.get(material_data["material"])
-            if material and material.id and product.id:
-                link = MaterialProductLink(
-                    material_id=material.id,
-                    product_id=product.id,
-                    quantity=material_data["quantity"],
-                    unit=normalize_unit(material_data.get("unit"), data["name"]),
-                )
-                session.add(link)
-
-        await session.commit()
-        product_id_map[product.name] = product.id
+        if product.id:
+            product_id_map[product.name] = product.id
     return product_id_map
 
 

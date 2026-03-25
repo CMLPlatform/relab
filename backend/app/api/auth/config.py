@@ -46,8 +46,9 @@ class AuthSettings(RelabBaseSettings):
     session_id_length: int = 32
 
     # Auth settings - Rate limiting
-    rate_limit_login_attempts: int = 5
-    rate_limit_window_seconds: int = 300  # 5 minutes
+    rate_limit_login_attempts_per_minute: int = 3
+    rate_limit_register_attempts_per_hour: int = 5
+    rate_limit_password_reset_attempts_per_hour: int = 3
 
     # Youtube API settings
     youtube_api_scopes: list[str] = Field(
@@ -60,7 +61,7 @@ class AuthSettings(RelabBaseSettings):
     )
 
     @model_validator(mode="after")
-    def apply_email_defaults(self) -> "AuthSettings":
+    def apply_email_defaults(self) -> AuthSettings:
         """Default sender fields to the SMTP username when omitted."""
         if not self.email_from:
             self.email_from = self.email_username

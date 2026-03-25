@@ -309,6 +309,13 @@ class ProductReadWithRelationships(ProductReadWithProperties):
         default_factory=list, description="Bill of materials with quantities and units"
     )
 
+    @model_validator(mode="after")
+    def populate_thumbnail_url_from_images(self) -> Self:
+        """Fill thumbnail_url from the first image when the field is otherwise unset."""
+        if self.thumbnail_url is None and self.images:
+            self.thumbnail_url = self.images[0].image_url
+        return self
+
 
 class ProductReadWithRelationshipsAndFlatComponents(ProductReadWithRelationships):
     """Schema for reading product information with one level of components."""

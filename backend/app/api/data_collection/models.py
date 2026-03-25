@@ -1,4 +1,5 @@
 """Database models for data collection on products."""
+# spell-checker: ignore trgm
 
 from functools import cached_property
 from typing import (  # Needed for runtime ORM mapping, not just for type annotations
@@ -8,9 +9,11 @@ from typing import (  # Needed for runtime ORM mapping, not just for type annota
 )
 
 from pydantic import UUID4, ConfigDict, computed_field, model_validator
+from sqlalchemy import Computed, Index, asc
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import MappedSQLExpression, column_property
-from sqlmodel import Field, Relationship, select
+from sqlmodel import Column, Field, Relationship, col, select
 
 from app.api.auth.models import User
 from app.api.background_data.models import Material, ProductType
@@ -53,6 +56,25 @@ class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
 
+    __table_args__ = (
+        Index("product_search_vector_idx", "search_vector", postgresql_using="gin"),
+        Index("product_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        Index("product_brand_trgm_idx", "brand", postgresql_using="gin", postgresql_ops={"brand": "gin_trgm_ops"}),
+    )
+
+    search_vector: str | None = Field(
+        default=None,
+        exclude=True,
+        sa_column=Column(
+            TSVECTOR(),
+            Computed(
+                "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
+                "coalesce(brand, '') || ' ' || coalesce(model, ''))",
+                persisted=True,
+            ),
+        ),
+    )
+
     if TYPE_CHECKING:
         # Populated at runtime via `column_property` below.
         first_image_id: MappedSQLExpression[UUID4 | None]
@@ -94,8 +116,7 @@ class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
         sa_relationship_kwargs={
             "uselist": False,
             "lazy": "selectin",
-            "primaryjoin": "Product.owner_id == User.id",  # HACK: Explicitly define join condition because of
-            "foreign_keys": "[Product.owner_id]",  # pydantic / sqlmodel issues (see https://github.com/fastapi/sqlmodel/issues/1623)
+            "foreign_keys": "[Product.owner_id]",
         },
     )
 
@@ -126,7 +147,7 @@ class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
         """Check if the product is a base product (no parent)."""
         return self.parent_id is None
 
-    # TODO: move this validation to the CRUD and schema layers
+    # TODO: move this validation to the CRUD and schema layers.
     def has_cycles(self) -> bool:
         """Check if the product hierarchy contains cycles."""
         visited = set()
@@ -253,7 +274,7 @@ Product.first_image_id = column_property(
     .where(Image.parent_type == MediaParentType.PRODUCT)
     .where(Image.product_id == Product.id)
     .correlate_except(Image)
-    .order_by(Image.created_at.asc())  # type: ignore[unresolved-attr] # created_at is guaranteed for stored Images.
+    .order_by(asc(col(Image.created_at)))
     .limit(1)
     .scalar_subquery()
 )

@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fakeredis.aioredis import FakeRedis
-from fastapi import HTTPException
 
 from app.api.auth.config import settings
+from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.refresh_token_service import (
     blacklist_token,
@@ -23,8 +23,8 @@ if TYPE_CHECKING:
 
 # Constants for test values to avoid magic value warnings
 # Renamed to avoid S105 while keeping meaningful names
-TOKEN_VAL_INVALID = "invalid"  # noqa: S105
-TOKEN_VAL_REVOKED = "revoked"  # noqa: S105
+TOKEN_VAL_INVALID = "invalid"
+TOKEN_VAL_REVOKED = "revoked"
 TOKEN_LENGTH = 64
 TTL_MARGIN = 10
 TTL_ABS_MARGIN = 5
@@ -68,11 +68,11 @@ class TestRefreshTokenService:
 
     async def test_verify_refresh_token_not_found(self, redis_client: Redis) -> None:
         """Test verifying a non-existent token raises 401."""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RefreshTokenInvalidError) as exc_info:
             await verify_refresh_token(redis_client, "nonexistent-token-123456789012345678901234567890")
 
-        assert exc_info.value.status_code == 401
-        assert TOKEN_VAL_INVALID in exc_info.value.detail.lower()
+        assert exc_info.value.http_status_code == 401
+        assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
 
     async def test_verify_refresh_token_blacklisted(self, redis_client: Redis) -> None:
         """Test verifying a blacklisted token raises 401."""
@@ -80,11 +80,11 @@ class TestRefreshTokenService:
         token = await create_refresh_token(redis_client, user_id)
         await blacklist_token(redis_client, token)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RefreshTokenRevokedError) as exc_info:
             await verify_refresh_token(redis_client, token)
 
-        assert exc_info.value.status_code == 401
-        assert TOKEN_VAL_REVOKED in exc_info.value.detail.lower()
+        assert exc_info.value.http_status_code == 401
+        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
 
     async def test_blacklist_token(self, redis_client: Redis) -> None:
         """Test blacklisting a refresh token."""
@@ -107,7 +107,7 @@ class TestRefreshTokenService:
         assert stored_data is None
 
         # Verify token is now invalid
-        with pytest.raises(HTTPException):
+        with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
             await verify_refresh_token(redis_client, token)
 
     async def test_rotate_refresh_token(self, redis_client: Redis) -> None:
@@ -131,7 +131,7 @@ class TestRefreshTokenService:
         assert is_blacklisted
 
         # Old token should be invalid
-        with pytest.raises(HTTPException):
+        with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
             await verify_refresh_token(redis_client, old_token)
 
     async def test_multiple_tokens_per_user(self, redis_client: Redis) -> None:
@@ -198,11 +198,11 @@ class TestRefreshTokenServiceInMemory:
         refresh_token_service._memory_tokens.clear()
         refresh_token_service._memory_blacklist.clear()
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RefreshTokenInvalidError) as exc_info:
             await verify_refresh_token(None, "nonexistent-token")
 
-        assert exc_info.value.status_code == 401
-        assert TOKEN_VAL_INVALID in exc_info.value.detail.lower()
+        assert exc_info.value.http_status_code == 401
+        assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
 
     async def test_verify_refresh_token_in_memory_blacklisted(self) -> None:
         """Test that a blacklisted in-memory token raises 401."""
@@ -213,11 +213,11 @@ class TestRefreshTokenServiceInMemory:
         token = await create_refresh_token(None, user_id)
         await blacklist_token(None, token)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RefreshTokenRevokedError) as exc_info:
             await verify_refresh_token(None, token)
 
-        assert exc_info.value.status_code == 401
-        assert TOKEN_VAL_REVOKED in exc_info.value.detail.lower()
+        assert exc_info.value.http_status_code == 401
+        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
 
         refresh_token_service._memory_tokens.clear()
         refresh_token_service._memory_blacklist.clear()

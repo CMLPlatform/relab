@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 
 import httpx
 from cachetools import TTLCache
-from pydantic import UUID4, BaseModel, HttpUrl, SecretStr, computed_field
+from pydantic import UUID4, AnyUrl, BaseModel, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
 
@@ -48,7 +48,6 @@ class CameraStatus(BaseModel):
 
     connection: CameraConnectionStatus = Field(description="Connection status of the camera")
 
-    # TODO: Publish the plugin as a separate package and import the status details schema from there
     details: CameraStatusDetails | None = Field(
         default=None, description="Additional status details from the Raspberry Pi camera API"
     )
@@ -61,22 +60,18 @@ class CameraBase(CustomBase):
     name: str = Field(index=True, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
 
-    # NOTE: Local addresses only work when they are on the local network of this API
-    # TODO: Add support for server communication to local network cameras for users via websocket or similar
-
-    # NOTE: URL validation is done in the Pydantic schemas (CameraCreate/CameraUpdate).
-    # The database stores it as a plain string.
+    # NOTE: Camera URLs are validated in the Pydantic create/update schemas.
+    # The database stores the URL as a plain string so the API can make normal
+    # HTTP requests to locally hosted camera APIs or tunnel endpoints.
     url: str = Field(description="HTTP(S) URL where the camera API is hosted", sa_type=AutoString)
 
 
 class Camera(CameraBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for Camera."""
 
-    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
     id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     encrypted_api_key: str = Field(nullable=False)
-    # TODO: Consider merging encrypted_auth_headers and encrypted_api_key into a single encrypted_credentials field
     encrypted_auth_headers: str | None = Field(default=None)
 
     # Many-to-one relationship with User
@@ -110,7 +105,7 @@ class Camera(CameraBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     @cached_property
     def verify_ssl(self) -> bool:
         """Whether to verify SSL certificates based on URL scheme."""
-        return HttpUrl(self.url).scheme == "https"  # noqa: PLR2004
+        return AnyUrl(self.url).scheme in {"https", "wss"}
 
     def __hash__(self) -> int:
         """Make Camera instances hashable using their id. Used for caching."""

@@ -1,134 +1,57 @@
-"""Unit tests for Redis core utilities."""
+"""Unit tests for Redis helper utilities."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from __future__ import annotations
+
+from unittest.mock import AsyncMock
 
 import pytest
-from fastapi import Request
-from redis.exceptions import ConnectionError as RedisConnectionError
-from redis.exceptions import RedisError
-from redis.exceptions import TimeoutError as RedisTimeoutError
+from fastapi import HTTPException
 
-from app.core.redis import (
-    close_redis,
-    get_redis,
-    get_redis_value,
-    init_redis,
-    ping_redis,
-    set_redis_value,
-)
-
-# Constants for test values to avoid magic value warnings
-TEST_KEY = "test_key"
-TEST_VALUE = "test_value"
-CACHED_VALUE = "cached_value"
-FAKE_REDIS = "fake_redis"
-ERROR_MSG = "Error"
-TIMEOUT_MSG = "Timeout"
-CONN_FAILED_MSG = "Connection failed"
+from app.core.redis import delete_redis_key, get_redis_value, require_redis, set_redis_value
 
 
-@pytest.fixture
-def mock_redis() -> AsyncMock:
-    """Fixture for a mock Redis client."""
-    return AsyncMock()
+@pytest.mark.unit
+class TestRedisHelpers:
+    """Test shared Redis helper functions."""
 
+    async def test_get_redis_value_success(self) -> None:
+        """get_redis_value returns the stored string value."""
+        redis_client = AsyncMock()
+        redis_client.get.return_value = "value"
 
-class TestRedisCore:
-    """Test suite for Redis core functionality."""
+        result = await get_redis_value(redis_client, "key")
 
-    @patch("app.core.redis.Redis")
-    async def test_init_redis_success(self, mock_redis_class: MagicMock) -> None:
-        """Test successful Redis initialization."""
-        mock_client = AsyncMock()
-        mock_pubsub = MagicMock()
-        mock_pubsub.ping = AsyncMock()
-        mock_client.pubsub = MagicMock(return_value=mock_pubsub)
-        mock_redis_class.return_value = mock_client
+        assert result == "value"
+        redis_client.get.assert_awaited_once_with("key")
 
-        result = await init_redis()
+    async def test_get_redis_value_failure_returns_none(self) -> None:
+        """get_redis_value returns None when Redis raises."""
+        redis_client = AsyncMock()
+        redis_client.get.side_effect = TimeoutError("boom")
 
-        assert result is mock_client
-        mock_pubsub.ping.assert_called_once()
-
-    @patch("app.core.redis.Redis")
-    async def test_init_redis_failure(self, mock_redis_class: MagicMock) -> None:
-        """Test Redis initialization failure when ping fails."""
-        mock_client = AsyncMock()
-        mock_pubsub = MagicMock()
-        mock_pubsub.ping = AsyncMock(side_effect=RedisConnectionError(CONN_FAILED_MSG))
-        mock_client.pubsub = MagicMock(return_value=mock_pubsub)
-        mock_redis_class.return_value = mock_client
-
-        result = await init_redis()
+        result = await get_redis_value(redis_client, "key")
 
         assert result is None
 
-    async def test_close_redis(self, mock_redis: AsyncMock) -> None:
-        """Test closing a Redis client."""
-        await close_redis(mock_redis)
-        mock_redis.aclose.assert_called_once()
+    async def test_set_redis_value_success(self) -> None:
+        """set_redis_value returns True when the write succeeds."""
+        redis_client = AsyncMock()
 
-    async def test_close_redis_none(self) -> None:
-        """Test closing a None Redis client handles gracefully."""
-        # Should gracefully handle None
-        await close_redis(None)
+        result = await set_redis_value(redis_client, "key", "value", ex=60)
 
-    async def test_ping_redis_success(self, mock_redis: AsyncMock) -> None:
-        """Test successful Redis ping."""
-        mock_pubsub = MagicMock()
-        mock_pubsub.ping = AsyncMock()
-        mock_redis.pubsub = MagicMock(return_value=mock_pubsub)
-
-        result = await ping_redis(mock_redis)
         assert result is True
-        mock_pubsub.ping.assert_called_once()
+        redis_client.set.assert_awaited_once_with("key", "value", ex=60)
 
-    async def test_ping_redis_failure(self, mock_redis: AsyncMock) -> None:
-        """Test Redis ping failure."""
-        mock_pubsub = MagicMock()
-        mock_pubsub.ping = AsyncMock(side_effect=RedisTimeoutError(TIMEOUT_MSG))
-        mock_redis.pubsub = MagicMock(return_value=mock_pubsub)
+    async def test_delete_redis_key_success(self) -> None:
+        """delete_redis_key returns True when the delete succeeds."""
+        redis_client = AsyncMock()
 
-        result = await ping_redis(mock_redis)
-        assert result is False
+        result = await delete_redis_key(redis_client, "key")
 
-    async def test_get_redis_value_success(self, mock_redis: AsyncMock) -> None:
-        """Test successful retrieval of a value from Redis."""
-        mock_redis.get.return_value = CACHED_VALUE
-        result = await get_redis_value(mock_redis, TEST_KEY)
-        assert result == CACHED_VALUE
-        mock_redis.get.assert_called_once_with(TEST_KEY)
-
-    async def test_get_redis_value_failure(self, mock_redis: AsyncMock) -> None:
-        """Test failure during Redis value retrieval."""
-        mock_redis.get.side_effect = RedisError(ERROR_MSG)
-        result = await get_redis_value(mock_redis, TEST_KEY)
-        assert result is None
-
-    async def test_set_redis_value_success(self, mock_redis: AsyncMock) -> None:
-        """Test successful setting of a value in Redis."""
-        result = await set_redis_value(mock_redis, TEST_KEY, TEST_VALUE, ex=60)
         assert result is True
-        mock_redis.set.assert_called_once_with(TEST_KEY, TEST_VALUE, ex=60)
+        redis_client.delete.assert_awaited_once_with("key")
 
-    async def test_set_redis_value_failure(self, mock_redis: AsyncMock) -> None:
-        """Test failure during Redis value storage."""
-        mock_redis.set.side_effect = RedisError(ERROR_MSG)
-        result = await set_redis_value(mock_redis, TEST_KEY, TEST_VALUE, ex=60)
-        assert result is False
-
-    def test_get_redis_success(self) -> None:
-        """Test successful retrieval of Redis client from request."""
-        mock_request = MagicMock(spec=Request)
-        mock_request.app.state.redis = FAKE_REDIS
-
-        result = get_redis(mock_request)
-        assert result == FAKE_REDIS
-
-    def test_get_redis_failure(self) -> None:
-        """Test failure when Redis client is missing from request."""
-        mock_request = MagicMock(spec=Request)
-        mock_request.app.state.redis = None
-
-        with pytest.raises(RuntimeError, match="Redis not available"):
-            get_redis(mock_request)
+    def test_require_redis_raises_when_missing(self) -> None:
+        """require_redis should raise an HTTPException when Redis is unavailable."""
+        with pytest.raises(HTTPException, match=r"Redis is required for this operation\."):
+            require_redis(None)

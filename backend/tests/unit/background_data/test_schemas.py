@@ -39,14 +39,13 @@ class TestTaxonomySchemas:
 
     def test_taxonomy_create_valid(self) -> None:
         """Test creating valid TaxonomyCreate schema."""
-        data = {
-            "name": TEST_TAXONOMY,
-            "version": VERSION_V1,
-            "description": "A test taxonomy",
-            "domains": {"materials"},
-            "source": "https://example.com",
-        }
-        schema = TaxonomyCreate(**data)
+        schema = TaxonomyCreate(
+            name=TEST_TAXONOMY,
+            version=VERSION_V1,
+            description="A test taxonomy",
+            domains={TaxonomyDomain.MATERIALS},
+            source="https://example.com",
+        )
 
         assert schema.name == TEST_TAXONOMY
         assert schema.version == VERSION_V1
@@ -58,7 +57,7 @@ class TestTaxonomySchemas:
             TaxonomyCreate(
                 name="A",  # Too short
                 version=VERSION_V1,
-                domains={"materials"},
+                domains={TaxonomyDomain.MATERIALS},
             )
 
         errors = exc_info.value.errors()
@@ -69,7 +68,7 @@ class TestTaxonomySchemas:
         schema = TaxonomyCreate(
             name="Multi-domain Taxonomy",
             version=VERSION_V1,
-            domains={"materials", "products"},
+            domains={TaxonomyDomain.MATERIALS, TaxonomyDomain.PRODUCTS},
         )
 
         assert len(schema.domains) == 2
@@ -78,7 +77,7 @@ class TestTaxonomySchemas:
 
     def test_taxonomy_update_partial(self) -> None:
         """Test TaxonomyUpdate with partial data."""
-        schema = TaxonomyUpdate(name=UPDATED_NAME, domains={"materials"})
+        schema = TaxonomyUpdate(name=UPDATED_NAME, domains={TaxonomyDomain.MATERIALS})
 
         assert schema.name == UPDATED_NAME
         assert schema.version is None

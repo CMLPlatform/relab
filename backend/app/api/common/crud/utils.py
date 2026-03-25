@@ -2,17 +2,26 @@
 # spell-checker: disable joinedload
 
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 from sqlalchemy import inspect
-from sqlalchemy.orm import InspectionAttr, joinedload, noload, selectinload
+from sqlalchemy.orm import joinedload, noload, selectinload
+from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlmodel import col, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.background_data.models import Material, ProductType
-from app.api.common.crud.exceptions import ModelNotFoundError
+from app.api.common.crud.exceptions import (
+    CRUDConfigurationError,
+    LinkedItemsAlreadyAssignedError,
+    LinkedItemsMissingError,
+    ModelNotFoundError,
+    ModelsNotFoundError,
+    NoLinkedItemsError,
+)
+from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import CustomBase
 from app.api.common.models.custom_types import ET, IDT, MT, FetchedModelT, HasDBID
 from app.api.data_collection.models import Product
@@ -31,7 +40,7 @@ class RelationshipLoadStrategy(StrEnum):
     JOINED = "joined"
 
 
-def _get_model_relationships(model: type[MT]) -> dict[str, tuple[InspectionAttr, bool]]:
+def _get_model_relationships(model: type[MT]) -> dict[str, tuple[QueryableAttribute[Any], bool]]:
     """Get all relationships from a model with their collection status.
 
     Args:
@@ -44,9 +53,9 @@ def _get_model_relationships(model: type[MT]) -> dict[str, tuple[InspectionAttr,
     if not mapper:
         return {}
 
-    relationships: dict[str, tuple[InspectionAttr, bool]] = {}
+    relationships: dict[str, tuple[QueryableAttribute[Any], bool]] = {}
     for rel in mapper.relationships:
-        relationships[rel.key] = (getattr(model, rel.key), rel.uselist)
+        relationships[rel.key] = (cast("QueryableAttribute[Any]", getattr(model, rel.key)), rel.uselist)
 
     return relationships
 
@@ -88,12 +97,15 @@ def add_relationship_options(
         option = joinedload(rel_attr) if load_strategy == RelationshipLoadStrategy.JOINED else selectinload(rel_attr)
         statement = statement.options(option)
 
-    # Apply noload for excluded relationships so serializers don't trigger lazy loads
-    # and endpoints that don't request a relation still return stable empty/null values.
-    relationships_to_exclude = in_scope_rel_names - to_include
-    for rel_name in relationships_to_exclude:
-        rel_attr = all_db_rels[rel_name][0]
-        statement = statement.options(noload(rel_attr))
+    # Only suppress unincluded relationships for explicit response-shaping call sites.
+    # Internal CRUD/business logic frequently fetches models without a read schema and
+    # still expects normal ORM relationship access to work.
+    relationships_to_exclude: set[str] = set()
+    if read_schema is not None:
+        relationships_to_exclude = in_scope_rel_names - to_include
+        for rel_name in relationships_to_exclude:
+            rel_attr = all_db_rels[rel_name][0]
+            statement = statement.options(noload(rel_attr))
 
     return statement, relationships_to_exclude
 
@@ -129,8 +141,7 @@ def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: ID
     """
     if not db_result:
         raise ModelNotFoundError(model_type, model_id)
-    # Type casting: after validation, we know the model exists and has an ID
-    return db_result  # type: ignore[return-value]
+    return cast("FetchedModelT", db_result)
 
 
 async def get_model_or_404(db: AsyncSession, model_type: type[MT], model_id: IDT) -> FetchedModelT:
@@ -165,24 +176,23 @@ async def get_models_by_ids_or_404(
         list[FetchedModelT]: The model instances with guaranteed IDs
 
     Raises:
-        ValueError: If model type doesn't have an id field
-        ValueError: If any requested ID doesn't exist
+        CRUDConfigurationError: If model type doesn't have an id field
+        ModelsNotFoundError: If any requested ID doesn't exist
     """
     if not hasattr(model_type, "id"):
         err_msg = f"{model_type} does not have an 'id' attribute"
-        raise ValueError(err_msg)
+        raise CRUDConfigurationError(err_msg)
 
     statement = select(model_type).where(col(model_type.id).in_(model_ids))
     found_models = list((await db.exec(statement)).all())
+    fetched_models = cast("list[FetchedModelT]", found_models)
 
     if len(found_models) != len(model_ids):
-        found_ids: set[int] | set[UUID] = {model.id for model in found_models}
-        missing_ids = model_ids - found_ids
-        model_name = model_type.get_api_model_name().plural_capital
-        err_msg = f"The following {model_name} do not exist: {format_id_set(missing_ids)}"
-        raise ValueError(err_msg)
+        found_ids: set[int | UUID] = {cast("int | UUID", model.id) for model in fetched_models}
+        missing_ids = cast("set[int | UUID]", model_ids) - found_ids
+        raise ModelsNotFoundError(model_type, missing_ids)
 
-    return found_models
+    return fetched_models
 
 
 ### Linked Item Validation ###
@@ -205,25 +215,24 @@ def validate_linked_items(
         id_field: Field name for the ID in the model (default: "id")
 
     Raises:
-        ValueError: If no items exist, items are duplicates, or items don't exist
+        NoLinkedItemsError: If no items exist
+        LinkedItemsAlreadyAssignedError: If items are duplicates
+        LinkedItemsMissingError: If items don't exist
     """
     if not existing_items:
-        err_msg = f"No {model_name_plural.lower()} are assigned"
-        raise ValueError(err_msg)
+        raise NoLinkedItemsError(model_name_plural)
 
     existing_ids = {item.db_id for item in existing_items}
 
     if check_duplicates:
         duplicates = item_ids & existing_ids
         if duplicates:
-            err_msg = f"{model_name_plural} with id {format_id_set(duplicates)} are already assigned"
-            raise ValueError(err_msg)
+            raise LinkedItemsAlreadyAssignedError(model_name_plural, duplicates)
 
     if check_existence:
         missing = item_ids - existing_ids
         if missing:
-            err_msg = f"{model_name_plural} with id {format_id_set(missing)} not found"
-            raise ValueError(err_msg)
+            raise LinkedItemsMissingError(model_name_plural, missing)
 
 
 ### Formatting Utilities ###
@@ -247,7 +256,7 @@ def get_file_parent_type_model(parent_type: MediaParentType) -> type[CustomBase]
     if parent_type == parent_type.MATERIAL:
         return Material
     err_msg = f"Invalid parent type: {parent_type}"
-    raise ValueError(err_msg)
+    raise BadRequestError(err_msg)
 
 
 ### Backward Compatibility (Refactored) ###

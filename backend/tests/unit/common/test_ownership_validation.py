@@ -135,7 +135,7 @@ class TestGetUserOwnedObjectFailure:
             "app.api.common.utils.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             side_effect=DependentModelOwnershipError(
-                dependent_model=MagicMock(),
+                dependent_model=User,
                 dependent_id=model_id,
                 parent_model=User,
                 parent_id=user_id,
@@ -169,7 +169,7 @@ class TestGetUserOwnedObjectFailure:
             "app.api.common.utils.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             side_effect=DependentModelOwnershipError(
-                dependent_model=MagicMock(),
+                dependent_model=User,
                 dependent_id=model_id,
                 parent_model=User,
                 parent_id=user_id,
@@ -200,7 +200,7 @@ class TestGetUserOwnedObjectFailure:
             "app.api.common.utils.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             side_effect=DependentModelOwnershipError(
-                dependent_model=MagicMock(),
+                dependent_model=User,
                 dependent_id=model_id,
                 parent_model=User,
                 parent_id=user_id,
@@ -341,7 +341,7 @@ class TestGetUserOwnedObjectIntegration:
 
         # Second call: invalid ownership
         mock_get_nested.side_effect = DependentModelOwnershipError(
-            dependent_model=mock_model,
+            dependent_model=User,
             dependent_id=model_id,
             parent_model=User,
             parent_id=user_id,
@@ -362,7 +362,7 @@ class TestGetUserOwnedObjectIntegration:
         model_id = uuid4()
 
         original_error = DependentModelOwnershipError(
-            dependent_model=MagicMock(),
+            dependent_model=User,
             dependent_id=model_id,
             parent_model=User,
             parent_id=user_id,
@@ -485,7 +485,7 @@ class TestGetUserOwnedObjectEdgeCases:
             "app.api.common.utils.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             side_effect=DependentModelOwnershipError(
-                dependent_model=MagicMock(),
+                dependent_model=User,
                 dependent_id=model_id,
                 parent_model=User,
                 parent_id=user_id,

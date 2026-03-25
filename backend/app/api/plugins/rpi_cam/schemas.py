@@ -7,6 +7,7 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import (
     UUID4,
     AfterValidator,
+    AnyUrl,
     BaseModel,
     Field,
     PlainSerializer,
@@ -19,7 +20,7 @@ from app.api.common.schemas.base import (
     BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
 )
-from app.api.common.schemas.custom_fields import HttpUrlToDB
+from app.api.common.schemas.custom_fields import AnyUrlToDB
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str
@@ -95,6 +96,21 @@ def validate_auth_headers_size(headers: list[HeaderCreate] | None) -> list[Heade
     return headers
 
 
+def validate_camera_url_scheme(url: AnyUrl) -> AnyUrl:
+    """Validate that camera URLs use plain HTTP(S)."""
+    if url.scheme not in {"http", "https"}:
+        err_msg = "Camera URLs must use HTTP or HTTPS."
+        raise ValueError(err_msg)
+    return url
+
+
+def validate_optional_camera_url_scheme(url: AnyUrl | None) -> AnyUrl | None:
+    """Validate that optional camera URLs use plain HTTP(S)."""
+    if url is None:
+        return None
+    return validate_camera_url_scheme(url)
+
+
 OptionalAuthHeaderCreateList = Annotated[
     list[HeaderCreate] | None,
     Field(default=None, description="List of additional authentication headers for the camera API"),
@@ -109,7 +125,10 @@ class CameraCreate(BaseCreateSchema, CameraBase):
     """Schema for creating a camera."""
 
     # Override url field to add validation
-    url: HttpUrlToDB = Field(description="HTTP(S) URL where the camera API is hosted")
+    url: Annotated[
+        AnyUrlToDB,
+        AfterValidator(validate_camera_url_scheme),
+    ] = Field(description="HTTP(S) URL where the camera API is hosted")
     auth_headers: OptionalAuthHeaderCreateList
 
 
@@ -159,8 +178,13 @@ class CameraUpdate(BaseUpdateSchema):
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    url: HttpUrlToDB | None = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
+    url: Annotated[
+        AnyUrlToDB | None,
+        AfterValidator(validate_optional_camera_url_scheme),
+    ] = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
     auth_headers: OptionalAuthHeaderCreateList
 
-    # TODO: Make it only possible to change ownership to existing users within the same organization
-    owner_id: UUID4 | None = None
+    owner_id: UUID4 | None = Field(
+        default=None,
+        description="Transfer ownership to an existing user in the same organization as the current owner.",
+    )

@@ -23,7 +23,7 @@ TEST_CAMERA_NAME = "Test Camera"
 TEST_API_KEY = "test_api_key"
 LOCAL_URL = "http://localhost:8000"
 HTTPS_URL = "https://example.com"
-BEARER_TOKEN = "Bearer token"  # noqa: S105
+BEARER_TOKEN = "Bearer token"
 FETCHED_VAL = "fetched"
 CACHED_VAL = "cached"
 
@@ -63,6 +63,7 @@ class TestCameraConnectionStatus:
         assert CameraConnectionStatus.ERROR.to_http_error() == (HTTP_INTERNAL_ERROR, "Camera access error")
 
 
+# ruff: noqa: SLF001
 class TestCameraModel:
     """Test suite for the Camera model functionality."""
 
@@ -91,10 +92,10 @@ class TestCameraModel:
 
     def test_decrypt_auth_headers(self, camera: Camera) -> None:
         """Test decryption of stored authentication headers."""
-        assert camera._decrypt_auth_headers() == {}  # noqa: SLF001
+        assert camera._decrypt_auth_headers() == {}
 
         camera.set_auth_headers({"custom": "header"})
-        assert camera._decrypt_auth_headers() == {"custom": "header"}  # noqa: SLF001
+        assert camera._decrypt_auth_headers() == {"custom": "header"}
 
     def test_verify_ssl(self, camera: Camera) -> None:
         """Test SSL verification logic based on URL scheme."""
@@ -124,7 +125,7 @@ class TestCameraModel:
         mock_response.json.return_value = {"focus": 100}
         mock_get.return_value = mock_response
 
-        status = await camera._fetch_status()  # noqa: SLF001
+        status = await camera._fetch_status()
         assert status.connection == CameraConnectionStatus.ONLINE
         assert status.details is not None
 
@@ -135,7 +136,7 @@ class TestCameraModel:
         mock_response.status_code = HTTP_UNAUTHORIZED
         mock_get.return_value = mock_response
 
-        status = await camera._fetch_status()  # noqa: SLF001
+        status = await camera._fetch_status()
         assert status.connection == CameraConnectionStatus.UNAUTHORIZED
         assert status.details is None
 
@@ -146,7 +147,7 @@ class TestCameraModel:
         mock_response.status_code = HTTP_FORBIDDEN
         mock_get.return_value = mock_response
 
-        status = await camera._fetch_status()  # noqa: SLF001
+        status = await camera._fetch_status()
         assert status.connection == CameraConnectionStatus.FORBIDDEN
         assert status.details is None
 
@@ -157,7 +158,7 @@ class TestCameraModel:
         mock_response.status_code = HTTP_INTERNAL_ERROR
         mock_get.return_value = mock_response
 
-        status = await camera._fetch_status()  # noqa: SLF001
+        status = await camera._fetch_status()
         assert status.connection == CameraConnectionStatus.ERROR
         assert status.details is None
 
@@ -166,7 +167,7 @@ class TestCameraModel:
         """Test status fetching when the camera is unreachable."""
         mock_get.side_effect = httpx.RequestError("Connection failed")
 
-        status = await camera._fetch_status()  # noqa: SLF001
+        status = await camera._fetch_status()
         assert status.connection == CameraConnectionStatus.OFFLINE
         assert status.details is None
 
@@ -194,11 +195,11 @@ class TestCameraModel:
         mock_fetch.return_value = FETCHED_VAL
 
         # First call should fetch from the underlying method
-        result1 = await camera._get_cached_status()  # noqa: SLF001
+        result1 = await camera._get_cached_status()
         assert result1 == FETCHED_VAL
         assert mock_fetch.call_count == 1
 
         # Second call should return cached value without calling _fetch_status again
-        result2 = await camera._get_cached_status()  # noqa: SLF001
+        result2 = await camera._get_cached_status()
         assert result2 == FETCHED_VAL
         assert mock_fetch.call_count == 1  # Still 1, cache hit

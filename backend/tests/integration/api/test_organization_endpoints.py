@@ -3,6 +3,7 @@
 Tests the public organization endpoints (GET, POST, join) using a real
 Postgres testcontainer and an authenticated FastAPI test client.
 """
+# spell-checker: ignore usefixtures
 
 from __future__ import annotations
 
@@ -12,11 +13,13 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import FastAPI, status
 
-from app.api.auth.dependencies import current_active_verified_user
+from app.api.auth.dependencies import current_active_user, current_active_verified_user
 from app.api.auth.models import Organization, OrganizationRole, User
 from tests.factories.models import OrganizationFactory, UserFactory
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from httpx import AsyncClient
     from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -28,10 +31,14 @@ async def verified_user(session: AsyncSession) -> User:
 
 
 @pytest.fixture
-async def verified_user_client(async_client: AsyncClient, verified_user: User, test_app: FastAPI) -> AsyncClient:
+async def verified_user_client(
+    async_client: AsyncClient, verified_user: User, test_app: FastAPI
+) -> AsyncGenerator[AsyncClient]:
     """Authenticated client acting as a verified non-superuser."""
+    test_app.dependency_overrides[current_active_user] = lambda: verified_user
     test_app.dependency_overrides[current_active_verified_user] = lambda: verified_user
     yield async_client
+    test_app.dependency_overrides.pop(current_active_user, None)
     test_app.dependency_overrides.pop(current_active_verified_user, None)
 
 
@@ -87,9 +94,7 @@ class TestGetOrganizationById:
 class TestCreateOrganization:
     """Tests for POST /organizations."""
 
-    async def test_create_organization_success(
-        self, verified_user_client: AsyncClient, verified_user: User
-    ) -> None:
+    async def test_create_organization_success(self, verified_user_client: AsyncClient, verified_user: User) -> None:
         """A verified user can create an organization."""
         response = await verified_user_client.post("/organizations", json={"name": "New Corp"})
         assert response.status_code == status.HTTP_201_CREATED
@@ -172,13 +177,75 @@ class TestJoinOrganization:
         assert "email" in data
 
     @pytest.mark.usefixtures("org_with_owner")
-    async def test_owner_cannot_join_another_org(
+    async def test_owner_can_join_another_org_if_old_org_is_empty(
+        self,
+        async_client: AsyncClient,
+        verified_user_client: AsyncClient,
+        session: AsyncSession,
+        org_with_owner: Organization,
+    ) -> None:
+        """An org owner can join another organization if their old org has no other members."""
+        other_owner = await UserFactory.create_async(session=session)
+        other_org = await OrganizationFactory.create_async(session=session, owner_id=other_owner.id)
+        response = await verified_user_client.post(f"/organizations/{other_org.id}/members/me")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.json()["organization"]["name"] == other_org.name
+
+        old_org_response = await async_client.get(f"/organizations/{org_with_owner.id}")
+        assert old_org_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.integration
+class TestUpdateOrganization:
+    """Tests for PATCH /users/me/organization."""
+
+    async def test_owner_can_transfer_ownership(
+        self,
+        verified_user_client: AsyncClient,
+        session: AsyncSession,
+        org_with_owner: Organization,
+        verified_user: User,
+    ) -> None:
+        """The current owner can transfer ownership to another member."""
+        new_owner = await UserFactory.create_async(
+            session=session,
+            organization_id=org_with_owner.id,
+            organization_role=OrganizationRole.MEMBER,
+        )
+
+        response = await verified_user_client.patch("/users/me/organization", json={"owner_id": str(new_owner.id)})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["owner_id"] == str(new_owner.id)
+
+        await session.refresh(verified_user)
+        await session.refresh(new_owner)
+        assert verified_user.organization_role == OrganizationRole.MEMBER
+        assert new_owner.organization_role == OrganizationRole.OWNER
+
+    async def test_owner_cannot_transfer_to_non_member(
         self,
         verified_user_client: AsyncClient,
         session: AsyncSession,
     ) -> None:
-        """An org owner cannot join another organization."""
-        other_owner = await UserFactory.create_async(session=session)
-        other_org = await OrganizationFactory.create_async(session=session, owner_id=other_owner.id)
-        response = await verified_user_client.post(f"/organizations/{other_org.id}/members/me")
-        assert response.status_code == status.HTTP_409_CONFLICT
+        """The current owner cannot transfer ownership to a user outside the org."""
+        outsider = await UserFactory.create_async(session=session)
+
+        response = await verified_user_client.patch("/users/me/organization", json={"owner_id": str(outsider.id)})
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.integration
+class TestUserOrganizationMembers:
+    """Tests for GET /users/me/organization/members."""
+
+    async def test_returns_404_when_user_has_no_organization(
+        self,
+        verified_user_client: AsyncClient,
+    ) -> None:
+        """Users without an organization should get a stable 404 response."""
+        response = await verified_user_client.get("/users/me/organization/members")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "organization" in response.json()["detail"]["message"].lower()

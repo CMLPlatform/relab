@@ -3,18 +3,25 @@
 
 import io
 from pathlib import Path
+from typing import cast
 
 import piexif
 import pytest
+from anyio import Path as AnyIOPath
+from fastapi import UploadFile
 from PIL import Image as PILImage
+from starlette.datastructures import Headers
 
 from app.core.images import (
+    ALLOWED_IMAGE_MIME_TYPES,
     MAX_IMAGE_DIMENSION,
     apply_exif_orientation,
     process_image_for_storage,
     resize_image,
     strip_sensitive_exif,
     validate_image_dimensions,
+    validate_image_file,
+    validate_image_mime_type,
 )
 
 
@@ -49,6 +56,11 @@ def _make_jpeg_with_exif(
     exif_bytes = piexif.dump(exif_dict)
     img.save(path, format="JPEG", exif=exif_bytes)
     return path
+
+
+def _make_upload_file(content_type: str) -> UploadFile:
+    """Create a minimal UploadFile for MIME type validation tests."""
+    return UploadFile(file=io.BytesIO(b""), filename="test.bin", headers=Headers({"content-type": content_type}))
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +110,17 @@ def test_resize_image_not_found() -> None:
         resize_image(Path("non_existent.png"), width=100)
 
 
+def test_resize_image_accepts_anyio_path(sample_image: Path) -> None:
+    """Resize should work with anyio.Path without touching async exists()."""
+    async_path = AnyIOPath(str(sample_image))
+
+    resized_bytes = resize_image(cast("Path", async_path), width=100)
+
+    with PILImage.open(io.BytesIO(resized_bytes)) as img:
+        assert img.width == 100
+        assert img.height == 50
+
+
 # ---------------------------------------------------------------------------
 # validate_image_dimensions
 # ---------------------------------------------------------------------------
@@ -134,6 +157,40 @@ def test_validate_dimensions_custom_limit() -> None:
     img = PILImage.new("RGB", (500, 500))
     with pytest.raises(ValueError, match="exceed the maximum"):
         validate_image_dimensions(img, max_dimension=400)
+
+
+# ---------------------------------------------------------------------------
+# image upload validation
+# ---------------------------------------------------------------------------
+
+
+def test_validate_image_mime_type_accepts_allowed_types() -> None:
+    """Allowed MIME types should pass through unchanged."""
+    for mime_type in ALLOWED_IMAGE_MIME_TYPES:
+        file = _make_upload_file(mime_type)
+        assert validate_image_mime_type(file) == file
+
+
+def test_validate_image_mime_type_rejects_disallowed_type() -> None:
+    """Disallowed MIME types should raise ValueError."""
+    file = _make_upload_file("text/plain")
+
+    with pytest.raises(ValueError, match="Invalid file type"):
+        validate_image_mime_type(file)
+
+
+def test_validate_image_file_accepts_valid_image() -> None:
+    """A real image byte stream should be accepted."""
+    buf = io.BytesIO()
+    PILImage.new("RGB", (10, 10), color="red").save(buf, format="PNG")
+
+    validate_image_file(buf)
+
+
+def test_validate_image_file_rejects_invalid_image() -> None:
+    """Non-image bytes should raise ValueError."""
+    with pytest.raises(ValueError, match="Invalid image file"):
+        validate_image_file(io.BytesIO(b"not an image"))
 
 
 # ---------------------------------------------------------------------------
@@ -236,6 +293,18 @@ def test_process_image_not_found() -> None:
     """Should raise FileNotFoundError for a missing file."""
     with pytest.raises(FileNotFoundError):
         process_image_for_storage(Path("non_existent.jpg"))
+
+
+def test_process_image_accepts_anyio_path(tmp_path: Path) -> None:
+    """Process should work with anyio.Path without touching async exists()."""
+    path = tmp_path / "anyio.jpg"
+    PILImage.new("RGB", (100, 100), color="green").save(path, format="JPEG")
+    async_path = AnyIOPath(str(path))
+
+    process_image_for_storage(cast("Path", async_path))
+
+    with PILImage.open(path) as result:
+        assert result.size == (100, 100)
 
 
 def test_process_image_dimension_guard(tmp_path: Path) -> None:

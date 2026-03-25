@@ -138,13 +138,13 @@ app.state.limiter = limiter
 
 # Add host header validation middleware
 app.add_middleware(
-    TrustedHostMiddleware,  # type: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
+    TrustedHostMiddleware,  # ty: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
     allowed_hosts=settings.allowed_hosts,
 )
 
 # Add CORS middleware
 app.add_middleware(
-    CORSMiddleware,  # type: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
+    CORSMiddleware,  # ty: ignore[invalid-argument-type] # Known false positive https://github.com/astral-sh/ty/issues/1635
     allow_origins=settings.allowed_origins,
     allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,

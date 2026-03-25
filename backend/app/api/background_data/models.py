@@ -47,7 +47,6 @@ class TaxonomyBase(CustomBase):
         description=f"Domains of the taxonomy, e.g. {{{', '.join([d.value for d in TaxonomyDomain][:3])}}}",
     )
 
-    # TODO: Implement Source model
     source: str | None = Field(
         default=None, max_length=500, description="Source of the taxonomy data, e.g. URL, IRI or citation key"
     )

@@ -6,9 +6,14 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import FastAPI
+from sqlmodel import select
 
+from app.api.auth.dependencies import current_active_user
+from app.api.auth.models import User
 from app.api.newsletter.models import NewsletterSubscriber
 from app.api.newsletter.utils.tokens import JWTType, create_jwt_token
+from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -82,7 +87,7 @@ async def test_subscribe_existing_unconfirmed_email(
 
     response = await async_client.post("/newsletter/subscribe", json=EMAIL_EXISTING)
     assert response.status_code == HTTP_BAD_REQUEST
-    assert MSG_NOT_CONFIRMED in response.json()["detail"]
+    assert MSG_NOT_CONFIRMED in response.json()["detail"]["message"]
 
     # Should send email again
     mock_send_subscription_email.assert_called_once()
@@ -102,7 +107,7 @@ async def test_subscribe_existing_confirmed_email(
 
     response = await async_client.post("/newsletter/subscribe", json=EMAIL_CONFIRMED)
     assert response.status_code == HTTP_BAD_REQUEST
-    assert MSG_ALREADY_SUB in response.json()["detail"]
+    assert MSG_ALREADY_SUB in response.json()["detail"]["message"]
 
     # Should NOT send email
     mock_send_subscription_email.assert_not_called()
@@ -183,7 +188,7 @@ async def test_confirm_subscription_already_confirmed_returns_400(
     response = await async_client.post("/newsletter/confirm", json=token)
 
     assert response.status_code == HTTP_BAD_REQUEST
-    assert "Already confirmed" in response.json()["detail"]
+    assert "Already confirmed" in response.json()["detail"]["message"]
 
 
 @pytest.mark.asyncio
@@ -195,7 +200,7 @@ async def test_confirm_subscription_unknown_email_returns_404(async_client: Asyn
     response = await async_client.post("/newsletter/confirm", json=token)
 
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    assert "not found" in response.json()["detail"]["message"].lower()
 
 
 @pytest.mark.asyncio
@@ -214,6 +219,67 @@ async def test_request_unsubscribe_unknown_email_returns_safe_message(async_clie
     assert response.status_code == HTTP_OK
     # Must not reveal whether the email is subscribed
     assert "If you are subscribed" in response.json()["message"]
+
+
+@pytest.mark.asyncio
+async def test_get_newsletter_preference_returns_subscribed_state(
+    async_client: AsyncClient, session: AsyncSession, test_app: FastAPI
+) -> None:
+    """Logged-in users should see their current newsletter consent state."""
+    user: User = await UserFactory.create_async(session=session, email="pref@example.com", is_active=True)
+    subscriber = NewsletterSubscriber(email=user.email, is_confirmed=True)
+    session.add(subscriber)
+    await session.flush()
+
+    test_app.dependency_overrides[current_active_user] = lambda: user
+
+    response = await async_client.get("/newsletter/me")
+
+    assert response.status_code == HTTP_OK
+    assert response.json()["email"] == user.email
+    assert response.json()["subscribed"] is True
+    assert response.json()["is_confirmed"] is True
+
+
+@pytest.mark.asyncio
+async def test_enable_newsletter_preference_without_email_verification(
+    async_client: AsyncClient, session: AsyncSession, test_app: FastAPI
+) -> None:
+    """Logged-in users can subscribe without a verification email."""
+    user: User = await UserFactory.create_async(session=session, email="signup@example.com", is_active=True)
+
+    test_app.dependency_overrides[current_active_user] = lambda: user
+
+    response = await async_client.put("/newsletter/me", json={"subscribed": True})
+
+    assert response.status_code == HTTP_OK
+    assert response.json()["subscribed"] is True
+    assert response.json()["is_confirmed"] is True
+
+    stored = await session.exec(select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email))
+    subscriber = stored.one_or_none()
+    assert subscriber is not None
+    assert subscriber.is_confirmed is True
+
+
+@pytest.mark.asyncio
+async def test_disable_newsletter_preference_removes_subscriber(
+    async_client: AsyncClient, session: AsyncSession, test_app: FastAPI
+) -> None:
+    """Logged-in users can opt out directly from the app."""
+    user: User = await UserFactory.create_async(session=session, email="leave@example.com", is_active=True)
+    subscriber = NewsletterSubscriber(email=user.email, is_confirmed=True)
+    session.add(subscriber)
+    await session.flush()
+
+    test_app.dependency_overrides[current_active_user] = lambda: user
+
+    response = await async_client.put("/newsletter/me", json={"subscribed": False})
+
+    assert response.status_code == HTTP_OK
+    assert response.json()["subscribed"] is False
+
+    assert await session.get(NewsletterSubscriber, subscriber.id) is None
 
 
 @pytest.mark.asyncio

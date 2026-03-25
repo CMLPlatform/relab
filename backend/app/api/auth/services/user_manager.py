@@ -1,44 +1,38 @@
 """User management service."""
 
-import ipaddress
 import logging
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, cast
-from urllib.parse import urlparse
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, schemas
-from fastapi_users.authentication import (
-    AuthenticationBackend,
-    BearerTransport,
-    CookieTransport,
-    JWTStrategy,
-    RedisStrategy,
-)
 from fastapi_users.manager import BaseUserManager
-from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
 from sqlmodel import select
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
-from app.api.auth.models import OAuthAccount, User
+from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserUpdate
-from app.api.auth.services import refresh_token_service
+from app.api.auth.services.auth_backends import build_authentication_backends
+from app.api.auth.services.login_hooks import (
+    log_successful_login,
+    maybe_set_refresh_token_cookie,
+    update_last_login_metadata,
+)
+from app.api.auth.services.user_db import get_user_db
 from app.api.auth.utils.programmatic_emails import (
     send_post_verification_email,
     send_reset_password_email,
     send_verification_email,
 )
-from app.api.common.routers.dependencies import AsyncSessionDep
-from app.core.config import settings as core_settings
-from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from fastapi_users.authentication import AuthenticationBackend
     from fastapi_users.jwt import SecretType
+    from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
     from starlette.requests import Request
     from starlette.responses import Response
 
@@ -138,40 +132,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         self, user: User, request: Request | None = None, response: Response | None = None
     ) -> None:
         """Update last login timestamp, create refresh token and session after successful authentication."""
-        # Update last login info
-        user.last_login_at = datetime.now(UTC).replace(tzinfo=None)
-        if request and request.client:
-            user.last_login_ip = request.client.host
-        await self.user_db.session.commit()
-
-        # Create refresh token if Redis is available
-        if request and hasattr(request.app.state, "redis") and request.app.state.redis:
-            redis = request.app.state.redis
-            user_id = cast("UUID4", user.id)
-
-            # Create refresh token
-            refresh_token = await refresh_token_service.create_refresh_token(
-                redis,
-                user_id,
-            )
-
-            # Set refresh token cookie if response available
-            if response:
-                response.set_cookie(
-                    key="refresh_token",
-                    value=refresh_token,
-                    max_age=auth_settings.refresh_token_expire_days * 86_400,
-                    httponly=True,
-                    secure=core_settings.secure_cookies,
-                    samesite="lax",
-                )
-
-        logger.info("User %s logged in from %s", user.email, user.last_login_ip)
-
-
-async def get_user_db(session: AsyncSessionDep) -> AsyncGenerator[SQLModelUserDatabaseAsync[User, UUID4]]:
-    """Async generator for the user database."""
-    yield SQLModelUserDatabaseAsync(session, User, OAuthAccount)
+        await update_last_login_metadata(user, request, self.user_db.session)
+        await maybe_set_refresh_token_cookie(user, request, response)
+        log_successful_login(user)
 
 
 async def get_user_manager(
@@ -181,46 +144,9 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
-# Bearer Transport
-bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
-
-
-# Cookie Transport
-
-# Set the cookie domain to the main host, including subdomains (hence the dot prefix).
-# IP addresses don't support cookie domain scoping, so leave it as None for those.
-_hostname = urlparse(str(core_settings.frontend_web_url)).hostname or ""
-try:
-    ipaddress.ip_address(_hostname)
-    cookie_domain = None
-except ValueError:
-    _parts = _hostname.split(".")
-    cookie_domain = f".{'.'.join(_parts[-2:])}" if len(_parts) >= 2 else None
-
-cookie_transport = CookieTransport(
-    cookie_name="auth",
-    cookie_max_age=ACCESS_TOKEN_TTL,
-    cookie_domain=cookie_domain,
-    cookie_secure=core_settings.secure_cookies,
-)
-
-
-def get_token_strategy(redis: OptionalRedisDep) -> object:
-    """Return an authentication token strategy.
-
-    If a Redis client is available, use server-side RedisStrategy so tokens can be invalidated.
-    Otherwise fall back to JWTStrategy so the app works without Redis (useful for dev/testing).
-    """
-    if redis:
-        return RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL)
-
-    # Fallback to JWT strategy when Redis is unavailable (development/testing)
-    return JWTStrategy(secret=SECRET.get_secret_value(), lifetime_seconds=ACCESS_TOKEN_TTL)
-
-
-# Authentication backends with Redis strategy
-bearer_auth_backend = AuthenticationBackend(name="bearer", transport=bearer_transport, get_strategy=get_token_strategy)
-cookie_auth_backend = AuthenticationBackend(name="cookie", transport=cookie_transport, get_strategy=get_token_strategy)
+bearer_auth_backend: AuthenticationBackend[User, UUID4]
+cookie_auth_backend: AuthenticationBackend[User, UUID4]
+bearer_auth_backend, cookie_auth_backend = build_authentication_backends()
 
 # User manager singleton
 fastapi_user_manager = FastAPIUsers[User, UUID4](get_user_manager, [bearer_auth_backend, cookie_auth_backend])

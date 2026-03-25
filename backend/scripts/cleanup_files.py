@@ -11,6 +11,7 @@ from anyio import run
 
 # Add project root to sys.path to allow imports from app
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from functools import partial
 
 from app.api.file_storage.cleanup import cleanup_unreferenced_files
 from app.core.config import Environment, settings
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 _PROD_CONFIRMATION = "yes-delete-prod-files"
 
 
-async def async_main(force: bool = False) -> None:  # noqa: FBT001, FBT002
+async def async_main(*, force: bool = False) -> None:
     """Run the cleanup process."""
     try:
         logger.info("Starting file cleanup...")
@@ -65,7 +66,7 @@ def main() -> None:
         logger.info("Confirmation not received, aborting.")
         sys.exit(0)
 
-    run(async_main, args.force)
+    run(partial(async_main, force=args.force))
 
 
 if __name__ == "__main__":

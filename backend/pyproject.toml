@@ -206,9 +206,11 @@
         "INP001", # The alembic scripts are not meant to be a package
         "TC003",  # Allow runtime evaluation of base classes
       ]
-      "test*.py" = [
+      "**/tests/**/*.py" = [
         "PLR2004", # Allow magic values in test files
         "S101",    # Ignore security issues over use of `assert` in test files
+        "S105",    # Any secrets defined in the test suite are not real secrets
+        "S106",    # Any secrets defined in the test suite are not real secrets
       ]
 
     [tool.ruff.lint.isort]

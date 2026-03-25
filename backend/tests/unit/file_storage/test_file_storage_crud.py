@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -11,7 +12,7 @@ from fastapi import UploadFile
 from pydantic import HttpUrl
 
 from app.api.data_collection.models import Product
-from app.api.file_storage import crud
+from app.api.file_storage import crud, video_crud
 from app.api.file_storage.crud import (
     ParentStorageOperations,
     create_file,
@@ -20,8 +21,10 @@ from app.api.file_storage.crud import (
     process_uploadfile_name,
     sanitize_filename,
 )
+from app.api.file_storage.exceptions import ParentStorageOwnershipError, UploadTooLargeError
 from app.api.file_storage.models.models import File, Image, MediaParentType, Video
 from app.api.file_storage.schemas import FileCreate, FileUpdate, ImageCreateInternal, ImageUpdate, VideoCreate
+from tests.factories.models import ProductFactory
 
 # Constants for magic values
 TEST_FILE_DESC = "Test file"
@@ -40,6 +43,7 @@ TEST_SAN_CLEAN = "test-file.txt"
 ARC_TAR_GZ = "archive.tar.gz"
 MY_DOC_PDF = "my-document.pdf"
 MY_DOC_RAW = "my document.pdf"
+MB = 1024 * 1024
 
 
 @pytest.fixture
@@ -96,13 +100,14 @@ class TestFileStorageCrud:
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = TEST_FILENAME
         mock_file.size = 1024
+        mock_file.file = BytesIO(b"test content")
 
         file_create = FileCreate(
             file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
         )
 
         with (
-            patch("app.api.file_storage.crud.get_file_storage") as mock_storage_factory,
+            patch("app.api.file_storage.crud.get_storage") as mock_storage_factory,
             patch("app.api.file_storage.crud.get_file_parent_type_model") as mock_parent_model,
             patch("app.api.file_storage.crud.get_model_or_404"),
         ):
@@ -120,6 +125,42 @@ class TestFileStorageCrud:
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
             mock_session.refresh.assert_called_once()
+
+    async def test_create_file_accepts_missing_upload_size(self, mock_session: AsyncMock) -> None:
+        """Test creating a file when UploadFile.size is unavailable."""
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = TEST_FILENAME
+        mock_file.size = None
+        mock_file.file = BytesIO(b"test content")
+
+        file_create = FileCreate(
+            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+        )
+
+        with (
+            patch("app.api.file_storage.crud.get_storage") as mock_storage_factory,
+            patch("app.api.file_storage.crud.get_model_or_404"),
+        ):
+            mock_storage_factory.return_value.write_upload = AsyncMock(return_value="stored_test.txt")
+
+            result = await create_file(mock_session, file_create)
+
+            assert isinstance(result, File)
+            assert result.filename == TEST_FILENAME
+
+    async def test_create_file_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
+        """Test creating a file larger than the configured maximum."""
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = TEST_FILENAME
+        mock_file.size = 51 * MB
+        mock_file.file = BytesIO(b"")
+
+        file_create = FileCreate(
+            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+        )
+
+        with pytest.raises(UploadTooLargeError, match="Maximum size: 50 MB"):
+            await create_file(mock_session, file_create)
 
     async def test_delete_file_success(self, mock_session: AsyncMock) -> None:
         """Test deleting a file from db and storage."""
@@ -182,27 +223,40 @@ class TestImageStorageCrud:
         mock_file.filename = IMAGE_FILENAME
         mock_file.content_type = CONTENT_TYPE_PNG
         mock_file.size = 1024
+        mock_file.file = BytesIO(b"fake image bytes")
         mock_file.path = None  # UploadFile has no .path; set explicitly so getattr fallback works
 
         image_create = ImageCreateInternal(
             file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
         )
 
-        # create_image checks parent existence via db.exec(...).first() — set up a
-        # sync MagicMock so .first() doesn't produce an unawaited coroutine.
-        mock_exec_result = MagicMock()
-        mock_exec_result.first.return_value = 1  # non-None → parent exists
-        mock_session.exec.return_value = mock_exec_result
-
         with (
-            patch("app.api.file_storage.crud.get_file_parent_type_model", return_value=Product),
-            patch("app.api.file_storage.crud.get_image_storage") as mock_storage_factory,
+            patch(
+                "app.api.file_storage.crud.get_model_or_404",
+                return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
+            ),
+            patch("app.api.file_storage.crud.get_storage") as mock_storage_factory,
         ):
             mock_storage_factory.return_value.write_image_upload = AsyncMock(return_value="stored_image.png")
             result = await crud.create_image(mock_session, image_create)
             assert isinstance(result, Image)
             assert result.description == TEST_IMAGE_DESC
             assert result.filename == IMAGE_FILENAME
+
+    async def test_create_image_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
+        """Test creating an image larger than the configured maximum."""
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = IMAGE_FILENAME
+        mock_file.content_type = CONTENT_TYPE_PNG
+        mock_file.size = 11 * MB
+        mock_file.file = BytesIO(b"")
+
+        image_create = ImageCreateInternal(
+            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+        )
+
+        with pytest.raises(UploadTooLargeError, match="Maximum size: 10 MB"):
+            await crud.create_image(mock_session, image_create)
 
     async def test_update_image_success(self, mock_session: AsyncMock) -> None:
         """Test updating an image."""
@@ -235,8 +289,8 @@ class TestVideoCrud:
         """Test creating a video."""
         video_create = VideoCreate(url=YOUTUBE_URL, product_id=1, title=TEST_VIDEO_TITLE)
 
-        with patch("app.api.file_storage.crud.get_model_or_404"):
-            result = await crud.create_video(mock_session, video_create, commit=True)
+        with patch("app.api.file_storage.video_crud.get_model_or_404"):
+            result = await video_crud.create_video(mock_session, video_create, commit=True)
             assert isinstance(result, Video)
             assert result.title == TEST_VIDEO_TITLE
 
@@ -245,30 +299,44 @@ class TestVideoCrud:
         video_id = 1
         mock_db_video = MagicMock(spec=Video)
 
-        with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_video):
-            await crud.delete_video(mock_session, video_id)
+        with patch("app.api.file_storage.video_crud.get_model_or_404", return_value=mock_db_video):
+            await video_crud.delete_video(mock_session, video_id)
             mock_session.delete.assert_called_once()
 
 
 class TestParentStorageOperations:
     """Test parent-scoped storage operations."""
 
-    async def test_delete_removes_db_record_when_storage_file_is_missing(self, mock_session: AsyncMock) -> None:
-        """Delete should succeed even if the underlying file is already gone."""
-        parent_model = MagicMock()
-        parent_model.get_api_model_name.return_value.name_capital = "Product"
-
-        storage_model = MagicMock()
-        storage_model.get_api_model_name.return_value.name_capital = "Image"
-
-        delete_func = AsyncMock()
+    async def test_create_rejects_parent_scope_mismatch(self, mock_session: AsyncMock) -> None:
+        """Create should fail if the payload is not already scoped to the target parent."""
         operations = ParentStorageOperations(
-            parent_model=parent_model,
-            storage_model=storage_model,
+            parent_model=Product,
+            storage_model=Image,
             parent_type=MediaParentType.PRODUCT,
             parent_field="product_id",
-            create_func=AsyncMock(),
-            delete_func=delete_func,
+            storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
+        )
+
+        file_create = FileCreate(
+            file=MagicMock(spec=UploadFile, filename=TEST_FILENAME, size=1024),
+            description=TEST_FILE_DESC,
+            parent_id=2,
+            parent_type=MediaParentType.MATERIAL,
+        )
+
+        with pytest.raises(ValueError, match="Parent ID mismatch"):
+            await operations.create(mock_session, 1, file_create)
+
+    async def test_delete_removes_db_record_when_storage_file_is_missing(self, mock_session: AsyncMock) -> None:
+        """Delete should succeed even if the underlying file is already gone."""
+        storage_service = MagicMock()
+        storage_service.delete = AsyncMock()
+        operations = ParentStorageOperations(
+            parent_model=Product,
+            storage_model=Image,
+            parent_type=MediaParentType.PRODUCT,
+            parent_field="product_id",
+            storage_service=storage_service,
         )
 
         item_id = uuid4()
@@ -279,4 +347,26 @@ class TestParentStorageOperations:
         with patch("app.api.file_storage.crud.get_model_or_404"):
             await operations.delete(mock_session, 1, item_id)
 
-        delete_func.assert_awaited_once_with(mock_session, item_id)
+        storage_service.delete.assert_awaited_once_with(mock_session, item_id)
+
+    async def test_get_by_id_raises_not_found_for_wrong_parent(self, mock_session: AsyncMock) -> None:
+        """Fetching an item through the wrong parent should return a parent-scoped not found error."""
+        operations = ParentStorageOperations(
+            parent_model=Product,
+            storage_model=Image,
+            parent_type=MediaParentType.PRODUCT,
+            parent_field="product_id",
+            storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
+        )
+
+        item_id = uuid4()
+        db_item = MagicMock(spec=Image)
+        db_item.product_id = 2
+        db_item.file_exists = True
+        mock_session.get.return_value = db_item
+
+        with (
+            patch("app.api.file_storage.crud.get_model_or_404"),
+            pytest.raises(ParentStorageOwnershipError, match="not found for"),
+        ):
+            await operations.get_by_id(mock_session, 1, item_id)

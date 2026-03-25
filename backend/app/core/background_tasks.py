@@ -17,9 +17,9 @@ class PeriodicBackgroundTask:
     Lifecycle::
 
         task = MyTask(interval_seconds=3600)
-        await task.initialize()   # starts the background loop
+        await task.initialize()  # starts the background loop
         ...
-        await task.close()        # cancels the loop and waits for it
+        await task.close()  # cancels the loop and waits for it
     """
 
     def __init__(self, interval_seconds: int) -> None:

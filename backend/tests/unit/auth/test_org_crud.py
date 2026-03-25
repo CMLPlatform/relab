@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch, sentinel
 
 import pytest
@@ -28,7 +29,7 @@ from app.api.auth.exceptions import (
     UserIsNotMemberError,
     UserOwnsOrgError,
 )
-from app.api.auth.models import Organization, OrganizationRole
+from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.schemas import OrganizationCreate, OrganizationReadPublic, OrganizationUpdate, UserReadPublic
 from tests.factories.models import OrganizationFactory, UserFactory
 
@@ -40,6 +41,7 @@ def _make_session() -> AsyncMock:
     session.commit = AsyncMock()
     session.refresh = AsyncMock()
     session.delete = AsyncMock()
+    session.execute = AsyncMock()
     return session
 
 
@@ -48,7 +50,7 @@ def _make_user(
     organization_role: OrganizationRole | None = None,
     *,
     is_superuser: bool = False,
-) -> MagicMock:
+) -> User:
     user = UserFactory.build(id=uuid.uuid4(), is_superuser=is_superuser)
     user.organization_id = organization_id
     user.organization_role = organization_role
@@ -141,11 +143,53 @@ class TestUpdateUserOrganization:
         org = OrganizationFactory.build(name="Old Name")
         org_update = OrganizationUpdate(name="New Name")
 
-        result = await update_user_organization(session, org, org_update)
+        with patch("app.api.auth.crud.organizations.get_model_by_id", new=AsyncMock(return_value=org)):
+            result = await update_user_organization(session, org, org_update)
 
         assert result.name == "New Name"
         session.add.assert_called_once()
         session.commit.assert_called_once()
+
+    async def test_transfer_ownership_success(self) -> None:
+        """Test transferring ownership to another org member."""
+        session = _make_session()
+        current_owner = _make_user(organization_role=OrganizationRole.OWNER)
+        new_owner = _make_user(organization_role=OrganizationRole.MEMBER)
+        org = OrganizationFactory.build(owner_id=current_owner.id)
+        org.owner = current_owner
+        org.members = [current_owner, new_owner]
+        current_owner.organization = org
+        new_owner.organization = org
+
+        org_update = OrganizationUpdate(name=org.name, owner_id=new_owner.id)
+
+        with patch("app.api.auth.crud.organizations.get_model_by_id", new=AsyncMock(return_value=org)):
+            result = await update_user_organization(session, org, org_update)
+
+        assert result.owner_id == new_owner.id
+        assert current_owner.organization_role == OrganizationRole.MEMBER
+        assert new_owner.organization_role == OrganizationRole.OWNER
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_transfer_ownership_to_non_member_raises(self) -> None:
+        """Test that ownership cannot be transferred to a non-member."""
+        session = _make_session()
+        current_owner = _make_user(organization_role=OrganizationRole.OWNER)
+        non_member = _make_user()
+        org = OrganizationFactory.build(owner_id=current_owner.id)
+        org.owner = current_owner
+        org.members = [current_owner]
+        current_owner.organization = org
+        non_member.organization = None
+
+        org_update = OrganizationUpdate(name=org.name, owner_id=non_member.id)
+
+        with (
+            patch("app.api.auth.crud.organizations.get_model_by_id", new=AsyncMock(return_value=org)),
+            pytest.raises(UserIsNotMemberError),
+        ):
+            await update_user_organization(session, org, org_update)
 
 
 @pytest.mark.unit
@@ -235,7 +279,9 @@ class TestUserJoinOrganization:
         """Test that org owner cannot join another org."""
         session = _make_session()
         org = OrganizationFactory.build()
-        user = _make_user(organization_id=uuid.uuid4(), organization_role=OrganizationRole.OWNER)
+        user = _make_user(organization_id=org.id, organization_role=OrganizationRole.OWNER)
+        user.organization = org
+        org.members = [user, MagicMock()]
 
         with pytest.raises(UserOwnsOrgError):
             await user_join_organization(session, org, user)
@@ -248,6 +294,23 @@ class TestUserJoinOrganization:
 
         with pytest.raises(AlreadyMemberError):
             await user_join_organization(session, org, user)
+
+    async def test_owner_can_join_new_org_when_old_org_has_no_other_members(self) -> None:
+        """Test that an owner can join a new org if their current org is empty apart from them."""
+        session = _make_session()
+        current_org = OrganizationFactory.build()
+        target_org = OrganizationFactory.build()
+        user = _make_user(organization_id=current_org.id, organization_role=OrganizationRole.OWNER)
+        user.organization = current_org
+        current_org.members = [user]
+
+        result = await user_join_organization(session, target_org, user)
+
+        assert result.organization_id == target_org.id
+        assert result.organization_role == OrganizationRole.MEMBER
+        session.exec.assert_awaited_once()
+        session.flush.assert_awaited_once()
+        session.commit.assert_awaited_once()
 
 
 @pytest.mark.unit
@@ -288,7 +351,8 @@ class TestGetOrganizationMembers:
         with patch("app.api.auth.crud.organizations.get_model_by_id", return_value=mock_org):
             result = await get_organization_members(session, org_id, user)
 
-        assert len(result) == 1
+        members = cast("list[User]", result)
+        assert len(members) == 1
 
     async def test_get_members_paginated_success(self) -> None:
         """Test that pagination can be enabled for organization members."""
@@ -296,13 +360,16 @@ class TestGetOrganizationMembers:
         org_id = uuid.uuid4()
         user = _make_user(organization_id=org_id)
 
-        with patch(
-            "app.api.auth.crud.organizations.get_model_by_id",
-            new=AsyncMock(return_value=MagicMock()),
-        ) as mock_get_model_by_id, patch(
-            "app.api.auth.crud.organizations.get_paginated_models",
-            new=AsyncMock(return_value=sentinel.page),
-        ) as mock_get_paginated:
+        with (
+            patch(
+                "app.api.auth.crud.organizations.get_model_by_id",
+                new=AsyncMock(return_value=MagicMock()),
+            ) as mock_get_model_by_id,
+            patch(
+                "app.api.auth.crud.organizations.get_paginated_models",
+                new=AsyncMock(return_value=sentinel.page),
+            ) as mock_get_paginated,
+        ):
             result = await get_organization_members(
                 session,
                 org_id,

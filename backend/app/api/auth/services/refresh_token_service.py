@@ -12,10 +12,10 @@ import time
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from fastapi import HTTPException, status
 from pydantic import UUID4
 
 from app.api.auth.config import settings
+from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
 from app.core.constants import HOUR
 
 if TYPE_CHECKING:
@@ -71,42 +71,30 @@ async def verify_refresh_token(
         UUID of the user
 
     Raises:
-        HTTPException: If token is invalid, expired, or blacklisted
+        RefreshTokenError: If token is invalid, expired, or blacklisted
     """
     # Check if token is blacklisted
     if redis is None:
         # In-memory blacklist check
         bl_expire = _memory_blacklist.get(token)
         if bl_expire and bl_expire > time.time():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked",
-            )
+            raise RefreshTokenRevokedError
     else:
         blacklist_key = f"auth:rt_blacklist:{token}"
         if await redis.exists(blacklist_key):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked",
-            )
+            raise RefreshTokenRevokedError
 
     if redis is None:
         token_data = _memory_tokens.get(token)
         if not token_data or token_data[1] <= time.time():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired refresh token",
-            )
+            raise RefreshTokenInvalidError
         user_id_str = token_data[0]
     else:
         token_key = f"auth:rt:{token}"
         user_id_str = await redis.get(token_key)
 
         if not user_id_str:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired refresh token",
-            )
+            raise RefreshTokenInvalidError
 
     return UUID(user_id_str if isinstance(user_id_str, str) else user_id_str.decode("utf-8"))
 
@@ -163,7 +151,7 @@ async def rotate_refresh_token(
         New refresh token
 
     Raises:
-        HTTPException: If old token is invalid
+        RefreshTokenError: If old token is invalid
     """
     # Verify old token
     user_id = await verify_refresh_token(redis, old_token)

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # Constants for test values
 TEST_EMAIL = "test@example.com"
 TEST_USERNAME = "testuser"
-TEST_HASHED_PASSWORD = "hashed_password_value"  # noqa: S105
+TEST_HASHED_PASSWORD = "hashed_password_value"
 TEST_ORG_NAME = "Test Org"
 TEST_OWNER_EMAIL = "owner@example.com"
 USER1_EMAIL = "user1@example.com"
@@ -302,10 +302,10 @@ class TestUserUniquenessConstraints:
         """Verify email field is unique."""
         email = "unique@example.com"
 
-        await UserFactory.create_async(session, email=email, hashed_password="hashed1")  # noqa: S106
+        await UserFactory.create_async(session, email=email, hashed_password="hashed1")
 
         with pytest.raises(IntegrityError, match="unique"):
-            await UserFactory.create_async(session, email=email, hashed_password="hashed2")  # noqa: S106
+            await UserFactory.create_async(session, email=email, hashed_password="hashed2")
 
     @pytest.mark.asyncio
     async def test_username_must_be_unique_when_provided(self, session: AsyncSession) -> None:
@@ -316,7 +316,7 @@ class TestUserUniquenessConstraints:
             session,
             email=USER1_EMAIL,
             username=username,
-            hashed_password="hashed1",  # noqa: S106
+            hashed_password="hashed1",
         )
 
         with pytest.raises(IntegrityError, match="unique"):
@@ -324,7 +324,7 @@ class TestUserUniquenessConstraints:
                 session,
                 email=USER2_EMAIL,
                 username=username,
-                hashed_password="hashed2",  # noqa: S106
+                hashed_password="hashed2",
             )
 
     @pytest.mark.asyncio
@@ -333,13 +333,13 @@ class TestUserUniquenessConstraints:
         await UserFactory.create_async(
             session,
             email=USER1_EMAIL,
-            hashed_password="hashed1",  # noqa: S106
+            hashed_password="hashed1",
             username=None,
         )
         await UserFactory.create_async(
             session,
             email=USER2_EMAIL,
-            hashed_password="hashed2",  # noqa: S106
+            hashed_password="hashed2",
             username=None,
         )
 
@@ -359,14 +359,14 @@ class TestUserOrganizationRelationship:
     async def test_user_can_be_assigned_to_organization(self, session: AsyncSession) -> None:
         """Verify user can be assigned to an organization."""
         # Create an owner for the organization first
-        owner = await UserFactory.create_async(session, email=TEST_OWNER_EMAIL, hashed_password="hashed")  # noqa: S106
+        owner = await UserFactory.create_async(session, email=TEST_OWNER_EMAIL, hashed_password="hashed")
 
         org = await OrganizationFactory.create_async(session, name=TEST_ORG_NAME, owner_id=owner.id)
 
         user = await UserFactory.create_async(
             session,
             email=TEST_EMAIL,
-            hashed_password="hashed",  # noqa: S106
+            hashed_password="hashed",
             organization_id=org.id,
             organization_role=OrganizationRole.MEMBER,
         )
@@ -378,14 +378,14 @@ class TestUserOrganizationRelationship:
     async def test_user_owner_role(self, session: AsyncSession) -> None:
         """Verify user can have owner role."""
         # Create an owner for the organization first
-        owner = await UserFactory.create_async(session, email=TEST_OWNER_EMAIL, hashed_password="hashed")  # noqa: S106
+        owner = await UserFactory.create_async(session, email=TEST_OWNER_EMAIL, hashed_password="hashed")
 
         org = await OrganizationFactory.create_async(session, name=TEST_ORG_NAME, owner_id=owner.id)
 
         user = await UserFactory.create_async(
             session,
             email=TEST_EMAIL,
-            hashed_password="hashed",  # noqa: S106
+            hashed_password="hashed",
             organization_id=org.id,
             organization_role=OrganizationRole.OWNER,
         )
@@ -396,14 +396,14 @@ class TestUserOrganizationRelationship:
     async def test_user_can_be_removed_from_organization(self, session: AsyncSession) -> None:
         """Verify user can be removed from organization."""
         # Create an owner for the organization
-        owner = await UserFactory.create_async(session, email=TEST_OWNER_EMAIL, hashed_password="hashed")  # noqa: S106
+        owner = await UserFactory.create_async(session, email=TEST_OWNER_EMAIL, hashed_password="hashed")
 
         org = await OrganizationFactory.create_async(session, name=TEST_ORG_NAME, owner_id=owner.id)
 
         user = await UserFactory.create_async(
             session,
             email=TEST_EMAIL,
-            hashed_password="hashed",  # noqa: S106
+            hashed_password="hashed",
             organization_id=org.id,
             organization_role=OrganizationRole.MEMBER,
         )

@@ -18,15 +18,19 @@ from app.api.auth.services.oauth import (
 
 def test_google_login_client_uses_base_scopes_only() -> None:
     """Ensure the standard Google login client stays on the minimal login scope set."""
+    youtube_scopes = set(settings.youtube_api_scopes or [])
+    base_scopes = google_oauth_client.base_scopes or []
     assert google_oauth_client.base_scopes == GOOGLE_BASE_SCOPES
-    assert set(settings.youtube_api_scopes).isdisjoint(google_oauth_client.base_scopes)
+    assert youtube_scopes.isdisjoint(base_scopes)
 
 
 def test_google_youtube_client_extends_login_scopes() -> None:
     """Ensure the plugin-only YouTube client keeps the elevated scope set separate."""
+    youtube_scopes = set(settings.youtube_api_scopes or [])
+    base_scopes = google_youtube_oauth_client.base_scopes or []
     assert google_youtube_oauth_client.base_scopes == GOOGLE_YOUTUBE_SCOPES
-    assert set(GOOGLE_BASE_SCOPES).issubset(google_youtube_oauth_client.base_scopes)
-    assert set(settings.youtube_api_scopes).issubset(google_youtube_oauth_client.base_scopes)
+    assert set(GOOGLE_BASE_SCOPES).issubset(base_scopes)
+    assert youtube_scopes.issubset(base_scopes)
 
 
 def test_login_router_wiring_uses_standard_google_client() -> None:
@@ -46,9 +50,10 @@ async def test_google_login_authorize_url_excludes_youtube_scopes() -> None:
 
     query = parse_qs(urlparse(authorization_url).query)
     requested_scopes = set(query["scope"][0].split())
+    youtube_scopes = set(settings.youtube_api_scopes or [])
 
     assert set(GOOGLE_BASE_SCOPES) == requested_scopes
-    assert set(settings.youtube_api_scopes).isdisjoint(requested_scopes)
+    assert youtube_scopes.isdisjoint(requested_scopes)
 
 
 @pytest.mark.asyncio
@@ -62,6 +67,7 @@ async def test_google_youtube_authorize_url_includes_youtube_scopes() -> None:
 
     query = parse_qs(urlparse(authorization_url).query)
     requested_scopes = set(query["scope"][0].split())
+    youtube_scopes = set(settings.youtube_api_scopes or [])
 
     assert set(GOOGLE_YOUTUBE_SCOPES) == requested_scopes
-    assert set(settings.youtube_api_scopes).issubset(requested_scopes)
+    assert youtube_scopes.issubset(requested_scopes)

@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
 
 from scripts import compile_email_templates as compile_email_templates_script
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.unit
@@ -15,9 +21,9 @@ class TestCompileEmailTemplatesScript:
 
     def test_compile_mjml_templates_compiles_each_template(
         self,
-        tmp_path: pytest.TempPathFactory,
+        tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
-        mocker: pytest.MockFixture,
+        mocker: MockerFixture,
     ) -> None:
         """MJML files in the source directory should be compiled into HTML files."""
         src_dir = tmp_path / "src"
@@ -45,9 +51,9 @@ class TestCompileEmailTemplatesScript:
 
     def test_compile_mjml_templates_returns_early_when_source_dir_is_missing(
         self,
-        tmp_path: pytest.TempPathFactory,
+        tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
-        mocker: pytest.MockFixture,
+        mocker: MockerFixture,
     ) -> None:
         """A missing source directory should not attempt compilation."""
         error_mock = mocker.patch.object(compile_email_templates_script.logger, "error")
@@ -61,7 +67,7 @@ class TestCompileEmailTemplatesScript:
         error_mock.assert_called_once()
         compile_mock.assert_not_called()
 
-    def test_main_delegates_to_compile_function(self, mocker: pytest.MockFixture) -> None:
+    def test_main_delegates_to_compile_function(self, mocker: MockerFixture) -> None:
         """The CLI entrypoint should call the compilation function."""
         compile_mock = mocker.patch.object(compile_email_templates_script, "compile_mjml_templates")
 

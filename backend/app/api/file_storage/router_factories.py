@@ -1,8 +1,9 @@
-"""Common generator functions for routers."""
+"""Shared router builders for parent-scoped file storage endpoints."""
 
+import json
 from collections.abc import Callable
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 from fastapi import APIRouter, Depends, Form, Path, Security, UploadFile
 from fastapi import File as FastAPIFile
@@ -15,6 +16,7 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud import ParentStorageOperations
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models.models import File, Image, MediaParentType
+from app.api.file_storage.presentation import serialize_file_read, serialize_image_read
 from app.api.file_storage.schemas import (
     FileCreate,
     FileReadWithinParent,
@@ -23,11 +25,9 @@ from app.api.file_storage.schemas import (
     empty_str_to_none,
 )
 
-BaseDep = Callable[[], Any]  # Base auth dependency
-ParentIdDep = Callable[[IDT], Any]  # Dependency with parent_id parameter
-
-# Map of example extension for each storage type
-STORAGE_EXTENSION_MAP: dict = {"image": "jpg", "file": "csv"}
+BaseDep = Callable[[], Any]
+ParentIdDep = Callable[[IDT], Any]
+STORAGE_EXTENSION_MAP = {"file": "csv", "image": "jpg"}
 
 
 class StorageRouteMethod(StrEnum):
@@ -38,247 +38,276 @@ class StorageRouteMethod(StrEnum):
     DELETE = "delete"
 
 
-# TODO: Simplify, or split it up in read and modify factories, or just create the routes manually for clarity
-def add_storage_type_routes[
-    StorageModel: (File, Image),
-    ReadSchema: (FileReadWithinParent, ImageReadWithinParent),
-    CreateSchema: (FileCreate, ImageCreateFromForm),
-    FilterSchema: (FileFilter, ImageFilter),
-](
+def _build_passthrough_parent_dependency(parent_id_param: str, parent_title: str) -> ParentIdDep:
+    """Create a default dependency that simply reads the parent id from the path."""
+
+    async def dependency(
+        parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
+    ) -> int:
+        return parent_id
+
+    return dependency
+
+
+def _storage_example(parent_title: str, *, storage_slug: str, storage_title: str) -> dict[str, Any]:
+    """Build a standard OpenAPI example for a storage resource."""
+    ext = STORAGE_EXTENSION_MAP[storage_slug]
+    return {
+        "id": 1,
+        "filename": f"example.{ext}",
+        "description": f"{parent_title} {storage_title}",
+        f"{storage_slug}_url": f"/uploads/{storage_slug}s/example.{ext}",
+        "created_at": "2025-09-22T14:30:45Z",
+        "updated_at": "2025-09-22T14:30:45Z",
+    }
+
+
+def _add_file_routes(
     router: APIRouter,
     *,
     parent_api_model_name: APIModelName,
     storage_crud: ParentStorageOperations,
-    read_schema: type[ReadSchema],
-    create_schema: type[CreateSchema],
-    filter_schema: type[FilterSchema],
     include_methods: set[StorageRouteMethod],
-    read_auth_dep: BaseDep | None = None,
-    read_parent_auth_dep: ParentIdDep | None = None,
-    modify_auth_dep: BaseDep | None = None,
-    modify_parent_auth_dep: ParentIdDep | None = None,
+    read_auth_dep: BaseDep | None,
+    read_parent_auth_dep: ParentIdDep | None,
+    modify_auth_dep: BaseDep | None,
+    modify_parent_auth_dep: ParentIdDep | None,
 ) -> None:
-    """Add storage routes for a specific storage type (files or images) to a router.
-
-    Args:
-        router (APIRouter): The router to add the routes to.
-        parent_api_model_name (APIModelName): The parent model name.
-        storage_crud (ParentStorageOperations): The CRUD operations for the storage type.
-        read_schema (type[ReadSchema]): The schema to use for reading storage items.
-        create_schema (type[CreateSchema]): The schema to use for creating storage items.
-        filter_schema (type[FilterSchema]): The schema to use for filtering storage items.
-        include_methods (set[StorageRouteMethods] | None, optional): The methods to include in the routes.
-        read_auth_dep (Callable[[], Any] | None, optional): The authentication dependency for reading storage items.
-                                                                Defaults to None.
-        read_parent_auth_dep (Callable[[IDT], Any] | None, optional): The authentication dependency for reading
-                                                                storage items with a given parent_id. Defaults to None.
-        modify_auth_dep (Callable[[], Any] | None, optional): The authentication dependency for modifying storage items.
-                                                                Defaults to None.
-        modify_parent_auth_dep (Callable[[IDT], Any] | None, optional): The authentication dependency for modifying
-                                                                storage items with a given parent_id. Defaults to None.
-    """
-    parent_slug_plural: str = parent_api_model_name.plural_slug
-    parent_title: str = parent_api_model_name.name_capital
-    parent_id_param: str = parent_api_model_name.name_snake + "_id"
-
-    storage_type_title: str = read_schema.get_api_model_name().name_capital
-    storage_type_title_plural: str = read_schema.get_api_model_name().plural_capital
-    storage_type_slug: str = read_schema.get_api_model_name().name_slug
-    storage_type_slug_plural = read_schema.get_api_model_name().plural_slug
-
-    storage_type = storage_type_slug
-    storage_ext: str = STORAGE_EXTENSION_MAP[storage_type]
-
-    # HACK: Define null parent auth dependencies if none are provided
-    # TODO: Simplify storage crud and router factories
-    if read_parent_auth_dep is None:
-
-        async def read_parent_auth_dep(
-            parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
-        ) -> int:
-            return parent_id
-
-    if modify_parent_auth_dep is None:
-
-        async def modify_parent_auth_dep(
-            parent_id: Annotated[int, Path(alias=parent_id_param, description=f"ID of the {parent_title}")],
-        ) -> int:
-            return parent_id
+    """Register file routes for a parent resource."""
+    parent_title = parent_api_model_name.name_capital
+    parent_id_param = f"{parent_api_model_name.name_snake}_id"
+    read_parent_dep = read_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
+    modify_parent_dep = modify_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
+    example = _storage_example(parent_title, storage_slug="file", storage_title="File")
 
     if StorageRouteMethod.GET in include_methods:
 
         @router.get(
-            f"/{{{parent_id_param}}}/{storage_type_slug_plural}",
-            description=f"Get all {storage_type_title_plural} associated with the {parent_title}",
+            f"/{{{parent_id_param}}}/files",
+            response_model=list[FileReadWithinParent],
+            description=f"Get all Files associated with the {parent_title}",
             dependencies=[Security(read_auth_dep)] if read_auth_dep else None,
             responses={
                 200: {
-                    "description": f"List of {storage_type_title_plural} associated with the {parent_title}",
-                    "content": {
-                        "application/json": {
-                            "example": [
-                                {
-                                    "id": 1,
-                                    "filename": f"example.{storage_ext}",
-                                    "description": f"{parent_title} {storage_type_title}",
-                                    f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",  # noqa: E501
-                                    "created_at": "2025-09-22T14:30:45Z",
-                                    "updated_at": "2025-09-22T14:30:45Z",
-                                }
-                            ]
-                        }
-                    },
+                    "description": f"List of Files associated with the {parent_title}",
+                    "content": {"application/json": {"example": [example]}},
                 },
                 404: {"description": f"{parent_title} not found"},
             },
-            summary=f"Get {parent_title} {storage_type_title_plural}",
+            summary=f"Get {parent_title} Files",
         )
-        async def get_items(
+        async def get_files(
             session: AsyncSessionDep,
-            parent_id: Annotated[int, Depends(read_parent_auth_dep)],
-            item_filter: FilterSchema = FilterDepends(filter_schema),
-        ) -> list[ReadSchema]:
-            """Get all storage items associated with the parent."""
+            parent_id: Annotated[int, Depends(read_parent_dep)],
+            item_filter: FileFilter = FilterDepends(FileFilter),
+        ) -> list[FileReadWithinParent]:
+            """Get all files associated with the parent."""
             items = await storage_crud.get_all(session, parent_id, filter_params=item_filter)
-            return [read_schema.model_validate(item) for item in items]
+            return [serialize_file_read(cast("File", item)) for item in items]
 
         @router.get(
-            f"/{{{parent_id_param}}}/{storage_type_slug_plural}/{{{storage_type_slug}_id}}",
+            f"/{{{parent_id_param}}}/files/{{file_id}}",
+            response_model=FileReadWithinParent,
             dependencies=[Security(read_auth_dep)] if read_auth_dep else None,
-            description=f"Get specific {parent_title} {storage_type_title} by ID",
+            description=f"Get specific {parent_title} File by ID",
             responses={
-                200: {
-                    "description": f"{storage_type.title()} found",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "filename": f"example.{storage_ext}",
-                                "description": f"{parent_title} {storage_type_title}",
-                                f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                "created_at": "2025-09-22T14:30:45Z",
-                                "updated_at": "2025-09-22T14:30:45Z",
-                            }
-                        }
-                    },
-                },
-                404: {"description": f"{parent_title} or {storage_type} not found"},
+                200: {"description": "File found", "content": {"application/json": {"example": example}}},
+                404: {"description": f"{parent_title} or file not found"},
             },
-            summary=f"Get specific {parent_title} {storage_type_title}",
+            summary=f"Get specific {parent_title} File",
         )
-        async def get_item(
-            parent_id: Annotated[int, Depends(read_parent_auth_dep)],
-            item_id: Annotated[UUID4, Path(alias=f"{storage_type_slug}_id", description=f"ID of the {storage_type}")],
+        async def get_file(
+            parent_id: Annotated[int, Depends(read_parent_dep)],
+            item_id: Annotated[UUID4, Path(alias="file_id", description="ID of the file")],
             session: AsyncSessionDep,
-        ) -> ReadSchema:
-            """Get a specific storage item associated with the parent."""
+        ) -> FileReadWithinParent:
+            """Get a specific file associated with the parent."""
             item = await storage_crud.get_by_id(session, parent_id, item_id)
-            return read_schema.model_validate(item)
+            return serialize_file_read(cast("File", item))
 
     if StorageRouteMethod.POST in include_methods:
-        # HACK: This is an ugly way to differentiate between file and image uploads
-        common_upload_route_params = {
-            "path": f"/{{{parent_id_param}}}/{storage_type_slug_plural}",
-            "dependencies": [Security(modify_auth_dep)] if modify_auth_dep else None,
-            "description": f"Upload a new {storage_type_title} for the {parent_title}",
-            "responses": {
-                200: {
-                    "description": f"{storage_type_title} successfully uploaded",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "filename": f"example.{storage_ext}",
-                                "description": f"{parent_title} {storage_type_title}",
-                                f"{storage_type_slug}_url": f"/uploads/{parent_slug_plural}/1/example.{storage_ext}",
-                                "created_at": "2025-09-22T14:30:45Z",
-                                "updated_at": "2025-09-22T14:30:45Z",
-                            }
-                        }
-                    },
+
+        @router.post(
+            f"/{{{parent_id_param}}}/files",
+            response_model=FileReadWithinParent,
+            status_code=201,
+            dependencies=[Security(modify_auth_dep)] if modify_auth_dep else None,
+            description=f"Upload a new File for the {parent_title}",
+            responses={
+                201: {
+                    "description": "File successfully uploaded",
+                    "content": {"application/json": {"example": example}},
                 },
-                400: {"description": f"Invalid {storage_type} data"},
+                400: {"description": "Invalid file data"},
                 404: {"description": f"{parent_title} not found"},
             },
-            "summary": f"Add {storage_type_title} to {parent_title}",
-        }
-
-        if create_schema is ImageCreateFromForm:
-
-            @router.post(**common_upload_route_params)
-            async def upload_image(
-                session: AsyncSessionDep,
-                parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
-                file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
-                description: Annotated[str | None, Form()] = None,
-                image_metadata: Annotated[
-                    str | None,
-                    Form(
-                        description="Image metadata in JSON string format",
-                        examples=[r'{"foo_key": "foo_value", "bar_key": {"nested_key": "nested_value"}}'],
-                    ),
-                    BeforeValidator(empty_str_to_none),
-                ] = None,
-            ) -> ReadSchema:
-                """Upload a new image for the parent.
-
-                Note that the parent id and type setting is handled in the crud operation.
-                """
-                item_data = ImageCreateFromForm(
-                    file=file,
-                    description=description,
-                    image_metadata=image_metadata,
-                    parent_id=parent_id,
-                    parent_type=MediaParentType(parent_api_model_name.name_snake),
-                )
-                item = await storage_crud.create(session, parent_id, item_data)
-                return read_schema.model_validate(item)
-
-        elif create_schema is FileCreate:
-
-            @router.post(**common_upload_route_params)
-            async def upload_file(
-                session: AsyncSessionDep,
-                parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
-                file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
-                description: Annotated[str | None, Form()] = None,
-            ) -> ReadSchema:
-                """Upload a new file for the parent.
-
-                Note that the parent id and type setting is handled in the crud operation.
-                """
-                item_data = FileCreate(
-                    file=file,
-                    description=description,
-                    parent_id=parent_id,
-                    parent_type=MediaParentType(parent_api_model_name.name_snake),
-                )
-                item = await storage_crud.create(session, parent_id, item_data)
-                return read_schema.model_validate(item)
-
-        else:
-            err_msg = "Invalid create schema"
-            raise ValueError(err_msg)
+            summary=f"Add File to {parent_title}",
+        )
+        async def upload_file(
+            session: AsyncSessionDep,
+            parent_id: Annotated[int, Depends(modify_parent_dep)],
+            file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
+            description: Annotated[str | None, Form()] = None,
+        ) -> FileReadWithinParent:
+            """Upload a new file for the parent."""
+            item_data = FileCreate(
+                file=file,
+                description=description,
+                parent_id=parent_id,
+                parent_type=MediaParentType(parent_api_model_name.name_snake),
+            )
+            item = await storage_crud.create(session, parent_id, item_data)
+            return serialize_file_read(item)
 
     if StorageRouteMethod.DELETE in include_methods:
 
         @router.delete(
-            f"/{{{parent_id_param}}}/{storage_type_slug_plural}/{{{storage_type_slug}_id}}",
+            f"/{{{parent_id_param}}}/files/{{file_id}}",
             dependencies=[Security(modify_auth_dep)] if modify_auth_dep else None,
-            description=f"Remove {storage_type_title} from the {parent_title} and delete it from the storage.",
+            description=f"Remove File from the {parent_title} and delete it from the storage.",
             responses={
-                204: {"description": f"{storage_type.title()} successfully removed"},
-                404: {"description": f"{parent_title} or {storage_type} not found"},
+                204: {"description": "File successfully removed"},
+                404: {"description": f"{parent_title} or file not found"},
             },
-            summary=f"Remove {storage_type_title} from {parent_title}",
+            summary=f"Remove File from {parent_title}",
             status_code=204,
         )
-        async def delete_item(
-            parent_id: Annotated[int, Depends(modify_parent_auth_dep)],
-            item_id: Annotated[UUID4, Path(alias=f"{storage_type_slug}_id", description=f"ID of the {storage_type}")],
+        async def delete_file(
+            parent_id: Annotated[int, Depends(modify_parent_dep)],
+            item_id: Annotated[UUID4, Path(alias="file_id", description="ID of the file")],
             session: AsyncSessionDep,
         ) -> None:
-            """Remove a storage item from the parent."""
+            """Remove a file from the parent."""
+            await storage_crud.delete(session, parent_id, item_id)
+
+
+def _add_image_routes(
+    router: APIRouter,
+    *,
+    parent_api_model_name: APIModelName,
+    storage_crud: ParentStorageOperations,
+    include_methods: set[StorageRouteMethod],
+    read_auth_dep: BaseDep | None,
+    read_parent_auth_dep: ParentIdDep | None,
+    modify_auth_dep: BaseDep | None,
+    modify_parent_auth_dep: ParentIdDep | None,
+) -> None:
+    """Register image routes for a parent resource."""
+    parent_title = parent_api_model_name.name_capital
+    parent_id_param = f"{parent_api_model_name.name_snake}_id"
+    read_parent_dep = read_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
+    modify_parent_dep = modify_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
+    example = _storage_example(parent_title, storage_slug="image", storage_title="Image")
+
+    if StorageRouteMethod.GET in include_methods:
+
+        @router.get(
+            f"/{{{parent_id_param}}}/images",
+            response_model=list[ImageReadWithinParent],
+            description=f"Get all Images associated with the {parent_title}",
+            dependencies=[Security(read_auth_dep)] if read_auth_dep else None,
+            responses={
+                200: {
+                    "description": f"List of Images associated with the {parent_title}",
+                    "content": {"application/json": {"example": [example]}},
+                },
+                404: {"description": f"{parent_title} not found"},
+            },
+            summary=f"Get {parent_title} Images",
+        )
+        async def get_images(
+            session: AsyncSessionDep,
+            parent_id: Annotated[int, Depends(read_parent_dep)],
+            item_filter: ImageFilter = FilterDepends(ImageFilter),
+        ) -> list[ImageReadWithinParent]:
+            """Get all images associated with the parent."""
+            items = await storage_crud.get_all(session, parent_id, filter_params=item_filter)
+            return [serialize_image_read(cast("Image", item)) for item in items]
+
+        @router.get(
+            f"/{{{parent_id_param}}}/images/{{image_id}}",
+            response_model=ImageReadWithinParent,
+            dependencies=[Security(read_auth_dep)] if read_auth_dep else None,
+            description=f"Get specific {parent_title} Image by ID",
+            responses={
+                200: {"description": "Image found", "content": {"application/json": {"example": example}}},
+                404: {"description": f"{parent_title} or image not found"},
+            },
+            summary=f"Get specific {parent_title} Image",
+        )
+        async def get_image(
+            parent_id: Annotated[int, Depends(read_parent_dep)],
+            item_id: Annotated[UUID4, Path(alias="image_id", description="ID of the image")],
+            session: AsyncSessionDep,
+        ) -> ImageReadWithinParent:
+            """Get a specific image associated with the parent."""
+            item = await storage_crud.get_by_id(session, parent_id, item_id)
+            return serialize_image_read(cast("Image", item))
+
+    if StorageRouteMethod.POST in include_methods:
+
+        @router.post(
+            f"/{{{parent_id_param}}}/images",
+            response_model=ImageReadWithinParent,
+            status_code=201,
+            dependencies=[Security(modify_auth_dep)] if modify_auth_dep else None,
+            description=f"Upload a new Image for the {parent_title}",
+            responses={
+                201: {
+                    "description": "Image successfully uploaded",
+                    "content": {"application/json": {"example": example}},
+                },
+                400: {"description": "Invalid image data"},
+                404: {"description": f"{parent_title} not found"},
+            },
+            summary=f"Add Image to {parent_title}",
+        )
+        async def upload_image(
+            session: AsyncSessionDep,
+            parent_id: Annotated[int, Depends(modify_parent_dep)],
+            file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
+            description: Annotated[str | None, Form()] = None,
+            image_metadata: Annotated[
+                str | None,
+                Form(
+                    description="Image metadata in JSON string format",
+                    examples=[r'{"foo_key": "foo_value", "bar_key": {"nested_key": "nested_value"}}'],
+                ),
+                BeforeValidator(empty_str_to_none),
+            ] = None,
+        ) -> ImageReadWithinParent:
+            """Upload a new image for the parent."""
+            item_data = ImageCreateFromForm.model_validate(
+                {
+                    "file": file,
+                    "description": description,
+                    "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
+                    "parent_id": parent_id,
+                    "parent_type": MediaParentType(parent_api_model_name.name_snake),
+                }
+            )
+            item = await storage_crud.create(session, parent_id, item_data)
+            return serialize_image_read(item)
+
+    if StorageRouteMethod.DELETE in include_methods:
+
+        @router.delete(
+            f"/{{{parent_id_param}}}/images/{{image_id}}",
+            dependencies=[Security(modify_auth_dep)] if modify_auth_dep else None,
+            description=f"Remove Image from the {parent_title} and delete it from the storage.",
+            responses={
+                204: {"description": "Image successfully removed"},
+                404: {"description": f"{parent_title} or image not found"},
+            },
+            summary=f"Remove Image from {parent_title}",
+            status_code=204,
+        )
+        async def delete_image(
+            parent_id: Annotated[int, Depends(modify_parent_dep)],
+            item_id: Annotated[UUID4, Path(alias="image_id", description="ID of the image")],
+            session: AsyncSessionDep,
+        ) -> None:
+            """Remove an image from the parent."""
             await storage_crud.delete(session, parent_id, item_id)
 
 
@@ -295,29 +324,20 @@ def add_storage_routes(
     modify_parent_auth_dep: ParentIdDep | None = None,
 ) -> None:
     """Add both file and image storage routes to a router."""
-    # Add file routes
-    add_storage_type_routes(
-        router=router,
+    _add_file_routes(
+        router,
         parent_api_model_name=parent_api_model_name,
         storage_crud=files_crud,
-        read_schema=FileReadWithinParent,
-        create_schema=FileCreate,
-        filter_schema=FileFilter,
         include_methods=include_methods,
         read_auth_dep=read_auth_dep,
         read_parent_auth_dep=read_parent_auth_dep,
         modify_auth_dep=modify_auth_dep,
         modify_parent_auth_dep=modify_parent_auth_dep,
     )
-
-    # Add image routes
-    add_storage_type_routes(
-        router=router,
+    _add_image_routes(
+        router,
         parent_api_model_name=parent_api_model_name,
         storage_crud=images_crud,
-        read_schema=ImageReadWithinParent,
-        create_schema=ImageCreateFromForm,
-        filter_schema=ImageFilter,
         include_methods=include_methods,
         read_auth_dep=read_auth_dep,
         read_parent_auth_dep=read_parent_auth_dep,

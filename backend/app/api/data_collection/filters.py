@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime  # noqa: TC003 # Runtime import is required for FastAPI-Filter field definitions
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from sqlalchemy import ColumnElement, desc, func, literal_column, or_
+from sqlalchemy import ColumnElement, desc, func, or_
 from sqlmodel import select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
@@ -87,17 +87,21 @@ def build_brand_search_clause(search: str) -> ColumnElement[bool]:
     return build_product_search_clause(
         search,
         cast("SearchableColumn", Product.brand),
-        literal_column("product.search_vector"),
+        cast("ColumnElement[Any]", Product.search_vector),
     )
 
 
-def get_brand_search_statement(search: str | None = None, order: str = "asc") -> Select:
+# Constants for ordering
+ORDER_DESC: Literal["desc"] = "desc"
+
+
+def get_brand_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select:
     """Return a SQLModel select statement for normalized, distinct brands with optional search and order."""
     brand_expr = func.trim(func.lower(Product.brand)).label("brand_norm")
     statement = select(brand_expr).where(cast("SearchableColumn", Product.brand).is_not(None))
     if search:
         statement = statement.where(build_brand_search_clause(search.strip()))
-    return statement.distinct().order_by(desc(brand_expr) if order == "desc" else brand_expr)  # noqa: PLR2004
+    return statement.distinct().order_by(desc(brand_expr) if order == ORDER_DESC else brand_expr)
 
 
 ### Product Filters ###
@@ -129,7 +133,7 @@ class ProductFilter(Filter):
         # search_model_fields intentionally omitted — search is handled by the
         # overridden filter() method below using tsvector + trigram indexes.
 
-    def filter(self, query: Any) -> Any:  # noqa: ANN401
+    def filter(self, query: Any) -> Any:  # noqa: ANN401 # Any-typed query is expected by the parent method signature
         """Apply filters, replacing the default ILIKE search with tsvector + trigram search."""
         # Temporarily clear search before delegating to super() — fastapi-filter would otherwise
         # try getattr(Product, 'search') and raise AttributeError since we removed search_model_fields.
@@ -142,12 +146,13 @@ class ProductFilter(Filter):
             clause = build_product_search_clause(
                 self.search,
                 cast("SearchableColumn", Product.brand),
-                literal_column("product.search_vector"),
+                cast("ColumnElement[Any]", Product.search_vector),
                 name_field=cast("SearchableColumn", Product.name),
             )
             query = query.where(clause).order_by(
                 func.ts_rank(
-                    literal_column("product.search_vector"), func.websearch_to_tsquery("english", self.search)
+                    cast("SearchableColumn", Product.search_vector),
+                    func.websearch_to_tsquery("english", self.search),
                 ).desc()
             )
 

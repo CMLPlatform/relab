@@ -2,9 +2,9 @@
 
 from typing import Annotated
 
-from pydantic import EmailStr, Field, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
-from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp
+from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
 from app.api.newsletter.models import NewsletterSubscriberBase
 
 
@@ -18,3 +18,17 @@ class NewsletterSubscriberRead(BaseReadSchemaWithTimeStamp, NewsletterSubscriber
     """Read schema for newsletter subscribers."""
 
     is_confirmed: bool = Field()
+
+
+class NewsletterPreferenceRead(BaseModel):
+    """Read schema for a logged-in user's newsletter preference."""
+
+    email: EmailStr = Field()
+    subscribed: bool = Field()
+    is_confirmed: bool = Field()
+
+
+class NewsletterPreferenceUpdate(BaseUpdateSchema):
+    """Update schema for a logged-in user's newsletter preference."""
+
+    subscribed: bool = Field()

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sqlmodel.ext.asyncio.session import AsyncSession
 
     from app.api.auth.models import User
-    from app.api.background_data.models import Product
+    from app.api.data_collection.models import Product
 
 # Constants for test values
 PRODUCT_FILES_NAME = "Test Product Files"
@@ -61,7 +61,7 @@ class TestFileStorageEndpoints:
             data=data,
         )
 
-        assert response.status_code == status.HTTP_200_OK, response.text
+        assert response.status_code == status.HTTP_201_CREATED, response.text
         resp_data = response.json()
         assert resp_data["filename"].endswith(FILE_NAME)
         assert resp_data["description"] == FILE_DESC
@@ -85,7 +85,7 @@ class TestFileStorageEndpoints:
 
         # Verify it's deleted
         response_get_deleted = await superuser_client.get(f"/products/{setup_product_for_files.id}/files/{file_id}")
-        assert response_get_deleted.status_code == status.HTTP_400_BAD_REQUEST
+        assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND
 
     async def test_upload_image(self, superuser_client: AsyncClient, setup_product_for_files: Product) -> None:
         """Test uploading an image to a product."""
@@ -98,7 +98,7 @@ class TestFileStorageEndpoints:
             data=data,
         )
 
-        assert response.status_code == status.HTTP_200_OK, response.text
+        assert response.status_code == status.HTTP_201_CREATED, response.text
         resp_data = response.json()
         assert resp_data["filename"].endswith(IMAGE_NAME)
         assert resp_data["description"] == IMAGE_DESC
@@ -122,4 +122,4 @@ class TestFileStorageEndpoints:
 
         # Verify it's deleted
         response_get_deleted = await superuser_client.get(f"/products/{setup_product_for_files.id}/images/{image_id}")
-        assert response_get_deleted.status_code == status.HTTP_400_BAD_REQUEST
+        assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND

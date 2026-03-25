@@ -13,7 +13,7 @@ from app.api.newsletter.utils.emails import (
 )
 
 TEST_EMAIL = "user@example.com"
-TEST_TOKEN = "test-token-abc123"  # noqa: S105
+TEST_TOKEN = "test-token-abc123"
 TEST_SUBJECT = "Test Newsletter"
 TEST_CONTENT = "Hello from the newsletter!"
 

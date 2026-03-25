@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import secrets
 from http.cookies import SimpleCookie
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -21,6 +21,7 @@ from app.api.auth.exceptions import (
     UserNameAlreadyExistsError,
 )
 from app.api.auth.schemas import (
+    OrganizationCreate,
     UserCreate,
     UserCreateWithOrganization,
     UserUpdate,
@@ -38,22 +39,23 @@ from app.api.auth.services.refresh_token_service import create_refresh_token
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Mapping
 
     from httpx import AsyncClient
-    from redis import Redis
+    from httpx_oauth.oauth2 import OAuth2Token
+    from redis.asyncio import Redis
     from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Constants for test values
 TEST_EMAIL = "newuser@example.com"
-TEST_PASSWORD = "SecurePassword123"  # noqa: S105
+TEST_PASSWORD = "SecurePassword123"
 TEST_USERNAME = "newuser"
 DUPLICATE_EMAIL = "existing@example.com"
 UNIQUE_USERNAME = "uniqueuser"
 DIFFERENT_EMAIL = "different@example.com"
 EXISTING_USERNAME = "existing_user"
 DISPOSABLE_EMAIL = "temp@tempmail.com"
-WEAK_PASSWORD = "short"  # noqa: S105
+WEAK_PASSWORD = "short"
 OWNER_EMAIL = "owner@example.com"
 ORG_NAME = "Test Organization"
 ORG_LOCATION = "Test City"
@@ -63,10 +65,10 @@ LOGIN_USERNAME = "logintest"
 COOKIE_EMAIL = "cookie_test@example.com"
 COOKIE_USERNAME = "cookie_test"
 INVALID_EMAIL = "nonexistent@example.com"
-INVALID_PASSWORD = "WrongPassword123"  # noqa: S105
-INVALID_REFRESH_TOKEN = "invalid-token-1234567890123456789012345678"  # noqa: S105
-DUMMY_REFRESH_TOKEN = "some-test-refresh-token"  # noqa: S105
-SESSION_REFRESH_TOKEN = "test-refresh-token"  # noqa: S105
+INVALID_PASSWORD = "WrongPassword123"
+INVALID_REFRESH_TOKEN = "invalid-token-1234567890123456789012345678"
+DUMMY_REFRESH_TOKEN = "some-test-refresh-token"
+SESSION_REFRESH_TOKEN = "test-refresh-token"
 USER_AGENT = "Mozilla/5.0 Chrome/120.0"
 IP_ADDRESS = "10.0.0.1"
 
@@ -85,7 +87,11 @@ class TestRegistrationEndpoint:
 
         # Mock email checker to allow registration
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreate(**user_data)
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
 
             response = await async_client.post("/auth/register", json=user_data)
 
@@ -106,12 +112,20 @@ class TestRegistrationEndpoint:
 
         # Create user first
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreate(**user_data)
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
             await async_client.post("/auth/register", json=user_data)
 
         # Try to register with same email
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreate(**user_data)
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
 
             # Mock user_manager.create to raise UserAlreadyExists
             with patch("app.api.auth.dependencies.get_user_manager") as mock_get_manager:
@@ -187,7 +201,12 @@ class TestRegistrationEndpoint:
         }
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreateWithOrganization(**user_data)
+            mock_create_override.return_value = UserCreateWithOrganization(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+                organization=OrganizationCreate(**user_data["organization"]),
+            )
 
             response = await async_client.post("/auth/register", json=user_data)
 
@@ -213,7 +232,11 @@ class TestLoginEndpoint:
 
         # Register user first
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreate(**user_data)
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
             await async_client.post("/auth/register", json=user_data)
 
         # Test login
@@ -259,7 +282,11 @@ class TestLoginEndpoint:
         }
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-            mock_create_override.return_value = UserCreate(**user_data)
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
             await async_client.post("/auth/register", json=user_data)
 
         login_data = {
@@ -308,7 +335,7 @@ class TestRefreshTokenEndpoint:
             session,
             email="refresh-rotation@example.com",
             username="refresh_rotation_user",
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
             is_active=True,
             is_verified=True,
         )
@@ -345,7 +372,7 @@ class TestRefreshTokenEndpoint:
             session,
             email="cookie-refresh-rotation@example.com",
             username="cookie_refresh_rotation_user",
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
             is_active=True,
             is_verified=True,
         )
@@ -436,6 +463,7 @@ NEW_USERNAME = "totally_fresh_username"
 TAKEN_USERNAME = "already_taken_user"
 FRONTEND_REDIRECT_URI = "http://localhost:3000"
 JWT_DOT_COUNT = 2
+TEST_STATE_JWT_SECRET = "test-state-jwt-secret-32-bytes-long"
 
 
 # ============================================================
@@ -464,7 +492,7 @@ class TestOAuthHelpers:
     def test_generate_state_token_returns_jwt(self) -> None:
         """Verify generate_state_token() returns a JWT string."""
         data = {CSRF_TOKEN_KEY: "test-csrf"}
-        secret = "test-secret"  # noqa: S105
+        secret = TEST_STATE_JWT_SECRET
 
         token = generate_state_token(data, secret)
 
@@ -476,7 +504,7 @@ class TestOAuthHelpers:
         """Verify the generated state token contains the CSRF data when decoded."""
         csrf = secrets.token_urlsafe(16)
         data = {CSRF_TOKEN_KEY: csrf}
-        secret = "my-secret"  # noqa: S105
+        secret = TEST_STATE_JWT_SECRET
 
         token = generate_state_token(data, secret)
         decoded = decode_jwt(token, secret, ["fastapi-users:oauth-state"])
@@ -495,7 +523,7 @@ class TestOAuthRouterBuilderCSRF:
         settings = OAuthCookieSettings(secure=False)
         return BaseOAuthRouterBuilder(
             oauth_client=mock_client,
-            state_secret="my-state-secret",  # noqa: S106
+            state_secret=TEST_STATE_JWT_SECRET,
             cookie_settings=settings,
         )
 
@@ -516,7 +544,7 @@ class TestOAuthRouterBuilderCSRF:
 
         # Generate a valid state with CSRF token
         csrf_token = generate_csrf_token()
-        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, "my-state-secret")
+        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, TEST_STATE_JWT_SECRET)
 
         # Provide a different (wrong) CSRF token in the cookie
         mock_request = MagicMock()
@@ -534,7 +562,7 @@ class TestOAuthRouterBuilderCSRF:
         csrf_token = generate_csrf_token()
         state = generate_state_token(
             {CSRF_TOKEN_KEY: csrf_token, "frontend_redirect_uri": FRONTEND_REDIRECT_URI},
-            "my-state-secret",
+            TEST_STATE_JWT_SECRET,
         )
 
         mock_request = MagicMock()
@@ -565,7 +593,7 @@ class TestOAuthRedirectValidation:
         return CustomOAuthRouterBuilder(
             oauth_client=mock_client,
             backend=mock_backend,
-            state_secret="my-state-secret",  # noqa: S106
+            state_secret=TEST_STATE_JWT_SECRET,
             cookie_settings=OAuthCookieSettings(secure=False),
         )
 
@@ -675,7 +703,7 @@ class TestOAuthRedirectValidation:
         """Verify frontend success redirect never includes access_token query parameters."""
         builder = BaseOAuthRouterBuilder(
             oauth_client=MagicMock(name="github"),
-            state_secret="my-state-secret",  # noqa: S106
+            state_secret=TEST_STATE_JWT_SECRET,
             cookie_settings=OAuthCookieSettings(secure=False),
         )
 
@@ -708,19 +736,20 @@ class TestOAuthCallbackLinkingPolicy:
         return CustomOAuthRouterBuilder(
             oauth_client=mock_client,
             backend=mock_backend,
-            state_secret="my-state-secret",  # noqa: S106
+            state_secret=TEST_STATE_JWT_SECRET,
             cookie_settings=OAuthCookieSettings(secure=False),
         )
 
-    def _make_request_with_valid_state(self) -> tuple[MagicMock, tuple[dict[str, str], str]]:
+    def _make_request_with_valid_state(self) -> tuple[MagicMock, tuple[OAuth2Token, str]]:
         """Create a request/access-token-state pair with valid CSRF state."""
         csrf_token = generate_csrf_token()
-        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, "my-state-secret")
+        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, TEST_STATE_JWT_SECRET)
 
         mock_request = MagicMock()
         mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
 
-        return mock_request, ({"access_token": "provider-access-token"}, state)
+        token = cast("OAuth2Token", {"access_token": "provider-access-token"})
+        return mock_request, (token, state)
 
     @pytest.mark.asyncio
     async def test_callback_passes_associate_by_email_false(self) -> None:
@@ -740,7 +769,9 @@ class TestOAuthCallbackLinkingPolicy:
         response = await builder._get_callback_handler(request, access_token_state, user_manager, strategy)
 
         assert response.status_code == status.HTTP_200_OK
-        assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
+        await_args = user_manager.oauth_callback.await_args
+        assert await_args is not None
+        assert await_args.kwargs["associate_by_email"] is False
 
     @pytest.mark.asyncio
     async def test_callback_returns_stable_existing_user_error(self) -> None:
@@ -780,19 +811,20 @@ class TestOAuthAssociateFlow:
             oauth_client=mock_client,
             authenticator=mock_authenticator,
             user_schema=mock_schema,
-            state_secret="my-state-secret",  # noqa: S106
+            state_secret=TEST_STATE_JWT_SECRET,
             cookie_settings=OAuthCookieSettings(secure=False),
         )
 
-    def _make_associate_request_with_valid_state(self, user_id: str) -> tuple[MagicMock, tuple[dict[str, str], str]]:
+    def _make_associate_request_with_valid_state(self, user_id: str) -> tuple[MagicMock, tuple[OAuth2Token, str]]:
         """Create a request/access-token-state pair with valid CSRF state for association."""
         csrf_token = generate_csrf_token()
-        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token, "sub": user_id}, "my-state-secret")
+        state = generate_state_token({CSRF_TOKEN_KEY: csrf_token, "sub": user_id}, TEST_STATE_JWT_SECRET)
 
         mock_request = MagicMock()
         mock_request.cookies = {OAuthCookieSettings.name: csrf_token}
 
-        return mock_request, ({"access_token": "provider-access-token"}, state)
+        token = cast("OAuth2Token", {"access_token": "provider-access-token"})
+        return mock_request, (token, state)
 
     @pytest.mark.asyncio
     async def test_associate_callback_links_provider_for_current_user(self) -> None:
@@ -813,7 +845,10 @@ class TestOAuthAssociateFlow:
         user_manager.user_db.session = mock_session
         user_manager.oauth_associate_callback = AsyncMock(return_value=current_user)
 
-        result = await builder._get_callback_handler(request, current_user, access_token_state, user_manager)
+        result = cast(
+            "Mapping[str, Any]",
+            await builder._get_callback_handler(request, current_user, access_token_state, user_manager),
+        )
 
         assert result["email"] == TEST_EMAIL
         assert user_manager.oauth_associate_callback.await_count == 1
@@ -863,7 +898,7 @@ class TestUpdateUserValidation:
             session,
             email=USER1_EMAIL,
             username=USER1_USERNAME,
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
         )
 
         user_db = MagicMock()
@@ -881,7 +916,7 @@ class TestUpdateUserValidation:
             session,
             email=USER1_EMAIL,
             username=USER1_USERNAME,
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
         )
 
         user_db = MagicMock()
@@ -901,13 +936,13 @@ class TestUpdateUserValidation:
             session,
             email=USER1_EMAIL,
             username=TAKEN_USERNAME,
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
         )
         user2 = await UserFactory.create_async(
             session,
             email=USER2_EMAIL,
             username=USER2_USERNAME,
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
         )
 
         user_db = MagicMock()
@@ -926,7 +961,7 @@ class TestUpdateUserValidation:
             session,
             email=USER1_EMAIL,
             username=USER1_USERNAME,
-            hashed_password="pw",  # noqa: S106
+            hashed_password="pw",
         )
 
         user_db = MagicMock()

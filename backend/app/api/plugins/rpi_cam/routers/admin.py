@@ -1,20 +1,20 @@
 """Routers for the Raspberry Pi Camera plugin."""
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Path
 from fastapi_pagination import Page
 from pydantic import UUID4
 
 from app.api.auth.dependencies import current_active_superuser
-from app.api.common.crud.base import get_model_by_id, get_paginated_models
+from app.api.common.crud.base import get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.plugins.rpi_cam.dependencies import CameraFilterWithOwnerDep
+from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
 from app.api.plugins.rpi_cam.schemas import CameraRead
 
 ### Camera admin router ###
 
-# TODO: Also make file and data-collection routers user-dependent and add admin routers for superusers
-# TODO: write and implement generic get user_owned model dependency classes
 
 router = APIRouter(
     prefix="/admin/plugins/rpi-cam/cameras",
@@ -38,29 +38,27 @@ async def get_all_cameras(
 
 
 @router.get("/{camera_id}", summary="Get Raspberry Pi camera by ID", response_model=CameraRead)
-async def get_camera(camera_id: UUID4, session: AsyncSessionDep) -> Camera:
+async def get_camera(_camera_id: Annotated[UUID4, Path(alias="camera_id")], camera: CameraByIDDep) -> Camera:
     """Get single Raspberry Pi camera by ID."""
-    # TODO: Can we deduplicate these standard translations of exceptions to HTTP exceptions across the codebase?
-
-    return await get_model_by_id(session, Camera, camera_id)
+    return camera
 
 
 @router.get("/{camera_id}/status", summary="Get Raspberry Pi camera online status")
-async def get_camera_status(camera_id: UUID4, session: AsyncSessionDep) -> CameraStatus:
+async def get_camera_status(
+    _camera_id: Annotated[UUID4, Path(alias="camera_id")],
+    camera: CameraByIDDep,
+) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
-    db_camera = await get_model_by_id(session, Camera, camera_id)
-
-    return await db_camera.get_status()
+    return await camera.get_status()
 
 
 ## DELETE
 @router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
 async def delete_camera(
-    camera_id: UUID4,
+    _camera_id: Annotated[UUID4, Path(alias="camera_id")],
     session: AsyncSessionDep,
+    camera: CameraByIDDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
-    db_camera = await get_model_by_id(session, Camera, camera_id)
-
-    await session.delete(db_camera)
+    await session.delete(camera)
     await session.commit()

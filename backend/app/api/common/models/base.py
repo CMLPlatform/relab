@@ -182,12 +182,12 @@ class SingleParentMixin[ParentTypeEnum: Enum](SQLModel):
     ``ParentTypeEnum`` must be a ``StrEnum`` whose values are the snake_case names of the
     parent model tables (e.g. ``"product"``, ``"material"``).  The mixin derives the
     corresponding foreign-key field names automatically (e.g. ``product_id``).
-
-    TODO: Replace with proper polymorphic associations once the upstream SQLModel issue is
-    resolved: https://github.com/fastapi/sqlmodel/pull/1226
     """
 
-    parent_type: ParentTypeEnum  # type: ignore[valid-type]  # SQLModel field; concrete type set by subclass
+    # TODO: Replace with proper polymorphic associations once the upstream SQLModel issue is
+    # resolved: https://github.com/fastapi/sqlmodel/pull/1226
+
+    parent_type: ParentTypeEnum
 
     model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
 
@@ -227,7 +227,7 @@ class SingleParentMixin[ParentTypeEnum: Enum](SQLModel):
         field = f"{self.parent_type.value!s}_id"
         return getattr(self, field)
 
-    def set_parent(self, parent_type: ParentTypeEnum, parent_id: int) -> None:  # type: ignore[valid-type]
+    def set_parent(self, parent_type: ParentTypeEnum, parent_id: int) -> None:
         """Set the parent type and ID."""
         self.parent_type = parent_type
 

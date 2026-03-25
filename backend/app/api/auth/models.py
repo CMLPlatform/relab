@@ -14,9 +14,9 @@ from sqlmodel import Column, Field, Relationship
 
 from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare, UUIDPrimaryKeyMixin
 
+# Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
 
-# TODO: Refactor into separate files for each model.
-# This is tricky due to circular imports and the way SQLAlchemy and Pydantic handle schema building.
+
 ### Enums ###
 class OrganizationRole(StrEnum):
     """Enum for organization roles."""
@@ -37,11 +37,14 @@ class UserBase(BaseModel):
 class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, TimeStampMixinBare, table=True):
     """Database model for platform users."""
 
-    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo (see https://github.com/fastapi/sqlmodel/issues/1623)
+    # Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
     id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     # Login tracking
-    last_login_at: datetime | None = Field(default=None, nullable=True, sa_type=DateTime(timezone=True))
+    last_login_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     last_login_ip: str | None = Field(default=None, max_length=45, nullable=True)  # Max 45 for IPv6
 
     # One-to-many relationship with OAuthAccount
@@ -49,10 +52,8 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, Ti
         back_populates="user",
         sa_relationship_kwargs={
             "lazy": "joined",  # Required because of FastAPI-Users OAuth implementation
-            "primaryjoin": "User.id == OAuthAccount.user_id",  # HACK: Explicitly define join condition because of
-            "foreign_keys": "[OAuthAccount.user_id]",  # pydantic / sqlmodel issues (see https://github.com/fastapi/sqlmodel/issues/1623)
-        },  # TODO: Check if this is fixed in future versions of pydantic/sqlmodel and we can use automatic
-        # relationship detection again
+            "foreign_keys": "[OAuthAccount.user_id]",
+        },
     )
     # Many-to-one relationship with Organization
     organization_id: UUID4 | None = Field(
@@ -66,8 +67,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, Ti
         back_populates="members",
         sa_relationship_kwargs={
             "lazy": "selectin",
-            "primaryjoin": "User.organization_id == Organization.id",  # HACK: Explicitly define join condition because
-            "foreign_keys": "[User.organization_id]",  # of pydantic / sqlmodel issues
+            "foreign_keys": "[User.organization_id]",
         },
     )
     organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
@@ -78,8 +78,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, Ti
             back_populates="owner",
             sa_relationship_kwargs={
                 "uselist": False,
-                "primaryjoin": "User.id == Organization.owner_id",  # HACK: Explicitly define join condition because of
-                "foreign_keys": "[Organization.owner_id]",  # pydantic / sqlmodel issues
+                "foreign_keys": "[Organization.owner_id]",
             },
         )
     )
@@ -97,19 +96,16 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, Ti
 class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for OAuth accounts. Note that the main implementation is in the base class."""
 
-    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
+    # Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
     id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
-    # HACK: Redefine user_id to ensure ForeignKey is preserved despite mixin interference
+    # Redefine user_id to ensure the ForeignKey survives mixin inheritance.
     user_id: UUID4 = Field(foreign_key="user.id", nullable=False)
 
     # Many-to-one relationship with User
     user: User = Relationship(
         back_populates="oauth_accounts",
-        sa_relationship_kwargs={  # HACK: Explicitly define join condition because of pydantic / sqlmodel issues
-            "primaryjoin": "OAuthAccount.user_id == User.id",  # (see https://github.com/fastapi/sqlmodel/issues/1623)
-            "foreign_keys": "[OAuthAccount.user_id]",
-        },
+        sa_relationship_kwargs={"foreign_keys": "[OAuthAccount.user_id]"},
     )
     __table_args__ = (UniqueConstraint("oauth_name", "account_id", name="uq_oauth_account_identity"),)
 
@@ -126,7 +122,6 @@ class OrganizationBase(CustomBase):
 class Organization(OrganizationBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for organizations."""
 
-    # HACK: Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
     id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     # One-to-one relationship with owner User
@@ -136,20 +131,13 @@ class Organization(OrganizationBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, ta
     )
     owner: User = Relationship(
         back_populates="owned_organization",
-        sa_relationship_kwargs={
-            "uselist": False,
-            "primaryjoin": "Organization.owner_id == User.id",  # HACK: Explicitly define join condition because of
-            "foreign_keys": "[Organization.owner_id]",  # pydantic / sqlmodel issues
-        },
+        sa_relationship_kwargs={"uselist": False, "foreign_keys": "[Organization.owner_id]", "post_update": True},
     )
 
     # One-to-many relationship with member Users
     members: list[User] = Relationship(
         back_populates="organization",
-        sa_relationship_kwargs={
-            "primaryjoin": "Organization.id == User.organization_id",
-            "foreign_keys": "[User.organization_id]",
-        },
+        sa_relationship_kwargs={"foreign_keys": "[User.organization_id]"},
     )
 
     def __str__(self) -> str:

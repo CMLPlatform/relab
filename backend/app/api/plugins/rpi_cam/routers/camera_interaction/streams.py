@@ -1,61 +1,75 @@
 """Camera stream interaction routes."""
 
-import json
-from datetime import UTC, datetime
+import logging
 from typing import Annotated
 
 from fastapi import Body, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from httpx import QueryParams
-from pydantic import UUID4, AnyUrl, HttpUrl, PositiveInt, ValidationError
+from pydantic import UUID4, PositiveInt, ValidationError
 from relab_rpi_cam_models.stream import StreamMode, StreamView
 from sqlmodel import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.models import OAuthAccount
-from app.api.auth.services.oauth import google_youtube_oauth_client
+from app.api.auth.services.oauth_clients import google_youtube_oauth_client
 from app.api.common.crud.utils import get_model_or_404
+from app.api.common.exceptions import APIError
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.schemas.base import serialize_datetime_with_z
 from app.api.data_collection.models import Product
-from app.api.file_storage.crud import create_video
-from app.api.file_storage.models.models import Video
 from app.api.file_storage.schemas import VideoCreate, VideoRead
+from app.api.file_storage.video_crud import create_video
+from app.api.plugins.rpi_cam.exceptions import (
+    GoogleOAuthAssociationRequiredError,
+    InvalidCameraResponseError,
+    NoActiveYouTubeRecordingError,
+)
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
-    fetch_from_camera_url,
+    build_camera_request,
     get_user_owned_camera,
+    stream_from_camera_url,
 )
-from app.api.plugins.rpi_cam.services import YouTubePrivacyStatus, YouTubeService
+from app.api.plugins.rpi_cam.services import (
+    YouTubePrivacyStatus,
+    YouTubeRecordingSession,
+    YouTubeService,
+    build_recording_text,
+    clear_recording_session,
+    load_recording_session,
+    serialize_stream_metadata,
+    store_recording_session,
+)
+from app.api.plugins.rpi_cam.youtube_schemas import YouTubeMonitorStreamResponse
 from app.core.config import settings
+from app.core.redis import OptionalRedisDep, require_redis
 
 # Initialize templates
 templates = Jinja2Templates(directory=settings.templates_path)
 
 # Initialize router
 router = PublicAPIRouter()
+logger = logging.getLogger(__name__)
 
 ### Constants ###
-# TODO: dynamically fetch the manifest file name from the camera
 HLS_MANIFEST_FILENAME = "master.m3u8"
 MAX_PREVIEW_STREAM_LENGTH_SECONDS = 7200  # 2 hours
 
+
 ### Common endpoints ###
-# TODO: Move the CRUD like functionalities to services.py
-
-
 @router.get("/{camera_id}/stream/status")
 async def get_camera_stream_status(
     camera_id: UUID4,
     session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> StreamView:
     """Get current stream status."""
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
-    response = await fetch_from_camera_url(
-        camera=camera,
+    camera_request = build_camera_request(camera, http_client)
+    response = await camera_request(
         endpoint="/stream/status",
         method=HttpMethod.GET,
         error_msg="Failed to get stream status",
@@ -63,19 +77,20 @@ async def get_camera_stream_status(
     try:
         return StreamView(**response.json())
     except ValidationError as e:
-        raise HTTPException(status_code=424, detail=f"Invalid response from camera: {json.loads(e.json())}") from e
+        raise InvalidCameraResponseError(e.json()) from e
 
 
 @router.delete("/{camera_id}/stream/stop", status_code=204, summary="Stop the active stream")
 async def stop_all_streams(
     camera_id: UUID4,
     session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> None:
     """Stop the active stream (either youtube recording or preview stream)."""
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
-    await fetch_from_camera_url(
-        camera=camera,
+    camera_request = build_camera_request(camera, http_client)
+    await camera_request(
         endpoint="/stream/stop",
         method=HttpMethod.DELETE,
         error_msg="Failed to stop the active streams",
@@ -83,19 +98,17 @@ async def stop_all_streams(
 
 
 ### Recording to Youtube ###
-# TODO: Refine flow of video creation and product association in database.
-# Currently, videos are creation in DB and associated with products on recording start.
-# We should investigate whether it's better to save this on recording ending only.
-# But how do we store the product id and description from recording start in the app state? Some smart caching?
+# We cache the recording session in Redis on start and finalize the Video row on stop.
 
 
 @router.post(
-    "/{camera_id}/stream/record/start", response_model=VideoRead, status_code=201, summary="Start recording to YouTube"
+    "/{camera_id}/stream/record/start", response_model=StreamView, status_code=201, summary="Start recording to YouTube"
 )
 async def start_recording(
     camera_id: UUID4,
     session: AsyncSessionDep,
     http_client: ExternalHTTPClientDep,
+    redis: OptionalRedisDep,
     current_user: CurrentActiveUserDep,
     product_id: Annotated[PositiveInt, Body(description="ID of product to associate the video with")],
     title: Annotated[str | None, Body(description="Custom video title")] = None,
@@ -103,18 +116,15 @@ async def start_recording(
     privacy_status: Annotated[
         YouTubePrivacyStatus, Body(description="Privacy status for the YouTube video")
     ] = YouTubePrivacyStatus.PRIVATE,
-) -> Video:
-    """Start recording to YouTube. Video will be stored and can be associated with a product."""
-    # TODO: Break down this function into smaller parts for better maintainability
-
+) -> StreamView:
+    """Start recording to YouTube and cache the recording session in Redis."""
     # Validate video data before starting stream
-    if product_id is not None:
-        await get_model_or_404(session, Product, product_id)
-    video = VideoCreate(
-        url=HttpUrl("http://placeholder.com"),  # Will be updated with actual stream URL
+    await get_model_or_404(session, Product, product_id)
+    redis_client = require_redis(redis)
+    resolved_title, resolved_description = build_recording_text(
+        product_id=product_id,
         title=title,
         description=description,
-        product_id=product_id,
     )
 
     # Get Google OAuth account
@@ -124,29 +134,24 @@ async def start_recording(
         )
     )
     if not oauth_account:
-        raise HTTPException(
-            403,
-            "Google Oauth account association required for YouTube streaming. Use /api/auth/associate/google/authorize",
-        )
+        raise GoogleOAuthAssociationRequiredError
 
     # Initialize YouTube service
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
 
     # Create livestream
-    now_str = serialize_datetime_with_z(datetime.now(UTC))
-    title = title or f"Product {product_id} recording at {now_str}" if product_id else f"Recording at {now_str}"
-    description = description or f"Recording {f'of product {product_id}' if product_id else ''} at {now_str}"
-
     youtube_config = await youtube_service.setup_livestream(
-        title, privacy_status=privacy_status, description=description
+        resolved_title,
+        privacy_status=privacy_status,
+        description=resolved_description,
     )
 
     # Fetch user camera
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
+    camera_request = build_camera_request(camera, http_client)
 
     # Start Youtube stream
-    response = await fetch_from_camera_url(
-        camera=camera,
+    response = await camera_request(
         endpoint="/stream/start",
         method=HttpMethod.POST,
         error_msg="Failed to start stream",
@@ -156,64 +161,148 @@ async def start_recording(
     try:
         stream_info = StreamView(**response.json())
     except ValidationError as e:
-        raise HTTPException(status_code=424, detail=f"Invalid response from camera: {json.loads(e.json())}") from e
+        raise InvalidCameraResponseError(e.json()) from e
 
     # Validate stream is active
     await youtube_service.validate_stream_status(youtube_config.stream_id)
 
-    # Update video with actual stream URL and store in database
-    video.url = stream_info.url
-    video.video_metadata = stream_info.metadata.model_dump()
-    return await create_video(session, video)
+    try:
+        await store_recording_session(
+            redis_client,
+            camera_id,
+            YouTubeRecordingSession(
+                product_id=product_id,
+                title=resolved_title,
+                description=resolved_description,
+                stream_url=stream_info.url,
+                broadcast_key=youtube_config.broadcast_key,
+                video_metadata=serialize_stream_metadata(stream_info.metadata),
+            ),
+        )
+    except HTTPException, APIError:
+        try:
+            await camera_request(
+                endpoint="/stream/stop",
+                method=HttpMethod.DELETE,
+                error_msg="Failed to roll back stream after recording session storage failure",
+                query_params=QueryParams({"mode": StreamMode.YOUTUBE.value}),
+            )
+        except HTTPException as cleanup_error:
+            logger.warning("Failed to roll back camera stream for camera %s: %s", camera_id, cleanup_error)
+        try:
+            await youtube_service.end_livestream(youtube_config.broadcast_key)
+        except APIError as cleanup_error:
+            logger.warning("Failed to roll back YouTube livestream for camera %s: %s", camera_id, cleanup_error)
+        raise
+
+    return stream_info
 
 
-@router.delete("/{camera_id}/stream/record/stop", summary="Stop recording to YouTube")
+@router.delete(
+    "/{camera_id}/stream/record/stop",
+    response_model=VideoRead,
+    summary="Stop recording to YouTube",
+)
 async def stop_recording(
     camera_id: UUID4,
     session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
+    redis: OptionalRedisDep,
     current_user: CurrentActiveUserDep,
-) -> dict[str, AnyUrl]:
-    """Stop recording and save video to database."""
+) -> VideoRead:
+    """Stop recording, end the livestream, and create the video record."""
+    redis_client = require_redis(redis)
+    recording_session = await load_recording_session(redis_client, camera_id)
+
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
 
-    # Get current stream info before stopping
-    stream_status_response = await fetch_from_camera_url(
-        camera=camera,
-        endpoint="/stream/status",
-        method=HttpMethod.GET,
-        error_msg="Failed to get stream status",
+    oauth_account = await session.scalar(
+        select(OAuthAccount).where(
+            OAuthAccount.user_id == current_user.db_id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
+        )
     )
+    if not oauth_account:
+        raise GoogleOAuthAssociationRequiredError
 
-    await fetch_from_camera_url(
-        camera=camera,
+    youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
+    camera_request = build_camera_request(camera, http_client)
+
+    await camera_request(
         endpoint="/stream/stop",
         method=HttpMethod.DELETE,
         error_msg="Failed to stop stream",
         query_params=QueryParams({"mode": StreamMode.YOUTUBE.value}),
     )
 
-    # TODO: Stop YouTube stream on YouTube API
+    await youtube_service.end_livestream(recording_session.broadcast_key)
 
+    video = VideoCreate(
+        url=recording_session.stream_url,
+        title=recording_session.title,
+        description=recording_session.description,
+        product_id=recording_session.product_id,
+        video_metadata=recording_session.video_metadata,
+    )
+    created_video = await create_video(session, video)
+    await clear_recording_session(redis_client, camera_id)
+
+    return VideoRead.model_validate(created_video)
+
+
+@router.get(
+    "/{camera_id}/stream/record/monitor",
+    response_model=YouTubeMonitorStreamResponse,
+    summary="Get YouTube livestream monitor stream",
+)
+async def get_recording_monitor_stream(
+    camera_id: UUID4,
+    session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
+    current_user: CurrentActiveUserDep,
+) -> YouTubeMonitorStreamResponse:
+    """Get the YouTube monitor stream configuration for the active recording."""
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
+    camera_request = build_camera_request(camera, http_client)
+
+    stream_status_response = await camera_request(
+        endpoint="/stream/status",
+        method=HttpMethod.GET,
+        error_msg="Failed to get stream status",
+    )
     try:
         stream_info = StreamView(**stream_status_response.json())
     except ValidationError as e:
-        raise HTTPException(status_code=424, detail=f"Invalid response from camera: {json.loads(e.json())}") from e
-    else:
-        return {"video_url": stream_info.url}
+        raise InvalidCameraResponseError(e.json()) from e
 
+    if stream_info.youtube_config is None:
+        raise NoActiveYouTubeRecordingError
 
-# TODO: Add Youtube livestream status monitoring endpoint using liveBroadcast.contentDetails.monitorStream
+    oauth_account = await session.scalar(
+        select(OAuthAccount).where(
+            OAuthAccount.user_id == current_user.db_id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
+        )
+    )
+    if not oauth_account:
+        raise GoogleOAuthAssociationRequiredError
+
+    youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
+    return await youtube_service.get_broadcast_monitor_stream(stream_info.youtube_config.broadcast_key)
 
 
 ### Local stream preview ###
 @router.post(
     "/{camera_id}/stream/preview/start", response_model=StreamView, status_code=201, summary="Start preview stream"
 )
-async def start_preview(camera_id: UUID4, session: AsyncSessionDep, current_user: CurrentActiveUserDep) -> StreamView:
+async def start_preview(
+    camera_id: UUID4,
+    session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
+    current_user: CurrentActiveUserDep,
+) -> StreamView:
     """Start local HLS preview stream. Stream will not be recorded."""
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
-    response = await fetch_from_camera_url(
-        camera=camera,
+    camera_request = build_camera_request(camera, http_client)
+    response = await camera_request(
         endpoint="/stream/start",
         method=HttpMethod.POST,
         error_msg="Failed to start stream",
@@ -222,16 +311,21 @@ async def start_preview(camera_id: UUID4, session: AsyncSessionDep, current_user
     try:
         return StreamView(**response.json())
     except ValidationError as e:
-        raise HTTPException(status_code=424, detail=f"Invalid response from camera: {json.loads(e.json())}") from e
+        raise InvalidCameraResponseError(e.json()) from e
 
 
 @router.delete("/{camera_id}/stream/preview/stop", status_code=204, summary="Stop preview stream")
-async def stop_preview(camera_id: UUID4, session: AsyncSessionDep, current_user: CurrentActiveUserDep) -> None:
+async def stop_preview(
+    camera_id: UUID4,
+    session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
+    current_user: CurrentActiveUserDep,
+) -> None:
     """Stop recording and save video to database."""
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
+    camera_request = build_camera_request(camera, http_client)
 
-    await fetch_from_camera_url(
-        camera=camera,
+    await camera_request(
         endpoint="/stream/stop",
         method=HttpMethod.DELETE,
         error_msg="Failed to stop stream",
@@ -245,29 +339,31 @@ async def stop_preview(camera_id: UUID4, session: AsyncSessionDep, current_user:
     description="Fetches and serves HLS stream files (.m3u8, .ts) from the camera",
 )
 async def hls_file_proxy(
-    camera_id: UUID4, file_path: str, session: AsyncSessionDep, current_user: CurrentActiveUserDep
+    camera_id: UUID4,
+    file_path: str,
+    session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
+    current_user: CurrentActiveUserDep,
 ) -> Response:
     """Proxy HLS files from camera to client."""
-    # TODO: Use StreamResponse here and in the RPI cam API instead of FileResponse
     camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
-
-    response = await fetch_from_camera_url(
+    response = await stream_from_camera_url(
         camera=camera,
         endpoint=f"/stream/hls/{file_path}",
         method=HttpMethod.GET,
+        http_client=http_client,
         error_msg=f"Failed to get HLS file {file_path}",
     )
 
-    return Response(
-        content=response.content,
-        media_type=response.headers["content-type"],
-        headers={
+    response.headers.update(
+        {
             "Cache-Control": "no-cache, no-store, must-revalidate"
             if file_path.endswith(".m3u8")  # Cache .ts segments but not playlists
             else f"max-age={MAX_PREVIEW_STREAM_LENGTH_SECONDS}",
             "Access-Control-Allow-Origin": "*",
-        },
+        }
     )
+    return response
 
 
 @router.get(

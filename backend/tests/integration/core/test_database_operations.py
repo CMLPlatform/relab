@@ -6,11 +6,12 @@ CRUD operations behave as expected against a real Postgres instance.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlmodel import select
 
 from app.api.background_data.models import Material, Taxonomy
@@ -96,7 +97,11 @@ class TestDatabaseRelationships:
         for cat in [cat1, cat2]:
             await db_ops.create(cat)
 
-        stmt = select(Taxonomy).where(Taxonomy.id == db_taxonomy.id).options(selectinload(Taxonomy.categories))
+        stmt = (
+            select(Taxonomy)
+            .where(Taxonomy.id == db_taxonomy.id)
+            .options(selectinload(cast("QueryableAttribute[Any]", Taxonomy.categories)))
+        )
         result = await db_ops.session.exec(stmt)
         taxonomy = result.one()
 
@@ -116,7 +121,11 @@ class TestDatabaseRelationships:
             taxonomy_id=db_taxonomy.id,
         )
 
-        stmt = select(Taxonomy).where(Taxonomy.id == db_taxonomy.id).options(selectinload(Taxonomy.categories))
+        stmt = (
+            select(Taxonomy)
+            .where(Taxonomy.id == db_taxonomy.id)
+            .options(selectinload(cast("QueryableAttribute[Any]", Taxonomy.categories)))
+        )
         result = await session.exec(stmt)
         taxonomy = result.one()
 
@@ -132,6 +141,7 @@ class TestDatabaseMutations:
         del session
         material = MaterialFactory.build(name="Steel", density_kg_m3=7850.0)
         created = await db_ops.create(material)
+        assert created.id is not None
 
         retrieved = await db_ops.get_by_id(Material, created.id)
 
@@ -143,6 +153,7 @@ class TestDatabaseMutations:
         """Flushing an updated record reflects the new values on re-fetch."""
         material = MaterialFactory.build(name="Original", density_kg_m3=7850.0)
         created = await db_ops.create(material)
+        assert created.id is not None
 
         created.name = "Updated"
         created.density_kg_m3 = 8000.0
@@ -160,6 +171,7 @@ class TestDatabaseMutations:
         material = MaterialFactory.build(name="To Delete", density_kg_m3=7850.0)
         created = await db_ops.create(material)
         created_id = created.id
+        assert created_id is not None
 
         await db_ops.delete(created)
 

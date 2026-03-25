@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from functools import cached_property
-from pathlib import Path
+from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 

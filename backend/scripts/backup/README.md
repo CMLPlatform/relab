@@ -1,6 +1,6 @@
-# ReLab Data Backups
+# RELab Data Backups
 
-Scripts for backing up ReLab data locally and syncing to remote storage.
+Scripts for backing up RELab data locally and syncing to remote storage.
 
 ## Overview
 

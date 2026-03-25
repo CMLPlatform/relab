@@ -9,7 +9,7 @@ from dirty_equals import IsInt, IsPositive, IsStr
 from fastapi import status
 
 from app.api.background_data.models import TaxonomyDomain
-from tests.factories.models import TaxonomyFactory
+from tests.factories.models import CategoryFactory, TaxonomyFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -92,6 +92,47 @@ class TestTaxonomyAPI:
         json_data = response.json()
         assert "items" in json_data
         assert len(json_data["items"]) >= 3
+
+    async def test_list_taxonomy_categories(
+        self, async_client: AsyncClient, session: AsyncSession, db_taxonomy: Taxonomy
+    ) -> None:
+        """Test GET /taxonomies/{id}/categories returns flat taxonomy categories."""
+        parent_category = await CategoryFactory.create_async(session, taxonomy_id=db_taxonomy.id, name=PARENT_CATEGORY)
+        await CategoryFactory.create_async(
+            session,
+            taxonomy_id=db_taxonomy.id,
+            supercategory_id=parent_category.id,
+            name=CHILD_CATEGORY,
+        )
+
+        response = await async_client.get(f"/taxonomies/{db_taxonomy.id}/categories")
+
+        assert response.status_code == status.HTTP_200_OK
+        json_data = response.json()
+        assert "items" in json_data
+        category_names = {item["name"] for item in json_data["items"]}
+        assert PARENT_CATEGORY in category_names
+        assert CHILD_CATEGORY in category_names
+
+    async def test_get_taxonomy_category_tree(
+        self, async_client: AsyncClient, session: AsyncSession, db_taxonomy: Taxonomy
+    ) -> None:
+        """Test GET /taxonomies/{id}/categories/tree returns nested top-level categories."""
+        parent_category = await CategoryFactory.create_async(session, taxonomy_id=db_taxonomy.id, name=PARENT_CATEGORY)
+        await CategoryFactory.create_async(
+            session,
+            taxonomy_id=db_taxonomy.id,
+            supercategory_id=parent_category.id,
+            name=CHILD_CATEGORY,
+        )
+
+        response = await async_client.get(f"/taxonomies/{db_taxonomy.id}/categories/tree?recursion_depth=2")
+
+        assert response.status_code == status.HTTP_200_OK
+        json_data = response.json()
+        assert "items" in json_data
+        matching_parent = next(item for item in json_data["items"] if item["name"] == PARENT_CATEGORY)
+        assert [subcategory["name"] for subcategory in matching_parent["subcategories"]] == [CHILD_CATEGORY]
 
     async def test_update_taxonomy(self, superuser_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
         """Test PATCH /admin/taxonomies/{id} updates a taxonomy."""

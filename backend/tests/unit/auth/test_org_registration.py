@@ -22,7 +22,7 @@ def _make_user() -> User:
     user = UserFactory.build(
         id=uuid.uuid4(),
         email="u@example.com",
-        hashed_password="hashed",  # noqa: S106
+        hashed_password="hashed",
     )
     user.organization_id = None
     user.organization_role = None

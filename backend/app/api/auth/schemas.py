@@ -11,8 +11,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, EmailStr, Field, SecretStr, S
 from app.api.auth.models import OrganizationBase, UserBase
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema, ProductRead
 
-# TODO: Refactor into separate files for each model.
-# This is tricky due to circular imports and the way SQLAlchemy and Pydantic handle schema building.
+# Note: These auth schemas stay together to avoid circular imports during model/schema construction.
 
 
 ### Organizations ###
@@ -45,11 +44,13 @@ class OrganizationReadWithRelationships(BaseReadSchemaWithTimeStamp, Organizatio
 class OrganizationUpdate(BaseUpdateSchema):
     """Update schema for organizations."""
 
-    name: str = Field(min_length=2, max_length=100)
+    name: str | None = Field(default=None, min_length=2, max_length=100)
     location: str | None = Field(default=None, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-
-    # TODO: Handle transfer of ownership
+    owner_id: UUID4 | None = Field(
+        default=None,
+        description="ID of the member who should become the new owner.",
+    )
 
 
 ### Users ###

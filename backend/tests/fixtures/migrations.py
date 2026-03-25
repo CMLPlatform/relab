@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from alembic import command
+from pydantic import PostgresDsn
 from sqlalchemy import Engine, create_engine, inspect, text
 
 if TYPE_CHECKING:
@@ -20,7 +21,11 @@ class MigrationHelper:
         """Initialize migration helper with Alembic config."""
         self.alembic_cfg = alembic_cfg
         # Derive engine URL from the alembic config (already xdist-worker-aware)
-        url = alembic_cfg.get_main_option("sqlalchemy.url")
+        url = self.alembic_cfg.get_main_option("sqlalchemy.url")
+        if not url:
+            msg = "Alembic config must have 'sqlalchemy.url' set for migration testing."
+            raise ValueError(msg)
+        PostgresDsn(url)  # Validate URL format
         self.sync_engine: Engine = create_engine(url, isolation_level="AUTOCOMMIT")
 
     def upgrade(self, revision: str = "head") -> None:

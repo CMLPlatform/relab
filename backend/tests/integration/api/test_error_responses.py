@@ -16,6 +16,8 @@ from app.api.auth.dependencies import current_active_superuser, current_active_u
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,7 +54,7 @@ class TestForbidden:
         async_client: AsyncClient,
         session: AsyncSession,
         test_app: FastAPI,
-    ) -> AsyncClient:
+    ) -> AsyncGenerator[AsyncClient]:
         """Authenticated client for a non-superuser.
 
         Overrides current_active_superuser to raise 403, simulating what

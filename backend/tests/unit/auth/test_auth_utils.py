@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,13 +16,14 @@ from app.api.auth.utils.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Constants for test values
 PW_TOO_SHORT = "Too short"
 PASSWORD_INVALID_MSG = f"Password is invalid: {PW_TOO_SHORT}"
 
 
+# ruff: noqa: SLF001 # Allow private method access for testing purposes
 @pytest.fixture
 def mock_redis() -> AsyncMock:
     """Fixture for a mock Redis client."""
@@ -51,7 +52,6 @@ class TestEmailChecker:
 
     async def test_init_with_redis(self, mock_redis: AsyncMock) -> None:
         """Test initialization with Redis client when domains don't exist in cache."""
-        # Mock redis_client.exists to return False (domains not in cache)
         mock_redis.exists = AsyncMock(return_value=False)
         checker = EmailChecker(redis_client=mock_redis)
 
@@ -63,16 +63,13 @@ class TestEmailChecker:
 
             mock_default_checker.assert_called_once()
             assert checker.checker == mock_checker_instance
-            # Should check if domains exist in Redis
             mock_redis.exists.assert_called_once_with("temp_domains")
-            # Should call init_redis only when domains don't exist
             mock_checker_instance.init_redis.assert_called_once()
 
         await checker.close()
 
     async def test_init_with_redis_cached(self, mock_redis: AsyncMock) -> None:
         """Test initialization with Redis client when domains already exist in cache."""
-        # Mock redis_client.exists to return True (domains already in cache)
         mock_redis.exists = AsyncMock(return_value=True)
         checker = EmailChecker(redis_client=mock_redis)
 
@@ -84,9 +81,7 @@ class TestEmailChecker:
 
             mock_default_checker.assert_called_once()
             assert checker.checker == mock_checker_instance
-            # Should check if domains exist in Redis
             mock_redis.exists.assert_called_once_with("temp_domains")
-            # Should NOT call init_redis when domains are already cached
             mock_checker_instance.init_redis.assert_not_called()
 
         await checker.close()
@@ -96,7 +91,7 @@ class TestEmailChecker:
         checker = EmailChecker(redis_client=mock_redis)
         checker.checker = AsyncMock()
 
-        await checker._refresh_domains()  # noqa: SLF001
+        await checker._refresh_domains()
 
         checker.checker.fetch_temp_email_domains.assert_called_once()
 
@@ -106,8 +101,7 @@ class TestEmailChecker:
         checker.checker = AsyncMock()
         checker.checker.fetch_temp_email_domains.side_effect = RuntimeError("Refresh failed")
 
-        # Should not raise exception
-        await checker._refresh_domains()  # noqa: SLF001
+        await checker._refresh_domains()
 
         checker.checker.fetch_temp_email_domains.assert_called_once()
 
@@ -138,7 +132,6 @@ class TestEmailChecker:
         checker.checker = AsyncMock()
         checker.checker.is_disposable.side_effect = RedisConnectionError("Redis down")
 
-        # When check fails, we should allow registration (return False)
         result = await checker.is_disposable("user@example.com")
 
         assert result is False
@@ -156,12 +149,11 @@ class TestEmailChecker:
         """Test close cancels the refresh task."""
         checker = EmailChecker(redis_client=mock_redis)
 
-        # Mock the task to be awaitable
-        mock_task = asyncio.Future()
+        mock_task = cast("Any", asyncio.Future())
         mock_task.set_result(None)
         mock_task.cancel = MagicMock()
 
-        checker._task = mock_task  # noqa: SLF001
+        checker._task = mock_task
         mock_checker = AsyncMock()
         checker.checker = mock_checker
 
@@ -177,7 +169,7 @@ class TestProgrammaticUserCrud:
     @pytest.fixture
     def user_create(self) -> UserCreate:
         """Fixture for UserCreate schema."""
-        return UserCreate(email="test@example.com", password="password123")  # noqa: S106
+        return UserCreate(email="test@example.com", password="password123")
 
     @pytest.fixture
     def mock_user_manager(self) -> AsyncMock:
@@ -193,7 +185,7 @@ class TestProgrammaticUserCrud:
         self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test successful user creation."""
-        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")  # noqa: S106
+        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")
         mock_user_manager.create.return_value = expected_user
 
         # Mock the context manager
@@ -214,7 +206,7 @@ class TestProgrammaticUserCrud:
         self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
     ) -> None:
         """Test user creation with verification email."""
-        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")  # noqa: S106
+        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")
         mock_user_manager.create.return_value = expected_user
         mock_user_manager.request_verify = AsyncMock()
 

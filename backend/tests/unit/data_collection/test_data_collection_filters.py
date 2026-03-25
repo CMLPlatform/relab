@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
-    from typing import Any
+    from sqlalchemy.sql.elements import ClauseElement
 
 from sqlalchemy import literal_column
 from sqlalchemy.dialects import postgresql
 
 from app.api.data_collection.filters import (
+    SearchableColumn,
     build_brand_search_clause,
     build_product_search_clause,
     get_brand_search_statement,
@@ -18,12 +19,14 @@ from app.api.data_collection.filters import (
 from app.api.data_collection.models import Product
 
 
-def _sql(clause: Any) -> str:  # noqa: ANN401
+def _sql(clause: ClauseElement) -> str:
     """Compile a clause to a SQL string using the PostgreSQL dialect."""
     return str(clause.compile(dialect=postgresql.dialect()))
 
 
 _SEARCH_VECTOR = literal_column("product.search_vector")
+_BRAND_FIELD = cast("SearchableColumn", Product.brand)
+_NAME_FIELD = cast("SearchableColumn", Product.name)
 
 
 class TestBuildProductSearchClause:
@@ -31,38 +34,38 @@ class TestBuildProductSearchClause:
 
     def test_without_name_produces_two_conditions(self) -> None:
         """Test that searching without a name field produces two conditions."""
-        clause = build_product_search_clause("test", Product.brand, _SEARCH_VECTOR)
+        clause = build_product_search_clause("test", _BRAND_FIELD, _SEARCH_VECTOR)
         assert len(list(clause.clauses)) == 2
 
     def test_with_name_produces_three_conditions(self) -> None:
         """Test that searching with a name field produces three conditions."""
-        clause = build_product_search_clause("test", Product.brand, _SEARCH_VECTOR, name_field=Product.name)
+        clause = build_product_search_clause("test", _BRAND_FIELD, _SEARCH_VECTOR, name_field=_NAME_FIELD)
         assert len(list(clause.clauses)) == 3
 
     def test_contains_tsvector_match_operator(self) -> None:
         """Test that the clause contains the tsvector match operator (@@)."""
-        sql = _sql(build_product_search_clause("hello", Product.brand, _SEARCH_VECTOR))
+        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR))
         assert "@@" in sql
 
     def test_contains_trigram_operator_for_brand(self) -> None:
         """Test that the clause contains the trigram operator (%) for the brand field."""
-        sql = _sql(build_product_search_clause("hello", Product.brand, _SEARCH_VECTOR))
+        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR))
         assert "%" in sql
         assert "brand" in sql.lower()
 
     def test_contains_trigram_operator_for_name_when_given(self) -> None:
         """Test that the clause contains the trigram operator for the name field when provided."""
-        sql = _sql(build_product_search_clause("hello", Product.brand, _SEARCH_VECTOR, name_field=Product.name))
+        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR, name_field=_NAME_FIELD))
         assert "name" in sql.lower()
 
     def test_name_absent_when_not_given(self) -> None:
         """Test that the name field is absent from the clause when not provided."""
-        sql = _sql(build_product_search_clause("hello", Product.brand, _SEARCH_VECTOR))
+        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR))
         assert "product.name" not in sql.lower()
 
     def test_uses_websearch_to_tsquery(self) -> None:
         """Test that the clause uses websearch_to_tsquery for the tsvector search."""
-        sql = _sql(build_product_search_clause("hello world", Product.brand, _SEARCH_VECTOR))
+        sql = _sql(build_product_search_clause("hello world", _BRAND_FIELD, _SEARCH_VECTOR))
         assert "websearch_to_tsquery" in sql
 
 
@@ -72,7 +75,7 @@ class TestBuildBrandSearchClause:
     def test_produces_same_sql_as_product_search_without_name(self) -> None:
         """Test that brand search produces same SQL as product search without name."""
         brand_sql = _sql(build_brand_search_clause("acme"))
-        product_sql = _sql(build_product_search_clause("acme", Product.brand, _SEARCH_VECTOR))
+        product_sql = _sql(build_product_search_clause("acme", _BRAND_FIELD, _SEARCH_VECTOR))
         assert brand_sql == product_sql
 
     def test_uses_websearch_to_tsquery(self) -> None:

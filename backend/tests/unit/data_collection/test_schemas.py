@@ -63,6 +63,11 @@ DAYS_365 = "365"
 DAYS_STR = "days"
 
 
+def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
+    """Validate schema data without unpacking loosely typed dicts."""
+    return schema.model_validate(data)
+
+
 @pytest.mark.unit
 class TestValidatorsCommon:
     """Tests for common validators used across schemas."""
@@ -121,7 +126,7 @@ class TestPhysicalPropertiesCreate:
             "width_cm": WIDTH_70CM,
             "depth_cm": DEPTH_50CM,
         }
-        props = PhysicalPropertiesCreate(**data)
+        props = _validate_model(PhysicalPropertiesCreate, data)
 
         assert props.weight_g == WEIGHT_20KG
         assert props.height_cm == HEIGHT_150CM
@@ -131,7 +136,7 @@ class TestPhysicalPropertiesCreate:
     def test_create_with_partial_fields(self) -> None:
         """Verify creating physical properties with only some fields."""
         data = {"weight_g": WEIGHT_5KG}
-        props = PhysicalPropertiesCreate(**data)
+        props = _validate_model(PhysicalPropertiesCreate, data)
 
         assert props.weight_g == WEIGHT_5KG
         assert props.height_cm is None
@@ -147,25 +152,25 @@ class TestPhysicalPropertiesCreate:
         """Verify weight must be positive."""
         data = {"weight_g": -1000.0}
         with pytest.raises(ValidationError):
-            PhysicalPropertiesCreate(**data)
+            _validate_model(PhysicalPropertiesCreate, data)
 
     def test_height_must_be_positive(self) -> None:
         """Verify height must be positive."""
         data = {"height_cm": 0.0}
         with pytest.raises(ValidationError):
-            PhysicalPropertiesCreate(**data)
+            _validate_model(PhysicalPropertiesCreate, data)
 
     def test_width_must_be_positive(self) -> None:
         """Verify width must be positive."""
         data = {"width_cm": -100.0}
         with pytest.raises(ValidationError):
-            PhysicalPropertiesCreate(**data)
+            _validate_model(PhysicalPropertiesCreate, data)
 
     def test_depth_must_be_positive(self) -> None:
         """Verify depth must be positive."""
         data = {"depth_cm": -50.0}
         with pytest.raises(ValidationError):
-            PhysicalPropertiesCreate(**data)
+            _validate_model(PhysicalPropertiesCreate, data)
 
     def test_fractional_dimensions(self) -> None:
         """Verify fractional dimensions are accepted."""
@@ -174,7 +179,7 @@ class TestPhysicalPropertiesCreate:
             "width_cm": WIDTH_FRAC,
             "depth_cm": 5.25,
         }
-        props = PhysicalPropertiesCreate(**data)
+        props = _validate_model(PhysicalPropertiesCreate, data)
 
         assert props.height_cm == HEIGHT_FRAC
         assert props.width_cm == WIDTH_FRAC
@@ -195,7 +200,7 @@ class TestPhysicalPropertiesRead:
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
         }
-        props = PhysicalPropertiesRead(**data)
+        props = _validate_model(PhysicalPropertiesRead, data)
 
         assert props.id == 1
         assert props.weight_g == WEIGHT_20KG
@@ -208,7 +213,7 @@ class TestPhysicalPropertiesRead:
             "updated_at": datetime.now(UTC),
         }
         with pytest.raises(ValidationError):
-            PhysicalPropertiesRead(**data)
+            _validate_model(PhysicalPropertiesRead, data)
 
 
 @pytest.mark.unit
@@ -218,7 +223,7 @@ class TestPhysicalPropertiesUpdate:
     def test_update_single_field(self) -> None:
         """Verify updating single field."""
         data = {"weight_g": WEIGHT_15KG}
-        props = PhysicalPropertiesUpdate(**data)
+        props = _validate_model(PhysicalPropertiesUpdate, data)
 
         assert props.weight_g == WEIGHT_15KG
         assert props.height_cm is None
@@ -229,7 +234,7 @@ class TestPhysicalPropertiesUpdate:
             "weight_g": WEIGHT_15KG,
             "height_cm": HEIGHT_120CM,
         }
-        props = PhysicalPropertiesUpdate(**data)
+        props = _validate_model(PhysicalPropertiesUpdate, data)
 
         assert props.weight_g == WEIGHT_15KG
         assert props.height_cm == HEIGHT_120CM
@@ -258,7 +263,7 @@ class TestCircularityPropertiesCreate:
             "remanufacturability_comment": REMAN_COMM,
             "remanufacturability_reference": "UNEP 2018",
         }
-        props = CircularityPropertiesCreate(**data)
+        props = _validate_model(CircularityPropertiesCreate, data)
 
         assert props.recyclability_observation == OBS_RECYCLABLE_MSG
         assert props.repairability_comment == COMM_REPAIRABLE
@@ -277,7 +282,7 @@ class TestCircularityPropertiesCreate:
         data = {"recyclability_observation": long_text}
 
         with pytest.raises(ValidationError):
-            CircularityPropertiesCreate(**data)
+            _validate_model(CircularityPropertiesCreate, data)
 
     def test_comment_max_length_100(self) -> None:
         """Verify comment fields max length is 100."""
@@ -286,15 +291,16 @@ class TestCircularityPropertiesCreate:
         data = {"recyclability_comment": long_text}
 
         with pytest.raises(ValidationError):
-            CircularityPropertiesCreate(**data)
+            _validate_model(CircularityPropertiesCreate, data)
 
     def test_observation_exact_max_length(self) -> None:
         """Verify exactly at max length is accepted."""
         limit = 500
         text_500 = "a" * limit
         data = {"recyclability_observation": text_500}
-        props = CircularityPropertiesCreate(**data)
+        props = _validate_model(CircularityPropertiesCreate, data)
 
+        assert props.recyclability_observation is not None
         assert len(props.recyclability_observation) == limit
 
 
@@ -310,7 +316,7 @@ class TestCircularityPropertiesRead:
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
         }
-        props = CircularityPropertiesRead(**data)
+        props = _validate_model(CircularityPropertiesRead, data)
 
         assert props.id == 1
         assert props.recyclability_observation == COMM_RECYCLABLE
@@ -323,7 +329,7 @@ class TestCircularityPropertiesUpdate:
     def test_update_single_field(self) -> None:
         """Verify updating single field."""
         data = {"recyclability_observation": UPDATED_OBS}
-        props = CircularityPropertiesUpdate(**data)
+        props = _validate_model(CircularityPropertiesUpdate, data)
 
         assert props.recyclability_observation == UPDATED_OBS
 
@@ -341,7 +347,7 @@ class TestProductCreateBaseProductSchema:
     def test_create_with_required_fields(self) -> None:
         """Verify creating product with required fields."""
         data = {"name": TEST_PRODUCT_NAME}
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.name == TEST_PRODUCT_NAME
 
@@ -349,7 +355,7 @@ class TestProductCreateBaseProductSchema:
         """Verify product name must be at least 2 characters."""
         data = {"name": "A"}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_name_max_length_100(self) -> None:
         """Verify product name max length is 100."""
@@ -357,7 +363,7 @@ class TestProductCreateBaseProductSchema:
         long_name = "a" * (limit + 1)
         data = {"name": long_name}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_create_with_optional_fields(self) -> None:
         """Verify creating product with optional fields."""
@@ -367,7 +373,7 @@ class TestProductCreateBaseProductSchema:
             "brand": TEST_BRAND,
             "model": MODEL_X,
         }
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.description == TEST_PRODUCT_DESC
         assert product.brand == TEST_BRAND
@@ -378,7 +384,7 @@ class TestProductCreateBaseProductSchema:
         long_desc = "a" * (limit + 1)
         data = {"name": "Test", "description": long_desc}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_brand_max_length(self) -> None:
         """Verify brand max length is 100."""
@@ -386,7 +392,7 @@ class TestProductCreateBaseProductSchema:
         long_brand = "a" * (limit + 1)
         data = {"name": "Test", "brand": long_brand}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_model_max_length(self) -> None:
         """Verify model max length is 100."""
@@ -394,7 +400,7 @@ class TestProductCreateBaseProductSchema:
         long_model = "a" * (limit + 1)
         data = {"name": "Test", "model": long_model}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_dismantling_notes_max_length(self) -> None:
         """Verify dismantling notes max length is 500."""
@@ -402,14 +408,14 @@ class TestProductCreateBaseProductSchema:
         long_notes = "a" * (limit + 1)
         data = {"name": "Test", "dismantling_notes": long_notes}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_dismantling_time_start_validation(self) -> None:
         """Verify dismantling_time_start must be in past."""
         future_time = datetime.now(UTC) + timedelta(days=1)
         data = {"name": "Test", "dismantling_time_start": future_time}
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_dismantling_time_end_after_start(self) -> None:
         """Verify dismantling_time_end must be after dismantling_time_start."""
@@ -421,19 +427,19 @@ class TestProductCreateBaseProductSchema:
             "dismantling_time_end": end_time,
         }
         with pytest.raises(ValidationError):
-            ProductCreateBaseProduct(**data)
+            _validate_model(ProductCreateBaseProduct, data)
 
     def test_name_with_special_characters(self) -> None:
         """Verify product name accepts special characters."""
         data = {"name": SPECIAL_NAME}
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.name == SPECIAL_NAME
 
     def test_name_with_unicode(self) -> None:
         """Verify product name accepts unicode characters."""
         data = {"name": UNICODE_NAME}
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert UNICODE_SEARCH in product.name
 
@@ -446,7 +452,7 @@ class TestProductCreateBaseProductSchema:
                 "height_cm": HEIGHT_100CM,
             },
         }
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.physical_properties is not None
         assert product.physical_properties.weight_g == WEIGHT_5KG
@@ -459,7 +465,7 @@ class TestProductCreateBaseProductSchema:
                 "recyclability_observation": "Highly recyclable",
             },
         }
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.circularity_properties is not None
         assert product.circularity_properties.recyclability_observation is not None
@@ -472,21 +478,21 @@ class TestProductCreateBaseProductSchema:
             "name": "Product",
             "product_type_id": item_id,
         }
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.product_type_id == item_id
 
     def test_videos_default_to_empty_list(self) -> None:
         """Verify videos default to empty list."""
         data = {"name": "Product"}
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.videos == []
 
     def test_bill_of_materials_default_to_empty_list(self) -> None:
         """Verify bill_of_materials default to empty list."""
         data = {"name": "Product"}
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.bill_of_materials == []
 
@@ -544,19 +550,19 @@ class TestSchemaEdgeCases:
         """Verify zero weight is rejected."""
         data = {"weight_g": 0.0}
         with pytest.raises(ValidationError):
-            PhysicalPropertiesCreate(**data)
+            _validate_model(PhysicalPropertiesCreate, data)
 
     def test_negative_dimensions_rejected(self) -> None:
         """Verify negative dimensions are rejected."""
         for field in ["height_cm", "width_cm", "depth_cm"]:
             data = {field: -10.0}
             with pytest.raises(ValidationError):
-                PhysicalPropertiesCreate(**data)
+                _validate_model(PhysicalPropertiesCreate, data)
 
     def test_large_weight_values(self) -> None:
         """Verify large weight values are accepted."""
         data = {"weight_g": WEIGHT_1MG}  # 1 mega-gram
-        props = PhysicalPropertiesCreate(**data)
+        props = _validate_model(PhysicalPropertiesCreate, data)
         assert props.weight_g == WEIGHT_1MG
 
     def test_large_dimension_values(self) -> None:
@@ -566,7 +572,7 @@ class TestSchemaEdgeCases:
             "width_cm": 50000.0,
             "depth_cm": 25000.0,
         }
-        props = PhysicalPropertiesCreate(**data)
+        props = _validate_model(PhysicalPropertiesCreate, data)
         assert props.height_cm == HEIGHT_1KM
 
     def test_mixed_optional_required_fields(self) -> None:
@@ -577,7 +583,7 @@ class TestSchemaEdgeCases:
             "brand": BRAND_NAME,
             "model": None,
         }
-        product = ProductCreateBaseProduct(**data)
+        product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.brand == BRAND_NAME
         assert product.model is None
@@ -585,33 +591,42 @@ class TestSchemaEdgeCases:
 
 def test_product_read_thumbnail_url_with_images() -> None:
     """Test that thumbnail_url is correctly computed from the first image."""
-    image1 = ImageRead(
-        id=uuid4(),
-        filename="test1.png",
-        image_url="/uploads/images/test1.png",
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-        parent_id=1,
-        parent_type=MediaParentType.PRODUCT,
+    image1 = _validate_model(
+        ImageRead,
+        {
+            "id": uuid4(),
+            "filename": "test1.png",
+            "image_url": "/uploads/images/test1.png",
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+            "parent_id": 1,
+            "parent_type": MediaParentType.PRODUCT,
+        },
     )
-    image2 = ImageRead(
-        id=uuid4(),
-        filename="test2.png",
-        image_url="/uploads/images/test2.png",
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-        parent_id=1,
-        parent_type=MediaParentType.PRODUCT,
+    image2 = _validate_model(
+        ImageRead,
+        {
+            "id": uuid4(),
+            "filename": "test2.png",
+            "image_url": "/uploads/images/test2.png",
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+            "parent_id": 1,
+            "parent_type": MediaParentType.PRODUCT,
+        },
     )
 
-    product = ProductReadWithRelationships(
-        id=1,
-        name="Test Product",
-        owner_id=uuid4(),
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-        dismantling_time_start=datetime.now(UTC),
-        images=[image1, image2],
+    product = _validate_model(
+        ProductReadWithRelationships,
+        {
+            "id": 1,
+            "name": "Test Product",
+            "owner_id": uuid4(),
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+            "dismantling_time_start": datetime.now(UTC),
+            "images": [image1, image2],
+        },
     )
 
     assert product.thumbnail_url == "/uploads/images/test1.png"
@@ -619,14 +634,17 @@ def test_product_read_thumbnail_url_with_images() -> None:
 
 def test_product_read_thumbnail_url_without_images() -> None:
     """Test that thumbnail_url is None when no images are present."""
-    product = ProductReadWithRelationships(
-        id=1,
-        name="Test Product",
-        owner_id=uuid4(),
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-        dismantling_time_start=datetime.now(UTC),
-        images=[],
+    product = _validate_model(
+        ProductReadWithRelationships,
+        {
+            "id": 1,
+            "name": "Test Product",
+            "owner_id": uuid4(),
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
+            "dismantling_time_start": datetime.now(UTC),
+            "images": [],
+        },
     )
 
     assert product.thumbnail_url is None

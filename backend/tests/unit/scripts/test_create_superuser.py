@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi_users.exceptions import UserAlreadyExists
 from pydantic import SecretStr
 
 from scripts import create_superuser as create_superuser_script
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.mark.unit
@@ -26,13 +32,13 @@ class TestCreateSuperuserScript:
     async def test_create_superuser_creates_expected_user(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        mocker: pytest.MockFixture,
+        mocker: MockerFixture,
     ) -> None:
         """The script should pass the expected superuser payload to create_user."""
         session = object()
 
         @asynccontextmanager
-        async def fake_session_context() -> object:
+        async def fake_session_context() -> AsyncIterator[object]:
             yield session
 
         create_user_mock = mocker.AsyncMock()
@@ -51,7 +57,7 @@ class TestCreateSuperuserScript:
         assert kwargs["async_session"] is session
         assert kwargs["send_registration_email"] is False
         assert user_create.email == "admin@example.com"
-        assert user_create.password == "very-secret"  # noqa: S105
+        assert user_create.password == "very-secret"
         assert user_create.organization_id is None
         assert user_create.is_superuser is True
         assert user_create.is_verified is True
@@ -59,12 +65,12 @@ class TestCreateSuperuserScript:
     async def test_create_superuser_swallows_duplicate_user_errors(
         self,
         monkeypatch: pytest.MonkeyPatch,
-        mocker: pytest.MockFixture,
+        mocker: MockerFixture,
     ) -> None:
         """Existing users should not make the script crash."""
 
         @asynccontextmanager
-        async def fake_session_context() -> object:
+        async def fake_session_context() -> AsyncIterator[object]:
             yield object()
 
         warning_mock = mocker.patch.object(create_superuser_script.logger, "warning")
@@ -79,7 +85,7 @@ class TestCreateSuperuserScript:
 
         warning_mock.assert_called_once()
 
-    def test_main_runs_async_entrypoint(self, mocker: pytest.MockFixture) -> None:
+    def test_main_runs_async_entrypoint(self, mocker: MockerFixture) -> None:
         """The CLI entrypoint should delegate to anyio.run."""
         run_mock = mocker.patch.object(create_superuser_script.anyio, "run")
 

@@ -66,8 +66,15 @@ _DEFAULT_TEST_DB_NAME = "test_relab"
 _MASTER_WORKER = "master"
 _SAFE_DB_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
+
 # Global container instance for entire test session
-_GLOBAL_POSTGRES_CONTAINER: PostgresContainer | None = None
+class _PostgresContainerState:
+    """Mutable holder for the session Postgres container."""
+
+    container: PostgresContainer | None = None
+
+
+_POSTGRES_CONTAINER_STATE = _PostgresContainerState()
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -79,8 +86,6 @@ def pytest_configure(config: pytest.Config) -> None:
     Skipped during collection-only mode (e.g. VS Code test discovery) to avoid
     spinning up containers that would never be cleaned up.
     """
-    global _GLOBAL_POSTGRES_CONTAINER  # noqa: PLW0603
-
     if config.option.collectonly:
         return
 
@@ -94,34 +99,33 @@ def pytest_configure(config: pytest.Config) -> None:
         loguru_logger.add(sys.stderr, format=LOG_FORMAT, level="INFO")
 
     logger.info("Starting Testcontainers Postgres...")
-    _GLOBAL_POSTGRES_CONTAINER = PostgresContainer(
+    _POSTGRES_CONTAINER_STATE.container = PostgresContainer(
         "postgres:18-alpine",
         username="postgres",
-        password="postgres",  # noqa: S106 # Test-password only
+        password="postgres",  # Test-password only
         dbname="postgres",
     )
-    _GLOBAL_POSTGRES_CONTAINER.start()
+    _POSTGRES_CONTAINER_STATE.container.start()
 
-    host = _GLOBAL_POSTGRES_CONTAINER.get_container_host_ip()
-    port = _GLOBAL_POSTGRES_CONTAINER.get_exposed_port(5432)
+    host = _POSTGRES_CONTAINER_STATE.container.get_container_host_ip()
+    port = _POSTGRES_CONTAINER_STATE.container.get_exposed_port(5432)
 
     os.environ["DATABASE_HOST"] = str(host)
     os.environ["DATABASE_PORT"] = str(port)
     os.environ["POSTGRES_USER"] = "postgres"
-    os.environ["POSTGRES_PASSWORD"] = "postgres"  # noqa: S105 # Test-password only
+    os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
     os.environ["POSTGRES_DB"] = "postgres"
 
     logger.info("Testcontainers Postgres started: %s:%s", host, port)
 
 
-def pytest_unconfigure(config: pytest.Config) -> None:  # noqa: ARG001
+def pytest_unconfigure(config: pytest.Config) -> None:
     """Stop Testcontainers after all tests complete."""
-    global _GLOBAL_POSTGRES_CONTAINER  # noqa: PLW0603
-
-    if _GLOBAL_POSTGRES_CONTAINER:
+    del config
+    if _POSTGRES_CONTAINER_STATE.container:
         logger.info("Stopping Testcontainers Postgres...")
-        _GLOBAL_POSTGRES_CONTAINER.stop()
-        _GLOBAL_POSTGRES_CONTAINER = None
+        _POSTGRES_CONTAINER_STATE.container.stop()
+        _POSTGRES_CONTAINER_STATE.container = None
 
 
 def _get_worker_test_db_name() -> str:

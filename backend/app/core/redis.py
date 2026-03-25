@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
@@ -119,6 +119,25 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
         return True
 
 
+async def delete_redis_key(redis_client: Redis, key: str) -> bool:
+    """Delete a key from Redis.
+
+    Args:
+        redis_client: Redis client
+        key: Redis key
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        await redis_client.delete(key)
+    except TimeoutError, RedisError, OSError:
+        logger.exception("Failed to delete Redis key %s.", key)
+        return False
+    else:
+        return True
+
+
 def get_redis(request: Request) -> Redis:
     """FastAPI dependency to get Redis client from application state (raises error if unavailable).
 
@@ -154,3 +173,10 @@ def get_redis_optional(request: Request) -> Redis | None:
 
 # Optional Redis dependency annotation
 OptionalRedisDep = Annotated[Redis | None, Depends(get_redis_optional)]
+
+
+def require_redis(redis_client: Redis | None) -> Redis:
+    """Raise an HTTP-style error if Redis is unavailable."""
+    if redis_client is None:
+        raise HTTPException(status_code=503, detail="Redis is required for this operation.")
+    return redis_client

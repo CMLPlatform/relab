@@ -14,7 +14,9 @@ class HasDBID(Protocol):
     """Protocol for models with a non-None db_id field."""
 
     @property
-    def db_id(self) -> int | UUID: ...  # noqa: D102
+    def db_id(self) -> int | UUID:
+        """ID of the model as stored in the database. Guaranteed non-None at runtime."""
+        ...
 
 
 ### TypeVars ###

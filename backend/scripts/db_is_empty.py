@@ -73,7 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     is_empty = database_is_empty(ignore_tables={"alembic_version", "user"})
 
     if not args.quiet:
-        print("Database is empty." if is_empty else "Database contains data.")  # noqa: T201
+        print("Database is empty." if is_empty else "Database contains data.")  # noqa: T201 # We want this output for human users when not in quiet mode.
 
     return EXIT_EMPTY if is_empty else EXIT_NOT_EMPTY
 

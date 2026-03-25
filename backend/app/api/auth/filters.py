@@ -23,7 +23,9 @@ class UserFilter(Filter):
 
     search: str | None = None
 
-    class Constants(Filter.Constants):  # noqa: D106 # Standard FastAPI-filter class
+    class Constants(Filter.Constants):
+        """Constants for UserFilter."""
+
         model = User
 
         search_model_fields: ClassVar[list[str]] = [
@@ -43,7 +45,9 @@ class OrganizationFilter(Filter):
 
     order_by: list[str] | None = None
 
-    class Constants(Filter.Constants):  # noqa: D106 # Standard FastAPI-filter class
+    class Constants(Filter.Constants):
+        """Constants for OrganizationFilter."""
+
         model = Organization
 
         search_model_fields: ClassVar[list[str]] = [

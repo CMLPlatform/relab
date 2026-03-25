@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 # Constants for magic values
 TEST_EMAIL = "test@example.com"
-TEST_SECRET = "test_secret"  # noqa: S105
-INVALID_TOKEN = "invalid.token.string"  # noqa: S105
+TEST_SECRET = "test_secret"
+INVALID_TOKEN = "invalid.token.string"
 TTL_3600 = 3600
 TTL_7200 = 7200
 

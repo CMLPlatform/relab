@@ -9,10 +9,15 @@ from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 from app.api.auth.crud import add_user_role_in_organization_after_registration, validate_user_create
 from app.api.auth.dependencies import UserManagerDep
-from app.api.auth.exceptions import AuthCRUDError, DisposableEmailError, UserNameAlreadyExistsError
+from app.api.auth.exceptions import (
+    RegistrationInvalidPasswordHTTPError,
+    RegistrationUnexpectedHTTPError,
+    RegistrationUserAlreadyExistsHTTPError,
+)
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserReadPublic
 from app.api.auth.utils.rate_limit import REGISTER_RATE_LIMIT, limiter
+from app.api.common.exceptions import APIError
 
 logger = logging.getLogger(__name__)
 
@@ -63,33 +68,17 @@ async def register(
 
         logger.info("User %s registered successfully", user.email)
 
-    except DisposableEmailError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-
-    except UserNameAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
-
     except UserAlreadyExists as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"User with email {user_create.email} already exists",
-        ) from e
+        raise RegistrationUserAlreadyExistsHTTPError(user_create.email) from e
 
     except InvalidPasswordException as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Password validation failed: {e.reason}",
-        ) from e
+        raise RegistrationInvalidPasswordHTTPError(e.reason) from e
 
-    except AuthCRUDError as e:
-        # Catch any other custom auth errors
+    except APIError as e:
         raise HTTPException(status_code=e.http_status_code, detail=str(e)) from e
 
     except Exception as e:
         logger.exception("Unexpected error during user registration")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during registration",
-        ) from e
+        raise RegistrationUnexpectedHTTPError from e
     else:
         return user

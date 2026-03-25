@@ -107,6 +107,33 @@ async def test_camera_lifecycle_and_constraints(
 
 
 @pytest.mark.asyncio
+async def test_current_user_camera_alias_routes(auth_client: AsyncClient) -> None:
+    """The user-scoped camera alias should expose the same CRUD flow."""
+    camera_data = {
+        "name": CAM_NAME,
+        "description": CAM_DESC,
+        "url": CAM_URL,
+        "auth_headers": [{"key": "X-Auth", "value": AUTH_VAL}],
+    }
+
+    response = await auth_client.post("/users/me/cameras", json=camera_data)
+    if response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR and JWT_STRATEGY_ERR in response.text:
+        pytest.skip("Auth module error preventing test execution")
+
+    assert response.status_code == status.HTTP_201_CREATED
+    camera_id = response.json()["id"]
+
+    response = await auth_client.get("/users/me/cameras")
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await auth_client.get(f"/users/me/cameras/{camera_id}")
+    assert response.status_code == status.HTTP_200_OK
+
+    response = await auth_client.delete(f"/users/me/cameras/{camera_id}")
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+@pytest.mark.asyncio
 async def test_camera_unique_constraints(auth_client: AsyncClient) -> None:
     """Test unique constraints if any."""
     camera_data = {"name": DUPLICATE_CAM_NAME, "url": CAM_URL_1}

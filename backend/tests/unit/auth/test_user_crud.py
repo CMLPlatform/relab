@@ -15,7 +15,7 @@ from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 from app.api.auth.crud.users import get_user_by_username, validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.schemas import UserCreate, UserCreateWithOrganization
+from app.api.auth.schemas import OrganizationCreate, UserCreate, UserCreateWithOrganization
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -34,7 +34,7 @@ class TestValidateUserCreate:
     async def test_returns_user_create_unchanged_when_valid(self, session: AsyncSession) -> None:
         """No conflicts or checks → returns the same UserCreate unchanged."""
         user_db = _make_user_db(session)
-        user_create = UserCreate(email="fresh@example.com", password="ValidPass1")  # noqa: S106
+        user_create = UserCreate(email="fresh@example.com", password="ValidPass1")
 
         result = await validate_user_create(user_db, user_create)
 
@@ -47,7 +47,7 @@ class TestValidateUserCreate:
         user_db = _make_user_db(session)
         user_create = UserCreate(
             email="second@example.com",
-            password="ValidPass1",  # noqa: S106
+            password="ValidPass1",
             username="taken_name",
         )
 
@@ -57,7 +57,7 @@ class TestValidateUserCreate:
     async def test_allows_null_username(self, session: AsyncSession) -> None:
         """username=None skips uniqueness check entirely."""
         user_db = _make_user_db(session)
-        user_create = UserCreate(email="anon@example.com", password="ValidPass1", username=None)  # noqa: S106
+        user_create = UserCreate(email="anon@example.com", password="ValidPass1", username=None)
 
         result = await validate_user_create(user_db, user_create)
 
@@ -66,7 +66,7 @@ class TestValidateUserCreate:
     async def test_raises_for_disposable_email(self, session: AsyncSession) -> None:
         """A disposable email flagged by the checker must raise DisposableEmailError."""
         user_db = _make_user_db(session)
-        user_create = UserCreate(email="burner@disposable.com", password="ValidPass1")  # noqa: S106
+        user_create = UserCreate(email="burner@disposable.com", password="ValidPass1")
 
         mock_checker = AsyncMock()
         mock_checker.is_disposable.return_value = True
@@ -77,7 +77,7 @@ class TestValidateUserCreate:
     async def test_skips_disposable_check_when_checker_is_none(self, session: AsyncSession) -> None:
         """No email_checker → disposable check is skipped, validation passes."""
         user_db = _make_user_db(session)
-        user_create = UserCreate(email="burner@disposable.com", password="ValidPass1")  # noqa: S106
+        user_create = UserCreate(email="burner@disposable.com", password="ValidPass1")
 
         result = await validate_user_create(user_db, user_create, email_checker=None)
 
@@ -88,8 +88,8 @@ class TestValidateUserCreate:
         user_db = _make_user_db(session)
         user_create = UserCreateWithOrganization(
             email="orgfounder@example.com",
-            password="ValidPass1",  # noqa: S106
-            organization={"name": "ACME", "location": "Berlin"},
+            password="ValidPass1",
+            organization=OrganizationCreate(name="ACME", location="Berlin"),
         )
 
         result = await validate_user_create(user_db, user_create)
@@ -97,7 +97,6 @@ class TestValidateUserCreate:
         assert isinstance(result, UserCreate)
         assert not isinstance(result, UserCreateWithOrganization)
         assert result.email == "orgfounder@example.com"
-
 
 
 @pytest.mark.integration

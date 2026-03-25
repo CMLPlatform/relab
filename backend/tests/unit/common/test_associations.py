@@ -14,6 +14,7 @@ from app.api.common.crud.associations import (
     get_linked_models,
     get_linking_model_with_ids_if_it_exists,
 )
+from app.api.common.exceptions import BadRequestError
 
 
 def _make_session() -> AsyncMock:
@@ -41,14 +42,14 @@ class TestGetLinkingModelWithIdsIfItExists:
 
         assert result == mock_link
 
-    async def test_raises_value_error_when_not_found(self) -> None:
-        """Test that ValueError is raised when link is not found."""
+    async def test_raises_bad_request_error_when_not_found(self) -> None:
+        """Test that BadRequestError is raised when link is not found."""
         session = _make_session()
         mock_result = MagicMock()
         mock_result.one_or_none.return_value = None
         session.exec = AsyncMock(return_value=mock_result)
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(BadRequestError, match="not found"):
             await get_linking_model_with_ids_if_it_exists(
                 session, CategoryMaterialLink, 1, 2, "material_id", "category_id"
             )
@@ -106,8 +107,8 @@ class TestGetLinkedModelById:
 
         assert result == mock_link
 
-    async def test_raises_value_error_when_link_missing(self) -> None:
-        """Test that ValueError is raised with friendly message when link not found."""
+    async def test_raises_bad_request_error_when_link_missing(self) -> None:
+        """Test that BadRequestError is raised with friendly message when link not found."""
         session = _make_session()
         mock_dependent = MagicMock()
 
@@ -120,9 +121,9 @@ class TestGetLinkedModelById:
             patch("app.api.common.crud.associations.get_model_by_id", return_value=mock_dependent),
             patch(
                 "app.api.common.crud.associations.get_linking_model_with_ids_if_it_exists",
-                side_effect=ValueError("not found"),
+                side_effect=BadRequestError("not found"),
             ),
-            pytest.raises(ValueError, match="not linked"),
+            pytest.raises(BadRequestError, match="not linked"),
         ):
             await get_linked_model_by_id(
                 session,
