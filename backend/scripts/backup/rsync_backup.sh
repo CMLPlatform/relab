@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/../../../.env"
 
 if [ -f "$ENV_FILE" ]; then
-    # shellcheck source=../../../.env
+    # shellcheck disable=SC1090
     . "$ENV_FILE"
     echo "[$(date)] Loaded env file: $ENV_FILE"
 else
