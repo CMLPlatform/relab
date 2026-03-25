@@ -70,9 +70,12 @@ audit:
 build-web:
     APP_ENV=test npm run build:web
 
-# Run E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
+# Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
 test-e2e:
     npm run test:e2e
+
+# Alias for explicit CI naming
+test-e2e-full-stack: test-e2e
 
 # Open Playwright UI for interactive E2E test development
 test-e2e-ui:

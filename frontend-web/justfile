@@ -75,9 +75,12 @@ test-cov:
 test-ci: test-cov
     @echo "✓ Frontend-web CI test suite passed"
 
-# Run end-to-end tests (requires a prior `just build`)
+# Run browser end-to-end tests for the standalone frontend-web site (requires a prior `just build`)
 test-e2e:
     npm run test:e2e
+
+# Alias for explicit CI naming
+test-e2e-browser: test-e2e
 
 # Open Playwright UI for interactive e2e test development
 test-e2e-ui:

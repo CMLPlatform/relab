@@ -60,8 +60,11 @@ jobs:
       - name: Install backend dependencies
         run: just backend/install
 
-      - name: Run backend CI
-        run: just backend/ci
+      - name: Run backend checks
+        run: just backend/check
+
+      - name: Run backend test suite
+        run: just backend/test-ci
 
       - name: Upload backend coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -98,8 +101,11 @@ jobs:
       - name: Install frontend-web dependencies
         run: just frontend-web/install
 
-      - name: Run frontend-web CI
-        run: just frontend-web/ci
+      - name: Run frontend-web checks
+        run: just frontend-web/check
+
+      - name: Run frontend-web test suite
+        run: just frontend-web/test-ci
 
       - name: Upload frontend-web coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -126,8 +132,8 @@ jobs:
         run: npx playwright install --with-deps chromium firefox
         working-directory: frontend-web
 
-      - name: Run frontend-web E2E tests
-        run: just frontend-web/test-e2e
+      - name: Run frontend-web browser E2E tests
+        run: just frontend-web/test-e2e-browser
 
       - name: Archive Playwright report
         if: failure()
@@ -153,8 +159,11 @@ jobs:
       - name: Install frontend-app dependencies
         run: just frontend-app/install
 
-      - name: Run frontend-app CI
-        run: just frontend-app/ci
+      - name: Run frontend-app checks
+        run: just frontend-app/check
+
+      - name: Run frontend-app test suite
+        run: just frontend-app/test-ci
 
       - name: Upload frontend-app coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -219,7 +228,7 @@ jobs:
         run: just ${{ matrix.recipe }}
 
   e2e-full-stack:
-    name: Full-Stack E2E
+    name: Frontend App Full-Stack E2E
     needs: [backend, frontend-app]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -256,7 +265,7 @@ jobs:
         working-directory: frontend-app
 
       - name: Run full-stack E2E tests
-        run: just frontend-app/test-e2e
+        run: just frontend-app/test-e2e-full-stack
 
       - name: Tear down infrastructure
         if: always()

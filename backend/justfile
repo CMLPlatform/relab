@@ -59,8 +59,8 @@ shellcheck:
     git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
     @echo "✓ Backend shell scripts passed ShellCheck"
 
-# Run the full backend quality gate
-check: lint typecheck migrate-check
+# Run the fast backend quality gate (no database required)
+check: lint typecheck
     @echo "✓ Backend checks passed"
 
 # ============================================================================
@@ -120,7 +120,8 @@ migrate-down:
 migrate-create MESSAGE:
     uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
 
-# Check if migrations are up to date
+# Check if migrations are up to date (requires a running database).
+# CI coverage for this behavior lives in the migration test suite.
 migrate-check:
     uv run alembic check
 

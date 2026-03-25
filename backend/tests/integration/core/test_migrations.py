@@ -98,3 +98,13 @@ def test_migrations_downgrade_upgrade(relab_alembic_config: Config) -> None:
     """Migration downgrade/upgrade cycle must succeed without error."""
     command.downgrade(relab_alembic_config, "-1")
     command.upgrade(relab_alembic_config, "+1")
+
+
+@pytest.mark.migration
+def test_alembic_autogenerate_is_clean(relab_alembic_config: Config) -> None:
+    """Alembic autogenerate should detect no pending schema changes after head.
+
+    This is the test-suite equivalent of `alembic check`: if ORM metadata has
+    drifted from the migration history, this assertion fails.
+    """
+    command.check(relab_alembic_config)
