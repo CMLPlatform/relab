@@ -1,19 +1,19 @@
 {
-    admin off
+	admin off
 }
 
 :8000 {
-    root * /srv
-    encode zstd gzip
+	root * /srv
+	encode zstd gzip
 
-    handle /health {
-        respond "ok" 200
-    }
+	handle /health {
+		respond "ok" 200
+	}
 
-    file_server
+	file_server
 
-    handle_errors {
-        rewrite * /404.html
-        file_server
-    }
+	handle_errors {
+		rewrite * /404.html
+		file_server
+	}
 }
