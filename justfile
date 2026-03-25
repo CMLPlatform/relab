@@ -12,15 +12,19 @@ default:
 # Install all workspace dependencies (root + all subrepos)
 install:
     uv sync
-    just backend/install
-    just frontend-web/install
-    just frontend-app/install
-    just docs/install
+    @just backend/install
+    @just docs/install
+    @just frontend-web/install
+    @just frontend-app/install
     @echo "✓ All dependencies installed"
 
 # Update all workspace dependencies
 update:
     uv lock --upgrade
+    @just backend/update
+    @just docs/update
+    @just frontend-web/update
+    @just frontend-app/update
     @echo "✓ Dependencies updated (run 'just install' to sync)"
 
 # Install pre-commit hooks (run once after clone)
@@ -57,9 +61,9 @@ check:
 # Auto-fix code issues where supported
 fix:
     @just backend/fix
+    @just docs/fix
     @just frontend-web/fix
     @just frontend-app/fix
-    @just docs/fix
     @echo "✓ Code fixed"
 
 # Run all pre-commit hooks on all files (useful before big commits)
@@ -83,17 +87,17 @@ spellcheck:
 # Full local test suite across all subrepos
 test:
     @just backend/test
+    @just docs/test
     @just frontend-web/test
     @just frontend-app/test
-    @just docs/test
     @echo "✅ All tests passed"
 
 # CI-oriented test suite across all subrepos
 test-ci:
     @just backend/test-ci
+    @just docs/test-ci
     @just frontend-web/test-ci
     @just frontend-app/test-ci
-    @just docs/test-ci
     @echo "✅ All CI test suites passed"
 
 # Full local CI pipeline
@@ -125,9 +129,9 @@ test-e2e-full-stack:
 # Run dependency vulnerability audit across all subrepos
 audit:
     @just backend/audit
+    @just docs/audit
     @just frontend-app/audit
     @just frontend-web/audit
-    @just docs/audit
     @echo "✅ All dependency audits complete"
 
 
@@ -139,6 +143,10 @@ audit:
 dev-backend:
     docker compose up --watch backend
 
+# Start docs server with hot reload
+dev-docs:
+    docker compose up --watch docs
+
 # Start frontend-app + backend with hot reload
 dev-frontend-app:
     docker compose up --watch backend frontend-app
@@ -146,10 +154,6 @@ dev-frontend-app:
 # Start frontend-web + backend with hot reload
 dev-frontend-web:
     docker compose up --watch backend frontend-web
-
-# Start docs server with hot reload
-dev-docs:
-    docker compose up --watch docs
 
 # ============================================================================
 # Docker — Development
@@ -245,6 +249,14 @@ docker-smoke-backend:
     {{ docker_compose }} up --build -d --wait --wait-timeout 120 database cache backend
     echo "✅ Backend smoke test passed"
 
+# Smoke test: docs static server
+docker-smoke-docs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap '{{ docker_compose }} down -v --remove-orphans || true' EXIT
+    {{ docker_compose }} up --build -d --wait --wait-timeout 60 docs
+    echo "✅ Docs smoke test passed"
+
 # Smoke test: frontend-web static server
 docker-smoke-frontend-web:
     #!/usr/bin/env bash
@@ -261,20 +273,12 @@ docker-smoke-frontend-app:
     {{ docker_compose }} up --build -d --wait --wait-timeout 300 frontend-app
     echo "✅ Frontend-app smoke test passed"
 
-# Smoke test: docs static server
-docker-smoke-docs:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap '{{ docker_compose }} down -v --remove-orphans || true' EXIT
-    {{ docker_compose }} up --build -d --wait --wait-timeout 60 docs
-    echo "✅ Docs smoke test passed"
-
 # Run all smoke tests sequentially (CI runs them in parallel per-service)
 docker-smoke-all:
     @just docker-smoke-backend
+    @just docker-smoke-docs
     @just docker-smoke-frontend-web
     @just docker-smoke-frontend-app
-    @just docker-smoke-docs
 
 # ============================================================================
 # Maintenance
@@ -283,8 +287,8 @@ docker-smoke-all:
 # Clean build artifacts and caches across all subrepos
 clean:
     @just backend/clean
+    @just docs/clean
     @just frontend-web/clean
     @just frontend-app/clean
-    @just docs/clean
     rm -rf .ruff_cache
     @echo "✓ Cleaned caches and build artifacts"

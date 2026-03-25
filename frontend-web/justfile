@@ -10,6 +10,11 @@ default:
 install:
     npm ci
 
+# Upgrade Astro and official integrations using Astro's upgrade tool
+update:
+    npx @astrojs/upgrade
+    @echo "✓ Frontend-web Astro dependencies updated"
+
 # ============================================================================
 # Development
 # ============================================================================

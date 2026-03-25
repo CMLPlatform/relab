@@ -8,6 +8,12 @@ default:
 install:
     npm ci
 
+# Update Expo-managed dependencies to versions compatible with the current SDK
+update:
+    npx expo install --fix
+    npx expo-doctor
+    @echo "✓ Frontend-app Expo dependencies updated"
+
 # Run static type checks
 typecheck:
     npm run typecheck

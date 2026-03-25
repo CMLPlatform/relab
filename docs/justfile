@@ -10,6 +10,11 @@ default:
 install:
     uv sync --all-groups
 
+# Update dependencies
+update:
+    uv lock --upgrade
+    @echo "✓ Docs dependencies updated"
+
 # Check code style and spelling
 lint:
     uv run mdformat --check docs README.md
