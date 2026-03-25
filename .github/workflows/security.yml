@@ -1,0 +1,120 @@
+name: Security
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+    - cron: "30 2 * * 0"
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  PYTHON_VERSION: "3.14"
+  NODE_VERSION: "22"
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@38b3b7bf288d49ccf58644769dc7a6afdccd05eb # v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@38b3b7bf288d49ccf58644769dc7a6afdccd05eb # v3
+        with:
+          category: /language:${{ matrix.language }}
+
+  secret-scan:
+    name: Secret Scan
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  python-audit:
+    name: Python Audit (${{ matrix.project }})
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [backend, docs]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python tooling
+        uses: ./.github/actions/setup-python-just
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-cache-dependency-glob: ${{ matrix.project }}/uv.lock
+
+      - name: Install dependencies
+        run: just ${{ matrix.project }}/install
+
+      - name: Run dependency audit
+        run: just ${{ matrix.project }}/audit
+
+  node-audit:
+    name: Node Audit (${{ matrix.project }})
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [frontend-app, frontend-web]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node tooling
+        uses: ./.github/actions/setup-node-just
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: Install dependencies
+        run: just ${{ matrix.project }}/install
+
+      - name: Run dependency audit
+        run: just ${{ matrix.project }}/audit

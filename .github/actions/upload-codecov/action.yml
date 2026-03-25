@@ -1,0 +1,34 @@
+name: Upload Codecov
+description: Upload a coverage report to Codecov with shared defaults.
+
+inputs:
+  files:
+    description: Coverage file path(s) to upload.
+    required: true
+  flags:
+    description: Codecov flags.
+    required: true
+  name:
+    description: Upload name shown in Codecov.
+    required: true
+  token:
+    description: Codecov token.
+    required: true
+  disable-search:
+    description: Disable Codecov file autodiscovery.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
+      with:
+        files: ${{ inputs.files }}
+        flags: ${{ inputs.flags }}
+        name: ${{ inputs.name }}
+        fail_ci_if_error: false
+        token: ${{ inputs.token }}
+        slug: CMLPlatform/relab
+        disable_search: ${{ inputs.disable-search }}

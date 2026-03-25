@@ -1,0 +1,27 @@
+name: Setup Python + just
+description: Install Python, uv, and just for workflow jobs.
+
+inputs:
+  python-version:
+    description: Python version to install.
+    required: true
+  uv-cache-dependency-glob:
+    description: Newline-delimited dependency files for uv cache keys.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+      with:
+        enable-cache: true
+        cache-dependency-glob: ${{ inputs.uv-cache-dependency-glob }}
+
+    - name: Set up Python
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install just
+      uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2

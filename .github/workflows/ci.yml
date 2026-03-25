@@ -1,0 +1,271 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  merge_group:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.14"
+  NODE_VERSION: "22"
+
+jobs:
+  policy:
+    name: Repository Policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python tooling
+        uses: ./.github/actions/setup-python-just
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-cache-dependency-glob: |
+            pyproject.toml
+            backend/uv.lock
+            docs/uv.lock
+
+      - name: Install root tooling
+        run: uv sync
+
+      - name: Run repository policy checks
+        run: just check-root
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python tooling
+        uses: ./.github/actions/setup-python-just
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        run: just backend/install
+
+      - name: Run backend CI
+        run: just backend/ci
+
+      - name: Upload backend coverage
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/upload-codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./backend/reports/coverage/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+      - name: Archive backend reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-coverage-artifacts
+          path: |
+            backend/reports/coverage/html/
+            backend/reports/coverage/coverage.xml
+          retention-days: 7
+
+  frontend-web:
+    name: Frontend Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node tooling
+        uses: ./.github/actions/setup-node-just
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache-dependency-path: frontend-web/package-lock.json
+
+      - name: Install frontend-web dependencies
+        run: just frontend-web/install
+
+      - name: Run frontend-web CI
+        run: just frontend-web/ci
+
+      - name: Upload frontend-web coverage
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/upload-codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend-web/coverage/lcov.info
+          flags: frontend-web
+          name: frontend-web-coverage
+          disable-search: "true"
+
+      - name: Archive frontend-web reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-web-coverage-artifacts
+          path: frontend-web/coverage/
+          retention-days: 7
+
+      - name: Build frontend-web
+        run: just frontend-web/build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+        working-directory: frontend-web
+
+      - name: Run frontend-web E2E tests
+        run: just frontend-web/test-e2e
+
+      - name: Archive Playwright report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-web-playwright-artifacts
+          path: frontend-web/playwright-report/
+          retention-days: 7
+
+  frontend-app:
+    name: Frontend App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node tooling
+        uses: ./.github/actions/setup-node-just
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache-dependency-path: frontend-app/package-lock.json
+
+      - name: Install frontend-app dependencies
+        run: just frontend-app/install
+
+      - name: Run frontend-app CI
+        run: just frontend-app/ci
+
+      - name: Upload frontend-app coverage
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/upload-codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend-app/coverage/lcov.info
+          flags: frontend-app
+          name: frontend-app-coverage
+          disable-search: "true"
+
+      - name: Archive frontend-app reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-app-coverage-artifacts
+          path: frontend-app/coverage/
+          retention-days: 7
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python tooling
+        uses: ./.github/actions/setup-python-just
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-cache-dependency-glob: docs/uv.lock
+
+      - name: Install docs dependencies
+        run: just docs/install
+
+      - name: Run docs CI
+        run: just docs/ci
+
+  docker-smoke:
+    name: Docker Smoke (${{ matrix.recipe }})
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe:
+          - docker-smoke-backend
+          - docker-smoke-frontend-web
+          - docker-smoke-frontend-app
+          - docker-smoke-docs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install just
+        uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Run smoke test
+        run: just ${{ matrix.recipe }}
+
+  e2e-full-stack:
+    name: Full-Stack E2E
+    needs: [backend, frontend-app]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Start backend infrastructure
+        run: docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
+
+      - name: Run database migrations
+        run: docker compose -p relab_e2e -f compose.e2e.yml run --rm --profile migrations backend-migrations
+
+      - name: Create E2E superuser
+        run: docker compose -p relab_e2e -f compose.e2e.yml exec -T backend python scripts/create_superuser.py
+
+      - name: Set up Node tooling
+        uses: ./.github/actions/setup-node-just
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache-dependency-path: frontend-app/package-lock.json
+
+      - name: Install frontend-app dependencies
+        run: just frontend-app/install
+
+      - name: Build Expo web app
+        run: just frontend-app/build-web
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend-app
+
+      - name: Run full-stack E2E tests
+        run: just frontend-app/test-e2e
+
+      - name: Tear down infrastructure
+        if: always()
+        run: docker compose -p relab_e2e -f compose.e2e.yml down -v --remove-orphans
+
+      - name: Archive Playwright report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-app-playwright-artifacts
+          path: frontend-app/playwright-report/
+          retention-days: 7
