@@ -25,7 +25,7 @@
         </div>
         <div id="error" class="error"></div>
         {% if next %}
-          <input type="hidden" id="next" name="next" value="{{ next | e }}" />
+          <input type="hidden" id="next" name="next" value="{{ next|e }}" />
         {% endif %}
         <button type="submit" class="primary-btn">Login</button>
         <a href="{{ url_for('index') }}" class="secondary-btn back-link">API Homepage</a>
@@ -35,19 +35,9 @@
     <script>
       const defaultNext = {{ url_for("index") | tojson }}
 
-      function isSafeRelativePath(value) {
-        return typeof value === 'string'
-          && value.startsWith('/')
-          && !value.startsWith('//')
-          && !value.includes('://')
-          && !value.includes('\\')
-      }
-
       document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault()
         const errorDiv = document.getElementById('error')
-        const nextInput = document.getElementById('next')
-        const nextValue = nextInput ? nextInput.value : null
 
         try {
           const response = await fetch('/auth/cookie/login', {
@@ -58,13 +48,13 @@
             body: new URLSearchParams({
               username: document.getElementById('email').value,
               password: document.getElementById('password').value,
-              ...(nextValue ? { next: nextValue } : {})
+              ...(document.getElementById('next') ? { next: document.getElementById('next').value } : {})
             }),
             credentials: 'include'
           })
 
           if (response.ok) {
-            window.location.href = isSafeRelativePath(nextValue) ? nextValue : defaultNext
+            window.location.href = defaultNext
           } else {
             const data = await response.json()
             errorDiv.textContent = data.detail || 'Login failed'
