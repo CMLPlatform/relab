@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useDialog } from '@/components/common/DialogProvider';
@@ -109,6 +109,7 @@ export default function Login() {
   const dialog = useDialog();
   const { user, isLoading: authLoading, refetch } = useAuth();
   const colorScheme = useColorScheme();
+  const theme = useTheme();
   const postLoginRedirect = getSafeRedirectTarget(redirectTo);
 
   // Refs
@@ -397,7 +398,9 @@ export default function Login() {
           {'RELab.'}
         </Text>
         <Button
-          mode="text"
+          mode="contained-tonal"
+          buttonColor={theme.colors.secondaryContainer}
+          textColor={theme.colors.onSecondaryContainer}
           onPress={() => router.replace('/products')}
           style={{ alignSelf: 'flex-start', marginBottom: 8 }}
         >
