@@ -49,7 +49,7 @@ test-api *ARGS:
 # Run backend quality checks (lint, format, type check)
 check:
     uv run ruff check --ignore FIX002
-    just shellcheck -x
+    just shellcheck
     uv run ty check
     uv run alembic check
     @echo "✓ All backend checks passed"

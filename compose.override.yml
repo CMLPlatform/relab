@@ -69,10 +69,13 @@ services:
   frontend-app:
     build:
       dockerfile: Dockerfile.dev
+    # Enable polling for file watchers (helps Docker/VM mounts on macOS)
     environment:
       EXPO_PUBLIC_API_URL: "http://localhost:8011"
-      EXPO_PUBLIC_DOCS_URL: "http://localhost:8012"
       EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
+      CHOKIDAR_USEPOLLING: "true" # spell-checker: ignore USEPOLLING
+      CHOKIDAR_INTERVAL: "100"
+      WATCHPACK_POLLING: "true"
     restart: "no"
     ports:
       - "8013:8081"
@@ -86,6 +89,12 @@ services:
             - .expo/
             - dist/
             - web-build/
+            - coverage/
+            - test-results/
+            - playwright-report/
+            - e2e/
+            - jest.config.ts
+            - jest.setup.ts
         - action: rebuild
           path: ./frontend-app/package-lock.json
 

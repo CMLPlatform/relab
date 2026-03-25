@@ -1,4 +1,4 @@
-# ReLab Monorepo Task Runner
+# RELab Monorepo Task Runner
 # Run `just --list` to see all available commands
 
 # Show available recipes

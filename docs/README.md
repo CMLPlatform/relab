@@ -1,6 +1,6 @@
-# ReLab Documentation
+# RELab Documentation
 
-The documentation for the ReLab project is built using [Zensical](https://stefanbschneider.github.io/zensical/).
+The documentation for the RELab project is built using [Zensical](https://stefanbschneider.github.io/zensical/).
 
 For documentation-specific contribution and workflow details, see:
 

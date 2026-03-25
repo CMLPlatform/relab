@@ -500,11 +500,11 @@ The two frontend sub-projects use different frameworks for good reasons. Here is
 
 ##### frontend-app (React Native / Expo)
 
-| Layer | Tool | Location |
-| ----- | ---- | -------- |
-| Unit & component tests | Jest + `@testing-library/react-native` | `src/**/__tests__/` |
-| Network mocking | MSW (`msw/node`) | `src/test-utils/server.ts` |
-| Shared helpers | Custom render + API mocks | `src/test-utils/` |
+| Layer                  | Tool                                   | Location                   |
+| ---------------------- | -------------------------------------- | -------------------------- |
+| Unit & component tests | Jest + `@testing-library/react-native` | `src/**/__tests__/`        |
+| Network mocking        | MSW (`msw/node`)                       | `src/test-utils/server.ts` |
+| Shared helpers         | Custom render + API mocks              | `src/test-utils/`          |
 
 **Running tests:**
 
@@ -524,10 +524,10 @@ npm run test:coverage   # explicit coverage report
 
 ##### frontend-web (Astro)
 
-| Layer | Tool | Location |
-| ----- | ---- | -------- |
-| Unit tests | Vitest | `src/**/*.test.ts` |
-| E2E tests | Playwright (Chromium + Firefox) | `e2e/` |
+| Layer         | Tool                              | Location                    |
+| ------------- | --------------------------------- | --------------------------- |
+| Unit tests    | Vitest                            | `src/**/*.test.ts`          |
+| E2E tests     | Playwright (Chromium + Firefox)   | `e2e/`                      |
 | Accessibility | axe-core / `@axe-core/playwright` | `e2e/accessibility.spec.ts` |
 
 **Running tests:**

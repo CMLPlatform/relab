@@ -1,6 +1,6 @@
-# ReLab Backend
+# RELab Backend
 
-The backend of the ReLab project is built using [FastAPI](https://fastapi.tiangolo.com/) and [PostgreSQL](https://www.postgresql.org/), providing a RESTful API and database management for the platform.
+The backend of the RELab project is built using [FastAPI](https://fastapi.tiangolo.com/) and [PostgreSQL](https://www.postgresql.org/), providing a RESTful API and database management for the platform.
 
 For backend-specific contribution and workflow details, see:
 
