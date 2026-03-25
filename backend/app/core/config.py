@@ -16,8 +16,9 @@ from app.core.env import BACKEND_DIR, RelabBaseSettings
 if TYPE_CHECKING:
     from typing import Self
 
-# Default superuser credentials (must be overridden in production)
+# Default insecure config (must be overridden in production)
 DEFAULT_SUPERUSER_EMAIL = "your-email@example.com"
+DEFAULT_CORS_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
 
 
 class CacheNamespace(StrEnum):
@@ -82,7 +83,8 @@ class CoreSettings(RelabBaseSettings):
     # Regex pattern matched against the Origin header — useful in dev to allow a whole subnet without listing every IP.
     # Default covers localhost, 127.0.0.1, and any 192.168.x.x origin with any port.
     # When set, origins matching this pattern are echoed back (credentials still work, unlike allow_origins=["*"]).
-    cors_origin_regex: str | None = Field(default=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?")
+    # Use `None` as the Python-side default so we can tell whether an operator explicitly set a value.
+    cors_origin_regex: str | None = Field(default=None)
 
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
@@ -184,11 +186,14 @@ class CoreSettings(RelabBaseSettings):
     def validate_security_settings(self) -> Self:
         """Validate environment-specific security settings."""
         if self.environment not in (Environment.PROD, Environment.STAGING):
+            # In dev/testing, if unset, apply the permissive default for convenience.
+            if self.cors_origin_regex is None:
+                self.cors_origin_regex = DEFAULT_CORS_ORIGIN_REGEX
             return self
 
         errors: list[str] = []
 
-        if self.cors_origin_regex:
+        if self.cors_origin_regex == DEFAULT_CORS_ORIGIN_REGEX:
             errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
         if not self.postgres_password.get_secret_value():
