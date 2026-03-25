@@ -8,6 +8,7 @@ import json
 import logging
 import mimetypes
 from functools import partial
+from itertools import cycle
 from pathlib import Path
 
 from alembic import command
@@ -251,6 +252,51 @@ def normalize_unit(raw_unit: object, product_name: str) -> Unit:
             return Unit.KILOGRAM
 
 
+def build_bill_of_materials(
+    material_map: dict[str, Material], bom_data: list[dict], product_name: str
+) -> list[MaterialProductLinkCreateWithinProduct]:
+    """Construct a BOM list for a product from seed data."""
+    bill: list[MaterialProductLinkCreateWithinProduct] = []
+    for mdata in bom_data:
+        mat = material_map.get(mdata["material"])
+        if not mat or mat.id is None:
+            logger.warning("Skipping material link for %s: material %s not found.", product_name, mdata)
+            continue
+        bill.append(
+            MaterialProductLinkCreateWithinProduct(
+                material_id=mat.id,
+                quantity=mdata["quantity"],
+                unit=normalize_unit(mdata.get("unit"), product_name),
+            )
+        )
+    return bill
+
+
+async def get_existing_product_id(session: AsyncSession, name: str) -> int | None:
+    """Return existing product id for a given name, or None."""
+    stmt = select(Product.id, Product.name).where(Product.name == name)
+    row = (await session.exec(stmt)).first()
+    if not row:
+        return None
+    existing_id, _ = row
+    return int(existing_id) if existing_id is not None else None
+
+
+def build_product_create_from_data(
+    data: dict, product_type_id: int, bill_of_materials: list[MaterialProductLinkCreateWithinProduct]
+) -> ProductCreateWithComponents:
+    """Build ProductCreateWithComponents from seed data dict."""
+    return ProductCreateWithComponents(
+        name=data["name"],
+        description=data["description"],
+        brand=data["brand"],
+        model=data["model"],
+        product_type_id=product_type_id,
+        physical_properties=PhysicalPropertiesCreate(**data.get("physical_properties", {})),
+        bill_of_materials=bill_of_materials,
+    )
+
+
 async def seed_products(
     session: AsyncSession,
     product_type_map: dict[str, ProductType],
@@ -259,26 +305,31 @@ async def seed_products(
 ) -> dict[str, int]:
     """Seed the database with sample product data."""
     product_id_map: dict[str, int] = {}
+    # Prepare a cycling iterator of users so products are assigned round-robin.
+    users = [u for u in user_map.values() if u and getattr(u, "id", None) is not None]
+    if not users:
+        logger.warning("No users available for product seeding; skipping.")
+        return product_id_map
+    user_cycle = cycle(users)
+
+    # Use module-level BOM builder
+
     for data in product_data:
         if data["name"] in product_id_map:
             continue  # simplistic check
 
-        # Fetch only scalar columns to avoid eager-loading image rows that may point
-        # to missing files in storage from previous runs.
-        stmt = select(Product.id, Product.name).where(Product.name == data["name"])
-        existing_row = (await session.exec(stmt)).first()
-        if existing_row:
-            existing_id, existing_name = existing_row
-            product_id_map[existing_name] = existing_id
+        # Skip if product already exists
+        existing_id = await get_existing_product_id(session, data["name"])
+        if existing_id is not None:
+            product_id_map[data["name"]] = existing_id
             continue
 
         product_type = product_type_map.get(data["product_type_name"])
-        if not product_type:
+        if not product_type or product_type.id is None:
             continue
 
-        user = next(iter(user_map.values()), None)
-        if not user or not user.id:
-            continue
+        # Assign next user in round-robin
+        user = next(user_cycle)
 
         physical_properties_data = data.get("physical_properties")
         bill_of_materials_data = data.get("bill_of_materials", [])
@@ -287,29 +338,9 @@ async def seed_products(
             logger.warning("Skipping product %s: missing physical properties.", data["name"])
             continue
 
-        bill_of_materials = []
-        for material_data in bill_of_materials_data:
-            material = material_map.get(material_data["material"])
-            if not material or not material.id:
-                logger.warning("Skipping material link for %s: material %s not found.", data["name"], material_data)
-                continue
-            bill_of_materials.append(
-                MaterialProductLinkCreateWithinProduct(
-                    material_id=material.id,
-                    quantity=material_data["quantity"],
-                    unit=normalize_unit(material_data.get("unit"), data["name"]),
-                )
-            )
+        bill_of_materials = build_bill_of_materials(material_map, bill_of_materials_data, data["name"])
 
-        product_create = ProductCreateWithComponents(
-            name=data["name"],
-            description=data["description"],
-            brand=data["brand"],
-            model=data["model"],
-            product_type_id=product_type.id,
-            physical_properties=PhysicalPropertiesCreate(**physical_properties_data),
-            bill_of_materials=bill_of_materials,
-        )
+        product_create = build_product_create_from_data(data, int(product_type.id), bill_of_materials)
         product = await create_product(session, product_create, owner_id=user.id)
 
         if product.id:
