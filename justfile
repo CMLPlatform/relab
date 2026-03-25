@@ -175,7 +175,7 @@ dev-up:
 
 # Build (or rebuild) dev images
 dev-build:
-    docker compose build
+    docker compose build --profiles migrations
 
 # Stop and remove dev containers
 dev-down:
@@ -203,6 +203,10 @@ prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml
 prod-up:
     {{ prod_compose }} up -d
 
+# Build (or rebuild) prod images
+prod-build:
+    {{ prod_compose }} build --profiles migrations --profiles backups build
+    
 # Stop production stack
 prod-down:
     {{ prod_compose }} down
@@ -228,6 +232,10 @@ staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.st
 # Start staging stack in the background
 staging-up:
     {{ staging_compose }} up -d
+
+# Build (or rebuild) staging images
+staging-build:
+    {{ staging_compose }} --profiles migrations build
 
 # Stop staging stack
 staging-down:
