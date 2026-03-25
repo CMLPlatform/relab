@@ -50,7 +50,7 @@ repos:
     rev: v1.1.0
     hooks:
       - id: check-json5
-        exclude: ^(frontend-app|frontend-web)/data/
+        exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/streetsidesoftware/cspell-cli
     rev: v9.7.0
