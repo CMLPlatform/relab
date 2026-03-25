@@ -16,7 +16,7 @@ test.describe('Responsive layout', () => {
     await expect(
       page.getByRole('heading', { name: 'Reverse Engineering Lab', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /browse github/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /subscribe/i })).toBeVisible();
   });
 

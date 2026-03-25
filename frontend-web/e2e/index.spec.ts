@@ -10,14 +10,14 @@ test.describe('Landing page', () => {
     // accept small copy variations (e.g. "Open Demo" / "Open the App")
     await expect(page.getByRole('link', { name: /open( the)? app|open demo/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /read( the)? docs|read docs/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /browse github/i })).toBeVisible();
   });
 
   test('renders the hero support links', async ({ page }) => {
     await page.goto('/');
     // hero text may vary; verify support links are available
     await expect(page.getByRole('link', { name: /read( the)? docs|read docs/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /github/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /browse github/i })).toBeVisible();
   });
 
   test('renders the newsletter signup section', async ({ page }) => {
