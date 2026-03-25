@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from app.core.config import settings
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from redis.typing import EncodableT
@@ -93,8 +94,8 @@ async def get_redis_value(redis_client: Redis, key: str) -> str | None:
     """
     try:
         return await redis_client.get(key)
-    except TimeoutError, RedisError, OSError:
-        logger.exception("Failed to get Redis value for key %s.", key)
+    except (TimeoutError, RedisError, OSError):
+        logger.exception("Failed to get Redis value for key %s.", sanitize_log_value(key))
         return None
 
 
@@ -112,8 +113,8 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
     """
     try:
         await redis_client.set(key, value, ex=ex)
-    except TimeoutError, RedisError, OSError:
-        logger.exception("Failed to set Redis value for key %s.", key)
+    except (TimeoutError, RedisError, OSError):
+        logger.exception("Failed to set Redis value for key %s.", sanitize_log_value(key))
         return False
     else:
         return True
@@ -131,8 +132,8 @@ async def delete_redis_key(redis_client: Redis, key: str) -> bool:
     """
     try:
         await redis_client.delete(key)
-    except TimeoutError, RedisError, OSError:
-        logger.exception("Failed to delete Redis key %s.", key)
+    except (TimeoutError, RedisError, OSError):
+        logger.exception("Failed to delete Redis key %s.", sanitize_log_value(key))
         return False
     else:
         return True

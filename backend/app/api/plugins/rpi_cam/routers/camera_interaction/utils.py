@@ -20,6 +20,7 @@ from app.api.common.utils import get_user_owned_object
 from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
 from app.core.http import create_http_client
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -134,7 +135,12 @@ async def _fetch_from_camera_via_http(
     except RequestError as e:
         # Network-level errors (DNS, connection refused, timeouts).
         logger = logging.getLogger(__name__)
-        logger.warning("Network error contacting camera %s%s: %s", camera.url, endpoint, e)
+        logger.warning(
+            "Network error contacting camera %s%s: %s",
+            sanitize_log_value(camera.url),
+            sanitize_log_value(endpoint),
+            sanitize_log_value(e),
+        )
         raise CameraProxyRequestError(endpoint, str(e)) from e
     else:
         return response
@@ -219,7 +225,12 @@ async def _stream_from_camera_via_http(
         ) from e
     except RequestError as e:
         logger = logging.getLogger(__name__)
-        logger.warning("Network error contacting camera %s%s: %s", camera.url, endpoint, e)
+        logger.warning(
+            "Network error contacting camera %s%s: %s",
+            sanitize_log_value(camera.url),
+            sanitize_log_value(endpoint),
+            sanitize_log_value(e),
+        )
         raise CameraProxyRequestError(endpoint, str(e)) from e
     else:
         return StreamingResponse(

@@ -11,6 +11,7 @@ from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
 from app.api.auth.services import refresh_token_service
 from app.core.config import settings as core_settings
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from starlette.requests import Request
@@ -49,4 +50,8 @@ async def maybe_set_refresh_token_cookie(user: User, request: Request | None, re
 
 def log_successful_login(user: User) -> None:
     """Log a successful login event."""
-    logger.info("User %s logged in from %s", user.email, user.last_login_ip)
+    logger.info(
+        "User %s logged in from %s",
+        sanitize_log_value(user.email),
+        sanitize_log_value(user.last_login_ip),
+    )

@@ -44,6 +44,7 @@ from app.api.plugins.rpi_cam.youtube_schemas import (
     YouTubeStreamListResponse,
     YouTubeStreamResponse,
 )
+from app.core.logging import sanitize_log_value
 from app.core.redis import delete_redis_key, get_redis_value, set_redis_value
 
 if TYPE_CHECKING:
@@ -132,7 +133,7 @@ async def clear_recording_session(redis_client: Redis, camera_id: UUID4) -> None
     """Remove in-progress recording state from Redis."""
     cleared = await delete_redis_key(redis_client, get_recording_session_cache_key(camera_id))
     if not cleared:
-        logger.warning("Failed to clear YouTube recording session for camera %s", camera_id)
+        logger.warning("Failed to clear YouTube recording session for camera %s", sanitize_log_value(camera_id))
 
 
 async def capture_and_store_image(

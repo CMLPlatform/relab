@@ -19,6 +19,7 @@ from fastapi_cache.coder import Coder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -232,4 +233,4 @@ async def clear_cache_namespace(namespace: str) -> None:
         namespace: Cache namespace to clear (e.g., "background-data", "docs")
     """
     await FastAPICache.clear(namespace=namespace)
-    logger.info("Cleared cache namespace: %s", namespace)
+    logger.info("Cleared cache namespace: %s", sanitize_log_value(namespace))

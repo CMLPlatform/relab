@@ -33,6 +33,11 @@ class OriginalLogInfo:
     original_line: int
 
 
+def sanitize_log_value(value: object) -> str:
+    """Normalize a value before logging it."""
+    return str(value).replace("\r", " ").replace("\n", " ")
+
+
 class InterceptHandler(logging.Handler):
     """Intercept standard logging messages and route them to loguru."""
 

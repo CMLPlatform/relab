@@ -26,6 +26,7 @@ from app.api.auth.utils.programmatic_emails import (
     send_reset_password_email,
     send_verification_email,
 )
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -116,16 +117,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send verification email after verification is requested."""
         await send_verification_email(user.email, user.username, token)
-        logger.info("Verification email sent to user %s", user.email)
+        logger.info("Verification email sent to user %s", sanitize_log_value(user.email))
 
     async def on_after_verify(self, user: User, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send welcome email after user verifies their email."""
-        logger.info("User %s has been verified.", user.email)
+        logger.info("User %s has been verified.", sanitize_log_value(user.email))
         await send_post_verification_email(user.email, user.username)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send password reset email."""
-        logger.info("User %s has forgot their password. Sending reset token", user.email)
+        logger.info("User %s has forgot their password. Sending reset token", sanitize_log_value(user.email))
         await send_reset_password_email(user.email, user.username, token)
 
     async def on_after_login(

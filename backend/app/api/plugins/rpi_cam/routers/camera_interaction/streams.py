@@ -44,6 +44,7 @@ from app.api.plugins.rpi_cam.services import (
 )
 from app.api.plugins.rpi_cam.youtube_schemas import YouTubeMonitorStreamResponse
 from app.core.config import settings
+from app.core.logging import sanitize_log_value
 from app.core.redis import OptionalRedisDep, require_redis
 
 # Initialize templates
@@ -179,7 +180,7 @@ async def start_recording(
                 video_metadata=serialize_stream_metadata(stream_info.metadata),
             ),
         )
-    except HTTPException, APIError:
+    except (HTTPException, APIError):
         try:
             await camera_request(
                 endpoint="/stream/stop",
@@ -188,11 +189,19 @@ async def start_recording(
                 query_params=QueryParams({"mode": StreamMode.YOUTUBE.value}),
             )
         except HTTPException as cleanup_error:
-            logger.warning("Failed to roll back camera stream for camera %s: %s", camera_id, cleanup_error)
+            logger.warning(
+                "Failed to roll back camera stream for camera %s: %s",
+                sanitize_log_value(camera_id),
+                sanitize_log_value(cleanup_error),
+            )
         try:
             await youtube_service.end_livestream(youtube_config.broadcast_key)
         except APIError as cleanup_error:
-            logger.warning("Failed to roll back YouTube livestream for camera %s: %s", camera_id, cleanup_error)
+            logger.warning(
+                "Failed to roll back YouTube livestream for camera %s: %s",
+                sanitize_log_value(camera_id),
+                sanitize_log_value(cleanup_error),
+            )
         raise
 
     return stream_info

@@ -14,6 +14,7 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud import get_image
 from app.core.constants import HOUR
 from app.core.images import resize_image
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from typing import NoReturn
@@ -72,5 +73,5 @@ async def get_resized_image(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("Error resizing image %s", image_id)
+        logger.exception("Error resizing image %s", sanitize_log_value(image_id))
         _raise_error("Error resizing image", exc=e)
