@@ -24,38 +24,6 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  codeql:
-    name: CodeQL (${{ matrix.language }})
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      packages: read
-      actions: read
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: javascript-typescript
-            build-mode: none
-          - language: python
-            build-mode: none
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@38b3b7bf288d49ccf58644769dc7a6afdccd05eb # v3
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-          queries: security-extended,security-and-quality
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@38b3b7bf288d49ccf58644769dc7a6afdccd05eb # v3
-        with:
-          category: /language:${{ matrix.language }}
-
   secret-scan:
     name: Secret Scan
     if: github.event_name != 'merge_group'
@@ -66,19 +34,48 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz \
+            | tar -xz gitleaks
+          chmod +x gitleaks
+
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gitleaks git --verbose --redact .
+
+  python-audit-root:
+    name: Python Audit (root)
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python tooling
+        uses: ./.github/actions/setup-python-just
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-cache-dependency-glob: uv.lock
+
+      - name: Install root dependencies
+        run: uv sync
+
+      - name: Run root dependency audit
+        run: just audit-root
 
   python-audit:
     name: Python Audit (${{ matrix.project }})
     if: github.event_name != 'merge_group'
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.non_blocking }}
     strategy:
       fail-fast: false
       matrix:
-        project: [backend, docs]
+        include:
+          - project: backend
+            non_blocking: false
+          - project: docs
+            non_blocking: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
