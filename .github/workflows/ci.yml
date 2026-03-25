@@ -211,6 +211,7 @@ jobs:
       matrix:
         recipe:
           - docker-smoke-backend
+          - docker-orchestration-smoke
           - docker-smoke-frontend-web
           - docker-smoke-frontend-app
           - docker-smoke-docs
