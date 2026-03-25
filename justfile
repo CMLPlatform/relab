@@ -175,7 +175,7 @@ dev-up:
 
 # Build (or rebuild) dev images
 dev-build:
-    docker compose build --profiles migrations
+    docker compose build --profile migrations
 
 # Stop and remove dev containers
 dev-down:
@@ -205,7 +205,7 @@ prod-up:
 
 # Build (or rebuild) prod images
 prod-build:
-    {{ prod_compose }} build --profiles migrations --profiles backups build
+    {{ prod_compose }} build --profile migrations --profile backups build
     
 # Stop production stack
 prod-down:
@@ -235,7 +235,7 @@ staging-up:
 
 # Build (or rebuild) staging images
 staging-build:
-    {{ staging_compose }} --profiles migrations build
+    {{ staging_compose }} --profile migrations build
 
 # Stop staging stack
 staging-down:
