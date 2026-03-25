@@ -13,8 +13,6 @@
 </mj-section>
 <mj-section background-color="#eef5f8" padding="16px 40px">
   <mj-column>
-    <mj-text css-class="footer-text" align="center">
-      This email was sent from Reverse Engineering Lab
-    </mj-text>
+    <mj-text css-class="footer-text" align="center"> This email was sent from Reverse Engineering Lab </mj-text>
   </mj-column>
 </mj-section>

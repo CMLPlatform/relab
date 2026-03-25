@@ -8,7 +8,7 @@
 
     <mj-section background-color="#fbfcfe" padding="20px 40px">
       <mj-column>
-        <mj-text font-size="16px" padding-bottom="20px"> Hello {{username}}, </mj-text>
+        <mj-text font-size="16px" padding-bottom="20px"> Hello {{ username }}, </mj-text>
         <mj-text align="center" css-class="success" padding="20px 0"> Your email has been verified! </mj-text>
         <mj-text> Thank you for verifying your email address. You can now enjoy full access to all features. </mj-text>
       </mj-column>

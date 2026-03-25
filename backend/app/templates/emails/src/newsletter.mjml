@@ -1,6 +1,6 @@
 <mjml>
   <mj-head>
-    <mj-title>{{subject}}</mj-title>
+    <mj-title>{{ subject }}</mj-title>
     {{include:styles}}
   </mj-head>
   <mj-body background-color="#eef5f8">
@@ -8,7 +8,7 @@
 
     <mj-section background-color="#fbfcfe" padding="20px 40px">
       <mj-column>
-        <mj-text> {{content}} </mj-text>
+        <mj-text> {{ content }} </mj-text>
       </mj-column>
     </mj-section>
 
