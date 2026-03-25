@@ -72,6 +72,7 @@ class CoreSettings(RelabBaseSettings):
 
     # Superuser settings
     superuser_email: EmailStr = DEFAULT_SUPERUSER_EMAIL
+    superuser_name: str | None = None
     superuser_password: SecretStr = SecretStr("")
 
     # Network settings

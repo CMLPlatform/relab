@@ -29,6 +29,33 @@ class TestCreateSuperuserScript:
         with pytest.raises(ValueError, match="SUPERUSER_EMAIL and SUPERUSER_PASSWORD"):
             await create_superuser_script.create_superuser()
 
+    async def test_create_superuser_forwards_optional_name(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        mocker: MockerFixture,
+    ) -> None:
+        """The script should include SUPERUSER_NAME when present."""
+        session = object()
+
+        @asynccontextmanager
+        async def fake_session_context() -> AsyncIterator[object]:
+            yield session
+
+        create_user_mock = mocker.AsyncMock()
+
+        monkeypatch.setattr(create_superuser_script.settings, "superuser_email", "admin@example.com")
+        monkeypatch.setattr(create_superuser_script.settings, "superuser_name", "admin_user")
+        monkeypatch.setattr(create_superuser_script.settings, "superuser_password", SecretStr("very-secret"))
+        monkeypatch.setattr(create_superuser_script, "async_session_context", fake_session_context)
+        monkeypatch.setattr(create_superuser_script, "create_user", create_user_mock)
+
+        await create_superuser_script.create_superuser()
+
+        kwargs = create_user_mock.await_args.kwargs
+        user_create = kwargs["user_create"]
+
+        assert user_create.username == "admin_user"
+
     async def test_create_superuser_creates_expected_user(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -44,6 +71,7 @@ class TestCreateSuperuserScript:
         create_user_mock = mocker.AsyncMock()
 
         monkeypatch.setattr(create_superuser_script.settings, "superuser_email", "admin@example.com")
+        monkeypatch.setattr(create_superuser_script.settings, "superuser_name", None)
         monkeypatch.setattr(create_superuser_script.settings, "superuser_password", SecretStr("very-secret"))
         monkeypatch.setattr(create_superuser_script, "async_session_context", fake_session_context)
         monkeypatch.setattr(create_superuser_script, "create_user", create_user_mock)
@@ -57,6 +85,7 @@ class TestCreateSuperuserScript:
         assert kwargs["async_session"] is session
         assert kwargs["send_registration_email"] is False
         assert user_create.email == "admin@example.com"
+        assert user_create.username is None
         assert user_create.password == "very-secret"
         assert user_create.organization_id is None
         assert user_create.is_superuser is True
@@ -77,6 +106,7 @@ class TestCreateSuperuserScript:
         create_user_mock = mocker.AsyncMock(side_effect=UserAlreadyExists())
 
         monkeypatch.setattr(create_superuser_script.settings, "superuser_email", "admin@example.com")
+        monkeypatch.setattr(create_superuser_script.settings, "superuser_name", "admin_user")
         monkeypatch.setattr(create_superuser_script.settings, "superuser_password", SecretStr("very-secret"))
         monkeypatch.setattr(create_superuser_script, "async_session_context", fake_session_context)
         monkeypatch.setattr(create_superuser_script, "create_user", create_user_mock)

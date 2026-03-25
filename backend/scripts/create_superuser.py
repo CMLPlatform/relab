@@ -20,6 +20,7 @@ logger.setLevel(logging.INFO)
 async def create_superuser() -> None:
     """Create a FastAPI-Users superuser programmatically."""
     superuser_email = settings.superuser_email
+    superuser_name = settings.superuser_name or None
     superuser_password = settings.superuser_password
 
     if not superuser_email or not superuser_password:
@@ -33,6 +34,7 @@ async def create_superuser() -> None:
                     async_session=async_session,
                     user_create=UserCreate(
                         email=superuser_email,
+                        username=superuser_name,
                         password=superuser_password.get_secret_value(),
                         organization_id=None,
                         is_superuser=True,
