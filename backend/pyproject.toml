@@ -248,4 +248,4 @@
 
   [tool.uv.sources]
     # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
-    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "ed96f72964e091796e06be28f5513eb1539f2a92" }
+    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel", rev = "a4337bf0c5a74b81f2fef5054b32efb72ce9bce4" }
