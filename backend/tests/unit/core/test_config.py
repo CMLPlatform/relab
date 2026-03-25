@@ -9,7 +9,7 @@ import pytest
 from pydantic import HttpUrl, SecretStr
 from pydantic_core import ValidationError
 
-from app.core.config import CoreSettings, Environment
+from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
 from app.core.env import get_env_file
 
 if TYPE_CHECKING:
@@ -76,6 +76,7 @@ class TestCoreSettingsCors:
             CoreSettings(
                 environment=Environment.STAGING,
                 backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+                cors_origin_regex=DEFAULT_CORS_ORIGIN_REGEX,
                 postgres_password=SecretStr("test-password"),
                 redis_password=SecretStr("test-password"),
                 superuser_password=SecretStr("test-password"),

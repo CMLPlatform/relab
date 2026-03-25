@@ -15,12 +15,14 @@ from app.core.config import settings as core_settings
 TEMPLATE_FOLDER = Path(__file__).parent.parent.parent.parent / "templates" / "emails" / "build"
 
 # Configure email connection
+email_settings = auth_settings.email
 email_conf = ConnectionConfig(
-    MAIL_USERNAME=auth_settings.email_username,
-    MAIL_PASSWORD=auth_settings.email_password,
-    MAIL_FROM=auth_settings.email_from,
-    MAIL_PORT=auth_settings.email_port,
-    MAIL_SERVER=auth_settings.email_host,
+    MAIL_USERNAME=email_settings.username,
+    MAIL_PASSWORD=email_settings.password,
+    MAIL_FROM=email_settings.sender.email if email_settings.sender else "",
+    MAIL_FROM_NAME=email_settings.sender.name if email_settings.sender else None,
+    MAIL_PORT=email_settings.port,
+    MAIL_SERVER=email_settings.host,
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
     TEMPLATE_FOLDER=TEMPLATE_FOLDER,

@@ -37,15 +37,38 @@ class TestAuthSettingsDefaults:
         assert settings.oauth_allowed_redirect_paths == []
         assert settings.oauth_allowed_native_redirect_uris == []
 
-    def test_email_from_and_reply_to_default_to_username(self) -> None:
-        """Sender fields should fall back to the SMTP username when omitted."""
+    def test_email_defaults_to_username(self) -> None:
+        """Resolved sender fields should fall back to the SMTP username when omitted."""
         settings = AuthSettings(
             email_username="noreply@example.com",
             email_from="",
             email_reply_to="",
         )
-        assert settings.email_from == "noreply@example.com"
-        assert settings.email_reply_to == "noreply@example.com"
+        assert settings.email.sender is not None
+        assert settings.email.reply_to is not None
+        assert settings.email.sender.email == "noreply@example.com"
+        assert settings.email.reply_to.email == "noreply@example.com"
+
+    def test_email_parsing_reuses_sender_when_reply_to_is_omitted(self) -> None:
+        """Parsed sender/reply-to values should share the same fallback logic."""
+        settings = AuthSettings(
+            email_username="smtp@example.com",
+            email_from="Reverse Engineering Lab <noreply@example.com>",
+            email_reply_to="",
+        )
+        assert settings.email.sender is not None
+        assert settings.email.reply_to is not None
+        assert settings.email.sender.name == "Reverse Engineering Lab"
+        assert settings.email.sender.email == "noreply@example.com"
+        assert settings.email.reply_to == settings.email.sender
+
+    def test_email_recipient_uses_shared_parser(self) -> None:
+        """Recipients should be parsed through the shared email config."""
+        settings = AuthSettings()
+        recipient = settings.email.recipient("person@example.com")
+
+        assert recipient.name == "person"
+        assert recipient.email == "person@example.com"
 
     def test_token_ttl_defaults(self) -> None:
         """Token TTL defaults encode the expected business rules."""

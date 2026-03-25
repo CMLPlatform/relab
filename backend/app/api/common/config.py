@@ -11,6 +11,7 @@ from app.__version__ import version
 BASE_DIR: Path = (Path(__file__).parents[3]).resolve()
 
 
+
 class OpenAPISettings(BaseModel):
     """Base OpenAPI settings."""
 

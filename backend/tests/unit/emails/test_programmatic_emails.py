@@ -10,6 +10,7 @@ import pytest
 from faker import Faker
 from fastapi import BackgroundTasks
 
+from app.api.auth.config import settings as auth_settings
 from app.api.auth.utils.programmatic_emails import (
     generate_token_link,
     send_post_verification_email,
@@ -92,6 +93,23 @@ async def test_send_registration_email(email_data: dict[str, str], mock_email_se
     """Test registration email is sent."""
     await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
     mock_email_sending.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_send_registration_email_sets_reply_to(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Test registration emails include the configured reply-to address."""
+    await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
+
+    await_args = mock_email_sending.await_args
+    reply_to = auth_settings.email.reply_to
+
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.reply_to
+    assert reply_to is not None
+    assert message.reply_to[0] == reply_to
 
 
 @pytest.mark.asyncio

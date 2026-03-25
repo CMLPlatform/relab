@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
 from fastapi_mail import MessageSchema, MessageType
-from pydantic import AnyUrl, EmailStr, NameEmail
+from pydantic import AnyUrl, EmailStr
 
+from app.api.auth.config import settings as auth_settings
 from app.api.auth.utils.email_config import fm
 from app.core.config import settings as core_settings
 
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from fastapi import BackgroundTasks
 
 logger: logging.Logger = logging.getLogger(__name__)
+email_settings = auth_settings.email
 
 
 ### Helper functions ###
@@ -56,9 +58,10 @@ async def send_email_with_template(
     """
     message = MessageSchema(
         subject=subject,
-        recipients=[NameEmail(name=str(to_email), email=str(to_email))],
+        recipients=[email_settings.recipient(to_email)],
         template_body=template_body,
         subtype=MessageType.html,
+        reply_to=[email_settings.reply_to] if email_settings.reply_to else [],
     )
 
     if background_tasks:

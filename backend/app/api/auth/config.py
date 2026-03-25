@@ -1,9 +1,38 @@
 """Configuration for the auth module."""
 
-from pydantic import Field, SecretStr, model_validator
+from dataclasses import dataclass
+from functools import cached_property
+
+from pydantic import EmailStr, Field, NameEmail, SecretStr, TypeAdapter
 
 from app.core.constants import DAY, HOUR, MINUTE, MONTH
 from app.core.env import RelabBaseSettings
+
+NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
+
+
+def parse_name_email(value: str, *, fallback: str = "") -> NameEmail | None:
+    """Parse a configured email string, optionally falling back to another value."""
+    raw_value = value.strip() or fallback.strip()
+    if not raw_value:
+        return None
+    return NAME_EMAIL_ADAPTER.validate_python(raw_value)
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedEmailSettings:
+    """Resolved auth email settings shared by email utilities."""
+
+    username: str
+    password: SecretStr
+    host: str
+    port: int
+    sender: NameEmail | None
+    reply_to: NameEmail | None
+
+    def recipient(self, email: EmailStr | str) -> NameEmail:
+        """Return a parsed recipient address."""
+        return NAME_EMAIL_ADAPTER.validate_python(str(email))
 
 
 class AuthSettings(RelabBaseSettings):
@@ -60,14 +89,18 @@ class AuthSettings(RelabBaseSettings):
         ]
     )
 
-    @model_validator(mode="after")
-    def apply_email_defaults(self) -> AuthSettings:
-        """Default sender fields to the SMTP username when omitted."""
-        if not self.email_from:
-            self.email_from = self.email_username
-        if not self.email_reply_to:
-            self.email_reply_to = self.email_username
-        return self
+    @cached_property
+    def email(self) -> ResolvedEmailSettings:
+        """Return resolved email settings with shared fallback logic applied once."""
+        sender = parse_name_email(self.email_from, fallback=self.email_username)
+        return ResolvedEmailSettings(
+            username=self.email_username,
+            password=self.email_password,
+            host=self.email_host,
+            port=self.email_port,
+            sender=sender,
+            reply_to=parse_name_email(self.email_reply_to, fallback=self.email_from or self.email_username) or sender,
+        )
 
 
 # Create a settings instance that can be imported throughout the app

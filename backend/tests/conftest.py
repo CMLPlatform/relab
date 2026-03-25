@@ -30,6 +30,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
+# Ensure settings modules load from .env.test before any app imports happen.
+# This must run before pytest_plugins triggers fixture-module imports and before
+# importing app modules that instantiate settings at module level.
+os.environ.setdefault("ENVIRONMENT", "testing")
+
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -48,11 +53,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 logger = logging.getLogger(__name__)
-
-# Ensure settings modules load from .env.test when no ENVIRONMENT is set.
-# This must happen before pytest_plugins triggers fixture-module imports
-# (which in turn import app packages that instantiate settings at module level).
-os.environ.setdefault("ENVIRONMENT", "testing")
 
 pytest_plugins = [
     "tests.fixtures.client",
