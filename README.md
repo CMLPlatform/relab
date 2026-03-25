@@ -44,7 +44,15 @@ The platform is actively used as research infrastructure:
 
 ## Development Workflow
 
-The project aims to implement modern software engineering practices, including automated testing, linting (`ruff`/`eslint`), and CI via GitHub Actions. Dependency management is automated via `renovate`, and CodeQL provides automated security analysis for merges.
+The monorepo uses a shared `just` command contract across subprojects:
+
+- `just check` for quality gates
+- `just test` for local test runs
+- `just test-ci` for CI-style coverage runs
+- `just ci` for the full local CI pipeline
+- `just commit` for an interactive Conventional Commit prompt
+
+Repository-wide policy checks are enforced with `pre-commit`, while GitHub Actions runs the same subrepo-level `check` and `test-ci` commands in CI. Dependency management is automated via Renovate, and CodeQL provides continuous security analysis.
 
 For a complete guide on the development setup, testing, and contribution processes, please see the [**Contributing Guidelines**](CONTRIBUTING.md).
 

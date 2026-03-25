@@ -46,6 +46,14 @@ Only needed for: custom development, institutional deployment, offline usage, or
    cd relab
    ```
 
+1. **Install Local Tooling** (recommended if you plan to modify code as well)
+
+   ```bash
+   just setup
+   ```
+
+   This also installs the pre-commit hooks that keep repo policy checks and lockfiles in sync locally.
+
 1. **Configure Environment**
 
    ```bash
@@ -76,6 +84,13 @@ Only needed for: custom development, institutional deployment, offline usage, or
    - App: <http://127.0.0.1:8013>
 
    Log in with the superuser credentials from your `backend/.env.dev` file to explore the platform.
+
+1. **Run Local Verification** (optional, but recommended before changing configuration)
+
+   ```bash
+   just check
+   just test
+   ```
 
 ______________________________________________________________________
 

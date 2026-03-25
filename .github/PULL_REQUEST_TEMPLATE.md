@@ -1,10 +1,10 @@
 # Pull Request
 
-## Description
+## Summary
 
-Please provide a brief description of the changes in this pull request.
+_What does this PR change, in one or two sentences?_
 
-## Type of Change
+## Type of change
 
 - [ ] 🚀 feat: New feature
 - [ ] 🐛 fix: Bug fix
@@ -15,28 +15,23 @@ Please provide a brief description of the changes in this pull request.
 - [ ] ♻️ refactor: Code refactoring (no functional changes)
 - [ ] 🎨 style: Code style/formatting changes
 - [ ] ✅ test: Adding or updating tests
+- [ ] 🔧 chore: Other maintenance work
+
+## Why
+
+_What problem does this solve or why is it worth merging?_
 
 ## Checklist
 
 - [ ] I've read the [contributing guidelines](../CONTRIBUTING.md)
-- [ ] Code follows style guidelines and passes quality checks (ruff, ty)
-- [ ] Unit tests added/updated and passing locally
+- [ ] Code follows style guidelines and passes quality checks (`just check`)
+- [ ] Unit tests added/updated and passing locally (`just test`)
 - [ ] Documentation updated (if applicable)
 - [ ] Database migrations created (if applicable)
 
-## Related Issues
+## Notes for reviewers
 
-- Closes #[issue-number]
-- Related to #[issue-number]
-
-## Additional Context
-
-Add any relevant context about the pull request here, such as:
-
-- Implementation details or approach
-- Challenges encountered and how they were addressed
-- Alternative solutions that were considered
-- Screenshots or GIFs demonstrating visual changes (if applicable)
+_Add rollout notes, tradeoffs, follow-up work, or links to related issues._
 
 <!--
 Thank you for your contribution! Your efforts help make this project better.

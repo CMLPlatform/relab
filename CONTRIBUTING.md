@@ -20,6 +20,7 @@ Thank you for your interest in contributing to the Reverse Engineering Lab proje
   - [Basic Usage](#basic-usage)
 - [Development Workflow](#development-workflow)
   - [Pull Request Process](#pull-request-process)
+  - [CI Architecture](#ci-architecture)
   - [Backend Development](#backend-development)
     - [Backend Code Style](#backend-code-style)
     - [Backend Testing](#backend-testing)
@@ -66,18 +67,23 @@ If you prefer, you can also set up your [environment manually](#alternative-loca
 1. **Install linting and formatting tools**
 
    ```bash
-   uv run pre-commit install
+   just pre-commit-install
    ```
 
 1. **Configure Environment Variables**
 
-   - Copy the example environment file for the backend:
+   - Copy the example environment file for the backend and the root-level `.env` if needed:
 
      ```bash
      cp backend/.env.dev.example backend/.env.dev
      ```
 
-   - Configure the necessary values in `backend/.env.dev` (marked with 🔀).
+     ```bash
+       cp .env.example .env
+
+     ```
+
+   - Configure the necessary values in `backend/.env.dev` and `.env` (marked with 🔀).
 
 #### Using Devcontainers
 
@@ -183,7 +189,7 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
 1. **Install linting and formatting tools**
 
    ```bash
-   uv run pre-commit install
+   just pre-commit-install
    ```
 
 #### Backend Setup
@@ -227,7 +233,8 @@ It is still recommended to use VS Code as your IDE, as we have provided some rec
    Run the FastAPI server:
 
    ```bash
-   fastapi dev
+   cd backend
+   just dev
    ```
 
    The API is now available at <http://127.0.0.1:8000>.
@@ -240,7 +247,7 @@ You can use `uv` to manage the documentation dependencies and run the Zensical s
 
 ```bash
 cd docs
-uv run zensical serve
+just dev
 ```
 
 The documentation is now available at <http://127.0.0.1:8000> with live reload.
@@ -253,17 +260,17 @@ The documentation is now available at <http://127.0.0.1:8000> with live reload.
    - [Expo](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for your target platform (Android/iOS, device/simulator).
      - Select **Development build**, disable **Build with EAS**, and follow the setup steps for your platform.
 
-1. **Install Node.js Packages**
+1. **Install `frontend-app` Packages**
 
    ```bash
-   cd frontend
-   npm install
+   cd frontend-app
+   npm ci
    ```
 
 1. **Start the app**
 
    ```bash
-   npx expo start --web
+   just dev
    ```
 
    This will launch the Expo development server for the web frontend. By default, it opens [http://localhost:8081](http://localhost:8081) in your browser.
@@ -289,18 +296,21 @@ cargo install just
 just --list
 
 # From root directory
-just install              # Install all dependencies
-just backend-test         # Run backend tests
-just backend-dev          # Start backend dev server
-just pre-commit           # Run pre-commit hooks
+just setup                # Install dependencies + pre-commit hooks
+just check                # Run repo policy + all subrepo quality checks
+just test                 # Run the local test suite
+just test-ci              # Run the CI-oriented test suite locally
+just ci                   # Run the same quality + test gates as CI
+just commit               # Open Commitizen's interactive commit flow
 
 # From backend directory
 cd backend
 just test                 # Run all tests
 just test-cov             # Run tests with coverage
-just lint                 # Check code style
-just fmt                  # Format code
-just check                # Run lint + typecheck
+just lint                 # Ruff lint
+just format               # Ruff format
+just typecheck            # Ty type checks
+just check                # lint + typecheck + migration check
 just migrate              # Apply database migrations
 just dev                  # Start dev server
 ```
@@ -328,14 +338,14 @@ If you’re new, start with the [Architecture Documentation](https://docs.cml-re
 
    - Implement your feature or fix, following the code style guidelines in the [Backend](#backend-code-style) and [Frontend](#frontend-code-style) sections below.
 
-   - [Pre-commit](https://pre-commit.com/) hooks will automatically check and format your code before each commit.\
-     You can also run all checks manually:
+   - [Pre-commit](https://pre-commit.com/) hooks enforce fast repository-wide policy checks before each commit, including automatic refreshes of Python and Node lockfiles when dependency manifests change.\
+     You can also run the same checks manually:
 
      ```bash
-     uv run pre-commit run --all-files
+     just check-root
      ```
 
-     > 💡 Tip: Make sure you have installed the pre-commit hooks by running `uv run pre-commit install` in the project root directory.
+     > 💡 Tip: Install the hooks once with `just pre-commit-install` in the project root.
 
    - Use the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) format when committing changes:
 
@@ -343,7 +353,7 @@ If you’re new, start with the [Architecture Documentation](https://docs.cml-re
      <type>(<scope>): <short summary>
      ```
 
-     > 💡 Tip: You can use `uv run cz commit` to create conventional commits in the correct format.
+     > 💡 Tip: You can use `just commit` or `uv run cz commit` to create conventional commits in the correct format. Release PRs, version bumps, tags, and changelog updates are handled by `release-please`, so contributors should not run `cz bump`.
 
 1. **Submit Pull Request**
 
@@ -361,6 +371,23 @@ If you’re new, start with the [Architecture Documentation](https://docs.cml-re
 
 All contributions must pass automated checks and receive approval before merging.
 
+### CI Architecture
+
+The repository uses three GitHub Actions workflows:
+
+1. `CI` for normal quality checks, tests, smoke tests, and E2E coverage.
+1. `Security` for CodeQL, secret scanning, and dependency audits.
+1. `Release Please` for release PRs, tagging, and version updates.
+
+The workflows are intentionally thin wrappers around the shared `just` command contract:
+
+- `just check` for quality gates
+- `just test` for local test runs
+- `just test-ci` for CI-style coverage runs
+- `just ci` for the full local CI pipeline
+
+Shared setup logic for Python, Node, and Codecov uploads lives in `.github/actions/` so the workflow files stay readable without hiding the actual job behavior.
+
 ### Backend Development
 
 Set up your environment as described in the [Getting Started](#getting-started) section.
@@ -368,12 +395,13 @@ Set up your environment as described in the [Getting Started](#getting-started) 
 You can run the development server with:
 
 ```bash
-fastapi dev    # or: just dev
+cd backend
+just dev
 ```
 
 The API will be available at <http://localhost:8000>, or <http://localhost:8011> when using a devcontainer.
 
-> 💡 **Tip:** See the [Task Runner](#task-runner) section for convenient shortcuts like `just test`, `just lint`, and `just migrate`.
+> 💡 **Tip:** See the [Task Runner](#task-runner) section for the shared `install` / `check` / `test` / `ci` command pattern used across the monorepo.
 
 #### Backend Code Style
 
@@ -385,8 +413,8 @@ We use several tools to ensure code quality:
 
    ```bash
    uv run ruff check              # or: just lint
-   uv run ruff check --fix        # or: just lint-fix
-   uv run ruff format             # or: just fmt
+   uv run ruff check --fix        # or: just fix
+   uv run ruff format             # or: just format
    ```
 
 1. [Ty](https://docs.astral.sh/ty/) for static type checking:
@@ -468,10 +496,10 @@ This project uses [MJML](https://mjml.io/) to write email templates and [Jinja2]
 - **Compiling Templates**
   Run the compilation script from the repository root:
 
-  ```bash
-  cd backend
-  uv run python -m scripts.compile_email_templates
-  ```
+```bash
+cd backend
+uv run python -m scripts.compile_email_templates
+```
 
 - **Interactive Preview**
   For visual development, use MJML online tools or the [MJML VS Code extension](https://marketplace.visualstudio.com/items?itemName=mjmlio.vscode-mjml).
@@ -483,14 +511,16 @@ Set up your environment as described in the [Getting Started](#getting-started) 
 You can run the development server with:
 
 ```bash
-npx expo start --web
+cd frontend-app
+just dev
 ```
 
 The app will be available at <http://localhost:8081>, or <http://localhost:8010> when using a devcontainer.
 
 #### Frontend Code Style
 
-- Code should be formatted with Prettier and checked with ESLint (run `npm run lint` and `npm run format`).
+- `frontend-app` uses TypeScript + Expo linting. Run `just check` for the full quality gate and `just format` for safe autofixes.
+- `frontend-web` uses Biome for formatting/linting and Astro for project validation. Run `just check` for the full quality gate and `just format` for formatting.
 - Use [React Native Paper](https://callstack.github.io/react-native-paper/) components where possible for UI consistency.
 - Follow the existing folder structure and naming conventions.
 
@@ -509,10 +539,11 @@ The two frontend sub-projects use different frameworks for good reasons. Here is
 **Running tests:**
 
 ```bash
-npm run test            # run all tests once
+cd frontend-app
+just test               # run all tests once
 npm run test:watch      # watch mode for local development
-npm run test:ci         # single run with coverage (for CI)
-npm run test:coverage   # explicit coverage report
+just test-ci            # CI-oriented run with coverage
+just check              # Expo lint + TypeScript checks
 ```
 
 **Writing tests:**
@@ -533,10 +564,12 @@ npm run test:coverage   # explicit coverage report
 **Running tests:**
 
 ```bash
-npm run test            # Vitest unit tests
-npm run test:e2e        # Playwright E2E (all browsers)
-npm run test:e2e:ui     # Playwright interactive UI
-npm run test:all        # unit + E2E in one command (for CI)
+cd frontend-web
+just test               # Vitest unit tests
+just test-ci            # unit tests with coverage
+just check              # Biome lint + Astro validation
+just test-e2e           # Playwright E2E
+just test-e2e-ui        # Playwright interactive UI
 ```
 
 **Writing tests:**
@@ -553,7 +586,8 @@ Set up your environment as described in the [Getting Started](#getting-started) 
 You can run the Zensical server with:
 
 ```bash
-uv run zensical serve
+cd docs
+just dev
 ```
 
 The docs will be available at <http://localhost:8000>, or <http://localhost:8012> when using a devcontainer.
@@ -563,7 +597,7 @@ The docs will be available at <http://localhost:8000>, or <http://localhost:8012
 - Write docs in clear, concise English and follow the existing tone.
 - Prefer [GitHub-flavored Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax) and [Mermaid](https://mermaid-js.github.io/) for diagrams.
 - Avoid raw HTML unless absolutely necessary.
-- Format markdown with `mdformat` (see [.pre-commit-config.yaml](.pre-commit-config.yaml) for the configuration).
+- Run `cd docs && just check` before opening a docs PR. Use `cd docs && just format` to apply markdown formatting fixes.
 - Refer to the [Zensical](https://stefanbschneider.github.io/zensical/) documentation to see available features and best practices.
 
 ## License

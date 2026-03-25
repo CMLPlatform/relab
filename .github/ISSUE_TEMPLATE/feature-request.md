@@ -1,18 +1,18 @@
 ---
-about: Suggest an idea for this project
+about: Propose an improvement
 assignees: ''
 labels: feature request
 name: Feature request
-title: 'feature request: '
+title: 'feature: '
 ---
 
-## Problem statement
+## Problem
 
-_A clear and concise description of the problem._
+_What are users trying to do, and what's getting in the way?_
 
 ## Proposed solution
 
-_A clear and concise description of what you want to happen._
+_Describe the smallest change that would solve it._
 
 ## Implementation ideas
 
