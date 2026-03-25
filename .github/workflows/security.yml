@@ -1,3 +1,6 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# spell-checker: ignore dorny
+
 name: Security
 
 on:
@@ -19,18 +22,106 @@ permissions:
   contents: read
   security-events: write
 
+defaults:
+  run:
+    shell: bash
+
 env:
   PYTHON_VERSION: "3.14"
   NODE_VERSION: "22"
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run-root-python: ${{ steps.decide.outputs.run-root-python }}
+      run-backend-python: ${{ steps.decide.outputs.run-backend-python }}
+      run-docs-python: ${{ steps.decide.outputs.run-docs-python }}
+      run-frontend-app-node: ${{ steps.decide.outputs.run-frontend-app-node }}
+      run-frontend-web-node: ${{ steps.decide.outputs.run-frontend-web-node }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Detect changed paths
+        id: filter
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            shared:
+              - '.github/**'
+              - 'justfile'
+            root-python:
+              - 'pyproject.toml'
+              - 'uv.lock'
+            backend:
+              - 'backend/**'
+            docs:
+              - 'docs/**'
+            frontend-app:
+              - 'frontend-app/**'
+            frontend-web:
+              - 'frontend-web/**'
+
+      - name: Decide which security jobs should run
+        id: decide
+        uses: actions/github-script@v8
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+          ROOT_PYTHON: ${{ steps.filter.outputs.root-python }}
+          BACKEND: ${{ steps.filter.outputs.backend }}
+          DOCS: ${{ steps.filter.outputs.docs }}
+          FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
+          FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
+        with:
+          script: |
+            const event = process.env.EVENT_NAME;
+            const isTrue = (value) => value === 'true';
+            const set = (name, value) => core.setOutput(name, String(value));
+
+            if (event === 'schedule' || event === 'workflow_dispatch') {
+              set('run-root-python', true);
+              set('run-backend-python', true);
+              set('run-docs-python', true);
+              set('run-frontend-app-node', true);
+              set('run-frontend-web-node', true);
+              return;
+            }
+
+            if (event === 'merge_group') {
+              set('run-root-python', false);
+              set('run-backend-python', false);
+              set('run-docs-python', false);
+              set('run-frontend-app-node', false);
+              set('run-frontend-web-node', false);
+              return;
+            }
+
+            const shared = isTrue(process.env.SHARED);
+            const rootPython = isTrue(process.env.ROOT_PYTHON);
+            const backend = isTrue(process.env.BACKEND);
+            const docs = isTrue(process.env.DOCS);
+            const frontendApp = isTrue(process.env.FRONTEND_APP);
+            const frontendWeb = isTrue(process.env.FRONTEND_WEB);
+
+            set('run-root-python', shared || rootPython);
+            set('run-backend-python', shared || backend);
+            set('run-docs-python', shared || docs);
+            set('run-frontend-app-node', shared || frontendApp);
+            set('run-frontend-web-node', shared || frontendWeb);
+
   secret-scan:
     name: Secret Scan
     if: github.event_name != 'merge_group'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -45,11 +136,13 @@ jobs:
 
   python-audit-root:
     name: Python Audit (root)
-    if: github.event_name != 'merge_group'
+    needs: [changes]
+    if: needs.changes.outputs.run-root-python == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Python tooling
         uses: ./.github/actions/setup-python-just
@@ -63,55 +156,108 @@ jobs:
       - name: Run root dependency audit
         run: just audit-root
 
-  python-audit:
-    name: Python Audit (${{ matrix.project }})
-    if: github.event_name != 'merge_group'
+  backend-python-audit:
+    name: Python Audit (backend)
+    needs: [changes]
+    if: needs.changes.outputs.run-backend-python == 'true'
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.non_blocking }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - project: backend
-            non_blocking: false
-          - project: docs
-            non_blocking: true
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
 
       - name: Set up Python tooling
         uses: ./.github/actions/setup-python-just
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          uv-cache-dependency-glob: ${{ matrix.project }}/uv.lock
+          uv-cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
-        run: just ${{ matrix.project }}/install
+        run: just backend/install
 
       - name: Run dependency audit
-        run: just ${{ matrix.project }}/audit
+        run: just backend/audit
 
-  node-audit:
-    name: Node Audit (${{ matrix.project }})
-    if: github.event_name != 'merge_group'
+  docs-python-audit:
+    name: Python Audit (docs)
+    needs: [changes]
+    if: needs.changes.outputs.run-docs-python == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [frontend-app, frontend-web]
+    timeout-minutes: 15
+    continue-on-error: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@v6
+
+      - name: Set up Python tooling
+        uses: ./.github/actions/setup-python-just
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          uv-cache-dependency-glob: docs/uv.lock
+
+      - name: Install dependencies
+        run: just docs/install
+
+      - name: Run dependency audit
+        run: |
+          set -o pipefail
+          output="$(just docs/audit 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+
+          if printf '%s\n' "$output" | grep -Eq '^Found [1-9][0-9]* known vulnerability|^Vulnerabilities:'; then
+            echo "::warning title=Docs dependency audit::Vulnerabilities were found in docs dependencies. Review the audit output above."
+            {
+              printf '### Docs dependency audit\n\n'
+              printf 'Warning: vulnerabilities were found in docs dependencies.\n\n'
+              printf 'This check is intentionally non-blocking so the pull request can still be merged.\n\n'
+              printf 'Review the audit output in the step log above.\n'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  frontend-app-node-audit:
+    name: Node Audit (frontend-app)
+    needs: [changes]
+    if: needs.changes.outputs.run-frontend-app-node == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
       - name: Set up Node tooling
         uses: ./.github/actions/setup-node-just
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+          cache-dependency-path: frontend-app/package-lock.json
 
       - name: Install dependencies
-        run: just ${{ matrix.project }}/install
+        run: just frontend-app/install
 
       - name: Run dependency audit
-        run: just ${{ matrix.project }}/audit
+        run: just frontend-app/audit
+
+  frontend-web-node-audit:
+    name: Node Audit (frontend-web)
+    needs: [changes]
+    if: needs.changes.outputs.run-frontend-web-node == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node tooling
+        uses: ./.github/actions/setup-node-just
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache-dependency-path: frontend-web/package-lock.json
+
+      - name: Install dependencies
+        run: just frontend-web/install
+
+      - name: Run dependency audit
+        run: just frontend-web/audit
