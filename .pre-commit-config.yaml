@@ -1,149 +1,90 @@
-# Configuration of Pre-commit Hooks. For more information, see https://pre-commit.com.
-# NOTE: pre-commit does not support multiple config files, hence this file is used for both global and subrepo-specific hooks.
+# Repository-wide pre-commit policy hooks.
+# Project-specific linting and test commands live in the subrepo `justfile`s.
 
 repos:
-    ### Global hooks
-    - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
-      rev: v0.9.0
-      hooks:
-          - id: pre-commit-update # Autoupdate pre-commit hooks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
 
-    - repo: https://github.com/gitleaks/gitleaks
-      rev: v8.30.1
-      hooks:
-          - id: gitleaks
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm>=1.0.0
+          - mdformat-front-matters
+          - mdformat-ruff
 
-    - repo: https://github.com/executablebooks/mdformat
-      rev: 1.0.0
-      hooks:
-          - id: mdformat # Format Markdown files.
-            additional_dependencies:
-                - mdformat-gfm>=1.0.0 # Support GitHub Flavored Markdown.
-                - mdformat-front-matters
-                - mdformat-ruff # Support Python code blocks linted with Ruff.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: no-commit-to-branch
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext", "md"]
+        exclude: ^.*/build/.*\.html$
 
-    - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v6.0.0
-      hooks:
-          - id: check-added-large-files
-          - id: check-case-conflict # Check for files with names that differ only in case.
-          - id: check-executables-have-shebangs
-          - id: check-shebang-scripts-are-executable
-          - id: check-toml
-          - id: check-yaml
-          - id: detect-private-key
-          - id: end-of-file-fixer # Ensure files end with a newline.
-          - id: mixed-line-ending
-          - id: no-commit-to-branch # Prevent commits to main and master branches.
-          - id: trailing-whitespace
-            args: ["--markdown-linebreak-ext", "md"] # Preserve Markdown hard line breaks.
-            exclude: ^.*/build/.*\.html$ # Exclude generated HTML files because they often have intentional trailing whitespace for formatting.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: ["--external-sources", "--source-path=SCRIPTDIR:."]
+        exclude: (^|/)(node_modules|\.venv)/
 
-    - repo: https://github.com/shellcheck-py/shellcheck-py
-      rev: v0.11.0.1
-      hooks:
-          - id: shellcheck
-            # Allow sourcing other scripts in the same directory and the repo root for accessing .env files.
-            args: ["--external-sources", "--source-path=SCRIPTDIR:."]
-            exclude: (^|/)(node_modules|\.venv)/
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.13.9
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
 
-    - repo: https://github.com/commitizen-tools/commitizen
-      rev: v4.13.9
-      hooks:
-          - id: commitizen
-            stages: [commit-msg]
+  - repo: https://github.com/simonvanlierde/check-json5
+    rev: v1.1.0
+    hooks:
+      - id: check-json5
+        exclude: ^(frontend-app|frontend-web)/data/
 
-    - repo: https://github.com/simonvanlierde/check-json5
-      rev: v1.1.0
-      hooks:
-          - id: check-json5
-            files: ^ (?!(backend/frontend-app|frontend-web)/data/)
+  - repo: https://github.com/streetsidesoftware/cspell-cli
+    rev: v9.7.0
+    hooks:
+      - id: cspell
+        args: ["--config", ".cspell.yaml", "--dot", "--gitignore"]
 
-    - repo: https://github.com/streetsidesoftware/cspell-cli
-      rev: v9.7.0
-      hooks:
-          - id: cspell
-            args: ["--config", ".cspell.yaml", "--dot", "--gitignore"]
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.1
+    hooks:
+      - id: uv-lock
+        name: uv-lock-root
+        files: ^(uv\.lock|pyproject\.toml|uv\.toml)$
+        entry: uv lock
+      - id: uv-lock
+        name: uv-lock-backend
+        files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
+        entry: uv lock --project backend
+      - id: uv-lock
+        name: uv-lock-docs
+        files: ^docs/(uv\.lock|pyproject\.toml|uv\.toml)$
+        entry: uv lock --project docs
 
-    - repo: https://github.com/astral-sh/uv-pre-commit
-      rev: 0.11.1
-      hooks:
-          # Update uv lockfiles
-          - id: uv-lock
-            name: uv-lock-root
-            files: ^(uv\.lock|pyproject\.toml|uv\.toml)$
-            entry: uv lock
-          - id: uv-lock
-            name: uv-lock-backend
-            files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
-            entry: uv lock --project backend
-          - id: uv-lock
-            name: uv-lock-docs
-            files: ^docs/(uv\.lock|pyproject\.toml|uv\.toml)$
-            entry: uv lock --project docs
-
-      ### Backend hooks
-    - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.15.7
-      hooks:
-          - id: ruff-check # Lint code
-            files: ^backend/(app|scripts|tests)/
-            args: ["--fix", "--config", "backend/pyproject.toml", "--ignore", "FIX002"] # Allow TODO comments in commits.
-          - id: ruff-format # Format code
-            files: ^backend/(app|scripts|tests)/
-            args: ["--config", "backend/pyproject.toml"]
-
-    - repo: local
-      hooks:
-          # I use uv for local hooks to ensure the right environment when executed through VS Code Git extension.
-          # Check if Alembic migrations are up-to-date.
-          - id: backend-alembic-check
-            name: check alembic migrations
-            entry: bash -c 'cd backend && uv run alembic check'
-            language: system
-            files: ^(backend/(app|alembic)/|alembic\.ini$)
-            pass_filenames: false
-            # Run Ty for static type checking.
-          - id: ty
-            name: type check with Ty
-            files: ^backend/(app|scripts|tests)/
-            entry: bash -c 'cd backend && uv run ty check'
-            language: system
-            types: [python]
-
-      ### Frontend hooks
-    - repo: local
-      hooks:
-          - id: frontend-web-lint
-            name: lint frontend-web code
-            entry: bash -c 'cd frontend-web && npm run lint'
-            language:
-                system
-                # Match frontend JavaScript, TypeScript, and Astro files for linting.
-            files: ^frontend-web\/.*\.(astro|jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts))$
-            pass_filenames: false
-          - id: frontend-web-format
-            name: format frontend-web code
-            entry: bash -c 'cd frontend-web && npm run format'
-            language:
-                system
-                # Match frontend JavaScript, TypeScript, and Astro files for formatting.
-            files: ^frontend-web\/.*\.(astro|jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
-            pass_filenames: false
-
-          - id: frontend-app-format
-            name: format frontend-app code
-            entry: bash -c 'cd frontend-app && npm run format'
-            language:
-                system
-                # Match frontend JavaScript and TypeScript files for formatting.
-            files: ^frontend-app\/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?)$
-            pass_filenames: false
-          - id: frontend-app-lint
-            name: lint frontend-app code
-            entry: bash -c 'cd frontend-app && npm run lint'
-            language:
-                system
-                # Match frontend JavaScript and TypeScript files for linting.
-            files: ^frontend-app\/.*\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts))$
-            pass_filenames: false
+  - repo: local
+    hooks:
+      - id: npm-lock-frontend-app
+        name: npm-lock-frontend-app
+        entry: bash -c 'cd frontend-app && npm install --package-lock-only --ignore-scripts'
+        language: system
+        files: ^frontend-app/package\.json$
+        pass_filenames: false
+      - id: npm-lock-frontend-web
+        name: npm-lock-frontend-web
+        entry: bash -c 'cd frontend-web && npm install --package-lock-only --ignore-scripts'
+        language: system
+        files: ^frontend-web/package\.json$
+        pass_filenames: false

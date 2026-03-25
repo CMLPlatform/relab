@@ -7,18 +7,68 @@ default:
     @just --list
 
 # ============================================================================
+# Development
+# ============================================================================
+
+# Install and sync dependencies
+install:
+    uv sync --all-groups
+
+# Start development server
+dev:
+    uv run fastapi dev app/main.py --reload-dir app
+
+# Start production server
+serve:
+    uv run fastapi run app/main.py
+
+# Open Python REPL with app context
+shell:
+    uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models import *"
+
+# ============================================================================
+# Linting & Formatting
+# ============================================================================
+
+pytest := "uv run pytest"
+
+# Lint backend Python code (allow TODOs with FIX002)
+lint:
+    uv run ruff check --ignore FIX002
+
+# Format backend Python code
+format:
+    uv run ruff format
+
+# Auto-fix lint issues and format code (allow TODOs with FIX002)
+fix:
+    uv run ruff check --fix --ignore FIX002
+    just format
+    @echo "✓ Backend code fixed and formatted"
+
+# Run static type checks
+typecheck:
+    uv run ty check
+
+# Lint backend shell scripts with ShellCheck
+shellcheck:
+    git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
+    @echo "✓ Shell scripts passed ShellCheck"
+
+# Run the full backend quality gate
+check: lint typecheck migrate-check
+    @echo "✓ Backend checks passed"
+
+# ============================================================================
 # Testing
 # ============================================================================
-# testing options
-pytest := "uv run pytest"
+
 # Run all tests
 test *ARGS:
-    mkdir -p reports/coverage
     {{ pytest }} {{ ARGS }}
 
 # Run all tests with stdout/stderr output (no capture)
 test-v *ARGS:
-    mkdir -p reports/coverage
     {{ pytest }} -s {{ ARGS }}
 
 # Run tests with coverage report
@@ -43,27 +93,13 @@ test-integration *ARGS:
 test-api *ARGS:
     {{ pytest }} -m api {{ ARGS }}
 
-# ============================================================================
-# Linting & Formatting
-# ============================================================================
-# Run backend quality checks (lint, format, type check)
-check:
-    uv run ruff check --ignore FIX002
-    just shellcheck
-    uv run ty check
-    uv run alembic check
-    @echo "✓ All backend checks passed"
+# Run the backend CI test suite
+test-ci: test-cov-ci
+    @echo "✓ Backend CI test suite passed"
 
-# Automatically fix code issues (lint + format)
-fix:
-    uv run ruff check --fix --ignore FIX002
-    uv run ruff format
-    @echo "✓ Code fixed and formatted"
-
-# Lint backend shell scripts with ShellCheck
-shellcheck:
-    git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
-    @echo "✓ Shell scripts passed ShellCheck"
+# Run the full backend CI pipeline locally
+ci: check test-ci
+    @echo "✓ Backend CI pipeline passed"
 
 # ============================================================================
 # Database & Migrations
@@ -123,28 +159,8 @@ render-erd:
     uv run python -m scripts.render_erd
 
 # ============================================================================
-# Development
-# ============================================================================
-# Start development server
-dev:
-    uv run fastapi dev app/main.py --reload-dir app
-
-# Start production server
-serve:
-    uv run fastapi run app/main.py
-
-# Open Python REPL with app context
-shell:
-    uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models import *"
-
-
-# ============================================================================
 # Maintenance
 # ============================================================================
-# Install/sync dependencies
-install:
-    uv sync --all-groups
-
 # Update dependencies
 update:
     uv lock --upgrade
@@ -155,10 +171,6 @@ clean:
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete 2>/dev/null || true
     @echo "✓ Cleaned caches and build artifacts"
-
-# Run full CI pipeline locally
-ci: check test migrate-check
-    @echo "✓ CI pipeline passed"
 
 # ============================================================================
 # Security

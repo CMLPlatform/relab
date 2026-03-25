@@ -6,13 +6,13 @@
 default:
     @just --list
 
-# ============================================================================
-# Development
-# ============================================================================
-
 # Install dependencies
 install:
     npm ci
+
+# ============================================================================
+# Development
+# ============================================================================
 
 # Start development server
 dev:
@@ -34,21 +34,25 @@ build-staging:
 # Quality Checks
 # ============================================================================
 
-# Run all checks: Biome lint/format + Astro type and template checks
-check:
-    npm run check
-
-# Run Astro's project validation without rerunning Biome
-astro-check:
+# Run Astro's project validation
+typecheck:
     npx astro check
+
+# Lint with Biome (read-only)
+lint:
+    npm run lint
 
 # Auto-format code with Biome
 format:
     npm run format
 
-# Lint with Biome (read-only)
-lint:
-    npm run lint
+# Auto-fix what the formatter can fix
+fix: format
+    @echo "✓ Frontend-web code formatted"
+
+# Run all frontend-web checks
+check: lint typecheck
+    @echo "✓ Frontend-web checks passed"
 
 # ============================================================================
 # Testing
@@ -62,6 +66,10 @@ test:
 test-cov:
     npm run test:coverage
 
+# Run the frontend-web CI test suite
+test-ci: test-cov
+    @echo "✓ Frontend-web CI test suite passed"
+
 # Run end-to-end tests (requires a prior `just build`)
 test-e2e:
     npm run test:e2e
@@ -73,6 +81,10 @@ test-e2e-ui:
 # Run all tests (unit + e2e)
 test-all:
     npm run test:all
+
+# Run the full frontend-web CI pipeline locally
+ci: check test-ci
+    @echo "✓ Frontend-web CI pipeline passed"
 
 # ============================================================================
 # Security

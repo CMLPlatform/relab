@@ -10,21 +10,23 @@ default:
 install:
     uv sync --all-groups
 
-# Run all quality checks (linting + build smoke test)
-check: lint build
-    @echo "✓ All documentation checks passed"
-
 # Check code style and spelling
 lint:
     uv run mdformat --check docs README.md
     npx cspell lint "docs/**/*.md" "README.md" --dot --config ../.cspell.yaml
-    @echo "✓ Documentation linting passed"
+    @echo "✓ Docs linting passed"
+
+# Format documentation
+format:
+    uv run mdformat docs README.md
+    @echo "✓ Docs formatted"
 
 # Automatically fix formatting issues
-fix:
-    uv run mdformat docs README.md
-    @echo "✓ Documentation formatting fixed"
+fix: format
 
+# Run all quality checks (linting + build smoke test)
+check: lint build
+    @echo "✓ Docs checks passed"
 
 # Start development server with live reload
 dev:
@@ -35,7 +37,16 @@ build:
     uv run zensical build --clean
 
 # Run all tests (smoke test build)
-test: check
+test:
+    just build
+    @echo "✓ Docs smoke test passed"
+
+# Run the docs CI test suite
+test-ci: test
+
+# Run the full docs CI pipeline locally
+ci: check test-ci
+    @echo "✓ Docs CI pipeline passed"
 
 # Scan Python dependencies for known CVEs
 audit:

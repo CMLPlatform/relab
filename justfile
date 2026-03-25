@@ -28,34 +28,43 @@ pre-commit-install:
     uv run pre-commit install
     @echo "✓ Pre-commit hooks installed"
 
+# Create a conventional commit message interactively
+commit:
+    uv run cz commit
+
+# Bootstrap a full local development environment
+setup: install pre-commit-install
+    @echo "✓ Development environment ready"
+
 # ============================================================================
 # Quality Checks
 # ============================================================================
 
-# Run all quality checks across every subrepo
-# - pre-commit: global (gitleaks, markdown, yaml, secrets, shell scripts...)
-# - backend: ruff lint/format, ty type check, alembic migration check, shellcheck
-# - frontends: biome lint/format + type checks
-check:
+# Run repository-wide policy checks
+check-root:
     uv run pre-commit run --all-files
-    @just spellcheck
-    @just shellcheck
+    @echo "✓ Repository policy checks passed"
+
+# Run all quality checks across every subrepo
+check:
+    @just check-root
     @just backend/check
     @just docs/check
     @just frontend-web/check
     @just frontend-app/check
     @echo "✓ All quality checks passed"
 
-# Auto-fix code issues (backend and docs only — frontends use Biome via their own justfile)
+# Auto-fix code issues where supported
 fix:
     @just backend/fix
+    @just frontend-web/fix
+    @just frontend-app/fix
     @just docs/fix
     @echo "✓ Code fixed"
 
 # Run all pre-commit hooks on all files (useful before big commits)
 pre-commit:
-    uv run pre-commit run --all-files
-    @echo "✓ Pre-commit hooks passed"
+    @just check-root
 
 # Run shellcheck on all shell scripts in the repo
 shellcheck:
@@ -71,13 +80,25 @@ spellcheck:
 # Testing
 # ============================================================================
 
-# Full local test suite across all subrepos (runs check first)
-test: check
-    @just backend/test-cov
-    @just frontend-web/test-cov
-    @just frontend-app/test-cov
+# Full local test suite across all subrepos
+test:
+    @just backend/test
+    @just frontend-web/test
+    @just frontend-app/test
     @just docs/test
-    @echo "✅ All code + tests passed"
+    @echo "✅ All tests passed"
+
+# CI-oriented test suite across all subrepos
+test-ci:
+    @just backend/test-ci
+    @just frontend-web/test-ci
+    @just frontend-app/test-ci
+    @just docs/test-ci
+    @echo "✅ All CI test suites passed"
+
+# Full local CI pipeline
+ci: check test-ci
+    @echo "✅ Local CI pipeline passed"
 
 # Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down
 # Requires Docker to be running.

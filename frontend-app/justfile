@@ -8,13 +8,26 @@ default:
 install:
     npm ci
 
-# Run typecheck and lint
-check:
+# Run static type checks
+typecheck:
+    npm run typecheck
+
+# Lint the codebase
+lint:
     npm run lint
+
+# Run the frontend-app quality gate
+check:
+    just lint
+    @echo "✓ Frontend-app checks passed"
 
 # Auto-format code
 format:
     npm run format
+
+# Auto-fix what the formatter can fix
+fix: format
+    @echo "✓ Frontend-app code formatted"
 
 # Run tests
 test:
@@ -23,6 +36,15 @@ test:
 # Run tests with coverage (for CI)
 test-cov:
     npm run test:coverage
+
+# Run the frontend-app CI test suite
+test-ci:
+    npm run test:ci
+    @echo "✓ Frontend-app CI test suite passed"
+
+# Run the full frontend-app CI pipeline locally
+ci: check test-ci
+    @echo "✓ Frontend-app CI pipeline passed"
 
 # Start dev server
 dev:
