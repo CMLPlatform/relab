@@ -4,6 +4,7 @@
 from typing import Any, TypeVar
 
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import Organization, User
@@ -28,9 +29,27 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
     __set_relationships__ = False  # Skip relationship introspection to avoid SQLAlchemy/polyfactory conflicts
 
     @classmethod
+    def get_sqlalchemy_types(cls) -> dict[Any, Any]:
+        """Extend polyfactory's built-in SQLAlchemy type support for project-specific columns."""
+        sqlalchemy_types = super().get_sqlalchemy_types()
+        # Product.search_vector uses PostgreSQL full-text search, which polyfactory does not support natively.
+        sqlalchemy_types[TSVECTOR] = lambda: ""
+        return sqlalchemy_types
+
+    @classmethod
+    def _get_type_from_type_engine(cls, type_engine: object) -> type:
+        """Normalize unsupported SQLAlchemy column types to a buildable Python type."""
+        if isinstance(type_engine, TSVECTOR):
+            return str
+        return super()._get_type_from_type_engine(type_engine)
+
+    @classmethod
     async def create_async(cls, session: AsyncSession | None = None, **kwargs: Any) -> T:  # noqa: ANN401 #  Any-type kwargs are expected by the parent class signature
         """Create a new instance, optionally using a provided session."""
         if session:
+            build_context = cls._get_build_context(kwargs.get("_build_context"))
+            build_context["skip_computed_fields"] = True
+            kwargs["_build_context"] = build_context
             instance = cls.build(**kwargs)
             session.add(instance)
             await session.flush()
