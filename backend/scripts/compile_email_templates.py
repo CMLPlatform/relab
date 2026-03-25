@@ -33,8 +33,8 @@ def compile_mjml_templates() -> None:
     # Create build directory if it doesn't exist
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Find all MJML files
-    mjml_files = list(SRC_DIR.glob("*.mjml"))
+    # Find all MJML files (sorted for deterministic order)
+    mjml_files = sorted(SRC_DIR.glob("*.mjml"))
 
     if not mjml_files:
         logger.warning("No MJML files found in %s", SRC_DIR)
