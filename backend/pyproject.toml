@@ -19,34 +19,44 @@
 
   ## Dependencies and version constraints
   dependencies = [
-    "asyncpg>=0.30.0",
-    "cachetools>=5.5.2",
-    "email-validator>=2.2.0",
-    "fastapi-cache2-fork>=2.3.0",
+    # Web framework and API layer
     "fastapi-filter>=2.0.1",
     "fastapi-mail",
     "fastapi-pagination>=0.13.2",
+    "fastapi>=0.115.14",
+    "uvicorn[standard]>=0.42.0",
+
+    # Authentication, sessions, and rate limiting
+    "asyncpg>=0.30.0",
+    "email-validator>=2.2.0",
     # NOTE: We use a custom fork of fastapi-users-db-sqlmodel to support Pydantic V2
     "fastapi-users-db-sqlmodel",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
-    "fastapi[standard] >=0.115.14",
-    "httpx[http2]>=0.28.1",
-    "loguru>=0.7.3",
-    "markdown>=3.8.2",
-    "mjml>=0.11.1",
-    "piexif>=1.1.3",
-    "pillow >=11.2.1",
+    "redis>=5.2.1",
+    "slowapi>=0.1.9",
+
+    # Database and persistence
+    "fastapi-cache2-fork>=2.3.0",
     "psycopg[binary] >=3.2.9",
+    "sqlalchemy >=2.0.41",
+    "sqlmodel >=0.0.27",
+
+    # Shared application models and outbound integrations
+    "httpx[http2]>=0.28.1",
+    "relab-rpi-cam-models>=0.1.1",
+
+    # Configuration, validation, and utility types
+    "cachetools>=5.5.2",
+    "loguru>=0.7.3",
     "pydantic >=2.12",
     "pydantic-extra-types >=2.10.5",
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
     "python-slugify>=8.0.4",
-    "redis>=5.2.1",
-    "relab-rpi-cam-models>=0.1.1",
-    "slowapi>=0.1.9",
-    "sqlalchemy >=2.0.41",
-    "sqlmodel >=0.0.27",
+
+    # Media and image processing
+    "piexif>=1.1.3",
+    "pillow >=11.2.1",
   ]
   requires-python = ">= 3.14"
   version = "0.1.0"
@@ -58,30 +68,48 @@
 
 ### Dependency groups
 [dependency-groups]
+  # Developer tooling and local maintenance scripts
   dev = [
     "mjml>=0.11.1",
-    "paracelsus>=0.9.0", "pip-audit>=2.8", "ruff >=0.12.1", "ty>=0.0.15"]
+    "paracelsus>=0.9.0",
+    "ruff >=0.12.1",
+    "ty>=0.0.15",
+]
 
-  api = ["httpx[http2]>=0.28.1", "itsdangerous>=2.2.0"]
+  # Extra dependencies used by optional API/ops entry points
+  api = ["httpx[http2]>=0.28.1"]
 
-  migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "openpyxl>=3.1.5", "pandas>=2.3.3"]
+  # Schema changes, seeding, and migration-adjacent data-loading scripts
+  migrations = [
+    "alembic >=1.16.2",
+    "alembic-postgresql-enum >=1.7.0",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
+    "requests>=2.32.0",
+  ]
 
+  # Unit and integration test dependencies
   tests = [
     # Core testing frameworks
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "pytest-xdist>=3.5.0",   # Parallel test execution
     "pytest>=8.4.1",
+
     # HTTP and async testing
     "httpx[http2]>=0.27.0", # Modern async HTTP client
+
     # Test data generation
     "faker>=33.3.0",       # Realistic test data
     "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
+
     # Database testing
     "pytest-alembic>=0.12.1",          # Migration testing - verify schema changes
     "testcontainers[postgres]>=4.8.2", # Ephemeral PostgreSQL for integration tests
+
     # Redis testing
     "fakeredis[lua]>=2.25.0", # In-memory Redis for testing
+
     # Mocking and assertions
     "dirty-equals>=0.8.0", # Flexible assertions for dynamic data
     "pytest-mock>=3.14.0", # Better mocking with cleaner pytest integration
@@ -230,7 +258,8 @@
       max-args                = 10
 
 [tool.uv]
-  default-groups = ["api", "dev", "migrations", "tests"]
+  # Keep day-to-day installs lean; migrations and tests are opt-in.
+  default-groups = ["api", "dev"]
 
   [tool.uv.sources]
     fastapi-cache2-fork       = { git = "https://github.com/simonvanlierde/fastapi-cache" }             # Allow runtime type checks for FastAPI and Pydantic models
