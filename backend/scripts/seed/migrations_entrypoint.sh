@@ -7,8 +7,9 @@ set -e
 lc() { echo "$1" | tr '[:upper:]' '[:lower:]'; }
 
 # Defaults (so missing env vars behave as "false")
-SEED_TAXONOMIES="${SEED_TAXONOMIES:-false}"
-SEED_PRODUCT_TYPES="${SEED_PRODUCT_TYPES:-false}"
+SEED_CPV_CATEGORIES="${SEED_CPV_CATEGORIES:-false}"
+SEED_CPV_PRODUCT_TYPES="${SEED_CPV_PRODUCT_TYPES:-false}"
+SEED_HS_CATEGORIES="${SEED_HS_CATEGORIES:-false}"
 SEED_DUMMY_DATA="${SEED_DUMMY_DATA:-false}"
 DEBUG="${DEBUG:-false}"
 
@@ -20,17 +21,6 @@ fi
 
 echo "Upgrading database to the latest revision..."
 .venv/bin/alembic upgrade head
-
-# Seed taxonomies — run cpv once and pass the product-types flag if requested
-if [ "$(lc "$SEED_TAXONOMIES")" = "true" ]; then
-    echo "Seeding taxonomies..."
-    if [ "$(lc "$SEED_PRODUCT_TYPES")" = "true" ]; then
-        .venv/bin/python -m scripts.seed.taxonomies.cpv --seed-product-types
-    else
-        .venv/bin/python -m scripts.seed.taxonomies.cpv
-    fi
-    .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
-fi
 
 # Seed dummy data if enabled and if the database is empty
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
@@ -51,6 +41,22 @@ if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     fi
 else
     echo "Dummy data seeding is disabled."
+fi
+
+# Seed taxonomies — run cpv once and pass the product-types flag if requested
+if [ "$(lc "$SEED_CPV_CATEGORIES")" = "true" ]; then
+    echo "Seeding CPV categories..."
+    if [ "$(lc "$SEED_CPV_PRODUCT_TYPES")" = "true" ]; then
+        .venv/bin/python -m scripts.seed.taxonomies.cpv --seed-product-types
+    else
+        .venv/bin/python -m scripts.seed.taxonomies.cpv
+    fi
+elif [ "$(lc "$SEED_CPV_PRODUCT_TYPES")" = "true" ]; then
+    echo "SEED_CPV_PRODUCT_TYPES is true but SEED_CPV_CATEGORIES is not true. Skipping seeding of CPV product types since categories are required."
+fi
+
+if [ "$(lc "$SEED_HS_CATEGORIES")" = "true" ]; then
+    .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
 fi
 
 # Create a superuser if the required environment variables are set
