@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
 # Copy config files
-COPY astro.config.ts tsconfig.json ./
+COPY tsconfig.json ./
 
 # Copy source code and build
 COPY public/ ./public/
