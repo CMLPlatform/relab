@@ -1,37 +1,51 @@
-import { Link, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextStyle, View } from 'react-native';
-import { Button, Dialog, Divider, IconButton, Portal, TextInput } from 'react-native-paper';
-import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import { Link, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useCallback, useEffect, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, TextStyle, View } from 'react-native';
+import { Button, Dialog, Divider, IconButton, Portal, Switch, TextInput } from 'react-native-paper';
+import LogoutConfirm from '@/components/common/LogoutConfirm';
 import { Chip, Text } from '@/components/base';
 
-import { getUser, getToken, logout, verify, unlinkOAuth, updateUser } from '@/services/api/authentication';
-import { User } from '@/types/User';
+import { useAuth } from '@/context/AuthProvider';
+import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
+import { apiFetch } from '@/services/api/fetching';
+import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
 
 export default function ProfileTab() {
   const router = useRouter();
+  const { user: profile, refetch } = useAuth();
 
-  const [profile, setProfile] = useState<User | undefined>(undefined);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [editUsernameVisible, setEditUsernameVisible] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+  const [newsletterLoading, setNewsletterLoading] = useState(true);
+  const [newsletterSaving, setNewsletterSaving] = useState(false);
+  const [newsletterError, setNewsletterError] = useState('');
 
+  // Redirect if not authenticated (but don't redirect while logging out)
   useEffect(() => {
-    getUser(true).then(setProfile);
-  }, []);
+    if (!profile && !isLoggingOut) {
+      router.replace({ pathname: '/login', params: { redirectTo: '/profile' } });
+    }
+  }, [profile, router, isLoggingOut]);
 
   const onLogout = () => setLogoutDialogVisible(true);
 
   const confirmLogout = () => {
     setLogoutDialogVisible(false);
-    logout().then(() => {
-      setProfile(undefined);
-      router.replace('/login');
-    });
+    setIsLoggingOut(true);
+    logout()
+      .then(() => {
+        refetch();
+        router.replace('/products');
+      })
+      .finally(() => setIsLoggingOut(false));
   };
 
   const onVerifyAccount = () => {
@@ -50,8 +64,8 @@ export default function ProfileTab() {
         alert('Username must be at least 2 characters.');
         return;
       }
-      const updatedUser = await updateUser({ username: newUsername });
-      if (updatedUser) setProfile(updatedUser);
+      await updateUser({ username: newUsername });
+      await refetch(false);
       setEditUsernameVisible(false);
     } catch (err: any) {
       alert(`Failed to update username: ${err.message}`);
@@ -62,7 +76,7 @@ export default function ProfileTab() {
     try {
       await unlinkOAuth(providerToUnlink);
       setUnlinkDialogVisible(false);
-      getUser(true).then(setProfile);
+      refetch();
     } catch (err: any) {
       setUnlinkDialogVisible(false);
       alert(`Failed to disconnect: ${err.message}`);
@@ -78,22 +92,56 @@ export default function ProfileTab() {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const response = await fetch(associateUrl, {
-        headers,
-        ...(Platform.OS === 'web' ? { credentials: 'include' } : {}),
-      });
+      const response = await apiFetch(associateUrl, { headers });
 
       if (!response.ok) throw new Error('Failed to reach association endpoint.');
       const data = await response.json();
 
       const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
       if (result.type === 'success') {
-        getUser(true).then(setProfile);
+        refetch();
       }
     } catch (err: any) {
       alert(`Failed to start link flow: ${err.message || ''}`);
     }
   };
+
+  const handleNewsletterToggle = async (nextSubscribed: boolean) => {
+    if (!profile || newsletterSaving) return;
+
+    setNewsletterSaving(true);
+    setNewsletterError('');
+
+    try {
+      const preference = await setNewsletterPreference(nextSubscribed);
+      setNewsletterSubscribed(preference.subscribed);
+    } catch (err: any) {
+      setNewsletterError(err?.message || 'Unable to update email updates.');
+    } finally {
+      setNewsletterSaving(false);
+    }
+  };
+
+  const loadNewsletterPreference = useCallback(async () => {
+    if (!profile) return;
+
+    setNewsletterLoading(true);
+    setNewsletterError('');
+
+    try {
+      const preference = await getNewsletterPreference();
+      setNewsletterSubscribed(preference.subscribed);
+      setNewsletterError('');
+    } catch (err: any) {
+      setNewsletterError(err?.message || 'Unable to load email updates.');
+    } finally {
+      setNewsletterLoading(false);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    void loadNewsletterPreference();
+  }, [loadNewsletterPreference]);
 
   if (!profile) return null;
 
@@ -146,6 +194,47 @@ export default function ProfileTab() {
             onPress={onVerifyAccount}
           />
         )}
+      </View>
+
+      {/* ── Email updates ── */}
+      <SectionHeader title="Email updates" />
+      <View style={styles.section}>
+        <View style={styles.newsletterRow}>
+          <View style={styles.newsletterCopy}>
+            <Text style={styles.actionTitle}>Product updates</Text>
+            <Text style={styles.actionSubtitle}>
+              Occasional research and product emails, separate from your account.
+            </Text>
+            <Text style={styles.newsletterState}>
+              {newsletterLoading
+                ? 'Checking your preference...'
+                : newsletterSubscribed
+                  ? 'You are subscribed.'
+                  : 'You are not subscribed.'}
+            </Text>
+          </View>
+          <Switch
+            testID="newsletter-switch"
+            value={newsletterSubscribed}
+            onValueChange={handleNewsletterToggle}
+            disabled={newsletterLoading || newsletterSaving}
+          />
+        </View>
+        <View style={styles.newsletterFooter}>
+          {newsletterError ? <Text style={styles.newsletterError}>{newsletterError}</Text> : null}
+          {newsletterError ? (
+            <Button
+              mode="text"
+              compact
+              onPress={() => {
+                void loadNewsletterPreference();
+              }}
+              disabled={newsletterLoading || newsletterSaving}
+            >
+              Try again
+            </Button>
+          ) : null}
+        </View>
       </View>
 
       {/* ── Linked Accounts ── */}
@@ -230,18 +319,11 @@ export default function ProfileTab() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={logoutDialogVisible} onDismiss={() => setLogoutDialogVisible(false)}>
-          <Dialog.Title>Logout</Dialog.Title>
-          <Dialog.Content>
-            <Text>Are you sure you want to log out?</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setLogoutDialogVisible(false)}>Cancel</Button>
-            <Button onPress={confirmLogout} textColor="#d32f2f">
-              Logout
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+        <LogoutConfirm
+          visible={logoutDialogVisible}
+          onDismiss={() => setLogoutDialogVisible(false)}
+          onConfirm={confirmLogout}
+        />
 
         <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
           <Dialog.Title>Delete Account</Dialog.Title>
@@ -350,6 +432,31 @@ const styles = StyleSheet.create({
   },
   section: {
     marginHorizontal: 4,
+  },
+  newsletterRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  newsletterCopy: {
+    flex: 1,
+  },
+  newsletterState: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  newsletterError: {
+    paddingTop: 6,
+    color: '#d32f2f',
+    fontSize: 13,
+  },
+  newsletterFooter: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
   },
   action: {
     flexDirection: 'row',

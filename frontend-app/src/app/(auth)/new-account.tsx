@@ -1,16 +1,14 @@
-import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, HelperText, IconButton, Text, TextInput } from 'react-native-paper';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { Button, HelperText, TextInput } from 'react-native-paper';
 
+import { useDialog } from '@/components/common/DialogProvider';
+import { useAuth } from '@/context/AuthProvider';
 import { login, register } from '@/services/api/authentication';
 import { validateEmail, validatePassword, validateUsername } from '@/services/api/validation/user';
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-  },
   welcomeText: {
     marginTop: 80,
     fontSize: 40,
@@ -34,6 +32,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  arrowButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowButtonDisabled: {
+    opacity: 0.35,
+  },
+  arrowButtonText: {
+    fontSize: 28,
+    color: '#222',
+    lineHeight: 28,
+  },
   textInput: {
     flex: 1,
     marginRight: 10,
@@ -46,8 +58,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  backButtonIcon: {
-    margin: 0,
+  backButtonArrow: {
+    fontSize: 18,
+    color: '#999',
+    marginRight: 4,
+    lineHeight: 18,
   },
   backButtonText: {
     fontSize: 13,
@@ -71,22 +86,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: 'underline',
   },
+  privacyLinkDark: {
+    color: '#F5F5F5',
+  },
   registerButton: {
     minWidth: 140,
   },
 });
 
-const PrivacyPolicy = () => (
-  <Text style={styles.privacyText}>
-    By creating an account, you agree to our{' '}
-    <Link href={`${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` as any}>
-      <Text style={styles.privacyLink}>Privacy Policy</Text>
-    </Link>
-  </Text>
-);
+const PrivacyPolicy = () => {
+  const colorScheme = useColorScheme();
+  const url = `${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` as any;
+  const textColor = colorScheme === 'dark' ? '#F5F5F5' : '#111111';
+
+  return (
+    <Text style={[styles.privacyText, { color: textColor }]}>
+      By creating an account, you agree to our{' '}
+      <Text
+        style={[styles.privacyLink, colorScheme === 'dark' ? styles.privacyLinkDark : { color: textColor }]}
+        onPress={() => Linking.openURL(url)}
+        accessibilityRole="link"
+      >
+        Privacy Policy
+      </Text>
+    </Text>
+  );
+};
 
 export default function NewAccount() {
   const router = useRouter();
+  const { refetch, user, isLoading: authLoading } = useAuth();
+  const dialog = useDialog();
+  const colorScheme = useColorScheme();
+
+  const overlayColor = colorScheme === 'light' ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.78)';
+  const headlineColor = colorScheme === 'light' ? '#111111' : '#F5F5F5';
+  const mutedColor = colorScheme === 'light' ? '#999999' : '#B7B7B7';
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    router.replace('/products');
+  }, [user, authLoading, router]);
 
   const [section, setSection] = useState<'username' | 'email' | 'password'>('username');
   const [username, setUsername] = useState('');
@@ -100,42 +140,47 @@ export default function NewAccount() {
   const handleUsernameChange = (input: string) => {
     const trimmed = input.trim();
     setUsername(trimmed);
-
-    const result = validateUsername(trimmed);
-    setUsernameError(result.error || '');
+    setUsernameError(validateUsername(trimmed).error || '');
   };
 
   const handleEmailChange = (input: string) => {
     setEmail(input);
-
-    const result = validateEmail(input);
-    setEmailError(result.error || '');
+    setEmailError(validateEmail(input).error || '');
   };
 
   const handlePasswordChange = (input: string) => {
     setPassword(input);
+    setPasswordError(validatePassword(input, username, email).error || '');
+  };
 
-    const result = validatePassword(input, username, email);
-    setPasswordError(result.error || '');
+  const advanceFromUsername = () => {
+    if (validateUsername(username).isValid) {
+      setSection('email');
+    }
+  };
+
+  const advanceFromEmail = () => {
+    if (validateEmail(email).isValid) {
+      setSection('password');
+    }
   };
 
   const createAccount = async () => {
-    // Final validation
     const usernameResult = validateUsername(username);
     if (!usernameResult.isValid) {
-      alert(usernameResult.error);
+      dialog.alert({ title: 'Invalid Username', message: usernameResult.error || '' });
       return;
     }
 
     const emailResult = validateEmail(email);
     if (!emailResult.isValid) {
-      alert(emailResult.error);
+      dialog.alert({ title: 'Invalid Email', message: emailResult.error || '' });
       return;
     }
 
     const passwordResult = validatePassword(password, username, email);
     if (!passwordResult.isValid) {
-      alert(passwordResult.error);
+      dialog.alert({ title: 'Invalid Password', message: passwordResult.error || '' });
       return;
     }
 
@@ -145,7 +190,10 @@ export default function NewAccount() {
 
     if (!result.success) {
       setIsRegistering(false);
-      alert(result.error || 'Account creation failed. Please try again.');
+      dialog.alert({
+        title: 'Registration Failed',
+        message: result.error || 'Account creation failed. Please try again.',
+      });
       return;
     }
 
@@ -153,164 +201,192 @@ export default function NewAccount() {
     setIsRegistering(false);
 
     if (!loginSuccess) {
-      alert('Account created! Please log in manually.');
+      dialog.alert({ title: 'Account Created', message: 'Your account was created! Please log in.' });
       router.replace('/login');
       return;
     }
 
-    router.navigate('/products');
+    try {
+      await refetch(true);
+    } catch (err) {
+      console.error('[NewAccount] Failed to refetch user after signup:', err);
+    }
+
+    router.replace('/products');
   };
 
-  if (section === 'username') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcomeText}>Welcome to</Text>
-        <Text style={styles.brandText}>ReLab.</Text>
-        <Text style={styles.questionText}>Who are you?</Text>
+  const isUsernameValid = validateUsername(username).isValid;
+  const isEmailValid = validateEmail(email).isValid;
+  const isPasswordValid = validatePassword(password, username, email).isValid;
 
-        <View style={styles.inputContainer}>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              mode="outlined"
-              value={username}
-              onChangeText={handleUsernameChange}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="Username"
-              error={!!usernameError}
-            />
-            <IconButton
-              icon="chevron-right"
-              size={30}
-              disabled={!validateUsername(username).isValid}
-              onPress={() => setSection('email')}
-            />
-          </View>
-          {usernameError && (
-            <HelperText type="error" visible style={styles.helperText}>
-              {usernameError}
-            </HelperText>
-          )}
-        </View>
-
-        <View style={styles.bottomContainer}>
-          <PrivacyPolicy />
-          <Button onPress={() => router.dismissTo('/login')}>I already have an account</Button>
-        </View>
+  const usernameSection = [
+    <Text key="welcome" style={[styles.welcomeText, { color: headlineColor }]}>
+      Welcome to
+    </Text>,
+    <Text key="brand" style={[styles.brandText, { color: headlineColor }]}>
+      RELab
+    </Text>,
+    <Text key="question" style={[styles.questionText, { color: headlineColor }]}>
+      Who are you?
+    </Text>,
+    <View key="input" style={styles.inputContainer}>
+      <View key="row" style={styles.inputRow}>
+        <TextInput
+          key="input"
+          style={styles.textInput}
+          mode="outlined"
+          value={username}
+          onChangeText={handleUsernameChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="Username"
+          returnKeyType="next"
+          onSubmitEditing={advanceFromUsername}
+          error={!!usernameError}
+        />
+        <Pressable
+          key="next"
+          accessibilityRole="button"
+          disabled={!isUsernameValid}
+          onPress={() => setSection('email')}
+          style={({ pressed }) => [
+            styles.arrowButton,
+            !isUsernameValid && styles.arrowButtonDisabled,
+            pressed && isUsernameValid ? { opacity: 0.7 } : null,
+          ]}
+        >
+          <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
+        </Pressable>
       </View>
-    );
-  }
+      {usernameError ? (
+        <HelperText key="error" type="error" visible style={styles.helperText}>
+          {usernameError}
+        </HelperText>
+      ) : null}
+    </View>,
+  ];
 
-  if (section === 'email') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcomeText}>Hi</Text>
-        <Text style={styles.brandText}>{username}.</Text>
-        <Text style={styles.questionText}>How do we reach you?</Text>
-
-        <View style={styles.inputContainer}>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              mode="outlined"
-              value={email}
-              onChangeText={handleEmailChange}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              placeholder="Email address"
-              error={!!emailError}
-            />
-            <IconButton
-              icon="chevron-right"
-              size={30}
-              disabled={!validateEmail(email).isValid}
-              onPress={() => setSection('password')}
-            />
-          </View>
-          {emailError && (
-            <HelperText type="error" visible style={styles.helperText}>
-              {emailError}
-            </HelperText>
-          )}
-        </View>
-
-        <View style={styles.backButton}>
-          <IconButton
-            icon="chevron-left"
-            size={18}
-            iconColor="#999"
-            onPress={() => setSection('username')}
-            style={styles.backButtonIcon}
-          />
-          <Text onPress={() => setSection('username')} style={styles.backButtonText}>
-            Edit username
-          </Text>
-        </View>
-
-        <View style={styles.bottomContainer}>
-          <PrivacyPolicy />
-          <Button onPress={() => router.dismissTo('/login')}>I already have an account</Button>
-        </View>
+  const emailSection = [
+    <Text key="welcome" style={[styles.welcomeText, { color: headlineColor }]}>
+      Hi
+    </Text>,
+    <Text key="brand" style={[styles.brandText, { color: headlineColor }]}>
+      {username}
+    </Text>,
+    <Text key="question" style={[styles.questionText, { color: headlineColor }]}>
+      How do we reach you?
+    </Text>,
+    <View key="input" style={styles.inputContainer}>
+      <View key="row" style={styles.inputRow}>
+        <TextInput
+          key="input"
+          style={styles.textInput}
+          mode="outlined"
+          value={email}
+          onChangeText={handleEmailChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          placeholder="Email address"
+          returnKeyType="next"
+          onSubmitEditing={advanceFromEmail}
+          error={!!emailError}
+        />
+        <Pressable
+          key="next"
+          accessibilityRole="button"
+          disabled={!isEmailValid}
+          onPress={() => setSection('password')}
+          style={({ pressed }) => [
+            styles.arrowButton,
+            !isEmailValid && styles.arrowButtonDisabled,
+            pressed && isEmailValid ? { opacity: 0.7 } : null,
+          ]}
+        >
+          <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
+        </Pressable>
       </View>
-    );
-  }
+      {emailError ? (
+        <HelperText key="error" type="error" visible style={styles.helperText}>
+          {emailError}
+        </HelperText>
+      ) : null}
+    </View>,
+    <Pressable key="back" style={styles.backButton} onPress={() => setSection('username')}>
+      <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
+      <Text style={[styles.backButtonText, { color: mutedColor }]}>Edit username</Text>
+    </Pressable>,
+  ];
 
-  if (section === 'password') {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcomeText}>Finally,</Text>
-        <Text style={styles.brandText}>{username}.</Text>
-        <Text style={styles.questionText}>How will you log in?</Text>
-
-        <View style={styles.inputContainer}>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              mode="outlined"
-              value={password}
-              onChangeText={handlePasswordChange}
-              autoCapitalize="none"
-              secureTextEntry
-              placeholder="Password"
-              error={!!passwordError}
-            />
-            <Button
-              mode="contained"
-              onPress={createAccount}
-              disabled={!validatePassword(password, username, email).isValid || isRegistering}
-              loading={isRegistering}
-              style={styles.registerButton}
-            >
-              Create Account
-            </Button>
-          </View>
-          {passwordError && (
-            <HelperText type="error" visible style={styles.helperText}>
-              {passwordError}
-            </HelperText>
-          )}
-        </View>
-
-        <View style={styles.backButton}>
-          <IconButton
-            icon="chevron-left"
-            size={18}
-            iconColor="#999"
-            onPress={() => setSection('email')}
-            style={styles.backButtonIcon}
-          />
-          <Text onPress={() => setSection('email')} style={styles.backButtonText}>
-            Edit email address
-          </Text>
-        </View>
-
-        <View style={styles.bottomContainer}>
-          <PrivacyPolicy />
-          <Button onPress={() => router.dismissTo('/login')}>I already have an account</Button>
-        </View>
+  const passwordSection = [
+    <Text key="welcome" style={[styles.welcomeText, { color: headlineColor }]}>
+      Finally,
+    </Text>,
+    <Text key="brand" style={[styles.brandText, { color: headlineColor }]}>
+      {username}
+    </Text>,
+    <Text key="question" style={[styles.questionText, { color: headlineColor }]}>
+      How will you log in?
+    </Text>,
+    <View key="input" style={styles.inputContainer}>
+      <View key="row" style={styles.inputRow}>
+        <TextInput
+          key="input"
+          style={styles.textInput}
+          mode="outlined"
+          value={password}
+          onChangeText={handlePasswordChange}
+          autoCapitalize="none"
+          secureTextEntry
+          placeholder="Password"
+          returnKeyType="done"
+          onSubmitEditing={() => {
+            if (isPasswordValid) {
+              createAccount();
+            }
+          }}
+          error={!!passwordError}
+        />
+        <Button
+          key="submit"
+          mode="contained"
+          onPress={createAccount}
+          loading={isRegistering}
+          style={styles.registerButton}
+        >
+          Create Account
+        </Button>
       </View>
-    );
-  }
+      {passwordError ? (
+        <HelperText key="error" type="error" visible style={styles.helperText}>
+          {passwordError}
+        </HelperText>
+      ) : null}
+    </View>,
+    <Pressable key="back" style={styles.backButton} onPress={() => setSection('email')}>
+      <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
+      <Text style={[styles.backButtonText, { color: mutedColor }]}>Edit email address</Text>
+    </Pressable>,
+  ];
+
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: overlayColor }} />
+
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {section === 'username' ? <View key="username">{usernameSection}</View> : null}
+        {section === 'email' ? <View key="email">{emailSection}</View> : null}
+        {section === 'password' ? <View key="password">{passwordSection}</View> : null}
+      </ScrollView>
+      <View style={styles.bottomContainer}>
+        <PrivacyPolicy key="privacy" />
+        <Button key="login" onPress={() => router.dismissTo('/login')}>
+          I already have an account
+        </Button>
+      </View>
+    </View>
+  );
 }

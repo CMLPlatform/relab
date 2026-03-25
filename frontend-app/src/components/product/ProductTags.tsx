@@ -1,15 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 import { Chip } from '@/components/base';
 
+import FilterSelectionModal from '@/components/common/FilterSelectionModal';
+import { useSearchBrandsQuery } from '@/hooks/useProductQueries';
 import { useDialog } from '@/components/common/DialogProvider';
 import { Product } from '@/types/Product';
-
-type searchParams = {
-  brandSelection?: string;
-};
 
 interface Props {
   product: Product;
@@ -20,26 +17,19 @@ interface Props {
 }
 
 export default function ProductTags({ product, editMode, onBrandChange, onModelChange, isComponent = false }: Props) {
-  // Hooks
-  const router = useRouter();
   const dialog = useDialog();
-  const { brandSelection } = useLocalSearchParams<searchParams>();
 
   const isBrandRequired = !isComponent;
   const isModelRequired = !isComponent;
 
-  // Effects
-  useEffect(() => {
-    if (!brandSelection) return;
-    router.setParams({ brandSelection: undefined });
-    onBrandChange?.(brandSelection!);
-  }, [brandSelection, onBrandChange, router]);
+  const [brandModalVisible, setBrandModalVisible] = useState(false);
+  const [brandSearch, setBrandSearch] = useState('');
 
-  // Callbacks
+  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(brandSearch);
+
   const onEditBrand = () => {
     if (!editMode) return;
-    const params = { id: product.id, brand: product.brand };
-    router.push({ pathname: '/products/[id]/brand_selection', params: params });
+    setBrandModalVisible(true);
   };
 
   const onEditModel = () => {
@@ -60,7 +50,6 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
     });
   };
 
-  // Render
   return (
     <View style={{ marginVertical: 12, paddingHorizontal: 16, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}>
       <Chip
@@ -79,6 +68,22 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
       >
         {product.model || 'Unknown'}
       </Chip>
+
+      <FilterSelectionModal
+        visible={brandModalVisible}
+        onDismiss={() => setBrandModalVisible(false)}
+        title="Select Brand"
+        items={brandResults ?? []}
+        isLoading={brandsLoading}
+        selectedValues={product.brand ? [product.brand] : []}
+        onSelectionChange={(vals) => {
+          if (vals.length > 0) onBrandChange?.(vals[0]);
+        }}
+        searchQuery={brandSearch}
+        onSearchChange={setBrandSearch}
+        searchPlaceholder="Search or type a brand…"
+        singleSelect
+      />
     </View>
   );
 }

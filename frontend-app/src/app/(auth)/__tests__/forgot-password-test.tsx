@@ -1,15 +1,13 @@
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { http, HttpResponse } from 'msw';
 import { useRouter } from 'expo-router';
 import ForgotPasswordScreen from '../forgot-password';
+import { renderWithProviders } from '@/test-utils';
+import { server } from '@/test-utils/server';
 
-global.fetch = jest.fn() as jest.Mock;
-
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return <PaperProvider>{children}</PaperProvider>;
-}
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 describe('ForgotPasswordScreen', () => {
   beforeEach(() => {
@@ -23,32 +21,21 @@ describe('ForgotPasswordScreen', () => {
   });
 
   it('renders the forgot password form', () => {
-    render(
-      <Wrapper>
-        <ForgotPasswordScreen />
-      </Wrapper>,
-    );
+    renderWithProviders(<ForgotPasswordScreen />);
     expect(screen.getByText('Forgot Password')).toBeTruthy();
     expect(screen.getByText('Send Reset Link')).toBeTruthy();
   });
 
-  it('fetch is not called when email is empty and button is pressed', () => {
-    render(
-      <Wrapper>
-        <ForgotPasswordScreen />
-      </Wrapper>,
-    );
+  it('does not submit when email is empty', () => {
+    renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.press(screen.getByText('Send Reset Link'));
-    expect(global.fetch).not.toHaveBeenCalled();
+    // No success or error message should appear — the form guards against empty email
+    expect(screen.queryByText(/If an account exists/)).toBeNull();
   });
 
   it('shows success message after successful submission', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
-    render(
-      <Wrapper>
-        <ForgotPasswordScreen />
-      </Wrapper>,
-    );
+    server.use(http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.json({}, { status: 200 })));
+    renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
     fireEvent.press(screen.getByText('Send Reset Link'));
     await waitFor(() => {
@@ -57,15 +44,12 @@ describe('ForgotPasswordScreen', () => {
   });
 
   it('shows error message on failed fetch', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ detail: 'User not found' }),
-    });
-    render(
-      <Wrapper>
-        <ForgotPasswordScreen />
-      </Wrapper>,
+    server.use(
+      http.post(`${API_URL}/auth/forgot-password`, () =>
+        HttpResponse.json({ detail: 'User not found' }, { status: 400 }),
+      ),
     );
+    renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.changeText(screen.getByTestId('text-input-flat'), 'notfound@example.com');
     fireEvent.press(screen.getByText('Send Reset Link'));
     await waitFor(() => {
@@ -74,17 +58,32 @@ describe('ForgotPasswordScreen', () => {
   });
 
   it('shows generic error when fetch throws', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-    render(
-      <Wrapper>
-        <ForgotPasswordScreen />
-      </Wrapper>,
-    );
+    server.use(http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.error()));
+    renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
     fireEvent.press(screen.getByText('Send Reset Link'));
     await waitFor(() => {
       expect(screen.getByText(/An error occurred/)).toBeTruthy();
     });
+  });
+
+  it('Back to Login in the success state calls router.push("/login")', async () => {
+    const mockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({
+      push: mockPush,
+      replace: jest.fn(),
+      back: jest.fn(),
+      setParams: jest.fn(),
+    });
+    server.use(http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.json({}, { status: 200 })));
+    renderWithProviders(<ForgotPasswordScreen />);
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
+    fireEvent.press(screen.getByText('Send Reset Link'));
+    await waitFor(() => {
+      expect(screen.getByText(/If an account exists/)).toBeTruthy();
+    });
+    fireEvent.press(screen.getByText('Back to Login'));
+    expect(mockPush).toHaveBeenCalledWith('/login');
   });
 
   it('back to login button calls router.back', () => {
@@ -95,11 +94,7 @@ describe('ForgotPasswordScreen', () => {
       back: mockBack,
       setParams: jest.fn(),
     });
-    render(
-      <Wrapper>
-        <ForgotPasswordScreen />
-      </Wrapper>,
-    );
+    renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.press(screen.getByText('Back to Login'));
     expect(mockBack).toHaveBeenCalled();
   });

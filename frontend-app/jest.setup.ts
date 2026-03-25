@@ -6,7 +6,7 @@ process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000/api';
 // ── MSW server lifecycle ───────────────────────────────────────────────────
 // Start the server before all tests, reset per-test overrides after each
 // test, and clean up after the full suite.
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
@@ -56,7 +56,55 @@ jest.mock('expo-linear-gradient', () => ({
 }));
 
 // Mock react-native-reanimated
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+// react-native-reanimated 4.x uses react-native-worklets which requires native
+// initialisation — unusable in Jest. We provide a minimal inline mock instead.
+jest.mock('react-native-reanimated', () => {
+  const React = require('react');
+  const { View, Text, Image, ScrollView } = require('react-native');
+  const noopFn = jest.fn();
+
+  const AnimatedComponent = ({ children, style, ...props }: any) =>
+    React.createElement(View, { style, ...props }, children);
+  Object.assign(AnimatedComponent, {
+    View,
+    Text,
+    Image,
+    ScrollView,
+    createAnimatedComponent: (c: any) => c,
+  });
+
+  return {
+    __esModule: true,
+    default: AnimatedComponent,
+    useAnimatedStyle: (fn: () => any) => { try { return fn(); } catch { return {}; } },
+    useAnimatedProps: (fn: () => any) => { try { return fn(); } catch { return {}; } },
+    useSharedValue: (value: any) => ({ value, modify: noopFn }),
+    useAnimatedSensor: () => ({ sensor: { value: { pitch: 0, roll: 0, yaw: 0 } }, unregister: noopFn }),
+    useDerivedValue: (fn: () => any) => ({ value: (() => { try { return fn(); } catch { return undefined; } })() }),
+    useAnimatedRef: () => ({ current: null }),
+    useAnimatedScrollHandler: () => () => {},
+    withSpring: (value: any) => value,
+    withTiming: (value: any) => value,
+    withDelay: (_: any, value: any) => value,
+    withRepeat: (value: any) => value,
+    withSequence: (...values: any[]) => values[values.length - 1],
+    interpolate: (value: any) => value,
+    Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
+    SensorType: { ROTATION: 'ROTATION', GRAVITY: 'GRAVITY', GYROSCOPE: 'GYROSCOPE' },
+    runOnJS: (fn: any) => fn,
+    runOnUI: (fn: any) => fn,
+    cancelAnimation: noopFn,
+    measure: noopFn,
+    Easing: {
+      linear: (t: any) => t,
+      ease: (t: any) => t,
+      bezier: () => (t: any) => t,
+      in: (fn: any) => fn,
+      out: (fn: any) => fn,
+      inOut: (fn: any) => fn,
+    },
+  };
+});
 
 // Mock expo-image (ImageBackground, Image)
 jest.mock('expo-image', () => {
@@ -65,5 +113,45 @@ jest.mock('expo-image', () => {
   return {
     Image: (props: any) => React.createElement(View, { testID: 'expo-image', ...props }),
     ImageBackground: (props: any) => React.createElement(View, { testID: 'expo-image-bg', ...props }, props.children),
+  };
+});
+
+// Mock react-native-gesture-handler
+jest.mock('react-native-gesture-handler', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    GestureHandlerRootView: ({ children, style }: any) => React.createElement(View, { style }, children),
+    GestureDetector: ({ children }: any) => children,
+    Gesture: {
+      Tap: () => {
+        const tap = {
+          numberOfTaps: () => tap,
+          onEnd: () => tap,
+          onStart: () => tap,
+        };
+        return tap;
+      },
+      Pan: () => {
+        const pan = {
+          minPointers: () => pan,
+          onUpdate: () => pan,
+          onEnd: () => pan,
+          onStart: () => pan,
+          enabled: () => pan,
+        };
+        return pan;
+      },
+      Pinch: () => {
+        const pinch = {
+          onUpdate: () => pinch,
+          onEnd: () => pinch,
+          onStart: () => pinch,
+        };
+        return pinch;
+      },
+      Simultaneous: (..._args: any[]) => ({}),
+      Exclusive: (..._args: any[]) => ({}),
+    },
   };
 });

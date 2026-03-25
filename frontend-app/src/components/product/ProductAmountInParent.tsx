@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { JSX, useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { Card, IconButton, Text, TextInput } from 'react-native-paper';
+import { IconButton, Text, TextInput } from 'react-native-paper';
 
-import { InfoTooltip } from '@/components/base';
+import DetailCard from '@/components/common/DetailCard';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { Product } from '@/types/Product';
 
 type ProductAmountInParentProps = {
@@ -71,46 +72,41 @@ export default function ProductAmountInParent({
   };
 
   return (
-    <Card>
-      <Card.Content style={{ gap: 10 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text variant="titleMedium">Amount in Parent</Text>
-          <InfoTooltip title="How many times this component occurs in its parent" />
+    <DetailCard contentStyle={{ gap: 10 }}>
+      <DetailSectionHeader title="Amount in Parent" tooltipTitle="How many times this component occurs in its parent" />
+      {editMode ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <IconButton
+            icon={() => <MaterialCommunityIcons name="minus" size={24} />}
+            onPress={decrement}
+            disabled={amount <= 1}
+            mode="outlined"
+            size={20}
+          />
+          <TextInput
+            mode="outlined"
+            label="Quantity"
+            value={inputValue}
+            onChangeText={handleTextChange}
+            onBlur={handleBlur}
+            keyboardType="numeric"
+            placeholder="1"
+            dense
+            style={{ flex: 1 }}
+          />
+          <IconButton
+            icon={() => <MaterialCommunityIcons name="plus" size={24} />}
+            onPress={increment}
+            disabled={amount >= 10000}
+            mode="outlined"
+            size={20}
+          />
         </View>
-        {editMode ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <IconButton
-              icon={() => <MaterialCommunityIcons name="minus" size={24} />}
-              onPress={decrement}
-              disabled={amount <= 1}
-              mode="outlined"
-              size={20}
-            />
-            <TextInput
-              mode="outlined"
-              label="Quantity"
-              value={inputValue}
-              onChangeText={handleTextChange}
-              onBlur={handleBlur}
-              keyboardType="numeric"
-              placeholder="1"
-              dense
-              style={{ flex: 1 }}
-            />
-            <IconButton
-              icon={() => <MaterialCommunityIcons name="plus" size={24} />}
-              onPress={increment}
-              disabled={amount >= 10000}
-              mode="outlined"
-              size={20}
-            />
-          </View>
-        ) : (
-          <View>
-            <Text variant="bodyLarge">{amount}</Text>
-          </View>
-        )}
-      </Card.Content>
-    </Card>
+      ) : (
+        <View>
+          <Text variant="bodyLarge">{amount}</Text>
+        </View>
+      )}
+    </DetailCard>
   );
 }

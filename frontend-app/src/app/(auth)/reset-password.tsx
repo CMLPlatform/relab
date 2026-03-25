@@ -1,16 +1,31 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
+import { apiFetch } from '@/services/api/fetching';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
 
   const [password, setPassword] = useState('');
+  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        router.push('/login');
+      }, 3000);
+
+      if (timer && typeof timer === 'object' && 'unref' in timer) {
+        (timer as any).unref();
+      }
+
+      return () => clearTimeout(timer);
+    }
+  }, [success, router]);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleResetPassword = async () => {
@@ -28,26 +43,15 @@ export default function ResetPasswordScreen() {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/reset-password`, {
+      const response = await apiFetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/reset-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          password,
-        }),
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
       });
 
       if (response.ok) {
         setSuccess(true);
         setError(null);
-        // Redirect to homepage
-        // TODO: Replace this with platform-dependent code (app urls for mobile, login page on main site for web)
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
       } else {
         const data = await response.json();
         setError(data.detail || 'Password reset failed');
@@ -70,6 +74,7 @@ export default function ResetPasswordScreen() {
             <>
               <TextInput
                 label="New Password"
+                testID="password-input"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}

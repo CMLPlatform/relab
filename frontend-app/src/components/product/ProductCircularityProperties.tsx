@@ -3,7 +3,8 @@ import { Fragment, useState } from 'react';
 import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
-import { Chip, InfoTooltip, Text, TextInput } from '@/components/base';
+import { Chip, Text, TextInput } from '@/components/base';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { CircularityProperties, Product } from '@/types/Product';
 
 interface Props {
@@ -128,16 +129,14 @@ export default function ProductCircularityProperties({ product, editMode, onChan
 
   return (
     <View>
-      <Text style={styles.sectionTitle}>
-        Circularity Properties{' '}
-        <InfoTooltip title="Add recyclability, remanufacturability, and repairability information. Observation fields are required." />
-      </Text>
+      <DetailSectionHeader
+        title="Circularity Properties"
+        tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
+      />
 
       {/* Show message when no properties exist */}
       {expandedPropertiesToShow.length === 0 && !editMode && (
-        <Text style={{ paddingHorizontal: 14, opacity: 0.7, marginBottom: 8 }}>
-          No associated circularity properties.
-        </Text>
+        <Text style={{ opacity: 0.7, marginBottom: 8 }}>No associated circularity properties.</Text>
       )}
 
       {/* Render chips in a single horizontal container */}
@@ -288,14 +287,8 @@ function CircularityPropertySection({
 }
 
 const styles = StyleSheet.create({
-  sectionTitle: {
-    marginBottom: 12,
-    paddingLeft: 14,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
   chipContainer: {
-    padding: 14,
+    paddingVertical: 14,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
@@ -308,7 +301,7 @@ const styles = StyleSheet.create({
     backgroundColor: DarkTheme.colors.outlineVariant,
   },
   propertySection: {
-    padding: 14,
+    paddingVertical: 14,
   },
   propertyHeader: {
     flexDirection: 'row',

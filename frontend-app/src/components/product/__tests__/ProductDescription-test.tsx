@@ -2,23 +2,10 @@ import { describe, it, expect, jest } from '@jest/globals';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import ProductDescription from '../ProductDescription';
+import { baseProduct as _base } from '@/test-utils/fixtures';
 import type { Product } from '@/types/Product';
 
-const baseProduct: Product = {
-  id: 1,
-  name: 'Test Product',
-  description: 'Initial description',
-  componentIDs: [],
-  physicalProperties: { weight: 100, width: 10, height: 5, depth: 3 },
-  circularityProperties: {
-    recyclabilityObservation: '',
-    remanufacturabilityObservation: '',
-    repairabilityObservation: '',
-  },
-  images: [],
-  videos: [],
-  ownedBy: 'me',
-};
+const baseProduct: Product = { ..._base, description: 'Initial description' };
 
 describe('ProductDescription', () => {
   it('renders the product description as input value', () => {

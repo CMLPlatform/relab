@@ -1,25 +1,23 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import Onboarding from '../onboarding';
-import { DialogProvider } from '@/components/common/DialogProvider';
+import { useAuth } from '@/context/AuthProvider';
+import { renderWithProviders } from '@/test-utils';
 import * as auth from '@/services/api/authentication';
 
 jest.mock('@/services/api/authentication', () => ({
   updateUser: jest.fn(),
 }));
 
-const mockReplace = jest.fn();
+jest.mock('@/context/AuthProvider', () => ({
+  useAuth: jest.fn(),
+}));
 
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <PaperProvider>
-      <DialogProvider>{children}</DialogProvider>
-    </PaperProvider>
-  );
-}
+const mockReplace = jest.fn();
+const mockRefetch = jest.fn();
+const mockedUpdateUser = jest.mocked(auth.updateUser);
 
 describe('Onboarding screen', () => {
   beforeEach(() => {
@@ -30,26 +28,20 @@ describe('Onboarding screen', () => {
       back: jest.fn(),
       setParams: jest.fn(),
     });
+    (useAuth as jest.Mock).mockReturnValue({
+      refetch: mockRefetch,
+    });
   });
 
   it('renders the Welcome text and Continue button', () => {
-    render(
-      <Wrapper>
-        <Onboarding />
-      </Wrapper>,
-    );
+    renderWithProviders(<Onboarding />, { withDialog: true });
     expect(screen.getByText('Welcome!')).toBeTruthy();
     expect(screen.getByText('Continue')).toBeTruthy();
   });
 
   it('shows dialog when username is too short', async () => {
-    render(
-      <Wrapper>
-        <Onboarding />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'a');
+    renderWithProviders(<Onboarding />, { withDialog: true });
+    fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'a');
     fireEvent.press(screen.getByText('Continue'));
     await waitFor(() => {
       expect(screen.getByText('Invalid Username')).toBeTruthy();
@@ -57,14 +49,9 @@ describe('Onboarding screen', () => {
   });
 
   it('calls updateUser with username on valid submit', async () => {
-    (auth.updateUser as jest.Mock).mockResolvedValue({ username: 'newuser' });
-    render(
-      <Wrapper>
-        <Onboarding />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'newuser');
+    mockedUpdateUser.mockResolvedValue({ username: 'newuser' } as Awaited<ReturnType<typeof auth.updateUser>>);
+    renderWithProviders(<Onboarding />, { withDialog: true });
+    fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'newuser');
     fireEvent.press(screen.getByText('Continue'));
     await waitFor(() => {
       expect(auth.updateUser).toHaveBeenCalledWith({ username: 'newuser' });
@@ -72,29 +59,20 @@ describe('Onboarding screen', () => {
   });
 
   it('redirects to products on successful username save', async () => {
-    (auth.updateUser as jest.Mock).mockResolvedValue({ username: 'newuser' });
-    render(
-      <Wrapper>
-        <Onboarding />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'newuser');
+    mockedUpdateUser.mockResolvedValue({ username: 'newuser' } as Awaited<ReturnType<typeof auth.updateUser>>);
+    renderWithProviders(<Onboarding />, { withDialog: true });
+    fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'newuser');
     fireEvent.press(screen.getByText('Continue'));
     await waitFor(() => {
+      expect(mockRefetch).toHaveBeenCalledWith(false);
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
     });
   });
 
   it('shows error dialog when updateUser throws', async () => {
-    (auth.updateUser as jest.Mock).mockRejectedValue(new Error('Username taken'));
-    render(
-      <Wrapper>
-        <Onboarding />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'takenname');
+    mockedUpdateUser.mockRejectedValue(new Error('Username taken'));
+    renderWithProviders(<Onboarding />, { withDialog: true });
+    fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'taken_name');
     fireEvent.press(screen.getByText('Continue'));
     await waitFor(() => {
       expect(screen.getByText('Error')).toBeTruthy();

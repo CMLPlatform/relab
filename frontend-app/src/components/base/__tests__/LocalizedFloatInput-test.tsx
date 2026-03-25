@@ -67,4 +67,16 @@ describe('LocalizedFloatInput', () => {
     fireEvent.changeText(input, '12.3');
     expect(screen.getByDisplayValue('12.3')).toBeTruthy();
   });
+
+  it('input is not editable when editable=false', () => {
+    render(<LocalizedFloatInput value={5} editable={false} />);
+    expect(screen.getByDisplayValue('5').props.editable).toBe(false);
+  });
+
+  it('renders empty when value is NaN', () => {
+    render(<LocalizedFloatInput value={NaN} />);
+    // NaN is normalized to undefined, so the field shows the placeholder not a value
+    expect(screen.getByPlaceholderText('> 0')).toBeTruthy();
+    expect(screen.queryByDisplayValue('NaN')).toBeNull();
+  });
 });

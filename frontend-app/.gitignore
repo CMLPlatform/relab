@@ -47,6 +47,10 @@ yarn-error.*
 # Test coverage
 coverage/
 
+# Playwright
+playwright-report/
+test-results/
+
 # Env files (frontend env files are all public)
 !.env.development
 !.env.staging

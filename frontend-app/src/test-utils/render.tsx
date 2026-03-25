@@ -1,32 +1,44 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import type { RenderOptions } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PaperProvider } from 'react-native-paper';
 import { DialogProvider } from '@/components/common/DialogProvider';
+import { AuthProvider } from '@/context/AuthProvider';
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   withDialog?: boolean;
+  /**
+   * Wrap in AuthProvider. Only needed for screens that call `useAuth()`.
+   * AuthProvider initialises asynchronously; tests using this option must
+   * await `waitFor(...)` before asserting on auth-gated content.
+   */
+  withAuth?: boolean;
 }
 
 /**
  * Custom render that wraps the UI in the app's standard provider stack.
  *
- * By default includes PaperProvider only. Pass `withDialog: true` for screens
- * that use the DialogProvider (e.g. screens with confirmation dialogs).
+ * Always includes PaperProvider and QueryClientProvider (retry disabled so
+ * tests don't hang on failed queries). Pass `withDialog: true` for screens
+ * that use DialogProvider, and `withAuth: true` for screens that call useAuth().
  */
 export function renderWithProviders(
   ui: React.ReactElement,
-  { withDialog = false, ...options }: RenderWithProvidersOptions = {},
+  { withDialog = false, withAuth = false, ...options }: RenderWithProvidersOptions = {},
 ) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   function Wrapper({ children }: { children: React.ReactNode }) {
-    if (withDialog) {
-      return (
-        <PaperProvider>
-          <DialogProvider>{children}</DialogProvider>
-        </PaperProvider>
-      );
-    }
-    return <PaperProvider>{children}</PaperProvider>;
+    const content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
+    const withPaper = <PaperProvider>{content}</PaperProvider>;
+    const withQuery = <QueryClientProvider client={queryClient}>{withPaper}</QueryClientProvider>;
+    return withAuth ? <AuthProvider>{withQuery}</AuthProvider> : withQuery;
   }
 
   return render(ui, { wrapper: Wrapper, ...options });

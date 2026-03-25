@@ -1,7 +1,10 @@
 import { describe, it, expect, jest } from '@jest/globals';
 import React from 'react';
+import * as ReactNative from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { Chip } from '../Chip';
+import DarkTheme from '@/assets/themes/dark';
+import LightTheme from '@/assets/themes/light';
 
 describe('Chip', () => {
   it('renders children text', () => {
@@ -26,14 +29,41 @@ describe('Chip', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('renders correctly with error prop', () => {
-    // Just ensure it renders without crashing
+  it('applies error container style when error prop is set', () => {
     render(<Chip error>Error Chip</Chip>);
-    expect(screen.getByText('Error Chip')).toBeTruthy();
+    expect(screen.getByText('Error Chip')).toHaveStyle({
+      backgroundColor: LightTheme.colors.errorContainer,
+      color: LightTheme.colors.onErrorContainer,
+    });
   });
 
-  it('renders correctly without error prop', () => {
-    render(<Chip error={false}>Normal Chip</Chip>);
-    expect(screen.getByText('Normal Chip')).toBeTruthy();
+  it('applies primary style when error prop is not set', () => {
+    render(<Chip>Normal Chip</Chip>);
+    expect(screen.getByText('Normal Chip')).toHaveStyle({
+      backgroundColor: LightTheme.colors.primary,
+      color: LightTheme.colors.onPrimary,
+    });
+  });
+
+  it('applies dark mode styles when the system theme is dark', () => {
+    const colorSchemeSpy = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+
+    render(<Chip>Dark Chip</Chip>);
+
+    expect(screen.getByText('Dark Chip')).toHaveStyle({
+      backgroundColor: DarkTheme.colors.primary,
+      color: DarkTheme.colors.onPrimary,
+    });
+    colorSchemeSpy.mockRestore();
+  });
+
+  it('renders an icon when one is provided', () => {
+    render(
+      <Chip icon={<ReactNative.View testID="chip-icon" />} title="With Icon">
+        Chip Content
+      </Chip>,
+    );
+
+    expect(screen.getByTestId('chip-icon')).toBeTruthy();
   });
 });

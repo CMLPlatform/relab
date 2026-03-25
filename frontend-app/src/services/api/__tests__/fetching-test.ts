@@ -1,10 +1,10 @@
-import { describe, it, expect, jest, beforeEach, afterAll } from '@jest/globals';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { http, HttpResponse } from 'msw';
 import { newProduct, allBrands, getProduct, allProducts, myProducts, productComponents } from '../fetching';
 import * as auth from '../authentication';
-import { setupFetchMock } from '@/test-utils';
+import { server } from '@/test-utils/server';
 
-setupFetchMock();
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 const mockUser = {
   id: 'me-user-id',
@@ -15,6 +15,19 @@ const mockUser = {
   username: 'me',
   oauth_accounts: [],
 };
+
+function makePage<T>(
+  items: T[],
+  overrides: Partial<{ total: number; page: number; size: number; pages: number }> = {},
+) {
+  return {
+    items,
+    total: overrides.total ?? items.length,
+    page: overrides.page ?? 1,
+    size: overrides.size ?? 50,
+    pages: overrides.pages ?? 1,
+  };
+}
 
 // Minimal ProductData as returned by the API
 const rawProductData = {
@@ -54,12 +67,10 @@ const rawProductData = {
 describe('Fetching API Service logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Mock getUser to prevent ownership crash issues
     jest.spyOn(auth, 'getUser').mockResolvedValue(mockUser);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     jest.restoreAllMocks();
   });
 
@@ -100,21 +111,20 @@ describe('Fetching API Service logic', () => {
 
   describe('allBrands', () => {
     it('performs fetch and returns array of strings', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ['Samsung', 'Apple', 'Nokia'],
-      });
+      server.use(
+        http.get(`${API_URL}/brands`, () =>
+          HttpResponse.json({ items: ['Samsung', 'Apple', 'Nokia'], total: 3, page: 1, size: 50, pages: 1 }),
+        ),
+      );
 
       const brands = await allBrands();
 
       expect(brands).toContain('Apple');
       expect(brands.length).toBe(3);
-      const fetchUrl = (global.fetch as jest.Mock).mock.calls[0][0].toString();
-      expect(fetchUrl).toMatch(/\/brands$/);
     });
 
     it('throws on HTTP error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 500 });
+      server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({}, { status: 500 })));
 
       await expect(allBrands()).rejects.toThrow('HTTP error');
     });
@@ -130,10 +140,7 @@ describe('Fetching API Service logic', () => {
     });
 
     it('fetches and maps a product by id', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => rawProductData,
-      });
+      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(rawProductData)));
 
       const p = await getProduct(42);
 
@@ -150,10 +157,7 @@ describe('Fetching API Service logic', () => {
 
     it('maps ownership to owner_id string when not current user', async () => {
       const otherUserProduct = { ...rawProductData, owner_id: 'other-user-id' };
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => otherUserProduct,
-      });
+      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(otherUserProduct)));
 
       const p = await getProduct(42);
 
@@ -162,10 +166,7 @@ describe('Fetching API Service logic', () => {
 
     it('uses empty circularity defaults when circularity_properties is null', async () => {
       const noCircularity = { ...rawProductData, circularity_properties: null };
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => noCircularity,
-      });
+      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(noCircularity)));
 
       const p = await getProduct(42);
 
@@ -173,7 +174,7 @@ describe('Fetching API Service logic', () => {
     });
 
     it('throws on HTTP error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 404 });
+      server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 404 })));
 
       await expect(getProduct(99)).rejects.toThrow('HTTP error');
     });
@@ -182,31 +183,95 @@ describe('Fetching API Service logic', () => {
   // ─── allProducts ────────────────────────────────────────
 
   describe('allProducts', () => {
-    it('fetches and returns an array of mapped products', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: [rawProductData] }),
-      });
+    it('fetches and returns mapped products in a paginated response', async () => {
+      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))));
 
       const products = await allProducts();
 
-      expect(products).toHaveLength(1);
-      expect(products[0].name).toBe('Test Product');
+      expect(products.items).toHaveLength(1);
+      expect(products.items[0].name).toBe('Test Product');
+      expect(products.total).toBe(1);
+      expect(products.page).toBe(1);
+      expect(products.size).toBe(50);
+      expect(products.pages).toBe(1);
     });
 
-    it('returns empty array when items is empty', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: [] }),
-      });
+    it('returns an empty paginated response when items is empty', async () => {
+      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([], { pages: 0 }))));
 
       const products = await allProducts();
 
-      expect(products).toHaveLength(0);
+      expect(products.items).toHaveLength(0);
+      expect(products.total).toBe(0);
+      expect(products.pages).toBe(0);
+    });
+
+    it('sends multiple brands as a single comma-separated brand__in param', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/products`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json(makePage([]));
+        }),
+      );
+
+      await allProducts(['product_type'], 1, 50, undefined, undefined, ['Dell', 'Apple']);
+
+      expect(capturedUrl?.searchParams.get('brand__in')).toBe('Dell,Apple');
+      expect(capturedUrl?.searchParams.getAll('brand__in')).toHaveLength(1);
+    });
+
+    it('sends multiple orderBy values as a single comma-separated order_by param', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/products`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json(makePage([]));
+        }),
+      );
+
+      await allProducts(['product_type'], 1, 50, undefined, ['-created_at', 'name']);
+
+      expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at,name');
+      expect(capturedUrl?.searchParams.getAll('order_by')).toHaveLength(1);
+    });
+
+    it('sends multiple product type names as a single comma-separated param', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/products`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json(makePage([]));
+        }),
+      );
+
+      await allProducts(['product_type'], 1, 50, undefined, undefined, undefined, undefined, [
+        'Electronics',
+        'Furniture',
+      ]);
+
+      expect(capturedUrl?.searchParams.get('product_type__name__in')).toBe('Electronics,Furniture');
+      expect(capturedUrl?.searchParams.getAll('product_type__name__in')).toHaveLength(1);
+    });
+
+    it('omits brand__in, order_by, and product_type__name__in when arrays are empty', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/products`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json(makePage([]));
+        }),
+      );
+
+      await allProducts(['product_type'], 1, 50, undefined, [], [], undefined, []);
+
+      expect(capturedUrl?.searchParams.has('brand__in')).toBe(false);
+      expect(capturedUrl?.searchParams.has('order_by')).toBe(false);
+      expect(capturedUrl?.searchParams.has('product_type__name__in')).toBe(false);
     });
 
     it('throws on HTTP error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 500 });
+      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json({}, { status: 500 })));
 
       await expect(allProducts()).rejects.toThrow('HTTP error');
     });
@@ -215,41 +280,58 @@ describe('Fetching API Service logic', () => {
   // ─── myProducts ─────────────────────────────────────────
 
   describe('myProducts', () => {
-    it('returns empty array when no token available', async () => {
+    it('returns an empty paginated response when no token is available', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce(undefined);
 
       const products = await myProducts();
 
-      expect(products).toEqual([]);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(products).toEqual({ items: [], total: 0, page: 1, size: 50, pages: 0 });
     });
 
-    it('returns empty array on 401 response', async () => {
+    it('returns an empty paginated response on 401 response', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 401 });
+      server.use(
+        http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 })),
+      );
 
       const products = await myProducts();
 
-      expect(products).toEqual([]);
+      expect(products).toEqual({ items: [], total: 0, page: 1, size: 50, pages: 0 });
     });
 
-    it('fetches and returns mapped products', async () => {
+    it('fetches and returns mapped products in a paginated response', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ items: [rawProductData] }),
-      });
+      server.use(http.get(`${API_URL}/users/me/products`, () => HttpResponse.json(makePage([rawProductData]))));
 
       const products = await myProducts();
 
-      expect(products).toHaveLength(1);
-      expect(products[0].name).toBe('Test Product');
+      expect(products.items).toHaveLength(1);
+      expect(products.items[0].name).toBe('Test Product');
+      expect(products.total).toBe(1);
+      expect(products.page).toBe(1);
+      expect(products.size).toBe(50);
+      expect(products.pages).toBe(1);
+    });
+
+    it('sends multiple brands as a single comma-separated brand__in param', async () => {
+      jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/users/me/products`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json(makePage([]));
+        }),
+      );
+
+      await myProducts(['product_type'], 1, 50, undefined, undefined, ['Dell', 'Apple']);
+
+      expect(capturedUrl?.searchParams.get('brand__in')).toBe('Dell,Apple');
+      expect(capturedUrl?.searchParams.getAll('brand__in')).toHaveLength(1);
     });
 
     it('throws on non-401 HTTP error', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 500 });
+      server.use(http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({}, { status: 500 })));
 
       await expect(myProducts()).rejects.toThrow('HTTP error');
     });
@@ -268,10 +350,7 @@ describe('Fetching API Service logic', () => {
 
     it('fetches each component by id', async () => {
       const componentData = { ...rawProductData, id: 1, name: 'Component A' };
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => componentData,
-      });
+      server.use(http.get(`${API_URL}/products/1`, () => HttpResponse.json(componentData)));
 
       const product = { ...newProduct(), componentIDs: [1] };
       const result = await productComponents(product);

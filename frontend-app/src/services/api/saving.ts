@@ -1,5 +1,5 @@
 import { getToken } from '@/services/api/authentication';
-import { getProduct, apiFetch } from '@/services/api/fetching';
+import { apiFetch } from '@/services/api/fetching';
 import { Product } from '@/types/Product';
 
 // TODO: Break up the saving logic into smaller files
@@ -73,11 +73,19 @@ function toUpdateCircularityProperties(product: Product): any {
   return hasAny ? out : null;
 }
 
-export async function saveProduct(product: Product): Promise<number> {
+/**
+ * Save a product. For updates, pass the server-state images/videos so we can
+ * diff without an extra network round-trip to re-fetch them.
+ */
+export async function saveProduct(
+  product: Product,
+  originalImages: Product['images'] = [],
+  originalVideos: Product['videos'] = [],
+): Promise<number> {
   if (product.id === 'new') {
     return await saveNewProduct(product);
   } else {
-    return await updateProduct(product);
+    return await updateProduct(product, originalImages, originalVideos);
   }
 }
 
@@ -109,13 +117,18 @@ async function saveNewProduct(product: Product): Promise<number> {
   console.log('Created product:', data);
   product.id = data.id; // Update product ID to the newly assigned ID so we can add images
 
-  await updateProductImages(product);
-  await updateProductVideos(product);
+  // New product has no existing media on the server yet
+  await updateProductImages(product, []);
+  await updateProductVideos(product, []);
 
   return data.id;
 }
 
-async function updateProduct(product: Product): Promise<number> {
+async function updateProduct(
+  product: Product,
+  originalImages: Product['images'],
+  originalVideos: Product['videos'],
+): Promise<number> {
   const token = await getToken();
   const headers = {
     'Content-Type': 'application/json',
@@ -155,17 +168,16 @@ async function updateProduct(product: Product): Promise<number> {
     );
   }
 
-  await updateProductImages(product);
-  await updateProductVideos(product);
+  await updateProductImages(product, originalImages);
+  await updateProductVideos(product, originalVideos);
 
   const data = await response.json();
 
   return data.id;
 }
 
-async function updateProductImages(product: Product) {
-  const currentImages = await getProduct(product.id);
-  const imagesToDelete = currentImages.images.filter((img) => !product.images.some((i) => i.id === img.id));
+async function updateProductImages(product: Product, originalImages: Product['images']) {
+  const imagesToDelete = originalImages.filter((img) => !product.images.some((i) => i.id === img.id));
   const imagesToAdd = product.images.filter((img) => !img.id);
 
   for (const img of imagesToDelete) {
@@ -212,7 +224,30 @@ async function addImage(product: Product, image: { url: string; description: str
 
   console.log('[AddImage] Uploading image:', image.url);
 
-  await apiFetch(url, { method: 'POST', headers: headers, body: body });
+  const response = await apiFetch(url, { method: 'POST', headers: headers, body: body, timeoutMs: 30_000 });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    console.error('[AddImage] upload failed:', errData || response.statusText);
+    throw new Error(`Image upload failed: ${errData?.detail || response.statusText}`);
+  }
+
+  // If the server returned the stored media object, update the local image
+  // entry so the UI uses the persisted HTTP URL instead of a blob: URI.
+  const data = await response.json().catch(() => null);
+  if (data) {
+    try {
+      if (data.id) {
+        // mutate the object in-place so callers see the updated id/url
+        (image as any).id = data.id;
+      }
+      const newUrl = data.url || data.image_url || data.file_url || data.path || data.location;
+      if (newUrl) {
+        (image as any).url = newUrl;
+      }
+    } catch {
+      // ignore mutation errors
+    }
+  }
 }
 
 function dataURItoBlob(dataURI: string) {
@@ -228,9 +263,8 @@ function dataURItoBlob(dataURI: string) {
   return new Blob([ab], { type: mimeString });
 }
 
-async function updateProductVideos(product: Product) {
-  const currentProduct = await getProduct(product.id);
-  const currentVideos = currentProduct.videos || [];
+async function updateProductVideos(product: Product, originalVideos: Product['videos']) {
+  const currentVideos = originalVideos || [];
   const videosToDelete = currentVideos.filter((vid) => !product.videos.some((v) => v.id === vid.id));
   const videosToAdd = product.videos.filter((vid) => !vid.id);
   const videosToUpdate = product.videos.filter((vid) => {

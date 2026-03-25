@@ -8,10 +8,13 @@ export type Product = {
   createdAt?: string;
   updatedAt?: string;
   productTypeID?: number;
+  productTypeName?: string;
   componentIDs: number[];
+  ownerUsername?: string;
   physicalProperties: PhysicalProperties;
   circularityProperties: CircularityProperties;
   images: { id?: number; url: string; description: string }[];
+  thumbnailUrl?: string;
   videos: { id?: number; url: string; description: string; title: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;

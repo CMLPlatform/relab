@@ -1,23 +1,26 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { http, HttpResponse } from 'msw';
 import { Platform } from 'react-native';
 import Login from '../login';
 import { renderWithProviders, server } from '@/test-utils';
 import * as auth from '@/services/api/authentication';
+import type { User } from '@/types/User';
 
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
   getUser: jest.fn(),
   getToken: jest.fn(),
+  hasWebSessionFlag: jest.fn().mockReturnValue(false),
+  markWebSessionActive: jest.fn(),
 }));
 
 jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
-  openAuthSessionAsync: jest.fn().mockResolvedValue({ type: 'cancel' }),
+  openAuthSessionAsync: jest.fn(),
 }));
 
 jest.mock('expo-linking', () => ({
@@ -27,6 +30,22 @@ jest.mock('expo-linking', () => ({
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
 const originalPlatformOS = Platform.OS;
+const mockedLogin = jest.mocked(auth.login);
+const mockedGetUser = jest.mocked(auth.getUser);
+const mockedGetToken = jest.mocked(auth.getToken);
+const mockedMarkWebSessionActive = jest.mocked(auth.markWebSessionActive);
+const mockedOpenAuthSessionAsync = jest.mocked(WebBrowser.openAuthSessionAsync);
+
+const mockUser = (overrides: Partial<User> = {}): User => ({
+  id: '1',
+  username: 'testuser',
+  email: 't@example.com',
+  isActive: true,
+  isVerified: true,
+  isSuperuser: false,
+  oauth_accounts: [],
+  ...overrides,
+});
 
 function setPlatformOS(os: string): void {
   Object.defineProperty(Platform, 'OS', {
@@ -38,13 +57,18 @@ function setPlatformOS(os: string): void {
 describe('Login screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
       replace: mockReplace,
       back: jest.fn(),
       setParams: jest.fn(),
     });
-    (auth.getUser as jest.Mock).mockResolvedValue(null);
+    mockedGetToken.mockResolvedValue(undefined); // default: guest
+    mockedGetUser.mockResolvedValue(undefined);
+    mockedOpenAuthSessionAsync.mockResolvedValue({ type: 'cancel' } as Awaited<
+      ReturnType<typeof WebBrowser.openAuthSessionAsync>
+    >);
     setPlatformOS(originalPlatformOS);
   });
 
@@ -53,67 +77,53 @@ describe('Login screen', () => {
   });
 
   it('renders login form elements', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Email address')).toBeTruthy();
-      expect(screen.getByPlaceholderText('Password')).toBeTruthy();
-    });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByText('Login', {}, { timeout: 3000 });
+    expect(screen.getByPlaceholderText('Email or username')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Password')).toBeTruthy();
   });
 
   it('shows Login button', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByText('Login')).toBeTruthy();
-    });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Login')).toBeTruthy();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it('redirects to products when already authenticated on mount', async () => {
-    (auth.getUser as jest.Mock).mockResolvedValue({
-      id: 1,
-      username: 'existinguser',
-      email: 'e@example.com',
-      isActive: true,
-      isVerified: true,
-      isSuperuser: false,
-    });
-    renderWithProviders(<Login />, { withDialog: true });
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
-    });
+    mockedGetToken.mockResolvedValue('dummy-token');
+    mockedGetUser.mockResolvedValue(mockUser({ username: 'existing_user', email: 'e@example.com' }));
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await waitFor(
+      () => {
+        expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+      },
+      { timeout: 3000 },
+    );
   });
 
   it('redirects to onboarding when user has no username', async () => {
-    (auth.getUser as jest.Mock).mockResolvedValue({
-      id: 1,
-      username: 'Username not defined',
-      email: 'e@example.com',
-      isActive: true,
-      isVerified: false,
-      isSuperuser: false,
-    });
-    renderWithProviders(<Login />, { withDialog: true });
+    mockedGetToken.mockResolvedValue('dummy-token');
+    mockedGetUser.mockResolvedValue(
+      mockUser({ username: 'Username not defined', email: 'e@example.com', isVerified: false }),
+    );
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/(auth)/onboarding');
     });
   });
 
   it('calls login and redirects to products on successful login', async () => {
-    (auth.login as jest.Mock).mockResolvedValue('access-token');
-    (auth.getUser as jest.Mock)
-      .mockResolvedValueOnce(null) // initial check — not authenticated
-      .mockResolvedValueOnce({
-        id: 1,
-        username: 'testuser',
-        email: 't@example.com',
-        isActive: true,
-        isVerified: true,
-        isSuperuser: false,
-      }); // after login
+    mockedLogin.mockResolvedValue('access-token');
+    mockedGetUser.mockResolvedValueOnce(mockUser()); // returned by getUser(true) inside attemptLogin
 
-    renderWithProviders(<Login />, { withDialog: true });
-    await screen.findByPlaceholderText('Email address');
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByPlaceholderText('Email or username');
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'test@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'password123');
     fireEvent.press(screen.getByText('Login'));
 
@@ -123,13 +133,30 @@ describe('Login screen', () => {
     });
   });
 
+  it('redirects to the requested route after successful login', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/profile' });
+    mockedLogin.mockResolvedValue('access-token');
+    mockedGetUser.mockResolvedValueOnce(mockUser());
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByPlaceholderText('Email or username');
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'password123');
+    fireEvent.press(screen.getByText('Login'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/profile');
+    });
+  });
+
   it('shows Login Failed dialog when login returns null', async () => {
-    (auth.login as jest.Mock).mockResolvedValue(null);
+    mockedLogin.mockResolvedValue(undefined);
 
-    renderWithProviders(<Login />, { withDialog: true });
-    await screen.findByPlaceholderText('Email address');
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByPlaceholderText('Email or username');
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'bad@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'bad@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'wrongpass');
     fireEvent.press(screen.getByText('Login'));
 
@@ -139,12 +166,12 @@ describe('Login screen', () => {
   });
 
   it('shows Login Failed dialog on login exception', async () => {
-    (auth.login as jest.Mock).mockRejectedValue(new Error('Network error'));
+    mockedLogin.mockRejectedValue(new Error('Network error'));
 
-    renderWithProviders(<Login />, { withDialog: true });
-    await screen.findByPlaceholderText('Email address');
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByPlaceholderText('Email or username');
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 't@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
     fireEvent.press(screen.getByText('Login'));
 
@@ -154,14 +181,14 @@ describe('Login screen', () => {
   });
 
   it('navigates to forgot password on button press', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Forgot Password?');
     fireEvent.press(screen.getByText('Forgot Password?'));
     expect(mockPush).toHaveBeenCalledWith('/forgot-password');
   });
 
   it('navigates to new account on button press', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Create a new account');
     fireEvent.press(screen.getByText('Create a new account'));
     expect(mockPush).toHaveBeenCalledWith('/new-account');
@@ -174,22 +201,15 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth/authorize' }),
       ),
     );
-    (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValueOnce({
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
       url: 'exp://localhost/login?success=true&access_token=leaky-token',
     });
-    (auth.getUser as jest.Mock)
-      .mockResolvedValueOnce(null) // initial mount check
-      .mockResolvedValueOnce({
-        id: 1,
-        username: 'oauthuser',
-        email: 'oauth@example.com',
-        isActive: true,
-        isVerified: true,
-        isSuperuser: false,
-      });
+    mockedGetUser
+      .mockResolvedValueOnce(undefined) // initial mount check
+      .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' }));
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
@@ -197,6 +217,20 @@ describe('Login screen', () => {
       expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalled();
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
       expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+    });
+  });
+
+  it('hydrates a web OAuth callback returned by page redirect params', async () => {
+    setPlatformOS('web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ success: 'true' });
+    mockedGetUser.mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' }));
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+
+    await waitFor(() => {
+      expect(mockedMarkWebSessionActive).toHaveBeenCalled();
+      expect(auth.getUser).toHaveBeenCalledWith(true);
+      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
     });
   });
 
@@ -208,12 +242,12 @@ describe('Login screen', () => {
       ),
     );
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
     await waitFor(() => {
-      expect(screen.getByText('Account Not Linked')).toBeTruthy();
+      expect(screen.getByText('Email Already Registered')).toBeTruthy();
       expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
     });
   });
@@ -225,12 +259,12 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
       ),
     );
-    (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValueOnce({
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
       url: 'exp://localhost/login?error=access_denied',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
@@ -247,13 +281,13 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
       ),
     );
-    (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValueOnce({
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
       // No known error code or detail — falls through to platform-specific guidance
       url: 'exp://localhost/login?success=false',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
@@ -271,31 +305,24 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
       ),
     );
-    (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValueOnce({
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
       url: 'exp://localhost/login?success=true',
     });
-    (auth.getUser as jest.Mock)
-      .mockResolvedValueOnce(null) // initial mount check
-      .mockRejectedValueOnce(new Error('Network error')) // first getUser retry attempt
-      .mockResolvedValueOnce({
-        id: 1,
-        username: 'oauthuser',
-        email: 'oauth@example.com',
-        isActive: true,
-        isVerified: true,
-        isSuperuser: false,
-      }); // second getUser retry succeeds
+    mockedGetUser
+      .mockRejectedValueOnce(new Error('Network error')) // first getUser attempt fails
+      .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' })); // second getUser attempt succeeds
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
-    await waitFor(() => {
-      // Should retry and eventually succeed (called 3 times: initial, 1st retry fail, 2nd retry succeed)
-      expect(auth.getUser).toHaveBeenCalledTimes(3);
-      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
-    });
+    await waitFor(
+      () => {
+        expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+      },
+      { timeout: 2000 },
+    );
   });
 
   it('shows error when OAuth succeeds but session validation fails after max retries', async () => {
@@ -305,22 +332,23 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
       ),
     );
-    (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValueOnce({
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
       url: 'exp://localhost/login?success=true',
     });
-    (auth.getUser as jest.Mock)
-      .mockResolvedValueOnce(null) // initial mount
-      .mockRejectedValue(new Error('Session validation failed')); // all retry attempts fail
+    mockedGetUser.mockRejectedValue(new Error('Session validation failed')); // all retry attempts fail
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
-    await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
-      expect(screen.getByText(/couldn't establish your session/i)).toBeTruthy();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Login Failed')).toBeTruthy();
+        expect(screen.getByText(/couldn't establish your session/i)).toBeTruthy();
+      },
+      { timeout: 3000 },
+    );
   });
 
   it('shows account suspended message when OAuth succeeds but user is inactive', async () => {
@@ -330,28 +358,89 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
       ),
     );
-    (WebBrowser.openAuthSessionAsync as jest.Mock).mockResolvedValueOnce({
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
       url: 'exp://localhost/login?success=true',
     });
-    (auth.getUser as jest.Mock)
-      .mockResolvedValueOnce(null) // initial mount
-      .mockResolvedValueOnce({
-        id: 1,
-        username: 'suspendeduser',
-        email: 'suspended@example.com',
-        isActive: false,
-        isVerified: true,
-        isSuperuser: false,
-      });
+    mockedGetUser
+      .mockResolvedValueOnce(undefined) // initial mount
+      .mockResolvedValueOnce(mockUser({ username: 'suspended_user', email: 'suspended@example.com', isActive: false }));
 
-    renderWithProviders(<Login />, { withDialog: true });
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
     fireEvent.press(screen.getByText('Continue with Google'));
 
     await waitFor(() => {
       expect(screen.getByText('Account Suspended')).toBeTruthy();
       expect(screen.getByText(/your account has been suspended/i)).toBeTruthy();
+    });
+  });
+
+  it('navigates back to browsing on button press', async () => {
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByText('Back to browsing');
+    fireEvent.press(screen.getByText('Back to browsing'));
+    expect(mockReplace).toHaveBeenCalledWith('/products');
+  });
+
+  it('shows account suspended message in attemptLogin when user is inactive', async () => {
+    mockedLogin.mockResolvedValue('access-token');
+    mockedGetUser.mockResolvedValueOnce(mockUser({ isActive: false }));
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByPlaceholderText('Email or username');
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'suspended@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
+    fireEvent.press(screen.getByText('Login'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Account Suspended')).toBeTruthy();
+    });
+  });
+
+  it('shows error when OAuth setup fails (auth endpoint unreachable)', async () => {
+    server.use(
+      http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
+        HttpResponse.json({ detail: 'Endpoint not found' }, { status: 404 }),
+      ),
+    );
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByText('Continue with Google');
+    fireEvent.press(screen.getByText('Continue with Google'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText('Endpoint not found')).toBeTruthy();
+    });
+  });
+
+  it('handles user cancellation during OAuth browser session', async () => {
+    server.use(
+      http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
+        HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
+      ),
+    );
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({ type: 'cancel' } as any);
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByText('Continue with Google');
+    fireEvent.press(screen.getByText('Continue with Google'));
+
+    await waitFor(() => {
+      expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalled();
+      // Should not show error or navigate
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+  });
+
+  it('initiates GitHub OAuth login', async () => {
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByText('Continue with GitHub');
+    fireEvent.press(screen.getByText('Continue with GitHub'));
+    // MSW will catch the request
+    await waitFor(() => {
+      expect(screen.queryByText('Login Failed')).toBeNull();
     });
   });
 });

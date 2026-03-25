@@ -13,9 +13,10 @@ jest.mock('@/services/api/fetching', () => ({
   apiFetch: jest.fn(),
 }));
 
-const mockGetToken = auth.getToken as jest.Mock;
-const mockApiFetch = fetching.apiFetch as jest.Mock;
-const mockGetProduct = fetching.getProduct as jest.Mock;
+const mockGetToken = jest.mocked(auth.getToken);
+const mockApiFetch = jest.mocked(fetching.apiFetch);
+const mockGetProduct = jest.mocked(fetching.getProduct);
+const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 // Minimal valid product
 const baseProduct: Product = {
@@ -48,7 +49,7 @@ function mockApiFetchOk(body: unknown = {}) {
     ok: true,
     status: 200,
     json: async () => body,
-  });
+  } as Response);
 }
 function mockApiFetchError(status = 400, body: unknown = { detail: 'Error' }) {
   mockApiFetch.mockResolvedValueOnce({
@@ -56,7 +57,7 @@ function mockApiFetchError(status = 400, body: unknown = { detail: 'Error' }) {
     status,
     statusText: 'Bad Request',
     json: async () => body,
-  });
+  } as Response);
 }
 
 describe('Saving API Service', () => {
@@ -90,7 +91,7 @@ describe('Saving API Service', () => {
 
       await saveProduct(componentProduct);
 
-      const calledUrl = mockApiFetch.mock.calls[0][0].href;
+      const calledUrl = (mockApiFetch.mock.calls[0]?.[0] as URL).href;
       expect(calledUrl).toContain('/products/5/components');
     });
 
@@ -100,7 +101,7 @@ describe('Saving API Service', () => {
 
       await saveProduct(componentProduct);
 
-      const body = JSON.parse(mockApiFetch.mock.calls[0][1].body);
+      const body = JSON.parse(mockApiFetch.mock.calls[0]?.[1]?.body as string);
       expect(body.amount_in_parent).toBe(3);
     });
 
@@ -109,7 +110,7 @@ describe('Saving API Service', () => {
 
       await saveProduct({ ...baseProduct });
 
-      const body = JSON.parse(mockApiFetch.mock.calls[0][1].body);
+      const body = JSON.parse(mockApiFetch.mock.calls[0]?.[1]?.body as string);
       expect(body.amount_in_parent).toBeUndefined();
     });
 
@@ -133,7 +134,7 @@ describe('Saving API Service', () => {
       await saveProduct(existingProduct);
 
       const calls = mockApiFetch.mock.calls;
-      expect(calls.some((c) => (c[0] as URL).href.includes('/products/42') && c[1].method === 'PATCH')).toBe(true);
+      expect(calls.some((c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH')).toBe(true);
       expect(calls.some((c) => (c[0] as URL).href.includes('physical_properties'))).toBe(true);
       expect(calls.some((c) => (c[0] as URL).href.includes('circularity_properties'))).toBe(true);
     });
@@ -172,36 +173,31 @@ describe('Saving API Service', () => {
 
   describe('image management during save', () => {
     it("deletes images that are not in the new product's image list", async () => {
+      const originalImages = [{ id: 10, url: 'http://example.com/img.jpg', description: 'old' }];
       const productWithExistingImage = {
         ...baseProduct,
         id: 42 as number | 'new',
         images: [], // no images in new version
       };
-      // getProduct returns current state with one image
-      mockGetProduct.mockResolvedValue({
-        ...baseProduct,
-        id: 42,
-        images: [{ id: 10, url: 'http://example.com/img.jpg', description: 'old' }],
-        videos: [],
-      });
       mockApiFetchOk({ id: 42 }); // PATCH product
       mockApiFetchOk({}); // PATCH physical
       mockApiFetchOk({ id: 42 }); // PATCH circularity
       mockApiFetchOk({}); // DELETE image/10
 
-      await saveProduct(productWithExistingImage);
+      await saveProduct(productWithExistingImage, originalImages);
 
       const deleteCalls = mockApiFetch.mock.calls.filter(
-        (c) => (c[0] as URL).href.includes('/images/') && c[1].method === 'DELETE',
+        (c) => (c[0] as URL).href.includes('/images/') && c[1]?.method === 'DELETE',
       );
       expect(deleteCalls).toHaveLength(1);
     });
 
     it('adds images that have no id', async () => {
       // Mock fetch for the blob download path
-      global.fetch = jest.fn().mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         blob: async () => new Blob(['data'], { type: 'image/png' }),
-      }) as jest.Mock;
+      } as Response);
+      global.fetch = mockFetch;
 
       const productWithNewImage = {
         ...baseProduct,
@@ -217,7 +213,7 @@ describe('Saving API Service', () => {
       await saveProduct(productWithNewImage);
 
       const addCalls = mockApiFetch.mock.calls.filter(
-        (c) => (c[0] as URL).href.includes('/images') && c[1].method === 'POST',
+        (c) => (c[0] as URL).href.includes('/images') && c[1]?.method === 'POST',
       );
       expect(addCalls).toHaveLength(1);
     });
@@ -239,52 +235,42 @@ describe('Saving API Service', () => {
       await saveProduct(product);
 
       const videoCalls = mockApiFetch.mock.calls.filter(
-        (c) => (c[0] as URL).href.includes('/videos') && c[1].method === 'POST',
+        (c) => (c[0] as URL).href.includes('/videos') && c[1]?.method === 'POST',
       );
       expect(videoCalls).toHaveLength(1);
     });
 
     it('deletes removed videos', async () => {
+      const originalVideos = [{ id: 5, url: 'https://old.com', description: '', title: 'Old' }];
       const product = { ...baseProduct, id: 42 as number | 'new', videos: [] };
-      mockGetProduct.mockResolvedValue({
-        ...baseProduct,
-        id: 42,
-        images: [],
-        videos: [{ id: 5, url: 'https://old.com', description: '', title: 'Old' }],
-      });
 
       mockApiFetchOk({ id: 42 }); // product PATCH
       mockApiFetchOk({}); // physical PATCH
       mockApiFetchOk({ id: 42 }); // circularity PATCH
       mockApiFetchOk({}); // DELETE video
 
-      await saveProduct(product);
+      await saveProduct(product, [], originalVideos);
 
       const delCalls = mockApiFetch.mock.calls.filter(
-        (c) => (c[0] as URL).href.includes('/videos/5') && c[1].method === 'DELETE',
+        (c) => (c[0] as URL).href.includes('/videos/5') && c[1]?.method === 'DELETE',
       );
       expect(delCalls).toHaveLength(1);
     });
 
     it('updates changed videos', async () => {
+      const originalVideos = [{ id: 5, url: 'https://old.com', description: '', title: 'Old Title' }];
       const updated = { id: 5, url: 'https://new.com', description: 'updated', title: 'New Title' };
       const product = { ...baseProduct, id: 42 as number | 'new', videos: [updated] };
-      mockGetProduct.mockResolvedValue({
-        ...baseProduct,
-        id: 42,
-        images: [],
-        videos: [{ id: 5, url: 'https://old.com', description: '', title: 'Old Title' }],
-      });
 
       mockApiFetchOk({ id: 42 }); // product PATCH
       mockApiFetchOk({}); // physical PATCH
       mockApiFetchOk({ id: 42 }); // circularity PATCH
       mockApiFetchOk({}); // PATCH video
 
-      await saveProduct(product);
+      await saveProduct(product, [], originalVideos);
 
       const updateCalls = mockApiFetch.mock.calls.filter(
-        (c) => (c[0] as URL).href.includes('/videos/5') && c[1].method === 'PATCH',
+        (c) => (c[0] as URL).href.includes('/videos/5') && c[1]?.method === 'PATCH',
       );
       expect(updateCalls).toHaveLength(1);
     });

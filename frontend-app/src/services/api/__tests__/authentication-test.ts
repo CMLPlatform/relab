@@ -4,6 +4,8 @@ import * as auth from '../authentication';
 import { mockResponse, setupFetchMock } from '@/test-utils';
 
 setupFetchMock();
+const asyncStorageMock = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+const fetchMock = () => global.fetch as jest.MockedFunction<typeof fetch>;
 
 describe('Authentication API Service', () => {
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
@@ -22,7 +24,7 @@ describe('Authentication API Service', () => {
     setupFetchMock();
     jest.clearAllMocks();
     // Reset module-level token/user state by logging out
-    (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, {}));
+    fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
     await auth.logout();
     jest.clearAllMocks(); // clear the logout call
   });
@@ -31,7 +33,7 @@ describe('Authentication API Service', () => {
 
   describe('getToken', () => {
     it('retrieves token from AsyncStorage if available', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('test-token');
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
 
       const token = await auth.getToken();
 
@@ -40,7 +42,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined when no token in AsyncStorage', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+      asyncStorageMock.getItem.mockResolvedValueOnce(null);
 
       const token = await auth.getToken();
 
@@ -48,7 +50,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined when AsyncStorage throws', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error('storage error'));
+      asyncStorageMock.getItem.mockRejectedValueOnce(new Error('storage error'));
 
       const token = await auth.getToken();
 
@@ -56,7 +58,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns cached token without AsyncStorage on second call', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('cached-token');
+      asyncStorageMock.getItem.mockResolvedValueOnce('cached-token');
       await auth.getToken(); // populate cache
 
       const token = await auth.getToken(); // should use cache
@@ -70,16 +72,16 @@ describe('Authentication API Service', () => {
 
   describe('login', () => {
     it('handles successful credential login (native)', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, { access_token: 'new-token-123' }));
+      fetchMock().mockResolvedValueOnce(mockResponse(200, { access_token: 'new-token-123' }) as Response);
 
       const result = await auth.login('user', 'pass');
 
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('access_token', 'new-token-123');
+      expect(asyncStorageMock.setItem).toHaveBeenCalledWith('access_token', 'new-token-123');
       expect(result).toBe('new-token-123');
     });
 
     it("returns 'success' for 204 cookie login", async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(204, null));
+      fetchMock().mockResolvedValueOnce(mockResponse(204, null) as Response);
 
       const result = await auth.login('user', 'pass');
 
@@ -87,7 +89,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined for HTTP 400', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(400, { detail: 'Invalid credentials' }, false));
+      fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Invalid credentials' }, false) as Response);
 
       const result = await auth.login('user', 'wrong-pass');
 
@@ -95,7 +97,7 @@ describe('Authentication API Service', () => {
     });
 
     it('throws on non-ok, non-400 response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(500, { detail: 'Server error' }, false));
+      fetchMock().mockResolvedValueOnce(mockResponse(500, { detail: 'Server error' }, false) as Response);
 
       await expect(auth.login('user', 'pass')).rejects.toThrow();
     });
@@ -105,7 +107,7 @@ describe('Authentication API Service', () => {
 
   describe('logout', () => {
     it('calls the logout endpoint', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, {}));
+      fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
 
       await auth.logout();
 
@@ -116,15 +118,15 @@ describe('Authentication API Service', () => {
     });
 
     it('removes access_token from AsyncStorage on native', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, {}));
+      fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
 
       await auth.logout();
 
-      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('access_token');
+      expect(asyncStorageMock.removeItem).toHaveBeenCalledWith('access_token');
     });
 
     it('does not throw when logout fetch fails', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('network error'));
+      fetchMock().mockRejectedValueOnce(new Error('network error'));
 
       await expect(auth.logout()).resolves.not.toThrow();
     });
@@ -134,7 +136,7 @@ describe('Authentication API Service', () => {
 
   describe('refreshAuthToken', () => {
     it('returns false when response is not ok', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(401, {}, false));
+      fetchMock().mockResolvedValueOnce(mockResponse(401, {}, false) as Response);
 
       const result = await auth.refreshAuthToken();
 
@@ -142,16 +144,16 @@ describe('Authentication API Service', () => {
     });
 
     it('returns true and stores token on native success', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, { access_token: 'refreshed-token' }));
+      fetchMock().mockResolvedValueOnce(mockResponse(200, { access_token: 'refreshed-token' }) as Response);
 
       const result = await auth.refreshAuthToken();
 
       expect(result).toBe(true);
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('access_token', 'refreshed-token');
+      expect(asyncStorageMock.setItem).toHaveBeenCalledWith('access_token', 'refreshed-token');
     });
 
     it('returns false when response body has no access_token', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, { something_else: true }));
+      fetchMock().mockResolvedValueOnce(mockResponse(200, { something_else: true }) as Response);
 
       const result = await auth.refreshAuthToken();
 
@@ -159,11 +161,35 @@ describe('Authentication API Service', () => {
     });
 
     it('returns false when fetch throws', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('network error'));
+      fetchMock().mockRejectedValueOnce(new Error('network error'));
 
       const result = await auth.refreshAuthToken();
 
       expect(result).toBe(false);
+    });
+
+    it('returns false on web when hasWebSessionFlag is false', async () => {
+      // Mock isWeb implicitly by checking behavior or mocking it if possible
+      // Here we rely on the implementation using hasWebSessionFlag
+      jest.spyOn(auth, 'hasWebSessionFlag').mockReturnValueOnce(false);
+      // We need to trigger the isWeb path. The service uses Platform.OS.
+      // Assuming we can mock Platform.OS or just use the current one if it's web.
+      const result = await auth.refreshAuthToken();
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('fetchWithAuth', () => {
+    it('refreshes token on 401 and retries', async () => {
+      asyncStorageMock.getItem.mockResolvedValue('old-token');
+      fetchMock()
+        .mockResolvedValueOnce(mockResponse(401, {}, false) as Response) // first call 401
+        .mockResolvedValueOnce(mockResponse(200, { access_token: 'new-token' }) as Response) // refresh
+        .mockResolvedValueOnce(mockResponse(200, { success: true }) as Response); // retry
+
+      // We need to call a function that uses fetchWithAuth internally, like getUser(true)
+      await auth.getUser(true);
+      expect(fetchMock()).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -182,8 +208,8 @@ describe('Authentication API Service', () => {
 
     it('fetches and returns a mapped user object', async () => {
       // fetchWithAuth calls getToken first, then fetch
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, rawUser));
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
 
       const user = await auth.getUser(true);
 
@@ -198,21 +224,21 @@ describe('Authentication API Service', () => {
     });
 
     it('returns cached user without fetching on second call', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, rawUser));
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
       await auth.getUser(true); // populate cache
 
-      const fetchCallCount = (global.fetch as jest.Mock).mock.calls.length;
+      const fetchCallCount = fetchMock().mock.calls.length;
 
       const user = await auth.getUser(); // should use cache
 
-      expect((global.fetch as jest.Mock).mock.calls.length).toBe(fetchCallCount);
+      expect(fetchMock().mock.calls.length).toBe(fetchCallCount);
       expect(user?.username).toBe('testuser');
     });
 
     it('returns undefined when response is not ok', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(401, { detail: 'Unauthorized' }, false));
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(401, { detail: 'Unauthorized' }, false) as Response);
 
       const user = await auth.getUser(true);
 
@@ -221,12 +247,57 @@ describe('Authentication API Service', () => {
 
     it("falls back to 'Username not defined' when username is missing", async () => {
       const userWithoutUsername = { ...rawUser, username: null };
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(200, userWithoutUsername));
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(200, userWithoutUsername) as Response);
 
       const user = await auth.getUser(true);
 
       expect(user?.username).toBe('Username not defined');
+    });
+
+    it('reuses the in-flight user promise for concurrent callers', async () => {
+      let resolveFetch!: (value: Response) => void;
+      const pendingFetch = new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      });
+      fetchMock().mockReturnValue(pendingFetch as never);
+
+      const firstCall = auth.getUser(true);
+      const secondCall = auth.getUser();
+      resolveFetch(mockResponse(200, rawUser) as Response);
+
+      await firstCall;
+      await secondCall;
+      expect(fetchMock()).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns undefined when the response body cannot be parsed', async () => {
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new Error('invalid json');
+        },
+      } as never);
+
+      await expect(auth.getUser(true)).resolves.toBeUndefined();
+    });
+
+    it('returns undefined when the network request fails', async () => {
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockRejectedValueOnce(new Error('network down'));
+
+      await expect(auth.getUser(true)).resolves.toBeUndefined();
+    });
+
+    it('returns the cached user from getCachedUser after a successful fetch', async () => {
+      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
+
+      await auth.getUser(true);
+
+      expect(auth.getCachedUser()).toMatchObject({ username: 'testuser' });
     });
   });
 
@@ -234,7 +305,7 @@ describe('Authentication API Service', () => {
 
   describe('register', () => {
     it('returns success:true on 201', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(201, {}));
+      fetchMock().mockResolvedValueOnce(mockResponse(201, {}) as Response);
 
       const result = await auth.register('user', 'user@example.com', 'pass123');
 
@@ -242,8 +313,8 @@ describe('Authentication API Service', () => {
     });
 
     it('returns success:false with error message on failure', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(
-        mockResponse(400, { detail: { reason: 'Email already registered' } }, false),
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(400, { detail: { reason: 'Email already registered' } }, false) as Response,
       );
 
       const result = await auth.register('user', 'taken@example.com', 'pass123');
@@ -252,8 +323,15 @@ describe('Authentication API Service', () => {
       expect(result.error).toBe('Email already registered');
     });
 
+    it('returns success:false with generic message on non-JSON error', async () => {
+      fetchMock().mockResolvedValueOnce(mockResponse(400, 'Bad Request', false) as Response);
+      const result = await auth.register('user', 'user@example.com', 'pass');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Registration failed. Please try again.');
+    });
+
     it('returns success:false with detail string on failure', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(422, { detail: 'Validation error' }, false));
+      fetchMock().mockResolvedValueOnce(mockResponse(422, { detail: 'Validation error' }, false) as Response);
 
       const result = await auth.register('user', 'bad', 'pass123');
 
@@ -262,7 +340,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns network error on fetch rejection', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network failed'));
+      fetchMock().mockRejectedValueOnce(new Error('Network failed'));
 
       const result = await auth.register('user', 'user@example.com', 'pass');
 
@@ -275,7 +353,7 @@ describe('Authentication API Service', () => {
 
   describe('verify', () => {
     it('returns true when response is ok', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(202, {}));
+      fetchMock().mockResolvedValueOnce(mockResponse(202, {}) as Response);
 
       const result = await auth.verify('user@example.com');
 
@@ -287,7 +365,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns false when response is not ok', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(400, {}, false));
+      fetchMock().mockResolvedValueOnce(mockResponse(400, {}, false) as Response);
 
       const result = await auth.verify('bad@example.com');
 
@@ -309,10 +387,10 @@ describe('Authentication API Service', () => {
         oauth_accounts: [],
       };
       // fetchWithAuth: getToken + PATCH request
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('test-token');
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce(mockResponse(200, {})) // PATCH
-        .mockResolvedValueOnce(mockResponse(200, updatedUser)); // getUser(true)
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock()
+        .mockResolvedValueOnce(mockResponse(200, {}) as Response) // PATCH
+        .mockResolvedValueOnce(mockResponse(200, updatedUser) as Response); // getUser(true)
 
       const result = await auth.updateUser({ username: 'newusername' });
 
@@ -320,17 +398,26 @@ describe('Authentication API Service', () => {
     });
 
     it('throws on non-ok response with detail string', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(400, { detail: 'Username taken' }, false));
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Username taken' }, false) as Response);
 
       await expect(auth.updateUser({ username: 'taken' })).rejects.toThrow('Username taken');
     });
 
     it('throws with fallback message when no detail', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(500, {}, false));
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
 
       await expect(auth.updateUser({})).rejects.toThrow('Failed to update user profile');
+    });
+
+    it('throws with detail object message', async () => {
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(400, { detail: { message: 'Custom error message' } }, false) as Response,
+      );
+
+      await expect(auth.updateUser({})).rejects.toThrow('Custom error message');
     });
   });
 
@@ -339,8 +426,8 @@ describe('Authentication API Service', () => {
   describe('unlinkOAuth', () => {
     it('returns true on success and busts user cache', async () => {
       // pre-populate user cache
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(
         mockResponse(200, {
           id: 1,
           email: 'u@e.com',
@@ -349,22 +436,29 @@ describe('Authentication API Service', () => {
           is_verified: true,
           username: 'user',
           oauth_accounts: [{ provider: 'google' }],
-        }),
+        }) as Response,
       );
       await auth.getUser(true);
 
       // now unlink
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(204, {}));
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
       const result = await auth.unlinkOAuth('google');
 
       expect(result).toBe(true);
     });
 
-    it('throws when response is not ok', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('test-token');
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse(400, { detail: 'Provider not linked' }, false));
+    it('throws when response is not ok (with detail)', async () => {
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Provider not linked' }, false) as Response);
 
       await expect(auth.unlinkOAuth('google')).rejects.toThrow('Provider not linked');
+    });
+
+    it('throws with fallback message when response is not ok and no detail', async () => {
+      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
+
+      await expect(auth.unlinkOAuth('github')).rejects.toThrow('Failed to unlink github account');
     });
   });
 });

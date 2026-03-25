@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Linking, Text, TouchableOpacity, View } from 'react-native';
-import { InfoTooltip, TextInput } from '@/components/base';
+import { Linking, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { TextInput } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { isValidUrl } from '@/services/api/validation/product';
 import { Product } from '@/types/Product';
 
@@ -22,6 +23,7 @@ interface Props {
 export default function ProductVideo({ product, editMode, onVideoChange }: Props) {
   const [videos, setVideos] = useState<Video[]>(product.videos || []);
   const dialog = useDialog();
+  const darkMode = useColorScheme() === 'dark';
 
   const handleVideoChange = (idx: number, field: 'url' | 'title' | 'description', value: string) => {
     const updated = videos.map((v, i) => (i === idx ? { ...v, [field]: value } : v));
@@ -58,32 +60,20 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
 
   return (
     <View>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-          paddingHorizontal: 14,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-          }}
-        >
-          Recordings <InfoTooltip title="Add uploaded recordings of the disassembly." />
-        </Text>
-        {editMode && (
-          <TouchableOpacity onPress={handleAdd} style={{ marginTop: 4 }}>
-            <Text style={{ color: 'blue' }}>Add recording</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <DetailSectionHeader
+        title="Recordings"
+        tooltipTitle="Add uploaded recordings of the disassembly."
+        rightElement={
+          editMode ? (
+            <TouchableOpacity onPress={handleAdd} style={{ marginTop: 4 }}>
+              <Text style={{ color: darkMode ? '#6dd5ed' : '#0062cc' }}>Add recording</Text>
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       {videos.length === 0 && (
-        <Text style={{ paddingHorizontal: 14, opacity: 0.7, marginBottom: 8 }}>
+        <Text style={{ opacity: 0.7, marginBottom: 8, color: darkMode ? '#c0c8cd' : '#666666' }}>
           This product has no associated recordings.
         </Text>
       )}
@@ -92,7 +82,13 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
         <View key={video.id ?? idx} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <TextInput
-              style={{ paddingHorizontal: 14, fontSize: 20, fontWeight: 'bold', lineHeight: 16 }}
+              style={{
+                paddingHorizontal: 14,
+                fontSize: 20,
+                fontWeight: 'bold',
+                lineHeight: 16,
+                color: darkMode ? '#e1e2e4' : '#000000',
+              }}
               placeholder={'Title'}
               value={video.title}
               onChangeText={(val) => handleVideoChange(idx, 'title', val)}
@@ -101,7 +97,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
             />
             {editMode ? (
               <TextInput
-                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 26 }}
+                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 26, color: darkMode ? '#e1e2e4' : '#000000' }}
                 placeholder={'Video URL'}
                 value={video.url}
                 onChangeText={(val) => handleVideoChange(idx, 'url', val)}
@@ -116,7 +112,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
                     paddingHorizontal: 14,
                     fontSize: 16,
                     lineHeight: 26,
-                    color: 'blue',
+                    color: darkMode ? '#6dd5ed' : '#0062cc',
                     textDecorationLine: 'underline',
                   }}
                 >
@@ -126,7 +122,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
             )}
             {(editMode || Boolean(video.description)) && (
               <TextInput
-                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 16 }}
+                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 16, color: darkMode ? '#e1e2e4' : '#000000' }}
                 placeholder={'Add description (optional)'}
                 value={video.description}
                 onChangeText={(val) => handleVideoChange(idx, 'description', val)}
@@ -136,6 +132,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
           </View>
           {editMode && (
             <TouchableOpacity
+              testID={`delete-video-${idx}`}
               onPress={() => handleRemove(idx)}
               style={{
                 padding: 14,

@@ -1,20 +1,31 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import Animated, { SensorType, useAnimatedSensor, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-
-import { ImageBackground } from 'expo-image';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { getUser, login } from '@/services/api/authentication';
 import { useDialog } from '@/components/common/DialogProvider';
+import { useAuth } from '@/context/AuthProvider';
+import { getUser, login, markWebSessionActive } from '@/services/api/authentication';
+import { apiFetch } from '@/services/api/fetching';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const OAUTH_ACCOUNT_NOT_LINKED_ERROR = 'OAUTH_USER_ALREADY_EXISTS';
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+function getSafeRedirectTarget(redirectTo: string | string[] | undefined): string | undefined {
+  if (typeof redirectTo !== 'string') {
+    return undefined;
+  }
+
+  if (!redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
+    return undefined;
+  }
+
+  return redirectTo;
+}
 
 function parseOAuthCallbackUrl(url: string): {
   success: boolean;
@@ -23,8 +34,8 @@ function parseOAuthCallbackUrl(url: string): {
 } {
   const callbackUrl = new URL(url.replace('#', '?'));
   const success = callbackUrl.searchParams.get('success') === 'true';
-  const error = callbackUrl.searchParams.get('error');
-  const detail = callbackUrl.searchParams.get('detail');
+  const error = callbackUrl.searchParams.get('error') ?? undefined;
+  const detail = callbackUrl.searchParams.get('detail') ?? undefined;
 
   return { success, error, detail };
 }
@@ -84,26 +95,25 @@ function isAccountNotLinkedError(detail: string | undefined): boolean {
 export default function Login() {
   // Hooks
   const router = useRouter();
+  const {
+    redirectTo,
+    success: oauthSuccess,
+    error: oauthError,
+    detail: oauthDetail,
+  } = useLocalSearchParams<{
+    redirectTo?: string | string[];
+    success?: string | string[];
+    error?: string | string[];
+    detail?: string | string[];
+  }>();
   const dialog = useDialog();
-  const rotation = useAnimatedSensor(SensorType.ROTATION, { interval: 20 });
+  const { user, isLoading: authLoading, refetch } = useAuth();
   const colorScheme = useColorScheme();
-
-  const backgroundStyle = useAnimatedStyle(() => {
-    const { pitch, roll } = rotation.sensor.value;
-    return {
-      transform: [
-        { translateX: withSpring(-roll * 80, { damping: 200 }) },
-        { translateY: withSpring(-pitch * 80, { damping: 200 }) },
-        { scale: 1.3 },
-      ],
-    };
-  });
-
-  // Variables
-  const image = colorScheme === 'light' ? require('@/assets/images/bg-1.jpg') : require('@/assets/images/bg-2.jpg');
+  const postLoginRedirect = getSafeRedirectTarget(redirectTo);
 
   // Refs
   const emailRef = useRef<any>(null);
+  const handledOAuthCallbackRef = useRef(false);
 
   // States
   const [email, setEmail] = useState('');
@@ -111,35 +121,141 @@ export default function Login() {
   const [keyboardShown, setKeyBoardShown] = useState(false);
 
   // Effects
+  // Redirect already-authenticated users away from the login page
   useEffect(() => {
-    const checkToken = async () => {
-      try {
-        const u = await getUser();
-        if (!u) {
-          return;
-        }
+    if (authLoading || !user) return;
 
-        if (!u.username || u.username === 'Username not defined') {
-          router.replace('/(auth)/onboarding');
-        } else {
-          router.replace({ pathname: '/products', params: { authenticated: 'true' } });
-        }
-      } catch (err) {
-        console.error('[Login useEffect] Failed to get token:', err);
-      }
-    };
-
-    checkToken();
-  }, [router]);
+    if (!user.username || user.username === 'Username not defined') {
+      router.replace('/(auth)/onboarding');
+    } else if (postLoginRedirect) {
+      // postLoginRedirect is validated by getSafeRedirectTarget to start with "/"
+      router.replace(postLoginRedirect as any);
+    } else {
+      router.replace({ pathname: '/products' });
+    }
+  }, [user, authLoading, router, postLoginRedirect]);
 
   useEffect(() => {
-    Keyboard.addListener('keyboardDidShow', () => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
       setKeyBoardShown(true);
     });
-    Keyboard.addListener('keyboardDidHide', () => {
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
       setKeyBoardShown(false);
     });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
   }, []);
+
+  const completeSuccessfulLogin = useCallback(
+    (authenticatedUser: NonNullable<Awaited<ReturnType<typeof getUser>>>) => {
+      refetch(false);
+
+      if (!authenticatedUser.username || authenticatedUser.username === 'Username not defined') {
+        router.replace('/(auth)/onboarding');
+      } else if (postLoginRedirect) {
+        router.replace(postLoginRedirect as any);
+      } else {
+        router.replace({ pathname: '/products' });
+      }
+    },
+    [postLoginRedirect, refetch, router],
+  );
+
+  const finalizeOAuthLogin = useCallback(
+    async ({ success, error, detail }: { success: boolean; error?: string; detail?: string }) => {
+      if (isAccountNotLinkedError(detail)) {
+        dialog.alert({
+          title: 'Email Already Registered',
+          message:
+            'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
+          buttons: [{ text: 'Cancel' }, { text: 'Sign in with password', onPress: () => emailRef.current?.focus() }],
+        });
+        return;
+      }
+
+      if (!success) {
+        const errorPlatform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
+        const errorMsg = getOAuthErrorMessage(error, detail, errorPlatform);
+        throw new Error(errorMsg);
+      }
+
+      if (Platform.OS === 'web') {
+        markWebSessionActive();
+      }
+
+      let authenticatedUser = null;
+      let retryCount = 0;
+      const maxRetries = 2;
+
+      while (retryCount <= maxRetries && !authenticatedUser) {
+        try {
+          authenticatedUser = await getUser(true);
+        } catch {
+          retryCount++;
+          if (retryCount > maxRetries) {
+            throw new Error(
+              "OAuth succeeded but we couldn't establish your session. " +
+                (Platform.OS !== 'web'
+                  ? 'Please try logging in again, or check your internet connection.'
+                  : 'Please try again.'),
+            );
+          }
+          await new Promise((resolve) => {
+            const timer = setTimeout(resolve, 300 * retryCount);
+            if (timer && typeof timer === 'object' && 'unref' in timer) {
+              (timer as any).unref();
+            }
+          });
+        }
+      }
+
+      if (!authenticatedUser) {
+        throw new Error('OAuth succeeded but session validation failed. Please try again.');
+      }
+
+      if (!authenticatedUser.isActive) {
+        dialog.alert({
+          title: 'Account Suspended',
+          message: 'Your account has been suspended. Please contact support for assistance.',
+        });
+        return;
+      }
+
+      completeSuccessfulLogin(authenticatedUser);
+    },
+    [completeSuccessfulLogin, dialog],
+  );
+
+  useEffect(() => {
+    if (handledOAuthCallbackRef.current) {
+      return;
+    }
+
+    const successParam = typeof oauthSuccess === 'string' ? oauthSuccess : undefined;
+    const errorParam = typeof oauthError === 'string' ? oauthError : undefined;
+    const detailParam = typeof oauthDetail === 'string' ? oauthDetail : undefined;
+    const hasOAuthCallbackParams = successParam !== undefined || errorParam !== undefined || detailParam !== undefined;
+
+    if (!hasOAuthCallbackParams) {
+      return;
+    }
+
+    handledOAuthCallbackRef.current = true;
+
+    finalizeOAuthLogin({
+      success: successParam === 'true',
+      error: errorParam,
+      detail: detailParam,
+    }).catch((err: any) => {
+      dialog.alert({
+        title: 'Login Failed',
+        message: err.message || 'OAuth login failed.',
+      });
+    });
+  }, [dialog, finalizeOAuthLogin, oauthDetail, oauthError, oauthSuccess]);
 
   // Callbacks
   const attemptLogin = async () => {
@@ -170,11 +286,7 @@ export default function Login() {
         return;
       }
 
-      if (!u.username || u.username === 'Username not defined') {
-        router.replace('/(auth)/onboarding');
-      } else {
-        router.replace({ pathname: '/products', params: { authenticated: 'true' } });
-      }
+      completeSuccessfulLogin(u);
     } catch (error: any) {
       dialog.alert({
         title: 'Login Failed',
@@ -190,9 +302,7 @@ export default function Login() {
       const authUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/oauth/${provider}/${transport}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       // The backend returns a JSON payload containing the actual authorization URL
-      const response = await fetch(authUrl, {
-        ...(Platform.OS === 'web' ? { credentials: 'include' } : {}),
-      });
+      const response = await apiFetch(authUrl);
       if (!response.ok) {
         let detail: string | undefined;
         try {
@@ -206,10 +316,7 @@ export default function Login() {
             title: 'Email Already Registered',
             message:
               'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
-            buttons: [
-              { text: 'Cancel' },
-              { text: 'Sign in with password', onPress: () => emailRef.current?.focus() },
-            ],
+            buttons: [{ text: 'Cancel' }, { text: 'Sign in with password', onPress: () => emailRef.current?.focus() }],
           });
           return;
         }
@@ -220,15 +327,24 @@ export default function Login() {
 
       // Open browser with timeout
       let result: any;
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(
           () => reject(new Error('OAuth browser session timed out. Please try again.')),
           OAUTH_BROWSER_TIMEOUT_MS,
-        ),
-      );
+        );
+      });
 
       const browserPromise = WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
-      result = await Promise.race([browserPromise, timeoutPromise]);
+
+      try {
+        result = await Promise.race([browserPromise, timeoutPromise]);
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
 
       if (result.type !== 'success' || !result.url) {
         // User cancelled the browser session
@@ -237,64 +353,7 @@ export default function Login() {
 
       const { success, error, detail } = parseOAuthCallbackUrl(result.url);
 
-      if (isAccountNotLinkedError(detail)) {
-        dialog.alert({
-          title: 'Email Already Registered',
-          message:
-            'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
-          buttons: [
-            { text: 'Cancel' },
-            { text: 'Sign in with password', onPress: () => emailRef.current?.focus() },
-          ],
-        });
-        return;
-      }
-
-      if (!success) {
-        const errorMsg = getOAuthErrorMessage(error, detail, (Platform.OS as any) !== 'web' ? Platform.OS : 'web');
-        throw new Error(errorMsg);
-      }
-
-      // Validate session with retry logic
-      let u = null;
-      let retryCount = 0;
-      const maxRetries = 2;
-
-      while (retryCount <= maxRetries && !u) {
-        try {
-          u = await getUser(true);
-        } catch (retryError: any) {
-          retryCount++;
-          if (retryCount > maxRetries) {
-            throw new Error(
-              "OAuth succeeded but we couldn't establish your session. " +
-                (Platform.OS !== 'web'
-                  ? 'Please try logging in again, or check your internet connection.'
-                  : 'Please try again.'),
-            );
-          }
-          // Wait before retrying
-          await new Promise((resolve) => setTimeout(resolve, 300 * retryCount));
-        }
-      }
-
-      if (!u) {
-        throw new Error('OAuth succeeded but session validation failed. Please try again.');
-      }
-
-      if (!u.isActive) {
-        dialog.alert({
-          title: 'Account Suspended',
-          message: 'Your account has been suspended. Please contact support for assistance.',
-        });
-        return;
-      }
-
-      if (!u.username || u.username === 'Username not defined') {
-        router.replace('/(auth)/onboarding');
-      } else {
-        router.replace({ pathname: '/products', params: { authenticated: 'true' } });
-      }
+      await finalizeOAuthLogin({ success, error, detail });
     } catch (err: any) {
       dialog.alert({
         title: 'Login Failed',
@@ -306,11 +365,6 @@ export default function Login() {
   // Render
   return (
     <View style={{ flex: 1 }}>
-      {Platform.OS !== 'web' && (
-        <Animated.Image source={image} style={[{ flex: 1, width: '180%', overflow: 'hidden' }, backgroundStyle]} />
-      )}
-      {Platform.OS === 'web' && <ImageBackground source={image} style={{ flex: 1 }} />}
-
       <View
         style={{
           padding: 20,
@@ -340,8 +394,16 @@ export default function Login() {
             textShadowRadius: 10,
           }}
         >
-          {'ReLab.'}
+          {'RELab.'}
         </Text>
+        <Button
+          mode="text"
+          onPress={() => router.replace('/products')}
+          style={{ alignSelf: 'flex-start', marginBottom: 8 }}
+        >
+          Back to browsing
+        </Button>
+
         <TextInput
           ref={emailRef}
           mode={'outlined'}
@@ -349,7 +411,7 @@ export default function Login() {
           onChangeText={setEmail}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="Email address"
+          placeholder="Email or username"
         />
         <TextInput
           mode={'outlined'}

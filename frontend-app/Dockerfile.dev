@@ -13,5 +13,6 @@ COPY . .
 
 EXPOSE 8081
 
-# Start the Expo dev server
+# Start the Expo dev server. Keep Metro's cache across restarts; use the
+# explicit dev-clean task when we actually need a cold cache.
 CMD ["npx", "expo", "start", "--port", "8081", "--web"]

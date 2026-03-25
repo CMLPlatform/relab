@@ -1,8 +1,8 @@
 import { Fragment } from 'react';
 import { View } from 'react-native';
 import { Divider } from 'react-native-paper';
-import { InfoTooltip, Text } from '@/components/base';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import Cube from '@/components/common/SVGCube';
 import { PhysicalProperties, Product } from '@/types/Product';
 
@@ -36,16 +36,10 @@ export default function ProductPhysicalProperties({ product, editMode, onChangeP
   // Render
   return (
     <View>
-      <Text
-        style={{
-          marginBottom: 12,
-          paddingLeft: 14,
-          fontSize: 24,
-          fontWeight: 'bold',
-        }}
-      >
-        Physical Properties <InfoTooltip title="Must be greater than 0. Assume a bounding box for the dimensions." />
-      </Text>
+      <DetailSectionHeader
+        title="Physical Properties"
+        tooltipTitle="Must be greater than 0. Assume a bounding box for the dimensions."
+      />
 
       <Cube
         width={product.physicalProperties.width}

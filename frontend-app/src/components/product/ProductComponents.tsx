@@ -3,11 +3,13 @@ import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 
 import { useRouter } from 'expo-router';
-import { InfoTooltip, Text } from '@/components/base';
+import { Text } from '@/components/base';
 import { useDialog } from '@/components/common/DialogProvider';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import ProductCard from '@/components/common/ProductCard';
 import { productComponents } from '@/services/api/fetching';
 import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
+import { setNewProductIntent } from '@/services/newProductStore';
 import { Product } from '@/types/Product';
 
 interface Props {
@@ -52,13 +54,12 @@ export default function ProductComponents({ product, editMode }: Props) {
               return;
             }
 
-            const params = {
-              id: 'new',
+            setNewProductIntent({
               name,
-              isComponent: 'true',
-              parent: product.id,
-            };
-            router.push({ pathname: '/products/[id]', params: params });
+              isComponent: true,
+              parentID: typeof product.id === 'number' ? product.id : undefined,
+            });
+            router.push({ pathname: '/products/[id]', params: { id: 'new' } });
           },
         },
       ],
@@ -68,18 +69,12 @@ export default function ProductComponents({ product, editMode }: Props) {
   // Render
   return (
     <View>
-      <Text
-        style={{
-          marginBottom: 12,
-          paddingLeft: 14,
-          fontSize: 24,
-          fontWeight: 'bold',
-        }}
-      >
-        Components ({product.componentIDs.length}) <InfoTooltip title="Add components after saving the product." />
-      </Text>
+      <DetailSectionHeader
+        title={`Components (${product.componentIDs.length})`}
+        tooltipTitle="Add components after saving the product."
+      />
       {components.length === 0 && (
-        <Text style={{ paddingHorizontal: 14, opacity: 0.7, marginBottom: 8 }}>This product has no subcomponents.</Text>
+        <Text style={{ opacity: 0.7, marginBottom: 8 }}>This product has no subcomponents.</Text>
       )}
       {components.map((component, index) => (
         <ProductCard key={component.id} product={component} enabled={!editMode} />

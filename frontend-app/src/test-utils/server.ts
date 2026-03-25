@@ -14,15 +14,9 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
  * `@/test-utils` — they give finer-grained per-call control.
  */
 export const handlers = [
-  http.post(`${API_URL}/auth/login`, () =>
-    HttpResponse.json({ access_token: 'test-token' }),
-  ),
-  http.post(`${API_URL}/auth/logout`, () =>
-    HttpResponse.json({}),
-  ),
-  http.post(`${API_URL}/auth/refresh`, () =>
-    HttpResponse.json({ access_token: 'refreshed-token' }),
-  ),
+  http.post(`${API_URL}/auth/login`, () => HttpResponse.json({ access_token: 'test-token' })),
+  http.post(`${API_URL}/auth/logout`, () => HttpResponse.json({})),
+  http.post(`${API_URL}/auth/refresh`, () => HttpResponse.json({ access_token: 'refreshed-token' })),
   http.get(`${API_URL}/users/me`, () =>
     HttpResponse.json({
       id: 1,
@@ -34,12 +28,23 @@ export const handlers = [
       oauth_accounts: [],
     }),
   ),
-  http.post(`${API_URL}/auth/register`, () =>
-    HttpResponse.json({}, { status: 201 }),
+  http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
+  http.get(`${API_URL}/products`, () => HttpResponse.json([])),
+  http.get(`${API_URL}/newsletter/me`, () =>
+    HttpResponse.json({
+      email: 'test@example.com',
+      subscribed: false,
+      is_confirmed: false,
+    }),
   ),
-  http.get(`${API_URL}/products`, () =>
-    HttpResponse.json([]),
-  ),
+  http.put(`${API_URL}/newsletter/me`, async ({ request }) => {
+    const body = (await request.json()) as { subscribed?: boolean };
+    return HttpResponse.json({
+      email: 'test@example.com',
+      subscribed: !!body.subscribed,
+      is_confirmed: !!body.subscribed,
+    });
+  }),
 ];
 
 /**

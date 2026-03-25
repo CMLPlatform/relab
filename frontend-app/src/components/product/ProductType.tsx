@@ -1,16 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { InfoTooltip, Text } from '@/components/base';
 import CPVCard from '@/components/common/CPVCard';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import { loadCPV } from '@/services/cpv';
 import { CPVCategory } from '@/types/CPVCategory';
 import { Product } from '@/types/Product';
-
-import cpvJSON from '@/assets/data/cpv.json';
-
-// HACK: This json includes a mapping to product types at the api.cml-relab.org backend and it WILL NOT WORK for local backends
-// TODO: This mapping is from the api.cml-relab.org backend. We should fetch this from the backend instead of hardcoding it here.
-const cpv = cpvJSON as Record<string, CPVCategory>;
 
 type searchParams = {
   typeSelection?: string;
@@ -26,6 +21,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   // Hooks
   const router = useRouter();
   const { typeSelection } = useLocalSearchParams<searchParams>();
+  const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
 
   // Effects
   useEffect(() => {
@@ -33,6 +29,19 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     router.setParams({ typeSelection: undefined });
     onTypeChange?.(parseInt(typeSelection));
   }, [onTypeChange, router, typeSelection]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    loadCPV().then((cpv) => {
+      if (!isMounted) return;
+      setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? cpv.root);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product.productTypeID]);
 
   // Callback
   const onTypeSelectionStart = () => {
@@ -43,17 +52,9 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
 
   // Render
   return (
-    <View style={{ padding: 14 }}>
-      <Text
-        style={{
-          marginBottom: 12,
-          fontSize: 24,
-          fontWeight: 'bold',
-        }}
-      >
-        Type or Material <InfoTooltip title="Select a fitting category for the product." />
-      </Text>
-      <CPVCard CPV={cpv[product.productTypeID || 'root']} onPress={editMode ? onTypeSelectionStart : undefined} />
+    <View>
+      <DetailSectionHeader title="Type or Material" tooltipTitle="Select a fitting category for the product." />
+      {selectedType ? <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} /> : null}
     </View>
   );
 }

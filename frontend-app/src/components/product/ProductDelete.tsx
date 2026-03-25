@@ -34,8 +34,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
       icon={'delete'}
       style={{
         marginTop: 10,
-        marginLeft: 19,
-        marginRight: 85,
+        marginHorizontal: 14,
         height: 54,
         backgroundColor: '#B00020',
         justifyContent: 'center',

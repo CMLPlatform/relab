@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
 import validator from 'validator';
+import { apiFetch } from '@/services/api/fetching';
 
 export default function ForgotPasswordScreen() {
   const theme = useTheme();
@@ -11,9 +12,23 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const isValidEmail = validator.isEmail(email);
 
+  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        router.replace('/login');
+      }, 5000);
+
+      if (timer && typeof timer === 'object' && 'unref' in timer) {
+        (timer as any).unref();
+      }
+
+      return () => clearTimeout(timer);
+    }
+  }, [success, router]);
 
   const handleForgotPassword = async () => {
     if (!email) {
@@ -25,21 +40,15 @@ export default function ForgotPasswordScreen() {
     setError(null);
 
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/forgot-password`, {
+      const response = await apiFetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/forgot-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
-        credentials: 'include',
       });
 
       if (response.ok) {
         setSuccess(true);
         setError(null);
-        setTimeout(() => {
-          router.replace('/login');
-        }, 5000);
       } else {
         const data = await response.json();
         setError(data.detail || 'Failed to send reset email');

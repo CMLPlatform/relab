@@ -1,16 +1,27 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { processImage } from '../imageProcessing';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-const mockSaveAsync = jest.fn();
-const mockRenderAsync = jest.fn();
-const mockResize = jest.fn();
-const mockManipulate = jest.fn();
+type SaveAsync = () => Promise<{ uri: string }>;
+type RenderAsync = () => Promise<{ saveAsync: jest.MockedFunction<SaveAsync> }>;
+type ResizeResult = {
+  renderAsync: jest.MockedFunction<RenderAsync>;
+  resize: (args: { width?: number; height?: number }) => ResizeResult;
+};
+type ResizeFn = (args: { width?: number; height?: number }) => ResizeResult;
+type ManipulateFn = (uri: string) => ResizeResult;
+
+const mockSaveAsync = jest.fn<() => Promise<{ uri: string }>>();
+const mockRenderAsync = jest.fn<() => Promise<{ saveAsync: typeof mockSaveAsync }>>();
+const mockResize = jest.fn<ResizeFn>();
+const mockManipulate = jest.fn<ManipulateFn>();
 
 jest.mock('expo-image-manipulator', () => ({
   ImageManipulator: {
-    manipulate: (...args: any[]) => mockManipulate(...args),
+    manipulate: mockManipulate,
   },
 }));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { processImage } = require('../imageProcessing') as typeof import('../imageProcessing');
 
 describe('processImage', () => {
   beforeEach(() => {
@@ -69,7 +80,7 @@ describe('processImage', () => {
   });
 
   it('processes image with no dimensions provided', async () => {
-    const asset = { uri: 'file://nodim.jpg' };
+    const asset = { uri: 'file://no_dim.jpg' };
     const result = await processImage(asset);
     expect(result).toBe('file://processed.jpg');
     expect(mockResize).not.toHaveBeenCalled();

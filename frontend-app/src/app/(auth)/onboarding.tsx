@@ -1,32 +1,18 @@
-import { ImageBackground } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import Animated, { SensorType, useAnimatedSensor, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { useDialog } from '@/components/common/DialogProvider';
+import { useAuth } from '@/context/AuthProvider';
 import { updateUser } from '@/services/api/authentication';
 
 export default function Onboarding() {
   const router = useRouter();
   const dialog = useDialog();
-  const rotation = useAnimatedSensor(SensorType.ROTATION, { interval: 20 });
+  const { refetch } = useAuth();
   const colorScheme = useColorScheme();
-
-  const backgroundStyle = useAnimatedStyle(() => {
-    const { pitch, roll } = rotation.sensor.value;
-    return {
-      transform: [
-        { translateX: withSpring(-roll * 80, { damping: 200 }) },
-        { translateY: withSpring(-pitch * 80, { damping: 200 }) },
-        { scale: 1.3 },
-      ],
-    };
-  });
-
-  const image = colorScheme === 'light' ? require('@/assets/images/bg-1.jpg') : require('@/assets/images/bg-2.jpg');
 
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +29,7 @@ export default function Onboarding() {
     setLoading(true);
     try {
       await updateUser({ username });
+      await refetch(false);
       router.replace({ pathname: '/products', params: { authenticated: 'true' } });
     } catch (error: any) {
       dialog.alert({
@@ -56,11 +43,6 @@ export default function Onboarding() {
 
   return (
     <View style={{ flex: 1 }}>
-      {Platform.OS !== 'web' && (
-        <Animated.Image source={image} style={[{ flex: 1, width: '180%', overflow: 'hidden' }, backgroundStyle]} />
-      )}
-      {Platform.OS === 'web' && <ImageBackground source={image} style={{ flex: 1 }} />}
-
       <View
         style={{
           padding: 20,

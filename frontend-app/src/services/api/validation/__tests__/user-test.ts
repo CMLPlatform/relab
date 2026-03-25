@@ -1,15 +1,15 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import {
-  validateUsername,
-  validateEmail,
-  validatePassword,
-  getUsernameHelperText,
   getEmailHelperText,
   getPasswordHelperText,
-  USERNAME_MIN_LENGTH,
-  USERNAME_MAX_LENGTH,
-  PASSWORD_MIN_LENGTH,
+  getUsernameHelperText,
   PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  validateEmail,
+  validatePassword,
+  validateUsername,
 } from '../user';
 
 describe('validateUsername', () => {
@@ -83,7 +83,7 @@ describe('validateEmail', () => {
   });
 
   it('returns invalid for missing @', () => {
-    const result = validateEmail('notanemail');
+    const result = validateEmail('not_an_email');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('valid email');
   });
@@ -153,7 +153,7 @@ describe('validatePassword', () => {
   });
 
   it('returns invalid when password contains the email local part', () => {
-    const result = validatePassword('passwordwithuserpart', undefined, 'userpart@example.com');
+    const result = validatePassword('password_with_user_part', undefined, 'user_part@example.com');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('email');
   });

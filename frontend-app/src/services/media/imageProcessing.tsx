@@ -16,9 +16,9 @@ export interface ImageProcessingError {
 }
 
 const DEFAULT_OPTIONS: Required<Omit<ImageProcessingOptions, 'onError'>> = {
-  maxWidth: 1920,
-  maxHeight: 1920,
-  compressionQuality: 0.8,
+  maxWidth: 4096,
+  maxHeight: 4096,
+  compressionQuality: 0.95,
   maxImageSizeMB: 10,
 };
 

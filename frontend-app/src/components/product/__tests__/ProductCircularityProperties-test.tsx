@@ -1,14 +1,13 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest } from '@jest/globals';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { TextInput } from 'react-native';
 import ProductCircularityProperties from '../ProductCircularityProperties';
+import { renderWithProviders, baseProduct as _base } from '@/test-utils';
 import type { Product, CircularityProperties } from '@/types/Product';
 
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return <PaperProvider>{children}</PaperProvider>;
-}
-
+// Extended circularity object with all optional fields explicitly set to null,
+// as required by the component's "property present" detection logic.
 const emptyCircularity: CircularityProperties = {
   recyclabilityObservation: '',
   remanufacturabilityObservation: '',
@@ -21,59 +20,24 @@ const emptyCircularity: CircularityProperties = {
   repairabilityReference: null,
 };
 
-const baseProduct: Product = {
-  id: 1,
-  name: 'Test Product',
-  productTypeID: undefined,
-  componentIDs: [],
-  physicalProperties: { weight: 100, width: 10, height: 5, depth: 3 },
-  circularityProperties: emptyCircularity,
-  images: [],
-  videos: [],
-  ownedBy: 'me',
-};
+const baseProduct: Product = { ..._base, circularityProperties: emptyCircularity };
 
 describe('ProductCircularityProperties', () => {
   it('renders the section heading', () => {
-    render(
-      <Wrapper>
-        <ProductCircularityProperties product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
     expect(screen.getByText(/Circularity Properties/)).toBeTruthy();
   });
 
   it("shows 'No associated circularity properties' in view mode with empty data", () => {
-    render(
-      <Wrapper>
-        <ProductCircularityProperties product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
     expect(screen.getByText('No associated circularity properties.')).toBeTruthy();
   });
 
   it('shows add-property chips in edit mode', () => {
-    render(
-      <Wrapper>
-        <ProductCircularityProperties product={baseProduct} editMode={true} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
     expect(screen.getByText('Recyclability')).toBeTruthy();
     expect(screen.getByText('Remanufacturability')).toBeTruthy();
     expect(screen.getByText('Repairability')).toBeTruthy();
-  });
-
-  it('calls onChangeCircularityProperties when a chip is pressed in editMode', async () => {
-    const onChange = jest.fn();
-    render(
-      <Wrapper>
-        <ProductCircularityProperties product={baseProduct} editMode={true} onChangeCircularityProperties={onChange} />
-      </Wrapper>,
-    );
-    fireEvent.press(screen.getByText('Recyclability'));
-    await waitFor(() => {
-      expect(onChange).toHaveBeenCalled();
-    });
   });
 
   it('renders property section when property has data', () => {
@@ -86,11 +50,7 @@ describe('ProductCircularityProperties', () => {
         recyclabilityObservation: '',
       },
     };
-    render(
-      <Wrapper>
-        <ProductCircularityProperties product={productWithData} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
     expect(screen.getByText('Recyclability')).toBeTruthy();
   });
 
@@ -104,29 +64,53 @@ describe('ProductCircularityProperties', () => {
         recyclabilityObservation: 'Some observation',
       },
     };
-    render(
-      <Wrapper>
-        <ProductCircularityProperties
-          product={productWithData}
-          editMode={true}
-          onChangeCircularityProperties={jest.fn()}
-        />
-      </Wrapper>,
+    renderWithProviders(
+      <ProductCircularityProperties
+        product={productWithData}
+        editMode={true}
+        onChangeCircularityProperties={jest.fn()}
+      />,
     );
-    // The property header title "Recyclability" should be shown (not just the chip)
-    const recyclabilityTexts = screen
-      .UNSAFE_getAllByType(require('react-native').Text)
-      .filter((el: any) => el.props.children === 'Recyclability');
-    // At least one text with that label exists (in the expanded section header)
-    expect(recyclabilityTexts.length).toBeGreaterThan(0);
+    // The property header title "Recyclability" appears at least once (in the expanded section)
+    expect(screen.getAllByText('Recyclability').length).toBeGreaterThan(0);
+  });
+
+  it('renders remanufacturability when only the comment field has content', () => {
+    const productWithData: Product = {
+      ...baseProduct,
+      circularityProperties: {
+        ...emptyCircularity,
+        remanufacturabilityComment: 'Can be refurbished',
+        remanufacturabilityObservation: '',
+        remanufacturabilityReference: null,
+      },
+    };
+
+    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+
+    expect(screen.getByText('Remanufacturability')).toBeTruthy();
+  });
+
+  it('renders repairability when only the reference field has content', () => {
+    const productWithData: Product = {
+      ...baseProduct,
+      circularityProperties: {
+        ...emptyCircularity,
+        repairabilityComment: null,
+        repairabilityObservation: '',
+        repairabilityReference: 'ISO 14021:2016',
+      },
+    };
+
+    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+
+    expect(screen.getByText('Repairability')).toBeTruthy();
   });
 
   it('calls onChangeCircularityProperties when chip is pressed to add recyclability', async () => {
     const onChange = jest.fn();
-    render(
-      <Wrapper>
-        <ProductCircularityProperties product={baseProduct} editMode={true} onChangeCircularityProperties={onChange} />
-      </Wrapper>,
+    renderWithProviders(
+      <ProductCircularityProperties product={baseProduct} editMode={true} onChangeCircularityProperties={onChange} />,
     );
     fireEvent.press(screen.getByText('Recyclability'));
     await waitFor(() => {
@@ -138,5 +122,104 @@ describe('ProductCircularityProperties', () => {
         }),
       );
     });
+  });
+
+  it('updates the editable fields for an expanded property', async () => {
+    const onChange = jest.fn();
+    const productWithData: Product = {
+      ...baseProduct,
+      circularityProperties: {
+        ...emptyCircularity,
+        recyclabilityObservation: 'Existing observation',
+        recyclabilityComment: 'Existing comment',
+        recyclabilityReference: 'Existing reference',
+      },
+    };
+    const { UNSAFE_root } = renderWithProviders(
+      <ProductCircularityProperties
+        product={productWithData}
+        editMode={true}
+        onChangeCircularityProperties={onChange}
+      />,
+    );
+
+    const expandButton = UNSAFE_root.findAll(
+      (node: any) => typeof node.props.onPress === 'function' && node.props.children?.props?.name === 'chevron-down',
+    )[0];
+    fireEvent.press(expandButton);
+
+    const inputs = await UNSAFE_root.findAllByType(TextInput);
+    expect(inputs.length).toBeGreaterThanOrEqual(3);
+
+    fireEvent.changeText(inputs[0], 'Can be recycled');
+    fireEvent.changeText(inputs[1], 'Observed in practice');
+    fireEvent.changeText(inputs[2], 'ISO 14021');
+
+    await waitFor(() => {
+      expect(
+        onChange.mock.calls.some((call) => {
+          const value = call[0] as Product['circularityProperties'];
+          return (
+            value.recyclabilityObservation === 'Can be recycled' &&
+            value.recyclabilityComment === 'Existing comment' &&
+            value.recyclabilityReference === 'Existing reference'
+          );
+        }),
+      ).toBe(true);
+      expect(
+        onChange.mock.calls.some((call) => {
+          const value = call[0] as Product['circularityProperties'];
+          return (
+            value.recyclabilityObservation === 'Existing observation' &&
+            value.recyclabilityComment === 'Observed in practice' &&
+            value.recyclabilityReference === 'Existing reference'
+          );
+        }),
+      ).toBe(true);
+      expect(
+        onChange.mock.calls.some((call) => {
+          const value = call[0] as Product['circularityProperties'];
+          return (
+            value.recyclabilityObservation === 'Existing observation' &&
+            value.recyclabilityComment === 'Existing comment' &&
+            value.recyclabilityReference === 'ISO 14021'
+          );
+        }),
+      ).toBe(true);
+    });
+  });
+
+  it('removes an existing property when the delete action is pressed', () => {
+    const onChange = jest.fn();
+    const productWithData: Product = {
+      ...baseProduct,
+      circularityProperties: {
+        ...emptyCircularity,
+        recyclabilityObservation: 'Observed',
+        recyclabilityComment: 'Comment',
+        recyclabilityReference: 'Reference',
+      },
+    };
+
+    const { UNSAFE_root } = renderWithProviders(
+      <ProductCircularityProperties
+        product={productWithData}
+        editMode={true}
+        onChangeCircularityProperties={onChange}
+      />,
+    );
+
+    const deleteButton = UNSAFE_root.findAll(
+      (node: any) => typeof node.props.onPress === 'function' && node.props.children?.props?.name === 'delete',
+    )[0];
+    fireEvent.press(deleteButton);
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recyclabilityObservation: '',
+        recyclabilityComment: null,
+        recyclabilityReference: null,
+      }),
+    );
   });
 });

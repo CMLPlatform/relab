@@ -1,15 +1,13 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { http, HttpResponse } from 'msw';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import ResetPasswordScreen from '../reset-password';
+import { renderWithProviders } from '@/test-utils';
+import { server } from '@/test-utils/server';
 
-global.fetch = jest.fn() as jest.Mock;
-
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return <PaperProvider>{children}</PaperProvider>;
-}
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 describe('ResetPasswordScreen', () => {
   beforeEach(() => {
@@ -24,11 +22,7 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('renders the Reset Password form', () => {
-    render(
-      <Wrapper>
-        <ResetPasswordScreen />
-      </Wrapper>,
-    );
+    renderWithProviders(<ResetPasswordScreen />);
     const elements = screen.getAllByText('Reset Password');
     expect(elements.length).toBeGreaterThanOrEqual(1);
   });
@@ -41,13 +35,8 @@ describe('ResetPasswordScreen', () => {
 
   it('shows error when no token is provided', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
-    render(
-      <Wrapper>
-        <ResetPasswordScreen />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'somepassword');
+    renderWithProviders(<ResetPasswordScreen />);
+    fireEvent.changeText(screen.getByTestId('password-input'), 'somepassword');
     pressResetButton();
     await waitFor(() => {
       expect(screen.getByText('No reset token provided')).toBeTruthy();
@@ -55,14 +44,9 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('shows success message on successful reset', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true });
-    render(
-      <Wrapper>
-        <ResetPasswordScreen />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'newpassword123');
+    server.use(http.post(`${API_URL}/auth/reset-password`, () => HttpResponse.json({}, { status: 200 })));
+    renderWithProviders(<ResetPasswordScreen />);
+    fireEvent.changeText(screen.getByTestId('password-input'), 'newpassword123');
     pressResetButton();
     await waitFor(() => {
       expect(screen.getByText(/Password reset successful/)).toBeTruthy();
@@ -70,17 +54,13 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('shows error on failed reset', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ detail: 'Token expired or invalid' }),
-    });
-    render(
-      <Wrapper>
-        <ResetPasswordScreen />
-      </Wrapper>,
+    server.use(
+      http.post(`${API_URL}/auth/reset-password`, () =>
+        HttpResponse.json({ detail: 'Token expired or invalid' }, { status: 400 }),
+      ),
     );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'newpassword123');
+    renderWithProviders(<ResetPasswordScreen />);
+    fireEvent.changeText(screen.getByTestId('password-input'), 'newpassword123');
     pressResetButton();
     await waitFor(() => {
       expect(screen.getByText('Token expired or invalid')).toBeTruthy();
@@ -88,14 +68,9 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('shows generic error when fetch throws', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-    render(
-      <Wrapper>
-        <ResetPasswordScreen />
-      </Wrapper>,
-    );
-    const input = screen.UNSAFE_getAllByType(require('react-native').TextInput)[0];
-    fireEvent.changeText(input, 'newpassword123');
+    server.use(http.post(`${API_URL}/auth/reset-password`, () => HttpResponse.error()));
+    renderWithProviders(<ResetPasswordScreen />);
+    fireEvent.changeText(screen.getByTestId('password-input'), 'newpassword123');
     pressResetButton();
     await waitFor(() => {
       expect(screen.getByText(/An error occurred during password reset/)).toBeTruthy();
@@ -110,11 +85,7 @@ describe('ResetPasswordScreen', () => {
       back: jest.fn(),
       setParams: jest.fn(),
     });
-    render(
-      <Wrapper>
-        <ResetPasswordScreen />
-      </Wrapper>,
-    );
+    renderWithProviders(<ResetPasswordScreen />);
     fireEvent.press(screen.getByText('Back to Login'));
     expect(mockPush).toHaveBeenCalledWith('/login');
   });

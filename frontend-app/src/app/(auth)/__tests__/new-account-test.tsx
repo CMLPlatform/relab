@@ -1,18 +1,33 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import React from 'react';
-import { screen, fireEvent, act, waitFor } from '@testing-library/react-native';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import NewAccount from '../new-account';
 import * as auth from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils';
+import type { User } from '@/types/User';
 
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
   register: jest.fn(),
 }));
 
+const mockRefetch = jest.fn();
+const mockUseAuth = jest.fn((): { user: User | null; isLoading: boolean; refetch: typeof mockRefetch } => ({
+  user: null,
+  isLoading: false,
+  refetch: mockRefetch,
+}));
+const mockedRegister = jest.mocked(auth.register);
+const mockedLogin = jest.mocked(auth.login);
+
+jest.mock('@/context/AuthProvider', () => ({
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 // Mock global alert (used by the screen to show errors)
-global.alert = jest.fn() as jest.Mock;
+global.alert = jest.fn();
 
 const mockNavigate = jest.fn();
 const mockReplace = jest.fn();
@@ -33,19 +48,19 @@ describe('NewAccount screen', () => {
   });
 
   it('renders the username section by default', () => {
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
     expect(screen.getByPlaceholderText('Username')).toBeTruthy();
     expect(screen.getByText('Who are you?')).toBeTruthy();
   });
 
   it('shows validation error for invalid username', () => {
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
     fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a'); // too short
     expect(screen.getByText(/at least 2/)).toBeTruthy();
   });
 
   it('chevron button is disabled for invalid username', () => {
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
     // With empty username, the chevron-right button should be disabled
     // We check by verifying no navigation happens
     const input = screen.getByPlaceholderText('Username');
@@ -55,106 +70,172 @@ describe('NewAccount screen', () => {
   });
 
   it('advances to email section with valid username', async () => {
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
     fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
-    // Find the chevron-right icon button and press it
-    const buttons = screen.getAllByRole('button');
-    // The chevron-right button should be the last or we can fire press via testId
-    // Use the fact that advancing shows "How do we reach you?"
-    await act(async () => {
-      // Tap chevron-right button (disabled check is done via props, pressing the enabled one)
-      const chevron = buttons.find((b) => !b.props.accessibilityState?.disabled);
-      if (chevron) fireEvent.press(chevron);
-    });
-    // After pressing, section should be 'email'
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+
     await waitFor(() => {
       expect(screen.getByText(/How do we reach you/)).toBeTruthy();
     });
   });
 
+  it('does not advance from username when invalid', async () => {
+    renderWithProviders(<NewAccount />, { withDialog: true });
+    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+
+    expect(screen.queryByText(/How do we reach you/)).toBeNull();
+  });
+
   it('shows email validation error for invalid email', async () => {
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
     // Navigate to email section
     fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
-    const buttons = screen.getAllByRole('button');
-    const enabledBtn = buttons.find((b) => !b.props.accessibilityState?.disabled);
-    if (enabledBtn) {
-      await act(async () => {
-        fireEvent.press(enabledBtn);
-      });
-    }
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
     await screen.findByPlaceholderText('Email address');
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'notanemail');
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'not_an_email');
     expect(screen.getByText(/valid email/)).toBeTruthy();
   });
 
   it('navigates to products on successful registration and login', async () => {
-    (auth.register as jest.Mock).mockResolvedValue({ success: true });
-    (auth.login as jest.Mock).mockResolvedValue('access-token');
+    mockedRegister.mockResolvedValue({ success: true });
+    mockedLogin.mockResolvedValue('access-token');
 
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
 
     // Username section
     fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
-    let buttons = screen.getAllByRole('button');
-    let enabledBtn = buttons.find((b) => !b.props.accessibilityState?.disabled);
-    await act(async () => {
-      if (enabledBtn) fireEvent.press(enabledBtn);
-    });
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
 
     // Email section
     await screen.findByPlaceholderText('Email address');
     fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
-    buttons = screen.getAllByRole('button');
-    enabledBtn = buttons.find((b) => !b.props.accessibilityState?.disabled);
-    await act(async () => {
-      if (enabledBtn) fireEvent.press(enabledBtn);
-    });
+    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
 
     // Password section
     await screen.findByPlaceholderText('Password');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
-    await act(async () => {
-      fireEvent.press(screen.getByText('Create Account'));
-    });
+    fireEvent.press(screen.getByText('Create Account'));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/products');
+      expect(mockReplace).toHaveBeenCalledWith('/products');
     });
   });
 
   it('shows error when registration fails', async () => {
-    (auth.register as jest.Mock).mockResolvedValue({ success: false, error: 'Email already in use' });
+    mockedRegister.mockResolvedValue({ success: false, error: 'Email already in use' });
 
-    renderWithProviders(<NewAccount />);
+    renderWithProviders(<NewAccount />, { withDialog: true });
 
     // Navigate to password section
     fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
-    let buttons = screen.getAllByRole('button');
-    let enabledBtn = buttons.find((b) => !b.props.accessibilityState?.disabled);
-    await act(async () => {
-      if (enabledBtn) fireEvent.press(enabledBtn);
-    });
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
     await screen.findByPlaceholderText('Email address');
     fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'taken@example.com');
-    buttons = screen.getAllByRole('button');
-    enabledBtn = buttons.find((b) => !b.props.accessibilityState?.disabled);
-    await act(async () => {
-      if (enabledBtn) fireEvent.press(enabledBtn);
-    });
+    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
     await screen.findByPlaceholderText('Password');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
 
-    await act(async () => {
-      fireEvent.press(screen.getByText('Create Account'));
-    });
+    fireEvent.press(screen.getByText('Create Account'));
 
     await waitFor(() => {
       expect(auth.register).toHaveBeenCalled();
     });
   });
 
+  it('shows validation alerts when "Create Account" is pressed with invalid data (force validation)', async () => {
+    renderWithProviders(<NewAccount />, { withDialog: true });
+
+    // Jump to password section manually via sections
+    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await screen.findByPlaceholderText('Email address');
+    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'valid@example.com');
+    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+
+    await screen.findByPlaceholderText('Password');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), '123'); // too short
+
+    fireEvent.press(screen.getByText('Create Account'));
+
+    await waitFor(() => {
+      // Dialog should be shown for invalid password (since it's the last check)
+      expect(screen.getByText('Invalid Password')).toBeTruthy();
+    });
+  });
+
+  it('navigates back through sections', async () => {
+    renderWithProviders(<NewAccount />, { withDialog: true });
+
+    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'testuser');
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+
+    await screen.findByPlaceholderText('Email address');
+    fireEvent.press(screen.getByText('Edit username'));
+
+    expect(screen.getByPlaceholderText('Username')).toBeTruthy();
+  });
+
+  it('navigates to login via "I already have an account"', () => {
+    renderWithProviders(<NewAccount />, { withDialog: true });
+    fireEvent.press(screen.getByText('I already have an account'));
+    expect(mockDismissTo).toHaveBeenCalledWith('/login');
+  });
+
   afterEach(() => {
     jest.useRealTimers();
+  });
+});
+
+describe('NewAccount – authenticated redirect', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useRouter as jest.Mock).mockReturnValue({
+      push: jest.fn(),
+      replace: mockReplace,
+      back: jest.fn(),
+      navigate: jest.fn(),
+      dismissTo: jest.fn(),
+      setParams: jest.fn(),
+    });
+  });
+
+  it('redirects to /products when a user is already logged in', async () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: '1',
+        email: 'a@b.com',
+        username: 'alice',
+        isActive: true,
+        isVerified: true,
+        isSuperuser: false,
+        oauth_accounts: [],
+      },
+      isLoading: false,
+      refetch: mockRefetch,
+    });
+
+    renderWithProviders(<NewAccount />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/products');
+    });
+  });
+
+  it('does not redirect while auth is still loading', async () => {
+    mockUseAuth.mockReturnValue({ user: null, isLoading: true, refetch: mockRefetch });
+
+    renderWithProviders(<NewAccount />, { withDialog: true });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('does not redirect when no user is logged in', async () => {
+    mockUseAuth.mockReturnValue({ user: null, isLoading: false, refetch: mockRefetch });
+
+    renderWithProviders(<NewAccount />, { withDialog: true });
+
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

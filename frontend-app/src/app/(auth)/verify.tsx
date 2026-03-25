@@ -2,15 +2,36 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
+import { useAuth } from '@/context/AuthProvider';
+import { apiFetch } from '@/services/api/fetching';
 
 export default function VerifyEmailScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { user, refetch } = useAuth();
   const { token } = useLocalSearchParams<{ token: string }>();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        if (user) {
+          refetch(true).then(() => router.replace('/products'));
+        } else {
+          router.replace('/login?redirectTo=/products');
+        }
+      }, 3000);
+
+      if (timer && typeof timer === 'object' && 'unref' in timer) {
+        (timer as any).unref();
+      }
+
+      return () => clearTimeout(timer);
+    }
+  }, [success, router, user, refetch]);
 
   const verifyToken = useCallback(async () => {
     if (!token) {
@@ -22,21 +43,15 @@ export default function VerifyEmailScreen() {
     const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/verify`;
 
     try {
-      const response = await fetch(apiUrl, {
+      const response = await apiFetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token }),
-        credentials: 'include',
       });
 
       if (response.ok) {
         setSuccess(true);
         setError(null);
-        setTimeout(() => {
-          router.replace('/login');
-        }, 3000);
       } else {
         const data = await response.json();
         setError(data.detail || 'Verification failed. Please try registering again.');
@@ -47,7 +62,7 @@ export default function VerifyEmailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, router]);
+  }, [token]);
 
   useEffect(() => {
     verifyToken();

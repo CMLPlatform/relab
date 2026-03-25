@@ -1,17 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
-import { HelperText, Icon, Searchbar } from 'react-native-paper';
+import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/common/CPVCard';
+import { loadCPV } from '@/services/cpv';
 
-import { CPVCategory } from '@/types/CPVCategory';
-
-import cpvJSON from '@/assets/data/cpv.json';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
-
-const cpv = cpvJSON as Record<string, CPVCategory>;
+import { useAuth } from '@/context/AuthProvider';
+import { CPVCategory } from '@/types/CPVCategory';
 
 type searchParams = {
   id: string;
@@ -20,24 +18,49 @@ type searchParams = {
 export default function CategorySelection() {
   // Hooks
   const router = useRouter();
+  const { user } = useAuth();
   const { id } = useLocalSearchParams<searchParams>();
 
   // States
+  // No local `isAuthorized` state — rely on `user` from context.
+  const [cpv, setCpv] = useState<Record<string, CPVCategory> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [cpvClass, setCpvClass] = useState(cpv['root']);
-  const [history, setHistory] = useState<CPVCategory[]>([cpv['root']]);
+  const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);
+  const [history, setHistory] = useState<CPVCategory[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      router.replace({ pathname: '/login', params: { redirectTo: `/products/${id}` } });
+    }
+  }, [user, id, router]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    loadCPV().then((data) => {
+      if (!isMounted) return;
+      setCpv(data);
+      setCpvClass(data.root);
+      setHistory([data.root]);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Callbacks
   const selectedBranch = (item: CPVCategory) => {
-    setHistory([...history, item]);
+    setHistory((h) => [...h, item]);
     setCpvClass(item);
   };
 
   const moveUp = () => {
-    const newHistory = [...history];
-    newHistory.pop();
-    setHistory(newHistory);
-    setCpvClass(newHistory[newHistory.length - 1]);
+    setHistory((h) => {
+      const newHistory = h.slice(0, -1);
+      setCpvClass(newHistory[newHistory.length - 1]);
+      return newHistory;
+    });
   };
 
   const typeSelected = function (selectedTypeID: number) {
@@ -46,18 +69,25 @@ export default function CategorySelection() {
   };
 
   // Methods
-  const filteredCPV = (): CPVCategory[] => {
-    if (!searchQuery) {
-      return cpvClass.directChildren.map((id) => cpv[id]);
-    }
-
+  const filtered = useMemo((): CPVCategory[] => {
+    if (!cpv || !cpvClass) return [];
+    if (!searchQuery) return cpvClass.directChildren.map((id) => cpv[id]);
     const unfiltered = cpvClass.allChildren.map((id) => cpv[id]);
     return unfiltered.filter(
       (item) =>
         item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
-  };
+  }, [cpv, searchQuery, cpvClass]);
+
+  if (!user) return null;
+  if (!cpvClass) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   // Render
   return (
@@ -80,7 +110,7 @@ export default function CategorySelection() {
           paddingTop: history.length > 1 ? 152 : 85,
           marginBottom: 20,
         }}
-        data={filteredCPV()}
+        data={filtered}
         renderItem={({ item }) => (
           <View>
             <CPVCard

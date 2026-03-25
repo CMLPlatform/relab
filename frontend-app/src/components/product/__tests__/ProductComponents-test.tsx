@@ -1,48 +1,36 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import type { Text as RNText } from 'react-native';
 import ProductComponents from '../ProductComponents';
-import { DialogProvider } from '@/components/common/DialogProvider';
+import { renderWithProviders, baseProduct } from '@/test-utils';
 import * as fetching from '@/services/api/fetching';
+import { setNewProductIntent } from '@/services/newProductStore';
 import type { Product } from '@/types/Product';
 
 jest.mock('@/services/api/fetching', () => ({
   productComponents: jest.fn(),
 }));
 
+jest.mock('@/services/newProductStore', () => ({
+  setNewProductIntent: jest.fn(),
+}));
+
 jest.mock('@/components/common/ProductCard', () => {
-  const React = require('react');
-  const { Text } = require('react-native');
-  return ({ product }: { product: { name: string } }) => React.createElement(Text, null, product.name);
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  function ProductCardMock({ product }: { product: { name: string } }) {
+    return React.createElement(Text, null, product.name);
+  }
+
+  ProductCardMock.displayName = 'ProductCardMock';
+  return ProductCardMock;
 });
 
 const mockPush = jest.fn();
-
-function Wrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <PaperProvider>
-      <DialogProvider>{children}</DialogProvider>
-    </PaperProvider>
-  );
-}
-
-const baseProduct: Product = {
-  id: 1,
-  name: 'Test Product',
-  productTypeID: undefined,
-  componentIDs: [],
-  physicalProperties: { weight: 100, width: 10, height: 5, depth: 3 },
-  circularityProperties: {
-    recyclabilityObservation: '',
-    remanufacturabilityObservation: '',
-    repairabilityObservation: '',
-  },
-  images: [],
-  videos: [],
-  ownedBy: 'me',
-};
+const mockedProductComponents = jest.mocked(fetching.productComponents);
+const mockedSetNewProductIntent = jest.mocked(setNewProductIntent);
 
 describe('ProductComponents', () => {
   beforeEach(() => {
@@ -53,24 +41,16 @@ describe('ProductComponents', () => {
       back: jest.fn(),
       setParams: jest.fn(),
     });
-    (fetching.productComponents as jest.Mock).mockResolvedValue([]);
+    mockedProductComponents.mockResolvedValue([]);
   });
 
   it('renders the Components heading', async () => {
-    render(
-      <Wrapper>
-        <ProductComponents product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
     await screen.findByText(/Components \(0\)/);
   });
 
   it("shows 'no subcomponents' message when empty", async () => {
-    render(
-      <Wrapper>
-        <ProductComponents product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
     await waitFor(() => {
       expect(screen.getByText('This product has no subcomponents.')).toBeTruthy();
     });
@@ -78,34 +58,22 @@ describe('ProductComponents', () => {
 
   it('renders component cards when components are loaded', async () => {
     const componentProduct: Product = { ...baseProduct, id: 2, name: 'Sub Component' };
-    (fetching.productComponents as jest.Mock).mockResolvedValue([componentProduct]);
-    render(
-      <Wrapper>
-        <ProductComponents product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    mockedProductComponents.mockResolvedValue([componentProduct]);
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
     await waitFor(() => {
       expect(screen.getByText('Sub Component')).toBeTruthy();
     });
   });
 
   it('shows Add component button when owned by me and not in editMode', async () => {
-    render(
-      <Wrapper>
-        <ProductComponents product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
     await waitFor(() => {
       expect(screen.getByText('Add component')).toBeTruthy();
     });
   });
 
   it('hides Add component button in editMode', async () => {
-    render(
-      <Wrapper>
-        <ProductComponents product={baseProduct} editMode={true} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, { withDialog: true });
     await waitFor(() => {
       expect(screen.queryByText('Add component')).toBeNull();
     });
@@ -113,26 +81,33 @@ describe('ProductComponents', () => {
 
   it('hides Add component button when not owned by me', async () => {
     const notMine = { ...baseProduct, ownedBy: 'other' };
-    render(
-      <Wrapper>
-        <ProductComponents product={notMine} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductComponents product={notMine} editMode={false} />, { withDialog: true });
     await waitFor(() => {
       expect(screen.queryByText('Add component')).toBeNull();
     });
   });
 
   it('opens create component dialog when Add component is pressed', async () => {
-    render(
-      <Wrapper>
-        <ProductComponents product={baseProduct} editMode={false} />
-      </Wrapper>,
-    );
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
     await screen.findByText('Add component');
     fireEvent.press(screen.getByText('Add component'));
     await waitFor(() => {
       expect(screen.getByText('Create New Component')).toBeTruthy();
     });
+  });
+
+  it('creates a new component from the dialog and navigates to the new product route', async () => {
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+
+    fireEvent.press(await screen.findByText('Add component'));
+    fireEvent.changeText(await screen.findByPlaceholderText('Component Name'), 'Battery pack');
+    fireEvent.press(screen.getByText('OK'));
+
+    expect(mockedSetNewProductIntent).toHaveBeenCalledWith({
+      name: 'Battery pack',
+      isComponent: true,
+      parentID: baseProduct.id,
+    });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/products/[id]', params: { id: 'new' } });
   });
 });

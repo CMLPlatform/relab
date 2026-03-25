@@ -5,3 +5,4 @@ export * from '@testing-library/react-native';
 export { renderWithProviders } from './render';
 export { mockResponse, setupFetchMock, mockUser } from './api-mocks';
 export { server, handlers } from './server';
+export { baseProduct } from './fixtures';

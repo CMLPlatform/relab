@@ -1,53 +1,101 @@
-import React from 'react';
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { jest } from '@jest/globals';
+import { useRouter } from 'expo-router';
 import ProductCard from '../ProductCard';
+import { fireEvent, screen, renderWithProviders, baseProduct } from '@/test-utils';
 
-// Mock the Product type
-const mockProduct = {
-  id: '1',
-  name: 'Test Product',
-  brand: 'Acme Corp',
-  model: 'V1',
-  description: 'A very nice testing product',
-  componentIDs: ['c1', 'c2'],
-} as any;
+const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
 
 describe('ProductCard', () => {
-  it('renders correctly with full product details', () => {
-    // Basic render test
-    render(<ProductCard product={mockProduct} />);
-
-    // Check title renders
+  it('renders name and description', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, description: 'A nice product' }} />);
     expect(screen.getByText('Test Product')).toBeTruthy();
-    // Check description renders
-    expect(screen.getByText('A very nice testing product')).toBeTruthy();
-    // Check composed details string
-    expect(screen.getByText('Acme Corp • V1 • 2 components')).toBeTruthy();
+    expect(screen.getByText('A nice product')).toBeTruthy();
   });
 
-  it('handles missing optional product details gracefully', () => {
-    const minimalProduct = {
-      id: '2',
-      name: '',
-      brand: 'BrandX',
-      model: '',
-      componentIDs: [],
-    };
-    render(<ProductCard product={minimalProduct as any} />);
-
+  it('falls back to placeholder text for missing name and description', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, name: '', description: undefined }} />);
     expect(screen.getByText('Unnamed Product')).toBeTruthy();
     expect(screen.getByText('No description provided.')).toBeTruthy();
   });
 
-  it('can be pressed when enabled', () => {
-    // You can also mock useRouter from expo-router here to verify push gets called
-    // (See jest.setup.ts for the global router mock)
-    const { getByText } = render(<ProductCard product={mockProduct as any} />);
-    const cardText = getByText('Test Product');
+  it('renders detail line with brand and model', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, brand: 'Acme', model: 'V1' }} />);
+    expect(screen.getByText('Acme • V1')).toBeTruthy();
+  });
 
-    // Bubble up to pressable parent
-    fireEvent.press(cardText);
-    // Since the actual action uses router, the assertion would check router.push
-    // e.g., expect(mockRouter.push).toHaveBeenCalledWith(...)
+  it('includes productTypeName in the detail line', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, brand: 'Acme', productTypeName: 'Electronics' }} />);
+    expect(screen.getByText('Acme • Electronics')).toBeTruthy();
+  });
+
+  it('shows thumbnail when thumbnailUrl is provided', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />);
+    expect(screen.getByTestId('product-thumbnail')).toBeTruthy();
+  });
+
+  it('uses the placeholder thumbnail when thumbnailUrl is missing', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: undefined }} />);
+    expect(screen.getByTestId('product-thumbnail')).toBeTruthy();
+  });
+
+  it('falls back to the placeholder thumbnail when image loading fails', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/broken.png' }} />);
+
+    fireEvent(screen.getByTestId('product-thumbnail'), 'error');
+
+    expect(screen.getByTestId('product-thumbnail')).toBeTruthy();
+  });
+
+  it('shows relative creation date', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: TWO_MONTHS_AGO }} />);
+    expect(screen.getByText(/months? ago/i)).toBeTruthy();
+  });
+
+  it('does not render a date for an invalid createdAt string', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: 'not-a-date' }} />);
+    expect(screen.queryByText(/ago/i)).toBeNull();
+  });
+
+  it('shows "you" for own product when showOwner is true', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner />);
+    expect(screen.getByText('you')).toBeTruthy();
+  });
+
+  it("shows username for another user's product when showOwner is true", () => {
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, ownedBy: 'some-uuid', ownerUsername: 'alice' }} showOwner />,
+    );
+    expect(screen.getByText('alice')).toBeTruthy();
+  });
+
+  it('hides owner label when ownerUsername is absent', () => {
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, ownedBy: 'some-uuid', ownerUsername: undefined }} showOwner />,
+    );
+    expect(screen.queryByText(/you|alice/)).toBeNull();
+  });
+
+  it('hides owner label when showOwner is false', () => {
+    renderWithProviders(<ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner={false} />);
+    expect(screen.queryByText('you')).toBeNull();
+  });
+
+  it('navigates to the product detail page on press', () => {
+    const mockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+
+    renderWithProviders(<ProductCard product={baseProduct} />);
+    fireEvent.press(screen.getByText('Test Product'));
+
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/products/[id]', params: { id: baseProduct.id } });
+  });
+
+  it('does not navigate when disabled', () => {
+    const mockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+
+    renderWithProviders(<ProductCard product={baseProduct} enabled={false} />);
+    fireEvent.press(screen.getByText('Test Product'));
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });

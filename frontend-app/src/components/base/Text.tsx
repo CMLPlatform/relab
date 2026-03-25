@@ -4,7 +4,7 @@ import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
 
 export const Text: React.FC<TextProps> = ({ style, children, ...props }) => {
-  const cs = useColorScheme() || 'light';
+  const cs: 'light' | 'dark' = useColorScheme() === 'dark' ? 'dark' : 'light';
 
   return (
     <NativeText style={[styles.base, styles[cs], style]} {...props}>

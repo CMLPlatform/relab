@@ -3,7 +3,7 @@ import { JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip, useTheme } from 'react-native-paper';
 
-const isMobileWeb =
+const getIsMobileWeb = () =>
   Platform.OS === 'web' && typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
@@ -20,11 +20,21 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
     }
   }, [visible]);
 
-  if (isMobileWeb) {
+  if (getIsMobileWeb()) {
     return (
       <View>
-        <Pressable onPress={() => setVisible(true)} style={styles.iconContainer}>
-          <MaterialCommunityIcons name="information-outline" size={20} color={theme.colors.onSurfaceVariant} />
+        <Pressable
+          onPress={() => setVisible(true)}
+          style={styles.iconContainer}
+          testID="info-pressable"
+          accessibilityRole="button"
+        >
+          <MaterialCommunityIcons
+            name="information-outline"
+            size={20}
+            color={theme.colors.onSurfaceVariant}
+            testID="info-icon"
+          />
         </Pressable>
 
         <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
@@ -47,6 +57,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         size={20}
         color={theme.colors.onSurfaceVariant}
         style={{ padding: 8 }}
+        testID="info-icon"
       />
     </Tooltip>
   );
@@ -69,9 +80,6 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     minWidth: 200,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
 });
