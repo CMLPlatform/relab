@@ -677,7 +677,7 @@ wheels = [
 [[package]]
 name = "fastapi-users-db-sqlmodel"
 version = "0.3.0"
-source = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel?rev=ed96f72964e091796e06be28f5513eb1539f2a92#ed96f72964e091796e06be28f5513eb1539f2a92" }
+source = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel?rev=a4337bf0c5a74b81f2fef5054b32efb72ce9bce4#a4337bf0c5a74b81f2fef5054b32efb72ce9bce4" }
 dependencies = [
     { name = "fastapi-users" },
     { name = "greenlet" },
@@ -1733,7 +1733,7 @@ requires-dist = [
     { name = "fastapi-pagination", specifier = ">=0.13.2" },
     { name = "fastapi-storages", specifier = ">=0.3.0" },
     { name = "fastapi-users", extras = ["oauth", "sqlalchemy"], specifier = ">=14.0.1" },
-    { name = "fastapi-users-db-sqlmodel", git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel?rev=ed96f72964e091796e06be28f5513eb1539f2a92" },
+    { name = "fastapi-users-db-sqlmodel", git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel?rev=a4337bf0c5a74b81f2fef5054b32efb72ce9bce4" },
     { name = "markdown", specifier = ">=3.8.2" },
     { name = "pillow", specifier = ">=11.2.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.9" },
