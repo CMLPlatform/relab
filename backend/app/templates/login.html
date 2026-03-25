@@ -25,7 +25,7 @@
         </div>
         <div id="error" class="error"></div>
         {% if next %}
-          <input type="hidden" id="next" name="next" value="{{ next }}" />
+          <input type="hidden" id="next" name="next" value="{{ next | e }}" />
         {% endif %}
         <button type="submit" class="primary-btn">Login</button>
         <a href="{{ url_for('index') }}" class="secondary-btn back-link">API Homepage</a>
@@ -33,6 +33,16 @@
     </div>
 
     <script>
+      const defaultNext = {{ url_for("index") | tojson }}
+
+      function isSafeRelativePath(value) {
+        return typeof value === 'string'
+          && value.startsWith('/')
+          && !value.startsWith('//')
+          && !value.includes('://')
+          && !value.includes('\\')
+      }
+
       document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault()
         const errorDiv = document.getElementById('error')
@@ -54,7 +64,7 @@
           })
 
           if (response.ok) {
-            window.location.href = nextValue || '{{ url_for("index") }}'
+            window.location.href = isSafeRelativePath(nextValue) ? nextValue : defaultNext
           } else {
             const data = await response.json()
             errorDiv.textContent = data.detail || 'Login failed'
