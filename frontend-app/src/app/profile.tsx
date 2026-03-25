@@ -99,7 +99,7 @@ export default function ProfileTab() {
 
       const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
       if (result.type === 'success') {
-        refetch();
+        await refetch();
       }
     } catch (err: any) {
       alert(`Failed to start link flow: ${err.message || ''}`);

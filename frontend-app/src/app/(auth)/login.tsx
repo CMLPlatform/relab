@@ -151,8 +151,8 @@ export default function Login() {
   }, []);
 
   const completeSuccessfulLogin = useCallback(
-    (authenticatedUser: NonNullable<Awaited<ReturnType<typeof getUser>>>) => {
-      refetch(false);
+    async (authenticatedUser: NonNullable<Awaited<ReturnType<typeof getUser>>>) => {
+      await refetch(false);
 
       if (!authenticatedUser.username || authenticatedUser.username === 'Username not defined') {
         router.replace('/(auth)/onboarding');
@@ -225,7 +225,7 @@ export default function Login() {
         return;
       }
 
-      completeSuccessfulLogin(authenticatedUser);
+      await completeSuccessfulLogin(authenticatedUser);
     },
     [completeSuccessfulLogin, dialog],
   );
@@ -287,7 +287,7 @@ export default function Login() {
         return;
       }
 
-      completeSuccessfulLogin(u);
+      await completeSuccessfulLogin(u);
     } catch (error: any) {
       dialog.alert({
         title: 'Login Failed',
