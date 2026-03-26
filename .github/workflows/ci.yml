@@ -350,7 +350,7 @@ jobs:
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
     needs: [changes]
-    if: needs.changes.outputs.run-e2e == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
