@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Use Paracelsus to generate ERDs from the SQLModel data schema."""
 
 import logging

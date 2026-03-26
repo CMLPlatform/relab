@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Clear cache entries in Redis by namespace.
 
 This script can be used to clear cache for specific namespaces.

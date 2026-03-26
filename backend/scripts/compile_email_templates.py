@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """Compile MJML email templates to HTML.
 
 This script reads MJML templates from app/templates/emails/src/,

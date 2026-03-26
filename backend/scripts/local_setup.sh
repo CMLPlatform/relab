@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# This script sets up the local development environment for the backend.
+
 # Exit immediately if a command exits with a non-zero status
 set -e
 
