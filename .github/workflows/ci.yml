@@ -362,9 +362,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Start backend infrastructure
-        run: docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
-
       - name: Set up Node tooling
         uses: ./.github/actions/setup-node-just
         with:
@@ -382,11 +379,7 @@ jobs:
         working-directory: frontend-app
 
       - name: Run full-stack E2E tests
-        run: just frontend-app/test-e2e-full-stack
-
-      - name: Tear down infrastructure
-        if: always()
-        run: docker compose -p relab_e2e -f compose.e2e.yml down -v --remove-orphans
+        run: just test-e2e-full-stack
 
       - name: Archive Playwright report
         if: failure()

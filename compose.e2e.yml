@@ -1,14 +1,14 @@
 # E2E test infrastructure — backend services only.
 #
 # To start the environment:
-#  just e2e-up
+#  just e2e-backend-up
 #
 # Then build and test the Expo web app against the local backend:
 #  just frontend-app/build-web
 #  just frontend-app/test-e2e
 #
 # To stop and remove the environment:
-#  just e2e-down
+#  just e2e-backend-down
 #
 # Frontends are intentionally NOT included here. They are built and served
 # on the host, so that Playwright runs on the host and can freely reach the
@@ -62,13 +62,15 @@ services:
     environment:
       DATABASE_HOST: database
       REDIS_HOST: cache
+      # SEED_DUMMY_DATA is enabled for the migrations service in the E2E environment, to ensure that the database is seeded with realistic test data (including example images) before running tests.
+      SEED_DUMMY_DATA: True
     volumes: # Ensure migrations have access to user uploads (for seeding example images)
       - user_uploads:/opt/relab/backend-migrations/data/uploads
     restart: on-failure:3
 
   cache:
     image: redis:8@sha256:315270d166080f537bbdf1b489b603aaaa213cb55a544acfa51feb7481abb1c0
-    # No password for test environment — simplifies healthcheck and connection strings
+    # No password for test environment:  simplifies healthcheck and connection strings
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]

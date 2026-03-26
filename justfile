@@ -105,11 +105,11 @@ ci: check test-ci
     @echo "✅ Local CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
-e2e-up:
+e2e-backend-up:
     docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
 
 # Tear down E2E backend infrastructure and remove volumes
-e2e-down:
+e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yml down -v --remove-orphans
 
 # Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down
@@ -117,9 +117,9 @@ e2e-down:
 test-e2e-full-stack:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just e2e-down || true' EXIT
+    trap 'just e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
-    just e2e-up
+    just e2e-backend-up
     echo "→ Building Expo web app..."
     just frontend-app/build-web
     echo "→ Running Playwright E2E tests..."
