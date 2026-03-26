@@ -96,7 +96,9 @@ const styles = StyleSheet.create({
 
 const PrivacyPolicy = () => {
   const colorScheme = useColorScheme();
-  const url = `${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` as any;
+  const url = (
+    process.env.EXPO_PUBLIC_WEBSITE_URL ? `${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` : '/privacy'
+  ) as any;
   const textColor = colorScheme === 'dark' ? '#F5F5F5' : '#111111';
 
   return (
@@ -246,6 +248,7 @@ export default function NewAccount() {
         />
         <Pressable
           key="next"
+          testID="username-next"
           accessibilityRole="button"
           disabled={!isUsernameValid}
           onPress={() => setSection('email')}
@@ -294,6 +297,7 @@ export default function NewAccount() {
         />
         <Pressable
           key="next"
+          testID="email-next"
           accessibilityRole="button"
           disabled={!isEmailValid}
           onPress={() => setSection('password')}

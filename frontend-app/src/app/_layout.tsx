@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { HeaderBackButton } from '@react-navigation/elements';
 import { DarkTheme as RNDark, DefaultTheme as RNLight, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname, useRouter } from 'expo-router';
@@ -84,6 +85,7 @@ export function HeaderRight() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
   const isDark = colorScheme === 'dark';
   const pathname = usePathname();
   const showBackground = true;
@@ -148,7 +150,20 @@ export default function RootLayout() {
             }}
           />
 
-          <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+          <Stack.Screen
+            name="profile"
+            options={{
+              title: 'Profile',
+              headerLeft: (props) => (
+                <HeaderBackButton
+                  {...props}
+                  onPress={() => {
+                    router.replace('/products');
+                  }}
+                />
+              ),
+            }}
+          />
           <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />

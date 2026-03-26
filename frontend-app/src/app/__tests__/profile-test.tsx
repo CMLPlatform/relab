@@ -28,6 +28,7 @@ jest.mock('expo-linking', () => ({
 }));
 
 jest.mock('expo-web-browser', () => ({
+  maybeCompleteAuthSession: jest.fn(),
   openAuthSessionAsync: jest.fn(),
 }));
 

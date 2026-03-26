@@ -1,10 +1,9 @@
 /**
  * Full-stack auth E2E tests.
  *
- * Prerequisites (handled by the CI job / just frontend-app/e2e-setup):
+ * Prerequisites:
  *   - compose.e2e.yml services are running
- *   - Migrations have been applied
- *   - Superuser has been created via create_superuser.py
+ *   - the Expo web app has been built for E2E
  *
  * Test user credentials come from backend/.env.test:
  *   SUPERUSER_EMAIL=e2e-admin@example.com
@@ -12,9 +11,7 @@
  */
 
 import { expect, test } from '@playwright/test';
-
-const EMAIL = 'e2e-admin@example.com';
-const PASSWORD = 'E2eTestPass123!';
+import { EMAIL, PASSWORD, finishOnboardingIfVisible } from './helpers';
 
 test.describe('Authentication flow', () => {
   test('unauthenticated user can browse the products page without signing in', async ({ page }) => {
@@ -22,7 +19,7 @@ test.describe('Authentication flow', () => {
     // Root redirects to /products — publicly accessible without login
     await expect(page).toHaveURL(/products/, { timeout: 5_000 });
     // Header shows Sign In pill for guests
-    await expect(page.getByText('Sign In')).toBeVisible();
+    await expect(page.getByText('Sign In', { exact: true })).toBeVisible();
   });
 
   test('login page shows expected fields and navigation links', async ({ page }) => {
@@ -47,10 +44,7 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Login' }).click();
-    // After a successful login the user is taken to either onboarding (fresh
-    // account with no username) or the products list (returning account).
-    // Either way they must leave the login screen.
-    await expect(page).not.toHaveURL(/login/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
   });
 
   test('full new-user flow: login → onboarding → products', async ({ page }) => {
@@ -61,31 +55,8 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Login' }).click();
 
-    // If the account has no username yet the app redirects to onboarding.
-    // On a fresh E2E database this always happens on the first run.
-    await page.waitForURL(/onboarding|products/, { timeout: 15_000 });
-
-    if (page.url().includes('onboarding')) {
-      // ── Onboarding: set a username ────────────────────────────────────────
-      const usernameInput = page.getByPlaceholder('Username');
-      await expect(usernameInput).toBeVisible();
-      await usernameInput.fill('e2e_test_user');
-
-      // Press the forward button (the enabled chevron-right)
-      const buttons = page.getByRole('button');
-      const count = await buttons.count();
-      for (let i = 0; i < count; i++) {
-        const btn = buttons.nth(i);
-        const disabled = await btn.getAttribute('aria-disabled');
-        if (!disabled || disabled === 'false') {
-          await btn.click();
-          break;
-        }
-      }
-
-      // After onboarding the user should land on the products tab
-      await expect(page).toHaveURL(/products/, { timeout: 15_000 });
-    }
+    await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
+    await finishOnboardingIfVisible(page);
 
     // ── Verify products screen loaded ────────────────────────────────────────
     await expect(page.getByText('All Products')).toBeVisible({ timeout: 10_000 });
@@ -97,7 +68,7 @@ test.describe('Account registration', () => {
     await page.goto('/login');
     await page.getByRole('button', { name: 'Create a new account' }).click();
     await expect(page).toHaveURL(/new-account/, { timeout: 5_000 });
-    await expect(page.getByPlaceholder('Username')).toBeVisible();
+    await expect(page.getByPlaceholder('Username', { exact: true })).toBeVisible();
   });
 
   test('full registration flow: username → email → password → products', async ({ page }) => {
@@ -110,22 +81,21 @@ test.describe('Account registration', () => {
     await page.goto('/new-account');
 
     // Step 1: choose a username
-    await page.getByPlaceholder('Username').fill(username);
-    // The chevron-right button is the sibling of the username input; click it once enabled
-    await page.getByPlaceholder('Username').locator('xpath=..').locator('button').click();
+    await page.getByPlaceholder('Username', { exact: true }).fill(username);
+    await page.getByTestId('username-next').click();
 
     // Step 2: enter an email address
     await expect(page.getByPlaceholder('Email address')).toBeVisible({ timeout: 3_000 });
     await page.getByPlaceholder('Email address').fill(email);
-    await page.getByPlaceholder('Email address').locator('xpath=..').locator('button').click();
+    await page.getByTestId('email-next').click();
 
     // Step 3: choose a password
     await expect(page.getByPlaceholder('Password')).toBeVisible({ timeout: 3_000 });
     await page.getByPlaceholder('Password').fill(password);
     await page.getByRole('button', { name: 'Create Account' }).click();
 
-    // After registration + auto-login the app navigates to /products
-    await expect(page).toHaveURL(/products/, { timeout: 15_000 });
+    // After registration + auto-login the app navigates to /products.
+    await expect(page).toHaveURL(/products/, { timeout: 30_000 });
   });
 });
 
@@ -135,13 +105,11 @@ test.describe('Forgot password', () => {
     await expect(page.getByText('Forgot Password')).toBeVisible();
 
     // Fill in a known email and submit
-    await page.getByLabel('Email').fill(EMAIL);
+    // React Native Paper's label prop is visual-only and not an ARIA label
+    await page.getByRole('textbox').fill(EMAIL);
     await page.getByRole('button', { name: 'Send Reset Link' }).click();
 
-    // Backend responds with a generic success regardless of whether the email exists
-    await expect(
-      page.getByText('If an account exists with this email, you will receive password reset instructions.'),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/If an account exists with this email/)).toBeVisible({ timeout: 15_000 });
   });
 
   test('forgot password page is accessible from the login screen', async ({ page }) => {

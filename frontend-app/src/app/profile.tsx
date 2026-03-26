@@ -12,6 +12,8 @@ import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/ap
 import { apiFetch } from '@/services/api/fetching';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
 
+WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });
+
 export default function ProfileTab() {
   const router = useRouter();
   const { user: profile, refetch } = useAuth();
