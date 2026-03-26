@@ -7,8 +7,10 @@ import { defineConfig, devices } from '@playwright/test';
  * the Expo web build has already been exported to dist/ before this runs.
  *
  * Local usage:
+ *   just e2e-up       # starts the backend stack on :18432
  *   just frontend-app/build-web   # exports to dist/
- *   just frontend-app/test-e2e    # starts serve + runs Playwright
+ *   just frontend-app/test-e2e    # starts serve on :18081 + runs Playwright
+ *   just e2e-down     # stops the backend stack
  *
  * CI: see the e2e-full-stack job in .github/workflows/ci.yml
  */
@@ -20,7 +22,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:8081',
+    baseURL: process.env.BASE_URL ?? 'http://localhost:18081',
     trace: 'on-first-retry',
   },
   projects: [
@@ -33,8 +35,8 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'npx serve dist -l 8081 --no-clipboard',
-        url: 'http://localhost:8081',
+        command: 'npx serve dist -l 18081 --no-clipboard',
+        url: 'http://localhost:18081',
         reuseExistingServer: !process.env.CI,
       },
 });

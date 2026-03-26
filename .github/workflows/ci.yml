@@ -353,6 +353,8 @@ jobs:
     if: needs.changes.outputs.run-e2e == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      E2E_BACKEND_PORT: "18432"
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -363,12 +365,6 @@ jobs:
       - name: Start backend infrastructure
         run: docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
 
-      - name: Run database migrations
-        run: docker compose -p relab_e2e -f compose.e2e.yml run --rm --profile migrations backend-migrations
-
-      - name: Create E2E superuser
-        run: docker compose -p relab_e2e -f compose.e2e.yml exec -T backend python scripts/create_superuser.py
-
       - name: Set up Node tooling
         uses: ./.github/actions/setup-node-just
         with:
@@ -378,7 +374,7 @@ jobs:
       - name: Install frontend-app dependencies
         run: just frontend-app/install
 
-      - name: Build Expo web app
+      - name: Build Expo web app for local E2E backend
         run: just frontend-app/build-web
 
       - name: Install Playwright browsers

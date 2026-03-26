@@ -1,14 +1,18 @@
 # E2E test infrastructure — backend services only.
 #
-# Usage:
-#   docker compose -p relab_e2e -f compose.e2e.yml up -d --wait
-#   docker compose -p relab_e2e -f compose.e2e.yml run --rm backend-migrations
-#   docker compose -p relab_e2e -f compose.e2e.yml exec backend python scripts/create_superuser.py
-#   docker compose -p relab_e2e -f compose.e2e.yml down -v
+# To start the environment:
+#  just e2e-up
+#
+# Then build and test the Expo web app against the local backend:
+#  just frontend-app/build-web
+#  just frontend-app/test-e2e
+#
+# To stop and remove the environment:
+#  just e2e-down
 #
 # Frontends are intentionally NOT included here. They are built and served
-# on the host, so that Playwright runs on the host and can freely reach both
-# services on localhost.
+# on the host, so that Playwright runs on the host and can freely reach the
+# backend service on localhost.
 
 name: relab_e2e
 
@@ -26,9 +30,17 @@ services:
       DATABASE_HOST: database
       REDIS_HOST: cache
     ports:
-      - "8000:8000"
+      - "${E2E_BACKEND_PORT:-18432}:8000"
+    volumes: # To ensure that the backend has access to user uploads (for testing upload functionality with real files)
+      - user_uploads:/opt/relab/backend/data/uploads
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=5).status == 200 else 1)",
+        ]
       interval: 10s
       timeout: 5s
       start_period: 30s
@@ -39,6 +51,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
     depends_on:
       database:
         condition: service_healthy
@@ -46,8 +62,9 @@ services:
     environment:
       DATABASE_HOST: database
       REDIS_HOST: cache
-    profiles:
-      - migrations
+    volumes: # Ensure migrations have access to user uploads (for seeding example images)
+      - user_uploads:/opt/relab/backend-migrations/data/uploads
+    restart: on-failure:3
 
   cache:
     image: redis:8@sha256:315270d166080f537bbdf1b489b603aaaa213cb55a544acfa51feb7481abb1c0
@@ -71,3 +88,6 @@ services:
       start_period: 5s
       start_interval: 5s
       retries: 5
+
+volumes:
+  user_uploads:

@@ -65,10 +65,14 @@ audit:
     npm audit --audit-level=high --omit=dev
     @echo "✓ Dependency audit complete"
 
+# Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)
+e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
+
 # Build Expo web app for E2E testing (exports static SPA to dist/)
-# APP_ENV=test tells Expo to load .env.test for EXPO_PUBLIC_* variables
+# Only the API URL is required for these tests; the public website URL falls back in-app.
 build-web:
-    APP_ENV=test npm run build:web
+    @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
+    EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} npm run build:web
 
 # Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
 test-e2e:
