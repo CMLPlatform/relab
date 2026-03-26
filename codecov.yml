@@ -1,0 +1,59 @@
+# Codecov configuration
+# https://docs.codecov.com/docs/codecovyml-reference
+# spell-checker: ignore carryforward
+
+coverage:
+  # Overall project status check — requires all flags to report before posting
+  status:
+    project:
+      default:
+        # Don't fail the PR if coverage drops by a small amount
+        threshold: 2%
+        # Wait for all uploaders before posting the status
+        if_not_found: success
+        if_ci_failed: error
+    patch:
+      default:
+        threshold: 2%
+        if_not_found: success
+        if_ci_failed: error
+
+flag_management:
+  default_rules:
+    # Keep flag data for 30 days so coverage is still shown on older PRs
+    carryforward: true
+
+flags:
+  backend:
+    paths:
+      - backend/
+    carryforward: true
+
+  frontend-app:
+    paths:
+      - frontend-app/
+    carryforward: true
+
+  frontend-web:
+    paths:
+      - frontend-web/
+    carryforward: true
+
+# Path resolution note:
+# Jest runs inside each sub-directory, so LCOV files contain paths relative to
+# that directory (e.g. "src/app/profile.tsx"). Codecov's auto-path-fix resolves
+# these by searching the git tree for matching files. This works reliably here
+# because frontend-app, frontend-web, and backend have non-overlapping file
+# names, so each path resolves unambiguously.
+#
+# If Codecov ever starts mis-attributing files, add explicit fixes:
+#   fixes:
+#     - "src/::frontend-app/src/"   # only safe if frontend-web uses a different prefix
+#
+# A more robust long-term fix is to configure Jest to emit absolute paths:
+#   coverageProvider: "v8" and rootDir set to the repo root.
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
