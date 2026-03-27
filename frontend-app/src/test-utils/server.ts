@@ -1,5 +1,5 @@
-import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -11,7 +11,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
  *
  * For service-layer unit tests that need precise control over status codes or
  * ordered responses, prefer the `setupFetchMock` + `mockResponse` helpers from
- * `@/test-utils` — they give finer-grained per-call control.
+ * `@/test-utils`; they give finer-grained per-call control.
  */
 export const handlers = [
   http.post(`${API_URL}/auth/login`, () => HttpResponse.json({ access_token: 'test-token' })),

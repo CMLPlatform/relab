@@ -1,5 +1,5 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import { screen, fireEvent } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen } from '@testing-library/react-native';
 import LogoutConfirm from '../LogoutConfirm';
 import { renderWithProviders } from '@/test-utils';
 
@@ -34,7 +34,7 @@ describe('LogoutConfirm', () => {
     renderWithProviders(<LogoutConfirm visible onDismiss={jest.fn()} onConfirm={onConfirm} />, {
       withDialog: true,
     });
-    // getAllByText returns [title, button] — press the last element (the button)
+    // getAllByText returns [title, button]; press the last element (the button)
     const items = screen.getAllByText('Logout');
     fireEvent.press(items[items.length - 1]);
     expect(onConfirm).toHaveBeenCalledTimes(1);

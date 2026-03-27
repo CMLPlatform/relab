@@ -6,7 +6,7 @@
  * deep-link. Instead, the caller writes intent here, navigates to /products/new,
  * and the destination reads+clears it on mount.
  *
- * This is a plain module-level variable — it lives only for the current session,
+ * This is a plain module-level variable; it lives only for the current session,
  * is never persisted, and is intentionally not reactive.
  */
 

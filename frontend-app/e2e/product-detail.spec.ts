@@ -19,10 +19,7 @@ import {
 test.setTimeout(60_000);
 
 /** Create a product via the FAB dialog and return the product name used. */
-async function createProductViaDialog(
-  page: import('@playwright/test').Page,
-  name: string,
-): Promise<void> {
+async function createProductViaDialog(page: import('@playwright/test').Page, name: string): Promise<void> {
   await openProductCreationDialog(page);
   await page.getByPlaceholder('Product Name').fill(name);
   await page.getByRole('button', { name: 'OK' }).click();
@@ -30,7 +27,7 @@ async function createProductViaDialog(
 
 // ─── Product detail navigation ─────────────────────────────────────────────────
 
-test.describe('Product detail — navigation', () => {
+test.describe('Product detail: navigation', () => {
   test('clicking a product card navigates to the detail page', async ({ page }) => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);
@@ -98,7 +95,7 @@ test.describe('Product creation', () => {
 
 // ─── Product detail edit mode ──────────────────────────────────────────────────
 
-test.describe('Product detail — edit mode', () => {
+test.describe('Product detail: edit mode', () => {
   test('new product page opens in edit mode with all major sections', async ({ page }) => {
     await loginAndReachProducts(page);
     const productName = `E2E Edit Test ${Date.now()}`;
@@ -120,13 +117,13 @@ test.describe('Product detail — edit mode', () => {
     await expect(page).toHaveURL(/products\/(new|\d+)/, { timeout: 15_000 });
     await expect(page.getByPlaceholder('Add a product description')).toBeVisible({ timeout: 10_000 });
 
-    // Attempt to leave via the in-app header back control — the unsaved-changes guard should intercept.
+    // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
     await page.getByRole('link', { name: /back/i }).click();
     await expect(page.getByText('Discard changes?')).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: "Don't leave" })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
 
-    // Choose "Don't leave" — stays on the product page
+    // Choose "Don't leave"; stays on the product page
     await page.getByRole('button', { name: "Don't leave" }).click();
     await expect(page.getByText('Discard changes?')).not.toBeVisible();
     await expect(page).toHaveURL(/products\/(new|\d+)/);

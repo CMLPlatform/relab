@@ -65,7 +65,7 @@ export function useProductsQuery(
       return fn(
         undefined,
         page,
-        20,
+        24,
         search || undefined,
         sortBy,
         extra.brands?.length ? extra.brands : undefined,

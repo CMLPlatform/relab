@@ -1,10 +1,23 @@
-# RELab Frontend
+# RELab Web
 
-The frontend of the RELab project is built using [Expo](https://expo.dev/), providing a cross-platform user interface.
+The public-facing website: project overview, dataset access, and platform information. Built with [Astro](https://astro.build/) and linted/formatted with [Biome](https://biomejs.dev/).
 
-For frontend-specific contribution and workflow details, see:
+## 🚀 Quick Start
 
-- [CONTRIBUTING.md: Frontend Setup](../CONTRIBUTING.md#frontend-setup)
-- [CONTRIBUTING.md: Frontend Development](../CONTRIBUTING.md#frontend-development)
+```bash
+juts install # install dependencies
+just dev    # site at http://localhost:8081 (or http://localhost:8010 via Docker)
+```
 
-Please refer to the [main README](../README.md) for overall project information and setup instructions.
+## Common Commands
+
+```bash
+just check        # Biome lint + Astro type check
+just test         # Vitest unit tests
+just test-e2e     # Playwright E2E (Chromium + Firefox)
+just format       # auto-fix formatting
+```
+
+## Want to Know More?
+
+Full setup, E2E test patterns, and accessibility testing are in [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).

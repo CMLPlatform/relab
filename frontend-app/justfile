@@ -53,12 +53,12 @@ ci: check test-ci
     @echo "✓ Frontend-app CI pipeline passed"
 
 # Start dev server
-dev:
-    npm start
+dev PORT="8081":
+    npx expo start --port {{PORT}}
 
 # Start dev server with a clean Metro cache (use after adding new directories/aliases)
-dev-clean:
-    npx expo start --clear
+dev-clean PORT="8081":
+    npx expo start --port {{PORT}} --clear
 
 # Scan dependencies for known vulnerabilities
 audit:

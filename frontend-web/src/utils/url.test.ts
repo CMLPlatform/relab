@@ -33,7 +33,7 @@ describe('joinApiUrl', () => {
 
   it('throws a descriptive error when baseUrl is undefined (missing PUBLIC_API_URL)', () => {
     expect(() => joinApiUrl(undefined as unknown as string, '/path')).toThrow(
-      'joinApiUrl: baseUrl is undefined — is PUBLIC_API_URL set?',
+      'joinApiUrl: baseUrl is undefined; is PUBLIC_API_URL set?',
     );
   });
 

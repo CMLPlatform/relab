@@ -22,13 +22,13 @@ const config: Config = {
     '!src/test-utils/**',
     '!**/coverage/**',
     '!**/node_modules/**',
-    // Root provider/theme setup — no business logic, calls setBackgroundColorAsync at module level
+    // Root provider/theme setup; no business logic, calls setBackgroundColorAsync at module level
     '!src/app/_layout.tsx',
-    // Pure visual SVG geometry component — no branching logic to assert on
+    // Pure visual SVG geometry component; no branching logic to assert on
     '!src/components/common/SVGCube.tsx',
-    // Barrel re-export file — no logic, just re-exports individual components
+    // Barrel re-export file; no logic, just re-exports individual components
     '!src/components/base.ts',
-    // Pure visual skeleton component — no branching logic to assert on
+    // Pure visual skeleton component; no branching logic to assert on
     '!src/components/common/ProductCardSkeleton.tsx',
   ],
   coverageThreshold: {

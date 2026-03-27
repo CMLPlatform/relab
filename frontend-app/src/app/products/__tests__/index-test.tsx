@@ -3,8 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Products from '../index';
-import { renderWithProviders } from '@/test-utils';
 import type { User } from '@/types/User';
+import { renderWithProviders } from '@/test-utils';
 const mockUseAuth = jest.fn();
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -13,9 +13,7 @@ jest.mock('@/context/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/hooks/useIsDesktop', () => ({
-  useIsDesktop: jest.fn().mockReturnValue(false),
-}));
+// useWindowDimensions is spied on in beforeEach to control numColumns per describe block
 
 jest.mock('expo-image', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -119,6 +117,13 @@ const pagedQueryResult = {
 
 beforeEach(async () => {
   jest.clearAllMocks();
+  // Default to wide viewport (numColumns=3) so most tests get pagination mode
+  jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
+    width: 1024,
+    height: 768,
+    scale: 1,
+    fontScale: 1,
+  });
   mockUseAuth.mockReturnValue({ user: null });
   await AsyncStorage.removeItem('products_info_card_dismissed_guest');
   await AsyncStorage.removeItem('products_info_card_dismissed_authenticated');
@@ -132,6 +137,10 @@ beforeEach(async () => {
   mockUseProductsQuery.mockReturnValue(emptyQueryResult);
   mockUseBrandsQuery.mockReturnValue({ data: [], isLoading: false });
   mockUseProductTypesQuery.mockReturnValue({ data: [], isLoading: false });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -148,7 +157,7 @@ describe('Products screen', () => {
     mockUseProductsQuery.mockReturnValue(loadingQueryResult);
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      // Skeleton renders 8 placeholder cards — check at least one exists
+      // Skeleton renders 8 placeholder cards; check at least one exists
       expect(screen.getAllByTestId('product-card-skeleton').length).toBeGreaterThan(0);
     });
   });
@@ -173,7 +182,7 @@ describe('Products screen', () => {
 
   it('resets page to 1 when search text changes (colocated in onChangeText)', async () => {
     // Start on page 2 by making the query return multi-page data and simulating
-    // a page advance — then type in search and verify page arg resets to 1
+    // a page advance; then type in search and verify page arg resets to 1
     mockUseProductsQuery.mockReturnValue(pagedQueryResult);
     renderWithProviders(<Products />, { withDialog: true });
     await screen.findByPlaceholderText('Search products');
@@ -331,20 +340,42 @@ describe('Filter chips and modals', () => {
     });
   });
 
-  it('activates a date preset chip when pressed', async () => {
+  it('shows Date chip and opens dropdown menu when pressed', async () => {
     renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Date');
+    fireEvent.press(screen.getByText('Date'));
+    await waitFor(() => {
+      expect(screen.getByText('Last 7d')).toBeTruthy();
+      expect(screen.getByText('Last 30d')).toBeTruthy();
+      expect(screen.getByText('Last 90d')).toBeTruthy();
+    });
+  });
+
+  it('activates a date preset when selected from the dropdown menu', async () => {
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Date');
+    fireEvent.press(screen.getByText('Date'));
     await screen.findByText('Last 7d');
     fireEvent.press(screen.getByText('Last 7d'));
     expect(mockSetParams).toHaveBeenCalledWith({ days: '7', page: '1' });
   });
 
-  it('clears an active date preset when the same chip is pressed again', async () => {
+  it('shows the active preset label on the Date chip', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '30' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await waitFor(() => {
+      expect(screen.getByText('Last 30d')).toBeTruthy();
+      // The chip label reflects the active selection
+    });
+  });
+
+  it('clears an active date preset via the chip close button', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7' });
     renderWithProviders(<Products />, { withDialog: true });
-    await screen.findByText('Last 7d');
-
-    fireEvent.press(screen.getByText('Last 7d'));
-
+    await waitFor(() => expect(screen.getByText('Last 7d')).toBeTruthy());
+    // react-native-paper Chip renders its close button with accessibilityLabel="Close"
+    const closeBtn = screen.getByLabelText('Close');
+    fireEvent.press(closeBtn);
     expect(mockSetParams).toHaveBeenCalledWith({ days: undefined, page: '1' });
   });
 });
@@ -369,10 +400,9 @@ describe('Empty-state messages', () => {
     mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     renderWithProviders(<Products />, { withDialog: true });
 
-    // Switch to "My Products" tab once logged in
-    await screen.findByText('My Products');
-    // There are two "My Products" (tab and welcome banner pill). Press the tab.
-    fireEvent.press(screen.getAllByText('My Products')[0]);
+    // Switch to mine filter via the Mine chip
+    await screen.findByText('Mine');
+    fireEvent.press(screen.getByText('Mine'));
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
   });
 
@@ -401,10 +431,15 @@ describe('Empty-state messages', () => {
   });
 });
 
-describe('PaginationControls (desktop web)', () => {
+describe('PaginationControls (multi-column)', () => {
   beforeEach(() => {
-    const useIsDesktop = (jest.requireMock('@/hooks/useIsDesktop') as any).useIsDesktop;
-    (useIsDesktop as jest.Mock).mockReturnValue(true);
+    // Wide viewport already set globally; confirm numColumns=3 → pagination
+    jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
+      width: 1024,
+      height: 768,
+      scale: 1,
+      fontScale: 1,
+    });
     mockUseProductsQuery.mockReturnValue(pagedQueryResult);
   });
 
@@ -469,13 +504,17 @@ describe('PaginationControls (desktop web)', () => {
   });
 });
 
-describe('Mobile footer', () => {
+describe('Mobile footer (single-column)', () => {
   beforeEach(() => {
-    const useIsDesktop = (jest.requireMock('@/hooks/useIsDesktop') as any).useIsDesktop;
-    (useIsDesktop as jest.Mock).mockReturnValue(false);
+    jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
+      width: 390, // numColumns=1 → load-more mode
+      height: 844,
+      scale: 2,
+      fontScale: 1,
+    });
   });
 
-  it('shows a load more button and advances the page when more results exist', async () => {
+  it('shows a load more button when more results exist', async () => {
     mockUseProductsQuery.mockReturnValue({
       data: {
         items: [
@@ -485,7 +524,7 @@ describe('Mobile footer', () => {
         pages: 3,
         page: 1,
         total: 55,
-        size: 20,
+        size: 24,
       },
       isFetching: false,
       isLoading: false,
@@ -498,19 +537,48 @@ describe('Mobile footer', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Load more products')).toBeTruthy();
     });
-
-    fireEvent.press(screen.getByLabelText('Load more products'));
-    expect(mockSetParams).toHaveBeenCalledWith({ page: '2' });
   });
 
-  it('shows the end-of-results footer when there are no more pages', async () => {
+  it('advances the local page (not URL) when load more is pressed', async () => {
+    mockUseProductsQuery.mockReturnValue({
+      data: {
+        items: [
+          { id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] },
+          { id: 2, name: 'Product B', ownedBy: 'bob', images: [], videos: [] },
+        ],
+        pages: 3,
+        page: 1,
+        total: 55,
+        size: 24,
+      },
+      isFetching: false,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    renderWithProviders(<Products />, { withDialog: true });
+    await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeTruthy());
+
+    fireEvent.press(screen.getByLabelText('Load more products'));
+
+    await waitFor(() => {
+      // The query should be called with page 2 via local state
+      const pages = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[1] as number);
+      expect(pages).toContain(2);
+    });
+    // URL page param must NOT be updated — load-more uses local state only
+    expect(mockSetParams).not.toHaveBeenCalledWith({ page: '2' });
+  });
+
+  it('shows server total in end-of-results footer', async () => {
     mockUseProductsQuery.mockReturnValue({
       data: {
         items: [{ id: 1, name: 'Product A', ownedBy: 'alice', images: [], videos: [] }],
         pages: 1,
         page: 1,
-        total: 1,
-        size: 20,
+        total: 57,
+        size: 24,
       },
       isFetching: false,
       isLoading: false,
@@ -521,7 +589,84 @@ describe('Mobile footer', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText(/End of results/)).toBeTruthy();
+      expect(screen.getByText('All 57 products shown')).toBeTruthy();
+    });
+  });
+});
+
+describe('Mine filter chip', () => {
+  beforeEach(() => {
+    mockUseProductsQuery.mockReturnValue(emptyQueryResult);
+  });
+
+  it('is not shown for guest users', async () => {
+    mockUseAuth.mockReturnValue({ user: null });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByPlaceholderText('Search products');
+    expect(screen.queryByText('Mine')).toBeNull();
+  });
+
+  it('is shown for authenticated users', async () => {
+    mockUseAuth.mockReturnValue({ user: mockUser() });
+    renderWithProviders(<Products />, { withDialog: true });
+    await waitFor(() => {
+      expect(screen.getByText('Mine')).toBeTruthy();
+    });
+  });
+
+  it('sets filterMode=mine when pressed while in all-products mode', async () => {
+    mockUseAuth.mockReturnValue({ user: mockUser() });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Mine');
+    fireEvent.press(screen.getByText('Mine'));
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
+  });
+
+  it('clears filterMode when pressed while already in mine mode', async () => {
+    mockUseAuth.mockReturnValue({ user: mockUser() });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Mine');
+    fireEvent.press(screen.getByText('Mine'));
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'all', page: '1' });
+  });
+});
+
+describe('Date filter dropdown', () => {
+  it('renders a single Date chip instead of multiple preset chips', async () => {
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Date');
+    // Individual preset labels are not visible until menu is opened
+    expect(screen.queryByText('Last 7d')).toBeNull();
+    expect(screen.queryByText('Last 30d')).toBeNull();
+    expect(screen.queryByText('Last 90d')).toBeNull();
+  });
+
+  it('opens menu with all preset options when the chip is pressed', async () => {
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Date');
+    fireEvent.press(screen.getByText('Date'));
+    await waitFor(() => {
+      expect(screen.getByText('Last 7d')).toBeTruthy();
+      expect(screen.getByText('Last 30d')).toBeTruthy();
+      expect(screen.getByText('Last 90d')).toBeTruthy();
+    });
+  });
+
+  it('sets days param when a menu option is selected', async () => {
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByText('Date');
+    fireEvent.press(screen.getByText('Date'));
+    await screen.findByText('Last 30d');
+    fireEvent.press(screen.getByText('Last 30d'));
+    expect(mockSetParams).toHaveBeenCalledWith({ days: '30', page: '1' });
+  });
+
+  it('shows the active preset label on the chip when days param is set', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '90' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await waitFor(() => {
+      expect(screen.getByText('Last 90d')).toBeTruthy();
     });
   });
 });

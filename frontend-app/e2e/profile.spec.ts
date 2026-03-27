@@ -11,7 +11,7 @@
 import { expect, test } from '@playwright/test';
 import { EMAIL, PASSWORD, finishOnboardingIfVisible, loginAndGoToProfile } from './helpers';
 
-test.describe('Profile — access', () => {
+test.describe('Profile: access', () => {
   test('unauthenticated visit redirects to login', async ({ page }) => {
     await page.goto('/profile');
     await expect(page).toHaveURL(/login/, { timeout: 5_000 });
@@ -34,7 +34,7 @@ test.describe('Profile — access', () => {
   });
 });
 
-test.describe('Profile — content', () => {
+test.describe('Profile: content', () => {
   test('displays user email and account status chips', async ({ page }) => {
     await loginAndGoToProfile(page);
     await expect(page.getByText(EMAIL)).toBeVisible();
@@ -58,9 +58,7 @@ test.describe('Profile — content', () => {
   test('newsletter subscription status text is displayed', async ({ page }) => {
     await loginAndGoToProfile(page);
     // After loading, one of these must be visible
-    await expect(
-      page.getByText(/You are (not )?subscribed\./)
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/You are (not )?subscribed\./)).toBeVisible({ timeout: 10_000 });
   });
 
   test('linked accounts section shows Google and GitHub options', async ({ page }) => {
@@ -70,7 +68,7 @@ test.describe('Profile — content', () => {
   });
 });
 
-test.describe('Profile — dialogs', () => {
+test.describe('Profile: dialogs', () => {
   test('tapping the username heading opens the edit-username dialog', async ({ page }) => {
     await loginAndGoToProfile(page);
     // The "Hi," Text and the username Pressable are siblings in the hero section.

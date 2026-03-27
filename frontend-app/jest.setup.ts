@@ -57,7 +57,7 @@ jest.mock('expo-linear-gradient', () => ({
 
 // Mock react-native-reanimated
 // react-native-reanimated 4.x uses react-native-worklets which requires native
-// initialisation — unusable in Jest. We provide a minimal inline mock instead.
+// initialisation; unusable in Jest. We provide a minimal inline mock instead.
 jest.mock('react-native-reanimated', () => {
   const React = require('react');
   const { View, Text, Image, ScrollView } = require('react-native');
@@ -76,11 +76,31 @@ jest.mock('react-native-reanimated', () => {
   return {
     __esModule: true,
     default: AnimatedComponent,
-    useAnimatedStyle: (fn: () => any) => { try { return fn(); } catch { return {}; } },
-    useAnimatedProps: (fn: () => any) => { try { return fn(); } catch { return {}; } },
+    useAnimatedStyle: (fn: () => any) => {
+      try {
+        return fn();
+      } catch {
+        return {};
+      }
+    },
+    useAnimatedProps: (fn: () => any) => {
+      try {
+        return fn();
+      } catch {
+        return {};
+      }
+    },
     useSharedValue: (value: any) => ({ value, modify: noopFn }),
     useAnimatedSensor: () => ({ sensor: { value: { pitch: 0, roll: 0, yaw: 0 } }, unregister: noopFn }),
-    useDerivedValue: (fn: () => any) => ({ value: (() => { try { return fn(); } catch { return undefined; } })() }),
+    useDerivedValue: (fn: () => any) => ({
+      value: (() => {
+        try {
+          return fn();
+        } catch {
+          return undefined;
+        }
+      })(),
+    }),
     useAnimatedRef: () => ({ current: null }),
     useAnimatedScrollHandler: () => () => {},
     withSpring: (value: any) => value,

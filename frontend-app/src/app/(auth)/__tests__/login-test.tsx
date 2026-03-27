@@ -6,9 +6,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { http, HttpResponse } from 'msw';
 import { Platform } from 'react-native';
 import Login from '../login';
+import type { User } from '@/types/User';
 import { renderWithProviders, server } from '@/test-utils';
 import * as auth from '@/services/api/authentication';
-import type { User } from '@/types/User';
 
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
@@ -182,8 +182,8 @@ describe('Login screen', () => {
 
   it('navigates to forgot password on button press', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
-    await screen.findByText('Forgot Password?');
-    fireEvent.press(screen.getByText('Forgot Password?'));
+    await screen.findByText('Forgot password?');
+    fireEvent.press(screen.getByText('Forgot password?'));
     expect(mockPush).toHaveBeenCalledWith('/forgot-password');
   });
 
@@ -283,7 +283,7 @@ describe('Login screen', () => {
     );
     mockedOpenAuthSessionAsync.mockResolvedValueOnce({
       type: 'success',
-      // No known error code or detail — falls through to platform-specific guidance
+      // No known error code or detail; falls through to platform-specific guidance
       url: 'exp://localhost/login?success=false',
     });
 
@@ -378,9 +378,24 @@ describe('Login screen', () => {
 
   it('navigates back to browsing on button press', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
-    await screen.findByText('Back to browsing');
-    fireEvent.press(screen.getByText('Back to browsing'));
+    await screen.findByText('Browse');
+    fireEvent.press(screen.getByText('Browse'));
     expect(mockReplace).toHaveBeenCalledWith('/products');
+  });
+
+  it('shows RELab. title', async () => {
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    // Wait for the form to finish rendering before asserting on static text
+    await screen.findByPlaceholderText('Email or username', {}, { timeout: 3000 });
+    expect(screen.getByText('RELab.')).toBeTruthy();
+  });
+
+  it('shows forgot password link and create account button', async () => {
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await waitFor(() => {
+      expect(screen.getByText('Forgot password?')).toBeTruthy();
+      expect(screen.getByText('Create a new account')).toBeTruthy();
+    });
   });
 
   it('shows account suspended message in attemptLogin when user is inactive', async () => {

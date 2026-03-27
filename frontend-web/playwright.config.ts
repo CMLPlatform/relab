@@ -21,7 +21,7 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
   ],
-  // Skip the dev server when BASE_URL is set — the stack is already running (e.g. via docker compose)
+  // Skip the dev server when BASE_URL is set; the stack is already running (e.g. via docker compose)
   webServer: process.env.BASE_URL
     ? undefined
     : {

@@ -1,7 +1,6 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { Pressable, Text } from 'react-native';
-import { screen, fireEvent } from '@testing-library/react-native';
 import { useDialog } from '../DialogProvider';
 import { renderWithProviders } from '@/test-utils';
 
@@ -16,7 +15,7 @@ function AlertTrigger({ onPress }: { onPress: () => void }) {
 
 // DialogProvider tests must use withDialog: true to wrap the UI in DialogProvider.
 // We pass a *custom* wrapper here because DialogProvider-test needs the DialogProvider
-// context to be available to the components under test — which renderWithProviders
+// context to be available to the components under test; which renderWithProviders
 // provides when withDialog: true is set.
 
 describe('DialogProvider', () => {
@@ -195,7 +194,7 @@ describe('DialogProvider', () => {
 
     fireEvent.press(screen.getByTestId('trigger'));
 
-    // Press the button that has no onPress — should not throw
+    // Press the button that has no onPress; should not throw
     fireEvent.press(screen.getByText('OK'));
   });
 
@@ -210,7 +209,7 @@ describe('DialogProvider', () => {
 
     fireEvent.press(screen.getByTestId('trigger'));
 
-    // Submit without any buttons — handleClose(undefined) should not throw
+    // Submit without any buttons; handleClose(undefined) should not throw
     fireEvent(screen.getByPlaceholderText('type here'), 'submitEditing');
   });
 });

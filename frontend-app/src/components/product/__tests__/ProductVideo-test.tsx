@@ -1,9 +1,8 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import ProductVideo from '../ProductVideo';
-import { renderWithProviders, baseProduct } from '@/test-utils';
 import type { Product } from '@/types/Product';
+import { baseProduct, renderWithProviders } from '@/test-utils';
 
 describe('ProductVideo', () => {
   it('renders the Recordings heading', () => {
@@ -71,10 +70,10 @@ describe('ProductVideo', () => {
     fireEvent.press(screen.getByText('Add recording'));
     await screen.findByText('Add Recording');
 
-    // No input yet — Add should be disabled
+    // No input yet; Add should be disabled
     expect(screen.getByText('Add')).toBeDisabled();
 
-    // Non-URL text — still disabled
+    // Non-URL text; still disabled
     fireEvent.changeText(screen.getByPlaceholderText('Video URL'), 'not-a-url');
     expect(screen.getByText('Add')).toBeDisabled();
   });

@@ -130,7 +130,7 @@ test.describe('Search URL sync', () => {
   test('search query appears in URL after the debounce delay', async ({ page }) => {
     await goToProducts(page);
     await page.getByPlaceholder('Search products').fill('test-query-abc');
-    // The products page debounces search by 500 ms — allow up to 2 s for the URL to update
+    // The products page debounces search by 500 ms; allow up to 2 s for the URL to update
     await expect(page).toHaveURL(/q=test-query-abc/, { timeout: 2_000 });
   });
 
@@ -151,11 +151,11 @@ test.describe('Search URL sync', () => {
 
 test.describe('My Products filter', () => {
   test('My Products tab is only visible after login', async ({ page }) => {
-    // Guest — only "All Products" segment button exists
+    // Guest: only "All Products" segment button exists
     await goToProducts(page);
     await expect(page.getByText('My Products')).not.toBeVisible();
 
-    // After login — both segments appear
+    // After login: both segments appear
     await loginAndReachProducts(page);
     await expect(page.getByText('All Products')).toBeVisible();
     await expect(page.getByText('My Products')).toBeVisible();

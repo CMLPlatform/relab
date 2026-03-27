@@ -103,7 +103,7 @@ export async function refreshAuthToken(): Promise<boolean> {
       });
 
       if (!response.ok) {
-        // failed refresh — clear the web-visible session flag
+        // failed refresh; clear the web-visible session flag
         setWebSessionFlag(false);
         explicitlyLoggedOut = true;
         return false;
@@ -178,7 +178,7 @@ export async function login(username: string, password: string): Promise<string 
       if (isWeb()) {
         setWebSessionFlag(true);
         explicitlyLoggedOut = false;
-        // Try to confirm the cookie/session by attempting a refresh first —
+        // Try to confirm the cookie/session by attempting a refresh first;
         // some browsers/servers may not make the cookie available to the next
         // immediate request, so prefer refresh then a guarded getUser retry.
         try {
@@ -253,7 +253,7 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
     if (user && !forceRefresh) return user;
 
     // If we've explicitly logged out, or (on web) there is no client-visible
-    // session flag, avoid making any network requests — callers should treat
+    // session flag, avoid making any network requests; callers should treat
     // this as an unauthenticated state.
     // forceRefresh bypasses the logged-out guard on native so that a fresh
     // token obtained after login/refresh can immediately hydrate the cache.
@@ -301,7 +301,7 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
           oauth_accounts: data.oauth_accounts || [],
         };
 
-        // successful user fetch — mark web session flag
+        // successful user fetch; mark web session flag
         setWebSessionFlag(true);
 
         return user;

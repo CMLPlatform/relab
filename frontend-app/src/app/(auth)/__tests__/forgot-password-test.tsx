@@ -1,11 +1,10 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import { http, HttpResponse } from 'msw';
 import ForgotPasswordScreen from '../forgot-password';
-import { renderWithProviders } from '@/test-utils';
 import { server } from '@/test-utils/server';
+import { renderWithProviders } from '@/test-utils';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -29,7 +28,7 @@ describe('ForgotPasswordScreen', () => {
   it('does not submit when email is empty', () => {
     renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.press(screen.getByText('Send Reset Link'));
-    // No success or error message should appear — the form guards against empty email
+    // No success or error message should appear; the form guards against empty email
     expect(screen.queryByText(/If an account exists/)).toBeNull();
   });
 

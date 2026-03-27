@@ -16,7 +16,7 @@ import { EMAIL, PASSWORD, finishOnboardingIfVisible } from './helpers';
 test.describe('Authentication flow', () => {
   test('unauthenticated user can browse the products page without signing in', async ({ page }) => {
     await page.goto('/');
-    // Root redirects to /products — publicly accessible without login
+    // Root redirects to /products; publicly accessible without login
     await expect(page).toHaveURL(/products/, { timeout: 5_000 });
     // Header shows Sign In pill for guests
     await expect(page.getByText('Sign In', { exact: true })).toBeVisible();

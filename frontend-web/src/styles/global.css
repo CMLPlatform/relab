@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
-/* Light theme — Material Design 3 tokens (matches frontend-app/src/assets/themes/light.ts) */
+/* Light theme; Material Design 3 tokens (matches frontend-app/src/assets/themes/light.ts) */
 :root {
   --color-primary: #006783;
   --color-primary-strong: #004d63;
@@ -18,7 +18,7 @@
   --radius-lg: 22px;
 }
 
-/* Dark theme — Material Design 3 tokens (matches frontend-app/src/assets/themes/dark.ts) */
+/* Dark theme; Material Design 3 tokens (matches frontend-app/src/assets/themes/dark.ts) */
 @media (prefers-color-scheme: dark) {
   :root {
     --color-primary: #63d3ff;

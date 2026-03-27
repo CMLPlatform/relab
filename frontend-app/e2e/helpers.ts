@@ -59,8 +59,18 @@ export async function openProductCreationDialog(page: Page) {
 }
 
 export async function selectMenuItem(page: Page, label: string) {
-  await expect(page.getByText(label, { exact: true }).last()).toBeVisible({ timeout: 5_000 });
-  await page.getByText(label, { exact: true }).last().click({ force: true });
+  const labelNode = page.getByText(label, { exact: true }).last();
+  await expect(labelNode).toBeVisible({ timeout: 5_000 });
+
+  const menuItem = labelNode.locator('xpath=ancestor::*[@role="button" or @role="menuitem"][1]');
+  if ((await menuItem.count()) > 0) {
+    await menuItem.scrollIntoViewIfNeeded();
+    await menuItem.click({ force: true });
+    return;
+  }
+
+  await labelNode.scrollIntoViewIfNeeded();
+  await labelNode.click({ force: true });
 }
 
 export async function openSeededProductFromProductsPage(page: Page) {

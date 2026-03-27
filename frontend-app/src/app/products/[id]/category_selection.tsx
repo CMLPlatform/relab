@@ -22,7 +22,7 @@ export default function CategorySelection() {
   const { id } = useLocalSearchParams<searchParams>();
 
   // States
-  // No local `isAuthorized` state — rely on `user` from context.
+  // No local `isAuthorized` state; rely on `user` from context.
   const [cpv, setCpv] = useState<Record<string, CPVCategory> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);

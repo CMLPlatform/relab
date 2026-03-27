@@ -10,6 +10,7 @@ import {
   ScrollView,
   View,
   useColorScheme,
+  useWindowDimensions,
 } from 'react-native';
 import { useDebounce } from 'use-debounce';
 
@@ -25,7 +26,6 @@ import {
   IconButton,
   Menu,
   Searchbar,
-  SegmentedButtons,
   Text,
   useTheme,
 } from 'react-native-paper';
@@ -34,7 +34,6 @@ import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import ProductCard from '@/components/common/ProductCard';
 import ProductCardSkeleton from '@/components/common/ProductCardSkeleton';
 import { useAuth } from '@/context/AuthProvider';
-import { useIsDesktop } from '@/hooks/useIsDesktop';
 import {
   PRODUCT_SORT_OPTIONS,
   useProductsQuery,
@@ -48,7 +47,7 @@ type ProductFilter = 'all' | 'mine';
 
 const GUEST_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_guest';
 const AUTH_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_authenticated';
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 24;
 
 const DATE_PRESETS = [
   { label: 'Last 7d', days: 7 },
@@ -90,8 +89,8 @@ function PaginationControls({ page, totalPages, total, isFetching, setPage }: Pa
   return (
     <View style={{ padding: 16, alignItems: 'center', gap: 8 }}>
       <Text style={{ fontSize: 14, opacity: 0.7 }}>
-        Page {page} of {totalPages} — Showing {start.toLocaleString()}–{end.toLocaleString()} of{' '}
-        {total.toLocaleString()} products
+        Page {page} of {totalPages}; Showing {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()}{' '}
+        products
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
         <Button
@@ -201,9 +200,7 @@ function ListFooter({
   if (!hasMore && productCount > 0) {
     return (
       <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-        <Text style={{ opacity: 0.6 }}>
-          Showing {productCount.toLocaleString()} of {total.toLocaleString()} — End of results
-        </Text>
+        <Text style={{ opacity: 0.6 }}>All {total.toLocaleString()} products shown</Text>
       </View>
     );
   }
@@ -239,7 +236,8 @@ export default function Products() {
   const bgOverlay = colorScheme === 'light' ? 'rgba(242, 242, 242, 0.95)' : 'rgba(10,10,10,0.90)';
   const router = useRouter();
   const { user: currentUser } = useAuth();
-  const isDesktopWeb = useIsDesktop();
+  const { width } = useWindowDimensions();
+  const numColumns = width < 600 ? 1 : width < 1000 ? 2 : 3;
 
   // --- State Derived from URL/Search Params ---
   const params = useLocalSearchParams<{
@@ -273,13 +271,19 @@ export default function Products() {
   const [searchQuery, setSearchQuery] = useState(searchQueryURL);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
 
-  // Sync local search back to URL
+  // Single-column (mobile) load-more page — not stored in URL
+  const [mobilePage, setMobilePage] = useState(1);
+
+  // For multi-column: page comes from URL; for single-column: use local mobilePage
+  const effectivePage = numColumns === 1 ? mobilePage : page;
+
   // Local UI states
   const [headerBottom, setHeaderBottom] = useState(0);
   const [fabExtended, setFabExtended] = useState(true);
   const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null);
   const [accumulatedProducts, setAccumulatedProducts] = useState<Product[]>([]);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
+  const [dateMenuVisible, setDateMenuVisible] = useState(false);
 
   const [brandModalVisible, setBrandModalVisible] = useState(false);
   const [typeModalVisible, setTypeModalVisible] = useState(false);
@@ -319,7 +323,7 @@ export default function Products() {
   // TanStack Query
   const { data, isFetching, isLoading, error, refetch } = useProductsQuery(
     filterMode,
-    page,
+    effectivePage,
     searchQueryURL, // Use the one from the URL
     sortBy,
     { brands: activeBrands, createdAfter, productTypeNames: activeProductTypes },
@@ -338,17 +342,27 @@ export default function Products() {
     return () => clearTimeout(timer);
   }, [isLoading]);
 
+  // Reset single-column accumulation when any filter/search/sort changes
+  useEffect(() => {
+    setMobilePage(1);
+    setAccumulatedProducts([]);
+  }, [searchQueryURL, filterMode, params.sort, params.brands, params.types, params.days]);
+
   useEffect(() => {
     if (!data?.items) return;
-    if (data.page !== page) return;
-    if (page === 1) {
+    if (data.page !== effectivePage) return;
+    if (effectivePage === 1) {
       setAccumulatedProducts(data.items);
     } else {
-      setAccumulatedProducts((prev) => [...prev, ...data.items]);
+      // Deduplicate to prevent key conflicts when items shift between pages
+      setAccumulatedProducts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        return [...prev, ...data.items.filter((p) => !existingIds.has(p.id))];
+      });
     }
-  }, [data, page]);
+  }, [data, effectivePage]);
 
-  const productList: Product[] = isDesktopWeb ? (data?.items ?? []) : accumulatedProducts;
+  const productList: Product[] = numColumns === 1 ? accumulatedProducts : (data?.items ?? []);
   const totalPages = data?.pages ?? 0;
   const total = data?.total ?? 0;
   const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
@@ -436,13 +450,6 @@ export default function Products() {
     });
   };
 
-  const segmentButtons = isAuthenticated
-    ? [
-        { value: 'all', label: 'All Products', icon: 'database' },
-        { value: 'mine', label: 'My Products', icon: 'account' },
-      ]
-    : [{ value: 'all', label: 'All Products', icon: 'database' }];
-
   // ─── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -529,31 +536,7 @@ export default function Products() {
           </Card>
         )}
 
-        {/* Filter Buttons */}
-        {segmentButtons.length > 1 && (
-          <SegmentedButtons
-            value={filterMode}
-            onValueChange={(value) => {
-              if (value === 'mine' && !isAuthenticated) {
-                dialog.alert({
-                  title: 'Sign in required',
-                  message: 'Sign in to view and manage your products.',
-                  buttons: [{ text: 'Cancel' }, { text: 'Sign in', onPress: () => router.push('/login') }],
-                });
-                return;
-              }
-              updateParams({
-                filterMode: value as string,
-                page: '1',
-                // Explicitly clear others if they should be cleared on mode switch?
-                // Usually we keep filters but maybe not for "mine" vs "all"
-              });
-            }}
-            buttons={segmentButtons}
-          />
-        )}
-
-        {/* Search Bar + Sort */}
+        {/* Search Bar + Sort + Mine toggle */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Searchbar
             placeholder="Search products"
@@ -602,25 +585,50 @@ export default function Products() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
         >
-          {/* Date presets */}
-          {DATE_PRESETS.map((preset) => (
+          {/* Mine filter — only for authenticated users */}
+          {isAuthenticated && (
             <Chip
-              key={preset.days}
-              icon="calendar"
-              selected={activeDatePreset === preset.days}
-              mode={activeDatePreset === preset.days ? 'flat' : 'outlined'}
-              onPress={() => {
-                const toggling = activeDatePreset === preset.days;
-                updateParams({
-                  days: toggling ? undefined : String(preset.days),
-                  page: '1',
-                });
-              }}
+              icon="account"
+              selected={filterMode === 'mine'}
+              mode={filterMode === 'mine' ? 'flat' : 'outlined'}
+              onPress={() => updateParams({ filterMode: filterMode === 'mine' ? 'all' : 'mine', page: '1' })}
+              onClose={filterMode === 'mine' ? () => updateParams({ filterMode: 'all', page: '1' }) : undefined}
               compact
+              accessibilityLabel={filterMode === 'mine' ? 'Show all products' : 'Show only my products'}
             >
-              {preset.label}
+              Mine
             </Chip>
-          ))}
+          )}
+
+          {/* Date preset — single chip with dropdown */}
+          <Menu
+            visible={dateMenuVisible}
+            onDismiss={() => setDateMenuVisible(false)}
+            anchor={
+              <Chip
+                icon="calendar"
+                selected={activeDatePreset !== null}
+                mode={activeDatePreset !== null ? 'flat' : 'outlined'}
+                onPress={() => setDateMenuVisible(true)}
+                onClose={activeDatePreset !== null ? () => updateParams({ days: undefined, page: '1' }) : undefined}
+                compact
+              >
+                {DATE_PRESETS.find((p) => p.days === activeDatePreset)?.label ?? 'Date'}
+              </Chip>
+            }
+          >
+            {DATE_PRESETS.map((preset) => (
+              <Menu.Item
+                key={preset.days}
+                title={preset.label}
+                trailingIcon={activeDatePreset === preset.days ? 'check' : undefined}
+                onPress={() => {
+                  updateParams({ days: String(preset.days), page: '1' });
+                  setDateMenuVisible(false);
+                }}
+              />
+            ))}
+          </Menu>
 
           {/* Brand filter */}
           <Chip
@@ -747,22 +755,28 @@ export default function Products() {
           </View>
         ) : (
           <FlatList
+            key={numColumns}
+            numColumns={numColumns}
             onScroll={onScroll}
             scrollEventThrottle={16}
             refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />}
             data={productList}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => <ProductCard product={item} showOwner={filterMode === 'all'} />}
+            renderItem={({ item }) => (
+              <View style={{ width: `${100 / numColumns}%` as any }}>
+                <ProductCard product={item} showOwner={filterMode === 'all'} />
+              </View>
+            )}
             ListFooterComponent={
               <ListFooter
-                isDesktopWeb={isDesktopWeb}
+                isDesktopWeb={numColumns > 1}
                 hasMore={hasMore}
                 productCount={productList.length}
                 total={total}
                 isFetching={isFetching}
-                page={page}
+                page={effectivePage}
                 totalPages={totalPages}
-                setPage={(p) => updateParams({ page: String(p) })}
+                setPage={(p) => (numColumns === 1 ? setMobilePage(p) : updateParams({ page: String(p) }))}
               />
             }
             ListEmptyComponent={
@@ -790,7 +804,7 @@ export default function Products() {
         )}
       </View>
 
-      {/* Gradient sits after the FlatList so it renders on top of cards — fades them at the boundary */}
+      {/* Gradient sits after the FlatList so it renders on top of cards; fades them at the boundary */}
       {headerBottom > 0 && (
         <LinearGradient
           colors={[bgOverlay, 'transparent']}

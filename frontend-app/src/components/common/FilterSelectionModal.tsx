@@ -6,12 +6,12 @@ type Props = {
   visible: boolean;
   onDismiss: () => void;
   title: string;
-  /** Items to display — controlled by the parent (parent owns the search query + fetch). */
+  /** Items to display; controlled by the parent (parent owns the search query + fetch). */
   items: string[];
   isLoading?: boolean;
   selectedValues: string[];
   onSelectionChange: (values: string[]) => void;
-  /** Controlled search query — parent owns it so it can debounce/fetch. */
+  /** Controlled search query; parent owns it so it can debounce/fetch. */
   searchQuery: string;
   onSearchChange: (q: string) => void;
   searchPlaceholder?: string;

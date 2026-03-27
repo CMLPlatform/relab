@@ -1,14 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
-import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
-import { useDialog } from '@/components/common/DialogProvider';
-import { useAuth } from '@/context/AuthProvider';
-import { getUser, login, markWebSessionActive } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/fetching';
+import { getUser, login, markWebSessionActive } from '@/services/api/authentication';
+import { useAuth } from '@/context/AuthProvider';
+import { useDialog } from '@/components/common/DialogProvider';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -366,6 +366,17 @@ export default function Login() {
   // Render
   return (
     <View style={{ flex: 1 }}>
+      {/* Back button — top left */}
+      <Button
+        mode="text"
+        icon="arrow-left"
+        onPress={() => router.replace('/products')}
+        style={{ position: 'absolute', top: 16, left: 8, zIndex: 10 }}
+        compact
+      >
+        Browse
+      </Button>
+
       <View
         style={{
           padding: 20,
@@ -387,25 +398,16 @@ export default function Login() {
         />
         <Text
           style={{
-            fontSize: 40,
+            fontSize: 48,
             fontWeight: 'bold',
-            textAlign: 'right',
+            textAlign: 'left',
             textShadowColor: colorScheme === 'light' ? 'white' : 'black',
             textShadowOffset: { width: 0, height: 0 },
             textShadowRadius: 10,
           }}
         >
-          {'RELab.'}
+          {'RELab'}
         </Text>
-        <Button
-          mode="contained-tonal"
-          buttonColor={theme.colors.secondaryContainer}
-          textColor={theme.colors.onSecondaryContainer}
-          onPress={() => router.replace('/products')}
-          style={{ alignSelf: 'flex-start', marginBottom: 8 }}
-        >
-          Back to browsing
-        </Button>
 
         <TextInput
           ref={emailRef}
@@ -428,8 +430,11 @@ export default function Login() {
         <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={attemptLogin}>
           Login
         </Button>
+        <Button mode="text" compact onPress={() => router.push('/forgot-password')} style={{ alignSelf: 'flex-end' }}>
+          Forgot password?
+        </Button>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 4 }}>
           <View style={{ flex: 1, height: 1, backgroundColor: 'grey', opacity: 0.3 }} />
           <Text style={{ marginHorizontal: 10, opacity: 0.5 }}>or</Text>
           <View style={{ flex: 1, height: 1, backgroundColor: 'grey', opacity: 0.3 }} />
@@ -442,10 +447,15 @@ export default function Login() {
           Continue with GitHub
         </Button>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-          <Button onPress={() => router.push('/forgot-password')}>Forgot Password?</Button>
-          <Button onPress={() => router.push('/new-account')}>Create a new account</Button>
-        </View>
+        <Button
+          mode="contained-tonal"
+          buttonColor={theme.colors.secondaryContainer}
+          textColor={theme.colors.onSecondaryContainer}
+          onPress={() => router.push('/new-account')}
+          style={{ width: '100%', marginTop: 4 }}
+        >
+          Create a new account
+        </Button>
       </View>
       <View
         style={{

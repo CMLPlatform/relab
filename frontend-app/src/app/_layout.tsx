@@ -36,7 +36,7 @@ const NO_OVERLAY_PATHS = ['/login', '/new-account', '/onboarding'];
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000, // 30 s — products are fresh for 30 s
+      staleTime: 30_000, // 30 s; products are fresh for 30 s
       retry: 1,
     },
   },
@@ -136,7 +136,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="products/index"
             options={{
-              title: 'RELab.',
+              title: 'RELab',
               headerTitleStyle: {
                 fontWeight: 'bold',
                 fontSize: 34,

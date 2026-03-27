@@ -26,7 +26,7 @@ export function useProductForm(id: string) {
   // ─── Local edit state ─────────────────────────────────────────────────────────
   const [product, setProduct] = useState<Product>(() => (isNew ? newProduct() : ({} as Product)));
   const [editMode, setEditMode] = useState(isNew);
-  // True for the session immediately after a new product's first save — drives the component nudge
+  // True for the session immediately after a new product's first save; drives the component nudge
   const [justCreated, setJustCreated] = useState(false);
 
   const saveMutation = useSaveProductMutation();
@@ -49,7 +49,7 @@ export function useProductForm(id: string) {
       }
       setProduct(newProd);
     } else if (serverProduct && !editMode) {
-      // Only sync from server when not actively editing — avoids clobbering user input
+      // Only sync from server when not actively editing; avoids clobbering user input
       setProduct(serverProduct);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

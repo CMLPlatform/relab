@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import CategorySelection from '../category_selection';
-import * as cpv from '@/services/cpv';
-import { renderWithProviders } from '@/test-utils';
 import type { User } from '@/types/User';
+import { renderWithProviders } from '@/test-utils';
+import * as cpv from '@/services/cpv';
 
 const mockUseAuth = jest.fn();
 const mockedLoadCPV = jest.mocked(cpv.loadCPV);
@@ -104,7 +104,7 @@ describe('CategorySelection', () => {
 
   it('navigates into subcategory when subcategories button is pressed', async () => {
     renderWithProviders(<CategorySelection />);
-    // Agricultural products has 1 subcategory — shows "1 subcategories" link
+    // Agricultural products has 1 subcategory; shows "1 subcategories" link
     await waitFor(() => {
       expect(screen.getByText(/1 subcategor/)).toBeTruthy(); // spell-checker: ignore subcategor
     });
@@ -127,11 +127,11 @@ describe('CategorySelection', () => {
     renderWithProviders(<CategorySelection />);
     await screen.findByText('1 subcategories');
     fireEvent.press(screen.getByText('1 subcategories'));
-    // Now inside Agricultural products — breadcrumb shows
+    // Now inside Agricultural products; breadcrumb shows
     await waitFor(() => {
       expect(screen.getByText('Agricultural products')).toBeTruthy();
     });
-    // Pressing the breadcrumb triggers moveUp — root categories re-appear
+    // Pressing the breadcrumb triggers moveUp; root categories re-appear
     fireEvent.press(screen.getByText('Agricultural products'));
     await waitFor(() => {
       expect(screen.getByText('Petroleum products')).toBeTruthy();
