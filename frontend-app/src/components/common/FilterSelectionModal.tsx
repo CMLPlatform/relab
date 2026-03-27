@@ -70,7 +70,7 @@ export default function FilterSelectionModal({
             <View style={{ paddingVertical: 24, alignItems: 'center' }}>
               <ActivityIndicator />
             </View>
-          ) : visibleItems.length === 0 ? (
+          ) : visibleItems.length === 0 && !canAddNew ? (
             <Text style={{ opacity: 0.5, paddingBottom: 8 }}>No results</Text>
           ) : (
             <ScrollView style={{ maxHeight: 320 }}>
