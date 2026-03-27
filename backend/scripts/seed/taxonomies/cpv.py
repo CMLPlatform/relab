@@ -212,10 +212,10 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
         for row in rows:
             # Remove trailing zeros for product type code for cosmetic reasons
             cpv_code = row["external_id"].rstrip("0")
-            cpv_description = row["name"]
+            cpv_name = row["name"]
 
             # Create product type
-            pt = ProductType(name=f"CPV: {cpv_code}", description=cpv_description)
+            pt = ProductType(name=cpv_name, description=f"CPV: {cpv_code}")
             session.add(pt)
             product_types_created += 1
 
