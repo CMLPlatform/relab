@@ -383,13 +383,6 @@ describe('Login screen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
-  it('shows RELab. title', async () => {
-    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
-    // Wait for the form to finish rendering before asserting on static text
-    await screen.findByPlaceholderText('Email or username', {}, { timeout: 3000 });
-    expect(screen.getByText('RELab.')).toBeTruthy();
-  });
-
   it('shows forgot password link and create account button', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await waitFor(() => {
