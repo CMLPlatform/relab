@@ -369,6 +369,53 @@ docker-smoke-all:
     @just docker-smoke-frontend-app
     @just docker-orchestration-smoke
 
+### CI test helpers for backend performance regression testing ---
+
+# Build (or rebuild) CI images without cache
+docker-ci-build:
+    {{ ci_compose }} --profile migrations build --no-cache
+
+# Start CI services and wait for readiness
+docker-ci-up services="database cache backend":
+    {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
+
+# Start the CI backend subset (database, cache, backend) and wait for readiness
+docker-ci-backend-up:
+    @just docker-ci-up "database cache backend"
+
+# Run CI migrations and seed dummy data for repeatable backend perf tests
+docker-ci-migrate-dummy:
+    {{ ci_compose }} run --rm -e SEED_DUMMY_DATA=true backend-migrations
+
+# Stop the CI stack and remove volumes
+docker-ci-down confirm='':
+    @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
+    {{ ci_compose }}  --profile migrations down -v --remove-orphans
+
+# Tail CI stack logs
+docker-ci-logs:
+    {{ ci_compose }} logs -f
+
+# Run the backend k6 baseline against the CI Docker stack.
+# Keeps the CI stack running; use `just docker-ci-down YES` when done.
+docker-ci-perf-baseline:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "→ Starting CI backend stack..."
+    just docker-ci-backend-up
+    echo "→ Running CI database migrations and seeding dummy data..."
+    just docker-ci-migrate-dummy
+    echo "→ Running backend k6 baseline against the CI stack..."
+    just backend/perf-ci
+
+# Write a dated CI baseline report from the latest backend k6 summary export
+docker-ci-perf-report DATE="":
+    just backend/perf-report-ci "{{ DATE }}"
+
+# Recalibrate backend perf thresholds from the latest CI baseline summary export
+docker-ci-perf-thresholds HEADROOM="1.15":
+    just backend/perf-thresholds-apply "{{ HEADROOM }}"
+
 # ============================================================================
 # Maintenance
 # ============================================================================

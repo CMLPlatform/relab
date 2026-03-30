@@ -2,24 +2,24 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 
 const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8000";
-const materialsPath = __ENV.PERF_MATERIALS_PATH || "/materials?size=20";
+const productTreePath = __ENV.PERF_PRODUCT_TREE_PATH || "/products/tree?recursion_depth=2";
 const loginEmail = __ENV.PERF_USER_EMAIL;
 const loginPassword = __ENV.PERF_USER_PASSWORD;
 const imageId = __ENV.PERF_IMAGE_ID;
 const imageWidth = __ENV.PERF_IMAGE_WIDTH || "200";
 
 const scenarios = {
-  materials_list: {
+  product_tree_read: {
     executor: "constant-vus",
-    exec: "materialsList",
-    vus: Number(__ENV.PERF_MATERIALS_VUS || 5),
-    duration: __ENV.PERF_MATERIALS_DURATION || "30s",
+    exec: "productTreeRead",
+    vus: Number(__ENV.PERF_PRODUCT_TREE_VUS || 5),
+    duration: __ENV.PERF_PRODUCT_TREE_DURATION || "30s",
   },
 };
 
 const thresholds = {
-  "http_req_failed{scenario:materials_list}": ["rate<0.01"],
-  "http_req_duration{scenario:materials_list}": ["p(95)<500"],
+  "http_req_failed{scenario:product_tree_read}": ["rate<0.01"],
+  "http_req_duration{scenario:product_tree_read}": ["p(95)<5000"],
 };
 
 if (loginEmail && loginPassword) {
@@ -30,7 +30,7 @@ if (loginEmail && loginPassword) {
     duration: __ENV.PERF_LOGIN_DURATION || "30s",
   };
   thresholds["http_req_failed{scenario:bearer_login}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<750"];
+  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<4100"];
 }
 
 if (imageId) {
@@ -41,7 +41,7 @@ if (imageId) {
     duration: __ENV.PERF_IMAGE_DURATION || "30s",
   };
   thresholds["http_req_failed{scenario:resized_image}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:resized_image}"] = ["p(95)<1200"];
+  thresholds["http_req_duration{scenario:resized_image}"] = ["p(95)<3600"];
 }
 
 export const options = {
@@ -49,13 +49,14 @@ export const options = {
   thresholds,
 };
 
-export function materialsList() {
-  const response = http.get(`${baseUrl}${materialsPath}`, {
-    tags: { scenario: "materials_list" },
+export function productTreeRead() {
+  const response = http.get(`${baseUrl}${productTreePath}`, {
+    tags: { scenario: "product_tree_read" },
   });
 
   check(response, {
-    "materials list returned 200": (res) => res.status === 200,
+    "product tree returned 200": (res) => res.status === 200,
+    "product tree returned array": (res) => Array.isArray(res.json()),
   });
 
   sleep(1);

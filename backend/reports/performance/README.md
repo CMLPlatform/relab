@@ -2,6 +2,8 @@
 
 Store short baseline summaries and comparison notes here.
 
+`just perf-baseline` writes the most recent machine-readable export to `latest-k6-summary.json`.
+
 Suggested naming:
 
 - `YYYY-MM-DD-local-baseline.md`

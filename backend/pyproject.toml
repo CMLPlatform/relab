@@ -256,6 +256,4 @@
   default-groups = ["api", "dev"]
 
   [tool.uv.sources]
-    fastapi-cache2-fork       = { git = "https://github.com/simonvanlierde/fastapi-cache" }             # Allow runtime type checks for FastAPI and Pydantic models
-    fastapi-users-db-sqlmodel = { git = "https://github.com/simonvanlierde/fastapi-users-db-sqlmodel" } # Fetch FastAPI-Users-DB-SQLModel from custom fork on GitHub for Pydantic V2 support
-    slowapi                   = { git = "https://github.com/simonvanlierde/slowapi" }                   # Fork of slowapi with fixed deprecation warnings
+    slowapi = { git = "https://github.com/simonvanlierde/slowapi" } # Fork with Python 3.14 deprecation fix; upstream PR: https://github.com/laurentS/slowapi/pull/264
