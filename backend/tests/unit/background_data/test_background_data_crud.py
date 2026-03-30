@@ -112,10 +112,8 @@ class TestCategoryValidation:
         category_create = AsyncMock()
         category_create.taxonomy_id = None
 
-        with pytest.raises(BadRequestError, match=MISSING_TAX_MSG) as exc:
+        with pytest.raises(BadRequestError, match=MISSING_TAX_MSG):
             await validate_category_creation(mock_session, category_create, taxonomy_id=None, supercategory_id=None)
-
-        assert MISSING_TAX_MSG in str(exc.value)
 
 
 class TestTaxonomyDomainValidation:
@@ -164,8 +162,6 @@ class TestTaxonomyDomainValidation:
         with pytest.raises(BadRequestError, match=MISSING_MSG) as exc:
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
-        # Match fuzzy since set representation might differ
-        assert MISSING_MSG in str(exc.value)
         assert str(CATEGORY_ID_2) in str(exc.value)
 
     async def test_validate_domains_invalid_domain(self, mock_session: AsyncMock) -> None:
@@ -182,10 +178,8 @@ class TestTaxonomyDomainValidation:
         mock_result.all.return_value = [cat1]
         mock_session.exec.return_value = mock_result
 
-        with pytest.raises(BadRequestError, match=BELONG_OUTSIDE_MSG) as exc:
+        with pytest.raises(BadRequestError, match=BELONG_OUTSIDE_MSG):
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
-
-        assert BELONG_OUTSIDE_MSG in str(exc.value)
 
 
 def _make_session() -> AsyncMock:
@@ -199,8 +193,8 @@ def _make_session() -> AsyncMock:
     return session
 
 
-class TestUpdateCategory:
-    """Tests for update_category."""
+class TestCategoryCrud:
+    """Tests for category CRUD operations."""
 
     async def test_update_category_name(self) -> None:
         """Test updating a category's name."""
@@ -215,9 +209,100 @@ class TestUpdateCategory:
         session.add.assert_called_once()
         session.commit.assert_called_once()
 
+    async def test_delete_category_success(self) -> None:
+        """Test successful category deletion."""
+        session = _make_session()
+        db_category = CategoryFactory.build(id=CATEGORY_ID_1)
 
-class TestMaterialCategoryLinks:
-    """Tests for material-category link CRUD."""
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_category):
+            await delete_category(session, CATEGORY_ID_1)
+
+        session.delete.assert_called_once_with(db_category)
+        session.commit.assert_called_once()
+
+
+class TestTaxonomyCrud:
+    """Tests for taxonomy CRUD operations."""
+
+    async def test_create_taxonomy_simple(self) -> None:
+        """Test simple taxonomy creation without categories."""
+        session = _make_session()
+        taxonomy_create = TaxonomyCreate(name="Test Tax", domains={TaxonomyDomain.PRODUCTS}, version="1.0")
+
+        result = await create_taxonomy(session, taxonomy_create)
+
+        assert isinstance(result, Taxonomy)
+        assert result.name == "Test Tax"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_update_taxonomy_name(self) -> None:
+        """Test updating a taxonomy's name."""
+        session = _make_session()
+        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10, name="Old Name")
+        taxonomy_update = TaxonomyUpdate(name="New Name")
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_taxonomy):
+            result = await update_taxonomy(session, TAXONOMY_ID_10, taxonomy_update)
+
+        assert result.name == "New Name"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_delete_taxonomy_success(self) -> None:
+        """Test successful taxonomy deletion."""
+        session = _make_session()
+        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10)
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_taxonomy):
+            await delete_taxonomy(session, TAXONOMY_ID_10)
+
+        session.delete.assert_called_once_with(db_taxonomy)
+        session.commit.assert_called_once()
+
+
+class TestMaterialCrud:
+    """Tests for material CRUD operations."""
+
+    async def test_create_material_simple(self) -> None:
+        """Test simple material creation without categories."""
+        session = _make_session()
+        material_create = MaterialCreate(name="Aluminum")
+
+        result = await create_material(session, material_create)
+
+        assert isinstance(result, Material)
+        assert result.name == "Aluminum"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_update_material_name(self) -> None:
+        """Test updating a material's name."""
+        session = _make_session()
+        db_material = MaterialFactory.build(id=1, name="Old Material")
+        material_update = MaterialUpdate(name="New Material")
+
+        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_material):
+            result = await update_material(session, 1, material_update)
+
+        assert result.name == "New Material"
+        session.add.assert_called_once()
+        session.commit.assert_called_once()
+
+    async def test_delete_material_success(self) -> None:
+        """Test successful material deletion."""
+        session = _make_session()
+        db_material = MaterialFactory.build(id=1)
+
+        with (
+            patch("app.api.background_data.crud.get_model_or_404", return_value=db_material),
+            patch("app.api.background_data.crud.material_files_crud.delete_all"),
+            patch("app.api.background_data.crud.material_images_crud.delete_all"),
+        ):
+            await delete_material(session, 1)
+
+        session.delete.assert_called_once_with(db_material)
+        session.commit.assert_called_once()
 
     async def test_add_categories_to_material_creates_first_link(self) -> None:
         """A material with no existing categories should still get its first category link."""
@@ -236,144 +321,6 @@ class TestMaterialCategoryLinks:
 
         assert result == db_categories
         mock_create_links.assert_awaited_once()
-        session.commit.assert_called_once()
-
-
-class TestProductTypeCategoryLinks:
-    """Tests for product-type category link CRUD."""
-
-    async def test_add_categories_to_product_type_creates_first_link(self) -> None:
-        """A product type with no existing categories should still get its first category link."""
-        session = _make_session()
-        db_product_type = ProductTypeFactory.build(id=1)
-        db_product_type.categories = []
-        db_categories = [CategoryFactory.build(id=CATEGORY_ID_1)]
-
-        with (
-            patch("app.api.background_data.crud.get_model_by_id", return_value=db_product_type),
-            patch("app.api.background_data.crud.get_models_by_ids_or_404", return_value=db_categories),
-            patch("app.api.background_data.crud.validate_category_taxonomy_domains", new=AsyncMock()),
-            patch("app.api.background_data.crud.create_model_links", new=AsyncMock()) as mock_create_links,
-        ):
-            result = await add_categories_to_product_type(session, 1, {CATEGORY_ID_1})
-
-        assert result == db_categories
-        mock_create_links.assert_awaited_once()
-        session.commit.assert_called_once()
-
-
-class TestDeleteCategory:
-    """Tests for delete_category."""
-
-    async def test_delete_category_success(self) -> None:
-        """Test successful category deletion."""
-        session = _make_session()
-        db_category = CategoryFactory.build(id=CATEGORY_ID_1)
-
-        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_category):
-            await delete_category(session, CATEGORY_ID_1)
-
-        session.delete.assert_called_once_with(db_category)
-        session.commit.assert_called_once()
-
-
-class TestCreateTaxonomy:
-    """Tests for create_taxonomy."""
-
-    async def test_create_taxonomy_simple(self) -> None:
-        """Test simple taxonomy creation without categories."""
-        session = _make_session()
-        taxonomy_create = TaxonomyCreate(name="Test Tax", domains={TaxonomyDomain.PRODUCTS}, version="1.0")
-
-        result = await create_taxonomy(session, taxonomy_create)
-
-        assert isinstance(result, Taxonomy)
-        assert result.name == "Test Tax"
-        session.add.assert_called_once()
-        session.commit.assert_called_once()
-
-
-class TestUpdateTaxonomy:
-    """Tests for update_taxonomy."""
-
-    async def test_update_taxonomy_name(self) -> None:
-        """Test updating a taxonomy's name."""
-        session = _make_session()
-        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10, name="Old Name")
-        taxonomy_update = TaxonomyUpdate(name="New Name")
-
-        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_taxonomy):
-            result = await update_taxonomy(session, TAXONOMY_ID_10, taxonomy_update)
-
-        assert result.name == "New Name"
-        session.add.assert_called_once()
-        session.commit.assert_called_once()
-
-
-class TestDeleteTaxonomy:
-    """Tests for delete_taxonomy."""
-
-    async def test_delete_taxonomy_success(self) -> None:
-        """Test successful taxonomy deletion."""
-        session = _make_session()
-        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10)
-
-        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_taxonomy):
-            await delete_taxonomy(session, TAXONOMY_ID_10)
-
-        session.delete.assert_called_once_with(db_taxonomy)
-        session.commit.assert_called_once()
-
-
-class TestCreateMaterial:
-    """Tests for create_material."""
-
-    async def test_create_material_simple(self) -> None:
-        """Test simple material creation without categories."""
-        session = _make_session()
-        material_create = MaterialCreate(name="Aluminum")
-
-        result = await create_material(session, material_create)
-
-        assert isinstance(result, Material)
-        assert result.name == "Aluminum"
-        session.add.assert_called_once()
-        session.commit.assert_called_once()
-
-
-class TestUpdateMaterial:
-    """Tests for update_material."""
-
-    async def test_update_material_name(self) -> None:
-        """Test updating a material's name."""
-        session = _make_session()
-        db_material = MaterialFactory.build(id=1, name="Old Material")
-        material_update = MaterialUpdate(name="New Material")
-
-        with patch("app.api.background_data.crud.get_model_or_404", return_value=db_material):
-            result = await update_material(session, 1, material_update)
-
-        assert result.name == "New Material"
-        session.add.assert_called_once()
-        session.commit.assert_called_once()
-
-
-class TestDeleteMaterial:
-    """Tests for delete_material."""
-
-    async def test_delete_material_success(self) -> None:
-        """Test successful material deletion."""
-        session = _make_session()
-        db_material = MaterialFactory.build(id=1)
-
-        with (
-            patch("app.api.background_data.crud.get_model_or_404", return_value=db_material),
-            patch("app.api.background_data.crud.material_files_crud.delete_all"),
-            patch("app.api.background_data.crud.material_images_crud.delete_all"),
-        ):
-            await delete_material(session, 1)
-
-        session.delete.assert_called_once_with(db_material)
         session.commit.assert_called_once()
 
 
@@ -431,6 +378,25 @@ class TestGetCategoryTrees:
 
 class TestProductTypeCrud:
     """Tests for ProductType CRUD operations."""
+
+    async def test_add_categories_to_product_type_creates_first_link(self) -> None:
+        """A product type with no existing categories should still get its first category link."""
+        session = _make_session()
+        db_product_type = ProductTypeFactory.build(id=1)
+        db_product_type.categories = []
+        db_categories = [CategoryFactory.build(id=CATEGORY_ID_1)]
+
+        with (
+            patch("app.api.background_data.crud.get_model_by_id", return_value=db_product_type),
+            patch("app.api.background_data.crud.get_models_by_ids_or_404", return_value=db_categories),
+            patch("app.api.background_data.crud.validate_category_taxonomy_domains", new=AsyncMock()),
+            patch("app.api.background_data.crud.create_model_links", new=AsyncMock()) as mock_create_links,
+        ):
+            result = await add_categories_to_product_type(session, 1, {CATEGORY_ID_1})
+
+        assert result == db_categories
+        mock_create_links.assert_awaited_once()
+        session.commit.assert_called_once()
 
     async def test_create_product_type_simple(self) -> None:
         """Test simple ProductType creation."""

@@ -1,9 +1,13 @@
 """FastAPI-Filter schemas for filtering database queries on background data models."""
 
+from typing import Any, cast
+
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
+from sqlalchemy import ColumnElement
 
 from app.api.background_data.models import Category, Material, ProductType, Taxonomy
+from app.api.common.search_utils import TSVectorSearchMixin
 
 
 class TaxonomyFilter(Filter):
@@ -32,7 +36,7 @@ class TaxonomyFilter(Filter):
         ]
 
 
-class CategoryFilter(Filter):
+class CategoryFilter(TSVectorSearchMixin, Filter):
     """FastAPI-filter class for Category filtering."""
 
     name__ilike: str | None = None
@@ -43,14 +47,19 @@ class CategoryFilter(Filter):
 
     order_by: list[str] | None = None
 
+    @classmethod
+    def _search_vector_col(cls) -> ColumnElement[Any]:
+        return cast("ColumnElement[Any]", Category.search_vector)
+
+    @classmethod
+    def _trigram_cols(cls) -> list[Any]:
+        return [Category.name]
+
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""
 
         model = Category
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
-            "name",
-            "description",
-        ]
+        # search_model_fields intentionally omitted; handled by TSVectorSearchMixin
 
 
 class CategoryFilterWithRelationships(CategoryFilter):
@@ -60,7 +69,7 @@ class CategoryFilterWithRelationships(CategoryFilter):
     taxonomy: CategoryFilter | None = FilterDepends(with_prefix("taxonomy", CategoryFilter))
 
 
-class MaterialFilter(Filter):
+class MaterialFilter(TSVectorSearchMixin, Filter):
     """FastAPI-filter class for Material filtering."""
 
     name__ilike: str | None = None
@@ -74,15 +83,19 @@ class MaterialFilter(Filter):
 
     order_by: list[str] | None = None
 
+    @classmethod
+    def _search_vector_col(cls) -> ColumnElement[Any]:
+        return cast("ColumnElement[Any]", Material.search_vector)
+
+    @classmethod
+    def _trigram_cols(cls) -> list[Any]:
+        return [Material.name]
+
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""
 
         model = Material
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
-            "name",
-            "description",
-            "source",
-        ]
+        # search_model_fields intentionally omitted; handled by TSVectorSearchMixin
 
 
 class MaterialFilterWithRelationships(MaterialFilter):
@@ -92,7 +105,7 @@ class MaterialFilterWithRelationships(MaterialFilter):
     categories: CategoryFilter | None = FilterDepends(with_prefix("categories", CategoryFilter))
 
 
-class ProductTypeFilter(Filter):
+class ProductTypeFilter(TSVectorSearchMixin, Filter):
     """FastAPI-Filter class for ProductType filtering."""
 
     name__ilike: str | None = None
@@ -103,14 +116,19 @@ class ProductTypeFilter(Filter):
 
     order_by: list[str] | None = None
 
+    @classmethod
+    def _search_vector_col(cls) -> ColumnElement[Any]:
+        return cast("ColumnElement[Any]", ProductType.search_vector)
+
+    @classmethod
+    def _trigram_cols(cls) -> list[Any]:
+        return [ProductType.name]
+
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""
 
         model = ProductType
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
-            "name",
-            "description",
-        ]
+        # search_model_fields intentionally omitted; handled by TSVectorSearchMixin
 
 
 class ProductTypeFilterWithRelationships(ProductTypeFilter):

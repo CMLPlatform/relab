@@ -1,11 +1,14 @@
 """Database models for background data."""
 
+# spell-checker: ignore trgm
+
 from enum import StrEnum
 from typing import Optional  # noqa: TC003 # Needed for runtime ORM mapping
 
 from pydantic import ConfigDict
+from sqlalchemy import Computed, Index
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlmodel import Column, Field, Relationship
 
 from app.api.common.models.base import CustomBase, CustomLinkingModelBase, IntPrimaryKeyMixin, TimeStampMixinBare
@@ -82,6 +85,23 @@ class Category(CategoryBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True)
 
     id: int | None = Field(default=None, primary_key=True)
 
+    __table_args__ = (
+        Index("category_search_vector_idx", "search_vector", postgresql_using="gin"),
+        Index("category_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+    )
+
+    search_vector: str | None = Field(
+        default=None,
+        exclude=True,
+        sa_column=Column(
+            TSVECTOR(),
+            Computed(
+                "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, ''))",
+                persisted=True,
+            ),
+        ),
+    )
+
     # Self-referential relationship
     supercategory_id: int | None = Field(foreign_key="category.id", default=None, nullable=True)
     supercategory: Optional["Category"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
@@ -127,6 +147,24 @@ class Material(MaterialBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True)
 
     id: int | None = Field(default=None, primary_key=True)
 
+    __table_args__ = (
+        Index("material_search_vector_idx", "search_vector", postgresql_using="gin"),
+        Index("material_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+    )
+
+    search_vector: str | None = Field(
+        default=None,
+        exclude=True,
+        sa_column=Column(
+            TSVECTOR(),
+            Computed(
+                "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
+                "coalesce(source, ''))",
+                persisted=True,
+            ),
+        ),
+    )
+
     # One-to-many relationships
     images: list[Image] | None = Relationship(cascade_delete=True)
     files: list[File] | None = Relationship(cascade_delete=True)
@@ -151,6 +189,23 @@ class ProductType(ProductTypeBase, IntPrimaryKeyMixin, TimeStampMixinBare, table
     """Database model for ProductType."""
 
     id: int | None = Field(default=None, primary_key=True)
+
+    __table_args__ = (
+        Index("producttype_search_vector_idx", "search_vector", postgresql_using="gin"),
+        Index("producttype_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+    )
+
+    search_vector: str | None = Field(
+        default=None,
+        exclude=True,
+        sa_column=Column(
+            TSVECTOR(),
+            Computed(
+                "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, ''))",
+                persisted=True,
+            ),
+        ),
+    )
 
     # One-to-many relationships
     files: list[File] | None = Relationship(cascade_delete=True)

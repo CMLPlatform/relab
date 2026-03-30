@@ -51,4 +51,4 @@ def downgrade() -> None:
     op.execute("DROP INDEX IF EXISTS product_name_trgm_idx")
     op.execute("DROP INDEX IF EXISTS product_search_vector_idx")
     op.execute("ALTER TABLE product DROP COLUMN IF EXISTS search_vector")
-    # Note: we intentionally leave pg_trgm installed — other tables may rely on it
+    # Note: we intentionally leave pg_trgm installed; other tables may rely on it

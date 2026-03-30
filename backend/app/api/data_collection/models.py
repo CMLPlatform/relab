@@ -107,7 +107,7 @@ class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
 
     # Many-to-one relationships
     files: list[File] | None = Relationship(cascade_delete=True)
-    images: list[Image] | None = Relationship(cascade_delete=True, sa_relationship_kwargs={"lazy": "subquery"})
+    images: list[Image] | None = Relationship(cascade_delete=True, sa_relationship_kwargs={"lazy": "selectin"})
     videos: list[Video] | None = Relationship(cascade_delete=True)
 
     # One-to-many relationships
@@ -124,7 +124,7 @@ class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
     product_type: ProductType = Relationship(sa_relationship_kwargs={"uselist": False})
 
     # Many-to-many relationships
-    bill_of_materials: list["MaterialProductLink"] | None = Relationship(  # noqa: UP037 # forward ref — class defined below
+    bill_of_materials: list["MaterialProductLink"] | None = Relationship(  # noqa: UP037 # forward ref; class defined below
         back_populates="product", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
     )
 
@@ -280,7 +280,7 @@ Product.first_image_id = column_property(
 )
 
 
-### MaterialProductLink — lives here so Product and Material are both in scope ###
+### MaterialProductLink; lives here so Product and Material are both in scope ###
 class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, table=True):
     """Association table to link Material with Product."""
 
