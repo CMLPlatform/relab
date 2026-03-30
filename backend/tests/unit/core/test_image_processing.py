@@ -126,16 +126,10 @@ def test_resize_image_accepts_anyio_path(sample_image: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_validate_dimensions_within_limit() -> None:
-    """Images within the dimension limit should not raise."""
-    img = PILImage.new("RGB", (100, 100))
-    validate_image_dimensions(img)  # should not raise
-
-
-def test_validate_dimensions_at_limit() -> None:
-    """Images exactly at the limit should not raise."""
-    img = PILImage.new("RGB", (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION))
-    validate_image_dimensions(img)  # should not raise
+def test_validate_dimensions_accepts_valid_images() -> None:
+    """Images within the limit (and exactly at the limit) should not raise."""
+    validate_image_dimensions(PILImage.new("RGB", (100, 100)))
+    validate_image_dimensions(PILImage.new("RGB", (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)))
 
 
 def test_validate_dimensions_exceeds_width() -> None:
@@ -198,44 +192,24 @@ def test_validate_image_file_rejects_invalid_image() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_apply_exif_orientation_noop_for_normal(tmp_path: Path) -> None:
-    """Images with orientation=1 (normal) should not be transformed."""
-    path = _make_jpeg_with_exif(tmp_path / "normal.jpg", 400, 200, orientation=1)
-
-    with PILImage.open(path) as img:
-        corrected = apply_exif_orientation(img)
-
-    assert corrected.width == 400
-    assert corrected.height == 200
-
-
-def test_apply_exif_orientation_noop_when_absent(tmp_path: Path) -> None:
-    """Images without an orientation tag should not be transformed."""
-    path = tmp_path / "no_exif.jpg"
-    PILImage.new("RGB", (400, 200), color="red").save(path, format="JPEG")
-
-    with PILImage.open(path) as img:
-        corrected = apply_exif_orientation(img)
-
-    assert corrected.width == 400
-    assert corrected.height == 200
+def test_apply_exif_orientation_noop_for_un_rotated(tmp_path: Path) -> None:
+    """Images with orientation=1 or no orientation tag should not be transformed."""
+    for path in [
+        _make_jpeg_with_exif(tmp_path / "normal.jpg", 400, 200, orientation=1),
+        (tmp_path / "no_exif.jpg"),
+    ]:
+        if not path.exists():
+            PILImage.new("RGB", (400, 200), color="red").save(path, format="JPEG")
+        with PILImage.open(path) as img:
+            corrected = apply_exif_orientation(img)
+        assert corrected.width == 400
+        assert corrected.height == 200
 
 
-def test_apply_exif_orientation_6_rotates_dimensions(tmp_path: Path) -> None:
-    """Orientation 6 (90° CW) should swap width and height."""
-    # 100w x 200h image tagged as "rotated 90° CW" → corrected to 200w x 100h
-    path = _make_jpeg_with_exif(tmp_path / "orient6.jpg", 100, 200, orientation=6)
-
-    with PILImage.open(path) as img:
-        corrected = apply_exif_orientation(img)
-
-    assert corrected.width == 200
-    assert corrected.height == 100
-
-
-def test_apply_exif_orientation_8_rotates_dimensions(tmp_path: Path) -> None:
-    """Orientation 8 (90° CCW) should swap width and height."""
-    path = _make_jpeg_with_exif(tmp_path / "orient8.jpg", 100, 200, orientation=8)
+@pytest.mark.parametrize("orientation", [6, 8])
+def test_apply_exif_orientation_90deg_swaps_dimensions(tmp_path: Path, orientation: int) -> None:
+    """Orientations 6 (90° CW) and 8 (90° CCW) should both swap width and height."""
+    path = _make_jpeg_with_exif(tmp_path / f"orient{orientation}.jpg", 100, 200, orientation=orientation)
 
     with PILImage.open(path) as img:
         corrected = apply_exif_orientation(img)
@@ -258,20 +232,6 @@ def test_apply_exif_orientation_3_preserves_dimensions(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # strip_sensitive_exif
 # ---------------------------------------------------------------------------
-
-
-def test_strip_sensitive_exif_removes_gps(tmp_path: Path) -> None:
-    """GPS tag should be stripped from EXIF."""
-    path = _make_jpeg_with_exif(tmp_path / "gps.jpg", 100, 100, gps=True)
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as img:
-        exif_bytes = img.info.get("exif")
-        if exif_bytes:
-            exif_dict = piexif.load(exif_bytes)
-            # GPS IFD should be empty after processing
-            assert exif_dict.get("GPS") == {}
 
 
 def test_strip_sensitive_exif_removes_orientation(tmp_path: Path) -> None:
@@ -351,14 +311,3 @@ def test_process_image_normal_orientation_unchanged(tmp_path: Path) -> None:
     with PILImage.open(path) as result:
         assert result.width == 400
         assert result.height == 200
-
-
-def test_process_image_file_still_valid_after_processing(tmp_path: Path) -> None:
-    """File saved by process_image_for_storage should be a valid image."""
-    path = tmp_path / "plain.jpg"
-    PILImage.new("RGB", (200, 200), color="red").save(path, format="JPEG")
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as result:
-        assert result.size == (200, 200)

@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from anyio import open_file, to_thread
-from PIL import Image
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator, Unicode
 
@@ -116,29 +115,13 @@ class StorageFile(str):
 
 
 class StorageImage(StorageFile):
-    """Storage file wrapper enriched with image dimensions."""
+    """Storage file wrapper for image files."""
 
-    __slots__ = ("_height", "_width")
+    __slots__ = ()
 
-    def __new__(cls, *, name: str, storage: BaseStorage, height: int, width: int) -> Self:
+    def __new__(cls, *, name: str, storage: BaseStorage) -> Self:
         """Create the string value from the resolved storage path."""
-        del height, width
         return str.__new__(cls, storage.get_path(name))
-
-    def __init__(self, *, name: str, storage: BaseStorage, height: int, width: int) -> None:
-        super().__init__(name=name, storage=storage)
-        self._height = height
-        self._width = width
-
-    @property
-    def height(self) -> int:
-        """Image height in pixels."""
-        return self._height
-
-    @property
-    def width(self) -> int:
-        """Image width in pixels."""
-        return self._width
 
 
 class FileSystemStorage(BaseStorage):
@@ -285,24 +268,17 @@ class _ImageType(_BaseStorageType):
 
     def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
         validate_image_file(file_obj)
-        with Image.open(file_obj) as image_file:
-            width, height = image_file.size
-
         file_obj.seek(0)
-        image = StorageImage(name=value.filename, storage=self.storage, height=height, width=width)
+        image = StorageImage(name=value.filename, storage=self.storage)
         image.write(file=file_obj)
         return image.name
 
     def process_result_value(self, value: str | None, dialect: Dialect) -> StorageImage | None:
-        """Hydrate a database value as a storage-backed image object."""
+        """Hydrate a database value as a storage-backed image object. No file IO performed here."""
         del dialect
         if value is None:
             return value
-
-        with Image.open(self.storage.get_path(value)) as image:
-            width, height = image.size
-
-        return StorageImage(name=value, storage=self.storage, height=height, width=width)
+        return StorageImage(name=value, storage=self.storage)
 
 
 def get_storage(path: Path) -> CustomFileSystemStorage:
@@ -320,16 +296,6 @@ class _ConfiguredStorageTypeMixin:
         super_init(type(self).storage_factory(), *args, **kwargs)
 
 
-class _MissingFileReturnsNoneMixin:
-    """Normalize missing files to None for graceful application-level handling."""
-
-    def process_result_value(self, value: Any, dialect: Dialect) -> StorageImage | None:  # noqa: ANN401 # Any-type value is expected by the parent class signature
-        try:
-            return cast("Any", super()).process_result_value(value, dialect)
-        except FileNotFoundError:
-            return None
-
-
 class FileType(_ConfiguredStorageTypeMixin, _FileType):
     """Custom file type with the configured local file storage."""
 
@@ -339,7 +305,7 @@ class FileType(_ConfiguredStorageTypeMixin, _FileType):
         return get_storage(settings.file_storage_path)
 
 
-class ImageType(_MissingFileReturnsNoneMixin, _ConfiguredStorageTypeMixin, _ImageType):
+class ImageType(_ConfiguredStorageTypeMixin, _ImageType):
     """Custom image type with the configured local image storage."""
 
     @staticmethod

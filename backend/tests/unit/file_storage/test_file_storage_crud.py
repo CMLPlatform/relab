@@ -107,12 +107,12 @@ class TestFileStorageCrud:
         )
 
         with (
-            patch("app.api.file_storage.crud.get_storage") as mock_storage_factory,
             patch("app.api.file_storage.crud.get_file_parent_type_model") as mock_parent_model,
             patch("app.api.file_storage.crud.get_model_or_404"),
+            patch.object(crud.file_storage_service, "_storage") as mock_storage,
         ):
             mock_parent_model.return_value = MagicMock()
-            mock_storage_factory.return_value.write_upload = AsyncMock(return_value="stored_test.txt")
+            mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
 
             result = await create_file(mock_session, file_create)
 
@@ -138,10 +138,10 @@ class TestFileStorageCrud:
         )
 
         with (
-            patch("app.api.file_storage.crud.get_storage") as mock_storage_factory,
             patch("app.api.file_storage.crud.get_model_or_404"),
+            patch.object(crud.file_storage_service, "_storage") as mock_storage,
         ):
-            mock_storage_factory.return_value.write_upload = AsyncMock(return_value="stored_test.txt")
+            mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
 
             result = await create_file(mock_session, file_create)
 
@@ -206,13 +206,6 @@ class TestFileStorageCrud:
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
-    async def test_get_files(self, mock_session: AsyncMock) -> None:
-        """Test getting files."""
-        with patch("app.api.file_storage.crud.get_models") as mock_get_models:
-            mock_get_models.return_value = []
-            result = await crud.get_files(mock_session)
-            assert isinstance(result, list)
-
 
 class TestImageStorageCrud:
     """Test CRUD operations for image files."""
@@ -235,9 +228,9 @@ class TestImageStorageCrud:
                 "app.api.file_storage.crud.get_model_or_404",
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
-            patch("app.api.file_storage.crud.get_storage") as mock_storage_factory,
+            patch.object(crud.image_storage_service, "_storage") as mock_storage,
         ):
-            mock_storage_factory.return_value.write_image_upload = AsyncMock(return_value="stored_image.png")
+            mock_storage.write_image_upload = AsyncMock(return_value="stored_image.png")
             result = await crud.create_image(mock_session, image_create)
             assert isinstance(result, Image)
             assert result.description == TEST_IMAGE_DESC

@@ -51,6 +51,24 @@ def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url
     return f"{url_prefix}/{quote(str(relative_path))}"
 
 
+def _build_image_urls(
+    file_path: str | None,
+    image_id: int | None,
+    storage_root: Path,
+) -> tuple[str | None, str | None]:
+    """Build image_url and thumbnail_url with a single filesystem existence check.
+
+    Returns (image_url, thumbnail_url) — both None if the file does not exist.
+    """
+    if file_path is None:
+        return None, None
+    path = Path(file_path)
+    if not path.exists():
+        return None, None
+    relative_path = path.relative_to(storage_root)
+    return f"/uploads/images/{quote(str(relative_path))}", f"/images/{image_id}/resized?width=200"
+
+
 FileUpload = Annotated[
     UploadFile,
     AfterValidator(validate_filename),
@@ -155,25 +173,19 @@ class ImageReadWithinParent(BaseReadSchemaWithTimeStamp, ImageBase):
             if payload.get("image_url") is not None:
                 return payload
             file_path = getattr(payload.get("file"), "path", None)
-            thumbnail_url = None
-            if file_path is not None and Path(file_path).exists():
-                thumbnail_url = f"/images/{payload.get('id')}/resized?width=200"
-            return {
-                **payload,
-                "image_url": _build_storage_url(file_path, settings.image_storage_path, "/uploads/images"),
-                "thumbnail_url": thumbnail_url,
-            }
+            image_url, thumbnail_url = _build_image_urls(file_path, payload.get("id"), settings.image_storage_path)
+            return {**payload, "image_url": image_url, "thumbnail_url": thumbnail_url}
 
+        item_id = getattr(data, "db_id", getattr(data, "id", None))
         file_path = getattr(getattr(data, "file", None), "path", None)
+        image_url, thumbnail_url = _build_image_urls(file_path, item_id, settings.image_storage_path)
         return {
-            "id": getattr(data, "db_id", getattr(data, "id", None)),
+            "id": item_id,
             "description": getattr(data, "description", None),
             "image_metadata": getattr(data, "image_metadata", None),
             "filename": getattr(data, "filename", None),
-            "image_url": _build_storage_url(file_path, settings.image_storage_path, "/uploads/images"),
-            "thumbnail_url": f"/images/{getattr(data, 'db_id', getattr(data, 'id', None))}/resized?width=200"
-            if file_path is not None and Path(file_path).exists()
-            else None,
+            "image_url": image_url,
+            "thumbnail_url": thumbnail_url,
             "created_at": getattr(data, "created_at", None),
             "updated_at": getattr(data, "updated_at", None),
             "parent_id": getattr(data, "product_id", None)

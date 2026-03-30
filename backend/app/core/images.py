@@ -46,7 +46,7 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
 # Technical metadata (Make, Model, exposure settings) is intentionally preserved.
 _SENSITIVE_EXIF_TAGS: frozenset[int] = frozenset(
     {
-        0x8825,  # GPSInfo — GPS IFD pointer and sub-IFD are fully removed
+        0x8825,  # GPSInfo: GPS IFD pointer and sub-IFD are fully removed
         0x927C,  # MakerNote (device-specific, can contain serial numbers)
         0xA430,  # CameraOwnerName
         0xA431,  # BodySerialNumber
@@ -200,8 +200,8 @@ def process_image_for_storage(image_path: Path) -> None:
     1. Validate dimensions against MAX_IMAGE_DIMENSION to guard against memory exhaustion.
     2. Extract and clean EXIF: fully remove GPS IFD, sensitive identifiers, and orientation tag.
     3. JPEG fast path: if no rotation is needed, losslessly splice cleaned EXIF bytes using
-       piexif.insert() — no pixel re-encoding, no quality loss.
-       Slow path: rotation needed or non-JPEG format — decode pixels, apply orientation via
+       piexif.insert(); no pixel re-encoding, no quality loss.
+       Slow path: rotation needed or non-JPEG format; decode pixels, apply orientation via
        ImageOps.exif_transpose(), then re-encode with cleaned EXIF attached.
 
     Args:
@@ -238,12 +238,12 @@ def process_image_for_storage(image_path: Path) -> None:
     # JPEG fast path: losslessly splice cleaned EXIF without pixel re-encoding
     if processed is None:
         if not exif_bytes:
-            # No EXIF at all — file is already clean.
+            # No EXIF at all; file is already clean.
             return
         if cleaned_exif_bytes is not None:
             piexif.insert(cleaned_exif_bytes, str(image_path))
             return
-        # EXIF parsing failed — fall through to re-encode, which saves without EXIF.
+        # EXIF parsing failed; fall through to re-encode, which saves without EXIF.
         with PILImage.open(image_path) as img:
             processed = img.copy()
 

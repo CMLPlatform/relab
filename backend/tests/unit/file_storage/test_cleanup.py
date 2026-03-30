@@ -105,7 +105,7 @@ async def test_get_files_on_disk_excludes_recent_files(tmp_path: Path, monkeypat
 
     new_file = file_storage / "new.txt"
     new_file.write_text("new")
-    # mtime defaults to now — well within any grace period
+    # mtime defaults to now; well within any grace period
 
     monkeypatch.setattr(settings, "file_storage_path", file_storage)
     monkeypatch.setattr(settings, "image_storage_path", image_storage)
@@ -232,7 +232,7 @@ async def test_cleanup_continues_after_delete_error(tmp_path: Path) -> None:
     """A failed deletion is logged and does not abort remaining files."""
     good = tmp_path / "good.txt"
     good.write_text("good")
-    missing = tmp_path / "missing.txt"  # does not exist — unlink will raise OSError
+    missing = tmp_path / "missing.txt"  # does not exist; unlink will raise OSError
     session = MagicMock()
 
     with patch(
