@@ -1,23 +1,26 @@
 # RELab Web
 
-The public-facing website: project overview, dataset access, and platform information. Built with [Astro](https://astro.build/) and linted/formatted with [Biome](https://biomejs.dev/).
+The `frontend-web` subrepo contains the public-facing Astro website.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-juts install # install dependencies
-just dev    # site at http://localhost:8081 (or http://localhost:8010 via Docker)
+just install
+just dev
 ```
+
+The local dev server runs on <http://localhost:8081>. In the full Docker stack, the site is exposed on <http://localhost:8010>.
 
 ## Common Commands
 
 ```bash
-just check        # Biome lint + Astro type check
-just test         # Vitest unit tests
-just test-e2e     # Playwright E2E (Chromium + Firefox)
-just format       # auto-fix formatting
+just check      # Biome lint + Astro typecheck
+just test       # Vitest unit tests
+just test-ci    # unit tests with coverage
+just test-e2e   # Playwright browser tests
+just format     # format code
 ```
 
-## Want to Know More?
+## More
 
-Full setup, E2E test patterns, and accessibility testing are in [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
+For local setup, testing patterns, and accessibility expectations, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).

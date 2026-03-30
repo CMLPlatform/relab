@@ -1,0 +1,85 @@
+---
+interface Props {
+  apiUrl: string;
+  placeholder?: string;
+  buttonText: string;
+  buttonVariant?: string;
+  submittingText?: string;
+  successMessage?: string;
+}
+
+const {
+  apiUrl,
+  placeholder = 'you@institution.edu',
+  buttonText,
+  buttonVariant = 'btn-muted',
+  submittingText = 'Sending…',
+  successMessage,
+} = Astro.props;
+---
+
+<div
+  class="email-form"
+  data-api-url={apiUrl}
+  data-button-text={buttonText}
+  data-submitting-text={submittingText}
+  data-success-message={successMessage}
+>
+  <div class="input-row">
+    <input type="email" placeholder={placeholder} autocomplete="email" aria-label="Email address" />
+    <button class={`btn ${buttonVariant}`}>{buttonText}</button>
+  </div>
+
+  <slot />
+
+  <div class="message" role="alert" aria-live="polite"></div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLDivElement>('.email-form').forEach((form) => {
+    const input = form.querySelector<HTMLInputElement>('input[type="email"]')!;
+    const btn = form.querySelector<HTMLButtonElement>('button')!;
+    const messageEl = form.querySelector<HTMLDivElement>('.message')!;
+    const { apiUrl, buttonText, submittingText, successMessage } = form.dataset;
+
+    function showMessage(text: string, isError: boolean) {
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + (isError ? 'message-error' : 'message-success');
+    }
+
+    btn.addEventListener('click', async () => {
+      const email = input.value.trim();
+      if (!email.includes('@')) {
+        showMessage('Please enter a valid email address.', true);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = submittingText!;
+
+      try {
+        const res = await fetch(apiUrl!, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(email),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showMessage(successMessage || data.message || 'Success!', false);
+          input.value = '';
+        } else {
+          showMessage(data.detail || 'An error occurred. Please try again.', true);
+        }
+      } catch {
+        showMessage('An error occurred. Please try again later.', true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = buttonText!;
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btn.click();
+    });
+  });
+</script>

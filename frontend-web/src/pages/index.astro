@@ -1,4 +1,5 @@
 ---
+import EmailForm from '@/components/EmailForm.astro';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
@@ -37,76 +38,23 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     </div>
 
     <div class="newsletter-form">
-      <div class="input-row">
-        <input
-          id="email"
-          type="email"
-          placeholder="you@institution.edu"
-          autocomplete="email"
-          aria-label="Email address"
-        />
-        <button id="subscribe-btn" class="btn btn-muted">Subscribe</button>
-      </div>
-
-      <p class="muted-text">
-        By subscribing, you agree to our <a href="/privacy">Privacy Policy</a>.
-      </p>
-
-      <div id="message" class="message" role="alert" aria-live="polite"></div>
+      <EmailForm
+        apiUrl={newsletterSubscribeUrl}
+        buttonText="Subscribe"
+        submittingText="Subscribing…"
+        successMessage="Thanks for subscribing! Please check your email for confirmation."
+      >
+        <p class="muted-text">
+          By subscribing, you agree to our <a href="/privacy">Privacy Policy</a>.
+        </p>
+      </EmailForm>
     </div>
   </section>
 </Layout>
 
-<script is:inline define:vars={{ newsletterSubscribeUrl }}>
-  const btn = document.getElementById('subscribe-btn');
-  const emailInput = document.getElementById('email');
-  const messageEl = document.getElementById('message');
-  const animatedBlocks = document.querySelectorAll('[data-animate]');
-
-  animatedBlocks.forEach((block, index) => {
-    setTimeout(() => {
-      block.classList.add('is-visible');
-    }, 80 * index);
-  });
-
-  function showMessage(text, isError) {
-    messageEl.textContent = text;
-    messageEl.className = 'message ' + (isError ? 'message-error' : 'message-success');
-  }
-
-  btn.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    if (!email.includes('@')) {
-      showMessage('Please enter a valid email address.', true);
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Subscribing…';
-
-    try {
-      const res = await fetch(newsletterSubscribeUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(email),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showMessage('Thanks for subscribing! Please check your email for confirmation.', false);
-        emailInput.value = '';
-      } else {
-        showMessage(data.detail || 'Subscription failed. Please try again.', true);
-      }
-    } catch {
-      showMessage('An error occurred, please try again later.', true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Subscribe';
-    }
-  });
-
-  emailInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btn.click();
+<script>
+  document.querySelectorAll<Element>('[data-animate]').forEach((block, index) => {
+    setTimeout(() => block.classList.add('is-visible'), 80 * index);
   });
 </script>
 
@@ -122,15 +70,7 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
   h2 {
     font-size: clamp(1.25rem, 2.8vw, 1.75rem);
     font-weight: 600;
-    margin: 0 0 0.8rem;
   }
-
-  p {
-    margin: 0 0 1rem;
-    line-height: 1.65;
-  }
-
-  /* card styles moved to global.css */
 
   [data-animate] {
     opacity: 0;
@@ -163,22 +103,6 @@ const newsletterSubscribeUrl = joinApiUrl(apiUrl, '/newsletter/subscribe');
     border-radius: 999px;
     background: radial-gradient(circle, rgba(0, 103, 131, 0.08) 0%, transparent 70%);
     pointer-events: none;
-  }
-
-  .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin: 0 0 0.7rem;
-    font-size: 0.77rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 600;
-    color: var(--color-primary-strong);
-  }
-
-  .eyebrow-soft {
-    color: var(--color-muted);
   }
 
   .lead {

@@ -1,0 +1,70 @@
+---
+interface Props {
+  title: string;
+  apiUrl: string;
+  loadingMessage: string;
+  successMessage: string;
+  noTokenMessage: string;
+  defaultErrorMessage: string;
+}
+
+const { title, apiUrl, loadingMessage, successMessage, noTokenMessage, defaultErrorMessage } =
+  Astro.props;
+---
+
+<div class="card">
+  <h1>{title}</h1>
+  <div
+    id="status"
+    class="status status-loading"
+    data-api-url={apiUrl}
+    data-success-message={successMessage}
+    data-no-token-message={noTokenMessage}
+    data-default-error-message={defaultErrorMessage}
+  >
+    <div class="spinner" aria-hidden="true"></div>
+    <p>{loadingMessage}</p>
+  </div>
+</div>
+
+<script>
+  const statusEl = document.getElementById('status')!;
+  const { apiUrl, successMessage, noTokenMessage, defaultErrorMessage } = statusEl.dataset;
+
+  function show(message: string, state: string) {
+    const p = document.createElement('p');
+    p.textContent = message;
+    statusEl.className = `status status-${state}`;
+    statusEl.replaceChildren(p);
+  }
+
+  const token = new URLSearchParams(window.location.search).get('token');
+
+  if (!token) {
+    show(noTokenMessage!, 'error');
+  } else {
+    fetch(apiUrl!, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(token),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          show(successMessage!, 'success');
+          setTimeout(() => (window.location.href = '/'), 3000);
+        } else {
+          const data = await res.json();
+          show(data.detail || defaultErrorMessage, 'error');
+        }
+      })
+      .catch(() => show('An error occurred. Please try again later.', 'error'));
+  }
+</script>
+
+<style>
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem;
+  }
+</style>

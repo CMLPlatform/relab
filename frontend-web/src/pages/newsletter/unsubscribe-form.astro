@@ -1,4 +1,5 @@
 ---
+import EmailForm from '@/components/EmailForm.astro';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
@@ -11,65 +12,19 @@ const newsletterRequestUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/request-
     <h1>Unsubscribe from Newsletter</h1>
     <p>Please enter your email address to unsubscribe from our newsletter.</p>
 
-    <div class="input-row">
-      <input id="email" type="email" placeholder="Your email address" autocomplete="email" aria-label="Email address" />
-      <button id="unsub-btn" class="btn btn-primary">Unsubscribe</button>
-    </div>
-
-    <p class="muted-text">
-      You will receive a confirmation email with a link to complete the unsubscription. This step ensures only the
-      account owner can unsubscribe.
-    </p>
-
-    <div id="message" class="message" role="alert" aria-live="polite"></div>
+    <EmailForm
+      apiUrl={newsletterRequestUnsubscribeUrl}
+      placeholder="Your email address"
+      buttonText="Unsubscribe"
+      buttonVariant="btn-primary"
+    >
+      <p class="muted-text">
+        You will receive a confirmation email with a link to complete the unsubscription. This step ensures only the
+        account owner can unsubscribe.
+      </p>
+    </EmailForm>
   </div>
 </Layout>
-
-<script is:inline define:vars={{ newsletterRequestUnsubscribeUrl }}>
-  const btn = document.getElementById('unsub-btn');
-  const emailInput = document.getElementById('email');
-  const messageEl = document.getElementById('message');
-
-  function showMessage(text, isError) {
-    messageEl.textContent = text;
-    messageEl.className = 'message ' + (isError ? 'message-error' : 'message-success');
-  }
-
-  btn.addEventListener('click', async () => {
-    const email = emailInput.value.trim();
-    if (!email.includes('@')) {
-      showMessage('Please enter a valid email address.', true);
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = 'Sending…';
-
-    try {
-      const res = await fetch(newsletterRequestUnsubscribeUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(email),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showMessage(data.message || 'Please check your email to confirm unsubscription.', false);
-        emailInput.value = '';
-      } else {
-        showMessage(data.detail || 'An error occurred. Please try again.', true);
-      }
-    } catch {
-      showMessage('An error occurred. Please try again later.', true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Unsubscribe';
-    }
-  });
-
-  emailInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btn.click();
-  });
-</script>
 
 <style>
   h1 {
@@ -77,10 +32,4 @@ const newsletterRequestUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/request-
     font-weight: 600;
     margin: 0 0 0.75rem;
   }
-  p {
-    margin: 0 0 1rem;
-    line-height: 1.6;
-  }
-
-  /* Shared primitives (card, form input, buttons, messages) moved to global.css */
 </style>

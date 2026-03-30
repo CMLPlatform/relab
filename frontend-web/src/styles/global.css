@@ -1,8 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap");
-@import "tailwindcss";
-
 /* Light theme; Material Design 3 tokens (matches frontend-app/src/assets/themes/light.ts) */
 :root {
+  color-scheme: light dark;
   --color-primary: #006783;
   --color-primary-strong: #004d63;
   --color-primary-light: #bce9ff;
@@ -13,9 +11,16 @@
   --color-muted: #40484c;
   --color-border: #dce4e9;
   --color-ring: rgba(0, 103, 131, 0.25);
+  --color-selection: rgba(0, 103, 131, 0.2);
+  --color-success: #2e7d32;
+  --color-error: #c62828;
   --shadow-soft: 0 10px 30px rgba(25, 28, 30, 0.08);
+  --shadow-primary: 0 8px 22px rgba(0, 103, 131, 0.25);
   --radius-md: 14px;
   --radius-lg: 22px;
+  --bg-image: url("/bg-light.jpg");
+  --bg-overlay-start: 60%;
+  --bg-overlay-end: 68%;
 }
 
 /* Dark theme; Material Design 3 tokens (matches frontend-app/src/assets/themes/dark.ts) */
@@ -31,7 +36,14 @@
     --color-muted: #c0c8cd;
     --color-border: #40484c;
     --color-ring: rgba(99, 211, 255, 0.28);
+    --color-selection: rgba(99, 211, 255, 0.25);
+    --color-success: #66bb6a;
+    --color-error: #ef5350;
     --shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.35);
+    --shadow-primary: 0 8px 22px rgba(99, 211, 255, 0.15);
+    --bg-image: url("/images/bg-dark.jpg");
+    --bg-overlay-start: 72%;
+    --bg-overlay-end: 80%;
   }
 }
 
@@ -42,8 +54,12 @@
 body {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   background:
-    linear-gradient(180deg, rgba(251, 252, 254, 0.6) 0%, rgba(251, 252, 254, 0.68) 100%),
-    url("/bg-light.jpg") center / cover no-repeat;
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) var(--bg-overlay-start), transparent) 0%,
+      color-mix(in srgb, var(--color-surface) var(--bg-overlay-end), transparent) 100%
+    ),
+    var(--bg-image) center / cover no-repeat;
   color: var(--color-on-surface);
   margin: 0;
   padding: 0;
@@ -53,20 +69,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background:
-      linear-gradient(180deg, rgba(25, 28, 30, 0.72) 0%, rgba(25, 28, 30, 0.8) 100%),
-      url("/bg-dark.jpg") center / cover no-repeat;
-  }
-}
-
 h1,
 h2,
 h3,
 h4 {
   font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
   letter-spacing: -0.02em;
+}
+
+/* Base heading and paragraph resets */
+h1,
+h2 {
+  margin: 0 0 0.75rem;
+}
+
+p {
+  margin: 0 0 0.75rem;
+  line-height: 1.6;
+}
+
+p:last-child {
+  margin-bottom: 0;
 }
 
 a {
@@ -90,13 +113,7 @@ li a {
 }
 
 ::selection {
-  background: rgba(0, 103, 131, 0.2);
-}
-
-@media (prefers-color-scheme: dark) {
-  ::selection {
-    background: rgba(99, 211, 255, 0.25);
-  }
+  background: var(--color-selection);
 }
 
 /* Button utility styles shared across pages */
@@ -132,7 +149,7 @@ li a {
   background: var(--color-primary);
   color: #fff;
   white-space: nowrap;
-  box-shadow: 0 8px 22px rgba(0, 103, 131, 0.25);
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-primary:hover {
@@ -199,9 +216,49 @@ input[type="email"]:focus {
 }
 
 .message-success {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .message-error {
-  color: #c62828;
+  color: var(--color-error);
+}
+
+/* Token-action status states (confirm / unsubscribe pages) */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.status-success p {
+  color: var(--color-success);
+}
+
+.status-error p {
+  color: var(--color-error);
+}
+
+.status-loading p {
+  color: var(--color-muted);
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

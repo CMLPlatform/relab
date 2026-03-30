@@ -11,6 +11,7 @@
     "build": "astro build --mode prod",
     "build:prod": "astro build --mode prod",
     "build:staging": "astro build --mode staging",
+    "build:test": "astro build --mode test",
     "preview": "astro preview --port 8081 --host",
     "check": "biome check . && astro check",
     "format": "biome format --write .",
@@ -22,9 +23,7 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.2",
-    "astro": "^6.0.8",
-    "tailwindcss": "^4.2.2"
+    "astro": "^6.1.1"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",
