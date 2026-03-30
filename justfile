@@ -179,7 +179,7 @@ dev-up:
 
 # Build (or rebuild) dev images
 dev-build:
-    docker compose build --profile migrations
+    docker compose --profile migrations build
 
 # Stop and remove dev containers
 dev-down:
@@ -196,7 +196,7 @@ dev-migrate:
 # Wipe all dev volumes and containers (full clean slate — re-run dev-migrate after this)
 dev-reset confirm='':
     @just _require-confirm "wipe the development Docker environment" "just dev-reset YES" "FORCE=1 just dev-reset" "{{ confirm }}"
-    docker compose down -v
+    docker compose --profile migrations down -v
 
 # ============================================================================
 # Docker — Production
@@ -211,7 +211,7 @@ prod-up confirm='':
 
 # Build (or rebuild) prod images
 prod-build:
-    {{ prod_compose }} build --profile migrations --profile backups build
+    {{ prod_compose }} --profile migrations --profile backups build
 
 # Stop production stack
 prod-down confirm='':

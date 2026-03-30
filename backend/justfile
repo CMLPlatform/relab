@@ -16,8 +16,8 @@ install:
     @echo "✓ Backend dependencies installed"
 
 # Start development server
-dev:
-    uv run uvicorn app.main:app --reload --reload-dir app
+dev PORT="8000":
+    uv run uvicorn app.main:app --reload --reload-dir app --port {{PORT}}
 
 # Start production server
 serve:

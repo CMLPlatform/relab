@@ -35,8 +35,8 @@ check: lint build
     @echo "✓ Docs checks passed"
 
 # Start development server with live reload
-dev:
-    uv run zensical serve --open
+dev PORT="8000":
+    uv run zensical serve --open --dev-addr localhost:{{PORT}}
 
 # Build the documentation site locally
 build:
