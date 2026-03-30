@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 
 from app.api.common.exceptions import BadRequestError, ConflictError, InternalServerError, NotFoundError
+from app.api.common.models.base import get_model_label, get_model_label_plural
 from app.api.common.models.custom_types import IDT, MT
 
 if TYPE_CHECKING:
@@ -15,7 +16,7 @@ class ModelNotFoundError(NotFoundError):
     def __init__(self, model_type: type[MT] | None = None, model_id: IDT | None = None) -> None:
         self.model_type = model_type
         self.model_id = model_id
-        model_name = model_type.get_api_model_name().name_capital if model_type else "Model"
+        model_name = get_model_label(model_type)
 
         super().__init__(
             message=f"{model_name} {f'with id {model_id}' if model_id else ''} not found",
@@ -32,8 +33,8 @@ class DependentModelOwnershipError(BadRequestError):
         parent_model: type[MT],
         parent_id: IDT,
     ) -> None:
-        dependent_model_name = dependent_model.get_api_model_name().name_capital
-        parent_model_name = parent_model.get_api_model_name().name_capital
+        dependent_model_name = get_model_label(dependent_model)
+        parent_model_name = get_model_label(parent_model)
 
         super().__init__(
             message=(
@@ -54,7 +55,7 @@ class ModelsNotFoundError(NotFoundError):
     """Exception raised when one or more requested models do not exist."""
 
     def __init__(self, model_type: type[MT], missing_ids: Iterable[IDT]) -> None:
-        model_name = model_type.get_api_model_name().plural_capital
+        model_name = get_model_label_plural(model_type)
         formatted_ids = ", ".join(map(str, sorted(missing_ids)))
         super().__init__(message=f"The following {model_name} do not exist: {formatted_ids}")
 

@@ -1,6 +1,7 @@
 """Custom exceptions for file storage database models."""
 
 from app.api.common.exceptions import NotFoundError, PayloadTooLargeError
+from app.api.common.models.base import get_model_label
 from app.api.common.models.custom_types import IDT, MT
 
 
@@ -18,7 +19,7 @@ class ModelFileNotFoundError(NotFoundError):
         self, model_type: type[MT] | None = None, model_id: IDT | None = None, details: str | None = None
     ) -> None:
         super().__init__(
-            message=f"File for {model_type.get_api_model_name().name_capital if model_type else 'Model'}"
+            message=f"File for {get_model_label(model_type)}"
             f"{f'with id {model_id}'} not found.",
             details=details,
         )
@@ -28,8 +29,8 @@ class ParentStorageOwnershipError(NotFoundError):
     """Raised when a stored item does not belong to the requested parent resource."""
 
     def __init__(self, storage_model: type[MT], storage_id: IDT, parent_model: type[MT], parent_id: IDT) -> None:
-        storage_model_name = storage_model.get_api_model_name().name_capital
-        parent_model_name = parent_model.get_api_model_name().name_capital
+        storage_model_name = get_model_label(storage_model)
+        parent_model_name = get_model_label(parent_model)
         super().__init__(
             message=f"{storage_model_name} with id {storage_id} not found for {parent_model_name} {parent_id}"
         )

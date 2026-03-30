@@ -13,6 +13,7 @@ from app.api.common.exceptions import (
     NotFoundError,
     UnauthorizedError,
 )
+from app.api.common.models.base import get_model_label
 from app.api.common.models.custom_types import IDT, MT
 
 
@@ -115,7 +116,7 @@ class UserOwnershipError(ForbiddenError):
         model_id: IDT,
         user_id: UUID4,
     ) -> None:
-        model_name = model_type.get_api_model_name().name_capital
+        model_name = get_model_label(model_type)
         super().__init__(message=(f"User {user_id} does not own {model_name} with ID {model_id}."))
 
 
