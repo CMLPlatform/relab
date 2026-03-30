@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from enum import StrEnum
 from functools import cached_property
 from pathlib import Path  # noqa: TC003 # Runtime use is needed for Pydantic validation of settings
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, PostgresDsn, SecretStr, model_validator
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, PostgresDsn, SecretStr, field_validator, model_validator
 
 from app.core.constants import DAY, HOUR
 from app.core.env import BACKEND_DIR, RelabBaseSettings
@@ -31,14 +32,11 @@ class CacheNamespace(StrEnum):
 class CacheSettings(BaseModel):
     """Centralized cache configuration for the application."""
 
-    # FastAPI Cache settings
     prefix: str = "fastapi-cache"
-
-    # Namespace-specific TTL settings (in seconds)
     ttls: dict[CacheNamespace, int] = Field(
         default_factory=lambda: {
-            CacheNamespace.BACKGROUND_DATA: DAY,  # 24 hours
-            CacheNamespace.DOCS: HOUR,  # 1 hour
+            CacheNamespace.BACKGROUND_DATA: DAY,   # 24 hours
+            CacheNamespace.DOCS: HOUR,             # 1 hour
         }
     )
 
@@ -55,36 +53,55 @@ class Environment(StrEnum):
 class CoreSettings(RelabBaseSettings):
     """Settings class to store all the configurations for the app."""
 
-    # Application Environment
+    # ── Environment ──────────────────────────────────────────────────────────────
     environment: Environment = Environment.DEV
 
-    # Database settings from .env file
+    # ── Database ─────────────────────────────────────────────────────────────────
     database_host: str = "localhost"
-    database_port: int = 5432
+    database_port: int = Field(default=5432, ge=1, le=65535)
     postgres_user: str = "postgres"
     postgres_password: SecretStr = SecretStr("")
     postgres_db: str = "relab_db"
 
-    # Redis settings for caching
+    # ── Redis ─────────────────────────────────────────────────────────────────────
     redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
+    redis_port: int = Field(default=6379, ge=1, le=65535)
+    redis_db: int = Field(default=0, ge=0, le=15)  # Redis supports databases 0-15 by default
     redis_password: SecretStr = SecretStr("")
 
-    # Superuser settings
+    # ── Superuser ─────────────────────────────────────────────────────────────────
     superuser_email: EmailStr = DEFAULT_SUPERUSER_EMAIL
-    superuser_name: str | None = None
+    superuser_name: str | None = None  # lowercase letters, digits, and underscores only
     superuser_password: SecretStr = SecretStr("")
 
-    # Network settings
+    # ── Network & CORS ────────────────────────────────────────────────────────────
     backend_api_url: HttpUrl = HttpUrl("http://127.0.0.1:8001")
     frontend_web_url: HttpUrl = HttpUrl("http://127.0.0.1:8000")
     frontend_app_url: HttpUrl = HttpUrl("http://127.0.0.1:8003")
-    # Regex pattern matched against the Origin header — useful in dev to allow a whole subnet without listing every IP.
-    # Default covers localhost, 127.0.0.1, and any 192.168.x.x origin with any port.
-    # When set, origins matching this pattern are echoed back (credentials still work, unlike allow_origins=["*"]).
-    # Use `None` as the Python-side default so we can tell whether an operator explicitly set a value.
+    # Regex matched against the Origin header. Matching origins are echoed back,
+    # preserving credentials (unlike allow_origins=["*"]). None = not set by operator.
     cors_origin_regex: str | None = Field(default=None)
+
+    @field_validator("superuser_name")
+    @classmethod
+    def validate_superuser_name(cls, v: str | None) -> str | None:
+        """Enforce lowercase letters, digits, and underscores only."""
+        if v is not None and not re.fullmatch(r"[a-z0-9_]+", v):
+            msg = "superuser_name may only contain lowercase letters, digits, and underscores"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("cors_origin_regex")
+    @classmethod
+    def validate_cors_origin_regex(cls, v: str | None) -> str | None:
+        """Reject patterns that would raise re.error at runtime."""
+        if v is not None:
+            try:
+                re.compile(v)
+            except re.error as e:
+                msg = f"cors_origin_regex is not a valid regular expression: {e}"
+                raise ValueError(msg) from e
+        return v
 
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
@@ -111,7 +128,7 @@ class CoreSettings(RelabBaseSettings):
             return [backend_host, "127.0.0.1", "localhost"]
         return ["127.0.0.1", "localhost"]
 
-    # Cache settings
+    # ── Cache ─────────────────────────────────────────────────────────────────────
     cache: CacheSettings = Field(default_factory=CacheSettings)
 
     # ── Concurrency & connection limits ──────────────────────────────────────────
@@ -135,20 +152,20 @@ class CoreSettings(RelabBaseSettings):
 
     # ── File cleanup ──────────────────────────────────────────────────────────────
     file_cleanup_enabled: bool = True
-    file_cleanup_interval_hours: int = 24
-    file_cleanup_min_file_age_minutes: int = 30
+    file_cleanup_interval_hours: int = Field(default=24, ge=1)
+    file_cleanup_min_file_age_minutes: int = Field(default=30, ge=0)
     file_cleanup_dry_run: bool = False
 
-    # Construct directory paths
+    # ── Paths ─────────────────────────────────────────────────────────────────────
     uploads_path: Path = BACKEND_DIR / "data" / "uploads"
     file_storage_path: Path = uploads_path / "files"
     image_storage_path: Path = uploads_path / "images"
     static_files_path: Path = BACKEND_DIR / "app" / "static"
     templates_path: Path = BACKEND_DIR / "app" / "templates"
     log_path: Path = BACKEND_DIR / "logs"
-    docs_path: Path = BACKEND_DIR / "docs" / "site"  # Zensical site directory
+    docs_path: Path = BACKEND_DIR / "docs" / "site"
 
-    # Construct database URLs
+    # ── Database URLs (derived) ───────────────────────────────────────────────────
     def build_database_url(self, driver: str, database: str) -> str:
         """Build and validate PostgreSQL database URL."""
         url = (
@@ -176,36 +193,49 @@ class CoreSettings(RelabBaseSettings):
             f"@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         )
 
+    # ── Environment-derived flags ─────────────────────────────────────────────────
     @property
     def debug(self) -> bool:
-        """Enable debug mode (SQL echo, DEBUG log level) only in development."""
+        """Enable SQL echo and DEBUG logging in development only."""
         return self.environment == Environment.DEV
 
     @cached_property
     def enable_caching(self) -> bool:
-        """Disable caching logic if we are running in development or testing."""
+        """Disable Redis caching in development and testing."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
 
     @property
     def secure_cookies(self) -> bool:
-        """Set cookie 'Secure' flag to False in DEV so HTTP works on localhost."""
+        """Require HTTPS-only cookies in production and staging."""
         return self.environment in (Environment.PROD, Environment.STAGING)
 
     @property
     def mock_emails(self) -> bool:
-        """Set email sending to False in DEV and TESTING."""
+        """Skip real email delivery in development and testing."""
         return self.environment in (Environment.DEV, Environment.TESTING)
 
     @property
     def enable_rate_limit(self) -> bool:
-        """Disable rate limiting in DEV and TESTING."""
+        """Disable rate limiting in development and testing."""
         return self.environment not in (Environment.DEV, Environment.TESTING)
 
+    # ── Concurrency validation ────────────────────────────────────────────────────
+    @model_validator(mode="after")
+    def validate_concurrency_settings(self) -> Self:
+        """Validate cross-field concurrency constraints."""
+        if self.http_max_keepalive_connections > self.http_max_connections:
+            msg = (
+                f"http_max_keepalive_connections ({self.http_max_keepalive_connections}) "
+                f"must not exceed http_max_connections ({self.http_max_connections})"
+            )
+            raise ValueError(msg)
+        return self
+
+    # ── Production security validation ───────────────────────────────────────────
     @model_validator(mode="after")
     def validate_security_settings(self) -> Self:
         """Validate environment-specific security settings."""
         if self.environment not in (Environment.PROD, Environment.STAGING):
-            # In dev/testing, if unset, apply the permissive default for convenience.
             if self.cors_origin_regex is None:
                 self.cors_origin_regex = DEFAULT_CORS_ORIGIN_REGEX
             return self

@@ -2,17 +2,13 @@
 
 Two levels:
 
-1. ``TestMapperWithRegistry``   — calls ``load_sqlmodel_models()`` first (the
+1. ``TestMapperWithRegistry``: calls ``load_sqlmodel_models()`` first (the
    current safety-net).  These must always pass.
 
-2. ``TestModuleIsolation``      — imports each model module in a *subprocess*
+2. ``TestModuleIsolation``: imports each model module in a *subprocess*
    so the Python process starts fresh, then calls ``configure_mappers()``
    without the registry helper.  This documents which modules are
    self-contained and which still depend on the registry.
-
-   Modules marked ``xfail`` fail today and document a known dependency on the
-   registry.  Once a module is restructured to be self-contained, flip the
-   marker to a plain ``pass``.
 """
 
 import subprocess
@@ -111,7 +107,7 @@ class TestMapperWithRegistry:
 
 
 # ---------------------------------------------------------------------------
-# 2. Isolation tests — document per-module self-sufficiency
+# 2. Isolation tests: document per-module self-sufficiency
 # ---------------------------------------------------------------------------
 
 

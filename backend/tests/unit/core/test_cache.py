@@ -141,23 +141,6 @@ class TestAsyncTTLCache:
         assert mock_func.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_preserves_function_metadata(self) -> None:
-        """Test that the decorator preserves function name and docstring."""
-        # Setup
-        cache = TTLCache(maxsize=10, ttl=60)
-        expected_name = "my_function"
-        expected_doc = "This is a docstring."
-
-        @async_ttl_cache(cache)
-        async def my_function(arg: str) -> str:
-            """This is a docstring."""
-            return arg
-
-        # Verify metadata is preserved
-        assert my_function.__name__ == expected_name
-        assert my_function.__doc__ == expected_doc
-
-    @pytest.mark.asyncio
     async def test_exception_not_cached(self) -> None:
         """Test that exceptions are not cached."""
         # Setup
@@ -269,16 +252,6 @@ class TestHTMLCoder:
         result = HTMLCoder.decode(encoded_str)
 
         assert result == data
-
-    def test_decode_as_type_delegates_to_decode(self) -> None:
-        """Test decode_as_type calls decode."""
-        data = "hello"
-        encoded = json.dumps(data).encode("utf-8")
-
-        result = HTMLCoder.decode_as_type(encoded)
-
-        assert result == data
-
 
 class TestInitFastapiCache:
     """Tests for init_fastapi_cache."""

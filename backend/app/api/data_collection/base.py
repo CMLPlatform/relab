@@ -1,4 +1,4 @@
-"""Base model classes for data collection — split out to avoid circular imports.
+"""Base model classes for data collection; split out to avoid circular imports.
 
 These classes have no heavy ORM dependencies (no relationships, foreign keys, or
 other model imports) and can therefore be imported by common/schemas/base.py
