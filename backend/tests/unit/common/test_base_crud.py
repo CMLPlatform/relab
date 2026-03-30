@@ -109,21 +109,11 @@ class TestGetNestedModelById:
 
         class ParentModel:
             id = 1
-
-            @staticmethod
-            def get_api_model_name() -> str:
-                m = MagicMock()
-                m.name_capital = "Parent"
-                return m
+            model_label = "Parent"
 
         class ChildModel:
             id = 2
-
-            @staticmethod
-            def get_api_model_name() -> str:
-                m = MagicMock()
-                m.name_capital = "Child"
-                return m
+            model_label = "Child"
 
         with pytest.raises(CRUDConfigurationError, match="does not have a"):
             await get_nested_model_by_id(

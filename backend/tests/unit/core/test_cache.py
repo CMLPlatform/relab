@@ -8,7 +8,15 @@ import pytest
 from cachetools import TTLCache
 from fastapi.responses import HTMLResponse
 
-from app.core.cache import HTMLCoder, async_ttl_cache, clear_cache_namespace, init_fastapi_cache
+from app.core.cache import (
+    HTMLCoder,
+    _backend,
+    _cache_state,
+    async_ttl_cache,
+    clear_cache_namespace,
+    close_fastapi_cache,
+    init_fastapi_cache,
+)
 
 # Constants for test values to avoid magic value warnings
 TEST_RESULT = "result"
@@ -260,49 +268,43 @@ class TestInitFastapiCache:
         """Test cache init uses Redis backend when redis_client is provided."""
         redis_client = MagicMock()
 
-        with (
-            patch("app.core.cache.settings") as mock_settings,
-            patch("app.core.cache.FastAPICache") as mock_cache,
-            patch("app.core.cache.RedisBackend") as mock_backend,
-        ):
+        with patch("app.core.cache.settings") as mock_settings, patch.object(_backend, "setup") as mock_setup:
             mock_settings.enable_caching = True
-            mock_settings.cache.prefix = "test"
+            mock_settings.cache_url = "redis://cache"
+            with patch.dict(_cache_state, {"initialized": False}):
+                init_fastapi_cache(redis_client)
 
-            init_fastapi_cache(redis_client)
-
-            mock_backend.assert_called_once_with(redis_client)
-            mock_cache.init.assert_called_once()
+            mock_setup.assert_called_once_with("redis://cache")
 
     def test_init_without_redis_uses_in_memory(self) -> None:
         """Test cache init falls back to in-memory when redis_client is None."""
-        with (
-            patch("app.core.cache.settings") as mock_settings,
-            patch("app.core.cache.FastAPICache") as mock_cache,
-            patch("app.core.cache.InMemoryBackend") as mock_backend,
-        ):
+        with patch("app.core.cache.settings") as mock_settings, patch.object(_backend, "setup") as mock_setup:
             mock_settings.enable_caching = True
-            mock_settings.cache.prefix = "test"
+            with patch.dict(_cache_state, {"initialized": False}):
+                init_fastapi_cache(None)
 
-            init_fastapi_cache(None)
-
-            mock_backend.assert_called_once()
-            mock_cache.init.assert_called_once()
+            mock_setup.assert_called_once_with("mem://")
 
     def test_init_caching_disabled_uses_in_memory(self) -> None:
         """Test that when caching is disabled, InMemoryBackend is used."""
-        with (
-            patch("app.core.cache.settings") as mock_settings,
-            patch("app.core.cache.FastAPICache") as mock_cache,
-            patch("app.core.cache.InMemoryBackend") as mock_backend,
-        ):
+        with patch("app.core.cache.settings") as mock_settings, patch.object(_backend, "setup") as mock_setup:
             mock_settings.enable_caching = False
-            mock_settings.cache.prefix = "test"
             mock_settings.environment = "testing"
+            with patch.dict(_cache_state, {"initialized": False}):
+                init_fastapi_cache(None)
 
-            init_fastapi_cache(None)
+            mock_setup.assert_called_once_with("mem://")
 
-            mock_backend.assert_called_once()
-            mock_cache.init.assert_called_once()
+    @pytest.mark.asyncio
+    async def test_close_fastapi_cache(self) -> None:
+        """Closing the shared cache should close the backend when initialized."""
+        with (
+            patch.dict(_cache_state, {"initialized": True}),
+            patch.object(_backend, "close", AsyncMock()) as mock_close,
+        ):
+            await close_fastapi_cache()
+
+            mock_close.assert_awaited_once()
 
 
 class TestClearCacheNamespace:
@@ -310,10 +312,13 @@ class TestClearCacheNamespace:
 
     @pytest.mark.asyncio
     async def test_clear_cache_namespace(self) -> None:
-        """Test that clear_cache_namespace calls FastAPICache.clear with namespace."""
-        with patch("app.core.cache.FastAPICache") as mock_cache:
-            mock_cache.clear = AsyncMock()
+        """Test that clear_cache_namespace clears keys under the namespace prefix."""
+        with (
+            patch("app.core.cache.settings") as mock_settings,
+            patch.object(_backend, "delete_match", AsyncMock()) as mock_delete,
+        ):
+            mock_settings.cache.prefix = "test-cache"
 
             await clear_cache_namespace("test-namespace")
 
-            mock_cache.clear.assert_called_once_with(namespace="test-namespace")
+            mock_delete.assert_awaited_once_with("test-cache:test-namespace:*")

@@ -73,7 +73,7 @@ class TestGetUserOwnedObject:
         )
         db = AsyncMock(spec=AsyncSession)
         mock_model = MagicMock()
-        mock_model.get_api_model_name.return_value.name_capital = "Product"
+        mock_model.model_label = "Product"
 
         with pytest.raises(UserOwnershipError) as exc_info:
             await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
@@ -97,7 +97,7 @@ class TestGetUserOwnedObject:
         )
         db = AsyncMock(spec=AsyncSession)
         mock_model = MagicMock()
-        mock_model.get_api_model_name.return_value.name_capital = "Model"
+        mock_model.model_label = "Model"
 
         with pytest.raises(UserOwnershipError) as exc_info:
             await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)

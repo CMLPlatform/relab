@@ -113,9 +113,9 @@ class TestGetLinkedModelById:
         mock_dependent = MagicMock()
 
         parent_model = MagicMock()
-        parent_model.get_api_model_name.return_value = MagicMock(name_capital="Parent")
+        parent_model.model_label = "Parent"
         dependent_model = MagicMock()
-        dependent_model.get_api_model_name.return_value = MagicMock(name_capital="Child")
+        dependent_model.model_label = "Child"
 
         with (
             patch("app.api.common.crud.associations.get_model_by_id", return_value=mock_dependent),

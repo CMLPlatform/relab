@@ -14,10 +14,11 @@ from pydantic import HttpUrl
 from app.api.data_collection.models import Product
 from app.api.file_storage import crud, video_crud
 from app.api.file_storage.crud import (
-    ParentStorageOperations,
+    ParentStorageCrud,
     create_file,
     delete_file,
     delete_file_from_storage,
+    delete_image_from_storage,
     process_uploadfile_name,
     sanitize_filename,
 )
@@ -90,6 +91,19 @@ class TestFileStorageCrudUtils:
 
         with pytest.raises(ValueError, match="File name is empty"):
             process_uploadfile_name(mock_file)
+
+    async def test_delete_image_from_storage_removes_thumbnails_and_original(self) -> None:
+        """Image storage cleanup removes generated thumbnails before the original."""
+        image_path = Path(FAKE_IMAGE_PATH)
+
+        with (
+            patch("app.api.file_storage.crud.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
+            patch("app.api.file_storage.crud.delete_file_from_storage", new=AsyncMock()) as mock_delete_file,
+        ):
+            await delete_image_from_storage(image_path)
+
+        mock_run_sync.assert_awaited_once_with(crud.delete_thumbnails, image_path)
+        mock_delete_file.assert_awaited_once_with(image_path)
 
 
 class TestFileStorageCrud:
@@ -269,10 +283,30 @@ class TestImageStorageCrud:
 
         with (
             patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_image),
-            patch("app.api.file_storage.crud.delete_file_from_storage"),
+            patch("app.api.file_storage.crud.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
         ):
             await crud.delete_image(mock_session, image_id)
             mock_session.delete.assert_called_once_with(mock_db_image)
+            mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
+
+    async def test_delete_image_cleans_thumbnails_when_original_is_missing(self, mock_session: AsyncMock) -> None:
+        """Image delete still removes thumbnails when the original file is already gone."""
+        image_id = uuid4()
+        mock_db_image = MagicMock(spec=Image)
+        mock_db_image.file.path = FAKE_IMAGE_PATH
+        mock_session.get.return_value = mock_db_image
+
+        with (
+            patch(
+                "app.api.file_storage.crud.get_model_or_404",
+                side_effect=crud.ModelFileNotFoundError(Image, image_id),
+            ),
+            patch("app.api.file_storage.crud.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
+        ):
+            await crud.delete_image(mock_session, image_id)
+
+        mock_session.delete.assert_called_once_with(mock_db_image)
+        mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
 
 
 class TestVideoCrud:
@@ -297,12 +331,12 @@ class TestVideoCrud:
             mock_session.delete.assert_called_once()
 
 
-class TestParentStorageOperations:
+class TestParentStorageCrud:
     """Test parent-scoped storage operations."""
 
     async def test_create_rejects_parent_scope_mismatch(self, mock_session: AsyncMock) -> None:
         """Create should fail if the payload is not already scoped to the target parent."""
-        operations = ParentStorageOperations(
+        operations = ParentStorageCrud(
             parent_model=Product,
             storage_model=Image,
             parent_type=MediaParentType.PRODUCT,
@@ -324,7 +358,7 @@ class TestParentStorageOperations:
         """Delete should succeed even if the underlying file is already gone."""
         storage_service = MagicMock()
         storage_service.delete = AsyncMock()
-        operations = ParentStorageOperations(
+        operations = ParentStorageCrud(
             parent_model=Product,
             storage_model=Image,
             parent_type=MediaParentType.PRODUCT,
@@ -344,7 +378,7 @@ class TestParentStorageOperations:
 
     async def test_get_by_id_raises_not_found_for_wrong_parent(self, mock_session: AsyncMock) -> None:
         """Fetching an item through the wrong parent should return a parent-scoped not found error."""
-        operations = ParentStorageOperations(
+        operations = ParentStorageCrud(
             parent_model=Product,
             storage_model=Image,
             parent_type=MediaParentType.PRODUCT,

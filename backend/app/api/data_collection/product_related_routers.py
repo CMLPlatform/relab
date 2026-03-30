@@ -23,6 +23,12 @@ from app.api.common.schemas.associations import (
 )
 from app.api.data_collection import crud
 from app.api.data_collection.dependencies import MaterialProductLinkFilterDep, ProductByIDDep, UserOwnedProductDep
+from app.api.data_collection.examples import (
+    PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES,
+    PRODUCT_MATERIAL_LINKS_BULK_OPENAPI_EXAMPLES,
+    PRODUCT_REMOVE_MATERIAL_IDS_OPENAPI_EXAMPLES,
+    PRODUCT_SINGLE_MATERIAL_LINK_OPENAPI_EXAMPLES,
+)
 from app.api.data_collection.models import (
     CircularityProperties,
     MaterialProductLink,
@@ -292,12 +298,7 @@ async def add_materials_to_product(
         list[MaterialProductLinkCreateWithinProduct],
         Body(
             description="List of materials-product links to add to the product",
-            examples=[
-                [
-                    {"material_id": 1, "quantity": 5, "unit": "g"},
-                    {"material_id": 2, "quantity": 10, "unit": "g"},
-                ]
-            ],
+            openapi_examples=PRODUCT_MATERIAL_LINKS_BULK_OPENAPI_EXAMPLES,
         ),
     ],
     session: AsyncSessionDep,
@@ -316,13 +317,16 @@ async def add_material_to_product(
     product: UserOwnedProductDep,
     material_id: Annotated[
         PositiveInt,
-        Path(description="ID of material to add to the product", examples=[1]),
+        Path(
+            description="ID of material to add to the product",
+            openapi_examples=PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES,
+        ),
     ],
     material_link: Annotated[
         MaterialProductLinkCreateWithinProductAndMaterial,
         Body(
             description="Material-product link details",
-            examples=[[{"quantity": 5, "unit": "g"}]],
+            openapi_examples=PRODUCT_SINGLE_MATERIAL_LINK_OPENAPI_EXAMPLES,
         ),
     ],
     session: AsyncSessionDep,
@@ -375,7 +379,7 @@ async def remove_materials_from_product_bulk(
         Body(
             description="Material IDs to remove from the product",
             default_factory=set,
-            examples=[[1, 2, 3]],
+            openapi_examples=PRODUCT_REMOVE_MATERIAL_IDS_OPENAPI_EXAMPLES,
         ),
     ],
     session: AsyncSessionDep,

@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
 
 from app.api.auth.crud.users import get_user_by_username, validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import OrganizationCreate, UserCreate, UserCreateWithOrganization
+from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:

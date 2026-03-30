@@ -30,7 +30,6 @@ from app.api.file_storage.exceptions import (
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage import _get_file_storage, _get_image_storage
-from app.api.file_storage.presentation import storage_item_exists, stored_file_path
 from app.api.file_storage.schemas import (
     MAX_FILE_SIZE_MB,
     MAX_IMAGE_SIZE_MB,
@@ -53,6 +52,19 @@ StorageCreateSchema = FileCreate | ImageCreateFromForm | ImageCreateInternal
 
 
 ### Common utilities ###
+def stored_file_path(item: File | Image) -> Path | None:
+    """Return the storage path for a stored file-backed model."""
+    file_field = getattr(item, "file", None)
+    path = getattr(file_field, "path", None)
+    return Path(path) if path else None
+
+
+def storage_item_exists(item: File | Image) -> bool:
+    """Return whether the backing file exists on disk."""
+    file_path = stored_file_path(item)
+    return file_path is not None and file_path.exists()
+
+
 def sanitize_filename(filename: str, max_length: int = 42) -> str:
     """Preserve all suffixes while sanitizing base name."""
     path = Path(filename)

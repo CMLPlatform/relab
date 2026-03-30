@@ -23,10 +23,17 @@ just check         # lint + typecheck
 just test          # run all tests
 just test-unit     # fast unit tests
 just test-cov      # tests with coverage
-just perf-baseline # run the k6 baseline suite (requires k6)
+just refresh-disposable-email-domains # update the committed disposable-email fallback list
+just perf-baseline # run the k6 baseline suite and export a JSON summary
 just migrate       # apply migrations
 just fix           # lint autofix + format
 ```
+
+The disposable-email validator now seeds itself from the committed runtime fallback file in [app/api/auth/resources/disposable_email_domains.txt](app/api/auth/resources/disposable_email_domains.txt), so startup works offline. Remote updates are still optional and happen via the background refresh path or the maintenance command above.
+
+Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The migrations image includes that directory, while generated uploads stay excluded from Docker build contexts.
+
+Taxonomy imports are intentionally opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
 
 ## More
 

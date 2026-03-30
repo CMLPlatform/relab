@@ -39,9 +39,31 @@ async def test_get_referenced_files_with_paths(tmp_path: Path) -> None:
     session = AsyncMock()
 
     fake_file = MagicMock()
-    fake_file.path = str(tmp_path / "upload.txt")
+    fake_file.file.path = str(tmp_path / "upload.txt")
     fake_image = MagicMock()
-    fake_image.path = str(tmp_path / "image.jpg")
+    fake_image.file.path = str(tmp_path / "image.jpg")
+
+    mock_files = MagicMock()
+    mock_files.all.return_value = [fake_file]
+    mock_images = MagicMock()
+    mock_images.all.return_value = [fake_image]
+    session.exec.side_effect = [mock_files, mock_images]
+
+    result = await get_referenced_files(session)
+
+    assert (tmp_path / "upload.txt").resolve() in result
+    assert (tmp_path / "image.jpg").resolve() in result
+
+
+@pytest.mark.asyncio
+async def test_get_referenced_files_accepts_string_paths(tmp_path: Path) -> None:
+    """String paths returned by storage columns are resolved and included."""
+    session = AsyncMock()
+
+    fake_file = MagicMock()
+    fake_file.file = str(tmp_path / "upload.txt")
+    fake_image = MagicMock()
+    fake_image.file = str(tmp_path / "image.jpg")
 
     mock_files = MagicMock()
     mock_files.all.return_value = [fake_file]
@@ -149,6 +171,8 @@ async def test_get_files_on_disk_missing_dirs(tmp_path: Path, monkeypatch: pytes
 
 _REF_PATH = Path("/uploads/files/referenced.txt").resolve()
 _UNREF_PATH = Path("/uploads/files/unreferenced.txt").resolve()
+_REF_IMAGE_PATH = Path("/uploads/images/referenced.jpg").resolve()
+_REF_IMAGE_THUMB_PATH = Path("/uploads/images/referenced_thumb_200.webp").resolve()
 
 
 @pytest.mark.asyncio
@@ -173,6 +197,26 @@ async def test_get_unreferenced_files_all_referenced() -> None:
     with (
         patch("app.api.file_storage.cleanup.get_referenced_files", new=AsyncMock(return_value={_REF_PATH})),
         patch("app.api.file_storage.cleanup.get_files_on_disk", new=AsyncMock(return_value={_REF_PATH})),
+    ):
+        result = await get_unreferenced_files(session)
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_get_unreferenced_files_preserves_generated_thumbnails() -> None:
+    """Derived thumbnails for referenced images are not treated as unreferenced."""
+    session = MagicMock()
+
+    with (
+        patch(
+            "app.api.file_storage.cleanup.get_referenced_files",
+            new=AsyncMock(return_value={_REF_IMAGE_PATH, _REF_IMAGE_THUMB_PATH}),
+        ),
+        patch(
+            "app.api.file_storage.cleanup.get_files_on_disk",
+            new=AsyncMock(return_value={_REF_IMAGE_PATH, _REF_IMAGE_THUMB_PATH}),
+        ),
     ):
         result = await get_unreferenced_files(session)
 

@@ -430,8 +430,8 @@ class TestProductTypeCrud:
 
         with (
             patch("app.api.background_data.crud.get_model_or_404", return_value=db_pt),
-            patch("app.api.background_data.crud.product_type_files.delete_all"),
-            patch("app.api.background_data.crud.product_type_images.delete_all"),
+            patch("app.api.background_data.crud.product_type_files_crud.delete_all"),
+            patch("app.api.background_data.crud.product_type_images_crud.delete_all"),
         ):
             await delete_product_type(session, 1)
 

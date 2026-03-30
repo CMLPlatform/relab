@@ -39,3 +39,24 @@ class TestOpenAPIEndpoints:
         assert payload["paths"]
         assert "/admin/materials" in payload["paths"]
         assert "/auth/oauth/google/session/authorize" in payload["paths"]
+
+    async def test_openapi_includes_centralized_data_collection_examples(self, async_client: AsyncClient) -> None:
+        """The OpenAPI schema should expose centralized data-collection examples."""
+        response = await async_client.get("/openapi.json")
+
+        assert response.status_code == status.HTTP_200_OK
+        payload = response.json()
+
+        create_product_request_body = payload["paths"]["/products"]["post"]["requestBody"]["content"][
+            "application/json"
+        ]
+        assert create_product_request_body["examples"]["basic"]["value"]["name"] == "Office Chair"
+        assert "components" in create_product_request_body["examples"]["with_components"]["value"]
+
+        create_materials_request_body = payload["paths"]["/products/{product_id}/materials"]["post"]["requestBody"][
+            "content"
+        ]["application/json"]
+        assert create_materials_request_body["examples"]["multiple_materials"]["value"][0]["material_id"] == 1
+
+        product_schema_examples = payload["components"]["schemas"]["ProductCreateWithComponents"]["examples"]
+        assert product_schema_examples[0]["name"] == "Office Chair"

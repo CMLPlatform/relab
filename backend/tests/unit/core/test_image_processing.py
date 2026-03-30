@@ -15,10 +15,14 @@ from starlette.datastructures import Headers
 from app.core.images import (
     ALLOWED_IMAGE_MIME_TYPES,
     MAX_IMAGE_DIMENSION,
+    THUMBNAIL_WIDTHS,
     apply_exif_orientation,
+    delete_thumbnails,
+    generate_thumbnails,
     process_image_for_storage,
     resize_image,
     strip_sensitive_exif,
+    thumbnail_path_for,
     validate_image_dimensions,
     validate_image_file,
     validate_image_mime_type,
@@ -311,3 +315,99 @@ def test_process_image_normal_orientation_unchanged(tmp_path: Path) -> None:
     with PILImage.open(path) as result:
         assert result.width == 400
         assert result.height == 200
+
+
+# ---------------------------------------------------------------------------
+# thumbnail_path_for
+# ---------------------------------------------------------------------------
+
+
+def test_thumbnail_path_for(tmp_path: Path) -> None:
+    """Should return the expected derivative path."""
+    image_path = tmp_path / "abc123_photo.jpg"
+    result = thumbnail_path_for(image_path, 200)
+    assert result == tmp_path / "abc123_photo_thumb_200.webp"
+
+
+# ---------------------------------------------------------------------------
+# generate_thumbnails
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def large_image(tmp_path: Path) -> Path:
+    """Create a 2000x1000 image suitable for thumbnail generation."""
+    path = tmp_path / "large.jpg"
+    PILImage.new("RGB", (2000, 1000), color="blue").save(path, format="JPEG")
+    return path
+
+
+def test_generate_thumbnails_creates_standard_sizes(large_image: Path) -> None:
+    """Should create WebP thumbnails for all standard widths smaller than the original."""
+    generated = generate_thumbnails(large_image)
+
+    expected_widths = [w for w in THUMBNAIL_WIDTHS if w < 2000]
+    assert len(generated) == len(expected_widths)
+
+    for w in expected_widths:
+        thumb = thumbnail_path_for(large_image, w)
+        assert thumb.exists()
+        with PILImage.open(thumb) as img:
+            assert img.format == "WEBP"
+            assert img.width == w
+            # Aspect ratio maintained (2:1)
+            assert img.height == w // 2
+
+
+def test_generate_thumbnails_skips_larger_than_original(tmp_path: Path) -> None:
+    """Should skip thumbnail widths that exceed the original image width."""
+    path = tmp_path / "small.jpg"
+    PILImage.new("RGB", (150, 100), color="red").save(path, format="JPEG")
+
+    generated = generate_thumbnails(path)
+
+    assert generated == []
+    for w in THUMBNAIL_WIDTHS:
+        assert not thumbnail_path_for(path, w).exists()
+
+
+def test_generate_thumbnails_custom_widths(large_image: Path) -> None:
+    """Should respect custom width tuples."""
+    generated = generate_thumbnails(large_image, widths=(300, 600))
+
+    assert len(generated) == 2
+    with PILImage.open(thumbnail_path_for(large_image, 300)) as img:
+        assert img.width == 300
+    with PILImage.open(thumbnail_path_for(large_image, 600)) as img:
+        assert img.width == 600
+
+
+def test_generate_thumbnails_not_found() -> None:
+    """Should raise FileNotFoundError for a missing source image."""
+    with pytest.raises(FileNotFoundError):
+        generate_thumbnails(Path("nonexistent.jpg"))
+
+
+# ---------------------------------------------------------------------------
+# delete_thumbnails
+# ---------------------------------------------------------------------------
+
+
+def test_delete_thumbnails_removes_generated_files(large_image: Path) -> None:
+    """Should remove all generated thumbnail files."""
+    generate_thumbnails(large_image)
+
+    # Verify they exist first
+    for w in THUMBNAIL_WIDTHS:
+        if w < 2000:
+            assert thumbnail_path_for(large_image, w).exists()
+
+    delete_thumbnails(large_image)
+
+    for w in THUMBNAIL_WIDTHS:
+        assert not thumbnail_path_for(large_image, w).exists()
+
+
+def test_delete_thumbnails_noop_when_none_exist(large_image: Path) -> None:
+    """Should not raise when no thumbnails exist."""
+    delete_thumbnails(large_image)  # Should not raise

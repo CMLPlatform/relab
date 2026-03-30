@@ -468,8 +468,8 @@ class TestBillOfMaterialsCrud:
         material_ids = {10, 20}
 
         db_product = ProductFactory.build(id=product_id)
-        link1 = MagicMock(material_id=10, db_id=10)
-        link2 = MagicMock(material_id=20, db_id=20)
+        link1 = MagicMock(material_id=10, id=10)
+        link2 = MagicMock(material_id=20, id=20)
         db_product.bill_of_materials = [link1, link2]
 
         # Mock exec to return a result with material links

@@ -275,6 +275,7 @@ staging-migrate confirm='':
 # Docker: CI
 # ============================================================================
 
+### Smoke tests for CI Docker images and orchestration ---
 ci_compose := "docker compose -p relab_ci -f compose.yml -f compose.ci.yml"
 
 # Internal helper: require explicit confirmation for state-changing commands.
@@ -367,6 +368,7 @@ docker-smoke-all:
     @just docker-smoke-docs
     @just docker-smoke-frontend-web
     @just docker-smoke-frontend-app
+    @just docker-smoke-user-upload-backups
     @just docker-orchestration-smoke
 
 ### CI test helpers for backend performance regression testing ---

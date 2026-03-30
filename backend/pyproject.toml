@@ -30,6 +30,7 @@
     "email-validator>=2.2.0",
     "cashews>=7.5.0",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
+    "inflect>=7.5.0",
     "redis>=5.2.1",
     "slowapi>=0.1.9",
     # Database and persistence
@@ -77,6 +78,9 @@
 
   # Schema changes, seeding, and migration-adjacent data-loading scripts
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "psycopg[binary] >=3.2.9"]
+
+  # Optional S3-compatible storage backend
+  s3 = ["boto3>=1.38.0"]
 
   # Optional taxonomy-import tooling used by one-off seeding scripts
   seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3", "requests>=2.32.0"]

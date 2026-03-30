@@ -485,7 +485,7 @@ class TestUserOwnershipError:
     def test_error_message_format(self) -> None:
         """Verify error message includes model name, user_id, model_id and does-not-own phrasing."""
         mock_model = Mock()
-        mock_model.get_api_model_name.return_value.name_capital = TEST_MODEL_NAME
+        mock_model.model_label = TEST_MODEL_NAME
 
         user_id = uuid4()
         model_id = uuid4()
