@@ -27,6 +27,8 @@ interface Props {
 export default function ProductImageGallery({ product, editMode, onImagesChange }: Props) {
   const { width } = Dimensions.get('window');
   const isWeb = Platform.OS === 'web';
+  const showCameraOption =
+    Platform.OS !== 'web' || (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const images = useMemo(() => product.images ?? [], [product.images]);
 
   const galleryRef = useRef<any>(null);
@@ -160,6 +162,19 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     }
   };
 
+  const handleTakePhoto = async () => {
+    if (Platform.OS !== 'web') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (permission.status !== 'granted') return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      const processedUri = await processImage(asset);
+      onImagesChange?.([...images, { url: processedUri ?? asset.uri, description: '' }]);
+    }
+  };
+
   const handleDeleteImage = (index: number) => {
     const newImages = [...images];
     newImages.splice(index, 1);
@@ -290,43 +305,98 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           )}
 
           {editMode && (
-            <Pressable
-              onPress={() => handleDeleteImage(selectedIndex)}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 12,
-                backgroundColor: 'rgba(255,50,50,0.8)',
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Icon source="delete" size={20} color="white" />
-            </Pressable>
+            <>
+              <View style={{ position: 'absolute', top: 12, left: 12, flexDirection: 'row', gap: 8 }}>
+                {showCameraOption && (
+                  <Pressable
+                    onPress={handleTakePhoto}
+                    accessibilityLabel="Take photo"
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Icon source="camera" size={20} color="white" />
+                  </Pressable>
+                )}
+                <Pressable
+                  onPress={handlePickImage}
+                  accessibilityLabel="Add photo from gallery"
+                  style={{
+                    backgroundColor: 'rgba(0,0,0,0.45)',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Icon source="image-plus" size={20} color="white" />
+                </Pressable>
+              </View>
+
+              <Pressable
+                onPress={() => handleDeleteImage(selectedIndex)}
+                accessibilityLabel="Delete photo"
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  backgroundColor: 'rgba(255,50,50,0.8)',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Icon source="delete" size={20} color="white" />
+              </Pressable>
+            </>
           )}
         </View>
       ) : (
         editMode && (
-          <Pressable
-            onPress={handlePickImage}
-            style={{
-              width: '100%',
-              height: IMAGE_HEIGHT,
-              backgroundColor: '#eee',
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderRadius: 8,
-              borderWidth: 2,
-              borderColor: '#ccc',
-              borderStyle: 'dashed',
-            }}
-          >
-            <Icon source="image-plus" size={48} color="#999" />
-            <Text style={{ color: '#999', marginTop: 8 }}>Add Photos</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 12, height: IMAGE_HEIGHT }}>
+            {showCameraOption && (
+              <Pressable
+                onPress={handleTakePhoto}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#eee',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderRadius: 8,
+                  borderWidth: 2,
+                  borderColor: '#ccc',
+                  borderStyle: 'dashed',
+                }}
+              >
+                <Icon source="camera" size={48} color="#999" />
+                <Text style={{ color: '#999', marginTop: 8 }}>Camera</Text>
+              </Pressable>
+            )}
+            <Pressable
+              onPress={handlePickImage}
+              style={{
+                flex: 1,
+                backgroundColor: '#eee',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: '#ccc',
+                borderStyle: 'dashed',
+              }}
+            >
+              <Icon source="image-plus" size={48} color="#999" />
+              <Text style={{ color: '#999', marginTop: 8 }}>Add Photos</Text>
+            </Pressable>
+          </View>
         )
       )}
 
@@ -357,28 +427,6 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
             )}
           />
         </View>
-      )}
-
-      {editMode && imageCount > 0 && (
-        <Pressable
-          onPress={handlePickImage}
-          style={{
-            marginTop: 12,
-            marginHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 12,
-            backgroundColor: '#f5f5f5',
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: '#ddd',
-            borderStyle: 'dashed',
-          }}
-        >
-          <Icon source="image-plus" size={20} color="#666" />
-          <Text style={{ marginLeft: 8, color: '#666' }}>Add More Photos</Text>
-        </Pressable>
       )}
 
       <Lightbox

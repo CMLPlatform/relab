@@ -31,6 +31,8 @@ jest.mock('expo-image', () => ({
 
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
+  launchCameraAsync: jest.fn(),
+  requestCameraPermissionsAsync: jest.fn(),
 }));
 
 jest.mock('@/services/media/imageProcessing', () => ({
@@ -97,6 +99,8 @@ jest.mock('react-native-gesture-handler', () => {
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockedLaunchImageLibraryAsync = jest.mocked(ImagePicker.launchImageLibraryAsync);
+const mockedLaunchCameraAsync = jest.mocked(ImagePicker.launchCameraAsync);
+const mockedRequestCameraPermissionsAsync = jest.mocked(ImagePicker.requestCameraPermissionsAsync);
 const mockedProcessImage = jest.mocked(imageProcessing.processImage);
 
 function setPlatformOS(os: 'ios' | 'web') {
@@ -159,6 +163,8 @@ describe('ProductImages', () => {
       dismissTo: jest.fn(),
     });
     mockedLaunchImageLibraryAsync.mockReset();
+    mockedLaunchCameraAsync.mockReset();
+    mockedRequestCameraPermissionsAsync.mockReset();
     mockedProcessImage.mockReset();
     mockFlatListCalls.length = 0;
     mockZoomableImageCalls.length = 0;
@@ -514,6 +520,141 @@ describe('ProductImages', () => {
       expect(screen.queryByLabelText('Close lightbox')).toBeNull();
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
       expect(screen.getAllByText('img:file://photo2.jpg').length).toBeGreaterThan(0);
+    });
+  });
+
+  it('shows Camera and Add Photos tiles on native when no images in edit mode', () => {
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    expect(screen.getByText('Camera')).toBeTruthy();
+    expect(screen.getByText('Add Photos')).toBeTruthy();
+  });
+
+  it('shows only Add Photos tile on desktop web when no images in edit mode', () => {
+    setPlatformOS('web');
+    setMatchMedia(false);
+    setWindowImageConstructor();
+    setWindowEventListeners();
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    expect(screen.queryByText('Camera')).toBeNull();
+    expect(screen.getByText('Add Photos')).toBeTruthy();
+  });
+
+  it('shows Camera and Add Photos tiles on mobile web when no images in edit mode', () => {
+    setPlatformOS('web');
+    setMatchMedia(true);
+    setWindowImageConstructor();
+    setWindowEventListeners();
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    expect(screen.getByText('Camera')).toBeTruthy();
+    expect(screen.getByText('Add Photos')).toBeTruthy();
+  });
+
+  it('requests camera permission then calls launchCameraAsync when Camera tile is pressed on native', async () => {
+    const onImagesChange = jest.fn();
+    mockedRequestCameraPermissionsAsync.mockResolvedValueOnce({ status: 'granted' } as never);
+    mockedLaunchCameraAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ uri: 'file://camera_photo.jpg', width: 100, height: 100 }],
+    } as never);
+    mockedProcessImage.mockResolvedValueOnce('file://processed.jpg');
+
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />, {
+      withDialog: true,
+    });
+
+    fireEvent.press(screen.getByText('Camera'));
+
+    await waitFor(() => {
+      expect(mockedRequestCameraPermissionsAsync).toHaveBeenCalled();
+      expect(mockedLaunchCameraAsync).toHaveBeenCalled();
+      expect(onImagesChange).toHaveBeenCalledWith([
+        ...baseProduct.images,
+        { url: 'file://processed.jpg', description: '' },
+      ]);
+    });
+  });
+
+  it('does not call onImagesChange when camera permission is denied', async () => {
+    const onImagesChange = jest.fn();
+    mockedRequestCameraPermissionsAsync.mockResolvedValueOnce({ status: 'denied' } as never);
+
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />, {
+      withDialog: true,
+    });
+
+    fireEvent.press(screen.getByText('Camera'));
+
+    await waitFor(() => {
+      expect(mockedRequestCameraPermissionsAsync).toHaveBeenCalled();
+      expect(mockedLaunchCameraAsync).not.toHaveBeenCalled();
+      expect(onImagesChange).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows Take photo and Add photo from gallery overlay icons on native with images in edit mode', () => {
+    const productWithImages = {
+      ...baseProduct,
+      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+    };
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, { withDialog: true });
+    expect(screen.getByLabelText('Take photo')).toBeTruthy();
+    expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
+  });
+
+  it('hides Take photo overlay icon on desktop web with images in edit mode', () => {
+    setPlatformOS('web');
+    setMatchMedia(false);
+    setWindowImageConstructor();
+    setWindowEventListeners();
+    const productWithImages = {
+      ...baseProduct,
+      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+    };
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, { withDialog: true });
+    expect(screen.queryByLabelText('Take photo')).toBeNull();
+    expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
+  });
+
+  it('shows Take photo overlay icon on mobile web with images in edit mode', () => {
+    setPlatformOS('web');
+    setMatchMedia(true);
+    setWindowImageConstructor();
+    setWindowEventListeners();
+    const productWithImages = {
+      ...baseProduct,
+      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+    };
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, { withDialog: true });
+    expect(screen.getByLabelText('Take photo')).toBeTruthy();
+    expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
+  });
+
+  it('calls launchCameraAsync without requesting permission when Take photo overlay is pressed on web', async () => {
+    setPlatformOS('web');
+    setMatchMedia(true);
+    setWindowImageConstructor();
+    setWindowEventListeners();
+    const onImagesChange = jest.fn();
+    mockedLaunchCameraAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [{ uri: 'file://camera_photo.jpg', width: 100, height: 100 }],
+    } as never);
+    mockedProcessImage.mockResolvedValueOnce('file://processed.jpg');
+
+    const productWithImages = {
+      ...baseProduct,
+      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+    };
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} onImagesChange={onImagesChange} />, {
+      withDialog: true,
+    });
+
+    fireEvent.press(screen.getByLabelText('Take photo'));
+
+    await waitFor(() => {
+      expect(mockedRequestCameraPermissionsAsync).not.toHaveBeenCalled();
+      expect(mockedLaunchCameraAsync).toHaveBeenCalled();
+      expect(onImagesChange).toHaveBeenCalled();
     });
   });
 
