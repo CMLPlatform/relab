@@ -16,7 +16,11 @@ if TYPE_CHECKING:
 
 
 async def create_user(
-    async_session: AsyncSession, user_create: UserCreate, *, send_registration_email: bool = False
+    async_session: AsyncSession,
+    user_create: UserCreate,
+    *,
+    send_registration_email: bool = False,
+    skip_breach_check: bool = False,
 ) -> User:
     """Programmatically create a new user in the database.
 
@@ -24,6 +28,7 @@ async def create_user(
         async_session: Database session
         user_create: User creation schema
         send_registration_email: Whether to send verification email to the user
+        skip_breach_check: Whether to skip the Have I Been Pwned password breach check
 
     Returns:
         Created user instance
@@ -34,6 +39,7 @@ async def create_user(
     """
     try:
         async with get_chained_async_user_manager_context(async_session) as user_manager:
+            user_manager.skip_breach_check = skip_breach_check
             # Create user (password hashing and validation handled by UserManager)
             user: User = await user_manager.create(user_create)
 

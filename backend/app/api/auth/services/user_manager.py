@@ -93,6 +93,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     def __init__(self, user_db: SQLModelUserDatabaseAsync, http_client: AsyncClient) -> None:
         super().__init__(user_db)
         self.http_client = http_client
+        self.skip_breach_check = False
 
     # Set up token secrets and lifetimes
     reset_password_token_secret: SecretType = SECRET.get_secret_value()
@@ -141,12 +142,14 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
             feedback = result.get("feedback", {}).get("warning") or "try a longer phrase or mix of characters"
             raise InvalidPasswordException(reason=f"Password is too weak: {feedback}")
 
-        # Breach check: reject passwords found in known data breaches (k-anonymity, fail-open)
-        breach_count = await _check_pwned_password(password, self.http_client)
-        if breach_count > 0:
-            raise InvalidPasswordException(
-                reason="Password has appeared in a known data breach. Please choose a different password."
-            )
+        # Programmatic bootstrap flows can opt out when no app-scoped HTTP client exists.
+        if not self.skip_breach_check:
+            # Breach check: reject passwords found in known data breaches (k-anonymity, fail-open)
+            breach_count = await _check_pwned_password(password, self.http_client)
+            if breach_count > 0:
+                raise InvalidPasswordException(
+                    reason="Password has appeared in a known data breach. Please choose a different password."
+                )
 
     async def update(
         self,
