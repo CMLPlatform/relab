@@ -53,6 +53,7 @@ class TestAuthSettingsDefaults:
         """Token TTL defaults encode the expected business rules."""
         settings = AuthSettings()
         assert settings.access_token_ttl_seconds == 60 * 15  # 15 min
+        assert settings.oauth_state_token_ttl_seconds == 60 * 10  # 10 min
         assert settings.reset_password_token_ttl_seconds == 60 * 60  # 1 h
         assert settings.verification_token_ttl_seconds == 60 * 60 * 24  # 1 day
         assert settings.newsletter_unsubscription_token_ttl_seconds == 60 * 60 * 24 * 30  # 30 days

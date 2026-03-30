@@ -8,8 +8,8 @@ from fastapi import Response
 from fastapi_users.jwt import SecretType, generate_jwt
 from pydantic import BaseModel
 
+from app.api.auth.config import settings as auth_settings
 from app.core.config import settings as core_settings
-from app.core.constants import HOUR
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -27,10 +27,10 @@ class OAuth2AuthorizeResponse(BaseModel):
     authorization_url: str
 
 
-def generate_state_token(data: dict[str, str], secret: SecretType, lifetime_seconds: int = HOUR) -> str:
+def generate_state_token(data: dict[str, str], secret: SecretType, lifetime_seconds: int | None = None) -> str:
     """Generate a JWT state token for OAuth flows."""
     data["aud"] = STATE_TOKEN_AUDIENCE
-    return generate_jwt(data, secret, lifetime_seconds)
+    return generate_jwt(data, secret, lifetime_seconds or auth_settings.oauth_state_token_ttl_seconds)
 
 
 def generate_csrf_token() -> str:
@@ -55,7 +55,7 @@ def set_csrf_cookie(response: Response, cookie_settings: OAuthCookieSettings, cs
     response.set_cookie(
         cookie_settings.name,
         csrf_token,
-        max_age=HOUR,
+        max_age=auth_settings.oauth_state_token_ttl_seconds,
         path=cookie_settings.path,
         domain=cookie_settings.domain,
         secure=cookie_settings.secure,

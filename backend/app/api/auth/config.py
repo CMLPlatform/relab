@@ -66,6 +66,7 @@ class AuthSettings(RelabBaseSettings):
 
     # Time to live for access (login) and verification tokens
     access_token_ttl_seconds: int = 15 * MINUTE  # 15 minutes (Redis token lifetime)
+    oauth_state_token_ttl_seconds: int = 10 * MINUTE  # 10 minutes
     reset_password_token_ttl_seconds: int = HOUR  # 1 hour
     verification_token_ttl_seconds: int = DAY  # 1 day
     newsletter_unsubscription_token_ttl_seconds: int = MONTH  # 30 days
