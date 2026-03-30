@@ -13,7 +13,7 @@ export type Product = {
   ownerUsername?: string;
   physicalProperties: PhysicalProperties;
   circularityProperties: CircularityProperties;
-  images: { id?: number; url: string; description: string }[];
+  images: { id?: number; url: string; thumbnailUrl?: string; description: string }[];
   thumbnailUrl?: string;
   videos: { id?: number; url: string; description: string; title: string }[];
   ownedBy: 'me' | string;

@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 import { resolveApiMediaUrl } from './media';
 import { fetchWithTimeout, TimedRequestInit } from './request';
-import { Product } from '@/types/Product';
 import { getCachedUser, getToken, getUser } from '@/services/api/authentication';
+import { Product } from '@/types/Product';
 
 const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
 
@@ -55,6 +55,7 @@ type ProductData = {
 type ImageData = {
   id: number;
   image_url: string;
+  thumbnail_url?: string | null;
   description: string;
 };
 
@@ -118,20 +119,32 @@ async function toProduct(data: ProductData, meId?: string): Promise<Product> {
         },
     ownerUsername: data.owner_username ?? undefined,
     componentIDs: data.components?.map(({ id }) => id) ?? [],
-    images: data.images?.map((img) => ({ ...img, url: resolveApiMediaUrl(img.image_url) ?? img.image_url })) ?? [],
+    images:
+      data.images?.map((img) => ({
+        ...img,
+        url: resolveApiMediaUrl(img.image_url) ?? img.image_url,
+        thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
+      })) ?? [],
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     videos: data.videos || [],
   };
 }
 
-export async function getProduct(id: number | 'new'): Promise<Product> {
+export const FULL_PRODUCT_INCLUDES = [
+  'physical_properties',
+  'circularity_properties',
+  'images',
+  'product_type',
+  'components',
+  'videos',
+];
+
+export async function getProduct(id: number | 'new', includes: string[] = FULL_PRODUCT_INCLUDES): Promise<Product> {
   if (id === 'new') {
     return newProduct();
   }
   const url = new URL(baseUrl + `/products/${id}`);
-  ['physical_properties', 'circularity_properties', 'images', 'product_type', 'components', 'videos'].forEach((inc) =>
-    url.searchParams.append('include', inc),
-  );
+  includes.forEach((inc) => url.searchParams.append('include', inc));
 
   const response = await apiFetch(url, { method: 'GET' });
 
@@ -337,6 +350,8 @@ export async function allBrands(): Promise<string[]> {
   return searchBrands(undefined, 1, 50);
 }
 
+// ProductCard only needs product_type (for productTypeName) and thumbnail_url
+// (computed from first_image_id, available without include=images)
 export async function productComponents(product: Product): Promise<Product[]> {
-  return Promise.all(product.componentIDs.map((id) => getProduct(id)));
+  return Promise.all(product.componentIDs.map((id) => getProduct(id, ['product_type'])));
 }

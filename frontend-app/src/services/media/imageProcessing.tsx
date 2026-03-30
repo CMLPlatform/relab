@@ -30,14 +30,8 @@ export async function processImage(
   const maxImageSizeBytes = opts.maxImageSizeMB * 1024 * 1024;
 
   try {
-    console.log('Processing image:', asset.uri);
-
     const { width, height, uri } = asset;
     const fileSize = 'fileSize' in asset ? asset.fileSize : undefined;
-
-    if (width && height) {
-      console.log('Original dimensions:', width, 'x', height);
-    }
 
     // Validate file size
     if (fileSize !== undefined && fileSize > maxImageSizeBytes) {
@@ -71,17 +65,13 @@ export async function processImage(
       } else if (newHeight) {
         manipulator.resize({ height: newHeight });
       }
-
-      console.log('Resizing to:', newWidth || 'auto', 'x', newHeight || 'auto');
     }
 
     const rendered = await manipulator.renderAsync();
     const compressed = await rendered.saveAsync({ compress: opts.compressionQuality });
 
-    console.log('Image processed. New URI:', compressed.uri);
     return compressed.uri;
-  } catch (error) {
-    console.error('Error processing image:', error);
+  } catch {
     const processingError: ImageProcessingError = {
       type: 'processing',
       message: 'Failed to process image',

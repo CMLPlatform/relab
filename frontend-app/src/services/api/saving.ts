@@ -114,7 +114,6 @@ async function saveNewProduct(product: Product): Promise<number> {
 
   const data = await response.json();
 
-  console.log('Created product:', data);
   product.id = data.id; // Update product ID to the newly assigned ID so we can add images
 
   // New product has no existing media on the server yet
@@ -155,8 +154,7 @@ async function updateProduct(
       `Failed to update physical properties: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`,
     );
   } else if (response.status === 404 && circularityBody !== 'null') {
-    // If 404, it might not exist yet, we could POST if required by backend, but for now just log
-    console.warn('Physical properties 404 on PATCH');
+    // If 404, it might not exist yet; the backend can create it later if needed.
   }
 
   url = new URL(baseUrl + `/products/${product.id}/circularity_properties`);
@@ -213,7 +211,6 @@ async function addImage(product: Product, image: { url: string; description: str
   if (image.url.startsWith('data:')) {
     body.append('file', dataURItoBlob(image.url), 'image.png');
   } else if (image.url.startsWith('file:')) {
-    console.log(image.url);
     body.append('file', { uri: image.url, name: 'image.png', type: 'image/png' } as any);
   } else if (image.url.startsWith('blob:') || image.url.startsWith('http')) {
     // Web blob or URL - fetch and convert to blob
@@ -221,8 +218,6 @@ async function addImage(product: Product, image: { url: string; description: str
     const blob = await response.blob();
     body.append('file', blob, 'image.png');
   }
-
-  console.log('[AddImage] Uploading image:', image.url);
 
   const response = await apiFetch(url, { method: 'POST', headers: headers, body: body, timeoutMs: 30_000 });
   if (!response.ok) {

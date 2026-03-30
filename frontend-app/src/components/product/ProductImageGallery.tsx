@@ -18,6 +18,18 @@ const GalleryFlatList = Platform.OS === 'web' ? (RNFlatList as any) : GHFlatList
 
 const IMAGE_HEIGHT = 300;
 
+function isLocalImageUrl(url: string): boolean {
+  return /^(file:|blob:|data:)/.test(url);
+}
+
+function getDisplayImageUrl(url: string, id: number | undefined, width: number): string {
+  if (!id || isLocalImageUrl(url)) {
+    return resolveApiMediaUrl(url) ?? url;
+  }
+
+  return resolveApiMediaUrl(`/images/${id}/resized?width=${width}`) ?? resolveApiMediaUrl(url) ?? url;
+}
+
 interface Props {
   product: Product;
   editMode: boolean;
@@ -42,6 +54,12 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   const imageCount = images.length;
 
   const resolvedUrls = useMemo(() => images.map((i) => resolveApiMediaUrl(i.url) ?? i.url), [images]);
+  const thumbnailUrls = useMemo(
+    () => images.map((i) => i.thumbnailUrl ?? resolveApiMediaUrl(i.url) ?? i.url),
+    [images],
+  );
+  const mediumUrls = useMemo(() => images.map((i) => getDisplayImageUrl(i.url, i.id, 800)), [images]);
+  const largeUrls = useMemo(() => images.map((i) => getDisplayImageUrl(i.url, i.id, 1600)), [images]);
 
   const scrollToIndex = useCallback(
     (idx: number) => {
@@ -200,7 +218,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         <View style={{ position: 'relative' }}>
           <GalleryFlatList
             ref={galleryRef}
-            data={resolvedUrls}
+            data={mediumUrls}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -404,7 +422,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
           <GalleryFlatList
             ref={thumbsRef}
-            data={resolvedUrls}
+            data={thumbnailUrls}
             horizontal
             showsHorizontalScrollIndicator={false}
             keyExtractor={(_: any, i: number) => String(i)}
@@ -431,7 +449,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
 
       <Lightbox
         visible={lightboxOpen}
-        images={resolvedUrls}
+        images={largeUrls}
         startIndex={selectedIndex}
         onIndexChange={updateCurrentIndex}
         onClose={() => setLightboxOpen(false)}
@@ -617,7 +635,7 @@ function Lightbox({
             top: 40,
             right: 20,
             zIndex: 10,
-            backgroundColor: 'rgba(255,255,255,0.2)',
+            backgroundColor: 'rgba(0,0,0,0.5)',
             borderRadius: 20,
             width: 44,
             height: 44,
