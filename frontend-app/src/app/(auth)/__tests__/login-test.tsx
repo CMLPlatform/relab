@@ -194,30 +194,43 @@ describe('Login screen', () => {
     expect(mockPush).toHaveBeenCalledWith('/new-account');
   });
 
-  it('completes web OAuth login via cookie-session success and does not store URL token', async () => {
+  it('on web, OAuth login redirects the page instead of opening a popup', async () => {
     setPlatformOS('web');
+    const authUrl = 'https://provider.example.com/oauth/authorize';
     server.use(
-      http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
-        HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth/authorize' }),
-      ),
+      http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () => HttpResponse.json({ authorization_url: authUrl })),
     );
-    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
-      type: 'success',
-      url: 'exp://localhost/login?success=true&access_token=leaky-token',
-    });
-    mockedGetUser
-      .mockResolvedValueOnce(undefined) // initial mount check
-      .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' }));
 
-    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
-    await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
-
-    await waitFor(() => {
-      expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalled();
-      expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
-      expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+    // Intercept window.location.href so jsdom doesn't attempt real navigation
+    let capturedHref = '';
+    const originalLocationDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        get href() {
+          return capturedHref;
+        },
+        set href(v: string) {
+          capturedHref = v;
+        },
+      },
     });
+
+    try {
+      renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+      await screen.findByText('Continue with Google');
+      fireEvent.press(screen.getByText('Continue with Google'));
+
+      await waitFor(() => {
+        expect(capturedHref).toBe(authUrl);
+        expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
+        expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+      });
+    } finally {
+      if (originalLocationDescriptor) {
+        Object.defineProperty(window, 'location', originalLocationDescriptor);
+      }
+    }
   });
 
   it('hydrates a web OAuth callback returned by page redirect params', async () => {
@@ -231,6 +244,19 @@ describe('Login screen', () => {
       expect(mockedMarkWebSessionActive).toHaveBeenCalled();
       expect(auth.getUser).toHaveBeenCalledWith(true);
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+    });
+  });
+
+  it('shows error when OAuth provider denies access via web page redirect', async () => {
+    setPlatformOS('web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ error: 'access_denied' });
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+
+    await waitFor(() => {
+      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText(/You denied access/i)).toBeTruthy();
+      expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 
@@ -253,7 +279,7 @@ describe('Login screen', () => {
   });
 
   it('shows error when OAuth provider denies access', async () => {
-    setPlatformOS('web');
+    setPlatformOS('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -299,7 +325,7 @@ describe('Login screen', () => {
   });
 
   it('retries session validation after OAuth success', async () => {
-    setPlatformOS('web');
+    setPlatformOS('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -326,7 +352,7 @@ describe('Login screen', () => {
   });
 
   it('shows error when OAuth succeeds but session validation fails after max retries', async () => {
-    setPlatformOS('web');
+    setPlatformOS('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -352,7 +378,7 @@ describe('Login screen', () => {
   });
 
   it('shows account suspended message when OAuth succeeds but user is inactive', async () => {
-    setPlatformOS('web');
+    setPlatformOS('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -424,6 +450,7 @@ describe('Login screen', () => {
   });
 
   it('handles user cancellation during OAuth browser session', async () => {
+    setPlatformOS('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),

@@ -326,6 +326,16 @@ export default function Login() {
       }
       const data = await response.json();
 
+      if (Platform.OS === 'web') {
+        // On web, use a full-page redirect to the OAuth provider.
+        // Popups are unreliable on mobile Safari (often blocked or opener is
+        // nullified), so we redirect the page and let the existing
+        // useLocalSearchParams effect handle the callback when the provider
+        // redirects back to /login?success=true.
+        window.location.href = data.authorization_url;
+        return;
+      }
+
       // Open browser with timeout
       let result: any;
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
