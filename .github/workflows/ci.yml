@@ -334,6 +334,7 @@ jobs:
           - docker-smoke-frontend-web
           - docker-smoke-frontend-app
           - docker-smoke-docs
+          - docker-smoke-user-upload-backups
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
