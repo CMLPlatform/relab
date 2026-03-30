@@ -37,9 +37,9 @@ async def check_database() -> dict[str, str]:
             if result.scalar_one() != 1:
                 return unhealthy_check("Database SELECT 1 returned unexpected result")
         return healthy_check()
-    except (SQLAlchemyError, OSError, RuntimeError) as e:
+    except (SQLAlchemyError, OSError, RuntimeError):
         logger.exception("Database health check failed")
-        return unhealthy_check(str(e))
+        return unhealthy_check("Database connection failed")
 
 
 async def check_redis(request: Request) -> dict[str, str]:
@@ -54,9 +54,9 @@ async def check_redis(request: Request) -> dict[str, str]:
         if ping:
             return healthy_check()
         return unhealthy_check("Redis ping returned False")
-    except (OSError, RuntimeError, TimeoutError) as e:
+    except (OSError, RuntimeError, TimeoutError):
         logger.exception("Redis health check failed")
-        return unhealthy_check(str(e))
+        return unhealthy_check("Redis connection failed")
 
 
 async def perform_health_checks(request: Request) -> dict[str, dict[str, str]]:
