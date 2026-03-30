@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.9/schema.json",
   "files": {
-    "includes": ["**", "!.astro", "!dist", "!node_modules", "!coverage", "!test-results"]
+    "includes": ["**", "!.expo", "!dist", "!node_modules", "!coverage"]
   },
   "formatter": {
     "enabled": true,
@@ -19,18 +19,5 @@
       "quoteStyle": "single",
       "trailingCommas": "all"
     }
-  },
-  "overrides": [
-    {
-      "includes": ["**/*.astro"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedImports": "off",
-            "noUnusedVariables": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }

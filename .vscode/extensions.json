@@ -1,3 +1,29 @@
 {
-  "recommendations": ["KnisterPeter.vscode-commitizen"]
+  "recommendations": [
+    // SHARED
+    "KnisterPeter.vscode-commitizen",
+        "biomejs.biome",
+
+
+    // BACKEND (backend/)
+    "astral-sh.ty",
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "wholroyd.jinja",
+
+    // FRONTEND-WEB (frontend-web/)
+    "astro-build.astro-vscode",
+    "christian-kohler.npm-intellisense",
+    "biomejs.biome",
+
+    // FRONTEND-APP (frontend-app/)
+    "biomejs.biome",
+
+    // DOCS (docs/)
+    "bierner.markdown-mermaid",
+    "bierner.markdown-preview-github-styles",
+    "DavidAnson.vscode-markdownlint",
+    "shd101wyy.markdown-preview-enhanced",
+    "yzhang.markdown-all-in-one"
+  ]
 }
