@@ -15,7 +15,6 @@ from app.api.auth.crud.organizations import (
     force_delete_organization,
     get_organization_members,
     get_organizations,
-    get_user_organization,
     leave_organization,
     update_user_organization,
     user_join_organization,
@@ -108,30 +107,6 @@ class TestGetOrganizations:
             model_filter=None,
             read_schema=OrganizationReadPublic,
         )
-
-
-@pytest.mark.unit
-class TestGetUserOrganization:
-    """Tests for get_user_organization."""
-
-    async def test_get_user_organization_success(self) -> None:
-        """Test getting org when user has one."""
-        user = _make_user()
-        org = OrganizationFactory.build(name="Test Org")
-        user.organization = org
-
-        result = await get_user_organization(user)
-
-        assert result == org
-
-    async def test_get_user_organization_no_org_raises(self) -> None:
-        """Test that getting org when user has none raises UserHasNoOrgError."""
-        user = _make_user()
-        user.organization = None
-
-        with pytest.raises(UserHasNoOrgError):
-            await get_user_organization(user)
-
 
 @pytest.mark.unit
 class TestUpdateUserOrganization:

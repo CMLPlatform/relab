@@ -78,13 +78,6 @@ async def get_organizations(
     )
 
 
-async def get_user_organization(user: User) -> Organization:
-    """Get the organization of a user, optionally including related models."""
-    if not user.organization:
-        raise UserHasNoOrgError
-    return user.organization
-
-
 ## Update Organization ##
 async def update_user_organization(
     db: AsyncSession, db_organization: Organization, organization_in: OrganizationUpdate

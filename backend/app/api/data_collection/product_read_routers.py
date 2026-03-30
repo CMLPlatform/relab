@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
@@ -17,11 +17,8 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection import crud
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
+from app.api.data_collection.examples import PRODUCT_INCLUDE_OPENAPI_EXAMPLES
 from app.api.data_collection.models import Product
-from app.api.data_collection.router_helpers import (
-    IncludeComponentsAsBaseProductsQueryParam,
-    ProductIncludeQueryParam,
-)
 from app.api.data_collection.schemas import (
     ComponentReadWithRecursiveComponents,
     ProductReadWithRecursiveComponents,
@@ -36,6 +33,19 @@ if TYPE_CHECKING:
 user_product_redirect_router = PublicAPIRouter(prefix="/users/me/products", tags=["products"])
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
 product_read_router = PublicAPIRouter(prefix="/products", tags=["products"])
+
+type ProductIncludeQueryParam = Annotated[
+    set[str] | None,
+    Query(
+        description="Relationships to include",
+        openapi_examples=PRODUCT_INCLUDE_OPENAPI_EXAMPLES,
+    ),
+]
+
+type IncludeComponentsAsBaseProductsQueryParam = Annotated[
+    bool | None,
+    Query(description="Whether to include components as base products in the response"),
+]
 
 
 def convert_components_to_read_model(
