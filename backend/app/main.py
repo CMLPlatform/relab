@@ -24,7 +24,7 @@ from app.api.common.routers.health import router as health_router
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.api.file_storage.manager import FileCleanupManager
-from app.core.cache import init_fastapi_cache
+from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.config import settings
 from app.core.database import async_engine, async_sessionmaker_factory
 from app.core.http import create_http_client
@@ -48,10 +48,8 @@ def ensure_storage_directories() -> None:
         path.mkdir(parents=True, exist_ok=True)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator:
-    """Manage application lifespan: startup and shutdown events."""
-    # Startup
+def log_startup_configuration() -> None:
+    """Log key startup configuration values."""
     logger.info("Starting up application...")
     logger.info(
         "Security config: allowed_hosts=%s allowed_origins=%s cors_origin_regex=%s",
@@ -60,7 +58,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         settings.cors_origin_regex,
     )
 
-    # Initialize Redis connection and store in app.state
+
+async def initialize_app_state(app: FastAPI) -> None:
+    """Initialize shared app state and background services."""
     app.state.redis = await init_redis()
 
     # Initialize disposable email checker and store in app.state
@@ -104,36 +104,63 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         except (RuntimeError, OSError) as e:
             logger.warning("Error closing email checker: %s", e)
 
-    # Close Redis connection
+
+async def shutdown_redis_and_cache(app: FastAPI) -> None:
+    """Close Redis and the endpoint cache backend."""
     if app.state.redis is not None:
         try:
             await close_redis(app.state.redis)
         except (ConnectionError, OSError) as e:
             logger.warning("Error closing Redis: %s", e)
 
-    # Close File Cleanup Manager
+    try:
+        await close_fastapi_cache()
+    except RuntimeError as e:
+        logger.warning("Error closing endpoint cache: %s", e)
+
+
+async def shutdown_file_cleanup_manager(app: FastAPI) -> None:
+    """Close the file cleanup manager if it was initialized."""
     if app.state.file_cleanup_manager is not None:
         try:
             await app.state.file_cleanup_manager.close()
         except asyncio.CancelledError as e:
             logger.warning("Error closing file cleanup manager: %s", e)
 
-    # Close outbound HTTP client
+
+async def shutdown_http_client(app: FastAPI) -> None:
+    """Close the shared outbound HTTP client if present."""
     if getattr(app.state, "http_client", None) is not None:
         try:
             await app.state.http_client.aclose()
         except CloseError as e:
             logger.warning("Error closing outbound HTTP client: %s", e)
 
-    # Remove optional OpenTelemetry instrumentation and flush spans
+
+def shutdown_app_telemetry(app: FastAPI) -> None:
+    """Shutdown optional telemetry instrumentation."""
     try:
         shutdown_telemetry(app)
     except RuntimeError as e:
         logger.warning("Error shutting down telemetry: %s", e)
 
-    logger.info("Application shutdown complete")
 
-    # Clean up logging queues
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    """Manage application lifespan: startup and shutdown events."""
+    log_startup_configuration()
+    await initialize_app_state(app)
+    logger.info("Application startup complete")
+
+    yield
+
+    logger.info("Shutting down application...")
+    await shutdown_email_checker(app)
+    await shutdown_redis_and_cache(app)
+    await shutdown_file_cleanup_manager(app)
+    await shutdown_http_client(app)
+    shutdown_app_telemetry(app)
+    logger.info("Application shutdown complete")
     await cleanup_logging()
 
 

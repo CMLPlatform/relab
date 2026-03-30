@@ -1,9 +1,10 @@
 """Cache utilities for FastAPI endpoints and async methods.
 
-This module provides:
-- Optimized cache key builders for fastapi-cache that handle dependency injection
-- Async cache decorators for instance methods using cachetools
+This module keeps the app-facing cache API small and stable while using
+``cashews`` underneath for storage and TTL handling.
 """
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -11,12 +12,11 @@ import logging
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, overload
 
+from cashews import Cache
 from fastapi.responses import HTMLResponse
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
-from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache.coder import Coder
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
+from starlette.responses import Response
 
 from app.core.config import settings
 from app.core.logging import sanitize_log_value
@@ -26,34 +26,41 @@ if TYPE_CHECKING:
 
     from cachetools import TTLCache
     from redis.asyncio import Redis
-    from starlette.requests import Request
-    from starlette.responses import Response
 
 logger = logging.getLogger(__name__)
 
-# Type variables for generic decorator
 P = ParamSpec("P")
 T = TypeVar("T")
 
-# HTML coder constants
 _HTML_RESPONSE_TYPE = "HTMLResponse"
+_MISSING = object()
+_backend = Cache()
+_cache_state = {"initialized": False}
 
-# JSON-compatible types for encoding/decoding
 JSONValue = HTMLResponse | dict[str, Any] | list[Any] | str | float | bool | None
 
 
-class HTMLCoder(Coder):
-    """Custom coder for caching HTMLResponse objects.
+class Coder:
+    """Minimal coder interface for custom cache serialization."""
 
-    This coder handles serialization and deserialization of HTMLResponse objects
-    by extracting the HTML body content and storing it with metadata for reconstruction.
-    """
+    @classmethod
+    def encode(cls, value: Any) -> bytes:  # noqa: ANN401
+        """Encode a Python value to bytes."""
+        raise NotImplementedError
+
+    @classmethod
+    def decode(cls, value: bytes | str) -> Any:  # noqa: ANN401
+        """Decode bytes or strings into a Python value."""
+        raise NotImplementedError
+
+
+class HTMLCoder(Coder):
+    """Custom coder for caching HTMLResponse objects."""
 
     @classmethod
     def encode(cls, value: JSONValue) -> bytes:
         """Encode value to bytes, handling HTMLResponse objects specially."""
         if isinstance(value, HTMLResponse):
-            # Extract body from HTMLResponse and encode with metadata
             data: dict[str, Any] = {
                 "type": _HTML_RESPONSE_TYPE,
                 "body": value.body.decode("utf-8") if isinstance(value.body, bytes) else value.body,
@@ -62,19 +69,15 @@ class HTMLCoder(Coder):
                 "headers": dict(value.headers),
             }
             return json.dumps(data).encode("utf-8")
-        # For non-HTMLResponse objects, use default JSON encoding
         return json.dumps(value).encode("utf-8")
 
     @classmethod
     def decode(cls, value: bytes | str) -> JSONValue:
         """Decode bytes to Python object, reconstructing HTMLResponse objects."""
-        # Handle both bytes and string inputs (string occurs on cache retrieval)
         if isinstance(value, bytes):
             value = value.decode("utf-8")
 
         data = json.loads(value)
-
-        # Reconstruct HTMLResponse if that's what was cached
         if isinstance(data, dict) and data.get("type") == _HTML_RESPONSE_TYPE:
             return HTMLResponse(
                 content=data["body"],
@@ -82,7 +85,6 @@ class HTMLCoder(Coder):
                 media_type=data.get("media_type", "text/html"),
                 headers=data.get("headers"),
             )
-
         return data
 
     @overload
@@ -94,104 +96,84 @@ class HTMLCoder(Coder):
     def decode_as_type(cls, value: bytes | str, type_: None = None) -> JSONValue: ...
 
     @classmethod
-    def decode_as_type(cls, value: bytes | str, type_: type[T] | None = None) -> T | JSONValue:  # noqa: ARG003 # Argument is unused but expected by parent class
-        """Decode bytes to the specified type, handling HTMLResponse reconstruction.
-
-        Note: type_ parameter is currently unused but kept for interface compatibility with Coder base class.
-        """
+    def decode_as_type(cls, value: bytes | str, type_: type[T] | None = None) -> T | JSONValue:  # noqa: ARG003
+        """Decode bytes to the specified type."""
         return cls.decode(value)
 
 
-# Pre-compile the set of types to exclude from cache key generation
-# These are dependency injection instances that vary per request
-_EXCLUDED_TYPES = (AsyncSession,)
+_EXCLUDED_TYPES = (AsyncSession, Request, Response)
+
+
+def _cache_namespace(namespace: str = "") -> str:
+    """Build a storage namespace under the configured cache prefix."""
+    return f"{settings.cache.prefix}:{namespace}" if namespace else settings.cache.prefix
 
 
 def key_builder_excluding_dependencies(
     func: Callable[..., Any],
     namespace: str = "",
     *,
-    request: Request | None = None,  # noqa: ARG001 # request is expected by fastapi-cache but not used in key generation
-    response: Response | None = None,  # noqa: ARG001 # response is expected by fastapi-cache but not used in key generation
+    request: Request | None = None,  # noqa: ARG001
+    response: Response | None = None,  # noqa: ARG001
     args: tuple[Any, ...] = (),
     kwargs: dict[str, Any] | None = None,
 ) -> str:
-    """Build cache key excluding dependency injection objects.
-
-    This key builder filters out database sessions and other injected
-    dependencies that should not affect the cache key, preventing
-    different instances from creating different keys for identical requests.
-
-    Args:
-        func: The cached function
-        namespace: Cache namespace prefix
-        request: HTTP request object (optional)
-        response: HTTP response object (optional)
-        args: Positional arguments to the function
-        kwargs: Keyword arguments to the function
-
-    Returns:
-        Cache key string in format: {namespace}:{hash}
-    """
+    """Build cache key excluding dependency injection objects."""
     if kwargs is None:
         kwargs = {}
 
-    # Filter out dependency injection instances
-    # This is more efficient than checking isinstance for each value
     filtered_kwargs = {k: v for k, v in kwargs.items() if not isinstance(v, _EXCLUDED_TYPES)}
-
-    # Build cache key from function identity and filtered parameters
-    # Using sha1 is faster than sha256 and sufficient for cache keys
+    filtered_args = tuple(arg for arg in args if not isinstance(arg, _EXCLUDED_TYPES))
     module_name = getattr(func, "__module__", "")
     function_name = getattr(func, "__name__", func.__class__.__name__)
-    cache_key_source = f"{module_name}:{function_name}:{args}:{filtered_kwargs}"
+    cache_key_source = f"{module_name}:{function_name}:{filtered_args}:{filtered_kwargs}"
     cache_key = hashlib.sha1(cache_key_source.encode(), usedforsecurity=False).hexdigest()
-
     return f"{namespace}:{cache_key}"
 
 
-def async_ttl_cache(cache: TTLCache) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
-    """Simple async cache decorator using cachetools.TTLCache.
-
-    This decorator caches the results of async methods/functions with automatic
-    expiration based on the TTL (time-to-live) configured in the cache.
-
-    Perfect for per-instance caching where Redis would be overkill, such as:
-    - Short-lived status checks
-    - External API calls with brief validity
-    - Computed properties that change infrequently
-
-    Args:
-        cache: A TTLCache instance to use for caching results
-
-    Returns:
-        Decorator function for async methods/functions
-
-    Example:
-        ```python
-        from cachetools import TTLCache
-        from app.core.cache import async_ttl_cache
-
-
-        class Service:
-            @async_ttl_cache(TTLCache(maxsize=1, ttl=15))
-            async def get_status(self) -> dict:
-                # Expensive operation cached for 15 seconds
-                return await self._fetch_status()
-        ```
-    """
+def cache(
+    *,
+    expire: int,
+    namespace: str = "",
+    coder: type[Coder] | None = None,
+) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
+    """Cache async endpoint/function results with ``cashews``."""
 
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            # Create cache key from function args
-            key = (args, tuple(sorted(kwargs.items())))
+            key = key_builder_excluding_dependencies(
+                func,
+                namespace=_cache_namespace(namespace),
+                args=args,
+                kwargs=dict(kwargs),
+            )
+            cached_value = await _backend.get(key, default=_MISSING)
+            if cached_value is not _MISSING:
+                if coder is not None:
+                    return coder.decode(cached_value)
+                return cached_value
 
-            # Check if result is in cache
+            result = await func(*args, **kwargs)
+            value_to_store = coder.encode(result) if coder is not None else result
+            await _backend.set(key, value_to_store, expire=expire)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def async_ttl_cache(cache: TTLCache) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
+    """Simple async cache decorator using cachetools.TTLCache."""
+
+    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
+        @wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            key = (args, tuple(sorted(kwargs.items())))
             if key in cache:
                 return cache[key]
 
-            # Call function and cache result
             result = await func(*args, **kwargs)
             cache[key] = result
             return result
@@ -202,35 +184,42 @@ def async_ttl_cache(cache: TTLCache) -> Callable[[Callable[P, Awaitable[T]]], Ca
 
 
 def init_fastapi_cache(redis_client: Redis | None) -> None:
-    """Initialize FastAPI Cache with Redis backend and optimized key builder.
-
-    This function sets up the FastAPI Cache to use Redis for caching and
-    configures it to use the custom key builder that excludes dependency
-    injection objects from cache keys.
-
-    Args:
-        redis_client: An instance of a Redis client (e.g., aioredis.Redis)
-    """
-    prefix = settings.cache.prefix
-
-    if not settings.enable_caching:
-        logger.info("Caching disabled in '%s' environment. Using InMemoryBackend.", settings.environment)
-        FastAPICache.init(InMemoryBackend(), prefix=prefix, key_builder=key_builder_excluding_dependencies)
+    """Initialize the shared cache backend for endpoint caching."""
+    if _cache_state["initialized"]:
         return
 
-    if redis_client:
-        FastAPICache.init(RedisBackend(redis_client), prefix=prefix, key_builder=key_builder_excluding_dependencies)
-        logger.info("FastAPI Cache initialized with Redis backend")
-    else:
-        FastAPICache.init(InMemoryBackend(), prefix=prefix, key_builder=key_builder_excluding_dependencies)
-        logger.warning("FastAPI Cache initialized with in-memory backend - Redis unavailable")
+    if not settings.enable_caching:
+        logger.info("Caching disabled in '%s' environment. Using in-memory backend.", settings.environment)
+        _backend.setup("mem://")
+        _cache_state["initialized"] = True
+        return
+
+    if redis_client is None:
+        logger.warning("Endpoint cache initialized with in-memory backend - Redis unavailable")
+        _backend.setup("mem://")
+        _cache_state["initialized"] = True
+        return
+
+    try:
+        _backend.setup(settings.cache_url)
+        _cache_state["initialized"] = True
+        logger.info("Endpoint cache initialized with Redis backend")
+    except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive fallback
+        logger.warning("Endpoint cache fell back to in-memory backend - Redis unavailable", exc_info=True)
+        _backend.setup("mem://")
+        _cache_state["initialized"] = True
+
+
+async def close_fastapi_cache() -> None:
+    """Close any open cache backend resources."""
+    if not _cache_state["initialized"]:
+        return
+
+    await _backend.close()
+    _cache_state["initialized"] = False
 
 
 async def clear_cache_namespace(namespace: str) -> None:
-    """Clear all cache entries for a specific namespace.
-
-    Args:
-        namespace: Cache namespace to clear (e.g., "background-data", "docs")
-    """
-    await FastAPICache.clear(namespace=namespace)
+    """Clear all cache entries for a specific namespace."""
+    await _backend.delete_match(f"{_cache_namespace(namespace)}:*")
     logger.info("Cleared cache namespace: %s", sanitize_log_value(namespace))

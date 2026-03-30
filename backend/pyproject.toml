@@ -28,13 +28,11 @@
     # Authentication, sessions, and rate limiting
     "asyncpg>=0.30.0",
     "email-validator>=2.2.0",
-    # NOTE: We use a custom fork of fastapi-users-db-sqlmodel to support Pydantic V2
-    "fastapi-users-db-sqlmodel",
+    "cashews>=7.5.0",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
     "redis>=5.2.1",
     "slowapi>=0.1.9",
     # Database and persistence
-    "fastapi-cache2-fork>=2.3.0",
     "sqlalchemy >=2.0.41",
     "sqlmodel >=0.0.27",
     # Shared application models and outbound integrations

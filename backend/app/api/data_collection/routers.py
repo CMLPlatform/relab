@@ -3,7 +3,6 @@
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from fastapi import APIRouter, Query
-from fastapi_cache.decorator import cache
 from fastapi_pagination.links import Page
 
 from app.api.common.crud.base import paginate_with_exec
@@ -17,6 +16,7 @@ from app.api.data_collection.product_read_routers import (
     user_product_router,
 )
 from app.api.data_collection.product_related_routers import product_related_router
+from app.core.cache import cache
 
 if TYPE_CHECKING:
     from sqlmodel.sql._expression_select_cls import SelectOfScalar

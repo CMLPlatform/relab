@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Query
 from fastapi.types import DecoratedCallable
-from fastapi_cache.decorator import cache
 
 from app.api.background_data.models import Category
 from app.api.background_data.schemas import CategoryReadAsSubCategoryWithRecursiveSubCategories
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.core.cache import cache
 from app.core.config import CacheNamespace, settings
 
 if TYPE_CHECKING:

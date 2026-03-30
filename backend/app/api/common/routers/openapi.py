@@ -8,12 +8,11 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
 from fastapi.types import DecoratedCallable
-from fastapi_cache.decorator import cache
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.common.config import settings as api_settings
 from app.api.common.routers.file_mounts import FAVICON_ROUTE
-from app.core.cache import HTMLCoder
+from app.core.cache import HTMLCoder, cache
 from app.core.config import CacheNamespace, settings
 
 if TYPE_CHECKING:
