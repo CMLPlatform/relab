@@ -149,6 +149,8 @@ class CoreSettings(RelabBaseSettings):
     image_resize_workers: int = Field(default=5, ge=1, le=64)     # concurrent CPU-bound resize threads per worker
     http_max_connections: int = Field(default=100, ge=1, le=1000) # outbound httpx connections per worker
     http_max_keepalive_connections: int = Field(default=20, ge=0, le=1000)
+    request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)  # 1 MiB
+
 
     # ── File cleanup ──────────────────────────────────────────────────────────────
     file_cleanup_enabled: bool = True

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 LOG_FORMAT = (
     "<green>{time:YYYY-MM-DD HH:mm:ss!UTC}</green> | "
     "<level>{level: <8}</level> | "
+    "req=<magenta>{extra[request_id]}</magenta> | "
     "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
     "<level>{message}</level>"
 )
@@ -69,6 +70,12 @@ class InterceptHandler(logging.Handler):
 
 def patch_log_record(record: loguru.Record) -> None:
     """Patch loguru record to use the original standard logger name/function/line if intercepted."""
+    record["extra"].setdefault("request_id", "-")
+    record["extra"].setdefault("http_method", None)
+    record["extra"].setdefault("http_path", None)
+    record["extra"].setdefault("http_status_code", None)
+    record["extra"].setdefault("http_latency_ms", None)
+
     if original_info := record["extra"].get("original_info"):
         record["name"] = original_info.original_name
         record["function"] = original_info.original_func
@@ -78,16 +85,18 @@ def patch_log_record(record: loguru.Record) -> None:
 def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None:
     """Setup loguru sinks."""
     is_enqueued = settings.environment in (Environment.PROD, Environment.STAGING)
+    use_json_logs = settings.environment in (Environment.PROD, Environment.STAGING)
 
     # Console handler
     loguru.logger.add(
         sys.stderr,
         level=base_log_level,
         format=LOG_FORMAT,
-        colorize=True,
+        colorize=not use_json_logs,
         backtrace=True,
         diagnose=True,
         enqueue=is_enqueued,
+        serialize=use_json_logs,
     )
 
     if log_dir is None:
@@ -104,6 +113,7 @@ def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None
         diagnose=True,
         enqueue=is_enqueued,
         encoding="utf-8",
+        serialize=use_json_logs,
     )
 
     # Info file sync - keep 14 days
@@ -117,6 +127,7 @@ def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None
         diagnose=True,
         enqueue=is_enqueued,
         encoding="utf-8",
+        serialize=use_json_logs,
     )
 
     # Error file sync - keep 12 weeks
@@ -130,6 +141,7 @@ def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None
         diagnose=True,
         enqueue=is_enqueued,
         encoding="utf-8",
+        serialize=use_json_logs,
     )
 
 

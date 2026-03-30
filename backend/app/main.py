@@ -30,6 +30,8 @@ from app.core.database import async_sessionmaker_factory
 from app.core.http import create_http_client
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis
+from app.core.request_id import register_request_id_middleware
+from app.core.request_size import register_request_size_limit_middleware
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -136,6 +138,12 @@ app = FastAPI(
 # Add SlowAPI rate limiter state
 app.state.limiter = limiter
 
+# Add request ID propagation and request access logging
+register_request_id_middleware(app)
+
+# Add global non-multipart request body size limits
+register_request_size_limit_middleware(app)
+
 # Add host header validation middleware
 app.add_middleware(
     TrustedHostMiddleware,
@@ -150,6 +158,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
 )
 
 # Include health check routes (liveness and readiness probes)
