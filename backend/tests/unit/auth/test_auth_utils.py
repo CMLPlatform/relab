@@ -1,5 +1,6 @@
 """Unit tests for authentication utilities."""
 
+# spell-checker: ignore hget, hset, mailinator
 from __future__ import annotations
 
 import asyncio
@@ -11,7 +12,7 @@ from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 from app.api.auth.schemas import UserCreate
-from app.api.auth.utils.email_validation import EmailChecker
+from app.api.auth.utils.email_validation import EmailChecker, load_local_disposable_domains
 from app.api.auth.utils.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
 
@@ -37,34 +38,35 @@ class TestEmailChecker:
         """Test initialization without Redis client."""
         checker = EmailChecker(redis_client=None)
 
-        with patch("app.api.auth.utils.email_validation.DefaultChecker") as mock_default_checker:
-            mock_checker_instance = AsyncMock()
-            mock_default_checker.return_value = mock_checker_instance
-
+        with patch(
+            "app.api.auth.utils.email_validation.load_local_disposable_domains",
+            return_value={"temp-mail.org"},
+        ):
             await checker.initialize()
 
-            mock_default_checker.assert_called_once()
-            assert checker.checker == mock_checker_instance
-            mock_checker_instance.init_redis.assert_not_called()
-            mock_checker_instance.fetch_temp_email_domains.assert_called_once()
+            assert checker._initialized is True
+            assert checker._domains == {"temp-mail.org"}
 
         await checker.close()
 
     async def test_init_with_redis(self, mock_redis: AsyncMock) -> None:
         """Test initialization with Redis client when domains don't exist in cache."""
         mock_redis.exists = AsyncMock(return_value=False)
+        mock_pipe = MagicMock()
+        mock_pipe.execute = AsyncMock()
+        mock_redis.pipeline = MagicMock(return_value=mock_pipe)
         checker = EmailChecker(redis_client=mock_redis)
 
-        with patch("app.api.auth.utils.email_validation.DefaultChecker") as mock_default_checker:
-            mock_checker_instance = AsyncMock()
-            mock_default_checker.return_value = mock_checker_instance
-
+        with patch(
+            "app.api.auth.utils.email_validation.load_local_disposable_domains",
+            return_value={"mailinator.com", "temp-mail.org"},
+        ):
             await checker.initialize()
 
-            mock_default_checker.assert_called_once()
-            assert checker.checker == mock_checker_instance
+            assert checker._initialized is True
             mock_redis.exists.assert_called_once_with("temp_domains")
-            mock_checker_instance.init_redis.assert_called_once()
+            mock_pipe.delete.assert_called_once()
+            mock_pipe.hset.assert_called_once()
 
         await checker.close()
 
@@ -73,94 +75,113 @@ class TestEmailChecker:
         mock_redis.exists = AsyncMock(return_value=True)
         checker = EmailChecker(redis_client=mock_redis)
 
-        with patch("app.api.auth.utils.email_validation.DefaultChecker") as mock_default_checker:
-            mock_checker_instance = AsyncMock()
-            mock_default_checker.return_value = mock_checker_instance
-
+        with patch(
+            "app.api.auth.utils.email_validation.load_local_disposable_domains",
+            return_value={"temp-mail.org"},
+        ):
             await checker.initialize()
 
-            mock_default_checker.assert_called_once()
-            assert checker.checker == mock_checker_instance
+            assert checker._initialized is True
             mock_redis.exists.assert_called_once_with("temp_domains")
-            mock_checker_instance.init_redis.assert_not_called()
+            mock_redis.hset.assert_not_awaited()
 
         await checker.close()
 
-    async def test_refresh_domains_success(self, mock_redis: AsyncMock) -> None:
+    async def test_refresh_domains_success(self) -> None:
         """Test successful domain refresh."""
-        checker = EmailChecker(redis_client=mock_redis)
-        checker.checker = AsyncMock()
+        checker = EmailChecker(redis_client=None)
+        checker._initialized = True
 
-        await checker._refresh_domains()
+        with patch.object(
+            checker,
+            "_fetch_remote_domains",
+            AsyncMock(return_value={"mailinator.com", "temp-mail.org"}),
+        ):
+            await checker.run_once()
 
-        checker.checker.fetch_temp_email_domains.assert_called_once()
+        assert checker._domains == {"mailinator.com", "temp-mail.org"}
 
     async def test_refresh_domains_failure(self, mock_redis: AsyncMock) -> None:
         """Test domain refresh failure handles exceptions gracefully."""
         checker = EmailChecker(redis_client=mock_redis)
-        checker.checker = AsyncMock()
-        checker.checker.fetch_temp_email_domains.side_effect = RuntimeError("Refresh failed")
+        checker._initialized = True
 
-        await checker._refresh_domains()
+        with patch.object(checker, "_fetch_remote_domains", AsyncMock(side_effect=RuntimeError("Refresh failed"))):
+            await checker.run_once()
 
-        checker.checker.fetch_temp_email_domains.assert_called_once()
+        mock_redis.hset.assert_not_awaited()
 
-    async def test_is_disposable_true(self, mock_redis: AsyncMock) -> None:
+    def test_load_local_disposable_domains(self, tmp_path: Any) -> None:  # noqa: ANN401
+        """Local fallback files should ignore comments and blank lines."""
+        domains_file = tmp_path / "domains.txt"
+        domains_file.write_text("# comment\nTemp-Mail.org\n\nmailinator.com\n", encoding="utf-8")
+
+        assert load_local_disposable_domains(domains_file) == {"mailinator.com", "temp-mail.org"}
+
+    async def test_is_disposable_true(self) -> None:
         """Test identifying disposable email."""
-        checker = EmailChecker(redis_client=mock_redis)
-        checker.checker = AsyncMock()
-        checker.checker.is_disposable.return_value = True
+        checker = EmailChecker(redis_client=None)
+        checker._initialized = True
+        checker._domains = {"temp-mail.org"}
 
         result = await checker.is_disposable("test@temp-mail.org")
 
         assert result is True
-        checker.checker.is_disposable.assert_called_with("test@temp-mail.org")
 
-    async def test_is_disposable_false(self, mock_redis: AsyncMock) -> None:
+    async def test_is_disposable_false(self) -> None:
         """Test identifying non-disposable email."""
-        checker = EmailChecker(redis_client=mock_redis)
-        checker.checker = AsyncMock()
-        checker.checker.is_disposable.return_value = False
+        checker = EmailChecker(redis_client=None)
+        checker._initialized = True
+        checker._domains = {"temp-mail.org"}
 
         result = await checker.is_disposable("user@example.com")
 
         assert result is False
+
+    async def test_is_disposable_redis(self, mock_redis: AsyncMock) -> None:
+        """Test disposable check via Redis."""
+        mock_redis.hget = AsyncMock(return_value=b"1")
+        checker = EmailChecker(redis_client=mock_redis)
+        checker._initialized = True
+
+        result = await checker.is_disposable("test@temp-mail.org")
+
+        assert result is True
+        mock_redis.hget.assert_awaited_once_with("temp_domains", "temp-mail.org")
 
     async def test_is_disposable_error_fail_open(self, mock_redis: AsyncMock) -> None:
         """Test error handling during check returns False (fail open)."""
+        mock_redis.hget = AsyncMock(side_effect=RedisConnectionError("Redis down"))
         checker = EmailChecker(redis_client=mock_redis)
-        checker.checker = AsyncMock()
-        checker.checker.is_disposable.side_effect = RedisConnectionError("Redis down")
+        checker._initialized = True
 
         result = await checker.is_disposable("user@example.com")
 
         assert result is False
 
-    async def test_is_disposable_not_initialized(self, mock_redis: AsyncMock) -> None:
+    async def test_is_disposable_not_initialized(self) -> None:
         """Test check when checker is not initialized."""
-        checker = EmailChecker(redis_client=mock_redis)
-        checker.checker = None
+        checker = EmailChecker(redis_client=None)
 
         result = await checker.is_disposable("user@example.com")
 
         assert result is False
 
-    async def test_close_cancels_task(self, mock_redis: AsyncMock) -> None:
+    async def test_close_cancels_task(self) -> None:
         """Test close cancels the refresh task."""
-        checker = EmailChecker(redis_client=mock_redis)
+        checker = EmailChecker(redis_client=None)
+        checker._initialized = True
 
         mock_task = cast("Any", asyncio.Future())
         mock_task.set_result(None)
         mock_task.cancel = MagicMock()
 
         checker._task = mock_task
-        mock_checker = AsyncMock()
-        checker.checker = mock_checker
 
         await checker.close()
 
         mock_task.cancel.assert_called_once()
-        mock_checker.close_connections.assert_called_once()
+        assert checker._initialized is False
 
 
 class TestProgrammaticUserCrud:
@@ -226,6 +247,27 @@ class TestProgrammaticUserCrud:
 
             # Verify request_verify was called with user
             mock_user_manager.request_verify.assert_called_once_with(expected_user)
+
+    async def test_create_user_can_skip_breach_check(
+        self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
+    ) -> None:
+        """Programmatic bootstrap flows can disable the network breach check."""
+        expected_user = UserFactory.build(email=user_create.email, hashed_password="hashed")
+        mock_user_manager.create.return_value = expected_user
+
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_user_manager
+        mock_context.__aexit__.return_value = None
+
+        with patch(
+            "app.api.auth.utils.programmatic_user_crud.get_chained_async_user_manager_context",
+            return_value=mock_context,
+        ):
+            user = await create_user(mock_session, user_create, skip_breach_check=True)
+
+            assert user == expected_user
+            assert mock_user_manager.skip_breach_check is True
+            mock_user_manager.create.assert_called_once_with(user_create)
 
     async def test_create_user_already_exists(
         self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock

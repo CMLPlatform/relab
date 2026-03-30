@@ -41,6 +41,7 @@ async def create_superuser() -> None:
                         is_verified=True,
                     ),
                     send_registration_email=False,
+                    skip_breach_check=True,
                 )
                 logger.info("Superuser %s created successfully.", superuser_email)
             except (UserAlreadyExists, InvalidPasswordException) as e:

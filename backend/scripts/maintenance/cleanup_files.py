@@ -10,7 +10,7 @@ from pathlib import Path
 from anyio import run
 
 # Add project root to sys.path to allow imports from app
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from functools import partial
 
 from app.api.file_storage.cleanup import cleanup_unreferenced_files

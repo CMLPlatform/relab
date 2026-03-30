@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi_users.exceptions import UserAlreadyExists
 
-from scripts import create_user as create_user_script
+from scripts.users import create_user as create_user_script
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

@@ -3,8 +3,8 @@
 """Create a normal, verified user programmatically (for admins).
 
 Usage examples:
-  python backend/scripts/create_user.py --email user@example.com --username alice
-  python backend/scripts/create_user.py --email user@example.com --password secret123
+  python -m scripts.users.create_user --email user@example.com --username alice
+  python -m scripts.users.create_user --email user@example.com --password secret123
 """
 
 import argparse

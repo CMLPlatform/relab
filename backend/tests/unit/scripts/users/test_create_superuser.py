@@ -9,7 +9,7 @@ import pytest
 from fastapi_users.exceptions import UserAlreadyExists
 from pydantic import SecretStr
 
-from scripts import create_superuser as create_superuser_script
+from scripts.users import create_superuser as create_superuser_script
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator

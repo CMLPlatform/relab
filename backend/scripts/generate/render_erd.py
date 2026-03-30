@@ -63,8 +63,8 @@ def inject_content(file_path: Path, begin_tag: str, end_tag: str, content: str) 
 
 REPLACE_BEGIN_TAG = "<!-- BEGIN_ERDs -->"
 REPLACE_END_TAG = "<!-- END_ERDs -->"
-MARKDOWN_FILE = Path(__file__).parents[1] / "README.md"
-CONFIG_FILE = Path(__file__).parents[1] / "pyproject.toml"
+MARKDOWN_FILE = Path(__file__).parents[2] / "README.md"
+CONFIG_FILE = Path(__file__).parents[2] / "pyproject.toml"
 
 
 def main() -> None:

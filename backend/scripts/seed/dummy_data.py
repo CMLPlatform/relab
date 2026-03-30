@@ -43,6 +43,7 @@ from app.api.file_storage.models.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
 from app.core.config import settings
 from app.core.database import async_engine, async_session_context, close_async_engine
+from app.core.env import BACKEND_DIR
 from app.core.logging import setup_logging
 
 # Configure logging
@@ -61,7 +62,7 @@ class DryRunAsyncSession(AsyncSession):
 ### Sample Data ###
 
 # Load data from json
-data_file = Path(__file__).parent / "dummy_data.json"
+data_file = BACKEND_DIR / "data" / "seed" / "dummy_data.json"
 with data_file.open("r") as f:
     _seed_data = json.load(f)
 
@@ -99,7 +100,7 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
         # We need to catch UserAlreadyExists here too technically, but the check above handles clean runs
         # create_user handles hashing
         try:
-            user = await create_user(session, user_create, send_registration_email=False)
+            user = await create_user(session, user_create, send_registration_email=False, skip_breach_check=True)
             user_map[user.email] = user
         except ValueError as e:
             logger.warning("Failed to create user %s: %s", user_dict["email"], e)

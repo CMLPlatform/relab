@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import CursorResult, Inspector, MetaData, Select, Table, inspect, select
 
-from scripts.db_sync import sync_engine
+from scripts.db.sync import sync_engine
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

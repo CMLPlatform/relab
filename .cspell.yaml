@@ -23,6 +23,7 @@ ignorePaths:
   - .vscode
   - package-lock.json
   - uv.lock
+  - "backend/app/api/auth/resources/disposable_email_domains.txt"
   - "frontend-app/src/assets/data/**"
   - "frontend-app/src/types/api.generated.ts"
 language: en_us,nl

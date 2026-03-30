@@ -3,7 +3,7 @@
 """Clear cache entries in Redis by namespace.
 
 This script can be used to clear cache for specific namespaces.
-Run with: python scripts/clear_cache.py [namespace]
+Run with: python -m scripts.maintenance.clear_cache [namespace]
 
 Available namespaces:
 - background-data (default): All background data GET endpoints

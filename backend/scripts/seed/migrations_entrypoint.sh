@@ -33,9 +33,9 @@ echo "Upgrading database to the latest revision..."
 # Seed dummy data if enabled and if the database is empty
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     echo "Dummy data seeding is enabled."
-    echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
+    echo "Checking if all tables in the database are empty using scripts/db/is_empty.py..."
 
-    if .venv/bin/python -m scripts.db_is_empty --quiet; then
+    if .venv/bin/python -m scripts.db.is_empty --quiet; then
         echo "All tables are empty, proceeding to seed dummy data..."
         .venv/bin/python -m scripts.seed.dummy_data
     else
@@ -71,7 +71,7 @@ fi
 
 # Create a superuser if the required environment variables are set
 echo "Creating a superuser..."
-.venv/bin/python -m scripts.create_superuser
+.venv/bin/python -m scripts.users.create_superuser
 
 # Start the server or other desired commands
 exec "$@"

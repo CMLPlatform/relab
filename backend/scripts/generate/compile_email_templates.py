@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent
-BACKEND_DIR = SCRIPT_DIR.parent
+BACKEND_DIR = SCRIPT_DIR.parents[1]
 SRC_DIR = BACKEND_DIR / "app" / "templates" / "emails" / "src"
 BUILD_DIR = BACKEND_DIR / "app" / "templates" / "emails" / "build"
 

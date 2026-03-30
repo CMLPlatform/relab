@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts import db_is_empty
+from scripts.db import is_empty as db_is_empty
 
 
 @pytest.mark.unit

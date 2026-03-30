@@ -1,143 +1,130 @@
 """Utilities for validating email addresses."""
+# spell-checker: ignore hget, hset
+
+from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
 
+import httpx
 from fastapi import Request
-from fastapi_mail.email_utils import DefaultChecker
 from redis.exceptions import RedisError
 
 from app.core.background_tasks import PeriodicBackgroundTask
 from app.core.config import Environment, settings
+from app.core.env import BACKEND_DIR
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
-# Custom source for disposable domains
 DISPOSABLE_DOMAINS_URL = "https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt"
+DISPOSABLE_DOMAINS_FALLBACK_PATH = BACKEND_DIR / "app" / "api" / "auth" / "resources" / "disposable_email_domains.txt"
+_REDIS_DOMAINS_HASH = "temp_domains"
 
-_EMAIL_CHECKER_ERRORS = (RuntimeError, ValueError, ConnectionError, OSError, RedisError)
+_RECOVERABLE_ERRORS = (RuntimeError, ValueError, ConnectionError, OSError, RedisError, httpx.HTTPError)
+
+
+def load_local_disposable_domains(path: Path = DISPOSABLE_DOMAINS_FALLBACK_PATH) -> set[str]:
+    """Load the committed fallback list of disposable email domains."""
+    return {
+        line.strip().lower()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
 
 
 class EmailChecker(PeriodicBackgroundTask):
-    """Email checker that manages disposable domain validation."""
+    """Disposable-email blocker with optional Redis-backed domain storage.
+
+    Without Redis, domains are held in a plain ``set[str]``.
+    With Redis, domains are stored in a hash for shared access across workers.
+    """
 
     def __init__(self, redis_client: Redis | None) -> None:
-        """Initialize email checker with Redis client.
-
-        Args:
-            redis_client: Redis client instance to use for caching
-        """
         super().__init__(interval_seconds=60 * 60 * 24)  # 24 hours
         self.redis_client = redis_client
-        self.checker: DefaultChecker | None = None
+        self._domains: set[str] = set()
+        self._initialized = False
 
     async def initialize(self) -> None:
-        """Initialize the disposable email checker.
-
-        Should be called during application startup.
-        """
+        """Seed domains and start the periodic refresh loop."""
         try:
-            if self.redis_client is None:
-                self.checker = DefaultChecker(source=DISPOSABLE_DOMAINS_URL)
-                logger.info("Disposable email checker initialized without Redis")
-                # Fetch initial domains when using in-memory storage
-                await self._refresh_domains()
-            else:
-                self.checker = DefaultChecker(
-                    source=DISPOSABLE_DOMAINS_URL,
-                    db_provider="redis",
-                    redis_client=self.redis_client,
-                )
-
-                # Check if domains already exist in Redis cache
-                domains_exist = await self.redis_client.exists("temp_domains")
-
-                if not domains_exist:
-                    # Fetch and cache domains for the first time
-                    await self.checker.init_redis()
-                    logger.info("Disposable email checker initialized with Redis (fetched new domains)")
-                else:
-                    # Domains already cached - checker will use them automatically
-                    logger.info("Disposable email checker initialized with Redis (using cached domains)")
-
-            # Start periodic refresh task
+            await self._seed_domains()
+            self._initialized = True
             await super().initialize()
-
-        except _EMAIL_CHECKER_ERRORS as e:
+        except _RECOVERABLE_ERRORS as e:
             logger.warning("Failed to initialize disposable email checker: %s", e)
-            self.checker = None
 
     async def run_once(self) -> None:
         """Refresh disposable domains (called periodically by the base class loop)."""
-        await self._refresh_domains()
-
-    async def _refresh_domains(self) -> None:
-        """Refresh the list of disposable email domains from the source."""
-        if self.checker is None:
-            logger.warning("Email checker not initialized, cannot refresh domains")
-            return
         try:
-            await self.checker.fetch_temp_email_domains()
+            domains = await self._fetch_remote_domains()
+            await self._store_domains(domains)
             logger.info("Disposable email domains refreshed successfully")
-        except _EMAIL_CHECKER_ERRORS:
+        except _RECOVERABLE_ERRORS:
             logger.exception("Failed to refresh disposable email domains:")
 
     async def close(self) -> None:
-        """Close the email checker and cleanup resources.
-
-        Should be called during application shutdown.
-        """
+        """Cancel the background loop."""
         await super().close()
-
-        # Close checker connections if initialized
-        if self.checker is not None and self.redis_client is not None:
-            logger.info("Closing email checker Redis connections")
-            try:
-                await self.checker.close_connections()
-                logger.info("Email checker closed successfully")
-            except _EMAIL_CHECKER_ERRORS as e:
-                logger.warning("Error closing email checker: %s", e)
-            finally:
-                self.checker = None
+        self._initialized = False
 
     async def is_disposable(self, email: str) -> bool:
-        """Check if email domain is disposable.
-
-        Args:
-            email: Email address to check
-
-        Returns:
-            bool: True if email is from a disposable domain, False otherwise
-        """
-        if self.checker is None:
+        """Check if an email's domain is disposable. Fails open on errors."""
+        if not self._initialized:
             logger.warning("Email checker not initialized, allowing registration")
             return False
         try:
-            return await self.checker.is_disposable(email)
-        except _EMAIL_CHECKER_ERRORS:
+            domain = email.rsplit("@", 1)[-1].lower()
+            if self.redis_client is not None:
+                return bool(await self.redis_client.hget(_REDIS_DOMAINS_HASH, domain))  # ty: ignore[invalid-await] # Async Redis returns awaitable, this is an upstream typing issue in the Redis client library
+        except _RECOVERABLE_ERRORS:
             logger.exception("Failed to check if email is disposable: %s. Allowing registration.", email)
-            # If check fails, allow registration (fail open)
             return False
+        else:
+            return domain in self._domains
+
+    async def _seed_domains(self) -> None:
+        """Seed from the committed fallback file, skipping if Redis already has data."""
+        domains = load_local_disposable_domains()
+        if self.redis_client is None:
+            self._domains = domains
+            logger.info("Loaded %d disposable domains from local fallback (in-memory)", len(domains))
+            return
+
+        if await self.redis_client.exists(_REDIS_DOMAINS_HASH):
+            logger.info("Disposable domains already cached in Redis, skipping seed")
+            return
+
+        await self._store_domains(domains)
+        logger.info("Seeded Redis with %d disposable domains from local fallback", len(domains))
+
+    async def _store_domains(self, domains: set[str]) -> None:
+        """Replace the stored domain set (in-memory or Redis)."""
+        if self.redis_client is None:
+            self._domains = domains
+            return
+
+        pipe = self.redis_client.pipeline()
+        pipe.delete(_REDIS_DOMAINS_HASH)
+        if domains:
+            pipe.hset(_REDIS_DOMAINS_HASH, mapping=dict.fromkeys(domains, 1))
+        await pipe.execute()
+
+    async def _fetch_remote_domains(self) -> set[str]:
+        """Fetch the latest disposable domain list from the remote source."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(DISPOSABLE_DOMAINS_URL, timeout=10.0)
+            response.raise_for_status()
+        return {line.strip().lower() for line in response.text.splitlines() if line.strip()}
 
 
 def get_email_checker_dependency(request: Request) -> EmailChecker | None:
-    """FastAPI dependency to get EmailChecker from app state.
-
-    Args:
-        request: FastAPI request object
-
-    Returns:
-        EmailChecker instance or None if not initialized
-
-    Usage:
-        @app.get("/example")
-        async def example(email_checker: EmailChecker | None = Depends(get_email_checker_dependency)):
-            if email_checker:
-                await email_checker.is_disposable("test@example.com")
-    """
+    """FastAPI dependency to get EmailChecker from app state."""
     return request.app.state.email_checker
 
 
@@ -146,10 +133,10 @@ async def init_email_checker(redis: Redis | None) -> EmailChecker | None:
     if settings.environment in (Environment.DEV, Environment.TESTING):
         return None
     try:
-        email_checker = EmailChecker(redis)
-        await email_checker.initialize()
+        checker = EmailChecker(redis)
+        await checker.initialize()
     except (RuntimeError, ValueError, ConnectionError) as e:
         logger.warning("Failed to initialize email checker: %s", e)
         return None
     else:
-        return email_checker
+        return checker

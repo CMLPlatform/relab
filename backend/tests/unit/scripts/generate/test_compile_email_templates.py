@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from scripts import compile_email_templates as compile_email_templates_script
+from scripts.generate import compile_email_templates as compile_email_templates_script
 
 if TYPE_CHECKING:
     from pathlib import Path

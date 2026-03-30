@@ -68,9 +68,9 @@ echo "Upgrading database to the latest revision..."
 uv run alembic upgrade head
 
 # Check if all tables are empty
-echo "Checking if all tables in the database are empty using scripts/db_is_empty.py..."
+echo "Checking if all tables in the database are empty using scripts/db/is_empty.py..."
 
-if uv run python -m scripts.db_is_empty --quiet; then
+if uv run python -m scripts.db.is_empty --quiet; then
     echo "All tables are empty, proceeding to seed dummy data..."
     uv run python -m scripts.seed.dummy_data
 else
@@ -85,6 +85,6 @@ fi
 
 # Create a superuser if the required environment variables are set
 echo "Creating a superuser..."
-uv run -m scripts.create_superuser
+uv run -m scripts.users.create_superuser
 
 echo "Local setup complete."

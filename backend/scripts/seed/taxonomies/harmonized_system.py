@@ -10,7 +10,7 @@ from sqlmodel import func, select
 
 from app.api.background_data.models import Category, TaxonomyDomain
 from app.core.logging import setup_logging
-from scripts.db_sync import sync_session_context
+from scripts.db.sync import sync_session_context
 from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
 
 if TYPE_CHECKING:
@@ -100,9 +100,7 @@ def seed_taxonomy() -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.exec(
-            select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.db_id)
-        ).one()
+        existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
 
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
@@ -112,9 +110,7 @@ def seed_taxonomy() -> None:
         rows = load_hs_rows_from_csv(CSV_PATH)
 
         # Seed categories
-        cat_count, rel_count = seed_categories_from_rows(
-            session, taxonomy.db_id, rows, get_parent_id_fn=get_hs_parent_id
-        )
+        cat_count, rel_count = seed_categories_from_rows(session, taxonomy.id, rows, get_parent_id_fn=get_hs_parent_id)
 
         # Commit
         session.commit()

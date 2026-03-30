@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from app.core.config import CacheNamespace
-from scripts import clear_cache as clear_cache_script
+from scripts.maintenance import clear_cache as clear_cache_script
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
