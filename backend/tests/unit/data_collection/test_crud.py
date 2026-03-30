@@ -127,11 +127,11 @@ class TestPhysicalPropertiesCrud:
         product = ProductFactory.build(id=product_id, name=TEST_PRODUCT_NAME)
         product.physical_properties = PhysicalPropertiesFactory.build(weight_g=5.0)
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
-            with pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_PROPS) as exc:
-                await create_physical_properties(mock_session, props_create, product_id)
-
-            assert ALREADY_HAS_PROPS in str(exc.value)
+        with (
+            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_PROPS),
+        ):
+            await create_physical_properties(mock_session, props_create, product_id)
 
     async def test_get_physical_properties_success(self, mock_session: AsyncMock) -> None:
         """Test successful retrieval of physical properties."""
@@ -308,22 +308,6 @@ class TestProductCrud:
         mock_session.add.assert_called()
         mock_session.commit.assert_called_once()
 
-    async def test_create_product_uses_shared_tree_helper(self, mock_session: AsyncMock) -> None:
-        """Test that product creation delegates to the shared tree builder."""
-        owner_id = uuid4()
-        product_create = ProductCreateWithComponents(
-            name=NEW_PRODUCT_NAME,
-            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
-        )
-        mock_product = ProductFactory.build(id=1, owner_id=owner_id)
-
-        with patch("app.api.data_collection.crud._create_product_tree", return_value=mock_product) as mock_tree:
-            result = await create_product(mock_session, product_create, owner_id)
-
-            assert result == mock_product
-            mock_tree.assert_awaited_once_with(mock_session, product_create, owner_id=owner_id)
-            mock_session.commit.assert_called_once()
-
     async def test_get_product_trees(self, mock_session: AsyncMock) -> None:
         """Test retrieving product trees."""
         with patch("app.api.data_collection.crud.get_model_by_id"):
@@ -393,29 +377,6 @@ class TestProductCrud:
             assert res.name == COMP_NAME
             assert res.owner_id == owner_id
 
-    async def test_create_component_uses_shared_tree_helper(self, mock_session: AsyncMock) -> None:
-        """Test that component creation delegates to the shared tree builder."""
-        owner_id = uuid4()
-        parent_product = ProductFactory.build(id=1, owner_id=owner_id)
-        component_create = ComponentCreateWithComponents(
-            name=COMP_NAME,
-            amount_in_parent=1,
-            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
-        )
-        mock_component = ProductFactory.build(id=2, owner_id=owner_id, parent_id=1, amount_in_parent=1)
-
-        with patch("app.api.data_collection.crud._create_product_tree", return_value=mock_component) as mock_tree:
-            result = await create_component(mock_session, component_create, parent_product=parent_product)
-
-            assert result == mock_component
-            mock_tree.assert_awaited_once_with(
-                mock_session,
-                component_create,
-                owner_id=owner_id,
-                parent_product=parent_product,
-            )
-            mock_session.commit.assert_called_once()
-
     async def test_create_product_requires_materials_or_components(self, mock_session: AsyncMock) -> None:
         """Product creation should fail when the payload has no materials and no components."""
         owner_id = uuid4()
@@ -484,10 +445,8 @@ class TestBillOfMaterialsCrud:
         """Test error when material ID is missing."""
         link_create = MaterialProductLinkCreateWithinProductAndMaterial(quantity=5.0)
 
-        with pytest.raises(MaterialIDRequiredError, match=MATERIAL_ID_REQ) as exc:
+        with pytest.raises(MaterialIDRequiredError, match=MATERIAL_ID_REQ):
             await add_material_to_product(mock_session, product_id=1, material_link=link_create, material_id=None)
-
-        assert MATERIAL_ID_REQ in str(exc.value)
 
     async def test_update_material_within_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful update of material within product."""

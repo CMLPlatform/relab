@@ -12,9 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api.common.exceptions import (
     APIError,
-    FailedDependencyError,
     InternalServerError,
-    PayloadTooLargeError,
     ServiceUnavailableError,
 )
 from app.api.common.routers.exceptions import create_exception_handler, rate_limit_handler
@@ -127,22 +125,10 @@ class TestRateLimitHandler:
 
 @pytest.mark.unit
 class TestSharedExceptionFamilies:
-    """Tests for shared common exception families."""
-
-    def test_failed_dependency_error_status_code(self) -> None:
-        """FailedDependencyError should map to HTTP 424."""
-        assert FailedDependencyError.http_status_code == status.HTTP_424_FAILED_DEPENDENCY
-
-    def test_payload_too_large_error_status_code(self) -> None:
-        """PayloadTooLargeError should map to HTTP 413."""
-        assert PayloadTooLargeError.http_status_code == status.HTTP_413_CONTENT_TOO_LARGE
-
-    def test_service_unavailable_error_status_code(self) -> None:
-        """ServiceUnavailableError should map to HTTP 503."""
-        assert ServiceUnavailableError.http_status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+    """Tests for shared common exception families exercising the full response path."""
 
     async def test_service_unavailable_error_with_details_is_exposed(self) -> None:
-        """ServiceUnavailableError should include details in the API response body."""
+        """ServiceUnavailableError (503) includes message and details in the response body."""
         handler = create_exception_handler()
         mock_request = MagicMock()
         exc = ServiceUnavailableError("Temporarily unavailable", details="redis offline")
@@ -150,6 +136,7 @@ class TestSharedExceptionFamilies:
         with patch("app.api.common.routers.exceptions.logger"):
             response = await handler(mock_request, exc)
 
+        assert response.status_code == 503
         body = json.loads(cast("bytes", response.body))
         assert body["detail"]["message"] == "Temporarily unavailable"
         assert body["detail"]["details"] == "redis offline"

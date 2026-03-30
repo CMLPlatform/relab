@@ -89,22 +89,12 @@ class TestCategorySchemas:
     """Test Category schema validation."""
 
     def test_category_create_valid(self) -> None:
-        """Test creating valid CategoryCreate schema."""
-        schema = CategoryCreate(
-            name=TEST_CATEGORY,
-            description="A test category",
-            taxonomy_id=1,
-        )
+        """Test CategoryCreate accepts all fields and taxonomy_id defaults to None."""
+        full = CategoryCreate(name=TEST_CATEGORY, description="A test category", taxonomy_id=1)
+        assert full.taxonomy_id == 1
 
-        assert schema.name == TEST_CATEGORY
-        assert schema.taxonomy_id == 1
-
-    def test_category_create_minimal(self) -> None:
-        """Test CategoryCreate with only required fields."""
-        schema = CategoryCreate(name=MINIMAL_CATEGORY)
-
-        assert schema.name == MINIMAL_CATEGORY
-        assert schema.taxonomy_id is None
+        minimal = CategoryCreate(name=MINIMAL_CATEGORY)
+        assert minimal.taxonomy_id is None
 
     def test_category_update_partial(self) -> None:
         """Test CategoryUpdate with partial data."""
@@ -163,18 +153,9 @@ class TestProductTypeSchemas:
     """Test ProductType schema validation."""
 
     def test_product_type_create_valid(self) -> None:
-        """Test creating valid ProductTypeCreate schema."""
-        schema = ProductTypeCreate(
-            name=ELECTRONICS,
-            description=ELECTRONIC_PRODUCTS,
-        )
+        """Test ProductTypeCreate accepts all fields and description defaults to None."""
+        full = ProductTypeCreate(name=ELECTRONICS, description=ELECTRONIC_PRODUCTS)
+        assert full.description == ELECTRONIC_PRODUCTS
 
-        assert schema.name == ELECTRONICS
-        assert schema.description == ELECTRONIC_PRODUCTS
-
-    def test_product_type_create_minimal(self) -> None:
-        """Test ProductTypeCreate with only name."""
-        schema = ProductTypeCreate(name=MINIMAL)
-
-        assert schema.name == MINIMAL
-        assert schema.description is None
+        minimal = ProductTypeCreate(name=MINIMAL)
+        assert minimal.description is None

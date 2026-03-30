@@ -113,9 +113,8 @@ class TestProductLogic:
             amount_in_parent=None,
         )
 
-        with pytest.raises(ValueError, match=ERR_MIN_CONTENT) as exc:
+        with pytest.raises(ValueError, match=ERR_MIN_CONTENT):
             _VALIDATE_PRODUCT(p)
-        assert ERR_MIN_CONTENT in str(exc.value)
 
     def test_validate_product_intermediate_valid(self) -> None:
         """Test validation of a valid intermediate product."""
@@ -143,9 +142,8 @@ class TestProductLogic:
             amount_in_parent=None,  # Missing
         )
 
-        with pytest.raises(ValueError, match=ERR_MISSING_AMOUNT) as exc:
+        with pytest.raises(ValueError, match=ERR_MISSING_AMOUNT):
             _VALIDATE_PRODUCT(p)
-        assert ERR_MISSING_AMOUNT in str(exc.value)
 
     def test_validate_cycle_detection_on_init(self) -> None:
         """Test that cycles are detected during validation."""

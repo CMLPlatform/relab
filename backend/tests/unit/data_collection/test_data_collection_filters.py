@@ -1,86 +1,24 @@
-"""Tests for data_collection filter helper functions."""
+"""Tests for data_collection and shared search filter helper functions."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
+
+import pytest
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
 
-from sqlalchemy import literal_column
 from sqlalchemy.dialects import postgresql
+from sqlmodel import select
 
-from app.api.data_collection.filters import (
-    SearchableColumn,
-    build_brand_search_clause,
-    build_product_search_clause,
-    get_brand_search_statement,
-)
+from app.api.data_collection.filters import ProductFilter, get_brand_search_statement
 from app.api.data_collection.models import Product
 
 
 def _sql(clause: ClauseElement) -> str:
     """Compile a clause to a SQL string using the PostgreSQL dialect."""
     return str(clause.compile(dialect=postgresql.dialect()))
-
-
-_SEARCH_VECTOR = literal_column("product.search_vector")
-_BRAND_FIELD = cast("SearchableColumn", Product.brand)
-_NAME_FIELD = cast("SearchableColumn", Product.name)
-
-
-class TestBuildProductSearchClause:
-    """Tests for the build_product_search_clause function."""
-
-    def test_without_name_produces_two_conditions(self) -> None:
-        """Test that searching without a name field produces two conditions."""
-        clause = build_product_search_clause("test", _BRAND_FIELD, _SEARCH_VECTOR)
-        assert len(list(clause.clauses)) == 2
-
-    def test_with_name_produces_three_conditions(self) -> None:
-        """Test that searching with a name field produces three conditions."""
-        clause = build_product_search_clause("test", _BRAND_FIELD, _SEARCH_VECTOR, name_field=_NAME_FIELD)
-        assert len(list(clause.clauses)) == 3
-
-    def test_contains_tsvector_match_operator(self) -> None:
-        """Test that the clause contains the tsvector match operator (@@)."""
-        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR))
-        assert "@@" in sql
-
-    def test_contains_trigram_operator_for_brand(self) -> None:
-        """Test that the clause contains the trigram operator (%) for the brand field."""
-        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR))
-        assert "%" in sql
-        assert "brand" in sql.lower()
-
-    def test_contains_trigram_operator_for_name_when_given(self) -> None:
-        """Test that the clause contains the trigram operator for the name field when provided."""
-        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR, name_field=_NAME_FIELD))
-        assert "name" in sql.lower()
-
-    def test_name_absent_when_not_given(self) -> None:
-        """Test that the name field is absent from the clause when not provided."""
-        sql = _sql(build_product_search_clause("hello", _BRAND_FIELD, _SEARCH_VECTOR))
-        assert "product.name" not in sql.lower()
-
-    def test_uses_websearch_to_tsquery(self) -> None:
-        """Test that the clause uses websearch_to_tsquery for the tsvector search."""
-        sql = _sql(build_product_search_clause("hello world", _BRAND_FIELD, _SEARCH_VECTOR))
-        assert "websearch_to_tsquery" in sql
-
-
-class TestBuildBrandSearchClause:
-    """Tests for the build_brand_search_clause function."""
-
-    def test_produces_same_sql_as_product_search_without_name(self) -> None:
-        """Test that brand search produces same SQL as product search without name."""
-        brand_sql = _sql(build_brand_search_clause("acme"))
-        product_sql = _sql(build_product_search_clause("acme", _BRAND_FIELD, _SEARCH_VECTOR))
-        assert brand_sql == product_sql
-
-    def test_uses_websearch_to_tsquery(self) -> None:
-        """Test that brand search uses websearch_to_tsquery."""
-        assert "websearch_to_tsquery" in _sql(build_brand_search_clause("acme corp"))
 
 
 class TestGetBrandSearchStatement:
@@ -108,7 +46,6 @@ class TestGetBrandSearchStatement:
 
     def test_search_strips_whitespace(self) -> None:
         """Test that search queries are stripped of leading/trailing whitespace."""
-        # Both should produce identical SQL since strip() is applied before building the clause
         stripped = _sql(get_brand_search_statement(search="nike"))
         padded = _sql(get_brand_search_statement(search="  nike  "))
         assert stripped == padded
@@ -128,3 +65,85 @@ class TestGetBrandSearchStatement:
         sql_default = _sql(get_brand_search_statement())
         sql_asc = _sql(get_brand_search_statement(order="asc"))
         assert sql_default == sql_asc
+
+
+@pytest.mark.unit
+class TestProductFilterRankSort:
+    """Tests for ProductFilter's relevance-rank ordering behaviour.
+
+    'rank'/'- rank' is stripped at construction time (model_validator mode="before")
+    before fastapi-filter's validate_order_by sees the list.  When the list becomes
+    empty/None after stripping, _apply_rank_ordering treats it as "apply ts_rank".
+    """
+
+    def _build(self, search: str | None, order_by: list[str] | None) -> ProductFilter:
+        return ProductFilter(search=search, order_by=order_by)
+
+    def _filter_sql(self, search: str | None, order_by: list[str] | None) -> str:
+        """Build a ProductFilter, apply filter + sort, and return the compiled SQL."""
+        f = self._build(search, order_by)
+        stmt = f.filter(select(Product))
+        stmt = f.sort(stmt)
+        return _sql(stmt)
+
+    # ── Construction-time stripping ───────────────────────────────────────────
+
+    def test_rank_stripped_from_order_by_list(self) -> None:
+        """order_by=['rank'] (list form) must become None after model_validator strips it."""
+        f = self._build("chair", ["rank"])
+        assert f.order_by is None
+
+    def test_rank_stripped_from_order_by_string(self) -> None:
+        """order_by='rank' (raw string, as FastAPI delivers query params) is also stripped."""
+        # Bypass _build helper to pass a raw string, simulating the FastAPI query-param path.
+        f = ProductFilter.model_validate({"search": "chair", "order_by": "rank"})
+        assert f.order_by is None
+
+    def test_negative_rank_stripped(self) -> None:
+        """order_by=['-rank'] must also be stripped to None."""
+        f = self._build("chair", ["-rank"])
+        assert f.order_by is None
+
+    def test_rank_among_other_fields_is_removed(self) -> None:
+        """Only 'rank' is stripped; other fields survive."""
+        f = self._build("chair", ["rank", "-created_at"])
+        assert f.order_by == ["-created_at"]
+
+    def test_rank_string_among_other_fields_is_removed(self) -> None:
+        """String form 'rank,-created_at' → only '-created_at' survives."""
+        f = ProductFilter.model_validate({"order_by": "rank,-created_at"})
+        assert f.order_by == ["-created_at"]
+
+    def test_valid_order_by_unchanged(self) -> None:
+        """A valid order_by with no 'rank' should be left unchanged."""
+        f = self._build(None, ["-created_at"])
+        assert f.order_by == ["-created_at"]
+
+    # ── SQL ordering ──────────────────────────────────────────────────────────
+
+    def test_rank_ordering_applied_when_search_and_no_order_by(self) -> None:
+        """ts_rank ordering is the default when searching without an explicit sort."""
+        sql = self._filter_sql("chair", None)
+        assert "ts_rank" in sql.lower()
+
+    def test_rank_ordering_applied_when_order_by_was_rank(self) -> None:
+        """order_by=['rank'] strips to None, which triggers ts_rank ordering."""
+        sql = self._filter_sql("chair", ["rank"])
+        assert "ts_rank" in sql.lower()
+
+    def test_rank_ordering_not_applied_when_explicit_field_given(self) -> None:
+        """An explicit field sort must suppress ts_rank ordering."""
+        sql = self._filter_sql("chair", ["-created_at"])
+        assert "created_at" in sql.lower()
+        assert "ts_rank" not in sql.lower()
+
+    def test_search_where_clause_always_present(self) -> None:
+        """The tsvector WHERE clause is always added when search is set, regardless of sort."""
+        for order in (None, ["rank"], ["-created_at"], ["name"]):
+            sql = self._filter_sql("test", order)
+            assert "websearch_to_tsquery" in sql, f"Missing WHERE clause for order_by={order}"
+
+    def test_no_rank_ordering_when_no_search(self) -> None:
+        """ts_rank ordering must not appear when there is no search term."""
+        sql = self._filter_sql(None, None)
+        assert "ts_rank" not in sql.lower()

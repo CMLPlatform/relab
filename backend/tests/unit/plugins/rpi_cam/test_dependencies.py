@@ -63,7 +63,7 @@ async def test_get_camera_transfer_owner_id_allows_same_org_transfer() -> None:
         organization_id=org_id,
         organization_role=OrganizationRole.MEMBER,
     )
-    camera = build_camera(owner_id=current_owner.db_id)
+    camera = build_camera(owner_id=current_owner.id)
     camera_in = CameraUpdate.model_validate({"owner_id": target_owner.id})
 
     with patch(
@@ -112,7 +112,7 @@ async def test_get_camera_transfer_owner_id_rejects_transfer_to_other_org() -> N
         organization_id=uuid.uuid4(),
         organization_role=OrganizationRole.MEMBER,
     )
-    camera = build_camera(owner_id=current_owner.db_id)
+    camera = build_camera(owner_id=current_owner.id)
     camera_in = CameraUpdate.model_validate({"owner_id": target_owner.id})
 
     with (
@@ -148,7 +148,7 @@ async def test_get_camera_transfer_owner_id_rejects_owner_without_org() -> None:
         organization_id=uuid.uuid4(),
         organization_role=OrganizationRole.MEMBER,
     )
-    camera = build_camera(owner_id=current_owner.db_id)
+    camera = build_camera(owner_id=current_owner.id)
     camera_in = CameraUpdate.model_validate({"owner_id": target_owner.id})
 
     with (

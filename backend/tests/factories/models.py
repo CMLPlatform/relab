@@ -44,12 +44,17 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         return super()._get_type_from_type_engine(type_engine)
 
     @classmethod
+    def build(cls, **kwargs: Any) -> T:  # noqa: ANN401 # Polyfactory accepts Any-typed kwargs for model fields
+        """Build an instance while skipping DB-computed columns like generated TSVECTOR fields."""
+        build_context = cls._get_build_context(kwargs.get("_build_context"))
+        build_context["skip_computed_fields"] = True
+        kwargs["_build_context"] = build_context
+        return super().build(**kwargs)
+
+    @classmethod
     async def create_async(cls, session: AsyncSession | None = None, **kwargs: Any) -> T:  # noqa: ANN401 #  Any-type kwargs are expected by the parent class signature
         """Create a new instance, optionally using a provided session."""
         if session:
-            build_context = cls._get_build_context(kwargs.get("_build_context"))
-            build_context["skip_computed_fields"] = True
-            kwargs["_build_context"] = build_context
             instance = cls.build(**kwargs)
             session.add(instance)
             await session.flush()

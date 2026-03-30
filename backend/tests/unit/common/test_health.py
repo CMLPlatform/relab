@@ -84,7 +84,7 @@ class TestCheckDatabase:
             result = await check_database()
 
         assert result["status"] == UNHEALTHY_STATUS
-        assert "connection refused" in result["error"]
+        assert result["error"] == "Database connection failed"
 
 
 @pytest.mark.unit
@@ -134,7 +134,7 @@ class TestCheckRedis:
             result = await check_redis(request)
 
         assert result["status"] == UNHEALTHY_STATUS
-        assert "connection refused" in result["error"]
+        assert result["error"] == "Redis connection failed"
 
 
 @pytest.mark.unit

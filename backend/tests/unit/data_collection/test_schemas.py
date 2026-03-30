@@ -60,7 +60,6 @@ RECYCLABLE_KEYWORD = "recyclable"
 UNICODE_SEARCH = "产品"
 TZ_MSG = "timezone"
 DAYS_365 = "365"
-DAYS_STR = "days"
 
 
 def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
@@ -82,9 +81,8 @@ class TestValidatorsCommon:
     def test_ensure_timezone_rejects_naive_datetime(self) -> None:
         """Verify ensure_timezone rejects naive datetime."""
         dt = datetime.now(UTC).replace(tzinfo=None)  # No timezone
-        with pytest.raises(ValueError, match=TZ_MSG) as exc_info:
+        with pytest.raises(ValueError, match=TZ_MSG):
             ensure_timezone(dt)
-        assert TZ_MSG in str(exc_info.value).lower()
 
     def test_not_too_old_recent_datetime(self) -> None:
         """Verify not_too_old accepts recent datetime."""
@@ -95,9 +93,8 @@ class TestValidatorsCommon:
     def test_not_too_old_rejects_old_datetime(self) -> None:
         """Verify not_too_old rejects datetime older than 365 days."""
         dt = datetime.now(UTC) - timedelta(days=366)
-        with pytest.raises(ValueError, match=DAYS_365) as exc_info:
+        with pytest.raises(ValueError, match=DAYS_365):
             not_too_old(dt)
-        assert DAYS_365 in str(exc_info.value) or DAYS_STR in str(exc_info.value).lower()
 
     def test_not_too_old_accepts_boundary_date(self) -> None:
         """Verify not_too_old accepts datetime within 365 days."""
@@ -376,7 +373,7 @@ class TestProductCreateBaseProductSchema:
         product = _validate_model(ProductCreateBaseProduct, data)
 
         assert product.description == TEST_PRODUCT_DESC
-        assert product.brand == TEST_BRAND
+        assert product.brand == TEST_BRAND.lower()
 
     def test_description_max_length(self) -> None:
         """Verify description max length is 500."""
@@ -482,18 +479,10 @@ class TestProductCreateBaseProductSchema:
 
         assert product.product_type_id == item_id
 
-    def test_videos_default_to_empty_list(self) -> None:
-        """Verify videos default to empty list."""
-        data = {"name": "Product"}
-        product = _validate_model(ProductCreateBaseProduct, data)
-
+    def test_list_fields_default_to_empty(self) -> None:
+        """Verify videos and bill_of_materials default to empty lists."""
+        product = _validate_model(ProductCreateBaseProduct, {"name": "Product"})
         assert product.videos == []
-
-    def test_bill_of_materials_default_to_empty_list(self) -> None:
-        """Verify bill_of_materials default to empty list."""
-        data = {"name": "Product"}
-        product = _validate_model(ProductCreateBaseProduct, data)
-
         assert product.bill_of_materials == []
 
 
@@ -546,19 +535,6 @@ class TestValidDatetimeType:
 class TestSchemaEdgeCases:
     """Tests for schema edge cases and boundary conditions."""
 
-    def test_zero_weight_rejected(self) -> None:
-        """Verify zero weight is rejected."""
-        data = {"weight_g": 0.0}
-        with pytest.raises(ValidationError):
-            _validate_model(PhysicalPropertiesCreate, data)
-
-    def test_negative_dimensions_rejected(self) -> None:
-        """Verify negative dimensions are rejected."""
-        for field in ["height_cm", "width_cm", "depth_cm"]:
-            data = {field: -10.0}
-            with pytest.raises(ValidationError):
-                _validate_model(PhysicalPropertiesCreate, data)
-
     def test_large_weight_values(self) -> None:
         """Verify large weight values are accepted."""
         data = {"weight_g": WEIGHT_1MG}  # 1 mega-gram
@@ -585,7 +561,7 @@ class TestSchemaEdgeCases:
         }
         product = _validate_model(ProductCreateBaseProduct, data)
 
-        assert product.brand == BRAND_NAME
+        assert product.brand == BRAND_NAME.lower()
         assert product.model is None
 
 

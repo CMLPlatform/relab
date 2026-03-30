@@ -60,7 +60,7 @@ class TestRemoveOAuthAssociation:
     ) -> None:
         """Deleting a linked OAuth account should remove it from the database."""
         oauth_account = OAuthAccount(
-            user_id=active_user.db_id,
+            user_id=active_user.id,
             oauth_name="google",
             access_token="access-token",
             expires_at=None,

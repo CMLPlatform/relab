@@ -116,7 +116,7 @@ class TestGoogleCookieTokenEndpoint:
         """A request with no body should fail schema validation."""
         response = await async_client.post(_COOKIE_ENDPOINT, json={})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     async def test_endpoint_is_public(self, async_client: AsyncClient) -> None:
         """The endpoint must be reachable without an existing session (it *is* the login flow)."""
@@ -194,7 +194,7 @@ class TestGoogleBearerTokenEndpoint:
         """A request with no body should fail schema validation."""
         response = await async_client.post(_BEARER_ENDPOINT, json={})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     async def test_endpoint_is_public(self, async_client: AsyncClient) -> None:
         """The endpoint must not require an existing session."""

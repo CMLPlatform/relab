@@ -54,7 +54,7 @@ def test_all_expected_tables_exist(migration_helper: MigrationHelper) -> None:
 
 @pytest.mark.migration
 def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> None:
-    """Core user columns must be present — guards against accidental column drops."""
+    """Core user columns must be present; guards against accidental column drops."""
     columns = set(migration_helper.get_table_columns("user"))
     required = {"id", "email", "hashed_password", "is_active", "is_superuser", "created_at", "updated_at"}
     missing = required - columns
@@ -90,7 +90,7 @@ def test_physical_and_circularity_fk_to_product(migration_helper: MigrationHelpe
 def test_alembic_version_at_head(migration_helper: MigrationHelper) -> None:
     """alembic_version table must exist and hold a revision (i.e. head was reached)."""
     revision = migration_helper.current_revision()
-    assert revision is not None, "No revision recorded — migrations may not have run"
+    assert revision is not None, "No revision recorded; migrations may not have run"
 
 
 @pytest.mark.migration

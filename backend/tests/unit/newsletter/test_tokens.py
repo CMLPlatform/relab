@@ -34,23 +34,11 @@ def mock_settings() -> Generator[MagicMock]:
 
 
 @pytest.mark.usefixtures("mock_settings")
-def test_create_and_verify_confirmation_token() -> None:
-    """Test creating and verifying a confirmation token."""
-    test_token = create_jwt_token(TEST_EMAIL, JWTType.NEWSLETTER_CONFIRMATION)
-    assert test_token is not None
-
-    verified_email = verify_jwt_token(test_token, JWTType.NEWSLETTER_CONFIRMATION)
-    assert verified_email == TEST_EMAIL
-
-
-@pytest.mark.usefixtures("mock_settings")
-def test_create_and_verify_unsubscribe_token() -> None:
-    """Test creating and verifying an unsubscribe token."""
-    test_token = create_jwt_token(TEST_EMAIL, JWTType.NEWSLETTER_UNSUBSCRIBE)
-    assert test_token is not None
-
-    verified_email = verify_jwt_token(test_token, JWTType.NEWSLETTER_UNSUBSCRIBE)
-    assert verified_email == TEST_EMAIL
+def test_create_and_verify_token() -> None:
+    """Both token types round-trip correctly: created token verifies to the original email."""
+    for token_type in (JWTType.NEWSLETTER_CONFIRMATION, JWTType.NEWSLETTER_UNSUBSCRIBE):
+        token = create_jwt_token(TEST_EMAIL, token_type)
+        assert verify_jwt_token(token, token_type) == TEST_EMAIL
 
 
 @pytest.mark.usefixtures("mock_settings")
