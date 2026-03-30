@@ -38,10 +38,10 @@ if TYPE_CHECKING:
 
     from fastapi_users.authentication import AuthenticationBackend
     from fastapi_users.jwt import SecretType
-    from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
     from starlette.requests import Request
     from starlette.responses import Response
 
+    from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
 # Set up logging
 logger = logging.getLogger(__name__)
 

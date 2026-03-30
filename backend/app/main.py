@@ -62,42 +62,24 @@ def log_startup_configuration() -> None:
 async def initialize_app_state(app: FastAPI) -> None:
     """Initialize shared app state and background services."""
     app.state.redis = await init_redis()
-
-    # Initialize disposable email checker and store in app.state
     app.state.email_checker = await init_email_checker(app.state.redis)
-
-    # Initialize FastAPI Cache
     init_fastapi_cache(app.state.redis)
 
-    # Initialize File Cleanup Manager and store in app.state
     app.state.file_cleanup_manager = FileCleanupManager(async_sessionmaker_factory)
     await app.state.file_cleanup_manager.initialize()
 
-    # Ensure storage directories exist and mark as ready
     ensure_storage_directories()
     app.state.storage_ready = True
-
-    # Mount static file directories and register favicon after storage is ready
     mount_static_directories(app)
     register_favicon_route(app)
 
-    # Shared outbound HTTP client for external APIs.
     app.state.http_client = create_http_client()
-
-    # Limit concurrent image resize workers to avoid thread pool exhaustion
     app.state.image_resize_limiter = anyio.CapacityLimiter(settings.image_resize_workers)
-
-    # Initialize optional OpenTelemetry instrumentation
     init_telemetry(app, async_engine)
 
-    logger.info("Application startup complete")
 
-    yield
-
-    # Shutdown
-    logger.info("Shutting down application...")
-
-    # Close email checker (this will cancel background tasks)
+async def shutdown_email_checker(app: FastAPI) -> None:
+    """Close the disposable email checker if it was initialized."""
     if app.state.email_checker is not None:
         try:
             await app.state.email_checker.close()

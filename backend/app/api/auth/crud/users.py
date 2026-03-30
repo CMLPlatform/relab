@@ -20,9 +20,9 @@ from app.api.auth.schemas import (
 from app.api.common.crud.utils import get_model_or_404
 
 if TYPE_CHECKING:
-    from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
     from sqlmodel.ext.asyncio.session import AsyncSession
 
+    from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
     from app.api.auth.utils.email_validation import EmailChecker
 
 

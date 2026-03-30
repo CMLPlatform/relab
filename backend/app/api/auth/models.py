@@ -6,12 +6,12 @@ from enum import StrEnum
 from functools import cached_property
 from typing import Optional
 
-from fastapi_users_db_sqlmodel import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
 from pydantic import UUID4, BaseModel, ConfigDict
 from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Column, Field, Relationship
 
+from app.api.auth.sqlmodel_adapter import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
 from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare
 
 # Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
