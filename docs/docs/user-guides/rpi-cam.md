@@ -1,65 +1,71 @@
 # RPI Camera Integration
 
-Integrate Raspberry Pi cameras with the RELab platform for automated image capture during data collection.
+This page covers the platform side only. For device installation and plugin deployment, see the [RPI Camera Plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
-## Overview
+## When It Is Worth Setting Up
 
-This section covers **platform-side setup and management** of RPI cameras. For device installation and configuration, see the [RPI Camera Plugin Documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+- you want consistent, repeatable image capture across many products
+- a workstation is used regularly for disassembly documentation
+- remote triggering is more convenient than manual photo transfer
+- a live preview while documenting is useful
 
 ## Platform Setup
 
 ### Step 1: Register Your Camera
 
-<!-- TODO: Describe frontend UI once available -->
+Register the camera through the `rpi-cam` plugin endpoints, typically `/plugins/rpi-cam/cameras`.
 
-Post a request to the `/plugins/rpi-cam/cameras` endpoint with the following data:
+You will need to provide:
 
-- **Camera name**: Descriptive name (e.g., "Assembly Station A Camera")
-- **Description**: Location and purpose details
-- **Camera API URL**: Where your Pi runs (e.g., `http://<your-rpi-ip>:8018`)
-- **Auth headers**: Additional authentication if needed (optional)
+- camera name
+- description
+- camera API URL
+- optional authentication headers for the device endpoint
 
-See the [API documentation](https://api.cml-relab.org/docs#/rpi-cam-management/register_user_camera_plugins_rpi_cam_cameras_post) for details on required fields.
+See the [API documentation](https://api.cml-relab.org/docs#/rpi-cam-management/register_user_camera_plugins_rpi_cam_cameras_post) for required fields. Save the generated API key when it is issued, it is only shown once.
 
-> 💡 **Note**: Save the generated API key - it's only shown once.
+### Step 2: Configure the Raspberry Pi
 
-### Step 2: Configure Raspberry Pi Camera
+Configure the Raspberry Pi plugin with the API key from the platform. If you self-host, make sure the backend can reach the device over the network.
 
-Configure the RPI camera plugin with the API key provided during registration. If you are self-hosting the platform, be sure to add the platform URL to the allowed origins of the Raspberry Pi plugin. This allows the platform to communicate with your camera.
+### Step 3: Verify the Registration
 
-### Step 3: Verify Camera Registration
+- Query the camera list and status endpoints.
+- Confirm the device appears with the expected URL and status.
+- Run a test capture before relying on the setup for real product documentation.
 
-<!-- TODO: Describe frontend UI once available -->
+## Using Cameras During Documentation
 
-- Use the `/plugins/rpi-cam/cameras/include_status` endpoint to list registered cameras
-- Check that your camera appears with correct details
+1. Start from a known product or component record.
+1. Trigger image capture or preview through the platform.
+1. The backend proxies the request to the device API.
+1. The returned image or stream metadata is stored in RELab and linked to the record.
 
-## Using RPI Cameras
+Camera management (inspecting, updating, removing registered cameras) is available through the plugin management endpoints.
 
-### During Data Collection
+## Practical Advice
 
-<!-- TODO: Describe frontend UI once available -->
-
-### Camera Management
-
-<!-- TODO: Describe frontend UI once available -->
+- Test the full setup before documenting a real product.
+- Use clear, descriptive camera names so the physical workstation is obvious at a glance.
+- Keep device configuration notes somewhere outside the platform as well.
+- The camera is a capture aid, not a replacement for good documentation practice.
 
 ## Troubleshooting (Platform Side)
 
-**Camera shows as "Disconnected"**:
+### Camera shows as disconnected
 
-- Verify RPI device is powered on and connected to network
-- Check API URL is correct and accessible from platform
-- Confirm API key matches on both platform and device
+- Verify the Raspberry Pi is powered on and reachable on the network.
+- Check that the stored camera API URL is still correct.
+- Confirm the platform and device are using matching API credentials.
 
-**Platform can't connect to camera**:
+### Platform cannot connect to the camera
 
-- Test direct access to `http://<your-rpi-ip>:8018/docs`
-- Verify firewall rules allow platform → RPI communication
-- Check CORS configuration includes platform URL
+- Test direct access to the device API from the network where the backend runs.
+- Verify firewall or reverse-proxy rules allow backend-to-device traffic.
+- Check the device-side plugin configuration as well as the RELab registration.
 
 ## Device Setup
 
-For device installation, configuration, and deployment:
+For device installation, deployment, and hardware-specific details, see the external plugin documentation:
 
-📱 **[RPI Camera Plugin Documentation →](https://github.com/CMLPlatform/relab-rpi-cam-plugin)**
+[RPI Camera Plugin Documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin)

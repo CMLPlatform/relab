@@ -1,26 +1,51 @@
 # Dataset Documentation
 
-The Reverse Engineering Lab platform hosts a comprehensive dataset of disassembled durable goods to support circular economy research and computer vision applications.
+<div class="relab-section-intro">
+RELab is intended to support a public dataset of disassembled durable goods. The platform is the operational system; the dataset is the curated research output derived from it.
+</div>
 
-## Overview
+<div class="grid cards relab-card-grid" markdown>
 
-The dataset contains high-quality images and metadata of disassembled power tools, providing detailed information about components, materials, and assembly relationships. This data supports:
+- :material-database-import: **Source**: Live platform records and media
+- :material-database-export: **Output**: Curated public dataset releases
+- :material-flask: **Use**: Industrial ecology, circular economy, and AI-related research
 
-- **Computer vision tasks** - Object detection, segmentation, classification
+</div>
 
-- **Life cycle assessments** - Material identification and quantification
+## Why It Matters
 
-- **Circular economy research** - Disassembly sequence analysis
+- it provides a path from operational data collection to publishable research outputs
+- it creates a stable layer for downstream analysis without exposing the full live application database
+- it makes provenance, scope, and licensing explicit
+- it helps turn bottom-up product observations into reusable research infrastructure
+- it creates a foundation for benchmarking and later AI-assisted IE workflows
 
-- **Remanufacturing studies** - Component condition assessment
+Likely data elements include:
 
-## Access the Dataset
+- product metadata
+- component hierarchies
+- images and possibly video-linked records
+- material and category annotations
+- measurements and observational notes
 
-<!---TODO: Add browse and download links once available--->
+Likely uses include:
 
-- 🔍 **[API Access](https://api.cml-relab.org/docs)** - Programmatic data access
-- 🌐 **Browse Dataset** - Soon: explore the dataset online
-- 📦 **Download Data** - Soon: Download the raw dataset in various formats
+- computer vision and image-based classification tasks
+- circular economy and design-for-disassembly studies
+- material composition analysis
+- comparative studies across product families or brands
+- industrial ecology and LCA-oriented work that depends on better primary product data
+- linking with other open IE and CE data infrastructures
+
+## Access and Publication Status
+
+The intention is to publish the dataset openly. The publication workflow is still maturing, so the most reliable technical interface right now is the live API rather than a formal release portal.
+
+[API Access :octicons-link-external-16:](https://api.cml-relab.org/docs){ .md-button .md-button--primary }
+
+A browsable dataset portal and curated downloadable releases are planned.
+
+In the broader project vision, dataset publication is not only an output step. It is also part of building an open industrial ecology data commons that others can inspect, reuse, compare, and extend.
 
 ## Dublin Core Metadata
 
@@ -44,7 +69,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 
 ## License
 
-The dataset is licensed under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/).
+The intended dataset license is the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Published dataset releases will be the authoritative source for exact licensing, scope, and versioning.
 
 ## Contact
 

@@ -1,61 +1,82 @@
 # API Structure
 
-The platform provides a RESTful API that allows interaction with the backend services. The API is built using FastAPI and follows standard REST principles. It supports authentication, data collection, media management, and hardware integration. For complete API reference, visit the [interactive documentation](https://api.cml-relab.org/docs).
+<div class="relab-section-intro">
+Routes are organised by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling.
+</div>
 
-## Core Endpoints
+The RELab backend exposes a REST-style API used by the Expo app, the public web frontend, and selected operational tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
 
-### Authentication
+For the live schema and request models, use the [interactive API documentation](https://api.cml-relab.org/docs). For practical usage guidance, see the [API Interaction Guide](../user-guides/api.md).
 
-- `/auth/*` - Login, logout, OAuth, and user management
+## Route Organisation
+
+### Authentication & User Management
+
+- `/auth/*` — login, logout, refresh, registration, verification, password reset, and OAuth
+- `/users/*` and `/organizations/*` — authenticated user and organization operations
+- `/admin/users/*` and `/admin/organizations/*` — superuser administration
 
 ### Data Collection
 
-- `/products` - Products and components
+- `/products/*` — product creation, reads, updates, search, and parent-child component relations
+- `/users/me/products/*` and `/users/{user_id}/products/*` — user-scoped product access
 
 ### Reference Data
 
-- `/background-data/*` - Taxonomies, categories, materials, product types
+- public `/taxonomies`, `/categories`, `/materials`, `/product-types`, and `/units` endpoints for reference lookups
+- `/admin/*` variants for controlled management of background data
 
-### Media Management
+### Media
 
-- `/file-storage/*` - Images, videos, and file uploads
+- `/images/*` and related file-storage endpoints for uploads, linked media, and retrieval
 
 ### Hardware Integration
 
-- `/plugins/rpi-cam/*` - Raspberry Pi camera control and streaming
+- `/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
 
-## Interaction flow diagram
+### Supporting Services
+
+- `/newsletter/*` — newsletter subscription operations
+- health and readiness endpoints for deployment checks
+
+## Design Notes
+
+- The backend serves both browser-oriented and app-oriented clients.
+- Authentication supports both cookie and bearer transports (see [Authentication](auth.md)).
+- Public reference data is openly accessible; user-owned research data requires authentication.
+
+## Example Interaction Flow
 
 ```mermaid
 sequenceDiagram
-    participant User
+    participant Researcher
     participant API as FastAPI Backend
     participant DB as Database
     participant Storage as File Storage
     participant RPI as RPI Camera API
 
-    User->>API: Authenticate
-    API-->>User: Access Token
+    Researcher->>API: Authenticate with bearer or cookie login
+    API-->>Researcher: Access token and optional refresh cookie
 
     loop Add Products
-        User->>API: Create Parent Product
+        Researcher->>API: Create parent product
         API->>DB: Store Product
-        API-->>User: Product Details
+        API-->>Researcher: Product Details
 
         opt Capture Product Images
-            User->>API: Request Image Capture
+            Researcher->>API: Request image capture
             API->>RPI: Trigger Camera
             RPI-->>API: Image Data
             API->>Storage: Store Image
             API->>DB: Link to Product
-            API-->>User: Image Details
+            API-->>Researcher: Image Details
         end
 
         loop Add Components
-            User->>API: Create Component (Child Product)
+            Researcher->>API: Create component
             API->>DB: Store Component
             API->>DB: Link Component to Parent
-            API-->>User: Component Details
+            API-->>Researcher: Component Details
         end
     end
 ```

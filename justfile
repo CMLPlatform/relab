@@ -146,7 +146,7 @@ audit-root:
 
 
 # ============================================================================
-# Docker — Targeted Development (subset of services with hot reload)
+# Docker: Targeted Development (subset of services with hot reload)
 # ============================================================================
 
 # Start backend + its infrastructure (database, cache) with hot reload
@@ -166,7 +166,7 @@ dev-frontend-web:
     docker compose up --watch backend frontend-web
 
 # ============================================================================
-# Docker — Development
+# Docker: Development
 # ============================================================================
 
 # Start full dev stack with hot reload (syncs source changes, auto-rebuilds on lockfile changes)
@@ -189,17 +189,17 @@ dev-down:
 dev-logs:
     docker compose logs -f
 
-# Run database migrations (dev) — required on first start and after schema changes
+# Run database migrations (dev); required on first start and after schema changes
 dev-migrate:
     docker compose --profile migrations up backend-migrations
 
-# Wipe all dev volumes and containers (full clean slate — re-run dev-migrate after this)
+# Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
 dev-reset confirm='':
     @just _require-confirm "wipe the development Docker environment" "just dev-reset YES" "FORCE=1 just dev-reset" "{{ confirm }}"
     docker compose --profile migrations down -v
 
 # ============================================================================
-# Docker — Production
+# Docker: Production
 # ============================================================================
 
 prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml"
@@ -222,7 +222,7 @@ prod-down confirm='':
 prod-logs:
     {{ prod_compose }} logs -f
 
-# Run database migrations (prod) — required on first deploy and after schema changes
+# Run database migrations (prod); required on first deploy and after schema changes
 prod-migrate confirm='':
     @just _require-confirm "run production database migrations" "just prod-migrate YES" "FORCE=1 just prod-migrate" "{{ confirm }}"
     {{ prod_compose }} --profile migrations up backend-migrations
@@ -233,7 +233,7 @@ prod-backups-up confirm='':
     {{ prod_compose }} --profile backups up -d
 
 # ============================================================================
-# Docker — Staging
+# Docker: Staging
 # ============================================================================
 
 staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.staging.yml"
@@ -262,7 +262,7 @@ staging-migrate confirm='':
     {{ staging_compose }} --profile migrations up backend-migrations
 
 # ============================================================================
-# Docker — CI
+# Docker: CI
 # ============================================================================
 
 ci_compose := "docker compose -p relab_ci -f compose.yml -f compose.ci.yml"

@@ -18,10 +18,17 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY zensical.toml ./
 COPY docs ./docs
 
-# Inject the current year into the copyright string in zensical.toml
+# Inject the current year into the copyright string.
+# zensical.toml uses <year> as a placeholder since zensical does not yet
+# support build-time variable substitution.
+# TODO: Revisit when it does.
 RUN sed -i "s/<year>/$(date +%Y)/g" zensical.toml
 
-# HACK: Replace the base URL in zensical.toml for staging builds to point to the staging docs site. This is needed until zensical support dynamic base URLs or environment variable substitution.
+# Replace the base URL for staging builds so links/sitemaps point to the
+# staging domain. Same limitation as above — needs sed until zensical
+# supports environment variable substitution in config.
+# Tracking: https://github.com/CMLPlatform/relab/issues
+# TODO: Update when resolved.
 ARG BUILD_MODE=prod
 RUN if [ "$BUILD_MODE" = "staging" ]; then \
     sed -i 's#https://docs.cml-relab.org#https://docs-test.cml-relab.org#g' zensical.toml; \

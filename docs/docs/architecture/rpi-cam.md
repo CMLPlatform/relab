@@ -1,76 +1,91 @@
-# Raspberry Pi Camera Plugin Architecture
+# RPI Camera Plugin Architecture
 
-The Raspberry Pi Camera Plugin enables integration between Raspberry Pi devices with cameras and the Reverse Engineering Lab platform. It provides a REST API for remote camera control, image capture, and video streaming to YouTube. See the [Raspberry Pi Camera Plugin User Guide](../user-guides/rpi-cam.md) for more details.
+<div class="relab-section-intro">
+An optional plugin that connects camera devices to RELab for remote capture, HLS preview streaming, and YouTube streaming. The backend acts as a proxy; the Expo app never talks to the device directly.
+</div>
 
-## System diagram
+For platform-side setup and day-to-day usage, see the [RPI Camera User Guide](../user-guides/rpi-cam.md). For device installation and deployment, see the [RPI Camera Plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+
+## System Diagram
 
 ```mermaid
 graph TD
-    User[User fa:fa-user] -->|Interacts with fa:fa-hand-point-right| MainAPI[Main FastAPI Backend <i class="fa fa-server" style="color:#43a047;"></i>]
+    Researcher[Researcher] -->|Uses capture workflow| FrontendApp[Expo App]
+    FrontendApp -->|API requests| MainAPI[Main FastAPI Backend]
 
-    MainAPI -->|API Requests fa:fa-arrow-right|RpiCamAPI[Raspberry Pi Camera API <i class="fab fa-raspberry-pi" style="color:#e91e63;"></i>]
-    RpiCamAPI -->|Controls fa:fa-microchip| Camera[Camera Hardware fa:fa-camera-retro]
+    MainAPI -->|API requests| RpiCamAPI[RPI Camera API]
+    RpiCamAPI -->|Controls| Camera[Camera Hardware]
 
-    RpiCamAPI -->|"Stream (HLS) fa:fa-play-circle"| User
-    RpiCamAPI -->|Stream fa:fa-play-circle| YouTube[YouTube API <i class="fab fa-youtube" style="color:#ff0000;"></i>]
-    RpiCamAPI -->|Image Capture fa:fa-image| MainAPI
-    MainAPI -->|Youtube Integration fa:fa-sign-in-alt| YouTube
+    RpiCamAPI -->|Preview stream| Researcher
+    RpiCamAPI -->|Stream| YouTube[YouTube API]
+    RpiCamAPI -->|Captured media| MainAPI
+    MainAPI -->|YouTube integration| YouTube
 
-    MainAPI -->|Link to Database fa:fa-database| Database[(PostgreSQL <i class="fa fa-database" style="color:#1976d2;"></i>)]
-
-    style User fill:#ffe0b2,stroke:#ff9800,stroke-width:2px;
-    style MainAPI fill:#ccebc5,stroke:#43a047,stroke-width:2px;
-    style RpiCamAPI fill:#f8bbd0,stroke:#e91e63,stroke-width:2px;
-    style Camera fill:#fff9c4,stroke:#fdd835,stroke-width:2px;
-    style YouTube fill:#ffe6e6,stroke:#ff0000,stroke-width:2px;
-    style Database fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
+    MainAPI -->|Store metadata| Database[(PostgreSQL)]
 ```
 
-## Interaction flow diagram
+## Interaction Flow
 
 ```mermaid
 sequenceDiagram
-    participant User
+    participant Researcher
+    participant App as Expo App
     participant Backend as Main Backend
     participant YouTubeAPI
     participant RPiCamAPI as Raspberry Pi API
     participant Camera as Camera Hardware
 
     %% Camera Registration
-    User->>Backend: Register camera
+    Researcher->>App: Enter camera details
+    App->>Backend: Register camera
     Backend->>Backend: Generate API key
-    Backend-->>User: Return camera details & API key
+    Backend-->>App: Return camera details & API key
+    App-->>Researcher: Show connection details
 
     %% Image Capture Flow
-    User->>Backend: Request image capture
+    Researcher->>App: Request image capture
+    App->>Backend: Request image capture
     Backend->>RPiCamAPI: Forward request with API key
     RPiCamAPI->>Camera: Control camera
     Camera->>RPiCamAPI: Image data
     RPiCamAPI-->>Backend: Image data & metadata
     Backend->>Backend: Store in database & link to product
-    Backend-->>User: Return image
+    Backend-->>App: Return image
+    App-->>Researcher: Show image
 
     %% YouTube Streaming Flow
-    User->>Backend: Start YouTube recording
+    Researcher->>App: Start YouTube recording
+    App->>Backend: Start YouTube recording
     Backend->>YouTubeAPI: Create live event (OAuth)
     YouTubeAPI-->>Backend: Stream key & broadcast info
     Backend->>RPiCamAPI: Start stream with YouTube config
     RPiCamAPI->>Camera: Start recording
     RPiCamAPI->>YouTubeAPI: Direct stream to YouTube
     Backend->>Backend: Save video record in database
-    Backend-->>User: Return video details
+    Backend-->>App: Return video details
+    App-->>Researcher: Show video details
 
     %% Local Preview Stream
-    User->>Backend: Request preview stream
+    Researcher->>App: Request preview stream
+    App->>Backend: Request preview stream
     Backend->>RPiCamAPI: Start HLS stream
     RPiCamAPI->>Camera: Start streaming
     RPiCamAPI-->>Backend: Stream info
-    Backend-->>User: Stream viewer URL
-    User->>RPiCamAPI: Direct HLS requests
-    RPiCamAPI-->>User: Stream content
+    Backend-->>App: Stream viewer URL
+    App-->>Researcher: Open preview
+    Researcher->>RPiCamAPI: Direct HLS requests
+    RPiCamAPI-->>Researcher: Stream content
 
     %% Stop Streaming
-    User->>Backend: Stop recording/preview
+    Researcher->>App: Stop recording or preview
+    App->>Backend: Stop recording or preview
     Backend->>RPiCamAPI: Stop stream
     RPiCamAPI->>Camera: Stop camera
 ```
+
+## Key Design Decisions
+
+- **Backend as proxy**: All device communication goes through the main backend. The Expo app never contacts the camera directly, keeping auth and storage centralised.
+- **API key per camera**: Each registered camera receives a unique key. The device uses this to authenticate inbound requests from the backend.
+- **Media storage**: Captured images are stored in RELab's file storage and linked to the originating product or component record automatically.
+- **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorised.

@@ -1,69 +1,88 @@
-# Reverse Engineering Lab
-
-<!-- Core Project Info -->
+# RELab: Reverse Engineering Lab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE.md)
 [![Data License: ODbL](https://img.shields.io/badge/Data_License-ODbL-rebeccapurple.svg)](https://opendatacommons.org/licenses/odbl/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16637742.svg)](https://doi.org/10.5281/zenodo.16637742)
-
-<!-- Quality & Standards -->
-
 [![Coverage](https://img.shields.io/codecov/c/github/CMLPlatform/relab)](https://codecov.io/gh/CMLPlatform/relab)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 [![FAIR checklist badge](https://fairsoftwarechecklist.net/badge.svg)](https://fairsoftwarechecklist.net/v0.2?f=31&a=32113&i=22322&r=123)
-
-<!-- Status & Deployment -->
-
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 [![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fcml-relab.org&label=website)](https://cml-relab.org)
 
-**Reverse Engineering Lab (REL)** is an open-source, digital research infrastructure platform designed to systematically collect data on disassembled durable goods. Developed by the Institute of Environmental Sciences (CML) at Leiden University, the platform addresses a product data gap in industrial ecology and supports circular economy research, lifecycle assessment, and computer vision applications.
+RELab is an open-source research platform for collecting and publicly viewing data on the disassembly of durable goods. It is built at [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to support industrial ecology and circular economy research through better primary product data generation.
 
-## System Overview
+It combines:
 
-RELab features a modular architecture designed for high availability and reproducible research:
+- a FastAPI backend for structured product, media, and user data
+- an Expo / React Native app for authenticated data collection
+- an Astro site for publicly viewing project and dataset information
+- a separate docs site for architecture, workflows, and deployment notes
 
-- **Backend:** High-performance REST API built with FastAPI.
-- **Database:** PostgreSQL for reliable, relational data storage.
-- **Frontend:** Cross-platform mobile and web application built with Expo/React Native.
+The platform is meant to do two things at once:
 
-## Project Status and Use
+- support structured data collection during disassembly work
+- make that data easier to publish, browse, and reuse later
 
-The platform is actively used as research infrastructure:
+The broader research vision comes from a simple problem: industrial ecology has many data platforms, but far fewer open, low-barrier workflows for generating new standardized product-level observations.
 
-- **In-House Research:** Primarily used by the physical lab at CML, where a lab technician has systematically disassembled and recorded over 50 products, capturing more than 1,250 components and 3,000 photos.
-- **User Base:** Currently supporting 30 registered users, including 5 regular researchers.
-- **Future Pilots:** Scheduled for pilot deployments with Repair Cafés across the Netherlands in 2026 to crowdsource consumer electronics disassembly data.
+RELab addresses that gap with a bottom-up model:
 
-## Quick Links
+- middle- and end-of-life actors such as repairers, refurbishers, dismantlers, and recyclers can contribute data directly
+- collaborative and citizen-science style workflows can turn routine repair and disassembly into structured observations
+- the resulting records can be shared openly, linked to related databases, and reused in later research
 
-- 🚀 **[Live Platform](https://app.cml-relab.org)** - Access the production deployment
-- 📖 **[Full Documentation](https://docs.cml-relab.org)** - Complete guides, architecture details, and technical references
-- 🔍 **[API Documentation](https://api.cml-relab.org/docs)** - Interactive API reference for the backend
-- ⚙️ **[Installation & Setup](INSTALL.md)** - Guide for self-hosting and local evaluation
+The long-term goal is to contribute to an open industrial ecology data commons by combining collaborative data collection, public data access, interoperability with existing and upcoming databases, and AI-ready structured observations.
 
-## Development Workflow
+## Start Here
 
-The monorepo uses a shared `just` command contract across subprojects:
+The fastest path is the hosted platform:
 
-- `just check` for quality gates
-- `just test` for local test runs
-- `just test-ci` for CI-style coverage runs
-- `just ci` for the full local CI pipeline
-- `just commit` for an interactive Conventional Commit prompt
+[app.cml-relab.org](https://app.cml-relab.org)
 
-Repository-wide policy checks are enforced with `pre-commit`, while GitHub Actions runs the same subrepo-level `check` and `test-ci` commands in CI. Dependency management is automated via Renovate, and CodeQL provides continuous security analysis.
+If you want to self-host or contribute:
 
-For a complete guide on the development setup, testing, and contribution processes, please see the [**Contributing Guidelines**](CONTRIBUTING.md).
+- [INSTALL.md](INSTALL.md) for running the stack
+- [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow
+- [docs.cml-relab.org](https://docs.cml-relab.org) for architecture and user-facing docs
 
-## Policies & Community
+## Monorepo
 
-- 🤝 **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute
-- 📋 **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
-- 📝 **[Changelog](CHANGELOG.md)** - Version history
-- 📑 **[Citation Guidelines](CITATION.cff)** - How to attribute this work
-- ⚖️ **[License Information](LICENSE)** - Software licensed under [AGPL-v3+](https://spdx.org/licenses/AGPL-3.0-or-later.html), data under [ODbL](https://opendatacommons.org/licenses/odbl/).
+| Path            | Purpose                                               |
+| --------------- | ----------------------------------------------------- |
+| `backend/`      | FastAPI API, auth, data model, file handling, plugins |
+| `frontend-app/` | Expo / React Native research app                      |
+| `frontend-web/` | Astro public website                                  |
+| `docs/`         | Documentation site                                    |
+
+Infrastructure is orchestrated with Docker Compose from the repo root.
+
+## Common Commands
+
+```bash
+just setup     # install workspace dependencies and pre-commit hooks
+just check     # run repo and subrepo quality checks
+just test      # run local test suites
+just ci        # run the local CI-equivalent pipeline
+just dev       # start the full Docker dev stack with file watching
+```
+
+## Project Links
+
+- [Live Platform](https://app.cml-relab.org)
+- [Documentation](https://docs.cml-relab.org)
+- [API Docs](https://api.cml-relab.org/docs)
+- [Roadmap](https://docs.cml-relab.org/project/roadmap)
+
+## Community and Policy
+
+- [Contributing](CONTRIBUTING.md)
+- [Installation](INSTALL.md)
+- [Security](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Changelog](CHANGELOG.md)
+- [Citation](CITATION.cff)
+- [License](LICENSE)
 
 ## Contact
 
-For questions about the platform, code, or dataset, please contact [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).
+Questions about the platform, code, or dataset: [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl)

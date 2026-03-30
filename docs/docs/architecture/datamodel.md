@@ -1,6 +1,10 @@
 # Data Model Overview
 
-The Reverse Engineering Lab platform uses a relational database to manage users, products, and background data. A simplified overview of the full database schema is provided below, along with detailed explanations of each module.
+<div class="relab-section-intro">
+Four main areas: user management, background reference data, data collection, and file storage.
+</div>
+
+The backend uses a relational model to connect users, organisations, products, media, and reference data. The point is not just to store observations, but to preserve the structure of a disassembly process: parent-child product relationships, attached media, and links to controlled vocabularies.
 
 ```mermaid
 ---
@@ -69,7 +73,7 @@ The full data schema is broken up into four modules: user management, background
 
 ## User management
 
-The user management module handles user accounts, organizations, and OAuth account associations.
+This part covers user accounts, organisations and membership, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so auth concerns do not leak into the product model more than necessary.
 
 ```mermaid
 erDiagram
@@ -109,9 +113,11 @@ erDiagram
     USER ||--o{ OAUTHACCOUNT : "has"
 ```
 
-## Background data management
+## Background data
 
-The background data management module handles taxonomies, categories, materials, and product types. It allows for flexible categorization and linking of materials to products.
+This part contains the shared reference layer used to keep records more consistent: taxonomies, categories and subcategories, materials, product types, and units.
+
+These records are shared across users and products. They are not the research record itself, but they make the research record easier to search, compare, and reuse.
 
 ```mermaid
 erDiagram
@@ -176,7 +182,14 @@ erDiagram
 
 ## Data collection
 
-The data collection module manages disassembly sessions, products, and their properties.
+The data collection model is centred on `Product`, which is used both for top-level products and nested components. That makes it possible to represent a disassembly tree without separate tables for products and parts.
+
+Important characteristics:
+
+- a product can have a parent product, enabling component hierarchies
+- physical and circularity-related properties are stored separately from the core product record
+- ownership is attached to the user level
+- materials, product types, and media can be linked without making every field mandatory
 
 ```mermaid
 erDiagram
@@ -207,7 +220,7 @@ erDiagram
 
     PHYSICALPROPERTIES {
         integer id PK
-        float weight_g
+        float weight_kg
         float height_cm
         float width_cm
         float depth_cm
@@ -230,9 +243,9 @@ erDiagram
     PRODUCT ||--o{ PRODUCT : "is part of"
 ```
 
-## File storage
+## File storage and media
 
-The file storage module handles files and images associated with products, materials, and product types. It supports polymorphic associations to allow files to be linked to different parent types. Videos are currently not stored in the database but can be linked via URLs.
+Media is treated as part of the record, not as decoration. In practice, images often carry a large part of the evidential value of a product record. Files and images support polymorphic associations, allowing them to be linked to products, materials, or product types. Videos are currently linked via URLs rather than stored directly.
 
 ```mermaid
 erDiagram

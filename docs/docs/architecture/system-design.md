@@ -1,82 +1,93 @@
 # System Design
 
-The Reverse Engineering Lab platform is designed as a modular application for collecting, categorizing, and analyzing disassembled durable goods data to support circular economy research and computer vision applications.
+<div class="relab-section-intro">
+RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
+</div>
+
+This structure follows the broader research goal of the platform: generate product-level observations through practical data collection workflows, make them publicly viewable and reusable, and keep the system open enough to link with other data infrastructures later.
 
 ## High-Level Architecture
 
 ```mermaid
 graph TD
-    User["User fa:fa-user"] -->|Interacts with| Frontend[Expo UI fa:fa-mobile]
+    Researcher[Researcher] -->|Data entry| FrontendApp[Expo App]
+    PublicUser[Public visitor] -->|Reads public pages| FrontendWeb[Astro Web Frontend]
 
-    %% Core backend and DB
-    Frontend -->|API Requests fa:fa-arrow-right| Backend[FastAPI Backend <i class="fa fa-server" style="color:#43a047;"></i>]
-    Backend -->|Cache reads/writes fa:fa-bolt| Redis[(Redis Cache fa:fa-database)]
-    Backend -->|Queries fa:fa-database| PostgreSQL[(PostgreSQL <i class="fa fa-database" style="color:#1976d2;"></i>)]
+    FrontendApp -->|API requests| Backend[FastAPI Backend]
+    FrontendWeb -->|Selected API usage| Backend
+    Backend -->|Cache reads/writes| Redis[(Redis Cache)]
+    Backend -->|Queries| PostgreSQL[(PostgreSQL)]
 
-    %% Authentication
-    subgraph AuthenticationLayer ["Authentication Layer fa:fa-lock"]
-        OAuthProviders[OAuth: GitHub, Google fa:fa-users]
-        AuthSystem[JWT, API Keys fa:fa-key]
+    subgraph AuthenticationLayer [Authentication Layer]
+        OAuthProviders[OAuth: GitHub, Google]
+        AuthSystem[Bearer/cookie auth + refresh tokens]
     end
 
-    User -->|Authenticates via fa:fa-sign-in-alt| AuthenticationLayer
-    SuperUser -->|Authenticates via fa:fa-sign-in-alt| AuthenticationLayer
+    Researcher -->|Authenticates| AuthenticationLayer
 
-    %% External systems
-    Backend -->|API access fa:fa-video| RaspberryPi[Raspberry Pi Camera API <i class="fab fa-raspberry-pi" style="color:#e91e63;"></i>]
-    Backend -->|Integration <i class="fa-brands fa-youtube"></i>| YouTube[YouTube API <i class="fab fa-youtube" style="color:#ff0000;"></i>]
-    AuthSystem -.->|Secures fa:fa-shield-alt| RaspberryPi
-    OAuthProviders -.->|Required for fa:fa-check-circle| YouTube
-
-    %% Database migrations
-    Backend -->|Migrations fa:fa-sync-alt| Alembic[Alembic fa:fa-code]
-    Alembic -->|Schema updates fa:fa-database| PostgreSQL
-
-    style Frontend fill:#e0f7fa,stroke:#00acc1,stroke-width:2px
-    style Backend fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
-    style Redis fill:#fff3e0,stroke:#ff6f00,stroke-width:2px;
-    style PostgreSQL fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
-    style RaspberryPi fill:#f8bbd0,stroke:#e91e63,stroke-width:2px;
-    style YouTube fill:#ffe6e6,stroke:#ff0000,stroke-width:2px;
-    style Alembic fill:#fce4ec,stroke:#f06292,stroke-width:2px
-    style AuthenticationLayer fill:#e0e0e0,stroke:#616161,stroke-width:2px,stroke-dasharray: 5 5;
-
-
-    classDef UserFill fill:#ffe0b2,stroke:#ff9800,stroke-width:2px;
-    class User,SuperUser UserFill;
-    classDef AuthFill fill:#fff,stroke:#0000,stroke-width:2px;
-    class OAuthProviders,AuthSystem AuthFill;
-
+    Backend -->|Camera integration| RaspberryPi[RPI Camera API]
+    Backend -->|Optional streaming| YouTube[YouTube API]
+    Backend -->|Schema migrations| Alembic[Alembic]
+    Alembic --> PostgreSQL
 ```
 
-## Technology Stack
+## Monorepo Structure
 
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/)
-- **ORM layer**: [SQLModel](https://github.com/fastapi/sqlmodel)
-- **Migrations**: [Alembic](https://alembic.sqlalchemy.org/en/latest/)
-- **Database**: [PostgreSQL](https://www.postgresql.org/)
-- **Caching**: [Redis](https://redis.io/)
-- **Frontend**: [Expo](https://docs.expo.dev/)
-- **Machine learning**: [PyTorch](https://pytorch.org/) (planned)
+- `backend/`: main API, persistence, auth, file handling, and plugin integration
+- `frontend-app/`: authenticated mobile-first data collection client built with Expo Router
+- `frontend-web/`: public site built with Astro
+- `docs/`: documentation site
+- Compose files at the repository root coordinate local and deployed multi-service setups
 
-## Backend Application Structure
+## Technology Choices
 
-The backend application follows a modular structure organized by domain-specific components:
+- **Backend API**: FastAPI
+- **Persistence layer**: SQLModel and SQLAlchemy
+- **Database**: PostgreSQL
+- **Migrations**: Alembic
+- **Caching and token infrastructure**: Redis
+- **Research app frontend**: Expo / React Native
+- **Public web frontend**: Astro
+- **Docs site**: Zensical
+
+These choices keep the stack relatively small and understandable, while still supporting public access, API interoperability, and later AI-assisted workflows.
+
+## Backend Domain Structure
+
+The backend is organised mainly by domain rather than by HTTP verb alone:
 
 ```sh
 app/
-├── api/                  # API modules
-│   ├── admin/            # Admin interface
-│   ├── auth/             # Authentication
-│   ├── background_data/  # Taxonomies, materials, product types
-│   ├── common/           # Shared utilities
-│   ├── data_collection/  # Products and components
-│   ├── file_storage/     # File and image handling
-│   └── plugins/          # Plugin modules (e.g., rpi_cam)
-├── core/                 # Core application modules
-│   ├── config.py         # Configuration settings
-│   ├── database.py       # Database connection
-│   └── utils/            # Core utilities
-├── static/               # Static files
-└── templates/            # HTML templates
+├── api/
+│   ├── auth/             # Login, registration, OAuth, users, organizations
+│   ├── background_data/  # Taxonomies, categories, materials, product types, units
+│   ├── data_collection/  # Products, components, search, related properties
+│   ├── file_storage/     # Uploaded files, images, linked media records
+│   ├── newsletter/       # Newsletter subscription flows
+│   ├── plugins/          # Optional integrations such as rpi_cam
+│   └── common/           # Shared routers, helpers, exceptions
+├── core/                 # Runtime configuration, DB, cache, logging, HTTP clients
+├── static/               # Static assets served by the backend
+└── templates/            # Email and HTML templates
 ```
+
+## Runtime Behavior
+
+At startup the backend:
+
+- validates security-sensitive configuration
+- initializes Redis and API caching
+- creates storage directories for uploads
+- mounts static and upload-backed routes
+- prepares shared outbound HTTP clients
+- starts background cleanup infrastructure
+
+## Design Priorities
+
+- keep the data model explicit and inspectable
+- support authenticated data entry from a dedicated app
+- allow public and private API surfaces to coexist
+- preserve a path toward dataset publication and external reuse
+- support FAIR-style reuse through open interfaces and documented structure
+- keep the data model suitable for later benchmarking and AI-assisted enrichment
+- avoid unnecessary infrastructure complexity for a PhD-scale project

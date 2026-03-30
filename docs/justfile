@@ -43,16 +43,11 @@ build:
     uv run zensical build --clean
     @echo "✓ Docs built successfully"
 
-# Run all tests (smoke test build)
-test:
-    just build
-    @echo "✓ Docs smoke test passed"
+# Smoke-test the build
+test: build
 
-# Run the docs CI test suite
-test-ci: test
-
-# Run the full docs CI pipeline locally
-ci: check test-ci
+# Run the full docs CI pipeline locally (lint + build, single pass)
+ci: lint build
     @echo "✓ Docs CI pipeline passed"
 
 # Scan Python dependencies for known CVEs

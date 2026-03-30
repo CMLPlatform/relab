@@ -1,10 +1,21 @@
-# RELab Documentation
+# RELab Docs
 
-The documentation for the RELab project is built using [Zensical](https://stefanbschneider.github.io/zensical/).
+Documentation for the RELab platform: project context, architecture, user guides, dataset notes, and deployment. Built with [Zensical](https://stefanbschneider.github.io/zensical/).
 
-For documentation-specific contribution and workflow details, see:
+## Quick Start
 
-- [CONTRIBUTING.md: Documentation Setup](../CONTRIBUTING.md#documentation-setup)
-- [CONTRIBUTING.md: Docs Development](../CONTRIBUTING.md#docs-development)
+```bash
+just dev    # docs at http://localhost:8000 with live reload
+```
 
-Please refer to the [main README](../README.md) for overall project information and setup instructions.
+## Common Commands
+
+```bash
+just check    # spelling + markdown formatting checks + build smoke test
+just format   # format markdown
+just build    # build the site locally
+```
+
+## More
+
+Writing style, diagram guidelines, and Zensical-specific features are in [CONTRIBUTING.md](../CONTRIBUTING.md#docs-development).
