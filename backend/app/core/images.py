@@ -257,6 +257,57 @@ def process_image_for_storage(image_path: Path) -> None:
     processed.save(image_path, **save_kwargs)
 
 
+THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
+"""Standard thumbnail widths pre-computed at upload time.
+
+Derived from actual frontend usage:
+- 200px: API thumbnail_url (list views, cards)
+- 800px: gallery medium view
+- 1600px: lightbox / full-screen view
+"""
+
+
+def thumbnail_path_for(image_path: Path, width: int) -> Path:
+    """Return the expected filesystem path for a pre-computed thumbnail."""
+    return image_path.parent / f"{image_path.stem}_thumb_{width}.webp"
+
+
+def generate_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WIDTHS) -> list[Path]:
+    """Pre-compute WebP thumbnails at standard widths for a stored image.
+
+    Skips widths that are larger than the original image width.
+    This is CPU-bound and must be called via anyio.to_thread.run_sync in async contexts.
+
+    Args:
+        image_path: Path to the processed original image.
+        widths: Tuple of target widths to generate.
+
+    Returns:
+        List of paths to the generated thumbnail files.
+    """
+    generated: list[Path] = []
+    with PILImage.open(image_path) as img:
+        original_width, original_height = img.size
+        for w in widths:
+            if w >= original_width:
+                continue
+            h = int((w / original_width) * original_height)
+            resized = img.resize((w, h), RESAMPLE_FILTER)
+            dest = thumbnail_path_for(image_path, w)
+            resized.save(dest, format=FORMAT_WEBP, quality=85, method=6)
+            generated.append(dest)
+            logger.debug("Generated thumbnail %s (%dx%d)", dest.name, w, h)
+    return generated
+
+
+def delete_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WIDTHS) -> None:
+    """Remove all pre-computed thumbnails for an image."""
+    for w in widths:
+        thumb = thumbnail_path_for(image_path, w)
+        if thumb.exists():
+            thumb.unlink()
+
+
 def resize_image(image_path: Path, width: int | None = None, height: int | None = None) -> bytes:
     """Resize an image while maintaining aspect ratio, returning WebP bytes.
 
