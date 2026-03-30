@@ -41,6 +41,13 @@ class CacheSettings(BaseModel):
     )
 
 
+class StorageBackend(StrEnum):
+    """Available file storage backends."""
+
+    FILESYSTEM = "filesystem"
+    S3 = "s3"
+
+
 class Environment(StrEnum):
     """Application execution environment."""
 
@@ -160,6 +167,20 @@ class CoreSettings(RelabBaseSettings):
     file_cleanup_min_file_age_minutes: int = Field(default=30, ge=0)
     file_cleanup_dry_run: bool = False
 
+    # ── Storage ───────────────────────────────────────────────────────────────────
+    storage_backend: StorageBackend = StorageBackend.FILESYSTEM
+    s3_bucket: str = ""
+    s3_region: str = "us-east-1"
+    s3_access_key_id: SecretStr = SecretStr("")
+    s3_secret_access_key: SecretStr = SecretStr("")
+    # Custom endpoint for S3-compatible services (e.g. MinIO: http://localhost:9000)
+    s3_endpoint_url: str | None = None
+    # Public URL prefix for served files; overrides the default AWS path when set
+    # (e.g. https://cdn.example.com/my-bucket or https://my-bucket.s3.eu-west-1.amazonaws.com)
+    s3_base_url: str | None = None
+    s3_file_prefix: str = "files"
+    s3_image_prefix: str = "images"
+
     # ── Paths ─────────────────────────────────────────────────────────────────────
     uploads_path: Path = BACKEND_DIR / "data" / "uploads"
     file_storage_path: Path = uploads_path / "files"
@@ -232,6 +253,15 @@ class CoreSettings(RelabBaseSettings):
                 f"http_max_keepalive_connections ({self.http_max_keepalive_connections}) "
                 f"must not exceed http_max_connections ({self.http_max_connections})"
             )
+            raise ValueError(msg)
+        return self
+
+    # ── Storage validation ────────────────────────────────────────────────────────
+    @model_validator(mode="after")
+    def validate_s3_settings(self) -> Self:
+        """Require a bucket name when the S3 backend is selected."""
+        if self.storage_backend == StorageBackend.S3 and not self.s3_bucket:
+            msg = "S3_BUCKET must be set when STORAGE_BACKEND is 's3'"
             raise ValueError(msg)
         return self
 

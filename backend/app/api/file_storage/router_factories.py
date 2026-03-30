@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Callable
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Annotated, Any, cast
 
@@ -10,7 +11,6 @@ from fastapi import File as FastAPIFile
 from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator
 
-from app.api.common.models.base import APIModelName
 from app.api.common.models.custom_types import IDT
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud import ParentStorageOperations
@@ -36,6 +36,15 @@ class StorageRouteMethod(StrEnum):
     GET = "get"
     POST = "post"
     DELETE = "delete"
+
+
+@dataclass(frozen=True)
+class StorageRouteParentSpec:
+    """Explicit metadata for parent-scoped storage routes."""
+
+    title: str
+    path_param: str
+    parent_type: MediaParentType
 
 
 def _build_passthrough_parent_dependency(parent_id_param: str, parent_title: str) -> ParentIdDep:
@@ -65,7 +74,7 @@ def _storage_example(parent_title: str, *, storage_slug: str, storage_title: str
 def _add_file_routes(
     router: APIRouter,
     *,
-    parent_api_model_name: APIModelName,
+    parent_spec: StorageRouteParentSpec,
     storage_crud: ParentStorageOperations,
     include_methods: set[StorageRouteMethod],
     read_auth_dep: BaseDep | None,
@@ -74,8 +83,8 @@ def _add_file_routes(
     modify_parent_auth_dep: ParentIdDep | None,
 ) -> None:
     """Register file routes for a parent resource."""
-    parent_title = parent_api_model_name.name_capital
-    parent_id_param = f"{parent_api_model_name.name_snake}_id"
+    parent_title = parent_spec.title
+    parent_id_param = parent_spec.path_param
     read_parent_dep = read_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
     modify_parent_dep = modify_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
     example = _storage_example(parent_title, storage_slug="file", storage_title="File")
@@ -154,7 +163,7 @@ def _add_file_routes(
                 file=file,
                 description=description,
                 parent_id=parent_id,
-                parent_type=MediaParentType(parent_api_model_name.name_snake),
+                parent_type=parent_spec.parent_type,
             )
             item = await storage_crud.create(session, parent_id, item_data)
             return serialize_file_read(item)
@@ -184,7 +193,7 @@ def _add_file_routes(
 def _add_image_routes(
     router: APIRouter,
     *,
-    parent_api_model_name: APIModelName,
+    parent_spec: StorageRouteParentSpec,
     storage_crud: ParentStorageOperations,
     include_methods: set[StorageRouteMethod],
     read_auth_dep: BaseDep | None,
@@ -193,8 +202,8 @@ def _add_image_routes(
     modify_parent_auth_dep: ParentIdDep | None,
 ) -> None:
     """Register image routes for a parent resource."""
-    parent_title = parent_api_model_name.name_capital
-    parent_id_param = f"{parent_api_model_name.name_snake}_id"
+    parent_title = parent_spec.title
+    parent_id_param = parent_spec.path_param
     read_parent_dep = read_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
     modify_parent_dep = modify_parent_auth_dep or _build_passthrough_parent_dependency(parent_id_param, parent_title)
     example = _storage_example(parent_title, storage_slug="image", storage_title="Image")
@@ -283,7 +292,7 @@ def _add_image_routes(
                     "description": description,
                     "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
                     "parent_id": parent_id,
-                    "parent_type": MediaParentType(parent_api_model_name.name_snake),
+                    "parent_type": parent_spec.parent_type,
                 }
             )
             item = await storage_crud.create(session, parent_id, item_data)
@@ -314,7 +323,7 @@ def _add_image_routes(
 def add_storage_routes(
     router: APIRouter,
     *,
-    parent_api_model_name: APIModelName,
+    parent_spec: StorageRouteParentSpec,
     files_crud: ParentStorageOperations,
     images_crud: ParentStorageOperations,
     include_methods: set[StorageRouteMethod],
@@ -326,7 +335,7 @@ def add_storage_routes(
     """Add both file and image storage routes to a router."""
     _add_file_routes(
         router,
-        parent_api_model_name=parent_api_model_name,
+        parent_spec=parent_spec,
         storage_crud=files_crud,
         include_methods=include_methods,
         read_auth_dep=read_auth_dep,
@@ -336,7 +345,7 @@ def add_storage_routes(
     )
     _add_image_routes(
         router,
-        parent_api_model_name=parent_api_model_name,
+        parent_spec=parent_spec,
         storage_crud=images_crud,
         include_methods=include_methods,
         read_auth_dep=read_auth_dep,

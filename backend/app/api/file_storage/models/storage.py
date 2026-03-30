@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import os
 import re
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING
 
 from anyio import open_file, to_thread
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import TypeDecorator, Unicode
 
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
-from app.core.config import settings
+from app.core.config import StorageBackend, settings
 from app.core.images import validate_image_file
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from typing import BinaryIO, Protocol, Self
 
     from fastapi import UploadFile
@@ -26,6 +26,13 @@ if TYPE_CHECKING:
 
         file: BinaryIO
         filename: str
+
+    class _S3Client(Protocol):
+        """Narrow protocol for the boto3 S3 client methods used by S3Storage."""
+
+        def head_object(self, *, Bucket: str, Key: str) -> dict: ...  # noqa: N803
+        def get_object(self, *, Bucket: str, Key: str) -> dict: ...  # noqa: N803
+        def upload_fileobj(self, Fileobj: BinaryIO, Bucket: str, Key: str) -> None: ...  # noqa: N803
 
 
 _FILENAME_ASCII_STRIP_RE = re.compile(r"[^A-Za-z0-9_.-]")
@@ -41,34 +48,48 @@ def secure_filename(filename: str) -> str:
     return str(normalized_filename).strip("._")
 
 
-class BaseStorage:
-    """Base interface for storage backends."""
+class BaseStorage(ABC):
+    """Abstract interface for storage backends.
+
+    All backends must implement the synchronous primitives used by the
+    SQLAlchemy column types as well as the async upload helpers called from
+    the CRUD layer.  New backends (e.g. S3-compatible) should subclass this
+    and override every abstract method.
+    """
 
     OVERWRITE_EXISTING_FILES = True
 
+    @abstractmethod
     def get_name(self, name: str) -> str:
         """Return the normalized storage name."""
-        raise NotImplementedError
 
+    @abstractmethod
     def get_path(self, name: str) -> str:
-        """Return the absolute path for a stored file."""
-        raise NotImplementedError
+        """Return the absolute path (or URL) for a stored file."""
 
+    @abstractmethod
     def get_size(self, name: str) -> int:
         """Return the file size in bytes."""
-        raise NotImplementedError
 
+    @abstractmethod
     def open(self, name: str) -> BinaryIO:
         """Open a stored file for reading."""
-        raise NotImplementedError
 
+    @abstractmethod
     def write(self, file: BinaryIO, name: str) -> str:
-        """Persist an uploaded file."""
-        raise NotImplementedError
+        """Persist a binary file and return the stored name."""
 
+    @abstractmethod
     def generate_new_filename(self, filename: str) -> str:
         """Generate a collision-free file name."""
-        raise NotImplementedError
+
+    @abstractmethod
+    async def write_upload(self, upload_file: UploadFile, name: str) -> str:
+        """Persist an uploaded file asynchronously and return the stored name."""
+
+    @abstractmethod
+    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
+        """Validate and persist an uploaded image asynchronously."""
 
 
 class StorageFile(str):
@@ -151,8 +172,12 @@ class FileSystemStorage(BaseStorage):
         return (self._path / name).stat().st_size
 
     def open(self, name: str) -> BinaryIO:
-        """Open a stored file in binary mode."""
-        return (self._path / Path(name)).open("rb")
+        """Open a stored file in binary mode, mapping missing files to the API error."""
+        try:
+            return (self._path / Path(name)).open("rb")
+        except FileNotFoundError as e:
+            details = str(e) if settings.debug else None
+            raise FastAPIStorageFileNotFoundError(name, details=details) from e
 
     def write(self, file: BinaryIO, name: str) -> str:
         """Write a binary file to local storage."""
@@ -201,16 +226,160 @@ class FileSystemStorage(BaseStorage):
         return await self.write_upload(upload_file, name)
 
 
-class CustomFileSystemStorage(FileSystemStorage):
-    """Filesystem storage with custom error handling for the app."""
+class S3Storage(BaseStorage):
+    """S3-compatible storage backend.
+
+    Requires ``boto3`` to be installed (``uv sync --group s3``).
+    Credentials are resolved in the standard boto3 chain (env vars, config file,
+    instance profile) when ``access_key_id``/``secret_access_key`` are empty.
+    """
+
+    def __init__(
+        self,
+        bucket: str,
+        prefix: str,
+        *,
+        region: str = "us-east-1",
+        access_key_id: str | None = None,
+        secret_access_key: str | None = None,
+        endpoint_url: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
+        self._bucket = bucket
+        self._prefix = prefix.strip("/")
+        self._region = region
+        self._access_key_id = access_key_id or None
+        self._secret_access_key = secret_access_key or None
+        self._endpoint_url = endpoint_url
+        self._base_url = base_url.rstrip("/") if base_url else None
+        self._client: _S3Client | None = None
+
+    def _get_client(self) -> _S3Client:
+        """Return a cached boto3 S3 client, importing boto3 lazily."""
+        if self._client is None:
+            try:
+                import boto3  # noqa: PLC0415
+            except ImportError:
+                msg = "boto3 is required for S3 storage. Install it with: uv sync --group s3"
+                raise ImportError(msg) from None
+            kwargs: dict[str, object] = {"region_name": self._region}
+            if self._access_key_id:
+                kwargs["aws_access_key_id"] = self._access_key_id
+            if self._secret_access_key:
+                kwargs["aws_secret_access_key"] = self._secret_access_key
+            if self._endpoint_url:
+                kwargs["endpoint_url"] = self._endpoint_url
+            self._client = boto3.client("s3", **kwargs)
+        return self._client
+
+    def _s3_key(self, name: str) -> str:
+        filename = secure_filename(Path(name).name)
+        return f"{self._prefix}/{filename}" if self._prefix else filename
+
+    def get_name(self, name: str) -> str:
+        """Normalize a file name for storage."""
+        return secure_filename(Path(name).name)
+
+    def get_path(self, name: str) -> str:
+        """Return the public URL for a stored object."""
+        filename = secure_filename(Path(name).name)
+        key = f"{self._prefix}/{filename}" if self._prefix else filename
+        if self._base_url:
+            return f"{self._base_url}/{key}"
+        if self._endpoint_url:
+            return f"{self._endpoint_url.rstrip('/')}/{self._bucket}/{key}"
+        return f"https://{self._bucket}.s3.{self._region}.amazonaws.com/{key}"
+
+    def get_size(self, name: str) -> int:
+        """Return the object size in bytes via a HEAD request."""
+        response = self._get_client().head_object(Bucket=self._bucket, Key=self._s3_key(name))  # type: ignore[union-attr]
+        return response["ContentLength"]
 
     def open(self, name: str) -> BinaryIO:
-        """Map missing files to the API-specific not-found error."""
+        """Download and return the object body as a BytesIO buffer."""
+        import io  # noqa: PLC0415
+
+        from botocore.exceptions import ClientError  # noqa: PLC0415
+
         try:
-            return super().open(name)
-        except FileNotFoundError as e:
-            details = str(e) if settings.debug else None
-            raise FastAPIStorageFileNotFoundError(name, details=details) from e
+            response = self._get_client().get_object(Bucket=self._bucket, Key=self._s3_key(name))  # type: ignore[union-attr]
+            return io.BytesIO(response["Body"].read())
+        except ClientError as e:
+            if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+                details = str(e) if settings.debug else None
+                raise FastAPIStorageFileNotFoundError(name, details=details) from e
+            raise
+
+    def write(self, file: BinaryIO, name: str) -> str:
+        """Upload a binary file to S3 and return the stored name."""
+        filename = self.get_name(name)
+        file.seek(0)
+        self._get_client().upload_fileobj(file, self._bucket, self._s3_key(name))  # type: ignore[union-attr]
+        return filename
+
+    def generate_new_filename(self, filename: str) -> str:
+        """Return a collision-free key name by probing S3 with HEAD requests."""
+        from botocore.exceptions import ClientError  # noqa: PLC0415
+
+        counter = 0
+        stem, extension = Path(filename).stem, Path(filename).suffix
+        name = filename
+        while True:
+            try:
+                self._get_client().head_object(Bucket=self._bucket, Key=self._s3_key(name))  # type: ignore[union-attr]
+            except ClientError as e:
+                if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+                    break
+                raise
+            counter += 1
+            name = f"{stem}_{counter}{extension}"
+        return name
+
+    async def write_upload(self, upload_file: UploadFile, name: str) -> str:
+        """Upload a file to S3 using a background thread and return the stored name."""
+        filename = self.get_name(name)
+        await upload_file.seek(0)
+        client = self._get_client()
+        bucket, key = self._bucket, self._s3_key(name)
+        file_obj = upload_file.file
+        await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, bucket, key))  # type: ignore[union-attr]
+        await upload_file.close()
+        return filename
+
+    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
+        """Validate and upload an image to S3."""
+        await to_thread.run_sync(validate_image_file, upload_file.file)
+        return await self.write_upload(upload_file, name)
+
+
+def _get_file_storage() -> BaseStorage:
+    """Return the configured storage backend for generic files."""
+    if settings.storage_backend == StorageBackend.S3:
+        return S3Storage(
+            bucket=settings.s3_bucket,
+            prefix=settings.s3_file_prefix,
+            region=settings.s3_region,
+            access_key_id=settings.s3_access_key_id.get_secret_value() or None,
+            secret_access_key=settings.s3_secret_access_key.get_secret_value() or None,
+            endpoint_url=settings.s3_endpoint_url,
+            base_url=settings.s3_base_url,
+        )
+    return FileSystemStorage(path=str(settings.file_storage_path))
+
+
+def _get_image_storage() -> BaseStorage:
+    """Return the configured storage backend for image files."""
+    if settings.storage_backend == StorageBackend.S3:
+        return S3Storage(
+            bucket=settings.s3_bucket,
+            prefix=settings.s3_image_prefix,
+            region=settings.s3_region,
+            access_key_id=settings.s3_access_key_id.get_secret_value() or None,
+            secret_access_key=settings.s3_secret_access_key.get_secret_value() or None,
+            endpoint_url=settings.s3_endpoint_url,
+            base_url=settings.s3_base_url,
+        )
+    return FileSystemStorage(path=str(settings.image_storage_path))
 
 
 class _BaseStorageType(TypeDecorator):
@@ -246,8 +415,11 @@ class _BaseStorageType(TypeDecorator):
         raise NotImplementedError
 
 
-class _FileType(_BaseStorageType):
-    """Store uploaded files on disk and persist only the file name."""
+class FileType(_BaseStorageType):
+    """SQLAlchemy column type that stores files on the configured storage backend."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(_get_file_storage(), *args, **kwargs)
 
     def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
         file = StorageFile(name=value.filename, storage=self.storage)
@@ -259,12 +431,14 @@ class _FileType(_BaseStorageType):
         del dialect
         if value is None:
             return value
-
         return StorageFile(name=value, storage=self.storage)
 
 
-class _ImageType(_BaseStorageType):
-    """Store uploaded images on disk and persist only the file name."""
+class ImageType(_BaseStorageType):
+    """SQLAlchemy column type that stores images on the configured storage backend."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(_get_image_storage(), *args, **kwargs)
 
     def _process_upload_value(self, value: UploadValue, file_obj: BinaryIO) -> str:
         validate_image_file(file_obj)
@@ -279,36 +453,3 @@ class _ImageType(_BaseStorageType):
         if value is None:
             return value
         return StorageImage(name=value, storage=self.storage)
-
-
-def get_storage(path: Path) -> CustomFileSystemStorage:
-    """Build a storage backend for a configured filesystem path."""
-    return CustomFileSystemStorage(path=str(path))
-
-
-class _ConfiguredStorageTypeMixin:
-    """Inject a configured storage backend into a SQLAlchemy type."""
-
-    storage_factory: ClassVar[Callable[[], CustomFileSystemStorage]]
-
-    def __init__(self, *args: object, **kwargs: object) -> None:
-        super_init = cast("Any", super().__init__)
-        super_init(type(self).storage_factory(), *args, **kwargs)
-
-
-class FileType(_ConfiguredStorageTypeMixin, _FileType):
-    """Custom file type with the configured local file storage."""
-
-    @staticmethod
-    def storage_factory() -> CustomFileSystemStorage:
-        """Build the storage backend used by file columns."""
-        return get_storage(settings.file_storage_path)
-
-
-class ImageType(_ConfiguredStorageTypeMixin, _ImageType):
-    """Custom image type with the configured local image storage."""
-
-    @staticmethod
-    def storage_factory() -> CustomFileSystemStorage:
-        """Build the storage backend used by image columns."""
-        return get_storage(settings.image_storage_path)

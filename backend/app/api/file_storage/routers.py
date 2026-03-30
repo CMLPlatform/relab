@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 from anyio import Path as AsyncPath
@@ -13,7 +14,7 @@ from pydantic import UUID4
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud import get_image
 from app.core.constants import HOUR
-from app.core.images import resize_image
+from app.core.images import resize_image, thumbnail_path_for
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -49,6 +50,8 @@ async def get_resized_image(
             raise HTTPException(status_code=500, detail=detail) from exc
         raise HTTPException(status_code=500, detail=detail)
 
+    cache_headers = {"Cache-Control": f"public, max-age={HOUR}, immutable"}
+
     try:
         db_image = await get_image(session, image_id)
         if not db_image.file or not db_image.file.path:
@@ -58,16 +61,21 @@ async def get_resized_image(
         if not await image_path.exists():
             _raise_not_found("Image file not found on disk")
 
-        # Resize the image in a separate thread to avoid blocking the event loop.
-        # Use the capacity limiter from app.state to bound concurrent resize workers.
+        # Serve pre-computed thumbnail when the request matches a standard width
+        if width and not height:
+            thumb = AsyncPath(thumbnail_path_for(Path(image_path), width))
+            if await thumb.exists():
+                content = await thumb.read_bytes()
+                return Response(content=content, media_type=MEDIA_TYPE_WEBP, headers=cache_headers)
+
+        # Fall back to on-demand resize for non-standard sizes
         limiter = getattr(request.app.state, "image_resize_limiter", None)
         resized_bytes = await to_thread.run_sync(resize_image, image_path, width, height, limiter=limiter)
 
-        # Return response with HTTP cache headers for browser/CDN caching
         return Response(
             content=resized_bytes,
             media_type=MEDIA_TYPE_WEBP,
-            headers={"Cache-Control": f"public, max-age={HOUR}, immutable"},
+            headers=cache_headers,
         )
 
     except HTTPException:

@@ -9,17 +9,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field
 from sqlmodel import Enum as SAEnum
 
-from app.api.common.models.base import (
-    APIModelName,
-    CustomBase,
-    IntPrimaryKeyMixin,
-    SingleParentMixin,
-    TimeStampMixinBare,
-)
+from app.api.common.models.base import CustomBase, SingleParentMixin, TimeStampMixinBare
 from app.api.file_storage.models.storage import FileType, ImageType
 
 if TYPE_CHECKING:
-    from typing import Any, ClassVar
+    from typing import Any
 
 
 ### Shared parent-type enum ###
@@ -36,8 +30,6 @@ class FileBase(CustomBase):
     """Base model for generic files stored in the local file system."""
 
     description: str | None = Field(default=None, max_length=500, description="Description of the file")
-
-    api_model_name: ClassVar[APIModelName | None] = APIModelName(name_camel="File")
 
 
 class File(FileBase, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
@@ -69,8 +61,6 @@ class ImageBase(CustomBase):
         description="Image metadata as a JSON dict",
         sa_column=Column(JSONB),
     )
-
-    api_model_name: ClassVar[APIModelName | None] = APIModelName(name_camel="Image")
 
 
 class Image(ImageBase, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
@@ -109,7 +99,7 @@ class VideoBase(CustomBase):
     )
 
 
-class Video(VideoBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Video(VideoBase, TimeStampMixinBare, table=True):
     """Database model for videos stored online."""
 
     id: int | None = Field(default=None, primary_key=True)

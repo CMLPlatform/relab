@@ -28,7 +28,7 @@ from app.api.file_storage.exceptions import (
 )
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models.models import File, Image, MediaParentType
-from app.api.file_storage.models.storage import get_storage
+from app.api.file_storage.models.storage import _get_file_storage, _get_image_storage
 from app.api.file_storage.presentation import storage_item_exists, stored_file_path
 from app.api.file_storage.schemas import (
     MAX_FILE_SIZE_MB,
@@ -39,8 +39,7 @@ from app.api.file_storage.schemas import (
     ImageCreateInternal,
     ImageUpdate,
 )
-from app.core.config import settings
-from app.core.images import process_image_for_storage
+from app.core.images import delete_thumbnails, generate_thumbnails, process_image_for_storage
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -155,6 +154,11 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
         await delete_image(db, db_image.id)
         raise ValueError(str(e)) from e
 
+    try:
+        await to_thread.run_sync(generate_thumbnails, image_path)
+    except (ValueError, OSError):
+        logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
+
     return db_image
 
 
@@ -249,6 +253,8 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await db.commit()
 
         if file_path:
+            if self.model is Image:
+                await to_thread.run_sync(delete_thumbnails, file_path)
             await delete_file_from_storage(file_path)
 
 
@@ -257,7 +263,7 @@ class FileStorageService(StoredMediaService[File, FileCreate]):
 
     def __init__(self) -> None:
         super().__init__(model=File, max_size_mb=MAX_FILE_SIZE_MB)
-        self._storage = get_storage(settings.file_storage_path)
+        self._storage = _get_file_storage()
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist a generic file upload."""
@@ -269,7 +275,7 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
 
     def __init__(self) -> None:
         super().__init__(model=Image, max_size_mb=MAX_IMAGE_SIZE_MB)
-        self._storage = get_storage(settings.image_storage_path)
+        self._storage = _get_image_storage()
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an image upload."""

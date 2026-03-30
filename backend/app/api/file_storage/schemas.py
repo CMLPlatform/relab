@@ -116,7 +116,7 @@ class FileReadWithinParent(BaseReadSchemaWithTimeStamp, FileBase):
 
         file_path = getattr(getattr(data, "file", None), "path", None)
         return {
-            "id": getattr(data, "db_id", getattr(data, "id", None)),
+            "id": getattr(data, "id", None),
             "description": getattr(data, "description", None),
             "filename": getattr(data, "filename", None),
             "file_url": _build_storage_url(file_path, settings.file_storage_path, "/uploads/files"),
@@ -176,7 +176,7 @@ class ImageReadWithinParent(BaseReadSchemaWithTimeStamp, ImageBase):
             image_url, thumbnail_url = _build_image_urls(file_path, payload.get("id"), settings.image_storage_path)
             return {**payload, "image_url": image_url, "thumbnail_url": thumbnail_url}
 
-        item_id = getattr(data, "db_id", getattr(data, "id", None))
+        item_id = getattr(data, "id", None)
         file_path = getattr(getattr(data, "file", None), "path", None)
         image_url, thumbnail_url = _build_image_urls(file_path, item_id, settings.image_storage_path)
         return {
