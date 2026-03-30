@@ -1,9 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { fetchWithTimeout } from './request';
+import { API_URL } from '@/config';
 import { User } from '@/types/User';
 
-const apiURL = `${process.env.EXPO_PUBLIC_API_URL}`;
+const apiURL = API_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
 const WEB_SESSION_FLAG = 'web_has_session';
 let token: string | undefined;

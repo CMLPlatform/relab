@@ -5,10 +5,8 @@
  * params serializes everything to strings and silently breaks on refresh or
  * deep-link. Instead, the caller writes intent here, navigates to /products/new,
  * and the destination reads+clears it on mount.
- *
- * This is a plain module-level variable; it lives only for the current session,
- * is never persisted, and is intentionally not reactive.
  */
+import { createStore } from 'zustand/vanilla';
 
 export type NewProductIntent = {
   name?: string;
@@ -19,16 +17,20 @@ export type NewProductIntent = {
   isComponent?: boolean;
 };
 
-let _intent: NewProductIntent | null = null;
+type IntentStore = {
+  intent: NewProductIntent | null;
+};
+
+const store = createStore<IntentStore>(() => ({ intent: null }));
 
 /** Write before navigating to /products/new */
 export function setNewProductIntent(intent: NewProductIntent): void {
-  _intent = intent;
+  store.setState({ intent });
 }
 
 /** Read once on mount in the product page; returns null if nothing was set */
 export function consumeNewProductIntent(): NewProductIntent | null {
-  const value = _intent;
-  _intent = null;
-  return value;
+  const { intent } = store.getState();
+  store.setState({ intent: null });
+  return intent;
 }

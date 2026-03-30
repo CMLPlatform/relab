@@ -18,7 +18,8 @@
     "build:test": "expo export -p web -c",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "codegen:api": "openapi-typescript $EXPO_PUBLIC_API_URL/openapi.json -o src/types/api.generated.ts"
+    "codegen:api": "openapi-typescript $EXPO_PUBLIC_API_URL/openapi.json -o src/types/api.generated.ts",
+    "codegen:api:redact": "npm run codegen:api && node scripts/redact_api.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",

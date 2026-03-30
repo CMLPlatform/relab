@@ -1,4 +1,6 @@
-const apiBaseUrl = `${process.env.EXPO_PUBLIC_API_URL ?? ''}`.replace(/\/+$/, '');
+import { API_URL } from '@/config';
+
+const apiBaseUrl = API_URL.replace(/\/+$/, '');
 
 export const API_PLACEHOLDER_IMAGE_PATH = '/static/images/placeholder.png';
 

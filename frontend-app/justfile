@@ -89,3 +89,10 @@ test-e2e-ui:
 clean:
     rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
     @echo "✓ Cleaned caches and build artifacts"
+
+# Generate TypeScript API types from backend OpenAPI and redact sensitive examples
+codegen PORT="8011":
+    @echo "Generating TypeScript API types and redacting JWT examples (backend at http://localhost:{{PORT}})..."
+    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} npm run codegen:api:redact
+    node scripts/redact_api.js
+    @echo "✓ Generated src/types/api.generated.ts (redacted)"

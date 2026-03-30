@@ -1,13 +1,11 @@
 import { fetchWithTimeout } from './request';
 import { getToken } from './authentication';
+import { API_URL } from '@/config';
+import type { ApiNewsletterPreferenceRead } from '@/types/api';
 
-const apiURL = `${process.env.EXPO_PUBLIC_API_URL}`;
+const apiURL = API_URL;
 
-export type NewsletterPreference = {
-  email: string;
-  subscribed: boolean;
-  is_confirmed: boolean;
-};
+export type NewsletterPreference = ApiNewsletterPreferenceRead;
 
 async function newsletterRequest(path: string, options: RequestInit = {}): Promise<Response> {
   const headers = { ...(options.headers as Record<string, string> | undefined) };

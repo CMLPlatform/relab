@@ -157,13 +157,16 @@ describe('Saving API Service', () => {
 
     it('throws when product PATCH fails', async () => {
       mockApiFetchError(400, { detail: 'Validation failed' });
+      mockApiFetchOk({}); // physical_properties (parallel)
+      mockApiFetchOk({}); // circularity_properties (parallel)
 
       await expect(saveProduct(existingProduct)).rejects.toThrow('Validation failed');
     });
 
     it('throws when physical_properties PATCH fails with non-404', async () => {
-      mockApiFetchOk({ id: 42 });
-      mockApiFetchError(500, { detail: 'Server error' });
+      mockApiFetchOk({ id: 42 }); // product
+      mockApiFetchError(500, { detail: 'Server error' }); // physical_properties
+      mockApiFetchOk({ id: 42 }); // circularity_properties
 
       await expect(saveProduct(existingProduct)).rejects.toThrow('Failed to update physical properties');
     });
