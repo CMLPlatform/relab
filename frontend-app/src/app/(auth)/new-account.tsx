@@ -7,6 +7,7 @@ import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
 import { login, register } from '@/services/api/authentication';
 import { validateEmail, validatePassword, validateUsername } from '@/services/api/validation/user';
+import { WEBSITE_URL } from '@/config';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
 
 const PrivacyPolicy = () => {
   const colorScheme = useColorScheme();
-  const url = process.env.EXPO_PUBLIC_WEBSITE_URL ? `${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` : '/privacy';
+  const url = WEBSITE_URL ? `${WEBSITE_URL}/privacy` : '/privacy';
   const textColor = colorScheme === 'dark' ? '#F5F5F5' : '#111111';
 
   return (

@@ -10,6 +10,7 @@ import { apiFetch } from '@/services/api/fetching';
 import { getUser, login, markWebSessionActive, oauthLoginWithGoogleToken } from '@/services/api/authentication';
 import { useAuth } from '@/context/AuthProvider';
 import { useDialog } from '@/components/common/DialogProvider';
+import { API_URL, GOOGLE_WEB_CLIENT_ID } from '@/config';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -131,7 +132,7 @@ export default function Login() {
 
   // expo-auth-session Google PKCE hook (web only — native uses backend-mediated flow)
   const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
   });
 
   // Refs
@@ -366,7 +367,7 @@ export default function Login() {
 
       const transport = 'session';
       const redirectUri = Linking.createURL('/login');
-      const authUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/oauth/${provider}/${transport}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const authUrl = `${API_URL}/auth/oauth/${provider}/${transport}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       // The backend returns a JSON payload containing the actual authorization URL
       const response = await apiFetch(authUrl);

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 import { apiFetch } from '@/services/api/fetching';
+import { API_URL } from '@/config';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -54,7 +55,7 @@ export default function ResetPasswordScreen() {
     setError(null);
 
     try {
-      const response = await apiFetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/reset-password`, {
+      const response = await apiFetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),

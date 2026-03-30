@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/fetching';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
+import { API_URL } from '@/config';
 
 WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });
 
@@ -88,7 +89,7 @@ export default function ProfileTab() {
   const handleLinkOAuth = async (provider: 'google' | 'github') => {
     try {
       const redirectUri = Linking.createURL('/profile');
-      const associateUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/oauth/${provider}/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const associateUrl = `${API_URL}/auth/oauth/${provider}/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       const token = await getToken();
       const headers: Record<string, string> = {};

@@ -1,27 +1,30 @@
 # RELab App
 
-The field research app for documenting product disassembly — capture components, materials, and photos on the go. Built with [Expo](https://expo.dev/) and [React Native](https://reactnative.dev/), runs on Android, iOS, and web.
+The `frontend-app` subrepo contains the Expo / React Native app used for authenticated data collection.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-npm ci
-just dev    # Expo dev server at http://localhost:8081
+just install
+just dev
 ```
 
-You'll need the backend running too. Set `EXPO_PUBLIC_API_URL` in `.env.local` if it's not on localhost.
+The Expo dev server runs on <http://localhost:8081>.
+
+You will usually want the backend running as well. If the API is not on localhost, set `EXPO_PUBLIC_API_URL` in `.env.local`.
+
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to your web OAuth client ID from Google Cloud Console. See [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-setup) for details.
 
 ## Common Commands
 
 ```bash
-just check      # TypeScript + Expo lint
-just test       # Jest unit + component tests
-just test-ci    # tests with coverage (must stay ≥ 80%)
-just format     # auto-fix lint issues
+just check       # lint
+just test        # Jest tests
+just test-ci     # CI-style test run with coverage
+just format      # format code
+just build-web   # export web build for E2E
 ```
 
-Want to run on a physical device or emulator? See [CONTRIBUTING.md: Frontend Setup](../CONTRIBUTING.md#frontend-setup).
+## More
 
-## Want to Know More?
-
-Full setup, test patterns, and MSW network mocking are in [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
+For emulator and device setup, testing patterns, and app-specific development notes, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).

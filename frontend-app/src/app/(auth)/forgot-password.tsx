@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
 import { apiFetch } from '@/services/api/fetching';
+import { API_URL } from '@/config';
 import { validateEmail } from '@/services/api/validation/user';
 
 export default function ForgotPasswordScreen() {
@@ -46,7 +47,7 @@ export default function ForgotPasswordScreen() {
     setError(null);
 
     try {
-      const response = await apiFetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/forgot-password`, {
+      const response = await apiFetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

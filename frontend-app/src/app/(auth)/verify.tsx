@@ -4,6 +4,7 @@ import { Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '@/context/AuthProvider';
 import { apiFetch } from '@/services/api/fetching';
+import { API_URL } from '@/config';
 
 export default function VerifyEmailScreen() {
   const theme = useTheme();
@@ -51,7 +52,7 @@ export default function VerifyEmailScreen() {
       return;
     }
 
-    const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/verify`;
+    const apiUrl = `${API_URL}/auth/verify`;
 
     try {
       const response = await apiFetch(apiUrl, {
