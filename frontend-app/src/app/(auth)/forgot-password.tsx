@@ -2,15 +2,16 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
-import validator from 'validator';
 import { apiFetch } from '@/services/api/fetching';
+import { validateEmail } from '@/services/api/validation/user';
 
 export default function ForgotPasswordScreen() {
   const theme = useTheme();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
-  const isValidEmail = validator.isEmail(email);
+  const emailValidation = validateEmail(email);
+  const isValidEmail = emailValidation.isValid;
 
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +34,11 @@ export default function ForgotPasswordScreen() {
   const handleForgotPassword = async () => {
     if (!email) {
       setError('Please enter your email address');
+      return;
+    }
+
+    if (!emailValidation.isValid) {
+      setError(emailValidation.error || 'Please enter a valid email address');
       return;
     }
 
@@ -86,6 +92,12 @@ export default function ForgotPasswordScreen() {
               {error && (
                 <HelperText type="error" visible={!!error}>
                   {error}
+                </HelperText>
+              )}
+
+              {!error && email.length > 0 && !isValidEmail && (
+                <HelperText type="error" visible>
+                  {emailValidation.error}
                 </HelperText>
               )}
 

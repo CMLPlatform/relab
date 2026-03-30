@@ -1,12 +1,22 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 import { apiFetch } from '@/services/api/fetching';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const { token } = useLocalSearchParams<{ token: string }>();
+  const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
+
+  // Capture the token from the URL into a ref immediately, then strip it from
+  // the address bar so it doesn't persist in browser history.
+  const tokenRef = useRef(tokenParam);
+  useEffect(() => {
+    if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [password, setPassword] = useState('');
   const [success, setSuccess] = useState(false);
@@ -29,6 +39,7 @@ export default function ResetPasswordScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleResetPassword = async () => {
+    const token = tokenRef.current;
     if (!token) {
       setError('No reset token provided');
       return;

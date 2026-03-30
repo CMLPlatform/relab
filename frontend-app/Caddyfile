@@ -10,6 +10,23 @@
 		respond "ok" 200
 	}
 
+	header {
+		# Prevent clickjacking
+		X-Frame-Options "DENY"
+		# Prevent MIME-type sniffing
+		X-Content-Type-Options "nosniff"
+		# Force HTTPS on subsequent visits
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Restrict referrer information
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Content Security Policy
+		# - script-src 'self': Metro static export uses external JS files only
+		# - style-src 'unsafe-inline': React Native Web requires inline styles
+		# - img-src data: blob:: used for image previews before upload
+		# - connect-src: API endpoint for data fetching
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.cml-relab.org; connect-src 'self' https://api.cml-relab.org; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+	}
+
 	try_files {path} /index.html
 	file_server
 }

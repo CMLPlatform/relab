@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '@/context/AuthProvider';
 import { apiFetch } from '@/services/api/fetching';
@@ -9,7 +9,17 @@ export default function VerifyEmailScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, refetch } = useAuth();
-  const { token } = useLocalSearchParams<{ token: string }>();
+  const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
+
+  // Capture the token from the URL into a ref immediately, then strip it from
+  // the address bar so it doesn't persist in browser history.
+  const tokenRef = useRef(tokenParam);
+  useEffect(() => {
+    if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +44,7 @@ export default function VerifyEmailScreen() {
   }, [success, router, user, refetch]);
 
   const verifyToken = useCallback(async () => {
+    const token = tokenRef.current;
     if (!token) {
       setError('No verification token provided. Please check your verification email.');
       setIsLoading(false);
@@ -46,7 +57,7 @@ export default function VerifyEmailScreen() {
       const response = await apiFetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token }), // token was captured from URL before stripping
       });
 
       if (response.ok) {
@@ -62,7 +73,7 @@ export default function VerifyEmailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     verifyToken();

@@ -96,9 +96,7 @@ const styles = StyleSheet.create({
 
 const PrivacyPolicy = () => {
   const colorScheme = useColorScheme();
-  const url = (
-    process.env.EXPO_PUBLIC_WEBSITE_URL ? `${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` : '/privacy'
-  ) as any;
+  const url = process.env.EXPO_PUBLIC_WEBSITE_URL ? `${process.env.EXPO_PUBLIC_WEBSITE_URL}/privacy` : '/privacy';
   const textColor = colorScheme === 'dark' ? '#F5F5F5' : '#111111';
 
   return (

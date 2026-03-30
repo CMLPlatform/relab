@@ -170,7 +170,6 @@ export default function ProfileTab() {
 
         <View style={styles.metaRow}>
           <Text style={styles.metaText}>{profile.email}</Text>
-          <Text style={styles.idText}>ID: {profile.id}</Text>
         </View>
 
         <View style={styles.chipRow}>
@@ -403,10 +402,6 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 15,
     opacity: 0.65,
-  },
-  idText: {
-    fontSize: 12,
-    opacity: 0.35,
   },
   chipRow: {
     marginTop: 12,
