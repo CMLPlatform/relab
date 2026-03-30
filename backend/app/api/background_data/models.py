@@ -3,27 +3,27 @@
 # spell-checker: ignore trgm
 
 from enum import StrEnum
-from typing import Optional  # noqa: TC003 # Needed for runtime ORM mapping
+from typing import Optional  # Needed for runtime ORM mapping
 
 from pydantic import ConfigDict
 from sqlalchemy import Computed, Index
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
-from sqlmodel import Column, Field, Relationship
+from sqlmodel import Column, Field, Relationship, SQLModel
 
-from app.api.common.models.base import CustomBase, CustomLinkingModelBase, IntPrimaryKeyMixin, TimeStampMixinBare
+from app.api.common.models.base import TimeStampMixinBare
 from app.api.file_storage.models.models import File, Image
 
 
 ### Linking Models ###
-class CategoryMaterialLink(CustomLinkingModelBase, table=True):
+class CategoryMaterialLink(SQLModel, table=True):
     """Association table to link Category with Material."""
 
     category_id: int = Field(foreign_key="category.id", primary_key=True)
     material_id: int = Field(foreign_key="material.id", primary_key=True)
 
 
-class CategoryProductTypeLink(CustomLinkingModelBase, table=True):
+class CategoryProductTypeLink(SQLModel, table=True):
     """Association table to link Category with ProductType."""
 
     category_id: int = Field(foreign_key="category.id", primary_key=True)
@@ -39,7 +39,7 @@ class TaxonomyDomain(StrEnum):
     OTHER = "other"
 
 
-class TaxonomyBase(CustomBase):
+class TaxonomyBase(SQLModel):
     """Base model for Taxonomy."""
 
     name: str = Field(index=True, min_length=2, max_length=100)
@@ -57,7 +57,7 @@ class TaxonomyBase(CustomBase):
     model_config: ConfigDict = ConfigDict(use_enum_values=True)
 
 
-class Taxonomy(TaxonomyBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Taxonomy(TaxonomyBase, TimeStampMixinBare, table=True):
     """Database model for Taxonomy."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -72,7 +72,7 @@ class Taxonomy(TaxonomyBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True)
 
 
 ### Category Model ###
-class CategoryBase(CustomBase):
+class CategoryBase(SQLModel):
     """Base model for Category."""
 
     name: str = Field(index=True, min_length=2, max_length=250, description="Name of the category")
@@ -80,7 +80,7 @@ class CategoryBase(CustomBase):
     external_id: str | None = Field(default=None, description="ID of the category in the external taxonomy")
 
 
-class Category(CategoryBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Category(CategoryBase, TimeStampMixinBare, table=True):
     """Database model for Category."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -104,7 +104,7 @@ class Category(CategoryBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True)
 
     # Self-referential relationship
     supercategory_id: int | None = Field(foreign_key="category.id", default=None, nullable=True)
-    supercategory: Optional["Category"] = Relationship(  # noqa: UP037, UP045 # `Optional` and quotes needed for proper sqlalchemy mapping
+    supercategory: Optional["Category"] = Relationship(  # `Optional` and quotes needed for proper sqlalchemy mapping
         back_populates="subcategories",
         sa_relationship_kwargs={"remote_side": "Category.id", "lazy": "selectin", "join_depth": 1},
     )
@@ -130,7 +130,7 @@ class Category(CategoryBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True)
 
 
 ### Material Model ###
-class MaterialBase(CustomBase):
+class MaterialBase(SQLModel):
     """Base model for Material."""
 
     name: str = Field(index=True, min_length=2, max_length=100, description="Name of the Material")
@@ -142,7 +142,7 @@ class MaterialBase(CustomBase):
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
 
 
-class Material(MaterialBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Material(MaterialBase, TimeStampMixinBare, table=True):
     """Database model for Material."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -178,14 +178,14 @@ class Material(MaterialBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True)
 
 
 ### ProductType Model ###
-class ProductTypeBase(CustomBase):
+class ProductTypeBase(SQLModel):
     """Base model for ProductType."""
 
     name: str = Field(index=True, min_length=2, max_length=100, description="Name of the Product Type.")
     description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
 
 
-class ProductType(ProductTypeBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class ProductType(ProductTypeBase, TimeStampMixinBare, table=True):
     """Database model for ProductType."""
 
     id: int | None = Field(default=None, primary_key=True)

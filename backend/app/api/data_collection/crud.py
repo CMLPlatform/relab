@@ -52,7 +52,7 @@ from app.api.data_collection.schemas import (
     ProductUpdateWithProperties,
 )
 from app.api.file_storage.crud import (
-    ParentStorageOperations,
+    ParentStorageCrud,
     file_storage_service,
     image_storage_service,
 )
@@ -526,7 +526,7 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
 
 
 ## Product Storage operations ##
-product_files_crud = ParentStorageOperations[Product, File, FileCreate, FileFilter](
+product_files_crud = ParentStorageCrud[File, FileCreate, FileFilter](
     parent_model=Product,
     storage_model=File,
     parent_type=MediaParentType.PRODUCT,
@@ -534,7 +534,7 @@ product_files_crud = ParentStorageOperations[Product, File, FileCreate, FileFilt
     storage_service=file_storage_service,
 )
 
-product_images_crud = ParentStorageOperations[Product, Image, ImageCreateFromForm, ImageFilter](
+product_images_crud = ParentStorageCrud[Image, ImageCreateFromForm, ImageFilter](
     parent_model=Product,
     storage_model=Image,
     parent_type=MediaParentType.PRODUCT,

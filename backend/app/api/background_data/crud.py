@@ -51,7 +51,7 @@ from app.api.common.crud.utils import (
     validate_no_duplicate_linked_items,
 )
 from app.api.common.exceptions import BadRequestError, InternalServerError
-from app.api.file_storage.crud import ParentStorageOperations, file_storage_service, image_storage_service
+from app.api.file_storage.crud import ParentStorageCrud, file_storage_service, image_storage_service
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
@@ -140,7 +140,7 @@ async def _add_categories_to_parent_model[ParentT: Material | ProductType](
 
     await create_model_links(
         db,
-        id1=db_parent.db_id,
+        id1=cast("int", db_parent.id),
         id1_field=link_parent_id_field,
         id2_set=normalized_category_ids,
         id2_field="category_id",
@@ -404,7 +404,7 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
         # Create links
         await create_model_links(
             db,
-            id1=db_material.db_id,
+            id1=cast("int", db_material.id),
             id1_field="material_id",
             id2_set=material.category_ids,
             id2_field="category_id",
@@ -478,7 +478,7 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
 
 
 ## File Management ##
-material_files_crud = ParentStorageOperations[Material, File, FileCreate, FileFilter](
+material_files_crud = ParentStorageCrud[File, FileCreate, FileFilter](
     parent_model=Material,
     storage_model=File,
     parent_type=MediaParentType.MATERIAL,
@@ -486,7 +486,7 @@ material_files_crud = ParentStorageOperations[Material, File, FileCreate, FileFi
     storage_service=file_storage_service,
 )
 
-material_images_crud = ParentStorageOperations[Material, Image, ImageCreateFromForm, ImageFilter](
+material_images_crud = ParentStorageCrud[Image, ImageCreateFromForm, ImageFilter](
     parent_model=Material,
     storage_model=Image,
     parent_type=MediaParentType.MATERIAL,
@@ -507,7 +507,7 @@ async def create_product_type(
     if isinstance(product_type, ProductTypeCreateWithCategories) and product_type.category_ids:
         await create_model_links(
             db,
-            id1=db_product_type.db_id,
+            id1=cast("int", db_product_type.id),
             id1_field="product_type",
             id2_set=product_type.category_ids,
             id2_field="category_id",
@@ -526,8 +526,8 @@ async def delete_product_type(db: AsyncSession, product_type_id: int) -> None:
     db_product_type: ProductType = await get_model_or_404(db, ProductType, product_type_id)
 
     # Delete storage files
-    await product_type_files.delete_all(db, product_type_id)
-    await product_type_images.delete_all(db, product_type_id)
+    await product_type_files_crud.delete_all(db, product_type_id)
+    await product_type_images_crud.delete_all(db, product_type_id)
 
     await db.delete(db_product_type)
     await db.commit()
@@ -584,7 +584,7 @@ async def remove_categories_from_product_type(
 
 
 ## File management ##
-product_type_files = ParentStorageOperations[ProductType, File, FileCreate, FileFilter](
+product_type_files_crud = ParentStorageCrud[File, FileCreate, FileFilter](
     parent_model=ProductType,
     storage_model=File,
     parent_type=MediaParentType.PRODUCT_TYPE,
@@ -592,7 +592,7 @@ product_type_files = ParentStorageOperations[ProductType, File, FileCreate, File
     storage_service=file_storage_service,
 )
 
-product_type_images = ParentStorageOperations[ProductType, Image, ImageCreateFromForm, ImageFilter](
+product_type_images_crud = ParentStorageCrud[Image, ImageCreateFromForm, ImageFilter](
     parent_model=ProductType,
     storage_model=Image,
     parent_type=MediaParentType.PRODUCT_TYPE,

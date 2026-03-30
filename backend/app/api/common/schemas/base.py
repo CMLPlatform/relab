@@ -12,9 +12,7 @@ from pydantic import (
     field_serializer,
 )
 
-from app.api.background_data.models import MaterialBase
-from app.api.common.models.base import TimeStampMixinBare
-from app.api.data_collection.base import ProductBase
+from app.api.common.schemas.field_mixins import MaterialFields, ProductFields
 
 
 ### Common Validation ###
@@ -24,23 +22,31 @@ def serialize_datetime_with_z(dt: datetime) -> str:
 
 
 ### Base Schemas ###
-class BaseCreateSchema(BaseModel):
-    """Base schema for all create operations."""
+class BaseInputSchema(BaseModel):
+    """Shared base for request-body schemas."""
 
-    model_config = ConfigDict(
-        extra="forbid",  # Prevent additional fields not in schema
-        str_strip_whitespace=True,  # Strip whitespace from strings
-    )
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+class BaseCreateSchema(BaseInputSchema):
+    """Base schema for all create operations."""
 
 
 class BaseReadSchema(BaseModel):
     """Base schema for all read operations."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: PositiveInt | UUID4
 
 
-class BaseReadSchemaWithTimeStampBare(TimeStampMixinBare):
-    """Bare Timestamp reading mixin."""
+class TimestampReadSchemaMixin(BaseModel):
+    """Shared timestamp fields for read schemas."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     @field_serializer("created_at", "updated_at", when_used="unless-none")
     def serialize_timestamps(self, dt: datetime, _info: FieldSerializationInfo) -> str:
@@ -48,24 +54,19 @@ class BaseReadSchemaWithTimeStampBare(TimeStampMixinBare):
         return serialize_datetime_with_z(dt)
 
 
-class BaseReadSchemaWithTimeStamp(BaseReadSchema, BaseReadSchemaWithTimeStampBare):
+class BaseReadSchemaWithTimeStamp(BaseReadSchema, TimestampReadSchemaMixin):
     """Base schema for all read operations, including timestamps."""
 
 
-class AssociationModelReadSchemaWithTimeStamp(BaseModel, BaseReadSchemaWithTimeStampBare):
+class AssociationModelReadSchemaWithTimeStamp(TimestampReadSchemaMixin):
     """Base schema for all read operations on association models, including timestamps.
 
     Association models don't have a separate primary key, so the id field is excluded
     """
 
 
-class BaseUpdateSchema(BaseModel):
+class BaseUpdateSchema(BaseInputSchema):
     """Base schema for all update operations."""
-
-    model_config = ConfigDict(
-        extra="forbid",  # Prevent additional fields not in schema
-        str_strip_whitespace=True,  # Strip whitespace from strings
-    )
 
 
 ### Base Schemas to avoid Circular Dependencies ###
@@ -73,12 +74,12 @@ class BaseUpdateSchema(BaseModel):
 
 
 ## Material Schemas ##
-class MaterialRead(BaseReadSchema, MaterialBase):
+class MaterialRead(BaseReadSchema, MaterialFields):
     """Schema for reading material information."""
 
 
 ## Product Schemas ##
-class ProductRead(BaseReadSchemaWithTimeStamp, ProductBase):
+class ProductRead(BaseReadSchemaWithTimeStamp, ProductFields):
     """Base schema for reading product information."""
 
     product_type_id: PositiveInt | None = None

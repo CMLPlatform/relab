@@ -1,8 +1,8 @@
 """Admin routes for managing organizations."""
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
-from fastapi import APIRouter, Security
+from fastapi import APIRouter, Query, Security
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from pydantic import UUID4
@@ -12,16 +12,21 @@ from app.api.auth.dependencies import current_active_superuser
 from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization
 from app.api.auth.schemas import OrganizationReadWithRelationships
+from app.api.common.crud.base import get_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.query_params import relationship_include_query
-from app.api.common.routers.read_helpers import get_model_response
+
+if TYPE_CHECKING:
+    from fastapi.openapi.models import Example
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
-ORGANIZATION_INCLUDE_EXAMPLES = {
-    "none": {"value": []},
-    "all": {"value": ["owner", "members"]},
-}
+ORGANIZATION_INCLUDE_EXAMPLES = cast(
+    "dict[str, Example]",
+    {
+        "none": {"value": []},
+        "all": {"value": ["owner", "members"]},
+    },
+)
 
 
 @router.get("", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations")
@@ -30,7 +35,10 @@ async def get_all_organizations(
     org_filter: Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)],
     include: Annotated[
         set[str] | None,
-        relationship_include_query(openapi_examples=ORGANIZATION_INCLUDE_EXAMPLES),
+        Query(
+            description="Relationships to include",
+            openapi_examples=ORGANIZATION_INCLUDE_EXAMPLES,
+        ),
     ] = None,
 ) -> Page[Organization]:
     """Get all organizations with optional relationships. Only superusers can access this route."""
@@ -48,15 +56,19 @@ async def get_organization_with_relationships(
     session: AsyncSessionDep,
     include: Annotated[
         set[str] | None,
-        relationship_include_query(openapi_examples=ORGANIZATION_INCLUDE_EXAMPLES),
+        Query(
+            description="Relationships to include",
+            openapi_examples=ORGANIZATION_INCLUDE_EXAMPLES,
+        ),
     ] = None,
 ) -> Organization:
     """Get organization by ID with optional relationships. Only superusers can access this route."""
-    return await get_model_response(
+    return await get_model_by_id(
         session,
         Organization,
         organization_id,
         include_relationships=include,
+        read_schema=OrganizationReadWithRelationships,
     )
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from importlib import import_module
 from typing import TYPE_CHECKING
 
 from app.core.config import settings
@@ -44,42 +45,44 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
         return True
 
     try:
-        from opentelemetry import trace
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-        from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-        from opentelemetry.sdk.resources import Resource
-        from opentelemetry.sdk.trace import TracerProvider
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        trace = import_module("opentelemetry.trace")
+        otlp_span_exporter = import_module(
+            "opentelemetry.exporter.otlp.proto.http.trace_exporter"
+        ).OTLPSpanExporter
+        fastapi_instrumentor_cls = import_module("opentelemetry.instrumentation.fastapi").FastAPIInstrumentor
+        httpx_instrumentor_cls = import_module("opentelemetry.instrumentation.httpx").HTTPXClientInstrumentor
+        sqlalchemy_instrumentor_cls = import_module("opentelemetry.instrumentation.sqlalchemy").SQLAlchemyInstrumentor
+        resource_cls = import_module("opentelemetry.sdk.resources").Resource
+        tracer_provider_cls = import_module("opentelemetry.sdk.trace").TracerProvider
+        batch_span_processor_cls = import_module("opentelemetry.sdk.trace.export").BatchSpanProcessor
     except ImportError:
         logger.warning("OpenTelemetry is enabled but instrumentation dependencies are not installed")
         app.state.telemetry_enabled = False
         return False
 
-    resource = Resource.create(
+    resource = resource_cls.create(
         {
             "service.name": settings.otel_service_name,
             "deployment.environment.name": settings.environment,
         }
     )
-    tracer_provider = TracerProvider(resource=resource)
+    tracer_provider = tracer_provider_cls(resource=resource)
 
     exporter = (
-        OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
+        otlp_span_exporter(endpoint=settings.otel_exporter_otlp_endpoint)
         if settings.otel_exporter_otlp_endpoint
-        else OTLPSpanExporter()
+        else otlp_span_exporter()
     )
-    tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
+    tracer_provider.add_span_processor(batch_span_processor_cls(exporter))
     trace.set_tracer_provider(tracer_provider)
 
-    fastapi_instrumentor = FastAPIInstrumentor()
+    fastapi_instrumentor = fastapi_instrumentor_cls()
     fastapi_instrumentor.instrument_app(app)
 
-    sqlalchemy_instrumentor = SQLAlchemyInstrumentor()
+    sqlalchemy_instrumentor = sqlalchemy_instrumentor_cls()
     sqlalchemy_instrumentor.instrument(engine=async_engine.sync_engine)
 
-    httpx_instrumentor = HTTPXClientInstrumentor()
+    httpx_instrumentor = httpx_instrumentor_cls()
     httpx_instrumentor.instrument()
 
     _telemetry_state.initialized = True

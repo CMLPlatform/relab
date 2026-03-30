@@ -7,14 +7,13 @@ from typing import TYPE_CHECKING
 import httpx
 import pytest
 from fastapi import FastAPI
-from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.dependencies import current_active_superuser, current_active_user, current_active_verified_user
 from app.api.auth.models import User
 from app.api.auth.utils.rate_limit import limiter
+from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.database import get_async_session
 from app.main import app
 from tests.factories.models import UserFactory
@@ -54,7 +53,7 @@ def test_app() -> Generator[FastAPI]:
 
 @pytest.fixture
 async def async_client(
-    test_app: FastAPI, session: AsyncSession, mock_redis_dependency: AsyncGenerator[Redis]
+    test_app: FastAPI, session: AsyncSession, mock_redis_dependency: Redis
 ) -> AsyncGenerator[httpx.AsyncClient]:
     """Provide async HTTP client for API testing.
 
@@ -78,8 +77,7 @@ async def async_client(
     # Provide the shared outbound HTTP client (used by UserManager for Have I Been Pwnd checks etc.)
     test_app.state.http_client = _test_http_client
 
-    # Setup in-memory cache for FastAPI Cache
-    FastAPICache.init(InMemoryBackend(), prefix="test-cache")
+    init_fastapi_cache(mock_redis_dependency)
 
     async with httpx.AsyncClient(
         transport=ASGITransport(app=test_app),
@@ -90,6 +88,7 @@ async def async_client(
 
     # Cleanup
     test_app.state.redis = None
+    await close_fastapi_cache()
     # Re-enable rate limiting after tests
     limiter.enabled = True
     test_app.dependency_overrides.clear()

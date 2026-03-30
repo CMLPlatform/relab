@@ -1,7 +1,6 @@
 """Database models for data collection on products."""
 # spell-checker: ignore trgm
 
-from functools import cached_property
 from typing import (  # Needed for runtime ORM mapping, not just for type annotations
     TYPE_CHECKING,
     Optional,
@@ -18,7 +17,7 @@ from sqlmodel import Column, Field, Relationship, col, select
 from app.api.auth.models import User
 from app.api.background_data.models import Material, ProductType
 from app.api.common.models.associations import MaterialProductLinkBase
-from app.api.common.models.base import IntPrimaryKeyMixin, TimeStampMixinBare
+from app.api.common.models.base import TimeStampMixinBare
 from app.api.data_collection.base import (
     CircularityPropertiesBase,
     PhysicalPropertiesBase,
@@ -28,7 +27,7 @@ from app.api.file_storage.models.models import File, Image, MediaParentType, Vid
 
 
 ### Properties Models ###
-class PhysicalProperties(PhysicalPropertiesBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True):
     """Model to store physical properties of a product."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -38,7 +37,7 @@ class PhysicalProperties(PhysicalPropertiesBase, IntPrimaryKeyMixin, TimeStampMi
     product: Product = Relationship(back_populates="physical_properties")
 
 
-class CircularityProperties(CircularityPropertiesBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table=True):
     """Model to store circularity properties of a product."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -51,7 +50,7 @@ class CircularityProperties(CircularityPropertiesBase, IntPrimaryKeyMixin, TimeS
 ### Product Model ###
 
 
-class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Product(ProductBase, TimeStampMixinBare, table=True):
     """Database model for product information."""
 
     id: int | None = Field(default=None, primary_key=True)
@@ -136,13 +135,13 @@ class Product(ProductBase, IntPrimaryKeyMixin, TimeStampMixinBare, table=True):
         return None
 
     @computed_field
-    @cached_property
+    @property
     def is_leaf_node(self) -> bool:
         """Check if the product is a leaf node (no components)."""
         return self.components is None or len(self.components) == 0
 
     @computed_field
-    @cached_property
+    @property
     def is_base_product(self) -> bool:
         """Check if the product is a base product (no parent)."""
         return self.parent_id is None

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -12,20 +12,15 @@ from sqlmodel import col, select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.background_data.routers.public import RecursionDepthQueryParam
+from app.api.common.crud.base import get_model_by_id, get_models, get_nested_model_by_id, get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.routers.read_helpers import (
-    get_model_response,
-    get_nested_model_response,
-    list_models_response,
-    list_models_sequence_response,
-)
 from app.api.data_collection import crud
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
 from app.api.data_collection.models import Product
 from app.api.data_collection.router_helpers import (
-    include_components_as_base_products_query,
-    product_include_query,
+    IncludeComponentsAsBaseProductsQueryParam,
+    ProductIncludeQueryParam,
 )
 from app.api.data_collection.schemas import (
     ComponentReadWithRecursiveComponents,
@@ -51,11 +46,10 @@ def convert_components_to_read_model(
         return []
 
     return [
-        ComponentReadWithRecursiveComponents.model_validate(
-            component,
+        ComponentReadWithRecursiveComponents.model_validate(component).model_copy(
             update={
                 "components": convert_components_to_read_model(component.components or [], max_depth, current_depth + 1)
-            },
+            }
         )
         for component in components
     ]
@@ -89,9 +83,9 @@ async def get_user_products(
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    include: Annotated[set[str] | None, product_include_query()] = None,
+    include: ProductIncludeQueryParam = None,
     *,
-    include_components_as_base_products: Annotated[bool | None, include_components_as_base_products_query()] = None,
+    include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
 ) -> Page[Product]:
     """Get products collected by a specific user."""
     if user_id != current_user.id and not current_user.is_superuser:
@@ -101,7 +95,7 @@ async def get_user_products(
     if not include_components_as_base_products:
         statement = statement.where(col(Product.parent_id).is_(None))
 
-    return await list_models_response(
+    return await get_paginated_models(
         session,
         Product,
         include_relationships=include,
@@ -119,9 +113,9 @@ async def get_user_products(
 async def get_products(
     session: AsyncSessionDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    include: Annotated[set[str] | None, product_include_query()] = None,
+    include: ProductIncludeQueryParam = None,
     *,
-    include_components_as_base_products: Annotated[bool | None, include_components_as_base_products_query()] = None,
+    include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
 ) -> Page[Product]:
     """Get all products with specified relationships."""
     if include_components_as_base_products:
@@ -129,7 +123,7 @@ async def get_products(
     else:
         statement = select(Product).where(col(Product.parent_id).is_(None))
 
-    return await list_models_response(
+    return await get_paginated_models(
         session,
         Product,
         include_relationships=include,
@@ -154,11 +148,10 @@ async def get_products_tree(
         session, recursion_depth=recursion_depth, product_filter=product_filter
     )
     return [
-        ProductReadWithRecursiveComponents.model_validate(
-            product,
+        ProductReadWithRecursiveComponents.model_validate(product).model_copy(
             update={
                 "components": convert_components_to_read_model(product.components or [], max_depth=recursion_depth - 1)
-            },
+            }
         )
         for product in products
     ]
@@ -172,10 +165,10 @@ async def get_products_tree(
 async def get_product(
     session: AsyncSessionDep,
     product_id: PositiveInt,
-    include: Annotated[set[str] | None, product_include_query()] = None,
+    include: ProductIncludeQueryParam = None,
 ) -> Product:
     """Get product by ID with specified relationships."""
-    return await get_model_response(
+    return await get_model_by_id(
         session,
         Product,
         product_id,
@@ -200,11 +193,10 @@ async def get_product_subtree(
         session, recursion_depth=recursion_depth, parent_id=product_id, product_filter=product_filter
     )
     return [
-        ComponentReadWithRecursiveComponents.model_validate(
-            product,
+        ComponentReadWithRecursiveComponents.model_validate(product).model_copy(
             update={
                 "components": convert_components_to_read_model(product.components or [], max_depth=recursion_depth - 1)
-            },
+            }
         )
         for product in products
     ]
@@ -219,11 +211,11 @@ async def get_product_components(
     session: AsyncSessionDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
-    include: Annotated[set[str] | None, product_include_query()] = None,
+    include: ProductIncludeQueryParam = None,
 ) -> Sequence[Product]:
     """Get all components of a product."""
-    await get_model_response(session, Product, product_id)
-    return await list_models_sequence_response(
+    await get_model_by_id(session, Product, product_id)
+    return await get_models(
         session,
         Product,
         include_relationships=include,
@@ -242,11 +234,11 @@ async def get_product_component(
     product_id: PositiveInt,
     component_id: PositiveInt,
     *,
-    include: Annotated[set[str] | None, product_include_query()] = None,
+    include: ProductIncludeQueryParam = None,
     session: AsyncSessionDep,
 ) -> Product:
     """Get component by ID with specified relationships."""
-    return await get_nested_model_response(
+    return await get_nested_model_by_id(
         session,
         Product,
         product_id,

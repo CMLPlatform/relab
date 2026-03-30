@@ -2,17 +2,16 @@
 
 import uuid
 from enum import StrEnum
-from functools import cached_property
 from urllib.parse import urljoin
 
 from cachetools import TTLCache
 from httpx import AsyncClient, RequestError
 from pydantic import UUID4, AnyUrl, BaseModel, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
-from sqlmodel import AutoString, Field, Relationship
+from sqlmodel import AutoString, Field, Relationship, SQLModel
 
 from app.api.auth.models import User
-from app.api.common.models.base import CustomBase, TimeStampMixinBare
+from app.api.common.models.base import TimeStampMixinBare
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
 from app.core.cache import async_ttl_cache
@@ -54,7 +53,7 @@ class CameraStatus(BaseModel):
 
 
 ### RpiCam Model ###
-class CameraBase(CustomBase):
+class CameraBase(SQLModel):
     """Base model for Camera with common fields."""
 
     name: str = Field(index=True, min_length=2, max_length=100)
@@ -84,7 +83,7 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
     )
 
     @computed_field
-    @cached_property
+    @property
     def auth_headers(self) -> dict[str, SecretStr]:
         """Get all authentication headers including server-generated x-api-key."""
         headers = {settings.api_key_header_name: SecretStr(decrypt_str(self.encrypted_api_key))}
@@ -102,7 +101,7 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
         self.encrypted_auth_headers = encrypt_dict(headers)
 
     @computed_field
-    @cached_property
+    @property
     def verify_ssl(self) -> bool:
         """Whether to verify SSL certificates based on URL scheme."""
         return AnyUrl(self.url).scheme in {"https", "wss"}

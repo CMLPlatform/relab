@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
-from fastapi import Path
+from fastapi import Path, Query
 from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlmodel import select
@@ -12,7 +12,6 @@ from sqlmodel import select
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, CategoryFilterWithRelationshipsDep
 from app.api.background_data.models import Category
-from app.api.background_data.router_factories import CategoryIncludeExamples, relationship_include_query
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
     RecursionDepthQueryParam,
@@ -22,15 +21,22 @@ from app.api.background_data.schemas import (
     CategoryReadWithRecursiveSubCategories,
     CategoryReadWithRelationshipsAndFlatSubCategories,
 )
+from app.api.common.crud.base import get_model_by_id, get_nested_model_by_id, get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.read_helpers import (
-    get_model_response,
-    get_nested_model_response,
-    list_models_response,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from fastapi.openapi.models import Example
+
+CATEGORY_INCLUDE_EXAMPLES = cast(
+    "dict[str, Example]",
+    {
+        "none": {"value": []},
+        "materials": {"value": ["materials"]},
+        "all": {"value": ["materials", "product_types", "subcategories"]},
+    },
+)
 
 router = BackgroundDataAPIRouter(prefix="/categories", tags=["categories"])
 
@@ -43,10 +49,13 @@ router = BackgroundDataAPIRouter(prefix="/categories", tags=["categories"])
 async def get_categories(
     session: AsyncSessionDep,
     category_filter: CategoryFilterWithRelationshipsDep,
-    include: Annotated[set[str] | None, relationship_include_query(openapi_examples=CategoryIncludeExamples)] = None,
+    include: Annotated[
+        set[str] | None,
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+    ] = None,
 ) -> Page[Category]:
     """Get all categories with specified relationships."""
-    return await list_models_response(
+    return await get_paginated_models(
         session,
         Category,
         include_relationships=include,
@@ -70,13 +79,12 @@ async def get_categories_tree(
         session, recursion_depth, category_filter=category_filter
     )
     return [
-        CategoryReadWithRecursiveSubCategories.model_validate(
-            category,
+        CategoryReadWithRecursiveSubCategories.model_validate(category).model_copy(
             update={
                 "subcategories": convert_subcategories_to_read_model(
                     category.subcategories or [], max_depth=recursion_depth - 1
                 )
-            },
+            }
         )
         for category in categories
     ]
@@ -89,10 +97,13 @@ async def get_categories_tree(
 async def get_category(
     session: AsyncSessionDep,
     category_id: PositiveInt,
-    include: Annotated[set[str] | None, relationship_include_query(openapi_examples=CategoryIncludeExamples)] = None,
+    include: Annotated[
+        set[str] | None,
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+    ] = None,
 ) -> Category:
     """Get category by ID with specified relationships."""
-    return await get_model_response(
+    return await get_model_by_id(
         session,
         Category,
         category_id,
@@ -110,12 +121,15 @@ async def get_subcategories(
     category_id: Annotated[PositiveInt, Path(description="Category ID")],
     category_filter: CategoryFilterDep,
     session: AsyncSessionDep,
-    include: Annotated[set[str] | None, relationship_include_query(openapi_examples=CategoryIncludeExamples)] = None,
+    include: Annotated[
+        set[str] | None,
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+    ] = None,
 ) -> Page[Category]:
     """Get paginated subcategories of a category with specified relationships."""
-    await get_model_response(session, Category, category_id)
+    await get_model_by_id(session, Category, category_id)
     statement = select(Category).where(Category.supercategory_id == category_id)
-    return await list_models_response(
+    return await get_paginated_models(
         session,
         Category,
         include_relationships=include,
@@ -141,13 +155,12 @@ async def get_category_subtree(
         session, recursion_depth=recursion_depth, supercategory_id=category_id, category_filter=category_filter
     )
     return [
-        CategoryReadWithRecursiveSubCategories.model_validate(
-            category,
+        CategoryReadWithRecursiveSubCategories.model_validate(category).model_copy(
             update={
                 "subcategories": convert_subcategories_to_read_model(
                     category.subcategories or [], max_depth=recursion_depth - 1
                 )
-            },
+            }
         )
         for category in categories
     ]
@@ -162,10 +175,13 @@ async def get_subcategory(
     category_id: PositiveInt,
     subcategory_id: PositiveInt,
     session: AsyncSessionDep,
-    include: Annotated[set[str] | None, relationship_include_query(openapi_examples=CategoryIncludeExamples)] = None,
+    include: Annotated[
+        set[str] | None,
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+    ] = None,
 ) -> Category:
     """Get subcategory by ID with specified relationships."""
-    return await get_nested_model_response(
+    return await get_nested_model_by_id(
         session,
         Category,
         category_id,

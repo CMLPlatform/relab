@@ -18,6 +18,7 @@ from app.api.common.schemas.base import (
     MaterialRead,
     ProductRead,
 )
+from app.api.common.schemas.field_mixins import CategoryFields, ProductTypeFields, TaxonomyFields
 from app.api.file_storage.schemas import FileRead, ImageRead
 
 
@@ -57,7 +58,7 @@ class CategoryCreateWithSubCategories(CategoryCreateWithinTaxonomyWithSubCategor
 
 
 ## Read Schemas ##
-class CategoryReadAsSubCategory(BaseReadSchema, CategoryBase):
+class CategoryReadAsSubCategory(BaseReadSchema, CategoryFields):
     """Schema for reading subcategory information."""
 
     model_config: ConfigDict = ConfigDict(
@@ -198,7 +199,7 @@ class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
 
 
 ## Read Schemas ##
-class TaxonomyRead(BaseReadSchemaWithTimeStamp, TaxonomyBase):
+class TaxonomyRead(BaseReadSchemaWithTimeStamp, TaxonomyFields):
     """Schema for reading minimal taxonomy information."""
 
     model_config: ConfigDict = ConfigDict(
@@ -323,7 +324,7 @@ class ProductTypeCreateWithCategories(BaseCreateSchema, ProductTypeBase):
 
 
 ## Read Schemas ##
-class ProductTypeRead(BaseReadSchema, ProductTypeBase):
+class ProductTypeRead(BaseReadSchema, ProductTypeFields):
     """Schema for reading flat product type information."""
 
 

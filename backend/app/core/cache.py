@@ -10,7 +10,7 @@ import hashlib
 import json
 import logging
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast, overload
 
 from cashews import Cache
 from fastapi.responses import HTMLResponse
@@ -151,8 +151,8 @@ def cache(
             cached_value = await _backend.get(key, default=_MISSING)
             if cached_value is not _MISSING:
                 if coder is not None:
-                    return coder.decode(cached_value)
-                return cached_value
+                    return coder.decode(cast("bytes | str", cached_value))
+                return cast("T", cached_value)
 
             result = await func(*args, **kwargs)
             value_to_store = coder.encode(result) if coder is not None else result

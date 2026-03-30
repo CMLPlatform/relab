@@ -3,7 +3,7 @@
 import logging
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from anyio import Path as AnyIOPath
 from sqlmodel import select
@@ -14,6 +14,30 @@ from app.core.config import settings
 from app.core.images import THUMBNAIL_WIDTHS, thumbnail_path_for
 
 logger = logging.getLogger(__name__)
+
+
+async def _resolve_storage_path(path_like: object, *, storage_dir: Path | str | None = None) -> AnyIOPath | None:
+    """Resolve a storage field value to an absolute path when possible."""
+    name_attr = getattr(path_like, "name", None)
+    if isinstance(name_attr, str) and storage_dir is not None:
+        candidate = Path(storage_dir) / name_attr
+        return await AnyIOPath(str(candidate)).resolve()
+
+    if isinstance(path_like, str):
+        candidate = Path(path_like)
+        if not candidate.is_absolute() and storage_dir is not None:
+            candidate = Path(storage_dir) / candidate
+        return await AnyIOPath(str(candidate)).resolve()
+
+    path_attr = getattr(path_like, "path", None)
+    if isinstance(path_attr, str):
+        return await AnyIOPath(path_attr).resolve()
+
+    file_attr = getattr(path_like, "file", None)
+    if file_attr is not None:
+        return await _resolve_storage_path(file_attr, storage_dir=storage_dir)
+
+    return None
 
 
 def _get_thumbnail_paths(image_path: str) -> set[AnyIOPath]:
@@ -30,17 +54,18 @@ async def get_referenced_files(session: AsyncSession) -> set[AnyIOPath]:
     """
     referenced_paths: set[AnyIOPath] = set()
 
-    file_stmt = select(cast("Any", File.file))
+    file_stmt = select(File)
     files = (await session.exec(file_stmt)).all()
     for f in files:
-        if f and hasattr(f, "path"):
-            referenced_paths.add(await AnyIOPath(f.path).resolve())
+        resolved_path = await _resolve_storage_path(getattr(f, "file", None), storage_dir=settings.file_storage_path)
+        if resolved_path is not None:
+            referenced_paths.add(resolved_path)
 
-    image_stmt = select(cast("Any", Image.file))
+    image_stmt = select(Image)
     images = (await session.exec(image_stmt)).all()
     for img in images:
-        if img and hasattr(img, "path"):
-            resolved_path = await AnyIOPath(img.path).resolve()
+        resolved_path = await _resolve_storage_path(getattr(img, "file", None), storage_dir=settings.image_storage_path)
+        if resolved_path is not None:
             referenced_paths.add(resolved_path)
             referenced_paths.update(_get_thumbnail_paths(str(resolved_path)))
 

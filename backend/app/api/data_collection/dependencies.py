@@ -1,6 +1,6 @@
 """Router dependencies for data collection routers."""
 
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import Depends, Path
 from fastapi_filter import FilterDepends
@@ -39,7 +39,7 @@ async def get_user_owned_product(
     """Verify that the current user owns the specified product."""
     if product.owner_id == current_user.id or current_user.is_superuser:
         return product
-    raise UserOwnershipError(model_type=Product, model_id=product.db_id, user_id=current_user.id) from None
+    raise UserOwnershipError(model_type=Product, model_id=cast("int", product.id), user_id=current_user.id) from None
 
 
 UserOwnedProductDep = Annotated[Product, Depends(get_user_owned_product)]

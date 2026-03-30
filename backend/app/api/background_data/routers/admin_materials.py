@@ -2,45 +2,227 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+import json
+from typing import TYPE_CHECKING, Annotated
+
+from fastapi import APIRouter, Body, Form, Path, Security, UploadFile
+from fastapi import File as FastAPIFile
+from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.background_data import crud
-from app.api.background_data.models import Material
-from app.api.background_data.router_factories import add_basic_admin_crud_routes, add_linked_category_write_routes
-from app.api.background_data.schemas import MaterialCreateWithCategories, MaterialRead, MaterialUpdate
-from app.api.file_storage.router_factories import StorageRouteMethod, add_storage_routes
+from app.api.background_data.models import Category, Material
+from app.api.background_data.schemas import CategoryRead, MaterialCreateWithCategories, MaterialRead, MaterialUpdate
+from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.file_storage.models.models import MediaParentType
+from app.api.file_storage.schemas import (
+    FileCreate,
+    FileReadWithinParent,
+    ImageCreateFromForm,
+    ImageReadWithinParent,
+    empty_str_to_none,
+)
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
-add_basic_admin_crud_routes(
-    router,
-    model_label="material",
-    path_param="material_id",
+@router.post(
+    "",
     response_model=MaterialRead,
-    create_schema=MaterialCreateWithCategories,
-    update_schema=MaterialUpdate,
-    create_handler=crud.create_material,
-    update_handler=crud.update_material,
-    delete_handler=crud.delete_material,
+    summary="Create material",
+    status_code=201,
 )
+async def create_material(
+    session: AsyncSessionDep,
+    payload: MaterialCreateWithCategories,
+) -> Material:
+    """Create a material."""
+    return await crud.create_material(session, payload)
 
 
-add_linked_category_write_routes(
-    router,
-    parent_path_param="material_id",
-    parent_label="material",
-    add_categories=crud.add_categories_to_material,
-    add_category=crud.add_category_to_material,
-    remove_categories=crud.remove_categories_from_material,
+@router.patch(
+    "/{material_id}",
+    response_model=MaterialRead,
+    summary="Update material",
 )
+async def update_material(
+    material_id: Annotated[PositiveInt, Path(description="Material ID")],
+    session: AsyncSessionDep,
+    payload: MaterialUpdate,
+) -> Material:
+    """Update a material."""
+    return await crud.update_material(session, material_id, payload)
 
 
-add_storage_routes(
-    router=router,
-    parent_api_model_name=Material.get_api_model_name(),
-    files_crud=crud.material_files_crud,
-    images_crud=crud.material_images_crud,
-    include_methods={StorageRouteMethod.POST, StorageRouteMethod.DELETE},
-    modify_auth_dep=current_active_superuser,
+@router.delete(
+    "/{material_id}",
+    summary="Delete material",
+    status_code=204,
 )
+async def delete_material(
+    material_id: Annotated[PositiveInt, Path(description="Material ID")],
+    session: AsyncSessionDep,
+) -> None:
+    """Delete a material."""
+    await crud.delete_material(session, material_id)
+
+
+@router.post(
+    "/{material_id}/categories",
+    response_model=list[CategoryRead],
+    summary="Add multiple categories to the material",
+    status_code=201,
+)
+async def add_categories_to_material(
+    material_id: Annotated[int, Path(description="Material ID", gt=0)],
+    session: AsyncSessionDep,
+    category_ids: Annotated[
+        set[int],
+        Body(
+            description="Category IDs to assign to the material",
+            examples=[[1, 2, 3]],
+        ),
+    ],
+) -> Sequence[Category]:
+    """Add multiple categories to a material."""
+    return await crud.add_categories_to_material(session, material_id, set(category_ids))
+
+
+@router.post(
+    "/{material_id}/categories/{category_id}",
+    response_model=CategoryRead,
+    summary="Add a category to the material",
+    status_code=201,
+)
+async def add_category_to_material(
+    material_id: Annotated[int, Path(description="Material ID", gt=0)],
+    category_id: Annotated[int, Path(description="ID of category to add to the material", gt=0)],
+    session: AsyncSessionDep,
+) -> Category:
+    """Add a single category to a material."""
+    return await crud.add_category_to_material(session, material_id, category_id)
+
+
+@router.delete(
+    "/{material_id}/categories",
+    summary="Remove multiple categories from the material",
+    status_code=204,
+)
+async def remove_categories_from_material(
+    material_id: Annotated[int, Path(description="Material ID", gt=0)],
+    session: AsyncSessionDep,
+    category_ids: Annotated[
+        set[int],
+        Body(
+            description="Category IDs to remove from the material",
+            examples=[[1, 2, 3]],
+        ),
+    ],
+) -> None:
+    """Remove multiple categories from a material."""
+    await crud.remove_categories_from_material(session, material_id, set(category_ids))
+
+
+@router.delete(
+    "/{material_id}/categories/{category_id}",
+    summary="Remove a category from the material",
+    status_code=204,
+)
+async def remove_category_from_material(
+    material_id: Annotated[int, Path(description="Material ID", gt=0)],
+    category_id: Annotated[int, Path(description="ID of category to remove from the material", gt=0)],
+    session: AsyncSessionDep,
+) -> None:
+    """Remove a single category from a material."""
+    await crud.remove_categories_from_material(session, material_id, category_id)
+
+@router.post(
+    "/{material_id}/files",
+    response_model=FileReadWithinParent,
+    status_code=201,
+    dependencies=[Security(current_active_superuser)],
+    summary="Add File to Material",
+)
+async def upload_material_file(
+    material_id: Annotated[PositiveInt, Path(description="ID of the Material")],
+    session: AsyncSessionDep,
+    file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
+    description: Annotated[str | None, Form()] = None,
+) -> FileReadWithinParent:
+    """Upload a new file for the material."""
+    item = await crud.material_files_crud.create(
+        session,
+        material_id,
+        FileCreate(file=file, description=description, parent_id=material_id, parent_type=MediaParentType.MATERIAL),
+    )
+    return FileReadWithinParent.model_validate(item)
+
+
+@router.delete(
+    "/{material_id}/files/{file_id}",
+    dependencies=[Security(current_active_superuser)],
+    summary="Remove File from Material",
+    status_code=204,
+)
+async def delete_material_file(
+    material_id: Annotated[PositiveInt, Path(description="ID of the Material")],
+    file_id: Annotated[UUID4, Path(description="ID of the file")],
+    session: AsyncSessionDep,
+) -> None:
+    """Remove a file from the material."""
+    await crud.material_files_crud.delete(session, material_id, file_id)
+
+
+@router.post(
+    "/{material_id}/images",
+    response_model=ImageReadWithinParent,
+    status_code=201,
+    dependencies=[Security(current_active_superuser)],
+    summary="Add Image to Material",
+)
+async def upload_material_image(
+    material_id: Annotated[PositiveInt, Path(description="ID of the Material")],
+    session: AsyncSessionDep,
+    file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
+    description: Annotated[str | None, Form()] = None,
+    image_metadata: Annotated[
+        str | None,
+        Form(
+            description="Image metadata in JSON string format",
+            examples=[r'{"foo_key": "foo_value", "bar_key": {"nested_key": "nested_value"}}'],
+        ),
+        BeforeValidator(empty_str_to_none),
+    ] = None,
+) -> ImageReadWithinParent:
+    """Upload a new image for the material."""
+    item = await crud.material_images_crud.create(
+        session,
+        material_id,
+        ImageCreateFromForm.model_validate(
+            {
+                "file": file,
+                "description": description,
+                "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
+                "parent_id": material_id,
+                "parent_type": MediaParentType.MATERIAL,
+            }
+        ),
+    )
+    return ImageReadWithinParent.model_validate(item)
+
+
+@router.delete(
+    "/{material_id}/images/{image_id}",
+    dependencies=[Security(current_active_superuser)],
+    summary="Remove Image from Material",
+    status_code=204,
+)
+async def delete_material_image(
+    material_id: Annotated[PositiveInt, Path(description="ID of the Material")],
+    image_id: Annotated[UUID4, Path(description="ID of the image")],
+    session: AsyncSessionDep,
+) -> None:
+    """Remove an image from the material."""
+    await crud.material_images_crud.delete(session, material_id, image_id)

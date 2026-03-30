@@ -5,12 +5,12 @@ package while preserving the small API surface we actually use.
 """
 
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi_users.db.base import BaseUserDatabase
-from fastapi_users.models import ID, OAP, UP
+from fastapi_users.models import ID, OAP, UOAP, UP
 from pydantic import UUID4, ConfigDict, EmailStr
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import QueryableAttribute, selectinload
 from sqlmodel import AutoString, Field, SQLModel, func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -58,6 +58,12 @@ class SQLModelBaseOAuthAccount(SQLModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class OAuthAccountWithUser(SQLModelBaseOAuthAccount):
+    """Typing helper for OAuth account models that expose a ``user`` relationship."""
+
+    user: Any
+
+
 class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
     """Async SQLModel user adapter for FastAPI Users."""
 
@@ -75,9 +81,9 @@ class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
         self.user_model = user_model
         self.oauth_account_model = oauth_account_model
 
-    async def get(self, user_id: ID) -> UP | None:
+    async def get(self, id: ID) -> UP | None:  # noqa: A002
         """Get a single user by ID."""
-        return await self.session.get(self.user_model, user_id)
+        return await self.session.get(self.user_model, id)
 
     async def get_by_email(self, email: str) -> UP | None:
         """Get a single user by email."""
@@ -90,16 +96,17 @@ class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
         if self.oauth_account_model is None:
             raise NotImplementedError
 
+        oauth_account_model = cast("type[OAuthAccountWithUser]", self.oauth_account_model)
         statement = (
-            select(self.oauth_account_model)
-            .where(self.oauth_account_model.oauth_name == oauth)
-            .where(self.oauth_account_model.account_id == account_id)
-            .options(selectinload(self.oauth_account_model.user))  # type: ignore[attr-defined]
+            select(oauth_account_model)
+            .where(oauth_account_model.oauth_name == oauth)
+            .where(oauth_account_model.account_id == account_id)
+            .options(selectinload(cast("QueryableAttribute[Any]", oauth_account_model.user)))
         )
         results = await self.session.exec(statement)
         oauth_account = results.unique().one_or_none()
         if oauth_account:
-            return oauth_account.user
+            return cast("UP", oauth_account.user)
         return None
 
     async def create(self, create_dict: Mapping[str, Any]) -> UP:
@@ -124,7 +131,7 @@ class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
         await self.session.delete(user)
         await self.session.commit()
 
-    async def add_oauth_account(self, user: UP, create_dict: Mapping[str, Any]) -> UP:
+    async def add_oauth_account(self, user: UOAP, create_dict: dict[str, Any]) -> UOAP:
         """Attach an OAuth account to a user."""
         if self.oauth_account_model is None:
             raise NotImplementedError
@@ -135,7 +142,7 @@ class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
         await self.session.commit()
         return user
 
-    async def update_oauth_account(self, user: UP, oauth_account: OAP, update_dict: Mapping[str, Any]) -> UP:
+    async def update_oauth_account(self, user: UOAP, oauth_account: OAP, update_dict: dict[str, Any]) -> UOAP:
         """Update an existing OAuth account."""
         if self.oauth_account_model is None:
             raise NotImplementedError

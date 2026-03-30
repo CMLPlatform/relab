@@ -1,13 +1,12 @@
 """Linking tables for cross-module many-to-many relationships."""
 
-from sqlmodel import Column, Enum, Field
+from sqlmodel import Column, Enum, Field, SQLModel
 
-from app.api.common.models.base import CustomLinkingModelBase
 from app.api.common.models.enums import Unit
 
 
 ### Material-Product Association Models ###
-class MaterialProductLinkBase(CustomLinkingModelBase):
+class MaterialProductLinkBase(SQLModel):
     """Base model for Material-Product links."""
 
     quantity: float = Field(gt=0, description="Quantity of the material in the product")

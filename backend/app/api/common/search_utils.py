@@ -9,8 +9,7 @@ Usage in a Filter subclass
 4.  Remove ``search_model_fields`` from the inner ``Constants`` class so
     fastapi-filter does not generate its own ILIKE queries for ``search``.
 
-Example::
-
+Example:
     class MyFilter(TSVectorSearchMixin, Filter):
         search: str | None = None
         order_by: list[str] | None = None

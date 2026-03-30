@@ -7,17 +7,10 @@ without triggering the full data_collection/models.py import chain.
 
 import logging
 from datetime import UTC, datetime
-from functools import cached_property
-from typing import TYPE_CHECKING
 
-from pydantic import computed_field, model_validator
+from pydantic import computed_field
 from sqlalchemy import TIMESTAMP
-from sqlmodel import Column, Field
-
-from app.api.common.models.base import CustomBase
-
-if TYPE_CHECKING:
-    from typing import Self
+from sqlmodel import Column, Field, SQLModel
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +24,7 @@ def validate_start_and_end_time(start_time: datetime, end_time: datetime | None)
 
 
 ### Properties Base Models ###
-class PhysicalPropertiesBase(CustomBase):
+class PhysicalPropertiesBase(SQLModel):
     """Base model to store physical properties of a product."""
 
     weight_g: float | None = Field(default=None, gt=0)
@@ -41,7 +34,7 @@ class PhysicalPropertiesBase(CustomBase):
 
     # Computed properties
     @computed_field
-    @cached_property
+    @property
     def volume_cm3(self) -> float | None:
         """Calculate the volume of the product."""
         if self.height_cm is None or self.width_cm is None or self.depth_cm is None:
@@ -50,7 +43,7 @@ class PhysicalPropertiesBase(CustomBase):
         return self.height_cm * self.width_cm * self.depth_cm
 
 
-class CircularityPropertiesBase(CustomBase):
+class CircularityPropertiesBase(SQLModel):
     """Base model to store circularity properties of a product."""
 
     # Recyclability
@@ -70,7 +63,7 @@ class CircularityPropertiesBase(CustomBase):
 
 
 ### Product Base Model ###
-class ProductBase(CustomBase):
+class ProductBase(SQLModel):
     """Basic model to store product information."""
 
     name: str = Field(index=True, min_length=2, max_length=100)
@@ -87,10 +80,3 @@ class ProductBase(CustomBase):
         sa_column=Column(TIMESTAMP(timezone=True), nullable=False), default_factory=lambda: datetime.now(UTC)
     )
     dismantling_time_end: datetime | None = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
-
-    # Time validation
-    @model_validator(mode="after")
-    def validate_times(self) -> Self:
-        """Ensure end time is after start time if both are set."""
-        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
-        return self

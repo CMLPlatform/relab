@@ -3,12 +3,12 @@
 import uuid
 
 from pydantic import UUID4, EmailStr
-from sqlmodel import Field
+from sqlmodel import Field, SQLModel
 
-from app.api.common.models.base import CustomBase, TimeStampMixinBare
+from app.api.common.models.base import TimeStampMixinBare
 
 
-class NewsletterSubscriberBase(CustomBase):
+class NewsletterSubscriberBase(SQLModel):
     """Base schema for newsletter subscribers."""
 
     email: EmailStr = Field(index=True, unique=True)

@@ -418,6 +418,8 @@ class _BaseStorageType(TypeDecorator):
 class FileType(_BaseStorageType):
     """SQLAlchemy column type that stores files on the configured storage backend."""
 
+    cache_ok = True
+
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(_get_file_storage(), *args, **kwargs)
 
@@ -436,6 +438,8 @@ class FileType(_BaseStorageType):
 
 class ImageType(_BaseStorageType):
     """SQLAlchemy column type that stores images on the configured storage backend."""
+
+    cache_ok = True
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(_get_image_storage(), *args, **kwargs)

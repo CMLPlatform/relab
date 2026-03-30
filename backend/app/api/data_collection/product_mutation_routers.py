@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+import json
+from typing import Annotated, cast
 
-from fastapi import Body
-from pydantic import PositiveInt
+from fastapi import Body, Depends, Form, Path, UploadFile
+from fastapi import File as FastAPIFile
+from fastapi_filter import FilterDepends
+from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.common.crud.base import get_nested_model_by_id
@@ -14,6 +17,10 @@ from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
 from app.api.data_collection import crud
 from app.api.data_collection.dependencies import UserOwnedProductDep, get_user_owned_product_id
+from app.api.data_collection.examples import (
+    COMPONENT_CREATE_OPENAPI_EXAMPLES,
+    PRODUCT_CREATE_OPENAPI_EXAMPLES,
+)
 from app.api.data_collection.models import Product
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
@@ -23,7 +30,15 @@ from app.api.data_collection.schemas import (
     ProductUpdate,
     ProductUpdateWithProperties,
 )
-from app.api.file_storage.router_factories import StorageRouteMethod, add_storage_routes
+from app.api.file_storage.filters import FileFilter, ImageFilter
+from app.api.file_storage.models.models import MediaParentType
+from app.api.file_storage.schemas import (
+    FileCreate,
+    FileReadWithinParent,
+    ImageCreateFromForm,
+    ImageReadWithinParent,
+    empty_str_to_none,
+)
 
 product_mutation_router = PublicAPIRouter(prefix="/products", tags=["products"])
 
@@ -39,91 +54,7 @@ async def create_product(
         ProductCreateWithComponents,
         Body(
             description="Product to create",
-            openapi_examples={
-                "basic": {
-                    "summary": "Basic product without components",
-                    "value": {
-                        "name": "Office Chair",
-                        "description": "Complete chair assembly",
-                        "brand": "Brand 1",
-                        "model": "Model 1",
-                        "dismantling_time_start": "2025-09-22T14:30:45Z",
-                        "dismantling_time_end": "2025-09-22T16:30:45Z",
-                        "product_type_id": 1,
-                        "physical_properties": {
-                            "weight_g": 2000,
-                            "height_cm": 150,
-                            "width_cm": 70,
-                            "depth_cm": 50,
-                        },
-                        "videos": [
-                            {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
-                        ],
-                        "bill_of_materials": [
-                            {"quantity": 15, "unit": "g", "material_id": 1},
-                            {"quantity": 5, "unit": "g", "material_id": 2},
-                        ],
-                    },
-                },
-                "with_components": {
-                    "summary": "Product with components",
-                    "value": {
-                        "name": "Office Chair",
-                        "description": "Complete chair assembly",
-                        "brand": "Brand 1",
-                        "model": "Model 1",
-                        "dismantling_time_start": "2025-09-22T14:30:45Z",
-                        "dismantling_time_end": "2025-09-22T16:30:45Z",
-                        "product_type_id": 1,
-                        "physical_properties": {
-                            "weight_g": 20000,
-                            "height_cm": 150,
-                            "width_cm": 70,
-                            "depth_cm": 50,
-                        },
-                        "videos": [
-                            {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
-                        ],
-                        "o": 1,
-                        "components": [
-                            {
-                                "name": "Office Chair Seat",
-                                "description": "Seat assembly",
-                                "brand": "Brand 2",
-                                "model": "Model 2",
-                                "dismantling_time_start": "2025-09-22T14:30:45Z",
-                                "dismantling_time_end": "2025-09-22T16:30:45Z",
-                                "amount_in_parent": 1,
-                                "product_type_id": 2,
-                                "physical_properties": {
-                                    "weight_g": 5000,
-                                    "height_cm": 50,
-                                    "width_cm": 40,
-                                    "depth_cm": 30,
-                                },
-                                "components": [
-                                    {
-                                        "name": "Seat Cushion",
-                                        "description": "Seat cushion assembly",
-                                        "amount_in_parent": 1,
-                                        "physical_properties": {
-                                            "weight_g": 2000,
-                                            "height_cm": 10,
-                                            "width_cm": 40,
-                                            "depth_cm": 30,
-                                        },
-                                        "product_type_id": 3,
-                                        "bill_of_materials": [
-                                            {"quantity": 1.5, "unit": "g", "material_id": 1},
-                                            {"quantity": 0.5, "unit": "g", "material_id": 2},
-                                        ],
-                                    }
-                                ],
-                            }
-                        ],
-                    },
-                },
-            },
+            openapi_examples=PRODUCT_CREATE_OPENAPI_EXAMPLES,
         ),
     ],
     current_user: CurrentActiveVerifiedUserDep,
@@ -140,7 +71,7 @@ async def update_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Update an existing product."""
-    return await crud.update_product(session, db_product.db_id, product_update)
+    return await crud.update_product(session, cast("int", db_product.id), product_update)
 
 
 @product_mutation_router.delete(
@@ -150,7 +81,7 @@ async def update_product(
 )
 async def delete_product(db_product: UserOwnedProductDep, session: AsyncSessionDep) -> None:
     """Delete a product, including components."""
-    await crud.delete_product(session, db_product.db_id)
+    await crud.delete_product(session, cast("int", db_product.id))
 
 
 @product_mutation_router.post(
@@ -164,35 +95,7 @@ async def add_component_to_product(
     component: Annotated[
         ComponentCreateWithComponents,
         Body(
-            openapi_examples={
-                "simple": {
-                    "summary": "Basic component",
-                    "description": "Create a component without subcomponents",
-                    "value": {
-                        "name": "Seat Assembly",
-                        "description": "Chair seat component",
-                        "amount_in_parent": 1,
-                        "bill_of_materials": [{"material_id": 1, "quantity": 0.5, "unit": "g"}],
-                    },
-                },
-                "nested": {
-                    "summary": "Component with subcomponents",
-                    "description": "Create a component with nested subcomponents",
-                    "value": {
-                        "name": "Seat Assembly",
-                        "description": "Chair seat with cushion",
-                        "amount_in_parent": 1,
-                        "components": [
-                            {
-                                "name": "Cushion",
-                                "description": "Foam cushion",
-                                "amount_in_parent": 1,
-                                "bill_of_materials": [{"material_id": 2, "quantity": 0.3, "unit": "g"}],
-                            }
-                        ],
-                    },
-                },
-            }
+            openapi_examples=COMPONENT_CREATE_OPENAPI_EXAMPLES
         ),
     ],
     session: AsyncSessionDep,
@@ -214,16 +117,150 @@ async def delete_product_component(
     db_product: UserOwnedProductDep, component_id: PositiveInt, session: AsyncSessionDep
 ) -> None:
     """Delete a component in a product, including subcomponents."""
-    await get_nested_model_by_id(session, Product, db_product.db_id, Product, component_id, "parent_id")
+    await get_nested_model_by_id(session, Product, cast("int", db_product.id), Product, component_id, "parent_id")
     await crud.delete_product(session, component_id)
 
-
-add_storage_routes(
-    router=product_mutation_router,
-    parent_api_model_name=Product.get_api_model_name(),
-    files_crud=crud.product_files_crud,
-    images_crud=crud.product_images_crud,
-    include_methods={StorageRouteMethod.GET, StorageRouteMethod.POST, StorageRouteMethod.DELETE},
-    read_parent_auth_dep=None,
-    modify_parent_auth_dep=get_user_owned_product_id,
+@product_mutation_router.get(
+    "/{product_id}/files",
+    response_model=list[FileReadWithinParent],
+    summary="Get Product Files",
 )
+async def get_product_files(
+    product_id: Annotated[PositiveInt, Path(description="ID of the Product")],
+    session: AsyncSessionDep,
+    item_filter: FileFilter = FilterDepends(FileFilter),
+) -> list[FileReadWithinParent]:
+    """Get all files associated with a product."""
+    items = await crud.product_files_crud.get_all(session, product_id, filter_params=item_filter)
+    return [FileReadWithinParent.model_validate(item) for item in items]
+
+
+@product_mutation_router.get(
+    "/{product_id}/files/{file_id}",
+    response_model=FileReadWithinParent,
+    summary="Get specific Product File",
+)
+async def get_product_file(
+    product_id: Annotated[PositiveInt, Path(description="ID of the Product")],
+    file_id: Annotated[UUID4, Path(description="ID of the file")],
+    session: AsyncSessionDep,
+) -> FileReadWithinParent:
+    """Get a specific file associated with a product."""
+    item = await crud.product_files_crud.get_by_id(session, product_id, file_id)
+    return FileReadWithinParent.model_validate(item)
+
+
+@product_mutation_router.post(
+    "/{product_id}/files",
+    response_model=FileReadWithinParent,
+    status_code=201,
+    summary="Add File to Product",
+)
+async def upload_product_file(
+    session: AsyncSessionDep,
+    parent_id: Annotated[int, Depends(get_user_owned_product_id)],
+    file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
+    description: Annotated[str | None, Form()] = None,
+) -> FileReadWithinParent:
+    """Upload a new file for the product."""
+    item = await crud.product_files_crud.create(
+        session,
+        parent_id,
+        FileCreate(file=file, description=description, parent_id=parent_id, parent_type=MediaParentType.PRODUCT),
+    )
+    return FileReadWithinParent.model_validate(item)
+
+
+@product_mutation_router.delete(
+    "/{product_id}/files/{file_id}",
+    summary="Remove File from Product",
+    status_code=204,
+)
+async def delete_product_file(
+    parent_id: Annotated[int, Depends(get_user_owned_product_id)],
+    file_id: Annotated[UUID4, Path(description="ID of the file")],
+    session: AsyncSessionDep,
+) -> None:
+    """Remove a file from the product."""
+    await crud.product_files_crud.delete(session, parent_id, file_id)
+
+
+@product_mutation_router.get(
+    "/{product_id}/images",
+    response_model=list[ImageReadWithinParent],
+    summary="Get Product Images",
+)
+async def get_product_images(
+    product_id: Annotated[PositiveInt, Path(description="ID of the Product")],
+    session: AsyncSessionDep,
+    item_filter: ImageFilter = FilterDepends(ImageFilter),
+) -> list[ImageReadWithinParent]:
+    """Get all images associated with a product."""
+    items = await crud.product_images_crud.get_all(session, product_id, filter_params=item_filter)
+    return [ImageReadWithinParent.model_validate(item) for item in items]
+
+
+@product_mutation_router.get(
+    "/{product_id}/images/{image_id}",
+    response_model=ImageReadWithinParent,
+    summary="Get specific Product Image",
+)
+async def get_product_image(
+    product_id: Annotated[PositiveInt, Path(description="ID of the Product")],
+    image_id: Annotated[UUID4, Path(description="ID of the image")],
+    session: AsyncSessionDep,
+) -> ImageReadWithinParent:
+    """Get a specific image associated with a product."""
+    item = await crud.product_images_crud.get_by_id(session, product_id, image_id)
+    return ImageReadWithinParent.model_validate(item)
+
+
+@product_mutation_router.post(
+    "/{product_id}/images",
+    response_model=ImageReadWithinParent,
+    status_code=201,
+    summary="Add Image to Product",
+)
+async def upload_product_image(
+    session: AsyncSessionDep,
+    parent_id: Annotated[int, Depends(get_user_owned_product_id)],
+    file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
+    description: Annotated[str | None, Form()] = None,
+    image_metadata: Annotated[
+        str | None,
+        Form(
+            description="Image metadata in JSON string format",
+            examples=[r'{"foo_key": "foo_value", "bar_key": {"nested_key": "nested_value"}}'],
+        ),
+        BeforeValidator(empty_str_to_none),
+    ] = None,
+) -> ImageReadWithinParent:
+    """Upload a new image for the product."""
+    item = await crud.product_images_crud.create(
+        session,
+        parent_id,
+        ImageCreateFromForm.model_validate(
+            {
+                "file": file,
+                "description": description,
+                "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
+                "parent_id": parent_id,
+                "parent_type": MediaParentType.PRODUCT,
+            }
+        ),
+    )
+    return ImageReadWithinParent.model_validate(item)
+
+
+@product_mutation_router.delete(
+    "/{product_id}/images/{image_id}",
+    summary="Remove Image from Product",
+    status_code=204,
+)
+async def delete_product_image(
+    parent_id: Annotated[int, Depends(get_user_owned_product_id)],
+    image_id: Annotated[UUID4, Path(description="ID of the image")],
+    session: AsyncSessionDep,
+) -> None:
+    """Remove an image from the product."""
+    await crud.product_images_crud.delete(session, parent_id, image_id)

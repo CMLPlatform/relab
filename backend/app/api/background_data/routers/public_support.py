@@ -48,13 +48,12 @@ def convert_subcategories_to_read_model(
         return []
 
     return [
-        CategoryReadAsSubCategoryWithRecursiveSubCategories.model_validate(
-            category,
+        CategoryReadAsSubCategoryWithRecursiveSubCategories.model_validate(category).model_copy(
             update={
                 "subcategories": convert_subcategories_to_read_model(
                     category.subcategories or [], max_depth, current_depth + 1
                 )
-            },
+            }
         )
         for category in subcategories
     ]

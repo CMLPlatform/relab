@@ -2,18 +2,15 @@
 
 import uuid
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import Any
 
 from pydantic import UUID4, ConfigDict
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import Column, Field
+from sqlmodel import Column, Field, SQLModel
 from sqlmodel import Enum as SAEnum
 
-from app.api.common.models.base import CustomBase, SingleParentMixin, TimeStampMixinBare
+from app.api.common.models.base import SingleParentMixin, TimeStampMixinBare
 from app.api.file_storage.models.storage import FileType, ImageType
-
-if TYPE_CHECKING:
-    from typing import Any
 
 
 ### Shared parent-type enum ###
@@ -26,7 +23,7 @@ class MediaParentType(StrEnum):
 
 
 ### File Model ###
-class FileBase(CustomBase):
+class FileBase(SQLModel):
     """Base model for generic files stored in the local file system."""
 
     description: str | None = Field(default=None, max_length=500, description="Description of the file")
@@ -52,7 +49,7 @@ class File(FileBase, TimeStampMixinBare, SingleParentMixin[MediaParentType], tab
 
 
 ### Image Model ###
-class ImageBase(CustomBase):
+class ImageBase(SQLModel):
     """Base model for images stored in the local file system."""
 
     description: str | None = Field(default=None, max_length=500, description="Description of the image")
@@ -86,7 +83,7 @@ class Image(ImageBase, TimeStampMixinBare, SingleParentMixin[MediaParentType], t
 
 
 ### Video Model ###
-class VideoBase(CustomBase):
+class VideoBase(SQLModel):
     """Base model for videos stored online."""
 
     url: str = Field(description="URL linking to the video", nullable=False)

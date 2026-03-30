@@ -26,10 +26,24 @@ from app.api.common.schemas.base import (
     ComponentRead,
     ProductRead,
 )
+from app.api.common.schemas.field_mixins import (
+    CircularityPropertiesFields,
+    PhysicalPropertiesFields,
+)
 from app.api.data_collection.base import (
     CircularityPropertiesBase,
     PhysicalPropertiesBase,
     ProductBase,
+    validate_start_and_end_time,
+)
+from app.api.data_collection.examples import (
+    CIRCULARITY_PROPERTIES_CREATE_EXAMPLES,
+    CIRCULARITY_PROPERTIES_READ_EXAMPLES,
+    CIRCULARITY_PROPERTIES_UPDATE_EXAMPLES,
+    PHYSICAL_PROPERTIES_CREATE_EXAMPLES,
+    PHYSICAL_PROPERTIES_READ_EXAMPLES,
+    PHYSICAL_PROPERTIES_UPDATE_EXAMPLES,
+    PRODUCT_CREATE_EXAMPLES,
 )
 from app.api.file_storage.schemas import (
     FileRead,
@@ -84,68 +98,31 @@ ValidDateTime = Annotated[
 class PhysicalPropertiesCreate(BaseCreateSchema, PhysicalPropertiesBase):
     """Schema for creating physical properties."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={"examples": [{"weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PHYSICAL_PROPERTIES_CREATE_EXAMPLES})
 
 
-class PhysicalPropertiesRead(BaseReadSchemaWithTimeStamp, PhysicalPropertiesBase):
+class PhysicalPropertiesRead(BaseReadSchemaWithTimeStamp, PhysicalPropertiesFields):
     """Schema for reading physical properties."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={"examples": [{"id": 1, "weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PHYSICAL_PROPERTIES_READ_EXAMPLES})
 
 
 class PhysicalPropertiesUpdate(BaseUpdateSchema, PhysicalPropertiesBase):
     """Schema for updating physical properties."""
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": [{"weight_g": 15000, "height_cm": 120}]})
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PHYSICAL_PROPERTIES_UPDATE_EXAMPLES})
 
 
 class CircularityPropertiesCreate(BaseCreateSchema, CircularityPropertiesBase):
     """Schema for creating circularity properties."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "recyclability_observation": "The product can be easily disassembled and materials separated",
-                    "recyclability_comment": "High recyclability rating",
-                    "recyclability_reference": "ISO 14021:2016",
-                    "repairability_observation": "Components are modular and can be replaced individually",
-                    "repairability_comment": "Good repairability score",
-                    "repairability_reference": "EN 45554:2020",
-                    "remanufacturability_observation": "Core components can be refurbished and reused",
-                    "remanufacturability_comment": "Suitable for remanufacturing",
-                    "remanufacturability_reference": "BS 8887-2:2009",
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CIRCULARITY_PROPERTIES_CREATE_EXAMPLES})
 
 
-class CircularityPropertiesRead(BaseReadSchemaWithTimeStamp, CircularityPropertiesBase):
+class CircularityPropertiesRead(BaseReadSchemaWithTimeStamp, CircularityPropertiesFields):
     """Schema for reading circularity properties."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 1,
-                    "recyclability_observation": "The product can be easily disassembled and materials separated",
-                    "recyclability_comment": "High recyclability rating",
-                    "recyclability_reference": "ISO 14021:2016",
-                    "repairability_observation": "Components are modular and can be replaced individually",
-                    "repairability_comment": "Good repairability score",
-                    "repairability_reference": "EN 45554:2020",
-                    "remanufacturability_observation": "Core components can be refurbished and reused",
-                    "remanufacturability_comment": "Suitable for remanufacturing",
-                    "remanufacturability_reference": "BS 8887-2:2009",
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CIRCULARITY_PROPERTIES_READ_EXAMPLES})
 
 
 class CircularityPropertiesUpdate(BaseUpdateSchema, CircularityPropertiesBase):
@@ -156,16 +133,7 @@ class CircularityPropertiesUpdate(BaseUpdateSchema, CircularityPropertiesBase):
     repairability_observation: str | None = Field(default=None, max_length=500)
     remanufacturability_observation: str | None = Field(default=None, max_length=500)
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "recyclability_observation": "Updated observation on recyclability",
-                    "recyclability_comment": "Updated comment",
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CIRCULARITY_PROPERTIES_UPDATE_EXAMPLES})
 
 
 ### Product Schemas ###
@@ -196,6 +164,12 @@ class ProductCreateBase(BaseCreateSchema, ProductBase):
         default=None, description="End of the dismantling time, in ISO 8601 format with timezone info"
     )
 
+    @model_validator(mode="after")
+    def validate_times(self) -> Self:
+        """Ensure end time is after start time if both are set."""
+        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
+        return self
+
 
 class ProductCreateWithRelationships(ProductCreateBase):
     """Schema for creating a product or component with relationships to other models."""
@@ -218,34 +192,7 @@ class ProductCreateWithRelationships(ProductCreateBase):
 class ProductCreateBaseProduct(ProductCreateWithRelationships):
     """Schema for creating a base product."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "name": "Office Chair",
-                    "description": "Complete chair assembly",
-                    "brand": "Brand 1",
-                    "model": "Model 1",
-                    "dismantling_time_start": "2025-09-22T14:30:45Z",
-                    "dismantling_time_end": "2025-09-22T16:30:45Z",
-                    "product_type_id": 1,
-                    "physical_properties": {
-                        "weight_g": 20000,
-                        "height_cm": 150,
-                        "width_cm": 70,
-                        "depth_cm": 50,
-                    },
-                    "videos": [
-                        {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
-                    ],
-                    "bill_of_materials": [
-                        {"quantity": 0.3, "unit": "g", "material_id": 1},
-                        {"quantity": 0.1, "unit": "g", "material_id": 2},
-                    ],
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PRODUCT_CREATE_EXAMPLES})
 
 
 class ComponentCreate(ProductCreateWithRelationships):
@@ -374,6 +321,12 @@ class ProductUpdate(BaseUpdateSchema):
     amount_in_parent: int | None = Field(
         default=None, gt=0, description="Quantity within parent product. Required for component products."
     )
+
+    @model_validator(mode="after")
+    def validate_times(self) -> Self:
+        """Ensure end time is after start time if both are set."""
+        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
+        return self
 
 
 class ProductUpdateWithProperties(ProductUpdate):

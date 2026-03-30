@@ -1,138 +1,56 @@
-"""Base model and generic mixins for SQLModel models."""
+"""Base model helpers and generic mixins for SQLModel models."""
 
 import re
-from dataclasses import dataclass
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
 from enum import Enum
-from functools import cached_property
-from typing import Any, ClassVar, Self, cast
+from typing import Any, Self, cast
 
+import inflect
 from pydantic import ConfigDict, model_validator
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
 
-
-### Base Model ###
-@dataclass
-class APIModelName:
-    """Holds derived names for a model. Used in API routes and documentation."""
-
-    name_camel: str  # The base name is expected to be in CamelCase
-
-    @cached_property
-    def plural_camel(self) -> str:
-        """Get the plural form of the model name.
-
-        Example: "Taxonomy" -> "Taxonomies"
-        """
-        return self.pluralize(self.name_camel)
-
-    @cached_property
-    def name_capital(self) -> str:
-        """Get the model name in Capital Case for display in documentation and error messages."""
-        return self.camel_to_capital(self.name_camel)
-
-    @cached_property
-    def plural_capital(self) -> str:
-        """Get the plural model name in Capital Case for display in documentation and error messages."""
-        return self.camel_to_capital(self.plural_camel)
-
-    @cached_property
-    def name_slug(self) -> str:
-        """Get the model name in slug-case for use in URL paths."""
-        return self.camel_to_slug(self.name_camel)
-
-    @cached_property
-    def plural_slug(self) -> str:
-        """Get the plural model name in slug-case for use in URL paths."""
-        return self.camel_to_slug(self.plural_camel)
-
-    @cached_property
-    def name_snake(self) -> str:
-        """Get the model name in snake_case for use in variable names and database table names."""
-        return self.camel_to_snake(self.name_camel)
-
-    @cached_property
-    def plural_snake(self) -> str:
-        """Get the plural model name in snake_case for use in variable names and database table names."""
-        return self.camel_to_snake(self.plural_camel)
-
-    @staticmethod
-    def pluralize(name: str) -> str:
-        """Convert a word to its plural form."""
-        if name.endswith("y"):
-            return name[:-1] + "ies"
-        if name.endswith("s"):
-            return name + "es"
-        return name + "s"
-
-    @staticmethod
-    def camel_to_capital(name: str) -> str:
-        """Convert CamelCase to Capital Case."""
-        return re.sub(r"(?<!^)(?=[A-Z])", " ", name).title()
-
-    @staticmethod
-    def camel_to_slug(name: str) -> str:
-        """Convert CamelCase to slug-case."""
-        return re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-    @staticmethod
-    def camel_to_snake(name: str) -> str:
-        """Convert CamelCase to snake_case."""
-        return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+_INFLECT_ENGINE = inflect.engine()
 
 
-class CustomBaseBare:
-    """Bare base class for all models.
-
-    Can be used to mixin custom base properties for classes which already have SQLModel as base class.
-    """
-
-    api_model_name: ClassVar[APIModelName | None] = None  # The name of the model used in API routes
-
-    @classmethod
-    def get_api_model_name(cls) -> APIModelName:
-        """Initialize api_model_name for the class."""
-        if cls.api_model_name is None:
-            cls.api_model_name = APIModelName(name_camel=cls.__name__)
-        return cls.api_model_name
+def pluralize_camel_name(name: str) -> str:
+    """Pluralize the final word in a CamelCase name."""
+    parts = re.split(r"(?<!^)(?=[A-Z])", name)
+    singular = parts[-1]
+    plural = _INFLECT_ENGINE.plural_noun(singular.lower()) or _INFLECT_ENGINE.plural(singular.lower())
+    parts[-1] = plural.capitalize() if singular[:1].isupper() else plural
+    return "".join(parts)
 
 
-# TODO: Base class should not inherit from SQLModel but from Pydantic's BaseModel
-class CustomBase(CustomBaseBare, SQLModel):
-    """Base class for all models."""
+def camel_to_capital(name: str) -> str:
+    """Convert CamelCase to Capital Case."""
+    return re.sub(r"(?<!^)(?=[A-Z])", " ", name).title()
 
 
-class CustomLinkingModelBase(CustomBase):
-    """Base class for linking models."""
+def get_model_label(model_type: type[object] | None, *, default: str = "Model") -> str:
+    """Return a human-readable singular label for a model-like class."""
+    if model_type is None:
+        return default
+
+    explicit_label = getattr(model_type, "model_label", None)
+    if isinstance(explicit_label, str):
+        return explicit_label
+
+    return camel_to_capital(getattr(model_type, "__name__", default))
 
 
-class IntPrimaryKeyMixin:
-    """Mixin for models with an integer primary key.
+def get_model_label_plural(model_type: type[object], *, default: str = "Models") -> str:
+    """Return a human-readable plural label for a model-like class."""
+    explicit_label_plural = getattr(model_type, "model_label_plural", None)
+    if isinstance(explicit_label_plural, str):
+        return explicit_label_plural
 
-    Provides a type-safe ``db_id`` property that returns the integer without ``None``,
-    for use at call sites where the model is guaranteed to have been persisted to the DB.
-    """
-
-    id: int | None  # Annotation only; actual SQLModel Field defined in the concrete model
-
-    @property
-    def db_id(self) -> int:
-        """Return the non-None integer primary key for a persisted model instance.
-
-        Raises:
-            ValueError: If ``id`` is ``None``, i.e. the model has not been committed to the DB.
-        """
-        if self.id is None:
-            msg = f"{type(self).__name__} has no ID; the instance may not have been committed to the DB yet."
-            raise ValueError(msg)
-        return self.id
-
+    model_name = getattr(model_type, "__name__", default.removesuffix("s"))
+    return camel_to_capital(pluralize_camel_name(model_name))
 
 ### Mixins ###
 ## Timestamps ##
-# TODO: Improve typing. Mixins should not inherit from SQLModel.
 class TimeStampMixinBare:
     """Bare mixin to add created_at and updated_at columns to Pydantic BaseModel-based classes.
 

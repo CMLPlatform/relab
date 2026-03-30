@@ -3,16 +3,15 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from functools import cached_property
 from typing import Optional
 
 from pydantic import UUID4, BaseModel, ConfigDict
 from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
-from sqlmodel import Column, Field, Relationship
+from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.api.auth.sqlmodel_adapter import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
-from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare
+from app.api.common.models.base import TimeStampMixinBare
 
 # Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
 
@@ -34,7 +33,7 @@ class UserBase(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
 
-class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, table=True):
+class User(SQLModelBaseUserDB, UserBase, TimeStampMixinBare, table=True):
     """Database model for platform users."""
 
     id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
@@ -82,7 +81,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
         )
     )
 
-    @cached_property
+    @property
     def is_organization_owner(self) -> bool:
         """Check if the user is an organization owner."""
         return self.organization_role == OrganizationRole.OWNER
@@ -92,7 +91,7 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, tab
 
 
 ### OAuthAccount Model ###
-class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare, table=True):
+class OAuthAccount(SQLModelBaseOAuthAccount, TimeStampMixinBare, table=True):
     """Database model for OAuth accounts. Note that the main implementation is in the base class."""
 
     id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
@@ -109,7 +108,7 @@ class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare,
 
 
 ### Organization Model ###
-class OrganizationBase(CustomBase):
+class OrganizationBase(SQLModel):
     """Base schema for organization data."""
 
     name: str = Field(index=True, unique=True, min_length=2, max_length=100)

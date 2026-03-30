@@ -14,6 +14,7 @@ from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
 from app.api.common.crud.utils import add_relationship_options, clear_unloaded_relationships, ensure_model_exists
+from app.api.common.models.base import get_model_label
 from app.api.common.models.custom_types import DT, IDT, MT
 
 if TYPE_CHECKING:
@@ -288,7 +289,7 @@ async def get_nested_model_by_id(
         CRUDConfigurationError: If dependent model doesn't have the specified foreign key
         DependentModelOwnershipError: If dependent doesn't belong to parent
     """
-    dependent_model_name = dependent_model.get_api_model_name().name_capital
+    dependent_model_name = get_model_label(dependent_model)
 
     # Validate foreign key exists on dependent
     if not hasattr(dependent_model, parent_fk_name):

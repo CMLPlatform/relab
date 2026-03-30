@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, cast
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from fastapi_pagination import Page, Params, create_page
 from pydantic import PositiveInt
 from sqlmodel import select
@@ -12,22 +12,28 @@ from sqlmodel import select
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, TaxonomyFilterDep
 from app.api.background_data.models import Category, Taxonomy
-from app.api.background_data.router_factories import CategoryIncludeExamples, relationship_include_query
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
     RecursionDepthQueryParam,
     convert_subcategories_to_read_model,
 )
 from app.api.background_data.schemas import CategoryRead, CategoryReadWithRecursiveSubCategories, TaxonomyRead
+from app.api.common.crud.base import get_model_by_id, get_nested_model_by_id, get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.read_helpers import (
-    get_model_response,
-    get_nested_model_response,
-    list_models_response,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from fastapi.openapi.models import Example
+
+CATEGORY_INCLUDE_EXAMPLES = cast(
+    "dict[str, Example]",
+    {
+        "none": {"value": []},
+        "materials": {"value": ["materials"]},
+        "all": {"value": ["materials", "product_types", "subcategories"]},
+    },
+)
 
 router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 
@@ -35,14 +41,14 @@ router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 @router.get("", response_model=Page[TaxonomyRead])
 async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[TaxonomyRead]:
     """Get all taxonomies with optional filtering."""
-    page = await list_models_response(session, Taxonomy, model_filter=taxonomy_filter, read_schema=TaxonomyRead)
+    page = await get_paginated_models(session, Taxonomy, model_filter=taxonomy_filter, read_schema=TaxonomyRead)
     return cast("Page[TaxonomyRead]", page)
 
 
 @router.get("/{taxonomy_id}", response_model=TaxonomyRead)
 async def get_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) -> TaxonomyRead:
     """Get taxonomy by ID."""
-    taxonomy = await get_model_response(session, Taxonomy, taxonomy_id, read_schema=TaxonomyRead)
+    taxonomy = await get_model_by_id(session, Taxonomy, taxonomy_id, read_schema=TaxonomyRead)
     return TaxonomyRead.model_validate(taxonomy)
 
 
@@ -66,13 +72,12 @@ async def get_taxonomy_category_tree(
         category_filter=category_filter,
     )
     tree_items = [
-        CategoryReadWithRecursiveSubCategories.model_validate(
-            category,
+        CategoryReadWithRecursiveSubCategories.model_validate(category).model_copy(
             update={
                 "subcategories": convert_subcategories_to_read_model(
                     category.subcategories or [], max_depth=recursion_depth - 1
                 )
-            },
+            }
         )
         for category in categories
     ]
@@ -91,12 +96,15 @@ async def get_taxonomy_categories(
     taxonomy_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-    include: Annotated[set[str] | None, relationship_include_query(openapi_examples=CategoryIncludeExamples)] = None,
+    include: Annotated[
+        set[str] | None,
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+    ] = None,
 ) -> Page[Category]:
     """Get taxonomy categories with optional filtering."""
-    await get_model_response(session, Taxonomy, taxonomy_id)
+    await get_model_by_id(session, Taxonomy, taxonomy_id)
     statement = select(Category).where(Category.taxonomy_id == taxonomy_id)
-    return await list_models_response(
+    return await get_paginated_models(
         session,
         Category,
         include_relationships=include,
@@ -115,10 +123,13 @@ async def get_taxonomy_category_by_id(
     taxonomy_id: PositiveInt,
     category_id: PositiveInt,
     session: AsyncSessionDep,
-    include: Annotated[set[str] | None, relationship_include_query(openapi_examples=CategoryIncludeExamples)] = None,
+    include: Annotated[
+        set[str] | None,
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+    ] = None,
 ) -> Category:
     """Get a taxonomy category by ID."""
-    return await get_nested_model_response(
+    return await get_nested_model_by_id(
         session,
         Taxonomy,
         taxonomy_id,

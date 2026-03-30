@@ -11,6 +11,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.common.crud.base import get_model_by_id, get_models
 from app.api.common.exceptions import BadRequestError
+from app.api.common.models.base import get_model_label
 from app.api.common.models.custom_types import DT, IDT, LMT, MT
 
 if TYPE_CHECKING:
@@ -46,7 +47,7 @@ async def get_linking_model_with_ids_if_it_exists(
     )
     result: LMT | None = (await db.exec(statement)).one_or_none()
     if not result:
-        model_name: str = model_type.get_api_model_name().name_capital
+        model_name = get_model_label(model_type)
         err_msg: str = f"{model_name} with {id1_field} {id1} and {id2_field} {id2} not found"
         raise BadRequestError(err_msg)
     return result
@@ -138,8 +139,8 @@ async def get_linked_model_by_id(
             db, link_model, parent_id, dependent_id, parent_link_field, dependent_link_field
         )
     except BadRequestError as e:
-        dependent_model_name: str = dependent_model.get_api_model_name().name_capital
-        parent_model_name: str = parent_model.get_api_model_name().name_capital
+        dependent_model_name = get_model_label(dependent_model)
+        parent_model_name = get_model_label(parent_model)
         err_msg: str = f"{dependent_model_name} is not linked to {parent_model_name}"
         raise BadRequestError(err_msg) from e
 
