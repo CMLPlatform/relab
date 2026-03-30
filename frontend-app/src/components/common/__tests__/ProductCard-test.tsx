@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { useRouter } from 'expo-router';
 import ProductCard from '../ProductCard';
-import { fireEvent, screen, renderWithProviders, baseProduct } from '@/test-utils';
+import { baseProduct, fireEvent, renderWithProviders, screen } from '@/test-utils';
 
 const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -12,10 +12,9 @@ describe('ProductCard', () => {
     expect(screen.getByText('A nice product')).toBeTruthy();
   });
 
-  it('falls back to placeholder text for missing name and description', () => {
+  it('falls back to placeholder text for missing name', () => {
     renderWithProviders(<ProductCard product={{ ...baseProduct, name: '', description: undefined }} />);
     expect(screen.getByText('Unnamed Product')).toBeTruthy();
-    expect(screen.getByText('No description provided.')).toBeTruthy();
   });
 
   it('renders detail line with brand and model', () => {

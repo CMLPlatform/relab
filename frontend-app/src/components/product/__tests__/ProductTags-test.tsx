@@ -1,5 +1,4 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import React from 'react';
 import { screen, fireEvent } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import ProductTags from '../ProductTags';
@@ -107,5 +106,110 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     expect(screen.toJSON()).toBeTruthy();
+  });
+});
+
+describe('AmountChip (isComponent=true)', () => {
+  const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
+
+  it('shows the amount value in view mode', () => {
+    renderWithProviders(<ProductTags product={componentProduct} editMode={false} isComponent={true} />, {
+      withDialog: true,
+    });
+    expect(screen.getByText('3')).toBeTruthy();
+  });
+
+  it('does not render when isComponent is false', () => {
+    renderWithProviders(<ProductTags product={componentProduct} editMode={false} isComponent={false} />, {
+      withDialog: true,
+    });
+    expect(screen.queryByText('Amount')).toBeNull();
+  });
+
+  it('defaults to 1 when amountInParent is undefined', () => {
+    const product = { ...baseProduct, amountInParent: undefined };
+    renderWithProviders(<ProductTags product={product} editMode={false} isComponent={true} />, { withDialog: true });
+    expect(screen.getByText('1')).toBeTruthy();
+  });
+
+  it('shows a text input with the current amount in edit mode', () => {
+    renderWithProviders(<ProductTags product={componentProduct} editMode={true} isComponent={true} />, {
+      withDialog: true,
+    });
+    expect(screen.getByDisplayValue('3')).toBeTruthy();
+  });
+
+  it('calls onAmountChange instantly when text changes', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '7');
+    expect(onAmountChange).toHaveBeenCalledWith(7);
+  });
+
+  it('strips non-numeric characters from text input', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '5abc');
+    expect(onAmountChange).toHaveBeenCalledWith(5);
+  });
+
+  it('clamps value to 10000 on text input', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      { withDialog: true },
+    );
+    fireEvent.changeText(screen.getByDisplayValue('3'), '99999');
+    expect(onAmountChange).toHaveBeenCalledWith(10000);
+  });
+
+  it('resets to 1 on blur when input is empty', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      { withDialog: true },
+    );
+    const input = screen.getByDisplayValue('3');
+    fireEvent.changeText(input, '');
+    fireEvent(input, 'blur');
+    expect(onAmountChange).toHaveBeenCalledWith(1);
+  });
+
+  it('calls onAmountChange with amount + 1 when increment is pressed', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      { withDialog: true },
+    );
+    fireEvent.press(screen.getByLabelText('Increase amount'));
+    expect(onAmountChange).toHaveBeenCalledWith(4);
+  });
+
+  it('calls onAmountChange with amount - 1 when decrement is pressed', () => {
+    const onAmountChange = jest.fn();
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      { withDialog: true },
+    );
+    fireEvent.press(screen.getByLabelText('Decrease amount'));
+    expect(onAmountChange).toHaveBeenCalledWith(2);
+  });
+
+  it('decrement button is disabled when amount is 1', () => {
+    const product = { ...baseProduct, amountInParent: 1 };
+    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, { withDialog: true });
+    expect(screen.getByLabelText('Decrease amount')).toBeDisabled();
+  });
+
+  it('increment button is disabled when amount is 10000', () => {
+    const product = { ...baseProduct, amountInParent: 10000 };
+    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, { withDialog: true });
+    expect(screen.getByLabelText('Increase amount')).toBeDisabled();
   });
 });

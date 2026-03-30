@@ -113,10 +113,10 @@ export default function ProductCard({ product, enabled = true, showOwner = false
           </Text>
           <Text
             style={{ fontSize: 14, color: theme.colors.onSurfaceVariant, lineHeight: 20 }}
-            numberOfLines={2}
+            numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {product.description || 'No description provided.'}
+            {product.description}
           </Text>
           {(createdAgo || ownerLabel) && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>

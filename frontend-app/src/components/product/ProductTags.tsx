@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { View } from 'react-native';
-import { Chip } from '@/components/base';
+import { JSX, useEffect, useState } from 'react';
+import { Pressable, StyleSheet, TextInput, useColorScheme, View } from 'react-native';
+import { Chip, InfoTooltip, Text } from '@/components/base';
+import DarkTheme from '@/assets/themes/dark';
+import LightTheme from '@/assets/themes/light';
 
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import { useSearchBrandsQuery } from '@/hooks/useProductQueries';
@@ -13,10 +15,18 @@ interface Props {
   editMode: boolean;
   onBrandChange?: (newBrand: string) => void;
   onModelChange?: (newModel: string) => void;
+  onAmountChange?: (newAmount: number) => void;
   isComponent?: boolean;
 }
 
-export default function ProductTags({ product, editMode, onBrandChange, onModelChange, isComponent = false }: Props) {
+export default function ProductTags({
+  product,
+  editMode,
+  onBrandChange,
+  onModelChange,
+  onAmountChange,
+  isComponent = false,
+}: Props) {
   const dialog = useDialog();
 
   const isBrandRequired = !isComponent;
@@ -68,6 +78,7 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
       >
         {product.model || 'Unknown'}
       </Chip>
+      {isComponent && <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />}
 
       <FilterSelectionModal
         visible={brandModalVisible}
@@ -87,3 +98,138 @@ export default function ProductTags({ product, editMode, onBrandChange, onModelC
     </View>
   );
 }
+
+function AmountChip({
+  product,
+  editMode,
+  onAmountChange,
+}: {
+  product: Product;
+  editMode: boolean;
+  onAmountChange?: (n: number) => void;
+}): JSX.Element {
+  const darkMode = useColorScheme() === 'dark';
+  const theme = darkMode ? DarkTheme : LightTheme;
+  const amount = product.amountInParent ?? 1;
+  const [inputValue, setInputValue] = useState(String(amount));
+
+  useEffect(() => {
+    setInputValue(String(amount));
+  }, [amount]);
+
+  const commit = (n: number) => {
+    const clamped = Math.min(Math.max(n, 1), 10000);
+    onAmountChange?.(clamped);
+    setInputValue(String(clamped));
+  };
+
+  const handleTextChange = (text: string) => {
+    const numeric = text.replace(/[^0-9]/g, '');
+    setInputValue(numeric);
+    if (numeric !== '') commit(parseInt(numeric, 10));
+  };
+
+  const handleBlur = () => {
+    if (inputValue === '' || inputValue === '0') commit(1);
+  };
+
+  return (
+    <View style={[amountStyles.container, darkMode ? amountStyles.containerDark : null]}>
+      <View style={amountStyles.titleRow}>
+        <Text style={[amountStyles.titleText, darkMode ? amountStyles.titleTextDark : null]}>Amount</Text>
+        <InfoTooltip title="How many times this component occurs in its parent" />
+      </View>
+      {editMode ? (
+        <View style={[amountStyles.editorRow, { backgroundColor: theme.colors.primary }]}>
+          <Pressable
+            onPress={() => commit(amount - 1)}
+            disabled={amount <= 1}
+            style={({ pressed }) => [amountStyles.stepBtn, (pressed || amount <= 1) && { opacity: 0.4 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Decrease amount"
+          >
+            <MaterialCommunityIcons name="minus" size={14} color={theme.colors.onPrimary} />
+          </Pressable>
+          <TextInput
+            value={inputValue}
+            onChangeText={handleTextChange}
+            onBlur={handleBlur}
+            keyboardType="numeric"
+            style={[amountStyles.input, { color: theme.colors.onPrimary }]}
+            accessibilityLabel="Amount"
+          />
+          <Pressable
+            onPress={() => commit(amount + 1)}
+            disabled={amount >= 10000}
+            style={({ pressed }) => [amountStyles.stepBtn, (pressed || amount >= 10000) && { opacity: 0.4 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Increase amount"
+          >
+            <MaterialCommunityIcons name="plus" size={14} color={theme.colors.onPrimary} />
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={[amountStyles.valueText, darkMode ? amountStyles.valueTextDark : null]}>{String(amount)}</Text>
+      )}
+    </View>
+  );
+}
+
+const amountStyles = StyleSheet.create({
+  container: {
+    borderRadius: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: LightTheme.colors.primaryContainer,
+  },
+  containerDark: {
+    backgroundColor: DarkTheme.colors.primaryContainer,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleText: {
+    paddingVertical: 8,
+    paddingLeft: 12,
+    fontWeight: '500',
+    fontSize: 15,
+    color: LightTheme.colors.onPrimaryContainer,
+  },
+  titleTextDark: {
+    color: DarkTheme.colors.onPrimaryContainer,
+  },
+  valueText: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    fontWeight: '500',
+    fontSize: 15,
+    backgroundColor: LightTheme.colors.primary,
+    color: LightTheme.colors.onPrimary,
+  },
+  valueTextDark: {
+    backgroundColor: DarkTheme.colors.primary,
+    color: DarkTheme.colors.onPrimary,
+  },
+  editorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  stepBtn: {
+    width: 30,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  input: {
+    width: 36,
+    textAlign: 'center',
+    fontWeight: '500',
+    fontSize: 15,
+    paddingVertical: 8,
+    paddingHorizontal: 0,
+  },
+});

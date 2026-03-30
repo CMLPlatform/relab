@@ -65,6 +65,28 @@ describe('ProductComponents', () => {
     });
   });
 
+  it('shows only the first five components by default and can expand the rest', async () => {
+    const manyComponents = Array.from({ length: 7 }, (_, index) => ({
+      ...baseProduct,
+      id: index + 2,
+      name: `Component ${index + 1}`,
+    }));
+    mockedProductComponents.mockResolvedValue(manyComponents);
+
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByText('Component 5')).toBeTruthy();
+    });
+    expect(screen.queryByText('Component 6')).toBeNull();
+    expect(screen.getByText('Show 2 more')).toBeTruthy();
+
+    fireEvent.press(screen.getByText('Show 2 more'));
+    expect(screen.getByText('Component 6')).toBeTruthy();
+    expect(screen.getByText('Component 7')).toBeTruthy();
+    expect(screen.getByText('Show less')).toBeTruthy();
+  });
+
   it('shows Add component button when owned by me and not in editMode', async () => {
     renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
     await waitFor(() => {

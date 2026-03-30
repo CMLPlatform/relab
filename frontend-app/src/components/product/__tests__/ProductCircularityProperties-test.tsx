@@ -26,6 +26,7 @@ describe('ProductCircularityProperties', () => {
   it('renders the section heading', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
     expect(screen.getByText(/Circularity Properties/)).toBeTruthy();
+    expect(screen.getByText('Show')).toBeTruthy();
   });
 
   it("shows 'No associated circularity properties' in view mode with empty data", () => {
@@ -35,6 +36,7 @@ describe('ProductCircularityProperties', () => {
 
   it('shows add-property chips in edit mode', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
+    fireEvent.press(screen.getByText('Show'));
     expect(screen.getByText('Recyclability')).toBeTruthy();
     expect(screen.getByText('Remanufacturability')).toBeTruthy();
     expect(screen.getByText('Repairability')).toBeTruthy();
@@ -51,7 +53,7 @@ describe('ProductCircularityProperties', () => {
       },
     };
     renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
-    expect(screen.getByText('Recyclability')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
 
   it('renders property section header when property has observation content', () => {
@@ -71,6 +73,7 @@ describe('ProductCircularityProperties', () => {
         onChangeCircularityProperties={jest.fn()}
       />,
     );
+    fireEvent.press(screen.getByText('Show'));
     // The property header title "Recyclability" appears at least once (in the expanded section)
     expect(screen.getAllByText('Recyclability').length).toBeGreaterThan(0);
   });
@@ -88,7 +91,7 @@ describe('ProductCircularityProperties', () => {
 
     renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
 
-    expect(screen.getByText('Remanufacturability')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
 
   it('renders repairability when only the reference field has content', () => {
@@ -104,7 +107,7 @@ describe('ProductCircularityProperties', () => {
 
     renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
 
-    expect(screen.getByText('Repairability')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
 
   it('calls onChangeCircularityProperties when chip is pressed to add recyclability', async () => {
@@ -112,6 +115,7 @@ describe('ProductCircularityProperties', () => {
     renderWithProviders(
       <ProductCircularityProperties product={baseProduct} editMode={true} onChangeCircularityProperties={onChange} />,
     );
+    fireEvent.press(screen.getByText('Show'));
     fireEvent.press(screen.getByText('Recyclability'));
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith(
@@ -142,6 +146,7 @@ describe('ProductCircularityProperties', () => {
         onChangeCircularityProperties={onChange}
       />,
     );
+    fireEvent.press(screen.getByText('Show'));
 
     const expandButton = UNSAFE_root.findAll(
       (node: any) => typeof node.props.onPress === 'function' && node.props.children?.props?.name === 'chevron-down',
@@ -208,6 +213,7 @@ describe('ProductCircularityProperties', () => {
         onChangeCircularityProperties={onChange}
       />,
     );
+    fireEvent.press(screen.getByText('Show'));
 
     const deleteButton = UNSAFE_root.findAll(
       (node: any) => typeof node.props.onPress === 'function' && node.props.children?.props?.name === 'delete',
@@ -221,5 +227,23 @@ describe('ProductCircularityProperties', () => {
         recyclabilityReference: null,
       }),
     );
+  });
+
+  it('collapses again when Hide is pressed', () => {
+    const productWithData: Product = {
+      ...baseProduct,
+      circularityProperties: {
+        ...emptyCircularity,
+        recyclabilityObservation: 'Observed',
+        recyclabilityComment: null,
+        recyclabilityReference: null,
+      },
+    };
+
+    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+    fireEvent.press(screen.getByText('Show'));
+    expect(screen.getByText('Hide')).toBeTruthy();
+    fireEvent.press(screen.getByText('Hide'));
+    expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
 });

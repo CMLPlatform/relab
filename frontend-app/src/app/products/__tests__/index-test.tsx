@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import React from 'react';
 import Products from '../index';
 import type { User } from '@/types/User';
 import { renderWithProviders } from '@/test-utils';
@@ -14,6 +15,39 @@ jest.mock('@/context/AuthProvider', () => ({
 }));
 
 // useWindowDimensions is spied on in beforeEach to control numColumns per describe block
+
+jest.mock('react-native/Libraries/Lists/FlatList', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const FlatListMock = React.forwardRef(function FlatListMock(
+    { data, renderItem, ListFooterComponent, ListEmptyComponent, ...props }: any,
+    ref: any,
+  ) {
+    React.useImperativeHandle(
+      ref,
+      () => ({
+        scrollToOffset: jest.fn(),
+        scrollToIndex: jest.fn(),
+      }),
+      [],
+    );
+
+    const items =
+      Array.isArray(data) && renderItem
+        ? data.map((item, index) => React.createElement(React.Fragment, { key: index }, renderItem({ item, index })))
+        : null;
+    const footer =
+      typeof ListFooterComponent === 'function' ? React.createElement(ListFooterComponent) : ListFooterComponent;
+    const empty =
+      typeof ListEmptyComponent === 'function' ? React.createElement(ListEmptyComponent) : ListEmptyComponent;
+
+    return React.createElement(View, props, items && items.length > 0 ? items : empty, footer);
+  });
+  return {
+    __esModule: true,
+    default: FlatListMock,
+  };
+});
 
 jest.mock('expo-image', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -68,9 +102,9 @@ jest.mock('@/hooks/useProductQueries', () => ({
   useProductsQuery: (...args: unknown[]) => mockUseProductsQuery(...args),
   useSearchBrandsQuery: (...args: unknown[]) => mockUseBrandsQuery(...args),
   useSearchProductTypesQuery: (...args: unknown[]) => mockUseProductTypesQuery(...args),
-  useBrandsQuery: jest.fn().mockReturnValue({ data: [], isLoading: false }),
   useProductTypesQuery: jest.fn().mockReturnValue({ data: [], isLoading: false }),
   PRODUCT_SORT_OPTIONS: [
+    { label: 'Relevance', value: ['rank'] },
     { label: 'Newest first', value: ['-created_at'] },
     { label: 'Oldest first', value: ['created_at'] },
     { label: 'Name A→Z', value: ['name'] },
@@ -118,6 +152,7 @@ const pagedQueryResult = {
 beforeEach(async () => {
   jest.clearAllMocks();
   // Default to wide viewport (numColumns=3) so most tests get pagination mode
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
     width: 1024,
     height: 768,
@@ -372,7 +407,7 @@ describe('Filter chips and modals', () => {
   it('clears an active date preset via the chip close button', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7' });
     renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => expect(screen.getByText('Last 7d')).toBeTruthy());
+    expect(await screen.findByText('Last 7d')).toBeTruthy();
     // react-native-paper Chip renders its close button with accessibilityLabel="Close"
     const closeBtn = screen.getByLabelText('Close');
     fireEvent.press(closeBtn);
@@ -434,6 +469,7 @@ describe('Empty-state messages', () => {
 describe('PaginationControls (multi-column)', () => {
   beforeEach(() => {
     // Wide viewport already set globally; confirm numColumns=3 → pagination
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
       width: 1024,
       height: 768,
@@ -506,6 +542,7 @@ describe('PaginationControls (multi-column)', () => {
 
 describe('Mobile footer (single-column)', () => {
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
       width: 390, // numColumns=1 → load-more mode
       height: 844,
@@ -558,7 +595,7 @@ describe('Mobile footer (single-column)', () => {
     });
 
     renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeTruthy());
+    expect(await screen.findByLabelText('Load more products')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Load more products'));
 
@@ -668,5 +705,81 @@ describe('Date filter dropdown', () => {
     await waitFor(() => {
       expect(screen.getByText('Last 90d')).toBeTruthy();
     });
+  });
+});
+
+describe('Sort — Relevance default when searching', () => {
+  it('defaults to rank sort when a search query is in the URL', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByPlaceholderText('Search products');
+
+    await waitFor(() => {
+      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+      expect(sortArgs.some((s) => s[0] === 'rank')).toBe(true);
+    });
+  });
+
+  it('defaults to newest-first sort when there is no search query', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByPlaceholderText('Search products');
+
+    await waitFor(() => {
+      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+      expect(sortArgs.some((s) => s[0] === '-created_at')).toBe(true);
+    });
+  });
+
+  it('uses an explicit sort param from URL even when search is active', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum', sort: 'name' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByPlaceholderText('Search products');
+
+    await waitFor(() => {
+      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+      expect(sortArgs.some((s) => s[0] === 'name')).toBe(true);
+    });
+  });
+
+  it('resets rank sort param when search is cleared', async () => {
+    // sort=rank in URL but no search query → effect should clear the sort param
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ sort: 'rank' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByPlaceholderText('Search products');
+
+    await waitFor(() => {
+      expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined });
+    });
+  });
+
+  it('shows Relevance option in the sort menu when a search is active', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByLabelText('Sort products');
+    fireEvent.press(screen.getByLabelText('Sort products'));
+    await waitFor(() => {
+      expect(screen.getByText('Relevance')).toBeTruthy();
+    });
+  });
+
+  it('hides Relevance option in the sort menu when there is no search', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByLabelText('Sort products');
+    fireEvent.press(screen.getByLabelText('Sort products'));
+    await waitFor(() => {
+      expect(screen.queryByText('Relevance')).toBeNull();
+    });
+  });
+
+  it('sends rank when Relevance is selected from the sort menu', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
+    renderWithProviders(<Products />, { withDialog: true });
+    await screen.findByLabelText('Sort products');
+    fireEvent.press(screen.getByLabelText('Sort products'));
+    await screen.findByText('Relevance');
+    fireEvent.press(screen.getByText('Relevance'));
+    expect(mockSetParams).toHaveBeenCalledWith({ sort: 'rank', page: '1' });
   });
 });

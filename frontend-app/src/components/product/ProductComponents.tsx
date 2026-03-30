@@ -24,11 +24,16 @@ export default function ProductComponents({ product, editMode }: Props) {
 
   // States
   const [components, setComponents] = useState<Product[]>([]);
+  const [expanded, setExpanded] = useState(false);
 
   // Effects
   useEffect(() => {
     productComponents(product).then(setComponents);
   }, [product]);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [product.id]);
 
   // Callbacks
   const newComponent = () => {
@@ -66,6 +71,9 @@ export default function ProductComponents({ product, editMode }: Props) {
     });
   };
 
+  const visibleComponents = expanded ? components : components.slice(0, 5);
+  const hiddenCount = Math.max(0, components.length - visibleComponents.length);
+
   // Render
   return (
     <View>
@@ -76,9 +84,14 @@ export default function ProductComponents({ product, editMode }: Props) {
       {components.length === 0 && (
         <Text style={{ opacity: 0.7, marginBottom: 8 }}>This product has no subcomponents.</Text>
       )}
-      {components.map((component, index) => (
+      {visibleComponents.map((component) => (
         <ProductCard key={component.id} product={component} enabled={!editMode} />
       ))}
+      {components.length > 5 && (
+        <Button compact={true} mode="text" onPress={() => setExpanded((current) => !current)}>
+          {expanded ? 'Show less' : `Show ${hiddenCount} more`}
+        </Button>
+      )}
       {editMode || product.ownedBy !== 'me' || (
         <Button
           compact={true}

@@ -35,6 +35,7 @@ interface CircularityPropertySectionProps {
 export default function ProductCircularityProperties({ product, editMode, onChangeCircularityProperties }: Props) {
   const darkMode = useColorScheme() === 'dark';
   const theme = darkMode ? DarkTheme : LightTheme;
+  const [isSectionExpanded, setIsSectionExpanded] = useState(false);
   const [expandedProperty, setExpandedProperty] = useState<CircularityPropertyType | null>(null);
 
   // Helper function to check if a property has been added (exists in the data structure)
@@ -126,12 +127,39 @@ export default function ProductCircularityProperties({ product, editMode, onChan
   const propertyTypes = ['recyclability', 'remanufacturability', 'repairability'] as CircularityPropertyType[];
   const chipsToShow = editMode ? propertyTypes.filter((type) => !hasPropertyData(type)) : [];
   const expandedPropertiesToShow = propertyTypes.filter((type) => hasPropertyData(type));
+  const propertyCount = expandedPropertiesToShow.length;
+
+  if (!isSectionExpanded) {
+    return (
+      <View>
+        <DetailSectionHeader
+          title="Circularity Properties"
+          tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
+          rightElement={
+            <Pressable onPress={() => setIsSectionExpanded(true)}>
+              <Text style={{ fontWeight: '600', color: theme.colors.primary }}>Show</Text>
+            </Pressable>
+          }
+        />
+        <Text style={{ opacity: 0.7, marginBottom: 8 }}>
+          {propertyCount === 0
+            ? 'No associated circularity properties.'
+            : `${propertyCount} ${propertyCount === 1 ? 'property' : 'properties'} hidden.`}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View>
       <DetailSectionHeader
         title="Circularity Properties"
         tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
+        rightElement={
+          <Pressable onPress={() => setIsSectionExpanded(false)}>
+            <Text style={{ fontWeight: '600', color: theme.colors.primary }}>Hide</Text>
+          </Pressable>
+        }
       />
 
       {/* Show message when no properties exist */}

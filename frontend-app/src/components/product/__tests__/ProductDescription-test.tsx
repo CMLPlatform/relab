@@ -30,7 +30,32 @@ describe('ProductDescription', () => {
 
   it('is not editable when editMode is false', () => {
     render(<ProductDescription product={baseProduct} editMode={false} />);
-    const input = screen.getByDisplayValue('Initial description');
-    expect(input.props.editable).toBe(false);
+    expect(screen.getByText('Initial description')).toBeTruthy();
+  });
+
+  it('shows a collapsed description with a toggle for long text in view mode', () => {
+    const product = { ...baseProduct, description: 'Long description. '.repeat(30) };
+    render(<ProductDescription product={product} editMode={false} />);
+
+    expect(screen.getByText('Show more')).toBeTruthy();
+    fireEvent.press(screen.getByText('Show more'));
+    expect(screen.getByText('Show less')).toBeTruthy();
+  });
+
+  it('shows a toggle for multi-line descriptions even when they are short', () => {
+    const product = {
+      ...baseProduct,
+      description: ['line 1', 'line 2', 'line 3', 'line 4', 'line 5', 'line 6', 'line 7'].join('\n'),
+    };
+    render(<ProductDescription product={product} editMode={false} />);
+
+    expect(screen.getByText('Show more')).toBeTruthy();
+  });
+
+  it('shows an empty-state message when no description is available in view mode', () => {
+    const product = { ...baseProduct, description: undefined };
+    render(<ProductDescription product={product} editMode={false} />);
+
+    expect(screen.getByText('No description yet.')).toBeTruthy();
   });
 });

@@ -35,6 +35,7 @@ import ProductCard from '@/components/common/ProductCard';
 import ProductCardSkeleton from '@/components/common/ProductCardSkeleton';
 import { useAuth } from '@/context/AuthProvider';
 import {
+  DEFAULT_PRODUCT_SORT,
   PRODUCT_SORT_OPTIONS,
   useProductsQuery,
   useSearchBrandsQuery,
@@ -57,6 +58,7 @@ const DATE_PRESETS = [
 
 // Using constants from useProductQueries.ts
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;
+const FALLBACK_DEFAULT_SORT = Array.from(SORT_OPTIONS[1].value);
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
@@ -253,7 +255,12 @@ export default function Products() {
   const filterMode = (params.filterMode as ProductFilter) || 'all';
   const searchQueryURL = params.q || '';
   const page = Number(params.page) || 1;
-  const sortBy = params.sort ? params.sort.split(',') : (SORT_OPTIONS[0].value as unknown as string[]);
+  // Default to Relevance when a search query is active; otherwise Newest first.
+  const sortBy = params.sort
+    ? params.sort.split(',')
+    : searchQueryURL
+      ? (['rank'] as string[])
+      : Array.from(DEFAULT_PRODUCT_SORT ?? FALLBACK_DEFAULT_SORT);
   const activeDatePreset = params.days ? Number(params.days) : null;
   const activeBrands = params.brands ? params.brands.split(',') : [];
   const activeProductTypes = params.types ? params.types.split(',') : [];
@@ -307,6 +314,13 @@ export default function Products() {
       updateParams({ q: debouncedSearchQuery || undefined, page: '1' });
     }
   }, [debouncedSearchQuery, searchQueryURL, updateParams]); // Added searchQueryURL to dependencies for robustness
+
+  // When search is cleared, drop an explicit 'rank' sort so the default (Newest first) takes over.
+  useEffect(() => {
+    if (!searchQueryURL && params.sort === 'rank') {
+      updateParams({ sort: undefined });
+    }
+  }, [searchQueryURL, params.sort, updateParams]);
 
   const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(brandSearch);
   const { data: typeResults, isLoading: typesLoading } = useSearchProductTypesQuery(typeSearch);
@@ -565,7 +579,7 @@ export default function Products() {
               />
             }
           >
-            {SORT_OPTIONS.map((opt) => (
+            {SORT_OPTIONS.filter((opt) => searchQueryURL || opt.value[0] !== 'rank').map((opt) => (
               <Menu.Item
                 key={opt.label}
                 title={opt.label}
@@ -623,7 +637,8 @@ export default function Products() {
                 title={preset.label}
                 trailingIcon={activeDatePreset === preset.days ? 'check' : undefined}
                 onPress={() => {
-                  updateParams({ days: String(preset.days), page: '1' });
+                  const newDays = activeDatePreset === preset.days ? undefined : String(preset.days);
+                  updateParams({ days: newDays, page: '1' });
                   setDateMenuVisible(false);
                 }}
               />
@@ -837,27 +852,21 @@ export default function Products() {
             ],
           });
         }}
-        style={[
-          {
-            position: 'absolute',
-            margin: 16,
-            right: 0,
-            bottom: 0,
-            opacity: isAuthenticated ? 1 : 0.65,
-            zIndex: 1,
-            elevation: 1,
-          },
-          showInfoCard === true && isAuthenticated
-            ? {
-                borderWidth: 1,
-                borderColor: theme.colors.primaryContainer,
-                shadowColor: theme.colors.primary,
-                shadowOpacity: 0.22,
-                shadowRadius: 10,
-                elevation: 8,
-              }
-            : null,
-        ]}
+        style={{
+          position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+          right: 16,
+          bottom: 16,
+          opacity: isAuthenticated ? 1 : 0.65,
+          zIndex: 31,
+          elevation: 12,
+          margin: 0,
+          borderWidth: showInfoCard === true && isAuthenticated && fabExtended ? 1 : 0,
+          borderColor:
+            showInfoCard === true && isAuthenticated && fabExtended ? theme.colors.primaryContainer : 'transparent',
+          shadowColor: showInfoCard === true && isAuthenticated && fabExtended ? theme.colors.primary : undefined,
+          shadowOpacity: showInfoCard === true && isAuthenticated && fabExtended ? 0.22 : 0,
+          shadowRadius: showInfoCard === true && isAuthenticated && fabExtended ? 10 : 0,
+        }}
         accessibilityLabel={isAuthenticated ? 'Create new product' : 'Sign in to create products'}
       />
     </>

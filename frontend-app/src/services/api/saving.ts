@@ -108,7 +108,6 @@ async function saveNewProduct(product: Product): Promise<number> {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => null);
-    console.error('[saveNewProduct Error]:', errData || response.statusText);
     throw new Error(`Failed to save product: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
   }
 
@@ -199,6 +198,8 @@ async function deleteImage(product: Product, image: { id: number }) {
   return await apiFetch(url, { method: 'DELETE', headers: headers });
 }
 
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
 async function addImage(product: Product, image: { url: string; description: string }) {
   const url = new URL(baseUrl + `/products/${product.id}/images`);
   const token = await getToken();
@@ -209,20 +210,26 @@ async function addImage(product: Product, image: { url: string; description: str
   const body = new FormData();
 
   if (image.url.startsWith('data:')) {
-    body.append('file', dataURItoBlob(image.url), 'image.png');
+    const fileBlob = dataURItoBlob(image.url);
+    if (fileBlob.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error('Image is too large. Please use an image smaller than 10 MB.');
+    }
+    body.append('file', fileBlob, 'image.png');
   } else if (image.url.startsWith('file:')) {
     body.append('file', { uri: image.url, name: 'image.png', type: 'image/png' } as any);
   } else if (image.url.startsWith('blob:') || image.url.startsWith('http')) {
     // Web blob or URL - fetch and convert to blob
     const response = await fetch(image.url);
     const blob = await response.blob();
+    if (blob.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error('Image is too large. Please use an image smaller than 10 MB.');
+    }
     body.append('file', blob, 'image.png');
   }
 
   const response = await apiFetch(url, { method: 'POST', headers: headers, body: body, timeoutMs: 30_000 });
   if (!response.ok) {
     const errData = await response.json().catch(() => null);
-    console.error('[AddImage] upload failed:', errData || response.statusText);
     throw new Error(`Image upload failed: ${errData?.detail || response.statusText}`);
   }
 
@@ -246,7 +253,12 @@ async function addImage(product: Product, image: { url: string; description: str
 }
 
 function dataURItoBlob(dataURI: string) {
-  const byteString = atob(dataURI.split(',')[1]); // decode base64
+  let byteString: string;
+  try {
+    byteString = atob(dataURI.split(',')[1]); // decode base64
+  } catch {
+    throw new Error('Invalid image data.');
+  }
   const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]; // e.g. "image/png"
 
   const ab = new ArrayBuffer(byteString.length);

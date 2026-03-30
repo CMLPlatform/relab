@@ -83,7 +83,7 @@ describe('useProductQueries', () => {
     expect(fetching.allProducts).toHaveBeenCalledWith(
       undefined,
       2,
-      20,
+      24,
       'lamp',
       ['name'],
       ['ikea', 'philips'],

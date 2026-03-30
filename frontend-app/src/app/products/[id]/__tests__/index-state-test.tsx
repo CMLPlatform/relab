@@ -71,7 +71,6 @@ jest.mock('react-native-paper', () => {
   };
 });
 
-jest.mock('@/components/product/ProductAmountInParent', () => 'ProductAmountInParent');
 jest.mock('@/components/product/ProductCircularityProperties', () => 'ProductCircularityProperties');
 jest.mock('@/components/product/ProductComponents', () => 'ProductComponents');
 jest.mock('@/components/product/ProductDelete', () => 'ProductDelete');

@@ -2,12 +2,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { JSX, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, View } from 'react-native';
+import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, Platform, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AnimatedFAB, Button, Card, Text, Tooltip, useTheme } from 'react-native-paper';
 
 import DetailCard from '@/components/common/DetailCard';
-import ProductAmountInParent from '@/components/product/ProductAmountInParent';
 import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductComponents from '@/components/product/ProductComponents';
 import ProductDelete from '@/components/product/ProductDelete';
@@ -22,12 +21,20 @@ import ProductVideo from '@/components/product/ProductVideo';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
 import { useProductForm } from '@/hooks/useProductForm';
+import { useProductQuery } from '@/hooks/useProductQueries';
 import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
+
 import { Product } from '@/types/Product';
 
 type SearchParams = {
   id: string;
 };
+
+function truncateHeaderLabel(value: string | undefined, maxLength: number): string {
+  if (!value) return 'Product';
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
 
 export default function ProductPage(): JSX.Element {
   const { id } = useLocalSearchParams<SearchParams>();
@@ -66,6 +73,9 @@ export default function ProductPage(): JSX.Element {
     toggleEditMode,
     onProductDelete,
   } = useProductForm(id);
+  const parentProductId =
+    typeof product.parentID === 'number' && !isNaN(product.parentID) ? product.parentID : undefined;
+  const { data: parentProduct } = useProductQuery(parentProductId ?? 'new');
 
   // ─── Timeout for slow loading ────────────────────────────────────────────────
   useEffect(() => {
@@ -79,8 +89,11 @@ export default function ProductPage(): JSX.Element {
 
   // ─── Navigation header ───────────────────────────────────────────────────────
   useEffect(() => {
+    const truncatedProductName = truncateHeaderLabel(product?.name, 36);
+    const truncatedParentName = truncateHeaderLabel(parentProduct?.name, 20);
+
     navigation.setOptions({
-      title: product?.name || 'Product',
+      title: isProductComponent ? undefined : truncatedProductName,
       headerLeft: (props: any) => (
         <HeaderBackButton
           {...props}
@@ -95,11 +108,34 @@ export default function ProductPage(): JSX.Element {
           }}
         />
       ),
+      headerTitle:
+        isProductComponent && parentProduct?.name && typeof product.parentID === 'number'
+          ? () => (
+              <View style={{ maxWidth: 260, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text numberOfLines={1} style={{ maxWidth: 100, fontSize: 13, opacity: 0.7, fontWeight: '600' }}>
+                  {truncatedParentName}
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.onSurfaceVariant} />
+                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
+                  {truncatedProductName}
+                </Text>
+              </View>
+            )
+          : undefined,
       headerRight: editMode
         ? () => <EditNameButton product={product} onProductNameChange={onProductNameChange} />
         : undefined,
     });
-  }, [navigation, product, editMode, isProductComponent, router, onProductNameChange]);
+  }, [
+    navigation,
+    product,
+    editMode,
+    isProductComponent,
+    parentProduct?.name,
+    router,
+    onProductNameChange,
+    theme.colors.onSurfaceVariant,
+  ]);
 
   // ─── Unsaved changes guard ───────────────────────────────────────────────────
   useEffect(() => {
@@ -194,14 +230,12 @@ export default function ProductPage(): JSX.Element {
           editMode={editMode}
           onBrandChange={onBrandChange}
           onModelChange={onModelChange}
+          onAmountChange={onAmountInParentChange}
           isComponent={isProductComponent}
         />
         <DetailCard>
           <ProductType product={product} editMode={editMode} onTypeChange={onTypeChange} />
         </DetailCard>
-        {isProductComponent && (
-          <ProductAmountInParent product={product} editMode={editMode} onAmountChange={onAmountInParentChange} />
-        )}
         <DetailCard>
           <ProductPhysicalProperties
             product={product}
@@ -245,7 +279,13 @@ export default function ProductPage(): JSX.Element {
         <AnimatedFAB
           icon={FABicon}
           onPress={toggleEditMode}
-          style={{ position: 'absolute', right: 0, bottom: 0, overflow: 'hidden', margin: 19 }}
+          style={{
+            position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+            right: 0,
+            bottom: 0,
+            overflow: 'hidden',
+            margin: 19,
+          }}
           disabled={!validationResult.isValid || isSaving}
           extended={fabExtended}
           label={editMode ? 'Save Product' : 'Edit Product'}
