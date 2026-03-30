@@ -18,6 +18,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY zensical.toml ./
 COPY docs ./docs
 
+# Inject the current year into the copyright string in zensical.toml
+RUN sed -i "s/<year>/$(date +%Y)/g" zensical.toml
+
 # HACK: Replace the base URL in zensical.toml for staging builds to point to the staging docs site. This is needed until zensical support dynamic base URLs or environment variable substitution.
 ARG BUILD_MODE=prod
 RUN if [ "$BUILD_MODE" = "staging" ]; then \

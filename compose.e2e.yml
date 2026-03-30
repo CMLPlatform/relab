@@ -1,4 +1,4 @@
-# E2E test infrastructure — backend services only.
+# compose.e2e.yml (END-TO-END TESTING, used for testing the full stack in CI)
 #
 # To start the environment:
 #  just e2e-backend-up
@@ -69,8 +69,8 @@ services:
     restart: on-failure:3
 
   cache:
-    image: redis:8@sha256:315270d166080f537bbdf1b489b603aaaa213cb55a544acfa51feb7481abb1c0
-    # No password for test environment:  simplifies healthcheck and connection strings
+    image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
+    # No password for test environment: simplifies healthcheck and connection strings
     command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
@@ -81,7 +81,7 @@ services:
       retries: 5
 
   database:
-    image: postgres:18@sha256:78f1aed6e8c0185d3c6963c8343dd018c63e8ba5ebd78c159c7c772a05e75b30
+    image: postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
     env_file: ./backend/.env.test
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h localhost -U postgres -d relab_e2e_db"]

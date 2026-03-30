@@ -10,9 +10,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Set the working directory inside the container
 WORKDIR /opt/relab/backend
 
-# Create needed directories for logs and uploads
-RUN mkdir -p logs data/uploads/files data/uploads/images
-
 # uv optimizations (see https://docs.astral.sh/uv/guides/integration/docker/#optimizations)
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -42,7 +39,10 @@ RUN useradd -m $APP_USER
 
 WORKDIR $WORKDIR
 
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
+RUN mkdir -p logs data/uploads/files data/uploads/images
+
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
 
 # spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \
@@ -57,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/live',timeout=5).status==200 else 1)"
 
 # Run the FastAPI application. Trust forwarded headers only from explicitly allowed proxy IPs.
-CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}'"]
+CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --workers ${WEB_CONCURRENCY:-1}"]

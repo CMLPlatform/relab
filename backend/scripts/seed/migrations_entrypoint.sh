@@ -13,6 +13,14 @@ SEED_HS_CATEGORIES="${SEED_HS_CATEGORIES:-false}"
 SEED_DUMMY_DATA="${SEED_DUMMY_DATA:-false}"
 DEBUG="${DEBUG:-false}"
 
+require_taxonomy_seed_deps() {
+    if ! .venv/bin/python -c "import pandas, requests" >/dev/null 2>&1; then
+        echo "Taxonomy seeding requires the optional seed-taxonomies dependency group." >&2
+        echo "Rebuild backend/Dockerfile.migrations with INCLUDE_TAXONOMY_SEED_DEPS=true to enable SEED_CPV_* or SEED_HS_CATEGORIES." >&2
+        exit 1
+    fi
+}
+
 # Run Alembic migrations
 if [ "$(lc "$DEBUG")" = "true" ]; then
     echo "Current migration status:"
@@ -43,8 +51,9 @@ else
     echo "Dummy data seeding is disabled."
 fi
 
-# Seed taxonomies — run cpv once and pass the product-types flag if requested
+# Seed taxonomies: run cpv once and pass the product-types flag if requested
 if [ "$(lc "$SEED_CPV_CATEGORIES")" = "true" ]; then
+    require_taxonomy_seed_deps
     echo "Seeding CPV categories..."
     if [ "$(lc "$SEED_CPV_PRODUCT_TYPES")" = "true" ]; then
         .venv/bin/python -m scripts.seed.taxonomies.cpv --seed-product-types
@@ -56,6 +65,7 @@ elif [ "$(lc "$SEED_CPV_PRODUCT_TYPES")" = "true" ]; then
 fi
 
 if [ "$(lc "$SEED_HS_CATEGORIES")" = "true" ]; then
+    require_taxonomy_seed_deps
     .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
 fi
 

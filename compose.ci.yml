@@ -1,4 +1,4 @@
-# CI overlay — used by justfile smoke tests.
+# compose.ci.yml (CI environment, used for testing individual services in CI)
 # Provides credentials via .env.test so services can start without real secrets.
 name: relab_ci
 
@@ -16,3 +16,13 @@ services:
 
   cache:
     env_file: ./backend/.env.test
+
+  frontend-app:
+    build:
+      args:
+        BUILD_MODE: test
+
+  frontend-web:
+    build:
+      args:
+        BUILD_MODE: test

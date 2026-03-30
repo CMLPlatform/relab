@@ -16,13 +16,19 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=0
 
+ARG INCLUDE_TAXONOMY_SEED_DEPS=false
+
 # Copy dependency files
 COPY .python-version pyproject.toml uv.lock ./
 
 # Install dependencies
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-default-groups --group=migrations --no-install-project
+    if [ "$INCLUDE_TAXONOMY_SEED_DEPS" = "true" ]; then \
+        uv sync --locked --no-default-groups --group=migrations --group=seed-taxonomies --no-install-project; \
+    else \
+        uv sync --locked --no-default-groups --group=migrations --no-install-project; \
+    fi
 
 # Copy alembic migrations, scripts, and source code
 COPY alembic/ alembic/
@@ -39,7 +45,12 @@ RUN useradd $APP_USER
 
 WORKDIR $WORKDIR
 
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR $WORKDIR
+RUN mkdir -p data/uploads/files data/uploads/images
+
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/alembic $WORKDIR/alembic
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/scripts $WORKDIR/scripts
 
 # spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \

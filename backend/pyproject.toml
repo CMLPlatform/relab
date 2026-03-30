@@ -37,7 +37,6 @@
 
     # Database and persistence
     "fastapi-cache2-fork>=2.3.0",
-    "psycopg[binary] >=3.2.9",
     "sqlalchemy >=2.0.41",
     "sqlmodel >=0.0.27",
 
@@ -83,6 +82,11 @@
   migrations = [
     "alembic >=1.16.2",
     "alembic-postgresql-enum >=1.7.0",
+    "psycopg[binary] >=3.2.9",
+  ]
+
+  # Optional taxonomy-import tooling used by one-off seeding scripts
+  seed-taxonomies = [
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
     "requests>=2.32.0",
@@ -104,6 +108,7 @@
     "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
 
     # Database testing
+    "psycopg[binary] >=3.2.9",
     "pytest-alembic>=0.12.1",          # Migration testing - verify schema changes
     "testcontainers[postgres]>=4.8.2", # Ephemeral PostgreSQL for integration tests
 
