@@ -19,7 +19,6 @@ from starlette.background import BackgroundTask
 from app.api.common.utils import get_user_owned_object
 from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
-from app.core.http import create_http_client
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -41,11 +40,13 @@ class HttpMethod(StrEnum):
     DELETE = "DELETE"
 
 
-async def get_user_owned_camera(session: AsyncSession, camera_id: UUID4, user_id: UUID4) -> Camera:
-    """Get a camera owned by a user."""
+async def get_user_owned_camera(
+    session: AsyncSession, camera_id: UUID4, user_id: UUID4, http_client: AsyncClient
+) -> Camera:
+    """Get a camera owned by a user, verifying it is reachable."""
     camera = await get_user_owned_object(session, Camera, camera_id, user_id)
 
-    camera_status = await camera.get_status()
+    camera_status = await camera.get_status(http_client)
 
     if (camera_connection := camera_status.connection) != CameraConnectionStatus.ONLINE:
         status_code, msg = camera_connection.to_http_error()
@@ -58,8 +59,8 @@ async def fetch_from_camera_url(
     camera: Camera,
     endpoint: str,
     method: HttpMethod,
+    http_client: AsyncClient,
     headers: Headers | None = None,
-    http_client: AsyncClient | None = None,
     error_msg: str | None = None,
     query_params: QueryParams | None = None,
     body: dict | None = None,
@@ -71,20 +72,6 @@ async def fetch_from_camera_url(
     if headers is None:
         headers = Headers()
     headers.update({key: value.get_secret_value() for key, value in camera.auth_headers.items()})
-
-    if http_client is None:
-        async with create_http_client() as client:
-            return await _fetch_from_camera_via_http(
-                client,
-                camera,
-                endpoint,
-                method,
-                headers,
-                error_msg,
-                query_params,
-                body,
-                follow_redirects=follow_redirects,
-            )
 
     return await _fetch_from_camera_via_http(
         http_client,
@@ -150,8 +137,8 @@ async def stream_from_camera_url(
     camera: Camera,
     endpoint: str,
     method: HttpMethod,
+    http_client: AsyncClient,
     headers: Headers | None = None,
-    http_client: AsyncClient | None = None,
     error_msg: str | None = None,
     query_params: QueryParams | None = None,
     body: dict | None = None,
@@ -162,20 +149,6 @@ async def stream_from_camera_url(
     if headers is None:
         headers = Headers()
     headers.update({key: value.get_secret_value() for key, value in camera.auth_headers.items()})
-
-    if http_client is None:
-        async with create_http_client() as client:
-            return await _stream_from_camera_via_http(
-                client,
-                camera,
-                endpoint,
-                method,
-                headers,
-                error_msg,
-                query_params,
-                body,
-                follow_redirects=follow_redirects,
-            )
 
     return await _stream_from_camera_via_http(
         http_client,
@@ -256,7 +229,7 @@ def _extract_camera_error_detail(response: HTTPXResponse) -> str | dict | list |
 
 def build_camera_request(
     camera: Camera,
-    http_client: AsyncClient | None = None,
+    http_client: AsyncClient,
 ) -> Callable[..., Awaitable[HTTPXResponse]]:
     """Build a reusable request callable bound to one camera and shared client."""
 

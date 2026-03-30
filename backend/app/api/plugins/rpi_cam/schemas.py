@@ -1,6 +1,6 @@
 """Pydantic models used to validate CRUD operations for the Raspberry Pi Camera plugin."""
 
-from typing import Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
@@ -24,6 +24,9 @@ from app.api.common.schemas.custom_fields import AnyUrlToDB
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 
 ### Filters ###
@@ -145,11 +148,11 @@ class CameraReadWithStatus(CameraRead):
     status: CameraStatus
 
     @classmethod
-    async def from_db_model_with_status(cls, db_model: Camera) -> Self:
+    async def from_db_model_with_status(cls, db_model: Camera, http_client: AsyncClient) -> Self:
         """Create CameraReadWithStatus instance from Camera database model, fetching the online status."""
         return cls(
             **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
-            status=await db_model.get_status(),
+            status=await db_model.get_status(http_client),
         )
 
 

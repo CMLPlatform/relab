@@ -119,7 +119,6 @@ class TestCaptureAndStoreImage:
 
         with (
             patch("app.api.plugins.rpi_cam.services.get_model_or_404") as mock_check_product,
-            patch("app.api.plugins.rpi_cam.services.build_camera_request") as mock_build_camera_request,
             patch("app.api.plugins.rpi_cam.services.create_image") as mock_create_image,
         ):
             # Two fetches: one POST to capture, one GET to download
@@ -133,18 +132,17 @@ class TestCaptureAndStoreImage:
             mock_download_resp.content = IMG_BYTES
 
             mock_camera_request = AsyncMock(side_effect=[mock_capture_resp, mock_download_resp])
-            mock_build_camera_request.return_value = mock_camera_request
 
             mock_create_image.return_value = MagicMock()
 
             await capture_and_store_image(
                 session=mock_session,
                 camera=camera,
+                camera_request=mock_camera_request,
                 product_id=1,
             )
 
             mock_check_product.assert_called_once()
-            mock_build_camera_request.assert_called_once_with(camera)
             assert mock_camera_request.await_count == 2
             mock_create_image.assert_called_once()
 

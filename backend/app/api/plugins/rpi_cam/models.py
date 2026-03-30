@@ -5,8 +5,8 @@ from enum import StrEnum
 from functools import cached_property
 from urllib.parse import urljoin
 
-import httpx
 from cachetools import TTLCache
+from httpx import AsyncClient, RequestError
 from pydantic import UUID4, AnyUrl, BaseModel, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
@@ -69,7 +69,7 @@ class CameraBase(CustomBase):
 class Camera(CameraBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
     """Database model for Camera."""
 
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     encrypted_api_key: str = Field(nullable=False)
     encrypted_auth_headers: str | None = Field(default=None)
@@ -111,41 +111,39 @@ class Camera(CameraBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
         """Make Camera instances hashable using their id. Used for caching."""
         return hash(self.id)
 
-    async def get_status(self, *, force_refresh: bool = False) -> CameraStatus:
+    async def get_status(self, http_client: AsyncClient, *, force_refresh: bool = False) -> CameraStatus:
         """Get the current connection status of the camera, using cache if not force_refresh.
 
         Status is cached for 15 seconds to avoid excessive requests to the camera API.
         """
         if force_refresh:
-            return await self._fetch_status()
+            return await self._fetch_status(http_client)
 
-        return await self._get_cached_status()
+        return await self._get_cached_status(http_client)
 
     @async_ttl_cache(TTLCache(maxsize=1, ttl=15))
-    async def _get_cached_status(self) -> CameraStatus:
+    async def _get_cached_status(self, http_client: AsyncClient) -> CameraStatus:
         """Cached version of status fetch."""
-        return await self._fetch_status()
+        return await self._fetch_status(http_client)
 
-    async def _fetch_status(self) -> CameraStatus:
+    async def _fetch_status(self, http_client: AsyncClient) -> CameraStatus:
         status_url = urljoin(str(self.url), "/camera/status")
-
-        async with httpx.AsyncClient(timeout=2.0, verify=self.verify_ssl) as client:
-            try:
-                headers = {k: v.get_secret_value() for k, v in self.auth_headers.items()}
-                response = await client.get(status_url, headers=headers)
-                match response.status_code:
-                    case 200:
-                        return CameraStatus(
-                            connection=CameraConnectionStatus.ONLINE, details=CameraStatusDetails(**response.json())
-                        )
-                    case 401:
-                        return CameraStatus(connection=CameraConnectionStatus.UNAUTHORIZED, details=None)
-                    case 403:
-                        return CameraStatus(connection=CameraConnectionStatus.FORBIDDEN, details=None)
-            except httpx.RequestError:
-                return CameraStatus(connection=CameraConnectionStatus.OFFLINE, details=None)
-            else:
-                return CameraStatus(connection=CameraConnectionStatus.ERROR, details=None)
+        try:
+            headers = {k: v.get_secret_value() for k, v in self.auth_headers.items()}
+            response = await http_client.get(status_url, headers=headers, timeout=2.0)
+            match response.status_code:
+                case 200:
+                    return CameraStatus(
+                        connection=CameraConnectionStatus.ONLINE, details=CameraStatusDetails(**response.json())
+                    )
+                case 401:
+                    return CameraStatus(connection=CameraConnectionStatus.UNAUTHORIZED, details=None)
+                case 403:
+                    return CameraStatus(connection=CameraConnectionStatus.FORBIDDEN, details=None)
+        except RequestError:
+            return CameraStatus(connection=CameraConnectionStatus.OFFLINE, details=None)
+        else:
+            return CameraStatus(connection=CameraConnectionStatus.ERROR, details=None)
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"

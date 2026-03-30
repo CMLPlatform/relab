@@ -455,8 +455,9 @@ class TestCameraStreamRouters:
 
         session_mock = AsyncMock()
         user_mock = build_user()
+        http_client_mock = AsyncMock()
         request_mock = AsyncMock(spec=Request)
         camera_id = require_uuid(mock_camera.id)
 
-        result = await watch_preview(request_mock, camera_id, session_mock, user_mock)
+        result = await watch_preview(request_mock, camera_id, session_mock, http_client_mock, user_mock)
         assert result == TEMPLATE_HTML_CONTENT

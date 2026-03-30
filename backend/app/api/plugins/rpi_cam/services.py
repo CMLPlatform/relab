@@ -29,7 +29,7 @@ from app.api.plugins.rpi_cam.exceptions import (
     RecordingSessionStoreError,
 )
 from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod, build_camera_request
+from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod
 from app.api.plugins.rpi_cam.youtube_schemas import (
     YouTubeAPIErrorResponse,
     YouTubeBroadcastContentDetailsCreate,
@@ -140,7 +140,7 @@ async def capture_and_store_image(
     session: AsyncSession,
     camera: Camera,
     *,
-    camera_request: Callable[..., Awaitable[Response]] | None = None,
+    camera_request: Callable[..., Awaitable[Response]],
     product_id: PositiveInt,
     filename: str | None = None,
     description: str | None = None,
@@ -149,9 +149,6 @@ async def capture_and_store_image(
     # Validate the product_id
     if product_id:
         await get_model_or_404(session, Product, product_id)
-
-    if camera_request is None:
-        camera_request = build_camera_request(camera)
 
     # Capture image
     capture_response = await camera_request(

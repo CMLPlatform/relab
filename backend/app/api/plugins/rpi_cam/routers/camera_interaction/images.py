@@ -37,7 +37,7 @@ async def capture_image(
     description: Annotated[str | None, Body(description="Custom description for the image", max_length=500)] = None,
 ) -> Image:
     """Capture a still image with a remote Raspberry Pi Camera."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
     camera_request = build_camera_request(camera, http_client)
 
     return await capture_and_store_image(

@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.base import get_models
-from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.dependencies import (
@@ -39,6 +39,7 @@ router = PublicAPIRouter()
 )
 async def get_user_cameras(
     session: AsyncSessionDep,
+    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
     camera_filter: CameraFilterDep,
     *,
@@ -49,7 +50,7 @@ async def get_user_cameras(
     db_cameras = await get_models(session, Camera, model_filter=camera_filter, statement=statement)
 
     return [
-        await CameraReadWithStatus.from_db_model_with_status(camera) if include_status else camera
+        await CameraReadWithStatus.from_db_model_with_status(camera, http_client) if include_status else camera
         for camera in db_cameras
     ]
 
@@ -61,11 +62,12 @@ async def get_user_cameras(
 )
 async def get_user_camera(
     db_camera: UserOwnedCameraDep,
+    http_client: ExternalHTTPClientDep,
     *,
     include_status: bool = Query(default=False, description="Include camera online status"),
 ) -> Camera | CameraReadWithStatus:
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
-    return await CameraReadWithStatus.from_db_model_with_status(db_camera) if include_status else db_camera
+    return await CameraReadWithStatus.from_db_model_with_status(db_camera, http_client) if include_status else db_camera
 
 
 @camera_router.get(
@@ -74,11 +76,12 @@ async def get_user_camera(
 )
 async def get_user_camera_status(
     db_camera: UserOwnedCameraDep,
+    http_client: ExternalHTTPClientDep,
     *,
     force_refresh: bool = Query(default=False, description="Force a refresh of the status by bypassing the cache"),
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
-    return await db_camera.get_status(force_refresh=force_refresh)
+    return await db_camera.get_status(http_client, force_refresh=force_refresh)
 
 
 ## POST

@@ -117,57 +117,57 @@ class TestCameraModel:
         assert hash(camera) == hash(camera.id)
         assert str(camera) == f"{TEST_CAMERA_NAME} (id: {camera.id})"
 
-    @patch("httpx.AsyncClient.get")
-    async def test_fetch_status_online(self, mock_get: MagicMock, camera: Camera) -> None:
+    async def test_fetch_status_online(self, camera: Camera) -> None:
         """Test status fetching when the camera is online."""
         mock_response = MagicMock()
         mock_response.status_code = HTTP_OK
         mock_response.json.return_value = {"focus": 100}
-        mock_get.return_value = mock_response
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
 
-        status = await camera._fetch_status()
+        status = await camera._fetch_status(mock_client)
         assert status.connection == CameraConnectionStatus.ONLINE
         assert status.details is not None
 
-    @patch("httpx.AsyncClient.get")
-    async def test_fetch_status_unauthorized(self, mock_get: MagicMock, camera: Camera) -> None:
+    async def test_fetch_status_unauthorized(self, camera: Camera) -> None:
         """Test status fetching when access is unauthorized."""
         mock_response = MagicMock()
         mock_response.status_code = HTTP_UNAUTHORIZED
-        mock_get.return_value = mock_response
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
 
-        status = await camera._fetch_status()
+        status = await camera._fetch_status(mock_client)
         assert status.connection == CameraConnectionStatus.UNAUTHORIZED
         assert status.details is None
 
-    @patch("httpx.AsyncClient.get")
-    async def test_fetch_status_forbidden(self, mock_get: MagicMock, camera: Camera) -> None:
+    async def test_fetch_status_forbidden(self, camera: Camera) -> None:
         """Test status fetching when access is forbidden."""
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.status_code = HTTP_FORBIDDEN
-        mock_get.return_value = mock_response
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
 
-        status = await camera._fetch_status()
+        status = await camera._fetch_status(mock_client)
         assert status.connection == CameraConnectionStatus.FORBIDDEN
         assert status.details is None
 
-    @patch("httpx.AsyncClient.get")
-    async def test_fetch_status_error(self, mock_get: MagicMock, camera: Camera) -> None:
+    async def test_fetch_status_error(self, camera: Camera) -> None:
         """Test status fetching when an internal error occurs."""
-        mock_response = AsyncMock()
+        mock_response = MagicMock()
         mock_response.status_code = HTTP_INTERNAL_ERROR
-        mock_get.return_value = mock_response
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
 
-        status = await camera._fetch_status()
+        status = await camera._fetch_status(mock_client)
         assert status.connection == CameraConnectionStatus.ERROR
         assert status.details is None
 
-    @patch("httpx.AsyncClient.get")
-    async def test_fetch_status_offline(self, mock_get: MagicMock, camera: Camera) -> None:
+    async def test_fetch_status_offline(self, camera: Camera) -> None:
         """Test status fetching when the camera is unreachable."""
-        mock_get.side_effect = httpx.RequestError("Connection failed")
+        mock_client = AsyncMock()
+        mock_client.get.side_effect = httpx.RequestError("Connection failed")
 
-        status = await camera._fetch_status()
+        status = await camera._fetch_status(mock_client)
         assert status.connection == CameraConnectionStatus.OFFLINE
         assert status.details is None
 
@@ -177,29 +177,31 @@ class TestCameraModel:
         self, mock_fetch: MagicMock, mock_cached: MagicMock, camera: Camera
     ) -> None:
         """Test status retrieval with and without force refresh."""
+        mock_client = AsyncMock()
         mock_fetch.return_value = FETCHED_VAL
         mock_cached.return_value = CACHED_VAL
 
-        assert await camera.get_status(force_refresh=True) == FETCHED_VAL
+        assert await camera.get_status(mock_client, force_refresh=True) == FETCHED_VAL
         mock_fetch.assert_called_once()
         mock_cached.assert_not_called()
 
         mock_fetch.reset_mock()
-        assert await camera.get_status(force_refresh=False) == CACHED_VAL
+        assert await camera.get_status(mock_client, force_refresh=False) == CACHED_VAL
         mock_cached.assert_called_once()
         mock_fetch.assert_not_called()
 
     @patch.object(Camera, "_fetch_status")
     async def test_get_cached_status(self, mock_fetch: AsyncMock, camera: Camera) -> None:
         """Test that cached status returns cached values without re-fetching."""
+        mock_client = AsyncMock()
         mock_fetch.return_value = FETCHED_VAL
 
         # First call should fetch from the underlying method
-        result1 = await camera._get_cached_status()
+        result1 = await camera._get_cached_status(mock_client)
         assert result1 == FETCHED_VAL
         assert mock_fetch.call_count == 1
 
         # Second call should return cached value without calling _fetch_status again
-        result2 = await camera._get_cached_status()
+        result2 = await camera._get_cached_status(mock_client)
         assert result2 == FETCHED_VAL
         assert mock_fetch.call_count == 1  # Still 1, cache hit
