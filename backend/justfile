@@ -143,30 +143,174 @@ migrate-reset:
 # ============================================================================
 # Create superuser account
 create-superuser:
-    uv run python -m scripts.create_superuser
+    uv run python -m scripts.users.create_superuser
 
 # Check if database is empty
 db-is-empty:
-    uv run python -m scripts.db_is_empty
+    uv run python -m scripts.db.is_empty
 
 # Seed database with dummy data
 seed-dummy-data:
     uv run python -m scripts.seed.dummy_data
 # Clear Redis cache (specify namespace: background-data, docs)
 clear-cache NAMESPACE="background-data":
-    uv run python -m scripts.clear_cache {{ NAMESPACE }}
+    uv run python -m scripts.maintenance.clear_cache {{ NAMESPACE }}
 
 # Compile MJML email templates to HTML
 compile-email:
-    uv run python -m scripts.compile_email_templates
+    uv run python -m scripts.generate.compile_email_templates
 
 # Render entity relationship diagrams
 render-erd:
-    uv run python -m scripts.render_erd
+    uv run python -m scripts.generate.render_erd
+
+# Refresh the committed disposable-email fallback list from the upstream source
+refresh-disposable-email-domains:
+    uv run python -m scripts.maintenance.refresh_disposable_email_domains
 
 # Run the backend k6 baseline performance suite (requires k6 installed)
 perf-baseline:
-    k6 run perf/k6-baseline.js
+    mkdir -p reports/performance
+    k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
+
+ci_compose := "docker compose -p relab_ci -f ../compose.yml -f ../compose.ci.yml"
+k6_docker_image := "grafana/k6:latest"
+
+# Run the backend k6 baseline suite against the Docker CI stack.
+# Assumes the CI backend stack is already up and seeded with dummy data.
+perf-ci IMAGE_ID="" BASE_URL="http://backend:8000":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    image_id="{{ IMAGE_ID }}"
+    if [ -z "$image_id" ]; then
+        image_id=$({{ ci_compose }} exec -T backend python -c 'import json, sys, urllib.request; data = json.load(urllib.request.urlopen("http://localhost:8000/products?include=images&size=100", timeout=10)); image_id = next((img["id"] for item in data.get("items", []) for img in item.get("images", [])), ""); print(image_id); sys.exit(0 if image_id else 1)')
+    fi
+    mkdir -p reports/performance
+    docker run --rm \
+        --network relab_ci_default \
+        -v "$PWD/perf:/perf:ro" \
+        -v "$PWD/reports/performance:/reports" \
+        -e BASE_URL="{{ BASE_URL }}" \
+        -e PERF_USER_EMAIL="e2e-admin@example.com" \
+        -e PERF_USER_PASSWORD="E2eTestPass123!" \
+        -e PERF_IMAGE_ID="$image_id" \
+        {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
+
+# Write a dated CI baseline report from the latest k6 JSON summary export.
+perf-report-ci DATE="" BASE_URL="http://backend:8000":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    report_date="{{ DATE }}"
+    if [ -z "$report_date" ]; then
+        report_date="$(date +%F)"
+    fi
+    report_path="reports/performance/${report_date}-ci-baseline.md"
+    python3 - "$report_path" "$report_date" "{{ BASE_URL }}" <<'PY'
+    import json
+    from pathlib import Path
+    from sys import argv
+
+    summary_path = Path("reports/performance/latest-k6-summary.json")
+    if not summary_path.exists():
+        raise SystemExit(f"Missing summary export: {summary_path}")
+
+    report_path = Path(argv[1])
+    report_date = argv[2]
+    base_url = argv[3]
+
+    data = json.loads(summary_path.read_text())
+    metrics = data["metrics"]
+
+    def scenario_metrics(name: str) -> tuple[float, float, float]:
+        duration = metrics["http_req_duration" + "{scenario:" + name + "}"]
+        failed = metrics["http_req_failed" + "{scenario:" + name + "}"]
+        total = float(max(failed["passes"] + failed["fails"], 1))
+        return float(duration["avg"]), float(duration["p(95)"]), float(failed["fails"]) / total
+
+    product_avg, product_p95, product_fail = scenario_metrics("product_tree_read")
+    login_avg, login_p95, login_fail = scenario_metrics("bearer_login")
+    image_avg, image_p95, image_fail = scenario_metrics("resized_image")
+    overall = metrics["http_req_duration"]
+
+    def fmt_ms(value: float) -> str:
+        return f"{value / 1000:.2f}s" if value >= 1000 else f"{value:.2f}ms"
+
+    def fmt_rate(value: float) -> str:
+        return f"{value * 100:.2f}%"
+
+    report_path.write_text(
+        "\n".join(
+            [
+                f"# {report_date} CI Baseline",
+                "",
+                f"- environment: Docker CI backend at `{base_url}`",
+                "- source summary: `reports/performance/latest-k6-summary.json`",
+                "- enabled scenarios: `product_tree_read`, `bearer_login`, `resized_image`",
+                "",
+                "## Results",
+                "",
+                f"- `product_tree_read`: avg `{fmt_ms(product_avg)}`, p95 `{fmt_ms(product_p95)}`, failed requests `{fmt_rate(product_fail)}`",
+                f"- `bearer_login`: avg `{fmt_ms(login_avg)}`, p95 `{fmt_ms(login_p95)}`, failed requests `{fmt_rate(login_fail)}`",
+                f"- `resized_image`: avg `{fmt_ms(image_avg)}`, p95 `{fmt_ms(image_p95)}`, failed requests `{fmt_rate(image_fail)}`",
+                f"- overall HTTP: avg `{fmt_ms(float(overall['avg']))}`, p95 `{fmt_ms(float(overall['p(95)']))}`",
+                "",
+                "## Notes",
+                "",
+                "- This file was generated from the latest CI-stack `k6` summary export.",
+                "- If these numbers replace the prior baseline, keep older docker-dev reports as historical context only.",
+                "- Re-run `just perf-thresholds-apply` if you intentionally want the thresholds to track this new baseline.",
+                "",
+            ]
+        )
+        + "\n"
+    )
+    print(report_path)
+    PY
+
+# Recalibrate p95 thresholds in perf/k6-baseline.js from the latest k6 JSON summary export.
+perf-thresholds-apply HEADROOM="1.15":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 - "{{ HEADROOM }}" <<'PY'
+    import json
+    import math
+    import re
+    from pathlib import Path
+    from sys import argv
+
+    headroom = float(argv[1])
+    summary_path = Path("reports/performance/latest-k6-summary.json")
+    target_path = Path("perf/k6-baseline.js")
+
+    if not summary_path.exists():
+        raise SystemExit(f"Missing summary export: {summary_path}")
+
+    data = json.loads(summary_path.read_text())
+    metrics = data["metrics"]
+    target_text = target_path.read_text()
+
+    scenario_limits = {
+        "product_tree_read": math.ceil(float(metrics["http_req_duration{scenario:product_tree_read}"]["p(95)"]) * headroom / 100) * 100,
+        "bearer_login": math.ceil(float(metrics["http_req_duration{scenario:bearer_login}"]["p(95)"]) * headroom / 100) * 100,
+        "resized_image": math.ceil(float(metrics["http_req_duration{scenario:resized_image}"]["p(95)"]) * headroom / 100) * 100,
+    }
+
+    patterns = {
+        "product_tree_read": r'(http_req_duration\{scenario:product_tree_read\}": \["p\(95\)<)(\d+)("\])',
+        "bearer_login": r'(http_req_duration\{scenario:bearer_login\}"] = \["p\(95\)<)(\d+)("\])',
+        "resized_image": r'(http_req_duration\{scenario:resized_image\}"] = \["p\(95\)<)(\d+)("\])',
+    }
+
+    updated = target_text
+    updated = re.sub(patterns["product_tree_read"], rf"\g<1>{scenario_limits['product_tree_read']}\g<3>", updated)
+    updated = re.sub(patterns["bearer_login"], rf"\g<1>{scenario_limits['bearer_login']}\g<3>", updated)
+    updated = re.sub(patterns["resized_image"], rf"\g<1>{scenario_limits['resized_image']}\g<3>", updated)
+
+    target_path.write_text(updated)
+
+    for scenario, limit in scenario_limits.items():
+        print(f"{scenario}: p95<{limit}")
+    PY
 
 # ============================================================================
 # Maintenance

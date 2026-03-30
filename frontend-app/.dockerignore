@@ -16,7 +16,6 @@ jest.setup.ts
 
 # Dev tooling / config
 .vscode/
-eslint.config.js
 biome.json
 justfile
 Dockerfile.dev

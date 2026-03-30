@@ -4,9 +4,11 @@ FROM alpine:3.22@sha256:55ae5d250caebc548793f321534bc6a8ef1d116f334f18f4ada1b2da
 ARG WORKDIR=/opt/relab/backend_backups
 ARG BACKUP_SCRIPT_NAME=backup_user_uploads.sh
 
-# Install GNU tar and zstd for faster compression
+# Install the GNU userland tools required by the backup script.
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
     apk -U upgrade && apk add --no-interactive\
+    coreutils \
+    findutils \
     tar \
     zstd
 

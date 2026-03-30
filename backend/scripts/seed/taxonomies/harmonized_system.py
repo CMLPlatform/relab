@@ -3,7 +3,7 @@
 import csv
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 from sqlmodel import func, select
@@ -110,7 +110,8 @@ def seed_taxonomy() -> None:
         rows = load_hs_rows_from_csv(CSV_PATH)
 
         # Seed categories
-        cat_count, rel_count = seed_categories_from_rows(session, taxonomy.id, rows, get_parent_id_fn=get_hs_parent_id)
+        taxonomy_id = cast("int", taxonomy.id)
+        cat_count, rel_count = seed_categories_from_rows(session, taxonomy_id, rows, get_parent_id_fn=get_hs_parent_id)
 
         # Commit
         session.commit()

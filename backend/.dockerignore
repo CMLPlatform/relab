@@ -7,7 +7,11 @@ __pycache__/
 *.pyo
 
 # Local runtime artifacts
-data/
+# Keep committed seed/reference payloads available to Docker builds, but ignore
+# generated uploads and other local runtime data.
+data/*
+!data/seed/
+!data/seed/**
 logs/
 reports/
 

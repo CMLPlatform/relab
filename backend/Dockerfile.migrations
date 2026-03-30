@@ -25,15 +25,16 @@ COPY .python-version pyproject.toml uv.lock ./
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$INCLUDE_TAXONOMY_SEED_DEPS" = "true" ]; then \
-        uv sync --locked --no-default-groups --group=migrations --group=seed-taxonomies --no-install-project; \
+    uv sync --locked --no-default-groups --group=migrations --group=seed-taxonomies --no-install-project; \
     else \
-        uv sync --locked --no-default-groups --group=migrations --no-install-project; \
+    uv sync --locked --no-default-groups --group=migrations --no-install-project; \
     fi
 
 # Copy alembic migrations, scripts, and source code
 COPY alembic/ alembic/
 COPY scripts/ scripts/
 COPY app/ app/
+COPY data/seed/ data/seed/
 
 # --- Final runtime stage ---
 FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9
@@ -45,11 +46,14 @@ RUN useradd $APP_USER
 
 WORKDIR $WORKDIR
 
-RUN mkdir -p data/uploads/files data/uploads/images
+RUN mkdir -p data/uploads/files data/uploads/images \
+    && chown -R $APP_USER:$APP_USER data
 
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/alembic $WORKDIR/alembic
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/data/seed $WORKDIR/data/seed
+COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/pyproject.toml $WORKDIR/pyproject.toml
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/scripts $WORKDIR/scripts
 
 # spell-checker: ignore PYTHONUNBUFFERED

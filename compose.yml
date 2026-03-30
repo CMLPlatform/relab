@@ -38,7 +38,13 @@ services:
     environment:
       DATABASE_HOST: database
       REDIS_HOST: cache
-    volumes: # Ensure migrations have access to user uploads (for seeding example images)
+      DEBUG: ${DEBUG:-false}
+      SEED_DUMMY_DATA: ${SEED_DUMMY_DATA:-false}
+      SEED_CPV_CATEGORIES: ${SEED_CPV_CATEGORIES:-false}
+      SEED_CPV_PRODUCT_TYPES: ${SEED_CPV_PRODUCT_TYPES:-false}
+      SEED_HS_CATEGORIES: ${SEED_HS_CATEGORIES:-false}
+    volumes:
+      # Ensure migrations have access to user uploads (for seeding example images)
       - user_uploads:/opt/relab/backend-migrations/data/uploads
     profiles:
       - migrations
@@ -46,9 +52,9 @@ services:
 
   cache:
     image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
-    command: ["sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}"] # spell-checker: ignore requirepass
+    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ] # spell-checker: ignore requirepass
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG"]
+      test: [ "CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG" ]
       interval: 30s
       timeout: 5s
       start_period: 5s
@@ -59,7 +65,7 @@ services:
   database:
     image: postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 30s
       timeout: 5s
       start_period: 5s

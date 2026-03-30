@@ -39,7 +39,8 @@ RUN useradd -m $APP_USER
 
 WORKDIR $WORKDIR
 
-RUN mkdir -p logs data/uploads/files data/uploads/images
+RUN mkdir -p logs data/uploads/files data/uploads/images \
+    && chown -R $APP_USER:$APP_USER logs data
 
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
 COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app

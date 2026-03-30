@@ -6,7 +6,7 @@ import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pandas as pd
 import requests
@@ -171,8 +171,9 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
 
         # Seed categories
         available_codes = {row["external_id"] for row in rows}
+        taxonomy_id = cast("int", taxonomy.id)
         cat_count, rel_count = seed_categories_from_rows(
-            session, taxonomy.id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
+            session, taxonomy_id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
         )
 
         # Commit

@@ -41,9 +41,6 @@ yarn-error.*
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# ESLint cache
-.eslintcache
-
 # Test coverage
 coverage/
 
