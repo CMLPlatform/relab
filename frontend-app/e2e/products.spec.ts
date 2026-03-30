@@ -25,14 +25,14 @@ test.describe('Guest access', () => {
 test.describe('Products page', () => {
   test('products page loads with correct filter tabs and search bar', async ({ page }) => {
     await loginAndReachProducts(page);
-    await expect(page.getByText('All Products')).toBeVisible();
-    await expect(page.getByText('My Products')).toBeVisible();
+    await expect(page.getByText('Mine', { exact: true })).toBeVisible();
+    await expect(page.getByText('Date', { exact: true })).toBeVisible();
     await expect(page.getByPlaceholder('Search products')).toBeVisible();
   });
 
   test('empty state is shown when no products exist', async ({ page }) => {
     await loginAndReachProducts(page);
-    await page.getByText('My Products').click();
+    await page.getByText('Mine', { exact: true }).click();
     await expect(page.getByText("You haven't created any products yet. Tap the")).toBeVisible({
       timeout: 10_000,
     });
@@ -59,7 +59,7 @@ test.describe('Search', () => {
     await searchBar.fill('xyz_no_match_99999');
     await expect(page.getByText('No products found matching your search.')).toBeVisible({ timeout: 5_000 });
     await searchBar.clear();
-    await page.getByText('My Products').click();
+    await page.getByText('Mine', { exact: true }).click();
     await expect(page.getByText("You haven't created any products yet. Tap the")).toBeVisible({ timeout: 5_000 });
   });
 });

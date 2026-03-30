@@ -63,6 +63,8 @@ test.describe('Sort menu', () => {
 test.describe('Date filter chips', () => {
   test('all three date preset chips are visible', async ({ page }) => {
     await goToProducts(page);
+    await expect(page.getByText('Date', { exact: true })).toBeVisible();
+    await page.getByText('Date', { exact: true }).click();
     await expect(page.getByText('Last 7d')).toBeVisible();
     await expect(page.getByText('Last 30d')).toBeVisible();
     await expect(page.getByText('Last 90d')).toBeVisible();
@@ -70,25 +72,30 @@ test.describe('Date filter chips', () => {
 
   test('clicking "Last 7d" updates the URL days param', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Last 7d').click();
+    await page.getByText('Date', { exact: true }).click();
+    await selectMenuItem(page, 'Last 7d');
     await expect(page).toHaveURL(/days=7/, { timeout: 3_000 });
   });
 
   test('clicking an active preset again removes the days param', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Last 30d').click();
+    await page.getByText('Date', { exact: true }).click();
+    await selectMenuItem(page, 'Last 30d');
     await expect(page).toHaveURL(/days=30/, { timeout: 3_000 });
-    // Toggle off
-    await page.getByText('Last 30d').click();
+    // Toggle off — chip now shows "Last 30d"; click it to reopen menu and select again
+    await page.getByText('Last 30d', { exact: true }).click();
+    await selectMenuItem(page, 'Last 30d');
     await expect(page).not.toHaveURL(/days=/, { timeout: 3_000 });
   });
 
   test('only one date preset can be active at a time', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Last 7d').click();
+    await page.getByText('Date', { exact: true }).click();
+    await selectMenuItem(page, 'Last 7d');
     await expect(page).toHaveURL(/days=7/, { timeout: 3_000 });
-    // Switching preset replaces the value
-    await page.getByText('Last 90d').click();
+    // Switching preset — chip now shows "Last 7d"; click it to reopen menu
+    await page.getByText('Last 7d', { exact: true }).click();
+    await selectMenuItem(page, 'Last 90d');
     await expect(page).toHaveURL(/days=90/, { timeout: 3_000 });
     await expect(page).not.toHaveURL(/days=7/);
   });
@@ -151,27 +158,27 @@ test.describe('Search URL sync', () => {
 
 test.describe('My Products filter', () => {
   test('My Products tab is only visible after login', async ({ page }) => {
-    // Guest: only "All Products" segment button exists
+    // Guest: "Mine" chip is not shown
     await goToProducts(page);
-    await expect(page.getByText('My Products')).not.toBeVisible();
+    await expect(page.getByText('Mine', { exact: true })).not.toBeVisible();
 
-    // After login: both segments appear
+    // After login: "Mine" chip appears
     await loginAndReachProducts(page);
-    await expect(page.getByText('All Products')).toBeVisible();
-    await expect(page.getByText('My Products')).toBeVisible();
+    await expect(page.getByText('Mine', { exact: true })).toBeVisible();
   });
 
   test('clicking My Products updates the filterMode URL param', async ({ page }) => {
     await loginAndReachProducts(page);
-    await page.getByText('My Products').click();
+    await page.getByText('Mine', { exact: true }).click();
     await expect(page).toHaveURL(/filterMode=mine/, { timeout: 3_000 });
   });
 
   test('switching back to All Products clears filterMode=mine', async ({ page }) => {
     await loginAndReachProducts(page);
-    await page.getByText('My Products').click();
+    await page.getByText('Mine', { exact: true }).click();
     await expect(page).toHaveURL(/filterMode=mine/, { timeout: 3_000 });
-    await page.getByText('All Products').click();
+    // Click "Mine" again to toggle back to all
+    await page.getByText('Mine', { exact: true }).click();
     await expect(page).toHaveURL(/filterMode=all/, { timeout: 3_000 });
   });
 });

@@ -59,7 +59,7 @@ test.describe('Authentication flow', () => {
     await finishOnboardingIfVisible(page);
 
     // ── Verify products screen loaded ────────────────────────────────────────
-    await expect(page.getByText('All Products')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('Search products')).toBeVisible({ timeout: 10_000 });
   });
 });
 
