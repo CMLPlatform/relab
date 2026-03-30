@@ -3,6 +3,19 @@ import { render, screen } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { AnimatedBackground } from '../AnimatedBackground';
 
+type JsonNode = {
+  props: {
+    style?: unknown;
+  };
+};
+
+function getSingleJsonNode(value: ReturnType<ReturnType<typeof render>['toJSON']>): JsonNode {
+  if (!value || Array.isArray(value)) {
+    throw new Error('Expected a single rendered JSON node');
+  }
+  return value;
+}
+
 describe('AnimatedBackground', () => {
   const originalPlatform = Platform.OS;
 
@@ -40,13 +53,17 @@ describe('AnimatedBackground', () => {
       configurable: true,
     });
     const { toJSON } = render(<AnimatedBackground />);
-    const json = toJSON() as any;
+    const json = getSingleJsonNode(toJSON());
     // The animated style should be applied to the transform
     // In our mock, useAnimatedStyle returns the style immediately
     expect(json.props.style).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          transform: expect.arrayContaining([{ translateX: -0 }, { translateY: -0 }, { scale: 1.1 }]),
+          transform: expect.arrayContaining([
+            { translateX: -0 },
+            { translateY: -0 },
+            { scale: 1.1 },
+          ]),
         }),
       ]),
     );

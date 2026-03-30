@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Fragment, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { Chip, Text, TextInput } from '@/components/base';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import { spacing, radius } from '@/constants/layout';
-import { CircularityProperties, Product } from '@/types/Product';
+import { radius, spacing } from '@/constants/layout';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import type { CircularityProperties, Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -32,7 +32,11 @@ interface CircularityPropertySectionProps {
   onUpdateField: (field: 'comment' | 'observation' | 'reference', value: string) => void;
 }
 
-export default function ProductCircularityProperties({ product, editMode, onChangeCircularityProperties }: Props) {
+export default function ProductCircularityProperties({
+  product,
+  editMode,
+  onChangeCircularityProperties,
+}: Props) {
   const { colors } = useAppTheme();
   const [isSectionExpanded, setIsSectionExpanded] = useState(false);
   const [expandedProperty, setExpandedProperty] = useState<CircularityPropertyType | null>(null);
@@ -76,7 +80,8 @@ export default function ProductCircularityProperties({ product, editMode, onChan
   ) => {
     if (!product.circularityProperties) return;
 
-    const key = `${type}${field.charAt(0).toUpperCase()}${field.slice(1)}` as keyof CircularityProperties;
+    const key =
+      `${type}${field.charAt(0).toUpperCase()}${field.slice(1)}` as keyof CircularityProperties;
     const newProperties = {
       ...product.circularityProperties,
       [key]: value,
@@ -123,7 +128,11 @@ export default function ProductCircularityProperties({ product, editMode, onChan
     setExpandedProperty(null);
   };
 
-  const propertyTypes = ['recyclability', 'remanufacturability', 'repairability'] as CircularityPropertyType[];
+  const propertyTypes = [
+    'recyclability',
+    'remanufacturability',
+    'repairability',
+  ] as CircularityPropertyType[];
   const chipsToShow = editMode ? propertyTypes.filter((type) => !hasPropertyData(type)) : [];
   const expandedPropertiesToShow = propertyTypes.filter((type) => hasPropertyData(type));
   const propertyCount = expandedPropertiesToShow.length;
@@ -244,7 +253,9 @@ function CircularityPropertySection({
               onPress={onToggleExpanded}
               style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
               accessibilityRole="button"
-              accessibilityLabel={isExpanded ? `Collapse ${propertyLabels[type]}` : `Expand ${propertyLabels[type]}`}
+              accessibilityLabel={
+                isExpanded ? `Collapse ${propertyLabels[type]}` : `Expand ${propertyLabels[type]}`
+              }
             >
               <MaterialCommunityIcons
                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -270,7 +281,9 @@ function CircularityPropertySection({
             {/* Observation field - always show in edit mode, only show if has content in view mode */}
             {(editMode || hasContent(observation)) && (
               <View>
-                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Observation (Required)</Text>
+                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>
+                  Observation (Required)
+                </Text>
                 <TextInput
                   value={String(observation || '')}
                   onChangeText={(text) => onUpdateField('observation', text)}
@@ -299,7 +312,9 @@ function CircularityPropertySection({
             {/* Comment field - always show in edit mode, only show if has content in view mode */}
             {(editMode || hasContent(comment)) && (
               <View>
-                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Comment (Optional)</Text>
+                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>
+                  Comment (Optional)
+                </Text>
                 <TextInput
                   value={String(comment || '')}
                   onChangeText={(text) => onUpdateField('comment', text)}
@@ -322,7 +337,9 @@ function CircularityPropertySection({
             {/* Reference field - always show in edit mode, only show if has content in view mode */}
             {(editMode || hasContent(reference)) && (
               <View>
-                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Reference (Optional)</Text>
+                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>
+                  Reference (Optional)
+                </Text>
                 <TextInput
                   value={String(reference || '')}
                   onChangeText={(text) => onUpdateField('reference', text)}

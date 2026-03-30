@@ -1,23 +1,23 @@
 // Products list moved here from app/index.tsx
+
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  type DimensionValue,
   FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  View,
   useColorScheme,
   useWindowDimensions,
+  View,
 } from 'react-native';
-import { useDebounce } from 'use-debounce';
-
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   AnimatedFAB,
@@ -30,6 +30,7 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
+import { useDebounce } from 'use-debounce';
 import { useDialog } from '@/components/common/DialogProvider';
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import ProductCard from '@/components/common/ProductCard';
@@ -43,9 +44,11 @@ import {
   useSearchProductTypesQuery,
 } from '@/hooks/useProductQueries';
 import { setNewProductIntent } from '@/services/newProductStore';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 type ProductFilter = 'all' | 'mine';
+type RouterSetParams = Parameters<ReturnType<typeof useRouter>['setParams']>[0];
+type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 
 const GUEST_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_guest';
 const AUTH_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_authenticated';
@@ -71,17 +74,23 @@ type PaginationControlsProps = {
   setPage: (page: number) => void;
 };
 
-function PaginationControls({ page, totalPages, total, isFetching, setPage }: PaginationControlsProps) {
+function PaginationControls({
+  page,
+  totalPages,
+  total,
+  isFetching,
+  setPage,
+}: PaginationControlsProps) {
   if (totalPages <= 1) return null;
 
-  const getPageNumbers = (): (number | 'ellipsis')[] => {
+  const getPageNumbers = (): (number | 'ellipsis-start' | 'ellipsis-end')[] => {
     if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
-    const pages: (number | 'ellipsis')[] = [1];
-    if (page > 3) pages.push('ellipsis');
+    const pages: (number | 'ellipsis-start' | 'ellipsis-end')[] = [1];
+    if (page > 3) pages.push('ellipsis-start');
     for (let p = Math.max(2, page - 1); p <= Math.min(totalPages - 1, page + 1); p++) {
       pages.push(p);
     }
-    if (page < totalPages - 2) pages.push('ellipsis');
+    if (page < totalPages - 2) pages.push('ellipsis-end');
     pages.push(totalPages);
     return pages;
   };
@@ -92,10 +101,18 @@ function PaginationControls({ page, totalPages, total, isFetching, setPage }: Pa
   return (
     <View style={{ padding: 16, alignItems: 'center', gap: 8 }}>
       <Text style={{ fontSize: 14, opacity: 0.7 }}>
-        Page {page} of {totalPages}; Showing {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()}{' '}
-        products
+        Page {page} of {totalPages}; Showing {start.toLocaleString()}–{end.toLocaleString()} of{' '}
+        {total.toLocaleString()} products
       </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}
+      >
         <Button
           mode="outlined"
           compact
@@ -105,9 +122,9 @@ function PaginationControls({ page, totalPages, total, isFetching, setPage }: Pa
         >
           Previous
         </Button>
-        {getPageNumbers().map((p, i) =>
-          p === 'ellipsis' ? (
-            <Text key={`ellipsis-${i}`} style={{ paddingHorizontal: 4 }}>
+        {getPageNumbers().map((p) =>
+          p === 'ellipsis-start' || p === 'ellipsis-end' ? (
+            <Text key={p} style={{ paddingHorizontal: 4 }}>
               …
             </Text>
           ) : (
@@ -149,7 +166,9 @@ function NewProductPill() {
         },
       ]}
     >
-      <Text style={[styles.inlineButtonText, { color: theme.colors.onPrimaryContainer }]}>New Product</Text>
+      <Text style={[styles.inlineButtonText, { color: theme.colors.onPrimaryContainer }]}>
+        New Product
+      </Text>
     </View>
   );
 }
@@ -195,7 +214,13 @@ function ListFooter({
 }: ListFooterProps) {
   if (isDesktopWeb) {
     return (
-      <PaginationControls page={page} totalPages={totalPages} total={total} isFetching={isFetching} setPage={setPage} />
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        total={total}
+        isFetching={isFetching}
+        setPage={setPage}
+      />
     );
   }
 
@@ -301,10 +326,10 @@ export default function Products() {
 
   // Helper to update URL params
   const updateParams = useCallback(
-    (newParams: Record<string, string | string[] | undefined>) => {
+    (newParams: RouterSetParams) => {
       // Expo Router's setParams merges with existing ones for the current route.
       // We don't need to manually merge with `params`.
-      router.setParams(newParams as any);
+      router.setParams(newParams);
     },
     [router],
   );
@@ -352,7 +377,7 @@ export default function Products() {
     }
     const timer = setTimeout(() => setSlowLoading(true), 5000);
     if (timer && typeof timer === 'object' && 'unref' in timer) {
-      (timer as any).unref();
+      (timer as TimerWithUnref).unref();
     }
     return () => clearTimeout(timer);
   }, [isLoading]);
@@ -361,7 +386,7 @@ export default function Products() {
   useEffect(() => {
     setMobilePage(1);
     setAccumulatedProducts([]);
-  }, [searchQueryURL, filterMode, params.sort, params.brands, params.types, params.days]);
+  }, []);
 
   useEffect(() => {
     if (!data?.items) return;
@@ -381,7 +406,9 @@ export default function Products() {
   const totalPages = data?.pages ?? 0;
   const total = data?.total ?? 0;
   const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
-  const infoCardStorageKey = isAuthenticated ? AUTH_INFO_CARD_STORAGE_KEY : GUEST_INFO_CARD_STORAGE_KEY;
+  const infoCardStorageKey = isAuthenticated
+    ? AUTH_INFO_CARD_STORAGE_KEY
+    : GUEST_INFO_CARD_STORAGE_KEY;
 
   // Load info card preference once
   useEffect(() => {
@@ -390,7 +417,8 @@ export default function Products() {
     const load = async () => {
       try {
         if (Platform.OS === 'web') {
-          const dismissed = typeof window !== 'undefined' ? window.localStorage.getItem(infoCardStorageKey) : null;
+          const dismissed =
+            typeof window !== 'undefined' ? window.localStorage.getItem(infoCardStorageKey) : null;
           if (!cancelled) setShowInfoCard(dismissed !== 'true');
         } else {
           const dismissed = await AsyncStorage.getItem(infoCardStorageKey);
@@ -428,7 +456,10 @@ export default function Products() {
       dialog.alert({
         title: 'Sign In Required',
         message: 'Sign in to add new products and manage your own submissions.',
-        buttons: [{ text: 'Cancel' }, { text: 'Sign in', onPress: () => router.push('/login?redirectTo=/products') }],
+        buttons: [
+          { text: 'Cancel' },
+          { text: 'Sign in', onPress: () => router.push('/login?redirectTo=/products') },
+        ],
       });
       return;
     }
@@ -438,7 +469,10 @@ export default function Products() {
         title: 'Email Verification Required',
         message:
           'Please verify your email address before creating products. Check your inbox for the verification link or go to your Profile to resend it.',
-        buttons: [{ text: 'OK' }, { text: 'Go to Profile', onPress: () => router.push('/profile') }],
+        buttons: [
+          { text: 'OK' },
+          { text: 'Go to Profile', onPress: () => router.push('/profile') },
+        ],
       });
       return;
     }
@@ -475,10 +509,15 @@ export default function Products() {
       >
         {/* Welcome banner shown on first visit */}
         {showInfoCard === true && (
-          <Card mode="contained" style={[styles.welcomeCard, { backgroundColor: theme.colors.surfaceVariant }]}>
+          <Card
+            mode="contained"
+            style={[styles.welcomeCard, { backgroundColor: theme.colors.surfaceVariant }]}
+          >
             <Card.Content style={styles.welcomeCardContent}>
               <View style={styles.welcomeHeaderRow}>
-                <View style={[styles.welcomeIcon, { backgroundColor: theme.colors.primaryContainer }]}>
+                <View
+                  style={[styles.welcomeIcon, { backgroundColor: theme.colors.primaryContainer }]}
+                >
                   <MaterialCommunityIcons
                     name="rocket-launch-outline"
                     size={22}
@@ -505,15 +544,22 @@ export default function Products() {
                   <View style={styles.welcomeSentence}>
                     <Text style={styles.welcomeBodyText}>Use the </Text>
                     <NewProductPill />
-                    <Text style={styles.welcomeBodyText}> button to add products, and manage your </Text>
+                    <Text style={styles.welcomeBodyText}>
+                      {' '}
+                      button to add products, and manage your{' '}
+                    </Text>
                     <ProfilePill />
                     <Text style={styles.welcomeBodyText}> anytime.</Text>
                   </View>
                 ) : (
                   <View style={styles.welcomeSentence}>
-                    <Text style={styles.welcomeBodyText}>You can browse products and manage your</Text>
+                    <Text style={styles.welcomeBodyText}>
+                      You can browse products and manage your
+                    </Text>
                     <ProfilePill />
-                    <Text style={styles.welcomeBodyText}>. Once your email is verified, you can use the </Text>
+                    <Text style={styles.welcomeBodyText}>
+                      . Once your email is verified, you can use the{' '}
+                    </Text>
                     <NewProductPill />
                     <Text style={styles.welcomeBodyText}> button to create products.</Text>
                   </View>
@@ -606,10 +652,18 @@ export default function Products() {
               icon="account"
               selected={filterMode === 'mine'}
               mode={filterMode === 'mine' ? 'flat' : 'outlined'}
-              onPress={() => updateParams({ filterMode: filterMode === 'mine' ? 'all' : 'mine', page: '1' })}
-              onClose={filterMode === 'mine' ? () => updateParams({ filterMode: 'all', page: '1' }) : undefined}
+              onPress={() =>
+                updateParams({ filterMode: filterMode === 'mine' ? 'all' : 'mine', page: '1' })
+              }
+              onClose={
+                filterMode === 'mine'
+                  ? () => updateParams({ filterMode: 'all', page: '1' })
+                  : undefined
+              }
               compact
-              accessibilityLabel={filterMode === 'mine' ? 'Show all products' : 'Show only my products'}
+              accessibilityLabel={
+                filterMode === 'mine' ? 'Show all products' : 'Show only my products'
+              }
             >
               Mine
             </Chip>
@@ -625,7 +679,11 @@ export default function Products() {
                 selected={activeDatePreset !== null}
                 mode={activeDatePreset !== null ? 'flat' : 'outlined'}
                 onPress={() => setDateMenuVisible(true)}
-                onClose={activeDatePreset !== null ? () => updateParams({ days: undefined, page: '1' }) : undefined}
+                onClose={
+                  activeDatePreset !== null
+                    ? () => updateParams({ days: undefined, page: '1' })
+                    : undefined
+                }
                 compact
               >
                 {DATE_PRESETS.find((p) => p.days === activeDatePreset)?.label ?? 'Date'}
@@ -638,7 +696,8 @@ export default function Products() {
                 title={preset.label}
                 trailingIcon={activeDatePreset === preset.days ? 'check' : undefined}
                 onPress={() => {
-                  const newDays = activeDatePreset === preset.days ? undefined : String(preset.days);
+                  const newDays =
+                    activeDatePreset === preset.days ? undefined : String(preset.days);
                   updateParams({ days: newDays, page: '1' });
                   setDateMenuVisible(false);
                 }}
@@ -732,10 +791,18 @@ export default function Products() {
               gap: 12,
             }}
           >
-            <MaterialCommunityIcons name="alert-circle-outline" size={24} color={theme.colors.error} />
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={24}
+              color={theme.colors.error}
+            />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: theme.colors.onErrorContainer, fontWeight: 'bold' }}>Load Failed</Text>
-              <Text style={{ color: theme.colors.onErrorContainer, opacity: 0.8, fontSize: 13 }}>{String(error)}</Text>
+              <Text style={{ color: theme.colors.onErrorContainer, fontWeight: 'bold' }}>
+                Load Failed
+              </Text>
+              <Text style={{ color: theme.colors.onErrorContainer, opacity: 0.8, fontSize: 13 }}>
+                {String(error)}
+              </Text>
             </View>
             <Button
               mode="contained-tonal"
@@ -760,9 +827,21 @@ export default function Products() {
               scrollEnabled={false}
             />
             {slowLoading && (
-              <View style={{ position: 'absolute', bottom: 100, left: 0, right: 0, alignItems: 'center' }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 100,
+                  left: 0,
+                  right: 0,
+                  alignItems: 'center',
+                }}
+              >
                 <Card
-                  style={{ backgroundColor: theme.colors.surfaceVariant, paddingHorizontal: 16, paddingVertical: 8 }}
+                  style={{
+                    backgroundColor: theme.colors.surfaceVariant,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                  }}
                 >
                   <Text variant="bodySmall">This is taking longer than usual. Please wait...</Text>
                 </Card>
@@ -779,7 +858,7 @@ export default function Products() {
             data={productList}
             keyExtractor={(item) => item.id.toString()}
             renderItem={({ item }) => (
-              <View style={{ width: `${100 / numColumns}%` as any }}>
+              <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
                 <ProductCard product={item} showOwner={filterMode === 'all'} />
               </View>
             )}
@@ -792,7 +871,9 @@ export default function Products() {
                 isFetching={isFetching}
                 page={effectivePage}
                 totalPages={totalPages}
-                setPage={(p) => (numColumns === 1 ? setMobilePage(p) : updateParams({ page: String(p) }))}
+                setPage={(p) =>
+                  numColumns === 1 ? setMobilePage(p) : updateParams({ page: String(p) })
+                }
               />
             }
             ListEmptyComponent={
@@ -803,13 +884,17 @@ export default function Products() {
                   <Text>No products available yet. Sign in to add your own.</Text>
                 ) : filterMode === 'mine' ? (
                   <View style={styles.emptyStateBody}>
-                    <Text style={styles.emptyStateText}>You haven&apos;t created any products yet. Tap the </Text>
+                    <Text style={styles.emptyStateText}>
+                      You haven&apos;t created any products yet. Tap the{' '}
+                    </Text>
                     <NewProductPill />
                     <Text style={styles.emptyStateText}> button to create your first one!</Text>
                   </View>
                 ) : (
                   <View style={styles.emptyStateBody}>
-                    <Text style={styles.emptyStateText}>No products yet. Start by tapping the </Text>
+                    <Text style={styles.emptyStateText}>
+                      No products yet. Start by tapping the{' '}
+                    </Text>
                     <NewProductPill />
                     <Text style={styles.emptyStateText}> button to create your first one!</Text>
                   </View>
@@ -863,8 +948,13 @@ export default function Products() {
           margin: 0,
           borderWidth: showInfoCard === true && isAuthenticated && fabExtended ? 1 : 0,
           borderColor:
-            showInfoCard === true && isAuthenticated && fabExtended ? theme.colors.primaryContainer : 'transparent',
-          shadowColor: showInfoCard === true && isAuthenticated && fabExtended ? theme.colors.primary : undefined,
+            showInfoCard === true && isAuthenticated && fabExtended
+              ? theme.colors.primaryContainer
+              : 'transparent',
+          shadowColor:
+            showInfoCard === true && isAuthenticated && fabExtended
+              ? theme.colors.primary
+              : undefined,
           shadowOpacity: showInfoCard === true && isAuthenticated && fabExtended ? 0.22 : 0,
           shadowRadius: showInfoCard === true && isAuthenticated && fabExtended ? 10 : 0,
         }}

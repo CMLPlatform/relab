@@ -1,7 +1,7 @@
-import { fetchWithTimeout } from './request';
-import { getToken } from './authentication';
 import { API_URL } from '@/config';
 import type { ApiNewsletterPreferenceRead } from '@/types/api';
+import { getToken } from './authentication';
+import { fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
 

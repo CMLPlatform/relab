@@ -2,11 +2,13 @@ import { describe, expect, it } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { http, HttpResponse } from 'msw';
-import Profile from '../profile';
-import { renderWithProviders, server, mockUser } from '@/test-utils';
+import { HttpResponse, http } from 'msw';
+import type { ReactNode } from 'react';
 import * as auth from '@/services/api/authentication';
 import * as fetching from '@/services/api/fetching';
+import { mockUser, renderWithProviders, server } from '@/test-utils';
+import type { User } from '@/types/User';
+import Profile from '../profile';
 
 jest.mock('@/services/api/authentication', () => ({
   getToken: jest.fn(),
@@ -37,7 +39,7 @@ jest.mock('expo-router', () => ({
     push: jest.fn(),
     replace: jest.fn(),
   })),
-  Link: ({ children }: any) => <>{children}</>,
+  Link: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 const mockedGetToken = jest.mocked(auth.getToken);
@@ -128,7 +130,9 @@ describe('Profile screen newsletter preference', () => {
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 
-    expect(await screen.findByText('Unable to save right now.', {}, { timeout: 10000 })).toBeTruthy();
+    expect(
+      await screen.findByText('Unable to save right now.', {}, { timeout: 10000 }),
+    ).toBeTruthy();
   });
 
   it('shows an error and retry action when newsletter preferences fail to load', async () => {
@@ -140,7 +144,9 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true });
 
-    expect(await screen.findByText('Could not load right now.', {}, { timeout: 10000 })).toBeTruthy();
+    expect(
+      await screen.findByText('Could not load right now.', {}, { timeout: 10000 }),
+    ).toBeTruthy();
     expect(screen.getByText('Try again')).toBeTruthy();
   });
 });
@@ -154,13 +160,15 @@ describe('Profile screen actions', () => {
       username: 'testuser',
       email: 'test@example.com',
       isVerified: false,
-      oauth_accounts: [{ oauth_name: 'google', account_email: 'google@test.com' }],
-    } as any);
+      oauth_accounts: [
+        { oauth_name: 'google', account_id: 'google-1', account_email: 'google@test.com' },
+      ],
+    } satisfies User);
   });
 
   it('allows editing the username through a dialog', async () => {
     const mockedUpdateUser = jest.mocked(auth.updateUser);
-    mockedUpdateUser.mockResolvedValue({} as any);
+    mockedUpdateUser.mockResolvedValue(undefined);
 
     renderWithProviders(<Profile />, { withAuth: true });
 
@@ -183,7 +191,7 @@ describe('Profile screen actions', () => {
 
   it('triggers verification email resend', async () => {
     const mockedVerify = jest.mocked(auth.verify);
-    mockedVerify.mockResolvedValue({} as any);
+    mockedVerify.mockResolvedValue(true);
     global.alert = jest.fn();
 
     renderWithProviders(<Profile />, { withAuth: true });
@@ -199,7 +207,7 @@ describe('Profile screen actions', () => {
 
   it('handles unlinking OAuth accounts', async () => {
     const mockedUnlink = jest.mocked(auth.unlinkOAuth);
-    mockedUnlink.mockResolvedValue({} as any);
+    mockedUnlink.mockResolvedValue(true);
 
     renderWithProviders(<Profile />, { withAuth: true });
 
@@ -252,7 +260,10 @@ describe('Profile screen actions', () => {
           headers: expect.objectContaining({ Authorization: 'Bearer token' }),
         }),
       );
-      expect(mockedOpenAuthSessionAsync).toHaveBeenCalledWith('https://example.com/auth', 'myapp://profile');
+      expect(mockedOpenAuthSessionAsync).toHaveBeenCalledWith(
+        'https://example.com/auth',
+        'myapp://profile',
+      );
       expect(mockedGetUser.mock.calls.length).toBeGreaterThan(initialGetUserCalls);
     });
   });
@@ -265,7 +276,9 @@ describe('Profile screen actions', () => {
 
     expect(screen.getByText('Delete Account')).toBeTruthy();
     expect(
-      screen.getByText('To delete your account and all associated data, please send an email request to:'),
+      screen.getByText(
+        'To delete your account and all associated data, please send an email request to:',
+      ),
     ).toBeTruthy();
   });
 });

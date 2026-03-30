@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { DEFAULT_API_TIMEOUT_MS, fetchWithTimeout, TimeoutError, isTimeoutError } from './request';
+import { DEFAULT_API_TIMEOUT_MS, fetchWithTimeout, isTimeoutError, TimeoutError } from './request';
 
 describe('fetchWithTimeout', () => {
   const originalFetch = global.fetch;
@@ -25,7 +25,9 @@ describe('fetchWithTimeout', () => {
       expect(isTimeoutError(error)).toBe(true);
       expect(error).toBeInstanceOf(TimeoutError);
       expect((error as TimeoutError).timeoutMs).toBe(DEFAULT_API_TIMEOUT_MS);
-      expect((error as TimeoutError).message).toBe(`Request timed out after ${DEFAULT_API_TIMEOUT_MS}ms`);
+      expect((error as TimeoutError).message).toBe(
+        `Request timed out after ${DEFAULT_API_TIMEOUT_MS}ms`,
+      );
     });
     await jest.advanceTimersByTimeAsync(DEFAULT_API_TIMEOUT_MS);
     await assertion;
@@ -64,7 +66,9 @@ describe('fetchWithTimeout', () => {
       });
     }) as typeof fetch;
 
-    const pendingRequest = fetchWithTimeout('http://localhost:8000/api/products', { timeoutMs: 250 });
+    const pendingRequest = fetchWithTimeout('http://localhost:8000/api/products', {
+      timeoutMs: 250,
+    });
     const assertion = pendingRequest.catch((error) => {
       expect(isTimeoutError(error)).toBe(true);
       expect(error).toBeInstanceOf(TimeoutError);

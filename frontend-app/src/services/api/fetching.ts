@@ -6,8 +6,16 @@
  *   - @/services/api/brands     (searchBrands, allBrands)
  *   - @/services/api/productTypes (searchProductTypes, allProductTypes)
  */
+
+export { allBrands, searchBrands } from './brands';
 export { apiFetch } from './client';
-export { getProduct, newProduct, allProducts, myProducts, productComponents, FULL_PRODUCT_INCLUDES } from './products';
 export type { PaginatedResponse, ProductData } from './products';
-export { searchBrands, allBrands } from './brands';
-export { searchProductTypes, allProductTypes } from './productTypes';
+export {
+  allProducts,
+  FULL_PRODUCT_INCLUDES,
+  getProduct,
+  myProducts,
+  newProduct,
+  productComponents,
+} from './products';
+export { allProductTypes, searchProductTypes } from './productTypes';

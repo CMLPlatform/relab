@@ -1,9 +1,8 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
-import ProductDescription from '../ProductDescription';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { baseProduct as _base } from '@/test-utils/fixtures';
 import type { Product } from '@/types/Product';
+import ProductDescription from '../ProductDescription';
 
 const baseProduct: Product = { ..._base, description: 'Initial description' };
 
@@ -21,7 +20,13 @@ describe('ProductDescription', () => {
 
   it('calls onChangeDescription on blur', () => {
     const onChangeDescription = jest.fn();
-    render(<ProductDescription product={baseProduct} editMode={true} onChangeDescription={onChangeDescription} />);
+    render(
+      <ProductDescription
+        product={baseProduct}
+        editMode={true}
+        onChangeDescription={onChangeDescription}
+      />,
+    );
     const input = screen.getByDisplayValue('Initial description');
     fireEvent.changeText(input, 'New description');
     fireEvent(input, 'blur');
@@ -45,7 +50,9 @@ describe('ProductDescription', () => {
   it('shows a toggle for multi-line descriptions even when they are short', () => {
     const product = {
       ...baseProduct,
-      description: ['line 1', 'line 2', 'line 3', 'line 4', 'line 5', 'line 6', 'line 7'].join('\n'),
+      description: ['line 1', 'line 2', 'line 3', 'line 4', 'line 5', 'line 6', 'line 7'].join(
+        '\n',
+      ),
     };
     render(<ProductDescription product={product} editMode={false} />);
 

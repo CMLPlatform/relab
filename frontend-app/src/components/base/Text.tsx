@@ -1,5 +1,5 @@
-import React from 'react';
-import { Text as NativeText, TextProps, StyleSheet } from 'react-native';
+import type React from 'react';
+import { Text as NativeText, StyleSheet, type TextProps } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 export const Text: React.FC<TextProps> = ({ style, children, ...props }) => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text, TextInput } from '@/components/base';
 
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 const COLLAPSED_DESCRIPTION_LINES = 6;
 const APPROX_CHARS_PER_LINE = 55;
@@ -14,7 +14,10 @@ function shouldCollapseDescription(text: string): boolean {
 
   const estimatedLineCount = trimmed
     .split(/\r?\n/)
-    .reduce((total, line) => total + Math.max(1, Math.ceil(line.length / APPROX_CHARS_PER_LINE)), 0);
+    .reduce(
+      (total, line) => total + Math.max(1, Math.ceil(line.length / APPROX_CHARS_PER_LINE)),
+      0,
+    );
 
   return estimatedLineCount > COLLAPSED_DESCRIPTION_LINES;
 }

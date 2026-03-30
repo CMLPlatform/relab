@@ -1,11 +1,10 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
-import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import ResetPasswordScreen from '../reset-password';
+import { HttpResponse, http } from 'msw';
 import { renderWithProviders } from '@/test-utils';
 import { server } from '@/test-utils/server';
+import ResetPasswordScreen from '../reset-password';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -44,7 +43,9 @@ describe('ResetPasswordScreen', () => {
   });
 
   it('shows success message on successful reset', async () => {
-    server.use(http.post(`${API_URL}/auth/reset-password`, () => HttpResponse.json({}, { status: 200 })));
+    server.use(
+      http.post(`${API_URL}/auth/reset-password`, () => HttpResponse.json({}, { status: 200 })),
+    );
     renderWithProviders(<ResetPasswordScreen />);
     fireEvent.changeText(screen.getByTestId('password-input'), 'newpassword123');
     pressResetButton();

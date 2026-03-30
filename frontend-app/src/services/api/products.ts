@@ -1,10 +1,10 @@
 import { Platform } from 'react-native';
-import { resolveApiMediaUrl } from './media';
-import { apiFetch } from './client';
-import { getCachedUser, getToken, getUser } from '@/services/api/authentication';
 import { API_URL } from '@/config';
-import { Product } from '@/types/Product';
-import type { ApiProductRead, ApiImageRead, ApiVideoRead } from '@/types/api';
+import { getCachedUser, getToken, getUser } from '@/services/api/authentication';
+import type { ApiImageRead, ApiProductRead, ApiVideoRead } from '@/types/api';
+import type { Product } from '@/types/Product';
+import { apiFetch } from './client';
+import { resolveApiMediaUrl } from './media';
 
 const baseUrl = API_URL;
 
@@ -45,7 +45,8 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
           recyclabilityObservation: data.circularity_properties.recyclability_observation ?? '',
           recyclabilityReference: data.circularity_properties.recyclability_reference,
           remanufacturabilityComment: data.circularity_properties.remanufacturability_comment,
-          remanufacturabilityObservation: data.circularity_properties.remanufacturability_observation ?? '',
+          remanufacturabilityObservation:
+            data.circularity_properties.remanufacturability_observation ?? '',
           remanufacturabilityReference: data.circularity_properties.remanufacturability_reference,
           repairabilityComment: data.circularity_properties.repairability_comment,
           repairabilityObservation: data.circularity_properties.repairability_observation ?? '',
@@ -91,12 +92,17 @@ export const FULL_PRODUCT_INCLUDES = [
   'videos',
 ];
 
-export async function getProduct(id: number | 'new', includes: string[] = FULL_PRODUCT_INCLUDES): Promise<Product> {
+export async function getProduct(
+  id: number | 'new',
+  includes: string[] = FULL_PRODUCT_INCLUDES,
+): Promise<Product> {
   if (id === 'new') {
     return newProduct();
   }
-  const url = new URL(baseUrl + `/products/${id}`);
-  includes.forEach((inc) => url.searchParams.append('include', inc));
+  const url = new URL(`${baseUrl}/products/${id}`);
+  for (const inc of includes) {
+    url.searchParams.append('include', inc);
+  }
 
   const response = await apiFetch(url, { method: 'GET' });
 
@@ -125,7 +131,7 @@ export function newProduct(
 ): Product {
   return {
     id: 'new',
-    parentID: isNaN(parentID) ? undefined : parentID,
+    parentID: Number.isNaN(parentID) ? undefined : parentID,
     name: name,
     brand: brand,
     model: model,
@@ -165,13 +171,16 @@ function buildProductsUrl(
   productTypeNames?: string[],
 ): URL {
   const url = new URL(baseUrl + path);
-  include.forEach((inc) => url.searchParams.append('include', inc));
+  for (const inc of include) {
+    url.searchParams.append('include', inc);
+  }
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', size.toString());
   if (search) url.searchParams.append('search', search);
   if (brands?.length) url.searchParams.append('brand__in', brands.join(','));
   if (createdAfter) url.searchParams.append('created_at__gte', createdAfter.toISOString());
-  if (productTypeNames?.length) url.searchParams.append('product_type__name__in', productTypeNames.join(','));
+  if (productTypeNames?.length)
+    url.searchParams.append('product_type__name__in', productTypeNames.join(','));
   if (orderBy?.length) url.searchParams.append('order_by', orderBy.join(','));
   return url;
 }
@@ -205,7 +214,17 @@ async function fetchProducts(
   productTypeNames?: string[],
   options?: { authenticated?: boolean },
 ): Promise<PaginatedResponse<Product>> {
-  const url = buildProductsUrl(path, include, page, size, search, orderBy, brands, createdAfter, productTypeNames);
+  const url = buildProductsUrl(
+    path,
+    include,
+    page,
+    size,
+    search,
+    orderBy,
+    brands,
+    createdAfter,
+    productTypeNames,
+  );
   const headers: Record<string, string> = { Accept: 'application/json' };
 
   if (options?.authenticated && Platform.OS !== 'web') {
@@ -239,7 +258,17 @@ export async function allProducts(
   createdAfter?: Date,
   productTypeNames?: string[],
 ): Promise<PaginatedResponse<Product>> {
-  return fetchProducts('/products', include, page, size, search, orderBy, brands, createdAfter, productTypeNames);
+  return fetchProducts(
+    '/products',
+    include,
+    page,
+    size,
+    search,
+    orderBy,
+    brands,
+    createdAfter,
+    productTypeNames,
+  );
 }
 
 export async function myProducts(

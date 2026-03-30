@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
@@ -16,7 +16,9 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 export const handlers = [
   http.post(`${API_URL}/auth/login`, () => HttpResponse.json({ access_token: 'test-token' })),
   http.post(`${API_URL}/auth/logout`, () => HttpResponse.json({})),
-  http.post(`${API_URL}/auth/refresh`, () => HttpResponse.json({ access_token: 'refreshed-token' })),
+  http.post(`${API_URL}/auth/refresh`, () =>
+    HttpResponse.json({ access_token: 'refreshed-token' }),
+  ),
   http.get(`${API_URL}/users/me`, () =>
     HttpResponse.json({
       id: 1,

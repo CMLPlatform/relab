@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Linking, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Linking, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { TextInput } from '@/components/base';
-import { useDialog } from '@/components/common/DialogProvider';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import { useDialog } from '@/components/common/DialogProvider';
 import { isValidUrl } from '@/services/api/validation/product';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 interface Video {
   id?: number;
@@ -25,7 +25,11 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
   const dialog = useDialog();
   const darkMode = useColorScheme() === 'dark';
 
-  const handleVideoChange = (idx: number, field: 'url' | 'title' | 'description', value: string) => {
+  const handleVideoChange = (
+    idx: number,
+    field: 'url' | 'title' | 'description',
+    value: string,
+  ) => {
     const updated = videos.map((v, i) => (i === idx ? { ...v, [field]: value } : v));
     setVideos(updated);
     onVideoChange?.(updated);
@@ -46,7 +50,7 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
         { text: 'Cancel' },
         {
           text: 'Add',
-          disabled: (value) => !value || !value.trim() || !isValidUrl(value),
+          disabled: (value) => !value?.trim() || !isValidUrl(value),
           onPress: (url) => {
             if (!url || !isValidUrl(url)) return;
             const updated = [...videos, { url: url.trim(), title: '', description: '' }];
@@ -79,7 +83,10 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
       )}
 
       {videos.map((video, idx) => (
-        <View key={video.id ?? idx} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+        <View
+          key={video.id ?? idx}
+          style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
+        >
           <View style={{ flex: 1 }}>
             <TextInput
               style={{
@@ -97,7 +104,12 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
             />
             {editMode ? (
               <TextInput
-                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 26, color: darkMode ? '#e1e2e4' : '#000000' }}
+                style={{
+                  paddingHorizontal: 14,
+                  fontSize: 16,
+                  lineHeight: 26,
+                  color: darkMode ? '#e1e2e4' : '#000000',
+                }}
                 placeholder={'Video URL'}
                 value={video.url}
                 onChangeText={(val) => handleVideoChange(idx, 'url', val)}
@@ -122,7 +134,12 @@ export default function ProductVideo({ product, editMode, onVideoChange }: Props
             )}
             {(editMode || Boolean(video.description)) && (
               <TextInput
-                style={{ paddingHorizontal: 14, fontSize: 16, lineHeight: 16, color: darkMode ? '#e1e2e4' : '#000000' }}
+                style={{
+                  paddingHorizontal: 14,
+                  fontSize: 16,
+                  lineHeight: 16,
+                  color: darkMode ? '#e1e2e4' : '#000000',
+                }}
                 placeholder={'Add description (optional)'}
                 value={video.description}
                 onChangeText={(val) => handleVideoChange(idx, 'description', val)}

@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import { describe, expect, it } from '@jest/globals';
 import { renderHook } from '@testing-library/react-native';
 import { useIsDesktop } from '../useIsDesktop';
 

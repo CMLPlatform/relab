@@ -26,3 +26,18 @@ export function resolveApiMediaUrl(path?: string | null): string | undefined {
 export function getPlaceholderImageUrl(): string {
   return resolveApiMediaUrl(API_PLACEHOLDER_IMAGE_PATH) ?? API_PLACEHOLDER_IMAGE_PATH;
 }
+
+export function getResizedImageUrl(
+  imageUrl: string,
+  imageId: number | undefined,
+  width: number,
+): string {
+  if (!imageId || /^(file:|blob:|data:)/.test(imageUrl)) {
+    return resolveApiMediaUrl(imageUrl) ?? imageUrl;
+  }
+  return (
+    resolveApiMediaUrl(`/images/${imageId}/resized?width=${width}`) ??
+    resolveApiMediaUrl(imageUrl) ??
+    imageUrl
+  );
+}

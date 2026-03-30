@@ -1,16 +1,16 @@
-import { describe, it, expect } from '@jest/globals';
-import {
-  validateProductName,
-  validateProductDimension,
-  validateProductWeight,
-  validateProductVideos,
-  validateProduct,
-  isValidUrl,
-  getProductNameHelperText,
-  PRODUCT_NAME_MIN_LENGTH,
-  PRODUCT_NAME_MAX_LENGTH,
-} from '../product';
+import { describe, expect, it } from '@jest/globals';
 import type { Product } from '@/types/Product';
+import {
+  getProductNameHelperText,
+  isValidUrl,
+  PRODUCT_NAME_MAX_LENGTH,
+  PRODUCT_NAME_MIN_LENGTH,
+  validateProduct,
+  validateProductDimension,
+  validateProductName,
+  validateProductVideos,
+  validateProductWeight,
+} from '../product';
 
 // Minimal valid product for use in validateProduct tests
 const validProduct: Product = {
@@ -169,7 +169,9 @@ describe('validateProductVideos', () => {
   });
 
   it('returns valid for a video with a title and valid URL', () => {
-    const result = validateProductVideos([{ title: 'Demo video', url: 'https://example.com/video' }]);
+    const result = validateProductVideos([
+      { title: 'Demo video', url: 'https://example.com/video' },
+    ]);
     expect(result.isValid).toBe(true);
   });
 
@@ -216,7 +218,10 @@ describe('validateProduct', () => {
   it('returns invalid when weight is missing', () => {
     const product = {
       ...validProduct,
-      physicalProperties: { ...validProduct.physicalProperties, weight: undefined as unknown as number },
+      physicalProperties: {
+        ...validProduct.physicalProperties,
+        weight: undefined as unknown as number,
+      },
     };
     const result = validateProduct(product);
     expect(result.isValid).toBe(false);

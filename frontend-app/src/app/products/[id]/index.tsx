@@ -1,12 +1,20 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { HeaderBackButton } from '@react-navigation/elements';
+import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { JSX, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent, Platform, View } from 'react-native';
+import { type JSX, useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Platform,
+  View,
+} from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AnimatedFAB, Button, Card, Text, Tooltip, useTheme } from 'react-native-paper';
 
 import DetailCard from '@/components/common/DetailCard';
+import { useDialog } from '@/components/common/DialogProvider';
+import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
 import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductComponents from '@/components/product/ProductComponents';
 import ProductDelete from '@/components/product/ProductDelete';
@@ -17,14 +25,11 @@ import ProductPhysicalProperties from '@/components/product/ProductPhysicalPrope
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
-
-import { useDialog } from '@/components/common/DialogProvider';
-import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
 
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 type SearchParams = {
   id: string;
@@ -74,7 +79,9 @@ export default function ProductPage(): JSX.Element {
     onProductDelete,
   } = useProductForm(id);
   const parentProductId =
-    typeof product.parentID === 'number' && !isNaN(product.parentID) ? product.parentID : undefined;
+    typeof product.parentID === 'number' && !Number.isNaN(product.parentID)
+      ? product.parentID
+      : undefined;
   const { data: parentProduct } = useProductQuery(parentProductId ?? 'new');
 
   // ─── Timeout for slow loading ────────────────────────────────────────────────
@@ -94,14 +101,17 @@ export default function ProductPage(): JSX.Element {
 
     navigation.setOptions({
       title: isProductComponent ? undefined : truncatedProductName,
-      headerLeft: (props: any) => (
+      headerLeft: (props: HeaderBackButtonProps) => (
         <HeaderBackButton
           {...props}
           onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else if (isProductComponent && product.parentID) {
-              router.replace({ pathname: '/products/[id]', params: { id: product.parentID.toString() } });
+              router.replace({
+                pathname: '/products/[id]',
+                params: { id: product.parentID.toString() },
+              });
             } else {
               router.replace('/products');
             }
@@ -112,10 +122,17 @@ export default function ProductPage(): JSX.Element {
         isProductComponent && parentProduct?.name && typeof product.parentID === 'number'
           ? () => (
               <View style={{ maxWidth: 260, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text numberOfLines={1} style={{ maxWidth: 100, fontSize: 13, opacity: 0.7, fontWeight: '600' }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ maxWidth: 100, fontSize: 13, opacity: 0.7, fontWeight: '600' }}
+                >
                   {truncatedParentName}
                 </Text>
-                <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.onSurfaceVariant} />
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={16}
+                  color={theme.colors.onSurfaceVariant}
+                />
                 <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
                   {truncatedProductName}
                 </Text>
@@ -144,8 +161,12 @@ export default function ProductPage(): JSX.Element {
       e.preventDefault();
       dialog.alert({
         title: 'Discard changes?',
-        message: 'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
-        buttons: [{ text: "Don't leave" }, { text: 'Discard', onPress: () => navigation.dispatch(e.data.action) }],
+        message:
+          'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
+        buttons: [
+          { text: "Don't leave" },
+          { text: 'Discard', onPress: () => navigation.dispatch(e.data.action) },
+        ],
       });
     });
   }, [navigation, editMode, dialog]);
@@ -157,8 +178,14 @@ export default function ProductPage(): JSX.Element {
   // ─── FAB icon ────────────────────────────────────────────────────────────────
   const FABicon = useCallback(() => {
     if (isSaving) return <ActivityIndicator color={theme.colors.onBackground} />;
-    if (showSavedIcon) return <MaterialCommunityIcons name="check-bold" size={20} color={theme.colors.onBackground} />;
-    if (editMode) return <MaterialCommunityIcons name="content-save" size={20} color={theme.colors.onBackground} />;
+    if (showSavedIcon)
+      return (
+        <MaterialCommunityIcons name="check-bold" size={20} color={theme.colors.onBackground} />
+      );
+    if (editMode)
+      return (
+        <MaterialCommunityIcons name="content-save" size={20} color={theme.colors.onBackground} />
+      );
     return <MaterialCommunityIcons name="pencil" size={20} color={theme.colors.onBackground} />;
   }, [isSaving, showSavedIcon, editMode, theme.colors.onBackground]);
 
@@ -176,8 +203,16 @@ export default function ProductPage(): JSX.Element {
       <View style={{ flex: 1 }}>
         <ProductDetailsSkeleton />
         {slowLoading && (
-          <View style={{ position: 'absolute', bottom: 100, left: 0, right: 0, alignItems: 'center' }}>
-            <Card style={{ backgroundColor: theme.colors.surfaceVariant, paddingHorizontal: 16, paddingVertical: 8 }}>
+          <View
+            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, alignItems: 'center' }}
+          >
+            <Card
+              style={{
+                backgroundColor: theme.colors.surfaceVariant,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+              }}
+            >
               <Text variant="bodySmall">This is taking longer than usual. Please wait...</Text>
             </Card>
           </View>
@@ -189,7 +224,9 @@ export default function ProductPage(): JSX.Element {
   // ─── Error state ──────────────────────────────────────────────────────────────
   if (isError) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 }}>
+      <View
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 }}
+      >
         <MaterialCommunityIcons name="alert-circle-outline" size={64} color={theme.colors.error} />
         <Text variant="headlineSmall" style={{ textAlign: 'center' }}>
           Oops! Something went wrong
@@ -221,9 +258,17 @@ export default function ProductPage(): JSX.Element {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
-        <ProductImageGallery product={product} editMode={editMode} onImagesChange={onImagesChange} />
+        <ProductImageGallery
+          product={product}
+          editMode={editMode}
+          onImagesChange={onImagesChange}
+        />
         <DetailCard>
-          <ProductDescription product={product} editMode={editMode} onChangeDescription={onChangeDescription} />
+          <ProductDescription
+            product={product}
+            editMode={editMode}
+            onChangeDescription={onChangeDescription}
+          />
         </DetailCard>
         <ProductTags
           product={product}
@@ -256,11 +301,14 @@ export default function ProductPage(): JSX.Element {
         {isNew ? null : (
           <>
             {justCreated && (
-              <Card style={{ marginHorizontal: 14, backgroundColor: theme.colors.secondaryContainer }} mode="contained">
+              <Card
+                style={{ marginHorizontal: 14, backgroundColor: theme.colors.secondaryContainer }}
+                mode="contained"
+              >
                 <Card.Content>
                   <Text variant="bodyMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                    Product saved! Want to track sub-components (e.g. battery, screen)? Use the &quot;Add
-                    component&quot; button below.
+                    Product saved! Want to track sub-components (e.g. battery, screen)? Use the
+                    &quot;Add component&quot; button below.
                   </Text>
                 </Card.Content>
               </Card>

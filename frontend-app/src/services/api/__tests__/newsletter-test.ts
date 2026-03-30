@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
-import { http, HttpResponse } from 'msw';
-import { getNewsletterPreference, setNewsletterPreference } from '../newsletter';
+import { HttpResponse, http } from 'msw';
 import { server } from '@/test-utils/server';
+import { getNewsletterPreference, setNewsletterPreference } from '../newsletter';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -45,7 +45,11 @@ describe('Newsletter API service', () => {
   });
 
   it('throws a readable error when the update fails', async () => {
-    server.use(http.put(`${API_URL}/newsletter/me`, () => HttpResponse.json({ detail: 'Nope' }, { status: 500 })));
+    server.use(
+      http.put(`${API_URL}/newsletter/me`, () =>
+        HttpResponse.json({ detail: 'Nope' }, { status: 500 }),
+      ),
+    );
 
     await expect(setNewsletterPreference(false)).rejects.toThrow('Nope');
   });

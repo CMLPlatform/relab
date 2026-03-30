@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { Pressable, Text } from 'react-native';
-import { useDialog } from '../DialogProvider';
 import { renderWithProviders } from '@/test-utils';
+import { useDialog } from '../DialogProvider';
 
 // A test component that exposes dialog controls
 function AlertTrigger({ onPress }: { onPress: () => void }) {
@@ -29,13 +29,19 @@ describe('DialogProvider', () => {
       useDialog();
       return <Text>Should not render</Text>;
     }
-    expect(() => renderWithProviders(<BadConsumer />)).toThrow('useDialog must be used within DialogProvider');
+    expect(() => renderWithProviders(<BadConsumer />)).toThrow(
+      'useDialog must be used within DialogProvider',
+    );
   });
 
   it('alert() shows dialog with title', async () => {
     function AlertTest() {
       const dialog = useDialog();
-      return <AlertTrigger onPress={() => dialog.alert({ title: 'Alert Title', buttons: [{ text: 'OK' }] })} />;
+      return (
+        <AlertTrigger
+          onPress={() => dialog.alert({ title: 'Alert Title', buttons: [{ text: 'OK' }] })}
+        />
+      );
     }
 
     renderWithProviders(<AlertTest />, { withDialog: true });
@@ -51,7 +57,9 @@ describe('DialogProvider', () => {
       const dialog = useDialog();
       return (
         <AlertTrigger
-          onPress={() => dialog.alert({ title: 'Title', message: 'Some message', buttons: [{ text: 'Close' }] })}
+          onPress={() =>
+            dialog.alert({ title: 'Title', message: 'Some message', buttons: [{ text: 'Close' }] })
+          }
         />
       );
     }
@@ -187,7 +195,9 @@ describe('DialogProvider', () => {
     // Covers the false branch of `if (btn?.onPress)` in handleClose
     function Test() {
       const dialog = useDialog();
-      return <AlertTrigger onPress={() => dialog.alert({ title: 'Plain', buttons: [{ text: 'OK' }] })} />;
+      return (
+        <AlertTrigger onPress={() => dialog.alert({ title: 'Plain', buttons: [{ text: 'OK' }] })} />
+      );
     }
 
     renderWithProviders(<Test />, { withDialog: true });
@@ -202,7 +212,11 @@ describe('DialogProvider', () => {
     // Covers the false branch of `options?.buttons ? ... : undefined` in onSubmitEditing
     function Test() {
       const dialog = useDialog();
-      return <AlertTrigger onPress={() => dialog.input({ title: 'No-Button Input', placeholder: 'type here' })} />;
+      return (
+        <AlertTrigger
+          onPress={() => dialog.input({ title: 'No-Button Input', placeholder: 'type here' })}
+        />
+      );
     }
 
     renderWithProviders(<Test />, { withDialog: true });

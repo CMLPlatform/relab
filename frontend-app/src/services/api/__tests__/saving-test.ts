@@ -1,8 +1,8 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { saveProduct, deleteProduct } from '../saving';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { Product } from '@/types/Product';
 import * as auth from '../authentication';
 import * as fetching from '../fetching';
-import type { Product } from '@/types/Product';
+import { deleteProduct, saveProduct } from '../saving';
 
 // Mock dependencies
 jest.mock('@/services/api/authentication', () => ({
@@ -134,7 +134,9 @@ describe('Saving API Service', () => {
       await saveProduct(existingProduct);
 
       const calls = mockApiFetch.mock.calls;
-      expect(calls.some((c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH')).toBe(true);
+      expect(
+        calls.some((c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH'),
+      ).toBe(true);
       expect(calls.some((c) => (c[0] as URL).href.includes('physical_properties'))).toBe(true);
       expect(calls.some((c) => (c[0] as URL).href.includes('circularity_properties'))).toBe(true);
     });
@@ -168,7 +170,9 @@ describe('Saving API Service', () => {
       mockApiFetchError(500, { detail: 'Server error' }); // physical_properties
       mockApiFetchOk({ id: 42 }); // circularity_properties
 
-      await expect(saveProduct(existingProduct)).rejects.toThrow('Failed to update physical properties');
+      await expect(saveProduct(existingProduct)).rejects.toThrow(
+        'Failed to update physical properties',
+      );
     });
   });
 
@@ -261,7 +265,9 @@ describe('Saving API Service', () => {
     });
 
     it('updates changed videos', async () => {
-      const originalVideos = [{ id: 5, url: 'https://old.com', description: '', title: 'Old Title' }];
+      const originalVideos = [
+        { id: 5, url: 'https://old.com', description: '', title: 'Old Title' },
+      ];
       const updated = { id: 5, url: 'https://new.com', description: 'updated', title: 'New Title' };
       const product = { ...baseProduct, id: 42 as number | 'new', videos: [updated] };
 

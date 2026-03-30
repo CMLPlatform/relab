@@ -1,11 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { JSX, useEffect, useState } from 'react';
+import { type JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip, useTheme } from 'react-native-paper';
-import { spacing, radius } from '@/constants/layout';
+import { radius, spacing } from '@/constants/layout';
 
 const getIsMobileWeb = () =>
-  Platform.OS === 'web' && typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  Platform.OS === 'web' &&
+  typeof navigator !== 'undefined' &&
+  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useTheme();
@@ -39,7 +41,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           />
         </Pressable>
 
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+        <Modal
+          visible={visible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setVisible(false)}
+        >
           <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
             <View style={[styles.tooltip, { backgroundColor: theme.colors.inverseSurface }]}>
               <Text variant="labelLarge" style={{ color: theme.colors.inverseOnSurface }}>

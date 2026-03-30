@@ -3,14 +3,29 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Platform, View } from 'react-native';
-import ProductImages from '../ProductImageGallery';
-import type { Product } from '@/types/Product';
-import { baseProduct, renderWithProviders } from '@/test-utils';
+import type React from 'react';
+import { Platform, View, type ViewProps } from 'react-native';
 import * as imageProcessing from '@/services/media/imageProcessing';
+import { baseProduct, renderWithProviders } from '@/test-utils';
+import type { Product } from '@/types/Product';
+import ProductImages from '../ProductImageGallery';
 
-const mockFlatListCalls: any[] = [];
-const mockZoomableImageCalls: any[] = [];
+type FlatListCallProps = {
+  disableIntervalMomentum?: boolean;
+  pagingEnabled?: boolean;
+  getItemLayout?: (data: ArrayLike<string> | null | undefined, index: number) => unknown;
+  onScrollBeginDrag?: (event: { nativeEvent: { contentOffset: { x: number } } }) => void;
+  onScrollEndDrag?: (event: { nativeEvent: { contentOffset: { x: number } } }) => void;
+  onMomentumScrollEnd?: (event: { nativeEvent: { contentOffset: { x: number } } }) => void;
+};
+type ZoomableImageMockProps = {
+  uri: string;
+  onSwipe?: (direction: -1 | 1) => void;
+};
+type GestureCallback = (...args: unknown[]) => unknown;
+
+const mockFlatListCalls: Array<Record<string, unknown> & FlatListCallProps> = [];
+const mockZoomableImageCalls: ZoomableImageMockProps[] = [];
 let keydownHandler: ((event: { key: string }) => void) | null = null;
 
 jest.mock('expo-image', () => ({
@@ -40,7 +55,7 @@ jest.mock('@/services/media/imageProcessing', () => ({
 }));
 
 jest.mock('@/components/common/ZoomableImage', () => {
-  return function ZoomableImageMock(props: any) {
+  return function ZoomableImageMock(props: ZoomableImageMockProps) {
     mockZoomableImageCalls.push(props);
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     const React = jest.requireActual<typeof import('react')>('react');
@@ -51,7 +66,19 @@ jest.mock('@/components/common/ZoomableImage', () => {
 jest.mock('react-native-gesture-handler', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const FlatListMock = React.forwardRef(function FlatListMock({ data, renderItem, ...props }: any, ref: any) {
+  const FlatListMock = React.forwardRef(function FlatListMock(
+    {
+      data,
+      renderItem,
+      ...props
+    }: {
+      data?: unknown[];
+      renderItem?: (info: { item: unknown; index: number }) => React.ReactNode;
+      style?: ViewProps['style'];
+      [key: string]: unknown;
+    },
+    ref: React.ForwardedRef<{ scrollToIndex: () => void; scrollToOffset: () => void }>,
+  ) {
     mockFlatListCalls.push(props);
     React.useImperativeHandle(
       ref,
@@ -65,8 +92,10 @@ jest.mock('react-native-gesture-handler', () => {
     return React.createElement(
       View,
       props,
-      Array.isArray(data)
-        ? data.map((item, index) => React.createElement(React.Fragment, { key: index }, renderItem({ item, index })))
+      Array.isArray(data) && renderItem
+        ? data.map((item, index) =>
+            React.createElement(React.Fragment, { key: index }, renderItem({ item, index })),
+          )
         : null,
     );
   });
@@ -74,21 +103,32 @@ jest.mock('react-native-gesture-handler', () => {
 
   return {
     FlatList: FlatListMock,
-    GestureHandlerRootView: ({ children, style }: any) => React.createElement(View, { style }, children),
-    GestureDetector: ({ children }: any) => children,
+    GestureHandlerRootView: ({
+      children,
+      style,
+    }: {
+      children?: React.ReactNode;
+      style?: ViewProps['style'];
+    }) => React.createElement(View, { style }, children),
+    GestureDetector: ({ children }: { children?: React.ReactNode }) => children ?? null,
     Gesture: {
-      Tap: () => ({ numberOfTaps: () => ({ onEnd: (cb: any) => cb, onStart: (cb: any) => cb }) }),
+      Tap: () => ({
+        numberOfTaps: () => ({
+          onEnd: (cb: GestureCallback) => cb,
+          onStart: (cb: GestureCallback) => cb,
+        }),
+      }),
       Pan: () => ({
         minPointers: () => ({
-          onUpdate: (cb: any) => cb,
-          onEnd: (cb: any) => cb,
-          onStart: (cb: any) => cb,
+          onUpdate: (cb: GestureCallback) => cb,
+          onEnd: (cb: GestureCallback) => cb,
+          onStart: (cb: GestureCallback) => cb,
         }),
       }),
       Pinch: () => ({
-        onUpdate: (cb: any) => cb,
-        onEnd: (cb: any) => cb,
-        onStart: (cb: any) => cb,
+        onUpdate: (cb: GestureCallback) => cb,
+        onEnd: (cb: GestureCallback) => cb,
+        onStart: (cb: GestureCallback) => cb,
       }),
       Simultaneous: () => ({}),
       Exclusive: () => ({}),
@@ -138,7 +178,7 @@ function setWindowImageConstructor() {
 function setWindowEventListeners() {
   Object.defineProperty(window, 'addEventListener', {
     configurable: true,
-    value: jest.fn((event: string, handler: any) => {
+    value: jest.fn((event: string, handler: (event: { key: string }) => void) => {
       if (event === 'keydown') {
         keydownHandler = handler;
       }
@@ -172,15 +212,23 @@ describe('ProductImages', () => {
   });
 
   it('renders placeholder image when no images present', () => {
-    renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, { withDialog: true });
-    expect(screen.getByText(/img:.*placehold\.co/)).toBeTruthy();
+    renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
+    expect(screen.getByTestId('image-placeholder')).toBeTruthy();
   });
 
   it('renders placeholder image when product.images is missing', () => {
-    renderWithProviders(<ProductImages product={{ ...baseProduct, images: undefined as any }} editMode={false} />, {
-      withDialog: true,
-    });
-    expect(screen.getByText(/img:.*placehold\.co/)).toBeTruthy();
+    renderWithProviders(
+      <ProductImages
+        product={{ ...baseProduct, images: undefined } as unknown as Product}
+        editMode={false}
+      />,
+      {
+        withDialog: true,
+      },
+    );
+    expect(screen.getByTestId('image-placeholder')).toBeTruthy();
   });
 
   it('renders product images when present', () => {
@@ -188,7 +236,9 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: 1, url: 'file://photo1.jpg', description: 'A photo' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('img:file://photo1.jpg')).toBeTruthy();
   });
 
@@ -197,12 +247,16 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.queryByText('1 / 1')).toBeNull();
   });
 
   it('does not show image counter in editMode with no images', () => {
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.queryByText(/\/ /)).toBeNull();
   });
 
@@ -215,7 +269,9 @@ describe('ProductImages', () => {
       ],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
 
     expect(screen.getByLabelText('Previous image')).toBeTruthy();
     expect(screen.getByLabelText('Next image')).toBeTruthy();
@@ -235,9 +291,12 @@ describe('ProductImages', () => {
     } as never);
     mockedProcessImage.mockResolvedValueOnce('file://processed.jpg');
 
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
+      {
+        withDialog: true,
+      },
+    );
 
     fireEvent.press(screen.getByText('Add Photos'));
 
@@ -253,9 +312,12 @@ describe('ProductImages', () => {
     const onImagesChange = jest.fn();
     mockedLaunchImageLibraryAsync.mockResolvedValueOnce({ canceled: true, assets: [] } as never);
 
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
+      {
+        withDialog: true,
+      },
+    );
 
     fireEvent.press(screen.getByText('Add Photos'));
 
@@ -273,7 +335,9 @@ describe('ProductImages', () => {
       ],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
 
     const imgs = screen.getAllByText('img:file://photo1.jpg');
     fireEvent.press(imgs[0]);
@@ -289,7 +353,9 @@ describe('ProductImages', () => {
       images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
 
     fireEvent.press(screen.getByText('img:file://photo1.jpg'));
 
@@ -325,9 +391,14 @@ describe('ProductImages', () => {
       expect(screen.getAllByText('1 / 2').length).toBeGreaterThan(0);
     });
 
-    const lightboxListProps = mockFlatListCalls.find((props) => props.disableIntervalMomentum === true);
+    const lightboxListProps = mockFlatListCalls.find(
+      (props) => props.disableIntervalMomentum === true,
+    );
 
     expect(lightboxListProps).toBeTruthy();
+    if (!lightboxListProps?.getItemLayout) {
+      throw new Error('Expected lightbox list getItemLayout to exist');
+    }
     expect(lightboxListProps.getItemLayout(null, 1)).toEqual({
       length: expect.any(Number),
       offset: expect.any(Number),
@@ -343,14 +414,17 @@ describe('ProductImages', () => {
 
     expect(leftArrow).toBeTruthy();
     expect(rightArrow).toBeTruthy();
+    if (!rightArrow || !leftArrow) {
+      throw new Error('Expected both lightbox arrow buttons to exist');
+    }
 
-    fireEvent.press(rightArrow!);
+    fireEvent.press(rightArrow);
 
     await waitFor(() => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
 
-    fireEvent.press(leftArrow!);
+    fireEvent.press(leftArrow);
 
     await waitFor(() => {
       expect(screen.getAllByText('1 / 2').length).toBeGreaterThan(0);
@@ -383,16 +457,21 @@ describe('ProductImages', () => {
     });
 
     const touchTarget = UNSAFE_getAllByType(View).find(
-      (node) => typeof node.props.onTouchStart === 'function' && typeof node.props.onTouchEnd === 'function',
+      (node) =>
+        typeof node.props.onTouchStart === 'function' &&
+        typeof node.props.onTouchEnd === 'function',
     );
 
     expect(touchTarget).toBeTruthy();
+    if (!touchTarget) {
+      throw new Error('Expected touch target to exist');
+    }
 
-    fireEvent(touchTarget!, 'touchStart', {
-      nativeEvent: { touches: [{ clientX: 240 }] },
+    fireEvent(touchTarget, 'touchStart', {
+      nativeEvent: { touches: [{ pageX: 240 }] },
     });
-    fireEvent(touchTarget!, 'touchEnd', {
-      nativeEvent: { changedTouches: [{ clientX: 120 }] },
+    fireEvent(touchTarget, 'touchEnd', {
+      nativeEvent: { changedTouches: [{ pageX: 120 }] },
     });
 
     await waitFor(() => {
@@ -414,7 +493,9 @@ describe('ProductImages', () => {
       ],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
@@ -422,14 +503,20 @@ describe('ProductImages', () => {
       expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
     });
 
-    const lightboxListProps = mockFlatListCalls.find((props) => props.disableIntervalMomentum === true);
+    const lightboxListProps = mockFlatListCalls.find(
+      (props) => props.disableIntervalMomentum === true,
+    );
     expect(lightboxListProps).toBeTruthy();
+    if (!lightboxListProps?.onScrollBeginDrag || !lightboxListProps.onScrollEndDrag) {
+      throw new Error('Expected lightbox scroll handlers to exist');
+    }
+    const { onScrollBeginDrag, onScrollEndDrag } = lightboxListProps;
 
     act(() => {
-      lightboxListProps.onScrollBeginDrag({
+      onScrollBeginDrag({
         nativeEvent: { contentOffset: { x: 0 } },
       });
-      lightboxListProps.onScrollEndDrag({
+      onScrollEndDrag({
         nativeEvent: { contentOffset: { x: 9999 } },
       });
     });
@@ -465,9 +552,13 @@ describe('ProductImages', () => {
       (props) => props.pagingEnabled === true && props.disableIntervalMomentum !== true,
     );
     expect(mainGalleryListProps).toBeTruthy();
+    if (!mainGalleryListProps?.onMomentumScrollEnd) {
+      throw new Error('Expected main gallery scroll handler to exist');
+    }
+    const { onMomentumScrollEnd: onMainGalleryMomentumScrollEnd } = mainGalleryListProps;
 
     act(() => {
-      mainGalleryListProps.onMomentumScrollEnd({
+      onMainGalleryMomentumScrollEnd({
         nativeEvent: { contentOffset: { x: 9999 } },
       });
     });
@@ -477,7 +568,9 @@ describe('ProductImages', () => {
     });
 
     const highlightedThumbs = UNSAFE_getAllByType(View).filter((node) => {
-      const style = Array.isArray(node.props.style) ? Object.assign({}, ...node.props.style) : node.props.style;
+      const style = Array.isArray(node.props.style)
+        ? Object.assign({}, ...node.props.style)
+        : node.props.style;
       return style?.borderColor === '#2196F3';
     });
 
@@ -493,7 +586,9 @@ describe('ProductImages', () => {
       ],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
@@ -501,11 +596,17 @@ describe('ProductImages', () => {
       expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
     });
 
-    const lightboxListProps = mockFlatListCalls.find((props) => props.disableIntervalMomentum === true);
+    const lightboxListProps = mockFlatListCalls.find(
+      (props) => props.disableIntervalMomentum === true,
+    );
     expect(lightboxListProps).toBeTruthy();
+    if (!lightboxListProps?.onMomentumScrollEnd) {
+      throw new Error('Expected lightbox momentum handler to exist');
+    }
+    const { onMomentumScrollEnd: onLightboxMomentumScrollEnd } = lightboxListProps;
 
     act(() => {
-      lightboxListProps.onMomentumScrollEnd({
+      onLightboxMomentumScrollEnd({
         nativeEvent: { contentOffset: { x: 9999 } },
       });
     });
@@ -524,7 +625,9 @@ describe('ProductImages', () => {
   });
 
   it('shows Camera and Add Photos tiles on native when no images in edit mode', () => {
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('Camera')).toBeTruthy();
     expect(screen.getByText('Add Photos')).toBeTruthy();
   });
@@ -534,7 +637,9 @@ describe('ProductImages', () => {
     setMatchMedia(false);
     setWindowImageConstructor();
     setWindowEventListeners();
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.queryByText('Camera')).toBeNull();
     expect(screen.getByText('Add Photos')).toBeTruthy();
   });
@@ -544,7 +649,9 @@ describe('ProductImages', () => {
     setMatchMedia(true);
     setWindowImageConstructor();
     setWindowEventListeners();
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('Camera')).toBeTruthy();
     expect(screen.getByText('Add Photos')).toBeTruthy();
   });
@@ -558,9 +665,12 @@ describe('ProductImages', () => {
     } as never);
     mockedProcessImage.mockResolvedValueOnce('file://processed.jpg');
 
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
+      {
+        withDialog: true,
+      },
+    );
 
     fireEvent.press(screen.getByText('Camera'));
 
@@ -578,9 +688,12 @@ describe('ProductImages', () => {
     const onImagesChange = jest.fn();
     mockedRequestCameraPermissionsAsync.mockResolvedValueOnce({ status: 'denied' } as never);
 
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
+      {
+        withDialog: true,
+      },
+    );
 
     fireEvent.press(screen.getByText('Camera'));
 
@@ -596,7 +709,9 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByLabelText('Take photo')).toBeTruthy();
     expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
   });
@@ -610,7 +725,9 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.queryByLabelText('Take photo')).toBeNull();
     expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
   });
@@ -624,7 +741,9 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByLabelText('Take photo')).toBeTruthy();
     expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
   });
@@ -645,9 +764,12 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} onImagesChange={onImagesChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductImages product={productWithImages} editMode={true} onImagesChange={onImagesChange} />,
+      {
+        withDialog: true,
+      },
+    );
 
     fireEvent.press(screen.getByLabelText('Take photo'));
 
@@ -667,7 +789,9 @@ describe('ProductImages', () => {
       ],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+      withDialog: true,
+    });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
@@ -675,11 +799,17 @@ describe('ProductImages', () => {
       expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
     });
 
-    const zoomableImageProps = mockZoomableImageCalls.find((props) => props.uri === 'file://photo1.jpg');
+    const zoomableImageProps = mockZoomableImageCalls.find(
+      (props) => props.uri === 'file://photo1.jpg',
+    );
     expect(zoomableImageProps).toBeTruthy();
+    if (!zoomableImageProps?.onSwipe) {
+      throw new Error('Expected zoomable image swipe callback to exist');
+    }
+    const { onSwipe } = zoomableImageProps;
 
     act(() => {
-      zoomableImageProps.onSwipe(1);
+      onSwipe(1);
     });
 
     await waitFor(() => {

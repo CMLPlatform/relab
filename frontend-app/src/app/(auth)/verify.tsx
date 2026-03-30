@@ -2,9 +2,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
+import { API_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { apiFetch } from '@/services/api/fetching';
-import { API_URL } from '@/config';
+
+type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 
 export default function VerifyEmailScreen() {
   const theme = useTheme();
@@ -19,8 +21,7 @@ export default function VerifyEmailScreen() {
     if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tokenParam]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export default function VerifyEmailScreen() {
       }, 3000);
 
       if (timer && typeof timer === 'object' && 'unref' in timer) {
-        (timer as any).unref();
+        (timer as TimerWithUnref).unref();
       }
 
       return () => clearTimeout(timer);
@@ -106,7 +107,10 @@ export default function VerifyEmailScreen() {
 
           {success && !isLoading && (
             <View style={{ gap: 12, alignItems: 'center' }}>
-              <Text variant="bodyLarge" style={{ color: theme.colors.primary, textAlign: 'center' }}>
+              <Text
+                variant="bodyLarge"
+                style={{ color: theme.colors.primary, textAlign: 'center' }}
+              >
                 Email verified successfully! You can now login.
               </Text>
               <Text variant="bodyMedium">Redirecting to home...</Text>

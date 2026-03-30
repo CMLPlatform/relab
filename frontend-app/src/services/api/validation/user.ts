@@ -72,7 +72,11 @@ export function getEmailHelperText(): string {
   return 'Enter a valid email address';
 }
 
-export function validatePassword(value: string | undefined, username?: string, email?: string): ValidationResult {
+export function validatePassword(
+  value: string | undefined,
+  username?: string,
+  email?: string,
+): ValidationResult {
   const password = typeof value === 'string' ? value : '';
 
   if (!password) {

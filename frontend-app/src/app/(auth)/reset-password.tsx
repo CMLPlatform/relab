@@ -2,8 +2,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
-import { apiFetch } from '@/services/api/fetching';
 import { API_URL } from '@/config';
+import { apiFetch } from '@/services/api/fetching';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -16,8 +16,7 @@ export default function ResetPasswordScreen() {
     if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [tokenParam]);
 
   const [password, setPassword] = useState('');
   const [success, setSuccess] = useState(false);
@@ -31,7 +30,7 @@ export default function ResetPasswordScreen() {
       }, 3000);
 
       if (timer && typeof timer === 'object' && 'unref' in timer) {
-        (timer as any).unref();
+        (timer as { unref(): void }).unref();
       }
 
       return () => clearTimeout(timer);
@@ -115,7 +114,9 @@ export default function ResetPasswordScreen() {
                 Reset Password
               </Button>
 
-              <View style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}>
+              <View
+                style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
+              >
                 <Button mode="text" onPress={() => router.push('/login')}>
                   Back to Login
                 </Button>

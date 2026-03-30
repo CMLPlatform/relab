@@ -8,7 +8,7 @@ import {
   searchProductTypes,
 } from '@/services/api/fetching';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -90,7 +90,8 @@ export const productTypesQueryOptions = () =>
 export const productTypesSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['productTypes', 'search', search] as const,
-    queryFn: () => searchProductTypes(search || undefined, 1, 50).then((items) => items.map((pt) => pt.name)),
+    queryFn: () =>
+      searchProductTypes(search || undefined, 1, 50).then((items) => items.map((pt) => pt.name)),
     staleTime: 2 * 60_000,
   });
 
@@ -146,7 +147,7 @@ export function useSaveProductMutation() {
 
       // If this product is a component, also refresh its parent so the parent's
       // components list shows the new child immediately when navigating back.
-      if (typeof product.parentID === 'number' && !isNaN(product.parentID)) {
+      if (typeof product.parentID === 'number' && !Number.isNaN(product.parentID)) {
         queryClient.invalidateQueries({ queryKey: productQueryOptions(product.parentID).queryKey });
       }
 

@@ -1,8 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { fetchWithTimeout } from './request';
 import { API_URL } from '@/config';
-import { User } from '@/types/User';
+import type { ApiUserRead } from '@/types/api';
+import type { User } from '@/types/User';
+import { fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -139,7 +140,7 @@ async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Prom
 
   const authToken = await getToken();
   if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+    headers.Authorization = `Bearer ${authToken}`;
   }
 
   const makeRequest = () =>
@@ -155,7 +156,7 @@ async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Prom
     const refreshed = await refreshAuthToken();
     if (refreshed) {
       const newToken = await getToken();
-      if (newToken) headers['Authorization'] = `Bearer ${newToken}`;
+      if (newToken) headers.Authorization = `Bearer ${newToken}`;
       response = await makeRequest();
     } else {
       await clearCachedAuthState();
@@ -168,7 +169,10 @@ async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Prom
 export async function login(username: string, password: string): Promise<string | undefined> {
   const authPath = isWeb() ? '/auth/cookie/login' : '/auth/bearer/login';
   const url = new URL(apiURL + authPath);
-  const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
+  const headers = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    Accept: 'application/json',
+  };
   const body = new URLSearchParams({ username, password }).toString();
   const fetchOptions: RequestInit = { method: 'POST', headers, body, credentials: 'include' };
 
@@ -191,7 +195,7 @@ export async function login(username: string, password: string): Promise<string 
             await new Promise((resolve) => {
               const timer = setTimeout(resolve, 150);
               if (timer && typeof timer === 'object' && 'unref' in timer) {
-                (timer as any).unref();
+                (timer as { unref(): void }).unref();
               }
             });
             try {
@@ -212,7 +216,9 @@ export async function login(username: string, password: string): Promise<string 
     }
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      throw new Error(`HTTP ${response.status}: ${errorData?.detail || JSON.stringify(errorData) || 'Login failed.'}`);
+      throw new Error(
+        `HTTP ${response.status}: ${errorData?.detail || JSON.stringify(errorData) || 'Login failed.'}`,
+      );
     }
 
     if (isWeb()) {
@@ -227,7 +233,7 @@ export async function login(username: string, password: string): Promise<string 
     }
 
     return 'success';
-  } catch (err: any) {
+  } catch (err) {
     console.error('[Login Fetch Error]:', err);
     throw new Error('Unable to reach server. Please try again later.');
   }
@@ -242,7 +248,10 @@ export async function logout(): Promise<void> {
     /* ignore */
   }
   try {
-    await fetchWithTimeout(new URL(apiURL + '/auth/logout'), { method: 'POST', credentials: 'include' });
+    await fetchWithTimeout(new URL(`${apiURL}/auth/logout`), {
+      method: 'POST',
+      credentials: 'include',
+    });
   } catch (err) {
     console.error('[Logout Fetch Error]:', err);
   }
@@ -268,13 +277,13 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
     // create a shared in-flight promise so concurrent callers reuse the same request
     getUserPromise = (async (): Promise<User | undefined> => {
       try {
-        const url = new URL(apiURL + '/users/me');
+        const url = new URL(`${apiURL}/users/me`);
         const response = await fetchWithAuth(url, {
           method: 'GET',
           headers: { Accept: 'application/json' },
         });
 
-        let data;
+        let data: ApiUserRead;
         try {
           data = await response.json();
         } catch (jsonErr) {
@@ -328,17 +337,22 @@ export async function register(
   email: string,
   password: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const url = new URL(apiURL + '/auth/register');
+  const url = new URL(`${apiURL}/auth/register`);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   const body = { username, email, password };
 
   try {
-    const response = await fetchWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const response = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
 
     if (response.ok) return { success: true };
 
     const errorData = await response.json();
-    const errorMessage = errorData.detail?.reason || errorData.detail || 'Registration failed. Please try again.';
+    const errorMessage =
+      errorData.detail?.reason || errorData.detail || 'Registration failed. Please try again.';
 
     return { success: false, error: errorMessage };
   } catch (error) {
@@ -348,14 +362,18 @@ export async function register(
 }
 
 export async function verify(email: string): Promise<boolean> {
-  const url = new URL(apiURL + '/auth/request-verify-token');
+  const url = new URL(`${apiURL}/auth/request-verify-token`);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
-  const response = await fetchWithTimeout(url, { method: 'POST', headers, body: JSON.stringify({ email }) });
+  const response = await fetchWithTimeout(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email }),
+  });
   return response.ok;
 }
 
 export async function updateUser(updates: Partial<User>): Promise<User | undefined> {
-  const url = new URL(apiURL + '/users/me');
+  const url = new URL(`${apiURL}/users/me`);
 
   try {
     const response = await fetchWithAuth(url, {
@@ -371,7 +389,8 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
         if (typeof errorData.detail === 'string') {
           errorMessage = errorData.detail;
         } else if (typeof errorData.detail === 'object') {
-          errorMessage = errorData.detail.message || errorData.detail.reason || JSON.stringify(errorData.detail);
+          errorMessage =
+            errorData.detail.message || errorData.detail.reason || JSON.stringify(errorData.detail);
         }
       }
       throw new Error(errorMessage);
@@ -388,8 +407,11 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
  * Exchange a Google ID token (obtained via expo-auth-session PKCE on web) for
  * app session cookies.  Sets httpOnly auth + refresh_token cookies on success.
  */
-export async function oauthLoginWithGoogleToken(idToken: string, accessToken: string | null): Promise<void> {
-  const url = new URL(apiURL + '/auth/oauth/google/cookie/token');
+export async function oauthLoginWithGoogleToken(
+  idToken: string,
+  accessToken: string | null,
+): Promise<void> {
+  const url = new URL(`${apiURL}/auth/oauth/google/cookie/token`);
   const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -404,7 +426,7 @@ export async function oauthLoginWithGoogleToken(idToken: string, accessToken: st
 }
 
 export async function unlinkOAuth(provider: string): Promise<boolean> {
-  const url = new URL(apiURL + `/auth/oauth/${provider}/associate`);
+  const url = new URL(`${apiURL}/auth/oauth/${provider}/associate`);
 
   try {
     const response = await fetchWithAuth(url, {

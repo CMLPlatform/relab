@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Products from '../index';
-import type { User } from '@/types/User';
 import { renderWithProviders } from '@/test-utils';
+import type { User } from '@/types/User';
+import Products from '../index';
+
 const mockUseAuth = jest.fn();
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -19,8 +20,20 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   const FlatListMock = React.forwardRef(function FlatListMock(
-    { data, renderItem, ListFooterComponent, ListEmptyComponent, ...props }: any,
-    ref: any,
+    {
+      data,
+      renderItem,
+      ListFooterComponent,
+      ListEmptyComponent,
+      ...props
+    }: {
+      data?: unknown[];
+      renderItem?: (info: { item: unknown; index: number }) => React.ReactNode;
+      ListFooterComponent?: React.ComponentType | React.ReactElement | null;
+      ListEmptyComponent?: React.ComponentType | React.ReactElement | null;
+      [key: string]: unknown;
+    },
+    ref: React.ForwardedRef<{ scrollToOffset: () => void; scrollToIndex: () => void }>,
   ) {
     React.useImperativeHandle(
       ref,
@@ -33,12 +46,18 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
 
     const items =
       Array.isArray(data) && renderItem
-        ? data.map((item, index) => React.createElement(React.Fragment, { key: index }, renderItem({ item, index })))
+        ? data.map((item, index) =>
+            React.createElement(React.Fragment, { key: index }, renderItem({ item, index })),
+          )
         : null;
     const footer =
-      typeof ListFooterComponent === 'function' ? React.createElement(ListFooterComponent) : ListFooterComponent;
+      typeof ListFooterComponent === 'function'
+        ? React.createElement(ListFooterComponent)
+        : ListFooterComponent;
     const empty =
-      typeof ListEmptyComponent === 'function' ? React.createElement(ListEmptyComponent) : ListEmptyComponent;
+      typeof ListEmptyComponent === 'function'
+        ? React.createElement(ListEmptyComponent)
+        : ListEmptyComponent;
 
     return React.createElement(View, props, items && items.length > 0 ? items : empty, footer);
   });
@@ -151,7 +170,6 @@ const pagedQueryResult = {
 beforeEach(async () => {
   jest.clearAllMocks();
   // Default to wide viewport (numColumns=3) so most tests get pagination mode
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
     width: 1024,
     height: 768,
@@ -267,7 +285,9 @@ describe('Products screen', () => {
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
       expect(screen.getByText('Welcome to RELab')).toBeTruthy();
-      expect(screen.getByText('Browse products freely. Sign in when you are ready to add your own.')).toBeTruthy();
+      expect(
+        screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
+      ).toBeTruthy();
     });
   });
 
@@ -468,7 +488,6 @@ describe('Empty-state messages', () => {
 describe('PaginationControls (multi-column)', () => {
   beforeEach(() => {
     // Wide viewport already set globally; confirm numColumns=3 → pagination
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
       width: 1024,
       height: 768,
@@ -541,7 +560,6 @@ describe('PaginationControls (multi-column)', () => {
 
 describe('Mobile footer (single-column)', () => {
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     jest.spyOn(require('react-native'), 'useWindowDimensions').mockReturnValue({
       width: 390, // numColumns=1 → load-more mode
       height: 844,
@@ -714,7 +732,9 @@ describe('Sort — Relevance default when searching', () => {
     await screen.findByPlaceholderText('Search products');
 
     await waitFor(() => {
-      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map(
+        (c) => c[3] as string[],
+      );
       expect(sortArgs.some((s) => s[0] === 'rank')).toBe(true);
     });
   });
@@ -725,7 +745,9 @@ describe('Sort — Relevance default when searching', () => {
     await screen.findByPlaceholderText('Search products');
 
     await waitFor(() => {
-      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map(
+        (c) => c[3] as string[],
+      );
       expect(sortArgs.some((s) => s[0] === '-created_at')).toBe(true);
     });
   });
@@ -736,7 +758,9 @@ describe('Sort — Relevance default when searching', () => {
     await screen.findByPlaceholderText('Search products');
 
     await waitFor(() => {
-      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
+      const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map(
+        (c) => c[3] as string[],
+      );
       expect(sortArgs.some((s) => s[0] === 'name')).toBe(true);
     });
   });

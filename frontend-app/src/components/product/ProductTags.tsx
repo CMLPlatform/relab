@@ -1,13 +1,13 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { JSX, useEffect, useState } from 'react';
+import { type JSX, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip, InfoTooltip, Text } from '@/components/base';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useDialog } from '@/components/common/DialogProvider';
 
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSearchBrandsQuery } from '@/hooks/useProductQueries';
-import { useDialog } from '@/components/common/DialogProvider';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -60,7 +60,15 @@ export default function ProductTags({
   };
 
   return (
-    <View style={{ marginVertical: 12, paddingHorizontal: 16, gap: 10, flexDirection: 'row', flexWrap: 'wrap' }}>
+    <View
+      style={{
+        marginVertical: 12,
+        paddingHorizontal: 16,
+        gap: 10,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+      }}
+    >
       <Chip
         title={'Brand'}
         onPress={onEditBrand}
@@ -77,7 +85,9 @@ export default function ProductTags({
       >
         {product.model || 'Unknown'}
       </Chip>
-      {isComponent && <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />}
+      {isComponent && (
+        <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />
+      )}
 
       <FilterSelectionModal
         visible={brandModalVisible}
@@ -142,7 +152,10 @@ function AmountChip({
           <Pressable
             onPress={() => commit(amount - 1)}
             disabled={amount <= 1}
-            style={({ pressed }) => [amountStyles.stepBtn, (pressed || amount <= 1) && { opacity: 0.4 }]}
+            style={({ pressed }) => [
+              amountStyles.stepBtn,
+              (pressed || amount <= 1) && { opacity: 0.4 },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Decrease amount"
           >
@@ -159,7 +172,10 @@ function AmountChip({
           <Pressable
             onPress={() => commit(amount + 1)}
             disabled={amount >= 10000}
-            style={({ pressed }) => [amountStyles.stepBtn, (pressed || amount >= 10000) && { opacity: 0.4 }]}
+            style={({ pressed }) => [
+              amountStyles.stepBtn,
+              (pressed || amount >= 10000) && { opacity: 0.4 },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Increase amount"
           >
@@ -167,7 +183,12 @@ function AmountChip({
           </Pressable>
         </View>
       ) : (
-        <Text style={[amountStyles.valueText, { backgroundColor: colors.primary, color: colors.onPrimary }]}>
+        <Text
+          style={[
+            amountStyles.valueText,
+            { backgroundColor: colors.primary, color: colors.onPrimary },
+          ]}
+        >
           {String(amount)}
         </Text>
       )}

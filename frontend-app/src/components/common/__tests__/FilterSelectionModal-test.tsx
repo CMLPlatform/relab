@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import FilterSelectionModal from '../FilterSelectionModal';
 import { renderWithProviders } from '@/test-utils';
+import FilterSelectionModal from '../FilterSelectionModal';
 
 describe('FilterSelectionModal', () => {
   it('shows a loading indicator while items are being fetched', () => {

@@ -1,14 +1,16 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent } from '@testing-library/react-native';
-import ProductPhysicalProperties from '../ProductPhysicalProperties';
-import { renderWithProviders, baseProduct as _base } from '@/test-utils';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen } from '@testing-library/react-native';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
+import ProductPhysicalProperties from '../ProductPhysicalProperties';
 
 // Mock SVGCube to avoid react-native-svg in tests
 jest.mock('@/components/common/SVGCube', () => 'SVGCube');
 
-const baseProduct: Product = { ..._base, physicalProperties: { width: 10, height: 5, depth: 3, weight: 500 } };
+const baseProduct: Product = {
+  ..._base,
+  physicalProperties: { width: 10, height: 5, depth: 3, weight: 500 },
+};
 
 describe('ProductPhysicalProperties', () => {
   it('renders all four property labels', () => {
@@ -36,7 +38,9 @@ describe('ProductPhysicalProperties', () => {
     const weightInput = screen.getByDisplayValue('500');
     fireEvent.changeText(weightInput, '750');
     fireEvent(weightInput, 'blur');
-    expect(onChangePhysicalProperties).toHaveBeenCalledWith(expect.objectContaining({ weight: 750 }));
+    expect(onChangePhysicalProperties).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 750 }),
+    );
   });
 
   it('inputs are not editable when editMode is false', () => {

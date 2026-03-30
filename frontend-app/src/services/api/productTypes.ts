@@ -1,5 +1,5 @@
-import { apiFetch } from './client';
 import { API_URL } from '@/config';
+import { apiFetch } from './client';
 
 const baseUrl = API_URL;
 
@@ -8,7 +8,7 @@ export async function searchProductTypes(
   page = 1,
   size = 50,
 ): Promise<{ id: number; name: string }[]> {
-  const url = new URL(baseUrl + '/product-types');
+  const url = new URL(`${baseUrl}/product-types`);
   if (search) url.searchParams.set('search', search);
   url.searchParams.set('page', page.toString());
   url.searchParams.set('size', size.toString());

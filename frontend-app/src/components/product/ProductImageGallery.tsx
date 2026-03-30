@@ -5,29 +5,48 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Modal, Platform, Pressable, FlatList as RNFlatList, Text, View } from 'react-native';
-import { FlatList as GHFlatList, GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  Dimensions,
+  type GestureResponderEvent,
+  Modal,
+  Platform,
+  Pressable,
+  FlatList as RNFlatList,
+  Text,
+  View,
+} from 'react-native';
+import { GestureHandlerRootView, FlatList as GHFlatList } from 'react-native-gesture-handler';
 import { Icon } from 'react-native-paper';
 
+import ImagePlaceholder from '@/components/common/ImagePlaceholder';
 import ZoomableImage from '@/components/common/ZoomableImage';
-import { resolveApiMediaUrl } from '@/services/api/media';
+import { getResizedImageUrl, resolveApiMediaUrl } from '@/services/api/media';
 import { processImage } from '@/services/media/imageProcessing';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
-const GalleryFlatList = Platform.OS === 'web' ? (RNFlatList as any) : GHFlatList;
+const GalleryFlatList: typeof GHFlatList =
+  Platform.OS === 'web' ? (RNFlatList as unknown as typeof GHFlatList) : GHFlatList;
+
+type ScrollEvent = { nativeEvent: { contentOffset: { x: number } } };
+type ScrollableListHandle = {
+  scrollToIndex(params: {
+    index: number;
+    animated?: boolean | null;
+    viewOffset?: number;
+    viewPosition?: number;
+  }): void;
+  scrollToOffset(params: { offset: number; animated?: boolean | null }): void;
+};
 
 const IMAGE_HEIGHT = 300;
 
-function isLocalImageUrl(url: string): boolean {
-  return /^(file:|blob:|data:)/.test(url);
-}
+function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'end'): number | null {
+  const touch =
+    type === 'start'
+      ? (event.nativeEvent.touches[0] ?? event.nativeEvent.changedTouches[0])
+      : event.nativeEvent.changedTouches[0];
 
-function getDisplayImageUrl(url: string, id: number | undefined, width: number): string {
-  if (!id || isLocalImageUrl(url)) {
-    return resolveApiMediaUrl(url) ?? url;
-  }
-
-  return resolveApiMediaUrl(`/images/${id}/resized?width=${width}`) ?? resolveApiMediaUrl(url) ?? url;
+  return touch?.pageX ?? null;
 }
 
 interface Props {
@@ -40,11 +59,12 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   const { width } = Dimensions.get('window');
   const isWeb = Platform.OS === 'web';
   const showCameraOption =
-    Platform.OS !== 'web' || (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+    Platform.OS !== 'web' ||
+    (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const images = useMemo(() => product.images ?? [], [product.images]);
 
-  const galleryRef = useRef<any>(null);
-  const thumbsRef = useRef<any>(null);
+  const galleryRef = useRef<ScrollableListHandle | null>(null);
+  const thumbsRef = useRef<ScrollableListHandle | null>(null);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pendingIndex, setPendingIndex] = useState<number | null>(null);
@@ -53,13 +73,18 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
 
   const imageCount = images.length;
 
-  const resolvedUrls = useMemo(() => images.map((i) => resolveApiMediaUrl(i.url) ?? i.url), [images]);
   const thumbnailUrls = useMemo(
     () => images.map((i) => i.thumbnailUrl ?? resolveApiMediaUrl(i.url) ?? i.url),
     [images],
   );
-  const mediumUrls = useMemo(() => images.map((i) => getDisplayImageUrl(i.url, i.id, 800)), [images]);
-  const largeUrls = useMemo(() => images.map((i) => getDisplayImageUrl(i.url, i.id, 1600)), [images]);
+  const mediumUrls = useMemo(
+    () => images.map((i) => getResizedImageUrl(i.url, i.id, 800)),
+    [images],
+  );
+  const largeUrls = useMemo(
+    () => images.map((i) => getResizedImageUrl(i.url, i.id, 1600)),
+    [images],
+  );
 
   const scrollToIndex = useCallback(
     (idx: number) => {
@@ -88,22 +113,12 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     previousLightboxOpenRef.current = lightboxOpen;
   }, [imageCount, lightboxOpen, scrollToIndex, selectedIndex]);
 
-  // Pre-fetch images
-  const webImagesRef = useRef<HTMLImageElement[]>([]);
+  // Pre-fetch medium-resolution images for smooth gallery scrolling
   useEffect(() => {
-    if (!isWeb) {
-      resolvedUrls.forEach((url) => {
-        Image.prefetch(url);
-      });
-    } else {
-      // Background pre-fetch for web
-      resolvedUrls.forEach((url, i) => {
-        const img = new (window as any).Image();
-        img.src = url;
-        webImagesRef.current[i] = img;
-      });
+    for (const url of mediumUrls) {
+      Image.prefetch(url);
     }
-  }, [resolvedUrls, isWeb]);
+  }, [mediumUrls]);
 
   const { id: productId } = useLocalSearchParams();
   useEffect(() => {
@@ -203,10 +218,11 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   if (imageCount === 0 && !editMode) {
     return (
       <View style={{ marginBottom: 16 }}>
-        <Image
-          source={{ uri: `https://placehold.co/600x400?text=${encodeURIComponent(product.name)}` }}
-          contentFit="cover"
-          style={{ width, height: IMAGE_HEIGHT, borderRadius: 8 }}
+        <ImagePlaceholder
+          width={width}
+          height={IMAGE_HEIGHT}
+          label={product.name}
+          testID="image-placeholder"
         />
       </View>
     );
@@ -217,13 +233,15 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
       {imageCount > 0 ? (
         <View style={{ position: 'relative' }}>
           <GalleryFlatList
-            ref={galleryRef}
+            ref={(instance: ScrollableListHandle | null) => {
+              galleryRef.current = instance;
+            }}
             data={mediumUrls}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(_: any, i: number) => String(i)}
-            getItemLayout={(_: any, index: number) => ({
+            keyExtractor={(_: string, i: number) => String(i)}
+            getItemLayout={(_data: ArrayLike<string> | null | undefined, index: number) => ({
               length: width,
               offset: width * index,
               index,
@@ -237,14 +255,18 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
                 accessibilityRole="button"
                 accessibilityLabel={`View image ${index + 1}`}
               >
-                <Image source={{ uri: item }} contentFit="cover" style={{ width, height: IMAGE_HEIGHT }} />
+                <Image
+                  source={{ uri: item }}
+                  contentFit="cover"
+                  style={{ width, height: IMAGE_HEIGHT }}
+                />
               </Pressable>
             )}
-            onMomentumScrollEnd={(e: any) => {
+            onMomentumScrollEnd={(e: ScrollEvent) => {
               const idx = Math.round(e.nativeEvent.contentOffset.x / width);
               void updateCurrentIndex(idx);
             }}
-            onScrollEndDrag={(e: any) => {
+            onScrollEndDrag={(e: ScrollEvent) => {
               const idx = Math.round(e.nativeEvent.contentOffset.x / width);
               void updateCurrentIndex(idx);
             }}
@@ -326,7 +348,9 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
 
           {editMode && (
             <>
-              <View style={{ position: 'absolute', top: 12, left: 12, flexDirection: 'row', gap: 8 }}>
+              <View
+                style={{ position: 'absolute', top: 12, left: 12, flexDirection: 'row', gap: 8 }}
+              >
                 {showCameraOption && (
                   <Pressable
                     onPress={handleTakePhoto}
@@ -427,11 +451,13 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
       {imageCount > 1 && (
         <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
           <GalleryFlatList
-            ref={thumbsRef}
+            ref={(instance: ScrollableListHandle | null) => {
+              thumbsRef.current = instance;
+            }}
             data={thumbnailUrls}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(_: any, i: number) => String(i)}
+            keyExtractor={(_: string, i: number) => String(i)}
             renderItem={({ item, index }: { item: string; index: number }) => (
               <Pressable
                 onPress={() => {
@@ -482,12 +508,13 @@ function Lightbox({
   const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
   const [isZoomed, setIsZoomed] = useState(false);
   const [index, setIndex] = useState(startIndex);
-  const scrollRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollableListHandle | null>(null);
   const targetIndexRef = useRef(startIndex);
   const dragStartIndexRef = useRef(startIndex);
   const touchStartXRef = useRef<number | null>(null);
   const isWeb = Platform.OS === 'web';
-  const isTouchWeb = isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const isTouchWeb =
+    isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
 
   const clampIndex = useCallback(
     (nextIndex: number) => Math.max(0, Math.min(nextIndex, images.length - 1)),
@@ -543,7 +570,7 @@ function Lightbox({
         scrollToIndex(startIndex, false);
       }, 50);
       if (timer && typeof timer === 'object' && 'unref' in timer) {
-        (timer as any).unref();
+        (timer as { unref(): void }).unref();
       }
       return () => clearTimeout(timer);
     }
@@ -568,7 +595,7 @@ function Lightbox({
   }, [visible, handleClose, navigateBy, isWeb]);
 
   const handleScrollBeginDrag = useCallback(
-    (e: any) => {
+    (e: ScrollEvent) => {
       const nextIndex = clampIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
       dragStartIndexRef.current = nextIndex;
       targetIndexRef.current = nextIndex;
@@ -577,14 +604,16 @@ function Lightbox({
   );
 
   const handleScrollEnd = useCallback(
-    (e: any) => {
+    (e: ScrollEvent) => {
       const rawIndex = e.nativeEvent.contentOffset.x / SCREEN_WIDTH;
       const roundedIndex = clampIndex(Math.round(rawIndex));
 
       if (isWeb && !isZoomed) {
         const delta = roundedIndex - dragStartIndexRef.current;
         const limitedIndex =
-          delta === 0 ? dragStartIndexRef.current : clampIndex(dragStartIndexRef.current + Math.sign(delta));
+          delta === 0
+            ? dragStartIndexRef.current
+            : clampIndex(dragStartIndexRef.current + Math.sign(delta));
 
         if (limitedIndex !== targetIndexRef.current || limitedIndex !== roundedIndex) {
           setActiveIndex(limitedIndex, false);
@@ -600,24 +629,22 @@ function Lightbox({
   );
 
   const handleTouchStart = useCallback(
-    (e: any) => {
+    (event: GestureResponderEvent) => {
       if (!isTouchWeb || isZoomed) return;
-      const touch = e.nativeEvent.touches?.[0] ?? e.nativeEvent.changedTouches?.[0];
-      touchStartXRef.current = touch?.clientX ?? null;
+      touchStartXRef.current = getTouchPointX(event, 'start');
     },
     [isTouchWeb, isZoomed],
   );
 
   const handleTouchEnd = useCallback(
-    (e: any) => {
+    (event: GestureResponderEvent) => {
       if (!isTouchWeb || isZoomed) return;
 
       const startX = touchStartXRef.current;
       touchStartXRef.current = null;
       if (startX === null) return;
 
-      const touch = e.nativeEvent.changedTouches?.[0];
-      const endX = touch?.clientX;
+      const endX = getTouchPointX(event, 'end');
       if (typeof endX !== 'number') return;
 
       const deltaX = endX - startX;
@@ -632,7 +659,13 @@ function Lightbox({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose} statusBarTranslucent={true}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+      statusBarTranslucent={true}
+    >
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
         <Pressable
           onPress={handleClose}
@@ -655,7 +688,9 @@ function Lightbox({
         </Pressable>
 
         <GalleryFlatList
-          ref={scrollRef}
+          ref={(instance: ScrollableListHandle | null) => {
+            scrollRef.current = instance;
+          }}
           data={images}
           horizontal
           pagingEnabled
@@ -667,8 +702,12 @@ function Lightbox({
           snapToAlignment="center"
           decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(_: any, i: number) => String(i)}
-          getItemLayout={(_: any, i: number) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * i, index: i })}
+          keyExtractor={(_: string, i: number) => String(i)}
+          getItemLayout={(_data: ArrayLike<string> | null | undefined, i: number) => ({
+            length: SCREEN_WIDTH,
+            offset: SCREEN_WIDTH * i,
+            index: i,
+          })}
           onScrollBeginDrag={handleScrollBeginDrag}
           onScrollEndDrag={handleScrollEnd}
           onMomentumScrollEnd={handleScrollEnd}
@@ -676,7 +715,12 @@ function Lightbox({
             <View
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
-              style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, justifyContent: 'center', alignItems: 'center' }}
+              style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_HEIGHT,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <ZoomableImage
                 uri={item}
@@ -713,7 +757,15 @@ function Lightbox({
                 <Icon source="chevron-left" size={32} color="white" />
               </Pressable>
 
-              <Text style={{ color: 'white', fontSize: 16, marginHorizontal: 20, minWidth: 60, textAlign: 'center' }}>
+              <Text
+                style={{
+                  color: 'white',
+                  fontSize: 16,
+                  marginHorizontal: 20,
+                  minWidth: 60,
+                  textAlign: 'center',
+                }}
+              >
                 {index + 1} / {images.length}
               </Text>
 

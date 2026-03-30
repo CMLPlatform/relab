@@ -1,9 +1,8 @@
-import React from 'react';
-import { Pressable, PressableProps, StyleSheet } from 'react-native';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { spacing, radius } from '@/constants/layout';
-
+import type React from 'react';
+import { Pressable, type PressableProps, StyleSheet } from 'react-native';
 import { Text } from '@/components/base/Text';
+import { radius, spacing } from '@/constants/layout';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props extends PressableProps {
   children?: string;
@@ -24,7 +23,9 @@ export const Chip: React.FC<Props> = ({ style, children, title, icon, error, ...
       ]}
       {...props}
     >
-      {title && <Text style={[styles.titleText, { color: colors.onPrimaryContainer }]}>{title}</Text>}
+      {title && (
+        <Text style={[styles.titleText, { color: colors.onPrimaryContainer }]}>{title}</Text>
+      )}
       <Text
         style={[
           styles.text,

@@ -1,10 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
+import type React from 'react';
 import { Text, View } from 'react-native';
-import { HeaderRight, Providers } from '../_layout';
-
 import { useAuth } from '@/context/AuthProvider';
 import { renderWithProviders } from '@/test-utils';
+import { HeaderRight, Providers } from '../_layout';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({
@@ -16,16 +16,20 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: jest.fn(() => ({ user: null, refetch: jest.fn() })),
-  AuthProvider: ({ children }: any) => <>{children}</>,
+  AuthProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('react-native-keyboard-controller', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { View } = require('react-native');
   return {
-    KeyboardProvider: ({ children }: any) => <View testID="KeyboardProvider">{children}</View>,
+    KeyboardProvider: ({ children }: { children?: React.ReactNode }) => (
+      <View testID="KeyboardProvider">{children}</View>
+    ),
     useKeyboardHandler: jest.fn(),
-    useReanimatedKeyboardAnimation: jest.fn(() => ({ height: { value: 0 }, progress: { value: 0 } })),
+    useReanimatedKeyboardAnimation: jest.fn(() => ({
+      height: { value: 0 },
+      progress: { value: 0 },
+    })),
   };
 });
 

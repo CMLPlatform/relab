@@ -1,5 +1,5 @@
 import { ImageManipulator } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
+import type * as ImagePicker from 'expo-image-picker';
 
 export interface ImageProcessingOptions {
   maxWidth?: number;

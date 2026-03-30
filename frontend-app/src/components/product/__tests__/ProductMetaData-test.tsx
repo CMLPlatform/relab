@@ -1,9 +1,8 @@
-import { describe, it, expect } from '@jest/globals';
-import React from 'react';
+import { describe, expect, it } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
-import ProductMetaData from '../ProductMetaData';
-import { renderWithProviders, baseProduct as _base } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
+import ProductMetaData from '../ProductMetaData';
 
 const baseProduct: Product = { ..._base, id: 42 };
 

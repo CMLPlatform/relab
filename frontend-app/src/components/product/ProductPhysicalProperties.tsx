@@ -4,7 +4,7 @@ import { Divider } from 'react-native-paper';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import Cube from '@/components/common/SVGCube';
-import { PhysicalProperties, Product } from '@/types/Product';
+import type { PhysicalProperties, Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -26,7 +26,11 @@ const nameMap = {
   depth: 'Depth',
 };
 
-export default function ProductPhysicalProperties({ product, editMode, onChangePhysicalProperties }: Props) {
+export default function ProductPhysicalProperties({
+  product,
+  editMode,
+  onChangePhysicalProperties,
+}: Props) {
   // Callbacks
   const onChangeProperty = (key: string, value: number | undefined) => {
     const newProperties = { ...product.physicalProperties, [key]: value };
@@ -46,8 +50,8 @@ export default function ProductPhysicalProperties({ product, editMode, onChangeP
         height={product.physicalProperties.height}
         depth={product.physicalProperties.depth}
       />
-      {Object.keys(product.physicalProperties).map((prop, index) => (
-        <Fragment key={index}>
+      {Object.keys(product.physicalProperties).map((prop) => (
+        <Fragment key={prop}>
           <Divider />
           <LocalizedFloatInput
             label={nameMap[prop as keyof PhysicalProperties]}

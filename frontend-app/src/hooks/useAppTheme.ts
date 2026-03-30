@@ -1,6 +1,6 @@
 import { useColorScheme } from 'react-native';
-import LightTheme from '@/assets/themes/light';
 import DarkTheme from '@/assets/themes/dark';
+import LightTheme from '@/assets/themes/light';
 
 type AppTheme = typeof LightTheme;
 

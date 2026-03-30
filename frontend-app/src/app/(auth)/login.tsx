@@ -1,24 +1,44 @@
 import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
-import { apiFetch } from '@/services/api/fetching';
-import { getUser, login, markWebSessionActive, oauthLoginWithGoogleToken } from '@/services/api/authentication';
-import { useAuth } from '@/context/AuthProvider';
 import { useDialog } from '@/components/common/DialogProvider';
 import { API_URL, GOOGLE_WEB_CLIENT_ID } from '@/config';
+import { useAuth } from '@/context/AuthProvider';
+import {
+  getUser,
+  login,
+  markWebSessionActive,
+  oauthLoginWithGoogleToken,
+} from '@/services/api/authentication';
+import { apiFetch } from '@/services/api/fetching';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const OAUTH_ACCOUNT_NOT_LINKED_ERROR = 'OAUTH_USER_ALREADY_EXISTS';
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+type AuthSessionResult = Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsync>>;
+type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
+type SafeRedirectTarget = Extract<Href, string>;
 
-function getSafeRedirectTarget(redirectTo: string | string[] | undefined): string | undefined {
-  if (typeof redirectTo !== 'string' || !redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
+function maybeUnrefTimer(timer: ReturnType<typeof setTimeout>): void {
+  if (timer && typeof timer === 'object' && 'unref' in timer) {
+    (timer as TimerWithUnref).unref();
+  }
+}
+
+function getSafeRedirectTarget(
+  redirectTo: string | string[] | undefined,
+): SafeRedirectTarget | undefined {
+  if (
+    typeof redirectTo !== 'string' ||
+    !redirectTo.startsWith('/') ||
+    redirectTo.startsWith('//')
+  ) {
     return undefined;
   }
   try {
@@ -31,7 +51,7 @@ function getSafeRedirectTarget(redirectTo: string | string[] | undefined): strin
   } catch {
     return undefined;
   }
-  return redirectTo;
+  return redirectTo as SafeRedirectTarget;
 }
 
 const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
@@ -58,7 +78,11 @@ function parseOAuthCallbackUrl(url: string): {
   return { success, error, detail };
 }
 
-function getOAuthErrorMessage(error?: string, detail?: string, platform: 'ios' | 'android' | 'web' = 'web'): string {
+function getOAuthErrorMessage(
+  error?: string,
+  detail?: string,
+  platform: 'ios' | 'android' | 'web' = 'web',
+): string {
   // OAuth provider errors (standard OAuth error codes)
   if (error === 'access_denied' || error === 'user_denied') {
     return 'You denied access. Please try again and grant permission.';
@@ -110,6 +134,10 @@ function isAccountNotLinkedError(detail: string | undefined): boolean {
   return detail === OAUTH_ACCOUNT_NOT_LINKED_ERROR;
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function Login() {
   // Hooks
   const router = useRouter();
@@ -136,7 +164,7 @@ export default function Login() {
   });
 
   // Refs
-  const emailRef = useRef<any>(null);
+  const emailRef = useRef<{ focus(): void } | null>(null);
   const handledOAuthCallbackRef = useRef(false);
 
   // States
@@ -153,7 +181,7 @@ export default function Login() {
       router.replace('/(auth)/onboarding');
     } else if (postLoginRedirect) {
       // postLoginRedirect is validated by getSafeRedirectTarget to start with "/"
-      router.replace(postLoginRedirect as any);
+      router.replace(postLoginRedirect);
     } else {
       router.replace({ pathname: '/products' });
     }
@@ -180,7 +208,7 @@ export default function Login() {
       if (!authenticatedUser.username || authenticatedUser.username === 'Username not defined') {
         router.replace('/(auth)/onboarding');
       } else if (postLoginRedirect) {
-        router.replace(postLoginRedirect as any);
+        router.replace(postLoginRedirect);
       } else {
         router.replace({ pathname: '/products' });
       }
@@ -195,13 +223,17 @@ export default function Login() {
           title: 'Email Already Registered',
           message:
             'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
-          buttons: [{ text: 'Cancel' }, { text: 'Sign in with password', onPress: () => emailRef.current?.focus() }],
+          buttons: [
+            { text: 'Cancel' },
+            { text: 'Sign in with password', onPress: () => emailRef.current?.focus() },
+          ],
         });
         return;
       }
 
       if (!success) {
-        const errorPlatform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
+        const errorPlatform =
+          Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
         const errorMsg = getOAuthErrorMessage(error, detail, errorPlatform);
         throw new Error(errorMsg);
       }
@@ -229,9 +261,7 @@ export default function Login() {
           }
           await new Promise((resolve) => {
             const timer = setTimeout(resolve, 300 * retryCount);
-            if (timer && typeof timer === 'object' && 'unref' in timer) {
-              (timer as any).unref();
-            }
+            maybeUnrefTimer(timer);
           });
         }
       }
@@ -275,10 +305,10 @@ export default function Login() {
 
     oauthLoginWithGoogleToken(authentication.idToken, authentication.accessToken ?? null)
       .then(() => finalizeOAuthLogin({ success: true }))
-      .catch((err: any) => {
+      .catch((error: unknown) => {
         dialog.alert({
           title: 'Login Failed',
-          message: err.message || 'Google login failed.',
+          message: getErrorMessage(error, 'Google login failed.'),
         });
       });
   }, [googleResponse, finalizeOAuthLogin, dialog]);
@@ -291,7 +321,8 @@ export default function Login() {
     const successParam = typeof oauthSuccess === 'string' ? oauthSuccess : undefined;
     const errorParam = typeof oauthError === 'string' ? oauthError : undefined;
     const detailParam = typeof oauthDetail === 'string' ? oauthDetail : undefined;
-    const hasOAuthCallbackParams = successParam !== undefined || errorParam !== undefined || detailParam !== undefined;
+    const hasOAuthCallbackParams =
+      successParam !== undefined || errorParam !== undefined || detailParam !== undefined;
 
     if (!hasOAuthCallbackParams) {
       return;
@@ -302,7 +333,9 @@ export default function Login() {
     // Remove OAuth callback params from the URL so they don't linger in
     // browser history (tokens/error codes shouldn't sit in the address bar).
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const cleanSearch = postLoginRedirect ? `?redirectTo=${encodeURIComponent(postLoginRedirect)}` : '';
+      const cleanSearch = postLoginRedirect
+        ? `?redirectTo=${encodeURIComponent(postLoginRedirect)}`
+        : '';
       window.history.replaceState({}, '', window.location.pathname + cleanSearch);
     }
 
@@ -310,10 +343,10 @@ export default function Login() {
       success: successParam === 'true',
       error: errorParam,
       detail: detailParam,
-    }).catch((err: any) => {
+    }).catch((error: unknown) => {
       dialog.alert({
         title: 'Login Failed',
-        message: err.message || 'OAuth login failed.',
+        message: getErrorMessage(error, 'OAuth login failed.'),
       });
     });
   }, [dialog, finalizeOAuthLogin, oauthDetail, oauthError, oauthSuccess, postLoginRedirect]);
@@ -348,10 +381,10 @@ export default function Login() {
       }
 
       await completeSuccessfulLogin(u);
-    } catch (error: any) {
+    } catch (error: unknown) {
       dialog.alert({
         title: 'Login Failed',
-        message: error.message || 'Unable to reach server. Please try again later.',
+        message: getErrorMessage(error, 'Unable to reach server. Please try again later.'),
       });
     }
   };
@@ -384,7 +417,10 @@ export default function Login() {
             title: 'Email Already Registered',
             message:
               'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
-            buttons: [{ text: 'Cancel' }, { text: 'Sign in with password', onPress: () => emailRef.current?.focus() }],
+            buttons: [
+              { text: 'Cancel' },
+              { text: 'Sign in with password', onPress: () => emailRef.current?.focus() },
+            ],
           });
           return;
         }
@@ -407,7 +443,7 @@ export default function Login() {
       }
 
       // Open browser with timeout
-      let result: any;
+      let result: AuthSessionResult | undefined;
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
       const timeoutPromise = new Promise((_, reject) => {
@@ -420,14 +456,14 @@ export default function Login() {
       const browserPromise = WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
 
       try {
-        result = await Promise.race([browserPromise, timeoutPromise]);
+        result = (await Promise.race([browserPromise, timeoutPromise])) as AuthSessionResult;
       } finally {
         if (timeoutId) {
           clearTimeout(timeoutId);
         }
       }
 
-      if (result.type !== 'success' || !result.url) {
+      if (!result || result.type !== 'success' || !result.url) {
         // User cancelled the browser session
         return;
       }
@@ -435,10 +471,10 @@ export default function Login() {
       const { success, error, detail } = parseOAuthCallbackUrl(result.url);
 
       await finalizeOAuthLogin({ success, error, detail });
-    } catch (err: any) {
+    } catch (error: unknown) {
       dialog.alert({
         title: 'Login Failed',
-        message: err.message || 'OAuth login failed.',
+        message: getErrorMessage(error, 'OAuth login failed.'),
       });
     }
   };
@@ -490,7 +526,9 @@ export default function Login() {
         </Text>
 
         <TextInput
-          ref={emailRef}
+          ref={(instance: { focus(): void } | null) => {
+            emailRef.current = instance;
+          }}
           mode={'outlined'}
           value={email}
           onChangeText={setEmail}
@@ -510,7 +548,12 @@ export default function Login() {
         <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={attemptLogin}>
           Login
         </Button>
-        <Button mode="text" compact onPress={() => router.push('/forgot-password')} style={{ alignSelf: 'flex-end' }}>
+        <Button
+          mode="text"
+          compact
+          onPress={() => router.push('/forgot-password')}
+          style={{ alignSelf: 'flex-end' }}
+        >
           Forgot password?
         </Button>
 
@@ -520,10 +563,20 @@ export default function Login() {
           <View style={{ flex: 1, height: 1, backgroundColor: 'grey', opacity: 0.3 }} />
         </View>
 
-        <Button mode="outlined" icon="google" style={{ width: '100%' }} onPress={() => handleOAuthLogin('google')}>
+        <Button
+          mode="outlined"
+          icon="google"
+          style={{ width: '100%' }}
+          onPress={() => handleOAuthLogin('google')}
+        >
           Continue with Google
         </Button>
-        <Button mode="outlined" icon="github" style={{ width: '100%' }} onPress={() => handleOAuthLogin('github')}>
+        <Button
+          mode="outlined"
+          icon="github"
+          style={{ width: '100%' }}
+          onPress={() => handleOAuthLogin('github')}
+        >
           Continue with GitHub
         </Button>
 

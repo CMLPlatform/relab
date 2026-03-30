@@ -1,11 +1,10 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import ProductType from '../ProductType';
 import * as cpv from '@/services/cpv';
-import { renderWithProviders, baseProduct as _base } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
+import ProductType from '../ProductType';
 
 const mockPush = jest.fn();
 const mockedLoadCPV = jest.mocked(cpv.loadCPV);
@@ -66,7 +65,9 @@ describe('ProductType', () => {
   it('navigates to category selection on press in editMode', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
     fireEvent.press(await screen.findByText('All categories'));
-    expect(mockPush).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products/[id]/category_selection' }));
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: '/products/[id]/category_selection' }),
+    );
   });
 
   it('does not navigate when not in editMode', async () => {

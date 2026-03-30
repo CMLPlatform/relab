@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import LogoutConfirm from '../LogoutConfirm';
 import { renderWithProviders } from '@/test-utils';
+import LogoutConfirm from '../LogoutConfirm';
 
 describe('LogoutConfirm', () => {
   it('renders the logout dialog when visible', () => {
@@ -14,9 +14,12 @@ describe('LogoutConfirm', () => {
   });
 
   it('does not render dialog content when not visible', () => {
-    renderWithProviders(<LogoutConfirm visible={false} onDismiss={jest.fn()} onConfirm={jest.fn()} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <LogoutConfirm visible={false} onDismiss={jest.fn()} onConfirm={jest.fn()} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.queryByText('Are you sure you want to log out?')).toBeNull();
   });
 

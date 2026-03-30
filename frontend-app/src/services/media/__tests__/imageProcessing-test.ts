@@ -20,7 +20,6 @@ jest.mock('expo-image-manipulator', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { processImage } = require('../imageProcessing') as typeof import('../imageProcessing');
 
 describe('processImage', () => {

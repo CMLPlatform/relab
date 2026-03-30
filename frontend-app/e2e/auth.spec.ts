@@ -11,7 +11,7 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { EMAIL, PASSWORD, finishOnboardingIfVisible } from './helpers';
+import { EMAIL, finishOnboardingIfVisible, PASSWORD } from './helpers';
 
 test.describe('Authentication flow', () => {
   test('unauthenticated user can browse the products page without signing in', async ({ page }) => {
@@ -36,7 +36,9 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Password').fill('wrong-password');
     await page.getByRole('button', { name: 'Login' }).click();
     // The app shows a "Login Failed" dialog on bad credentials
-    await expect(page.getByText('Login Failed')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Login Failed')).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('login with correct credentials succeeds and leaves the login screen', async ({ page }) => {
@@ -59,7 +61,9 @@ test.describe('Authentication flow', () => {
     await finishOnboardingIfVisible(page);
 
     // ── Verify products screen loaded ────────────────────────────────────────
-    await expect(page.getByPlaceholder('Search products')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('Search products')).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
 
@@ -85,12 +89,16 @@ test.describe('Account registration', () => {
     await page.getByTestId('username-next').click();
 
     // Step 2: enter an email address
-    await expect(page.getByPlaceholder('Email address')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByPlaceholder('Email address')).toBeVisible({
+      timeout: 3_000,
+    });
     await page.getByPlaceholder('Email address').fill(email);
     await page.getByTestId('email-next').click();
 
     // Step 3: choose a password
-    await expect(page.getByPlaceholder('Password')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByPlaceholder('Password')).toBeVisible({
+      timeout: 3_000,
+    });
     await page.getByPlaceholder('Password').fill(password);
     await page.getByRole('button', { name: 'Create Account' }).click();
 
@@ -109,7 +117,9 @@ test.describe('Forgot password', () => {
     await page.getByRole('textbox').fill(EMAIL);
     await page.getByRole('button', { name: 'Send Reset Link' }).click();
 
-    await expect(page.getByText(/If an account exists with this email/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/If an account exists with this email/)).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test('forgot password page is accessible from the login screen', async ({ page }) => {

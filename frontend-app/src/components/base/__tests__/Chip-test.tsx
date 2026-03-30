@@ -1,10 +1,9 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import * as ReactNative from 'react-native';
-import { render, screen, fireEvent } from '@testing-library/react-native';
-import { Chip } from '../Chip';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
+import { Chip } from '../Chip';
 
 describe('Chip', () => {
   it('renders children text', () => {

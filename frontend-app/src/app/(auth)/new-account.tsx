@@ -1,13 +1,21 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useColorScheme,
+  View,
+} from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 
 import { useDialog } from '@/components/common/DialogProvider';
+import { WEBSITE_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { login, register } from '@/services/api/authentication';
 import { validateEmail, validatePassword, validateUsername } from '@/services/api/validation/user';
-import { WEBSITE_URL } from '@/config';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -104,7 +112,10 @@ const PrivacyPolicy = () => {
     <Text style={[styles.privacyText, { color: textColor }]}>
       By creating an account, you agree to our{' '}
       <Text
-        style={[styles.privacyLink, colorScheme === 'dark' ? styles.privacyLinkDark : { color: textColor }]}
+        style={[
+          styles.privacyLink,
+          colorScheme === 'dark' ? styles.privacyLinkDark : { color: textColor },
+        ]}
         onPress={() => Linking.openURL(url)}
         accessibilityRole="link"
       >
@@ -202,7 +213,10 @@ export default function NewAccount() {
     setIsRegistering(false);
 
     if (!loginSuccess) {
-      dialog.alert({ title: 'Account Created', message: 'Your account was created! Please log in.' });
+      dialog.alert({
+        title: 'Account Created',
+        message: 'Your account was created! Please log in.',
+      });
       router.replace('/login');
       return;
     }
@@ -388,7 +402,16 @@ export default function NewAccount() {
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: overlayColor }} />
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: overlayColor,
+        }}
+      />
 
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 120 }}

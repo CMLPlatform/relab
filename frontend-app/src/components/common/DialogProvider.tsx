@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -114,12 +114,19 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
       )}
 
       {options?.input && options?.helperText && (
-        <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>{options.helperText}</Text>
+        <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>
+          {options.helperText}
+        </Text>
       )}
 
       <View style={styles.buttonRow}>
-        {(options?.buttons || [{ text: 'OK' }]).map((btn, idx) => (
-          <Button key={idx} onPress={() => handleClose(btn)} disabled={isButtonDisabled(btn)} style={styles.button}>
+        {(options?.buttons || [{ text: 'OK' }]).map((btn) => (
+          <Button
+            key={btn.text}
+            onPress={() => handleClose(btn)}
+            disabled={isButtonDisabled(btn)}
+            style={styles.button}
+          >
             {btn.text}
           </Button>
         ))}

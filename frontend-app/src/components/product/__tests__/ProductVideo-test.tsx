@@ -1,32 +1,42 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import ProductVideo from '../ProductVideo';
-import type { Product } from '@/types/Product';
 import { baseProduct, renderWithProviders } from '@/test-utils';
+import type { Product } from '@/types/Product';
+import ProductVideo from '../ProductVideo';
 
 describe('ProductVideo', () => {
   it('renders the Recordings heading', () => {
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getByText(/Recordings/)).toBeTruthy();
   });
 
   it("shows 'no recordings' message when empty", () => {
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('This product has no associated recordings.')).toBeTruthy();
   });
 
   it("shows 'Add recording' button in editMode", () => {
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('Add recording')).toBeTruthy();
   });
 
   it("hides 'Add recording' button in view mode", () => {
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.queryByText('Add recording')).toBeNull();
   });
 
   it('opens add recording dialog on press', async () => {
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     fireEvent.press(screen.getByText('Add recording'));
     await waitFor(() => {
       expect(screen.getByText('Add Recording')).toBeTruthy();
@@ -36,9 +46,13 @@ describe('ProductVideo', () => {
   it('renders existing videos', () => {
     const productWithVideo: Product = {
       ...baseProduct,
-      videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo Video', description: '' }],
+      videos: [
+        { id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo Video', description: '' },
+      ],
     };
-    renderWithProviders(<ProductVideo product={productWithVideo} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={productWithVideo} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('https://youtube.com/watch?v=abc')).toBeTruthy();
   });
 
@@ -47,7 +61,9 @@ describe('ProductVideo', () => {
       ...baseProduct,
       videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: '' }],
     };
-    renderWithProviders(<ProductVideo product={productWithVideo} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={productWithVideo} editMode={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByPlaceholderText('Title')).toBeTruthy();
     expect(screen.getByPlaceholderText('Video URL')).toBeTruthy();
   });
@@ -58,15 +74,20 @@ describe('ProductVideo', () => {
       ...baseProduct,
       videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: '' }],
     };
-    renderWithProviders(<ProductVideo product={productWithVideo} editMode={true} onVideoChange={onVideoChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductVideo product={productWithVideo} editMode={true} onVideoChange={onVideoChange} />,
+      {
+        withDialog: true,
+      },
+    );
     fireEvent.changeText(screen.getByPlaceholderText('Title'), 'Updated Title');
     expect(onVideoChange).toHaveBeenCalled();
   });
 
   it('Add button in dialog is disabled when URL is empty or invalid', async () => {
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     fireEvent.press(screen.getByText('Add recording'));
     await screen.findByText('Add Recording');
 
@@ -80,19 +101,29 @@ describe('ProductVideo', () => {
 
   it('submitting a valid URL in the add recording dialog appends the video and calls onVideoChange', async () => {
     const onVideoChange = jest.fn();
-    renderWithProviders(<ProductVideo product={baseProduct} editMode={true} onVideoChange={onVideoChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductVideo product={baseProduct} editMode={true} onVideoChange={onVideoChange} />,
+      {
+        withDialog: true,
+      },
+    );
 
     fireEvent.press(screen.getByText('Add recording'));
     await screen.findByText('Add Recording');
 
-    fireEvent.changeText(screen.getByPlaceholderText('Video URL'), 'https://youtube.com/watch?v=test123');
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Video URL'),
+      'https://youtube.com/watch?v=test123',
+    );
 
     fireEvent.press(screen.getByText('Add'));
 
     expect(onVideoChange).toHaveBeenCalledWith([
-      expect.objectContaining({ url: 'https://youtube.com/watch?v=test123', title: '', description: '' }),
+      expect.objectContaining({
+        url: 'https://youtube.com/watch?v=test123',
+        title: '',
+        description: '',
+      }),
     ]);
   });
 
@@ -102,9 +133,12 @@ describe('ProductVideo', () => {
       ...baseProduct,
       videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: '' }],
     };
-    renderWithProviders(<ProductVideo product={productWithVideo} editMode={true} onVideoChange={onVideoChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductVideo product={productWithVideo} editMode={true} onVideoChange={onVideoChange} />,
+      {
+        withDialog: true,
+      },
+    );
     fireEvent.changeText(screen.getByPlaceholderText('Video URL'), 'https://vimeo.com/123');
     expect(onVideoChange).toHaveBeenCalled();
   });
@@ -112,9 +146,18 @@ describe('ProductVideo', () => {
   it('shows description field when a video has a non-empty description in view mode', () => {
     const productWithVideo: Product = {
       ...baseProduct,
-      videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: 'A great talk' }],
+      videos: [
+        {
+          id: 1,
+          url: 'https://youtube.com/watch?v=abc',
+          title: 'Demo',
+          description: 'A great talk',
+        },
+      ],
     };
-    renderWithProviders(<ProductVideo product={productWithVideo} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductVideo product={productWithVideo} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getByPlaceholderText('Add description (optional)')).toBeTruthy();
   });
 
@@ -124,9 +167,12 @@ describe('ProductVideo', () => {
       ...baseProduct,
       videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: '' }],
     };
-    renderWithProviders(<ProductVideo product={productWithVideo} editMode={true} onVideoChange={onVideoChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductVideo product={productWithVideo} editMode={true} onVideoChange={onVideoChange} />,
+      {
+        withDialog: true,
+      },
+    );
     fireEvent.press(screen.getByTestId('delete-video-0'));
     expect(onVideoChange).toHaveBeenCalledWith([]);
   });

@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ScrollView as RNScrollView, Text as RNText } from 'react-native';
-import ProductPage from '../index';
-import { renderWithProviders } from '@/test-utils';
 import * as fetching from '@/services/api/fetching';
+import { renderWithProviders } from '@/test-utils';
+import ProductPage from '../index';
+
 const mockedGetProduct = jest.mocked(fetching.getProduct);
 const mockedNewProduct = jest.mocked(fetching.newProduct);
 const mockUseAuth = jest.fn();
@@ -36,12 +37,21 @@ jest.mock('react-native-keyboard-controller', () => {
   };
 
   return {
-    KeyboardAwareScrollView: ({ children, ...props }: any) => mockReact.createElement(ScrollView, props, children),
+    KeyboardAwareScrollView: ({
+      children,
+      ...props
+    }: {
+      children?: React.ReactNode;
+      [key: string]: unknown;
+    }) => mockReact.createElement(ScrollView, props, children),
   };
 });
 
 jest.mock('@/components/product/ProductImageGallery', () => 'ProductImageGallery');
-jest.mock('@/components/product/ProductCircularityProperties', () => 'ProductCircularityProperties');
+jest.mock(
+  '@/components/product/ProductCircularityProperties',
+  () => 'ProductCircularityProperties',
+);
 jest.mock('@/components/product/ProductComponents', () => 'ProductComponents');
 jest.mock('@/components/product/ProductDelete', () => 'ProductDelete');
 jest.mock('@/components/product/ProductPhysicalProperties', () => 'ProductPhysicalProperties');
@@ -50,7 +60,9 @@ jest.mock('@/components/product/ProductType', () => 'ProductType');
 jest.mock('@/components/product/ProductVideo', () => 'ProductVideo');
 jest.mock('@/components/product/ProductMetaData', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
 
   function ProductMetaDataMock({ product }: { product: { name?: string } }) {
     return mockReact.createElement(Text, null, `Meta:${product.name ?? ''}`);
@@ -60,7 +72,9 @@ jest.mock('@/components/product/ProductMetaData', () => {
 });
 jest.mock('@/components/product/ProductDescription', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
 
   function ProductDescriptionMock({ product }: { product: { name?: string } }) {
     return mockReact.createElement(Text, null, `Description:${product.name ?? ''}`);
@@ -136,7 +150,10 @@ describe('ProductPage route protection', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/login', params: { redirectTo: '/products' } });
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/login',
+        params: { redirectTo: '/products' },
+      });
     });
   });
 

@@ -1,11 +1,11 @@
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import NewAccount from '../new-account';
+import type React from 'react';
 import * as auth from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils';
 import type { User } from '@/types/User';
+import NewAccount from '../new-account';
 
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
@@ -13,11 +13,13 @@ jest.mock('@/services/api/authentication', () => ({
 }));
 
 const mockRefetch = jest.fn();
-const mockUseAuth = jest.fn((): { user: User | null; isLoading: boolean; refetch: typeof mockRefetch } => ({
-  user: null,
-  isLoading: false,
-  refetch: mockRefetch,
-}));
+const mockUseAuth = jest.fn(
+  (): { user: User | null; isLoading: boolean; refetch: typeof mockRefetch } => ({
+    user: null,
+    isLoading: false,
+    refetch: mockRefetch,
+  }),
+);
 const mockedRegister = jest.mocked(auth.register);
 const mockedLogin = jest.mocked(auth.login);
 

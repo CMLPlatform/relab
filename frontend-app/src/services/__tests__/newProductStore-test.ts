@@ -1,5 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
-import { setNewProductIntent, consumeNewProductIntent } from '../newProductStore';
+import { describe, expect, it } from '@jest/globals';
+import { consumeNewProductIntent, setNewProductIntent } from '../newProductStore';
 
 describe('newProductStore', () => {
   it('consumeNewProductIntent returns null when nothing was set', () => {

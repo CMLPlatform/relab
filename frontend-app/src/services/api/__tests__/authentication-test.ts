@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as SecureStore from 'expo-secure-store';
-import * as auth from '../authentication';
 import { mockResponse, setupFetchMock } from '@/test-utils';
+import * as auth from '../authentication';
 
 setupFetchMock();
 const secureStoreMock = SecureStore as jest.Mocked<typeof SecureStore>;
@@ -72,7 +72,9 @@ describe('Authentication API Service', () => {
 
   describe('login', () => {
     it('handles successful credential login (native)', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(200, { access_token: 'new-token-123' }) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(200, { access_token: 'new-token-123' }) as Response,
+      );
 
       const result = await auth.login('user', 'pass');
 
@@ -89,7 +91,9 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined for HTTP 400', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Invalid credentials' }, false) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(400, { detail: 'Invalid credentials' }, false) as Response,
+      );
 
       const result = await auth.login('user', 'wrong-pass');
 
@@ -97,7 +101,9 @@ describe('Authentication API Service', () => {
     });
 
     it('throws on non-ok, non-400 response', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(500, { detail: 'Server error' }, false) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(500, { detail: 'Server error' }, false) as Response,
+      );
 
       await expect(auth.login('user', 'pass')).rejects.toThrow();
     });
@@ -144,7 +150,9 @@ describe('Authentication API Service', () => {
     });
 
     it('returns true and stores token on native success', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(200, { access_token: 'refreshed-token' }) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(200, { access_token: 'refreshed-token' }) as Response,
+      );
 
       const result = await auth.refreshAuthToken();
 
@@ -238,7 +246,9 @@ describe('Authentication API Service', () => {
 
     it('returns undefined when response is not ok', async () => {
       secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
-      fetchMock().mockResolvedValueOnce(mockResponse(401, { detail: 'Unauthorized' }, false) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(401, { detail: 'Unauthorized' }, false) as Response,
+      );
 
       const user = await auth.getUser(true);
 
@@ -331,7 +341,9 @@ describe('Authentication API Service', () => {
     });
 
     it('returns success:false with detail string on failure', async () => {
-      fetchMock().mockResolvedValueOnce(mockResponse(422, { detail: 'Validation error' }, false) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(422, { detail: 'Validation error' }, false) as Response,
+      );
 
       const result = await auth.register('user', 'bad', 'pass123');
 
@@ -399,7 +411,9 @@ describe('Authentication API Service', () => {
 
     it('throws on non-ok response with detail string', async () => {
       secureStoreMock.getItemAsync.mockResolvedValue('test-token');
-      fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Username taken' }, false) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(400, { detail: 'Username taken' }, false) as Response,
+      );
 
       await expect(auth.updateUser({ username: 'taken' })).rejects.toThrow('Username taken');
     });
@@ -449,7 +463,9 @@ describe('Authentication API Service', () => {
 
     it('throws when response is not ok (with detail)', async () => {
       secureStoreMock.getItemAsync.mockResolvedValue('test-token');
-      fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Provider not linked' }, false) as Response);
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(400, { detail: 'Provider not linked' }, false) as Response,
+      );
 
       await expect(auth.unlinkOAuth('google')).rejects.toThrow('Provider not linked');
     });

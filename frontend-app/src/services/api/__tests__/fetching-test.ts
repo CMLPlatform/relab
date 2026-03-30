@@ -1,8 +1,15 @@
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { http, HttpResponse } from 'msw';
-import { newProduct, allBrands, getProduct, allProducts, myProducts, productComponents } from '../fetching';
-import * as auth from '../authentication';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { HttpResponse, http } from 'msw';
 import { server } from '@/test-utils/server';
+import * as auth from '../authentication';
+import {
+  allBrands,
+  allProducts,
+  getProduct,
+  myProducts,
+  newProduct,
+  productComponents,
+} from '../fetching';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -113,7 +120,13 @@ describe('Fetching API Service logic', () => {
     it('performs fetch and returns array of strings', async () => {
       server.use(
         http.get(`${API_URL}/brands`, () =>
-          HttpResponse.json({ items: ['Samsung', 'Apple', 'Nokia'], total: 3, page: 1, size: 50, pages: 1 }),
+          HttpResponse.json({
+            items: ['Samsung', 'Apple', 'Nokia'],
+            total: 3,
+            page: 1,
+            size: 50,
+            pages: 1,
+          }),
         ),
       );
 
@@ -184,7 +197,9 @@ describe('Fetching API Service logic', () => {
 
   describe('allProducts', () => {
     it('fetches and returns mapped products in a paginated response', async () => {
-      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))));
+      server.use(
+        http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))),
+      );
 
       const products = await allProducts();
 
@@ -197,7 +212,9 @@ describe('Fetching API Service logic', () => {
     });
 
     it('returns an empty paginated response when items is empty', async () => {
-      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([], { pages: 0 }))));
+      server.use(
+        http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([], { pages: 0 }))),
+      );
 
       const products = await allProducts();
 
@@ -291,7 +308,9 @@ describe('Fetching API Service logic', () => {
     it('returns an empty paginated response on 401 response', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
       server.use(
-        http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 })),
+        http.get(`${API_URL}/users/me/products`, () =>
+          HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
+        ),
       );
 
       const products = await myProducts();
@@ -301,7 +320,11 @@ describe('Fetching API Service logic', () => {
 
     it('fetches and returns mapped products in a paginated response', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
-      server.use(http.get(`${API_URL}/users/me/products`, () => HttpResponse.json(makePage([rawProductData]))));
+      server.use(
+        http.get(`${API_URL}/users/me/products`, () =>
+          HttpResponse.json(makePage([rawProductData])),
+        ),
+      );
 
       const products = await myProducts();
 
@@ -331,7 +354,9 @@ describe('Fetching API Service logic', () => {
 
     it('throws on non-401 HTTP error', async () => {
       jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
-      server.use(http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({}, { status: 500 })));
+      server.use(
+        http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({}, { status: 500 })),
+      );
 
       await expect(myProducts()).rejects.toThrow('HTTP error');
     });

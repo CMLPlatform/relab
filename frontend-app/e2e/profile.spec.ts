@@ -9,7 +9,7 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { EMAIL, PASSWORD, finishOnboardingIfVisible, loginAndGoToProfile } from './helpers';
+import { EMAIL, finishOnboardingIfVisible, loginAndGoToProfile, PASSWORD } from './helpers';
 
 test.describe('Profile: access', () => {
   test('unauthenticated visit redirects to login', async ({ page }) => {
@@ -25,7 +25,9 @@ test.describe('Profile: access', () => {
     await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
     // Once authenticated, the header pill switches from "Sign In" to the username
-    await expect(page.getByText('Sign In', { exact: true })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Sign In', { exact: true })).not.toBeVisible({
+      timeout: 5_000,
+    });
     // The header also shows the email address as part of the identity in the profile page,
     // verifying the auth state is reflected. Navigate to /profile to confirm it loads.
     await page.goto('/profile');
@@ -58,7 +60,9 @@ test.describe('Profile: content', () => {
   test('newsletter subscription status text is displayed', async ({ page }) => {
     await loginAndGoToProfile(page);
     // After loading, one of these must be visible
-    await expect(page.getByText(/You are (not )?subscribed\./)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/You are (not )?subscribed\./)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('linked accounts section shows Google and GitHub options', async ({ page }) => {
@@ -76,7 +80,9 @@ test.describe('Profile: dialogs', () => {
     const hiText = page.getByText('Hi,');
     await expect(hiText).toBeVisible();
     await hiText.locator('xpath=following-sibling::*[1]').click();
-    await expect(page.getByText('Edit Username')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Edit Username')).toBeVisible({
+      timeout: 3_000,
+    });
     // Dialog should have Cancel and Save buttons
     await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save' })).toBeVisible();
@@ -89,7 +95,9 @@ test.describe('Profile: dialogs', () => {
     await loginAndGoToProfile(page);
     // "Logout" appears in the Account section as a ProfileAction title
     await page.getByText('Logout', { exact: true }).first().click();
-    await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({
+      timeout: 3_000,
+    });
     await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Logout' }).last()).toBeVisible();
   });
@@ -97,7 +105,9 @@ test.describe('Profile: dialogs', () => {
   test('canceling the logout dialog keeps the user on the profile page', async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByText('Logout', { exact: true }).first().click();
-    await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({
+      timeout: 3_000,
+    });
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByText('Are you sure you want to log out?')).not.toBeVisible();
     await expect(page).toHaveURL(/profile/);
@@ -106,18 +116,24 @@ test.describe('Profile: dialogs', () => {
   test('confirming logout navigates to products and shows Sign In header', async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByText('Logout', { exact: true }).first().click();
-    await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({
+      timeout: 3_000,
+    });
     // Click the dialog's Logout confirm button (last "Logout" on the page)
     await page.getByRole('button', { name: 'Logout' }).last().click();
     await expect(page).toHaveURL(/products/, { timeout: 10_000 });
     // The header should now show "Sign In" instead of the username
-    await expect(page.getByText('Sign In', { exact: true })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Sign In', { exact: true })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 
   test('delete account dialog shows the contact email address', async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByText('Delete Account?').click();
-    await expect(page.getByText('relab@cml.leidenuniv.nl')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('relab@cml.leidenuniv.nl')).toBeVisible({
+      timeout: 3_000,
+    });
     // Dismiss the dialog
     await page.getByRole('button', { name: 'OK' }).click();
     await expect(page.getByText('relab@cml.leidenuniv.nl')).not.toBeVisible();

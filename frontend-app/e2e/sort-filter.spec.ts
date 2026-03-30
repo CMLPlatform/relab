@@ -54,7 +54,9 @@ test.describe('Sort menu', () => {
     await page.getByLabel('Sort products').click();
     await expect(page.getByText('Newest first')).toBeVisible();
     await selectMenuItem(page, 'Newest first');
-    await expect(page.getByText('Oldest first')).not.toBeVisible({ timeout: 2_000 });
+    await expect(page.getByText('Oldest first')).not.toBeVisible({
+      timeout: 2_000,
+    });
   });
 });
 
@@ -107,16 +109,22 @@ test.describe('Brand filter', () => {
   test('Brand chip opens a filter modal with a search field', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Brand', { exact: true }).click();
-    await expect(page.getByText('Filter by Brand')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Filter by Brand')).toBeVisible({
+      timeout: 5_000,
+    });
     await expect(page.getByPlaceholder('Search brands…')).toBeVisible();
   });
 
   test('dismissing the brand modal closes it without filtering', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Brand', { exact: true }).click();
-    await expect(page.getByText('Filter by Brand')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Filter by Brand')).toBeVisible({
+      timeout: 5_000,
+    });
     await page.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByText('Filter by Brand')).not.toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText('Filter by Brand')).not.toBeVisible({
+      timeout: 3_000,
+    });
     // URL should not contain brands param
     await expect(page).not.toHaveURL(/brands=/);
   });
@@ -126,7 +134,9 @@ test.describe('Type filter', () => {
   test('Type chip opens a filter modal with a search field', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Type', { exact: true }).click();
-    await expect(page.getByText('Filter by Product Type')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Filter by Product Type')).toBeVisible({
+      timeout: 5_000,
+    });
     await expect(page.getByPlaceholder('Search types…')).toBeVisible();
   });
 });
@@ -143,14 +153,18 @@ test.describe('Search URL sync', () => {
 
   test('clearing the search bar removes the q param from the URL', async ({ page }) => {
     await page.goto('/products?q=hello');
-    await expect(page.getByPlaceholder('Search products')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('Search products')).toBeVisible({
+      timeout: 10_000,
+    });
     await page.getByPlaceholder('Search products').clear();
     await expect(page).not.toHaveURL(/q=/, { timeout: 2_000 });
   });
 
   test('search query loaded from URL populates the search bar', async ({ page }) => {
     await page.goto('/products?q=prefilled');
-    await expect(page.getByPlaceholder('Search products')).toHaveValue('prefilled', { timeout: 5_000 });
+    await expect(page.getByPlaceholder('Search products')).toHaveValue('prefilled', {
+      timeout: 5_000,
+    });
   });
 });
 

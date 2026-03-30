@@ -1,13 +1,12 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import type { Text as RNText } from 'react-native';
-import ProductComponents from '../ProductComponents';
-import { renderWithProviders, baseProduct } from '@/test-utils';
 import * as fetching from '@/services/api/fetching';
 import { setNewProductIntent } from '@/services/newProductStore';
+import { baseProduct, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
+import ProductComponents from '../ProductComponents';
 
 jest.mock('@/services/api/fetching', () => ({
   productComponents: jest.fn(),
@@ -19,7 +18,9 @@ jest.mock('@/services/newProductStore', () => ({
 
 jest.mock('@/components/common/ProductCard', () => {
   const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
   function ProductCardMock({ product }: { product: { name: string } }) {
     return React.createElement(Text, null, product.name);
   }
@@ -45,12 +46,16 @@ describe('ProductComponents', () => {
   });
 
   it('renders the Components heading', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     await screen.findByText(/Components \(0\)/);
   });
 
   it("shows 'no subcomponents' message when empty", async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     await waitFor(() => {
       expect(screen.getByText('This product has no subcomponents.')).toBeTruthy();
     });
@@ -59,7 +64,9 @@ describe('ProductComponents', () => {
   it('renders component cards when components are loaded', async () => {
     const componentProduct: Product = { ...baseProduct, id: 2, name: 'Sub Component' };
     mockedProductComponents.mockResolvedValue([componentProduct]);
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     await waitFor(() => {
       expect(screen.getByText('Sub Component')).toBeTruthy();
     });
@@ -73,7 +80,9 @@ describe('ProductComponents', () => {
     }));
     mockedProductComponents.mockResolvedValue(manyComponents);
 
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Component 5')).toBeTruthy();
@@ -88,14 +97,18 @@ describe('ProductComponents', () => {
   });
 
   it('shows Add component button when owned by me and not in editMode', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     await waitFor(() => {
       expect(screen.getByText('Add component')).toBeTruthy();
     });
   });
 
   it('hides Add component button in editMode', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     await waitFor(() => {
       expect(screen.queryByText('Add component')).toBeNull();
     });
@@ -103,14 +116,18 @@ describe('ProductComponents', () => {
 
   it('hides Add component button when not owned by me', async () => {
     const notMine = { ...baseProduct, ownedBy: 'other' };
-    renderWithProviders(<ProductComponents product={notMine} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={notMine} editMode={false} />, {
+      withDialog: true,
+    });
     await waitFor(() => {
       expect(screen.queryByText('Add component')).toBeNull();
     });
   });
 
   it('opens create component dialog when Add component is pressed', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     await screen.findByText('Add component');
     fireEvent.press(screen.getByText('Add component'));
     await waitFor(() => {
@@ -119,7 +136,9 @@ describe('ProductComponents', () => {
   });
 
   it('creates a new component from the dialog and navigates to the new product route', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
 
     fireEvent.press(await screen.findByText('Add component'));
     fireEvent.changeText(await screen.findByPlaceholderText('Component Name'), 'Battery pack');

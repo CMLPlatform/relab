@@ -4,11 +4,11 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/common/CPVCard';
-import { loadCPV } from '@/services/cpv';
+import { useAuth } from '@/context/AuthProvider';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useAuth } from '@/context/AuthProvider';
-import { CPVCategory } from '@/types/CPVCategory';
+import { loadCPV } from '@/services/cpv';
+import type { CPVCategory } from '@/types/CPVCategory';
 
 type searchParams = {
   id: string;
@@ -62,7 +62,7 @@ export default function CategorySelection() {
     });
   };
 
-  const typeSelected = function (selectedTypeID: number) {
+  const typeSelected = (selectedTypeID: number) => {
     const params = { id: id, typeSelection: selectedTypeID };
     router.dismissTo({ pathname: '/products/[id]', params: params });
   };
@@ -98,8 +98,8 @@ export default function CategorySelection() {
         value={searchQuery}
       />
       <HelperText type="info" style={{ marginTop: 70, marginHorizontal: 15 }}>
-        Search by name or description, or browse with the &apos;Subcategories&apos; button on each card. Tap or click a
-        card to select it.
+        Search by name or description, or browse with the &apos;Subcategories&apos; button on each
+        card. Tap or click a card to select it.
       </HelperText>
       {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
       <FlatList

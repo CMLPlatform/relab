@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import CategorySelection from '../category_selection';
-import type { User } from '@/types/User';
-import { renderWithProviders } from '@/test-utils';
 import * as cpv from '@/services/cpv';
+import { renderWithProviders } from '@/test-utils';
+import type { User } from '@/types/User';
+import CategorySelection from '../category_selection';
 
 const mockUseAuth = jest.fn();
 const mockedLoadCPV = jest.mocked(cpv.loadCPV);
@@ -77,7 +77,10 @@ describe('CategorySelection', () => {
     renderWithProviders(<CategorySelection />);
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/login', params: { redirectTo: '/products/1' } });
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/login',
+        params: { redirectTo: '/products/1' },
+      });
     });
   });
 

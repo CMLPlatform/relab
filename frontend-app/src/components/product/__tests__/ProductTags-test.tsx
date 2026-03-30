@@ -1,9 +1,9 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { screen, fireEvent } from '@testing-library/react-native';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import ProductTags from '../ProductTags';
-import { renderWithProviders, baseProduct as _base } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
+import ProductTags from '../ProductTags';
 
 jest.mock('@/hooks/useProductQueries', () => ({
   useSearchBrandsQuery: jest.fn(() => ({ data: ['Apple', 'Samsung', 'Sony'], isLoading: false })),
@@ -22,7 +22,9 @@ describe('ProductTags', () => {
   });
 
   it('renders brand and model chip values', () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('Acme')).toBeTruthy();
     expect(screen.getByText('X100')).toBeTruthy();
   });
@@ -40,22 +42,29 @@ describe('ProductTags', () => {
   });
 
   it('opens brand selection modal on brand chip press in editMode', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     fireEvent.press(screen.getByText('Acme'));
     expect(screen.getByText('Select Brand')).toBeTruthy();
   });
 
   it('does not open brand modal when not in editMode', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     fireEvent.press(screen.getByText('Acme'));
     expect(screen.queryByText('Select Brand')).toBeNull();
   });
 
   it('calls onBrandChange when a brand chip is pressed in the modal', async () => {
     const onBrandChange = jest.fn();
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} onBrandChange={onBrandChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={baseProduct} editMode={true} onBrandChange={onBrandChange} />,
+      {
+        withDialog: true,
+      },
+    );
     fireEvent.press(screen.getByText('Acme'));
     await screen.findByText('Select Brand');
     fireEvent.press(screen.getByText('Samsung'));
@@ -63,7 +72,9 @@ describe('ProductTags', () => {
   });
 
   it('shows a "+ new brand" chip when search text is not in the list', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     fireEvent.press(screen.getByText('Acme'));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
@@ -72,9 +83,12 @@ describe('ProductTags', () => {
 
   it('calls onBrandChange with custom typed brand when new-brand chip is pressed', async () => {
     const onBrandChange = jest.fn();
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} onBrandChange={onBrandChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={baseProduct} editMode={true} onBrandChange={onBrandChange} />,
+      {
+        withDialog: true,
+      },
+    );
     fireEvent.press(screen.getByText('Acme'));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
@@ -84,16 +98,21 @@ describe('ProductTags', () => {
   });
 
   it('opens model input dialog on model chip press in editMode', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
     fireEvent.press(screen.getByText('X100'));
     expect(screen.getByText('Set Model')).toBeTruthy();
   });
 
   it('calls onModelChange with the new name when OK is pressed in the model dialog', async () => {
     const onModelChange = jest.fn();
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} onModelChange={onModelChange} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={baseProduct} editMode={true} onModelChange={onModelChange} />,
+      {
+        withDialog: true,
+      },
+    );
     fireEvent.press(screen.getByText('X100'));
     fireEvent.changeText(screen.getByPlaceholderText('Model Name'), 'NewModel');
     fireEvent.press(screen.getByText('OK'));
@@ -102,9 +121,12 @@ describe('ProductTags', () => {
 
   it('renders without error chips when product is a component (isComponent=true)', () => {
     const componentProduct = { ...baseProduct, brand: undefined, model: undefined };
-    renderWithProviders(<ProductTags product={componentProduct} editMode={true} isComponent={true} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.toJSON()).toBeTruthy();
   });
 });
@@ -113,36 +135,52 @@ describe('AmountChip (isComponent=true)', () => {
   const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
 
   it('shows the amount value in view mode', () => {
-    renderWithProviders(<ProductTags product={componentProduct} editMode={false} isComponent={true} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={false} isComponent={true} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.getByText('3')).toBeTruthy();
   });
 
   it('does not render when isComponent is false', () => {
-    renderWithProviders(<ProductTags product={componentProduct} editMode={false} isComponent={false} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={false} isComponent={false} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.queryByText('Amount')).toBeNull();
   });
 
   it('defaults to 1 when amountInParent is undefined', () => {
     const product = { ...baseProduct, amountInParent: undefined };
-    renderWithProviders(<ProductTags product={product} editMode={false} isComponent={true} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={product} editMode={false} isComponent={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByText('1')).toBeTruthy();
   });
 
   it('shows a text input with the current amount in edit mode', () => {
-    renderWithProviders(<ProductTags product={componentProduct} editMode={true} isComponent={true} />, {
-      withDialog: true,
-    });
+    renderWithProviders(
+      <ProductTags product={componentProduct} editMode={true} isComponent={true} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.getByDisplayValue('3')).toBeTruthy();
   });
 
   it('calls onAmountChange instantly when text changes', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
-      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
       { withDialog: true },
     );
     fireEvent.changeText(screen.getByDisplayValue('3'), '7');
@@ -152,7 +190,12 @@ describe('AmountChip (isComponent=true)', () => {
   it('strips non-numeric characters from text input', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
-      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
       { withDialog: true },
     );
     fireEvent.changeText(screen.getByDisplayValue('3'), '5abc');
@@ -162,7 +205,12 @@ describe('AmountChip (isComponent=true)', () => {
   it('clamps value to 10000 on text input', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
-      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
       { withDialog: true },
     );
     fireEvent.changeText(screen.getByDisplayValue('3'), '99999');
@@ -172,7 +220,12 @@ describe('AmountChip (isComponent=true)', () => {
   it('resets to 1 on blur when input is empty', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
-      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
       { withDialog: true },
     );
     const input = screen.getByDisplayValue('3');
@@ -184,7 +237,12 @@ describe('AmountChip (isComponent=true)', () => {
   it('calls onAmountChange with amount + 1 when increment is pressed', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
-      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
       { withDialog: true },
     );
     fireEvent.press(screen.getByLabelText('Increase amount'));
@@ -194,7 +252,12 @@ describe('AmountChip (isComponent=true)', () => {
   it('calls onAmountChange with amount - 1 when decrement is pressed', () => {
     const onAmountChange = jest.fn();
     renderWithProviders(
-      <ProductTags product={componentProduct} editMode={true} isComponent={true} onAmountChange={onAmountChange} />,
+      <ProductTags
+        product={componentProduct}
+        editMode={true}
+        isComponent={true}
+        onAmountChange={onAmountChange}
+      />,
       { withDialog: true },
     );
     fireEvent.press(screen.getByLabelText('Decrease amount'));
@@ -203,13 +266,17 @@ describe('AmountChip (isComponent=true)', () => {
 
   it('decrement button is disabled when amount is 1', () => {
     const product = { ...baseProduct, amountInParent: 1 };
-    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByLabelText('Decrease amount')).toBeDisabled();
   });
 
   it('increment button is disabled when amount is 10000', () => {
     const product = { ...baseProduct, amountInParent: 10000 };
-    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, {
+      withDialog: true,
+    });
     expect(screen.getByLabelText('Increase amount')).toBeDisabled();
   });
 });

@@ -19,7 +19,10 @@ import {
 test.setTimeout(60_000);
 
 /** Create a product via the FAB dialog and return the product name used. */
-async function createProductViaDialog(page: import('@playwright/test').Page, name: string): Promise<void> {
+async function createProductViaDialog(
+  page: import('@playwright/test').Page,
+  name: string,
+): Promise<void> {
   await openProductCreationDialog(page);
   await page.getByPlaceholder('Product Name').fill(name);
   await page.getByRole('button', { name: 'OK' }).click();
@@ -36,7 +39,9 @@ test.describe('Product detail: navigation', () => {
   test('product detail page shows the product name in the header', async ({ page }) => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);
-    await expect(page.getByRole('heading', { name: /^(Dell XPS 13|iPhone 12)$/ }).last()).toBeVisible({
+    await expect(
+      page.getByRole('heading', { name: /^(Dell XPS 13|iPhone 12)$/ }).last(),
+    ).toBeVisible({
       timeout: 5_000,
     });
   });
@@ -71,17 +76,23 @@ test.describe('Product creation', () => {
     await loginAndReachProducts(page);
     await openProductCreationDialog(page);
     await page.getByPlaceholder('Product Name').fill('My Test Product');
-    await expect(page.getByRole('button', { name: 'OK' })).toBeEnabled({ timeout: 2_000 });
+    await expect(page.getByRole('button', { name: 'OK' })).toBeEnabled({
+      timeout: 2_000,
+    });
   });
 
-  test('submitting the dialog navigates to the new product detail page in edit mode', async ({ page }) => {
+  test('submitting the dialog navigates to the new product detail page in edit mode', async ({
+    page,
+  }) => {
     await loginAndReachProducts(page);
     const productName = `E2E Test ${Date.now()}`;
     await createProductViaDialog(page, productName);
 
     // The app navigates to /products/new (then redirects to the created product's ID)
     await expect(page).toHaveURL(/products\/(new|\d+)/, { timeout: 15_000 });
-    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('canceling the dialog stays on the products page', async ({ page }) => {
@@ -89,7 +100,9 @@ test.describe('Product creation', () => {
     await openProductCreationDialog(page);
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByText('Create New Product')).not.toBeVisible();
-    await expect(page).toHaveURL(/\/products$|\/products\?/, { timeout: 2_000 });
+    await expect(page).toHaveURL(/\/products$|\/products\?/, {
+      timeout: 2_000,
+    });
   });
 });
 
@@ -103,23 +116,36 @@ test.describe('Product detail: edit mode', () => {
     await expect(page).toHaveURL(/products\/(new|\d+)/, { timeout: 15_000 });
 
     // Key sections that should be visible in edit mode
-    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('Physical Properties')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText('Circularity Properties')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText('Physical Properties')).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(page.getByText('Circularity Properties')).toBeVisible({
+      timeout: 5_000,
+    });
     await expect(page.getByText('Metadata')).toBeVisible({ timeout: 5_000 });
   });
 
   test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
-    test.skip(true, 'The current web back navigation uses link/replace behavior that bypasses the beforeRemove guard.');
+    test.skip(
+      true,
+      'The current web back navigation uses link/replace behavior that bypasses the beforeRemove guard.',
+    );
     await loginAndReachProducts(page);
     const productName = `E2E Guard Test ${Date.now()}`;
     await createProductViaDialog(page, productName);
     await expect(page).toHaveURL(/products\/(new|\d+)/, { timeout: 15_000 });
-    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
     await page.getByRole('link', { name: /back/i }).click();
-    await expect(page.getByText('Discard changes?')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText('Discard changes?')).toBeVisible({
+      timeout: 5_000,
+    });
     await expect(page.getByRole('button', { name: "Don't leave" })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
 

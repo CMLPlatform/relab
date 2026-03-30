@@ -2,8 +2,8 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
-import { apiFetch } from '@/services/api/fetching';
 import { API_URL } from '@/config';
+import { apiFetch } from '@/services/api/fetching';
 import { validateEmail } from '@/services/api/validation/user';
 
 export default function ForgotPasswordScreen() {
@@ -25,7 +25,7 @@ export default function ForgotPasswordScreen() {
       }, 5000);
 
       if (timer && typeof timer === 'object' && 'unref' in timer) {
-        (timer as any).unref();
+        (timer as { unref(): void }).unref();
       }
 
       return () => clearTimeout(timer);
@@ -77,7 +77,8 @@ export default function ForgotPasswordScreen() {
           {!success ? (
             <>
               <Text variant="bodyMedium">
-                Enter your email address and we&apos;ll send you instructions to reset your password.
+                Enter your email address and we&apos;ll send you instructions to reset your
+                password.
               </Text>
 
               <TextInput
@@ -111,7 +112,9 @@ export default function ForgotPasswordScreen() {
                 Send Reset Link
               </Button>
 
-              <View style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}>
+              <View
+                style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
+              >
                 <Button mode="text" onPress={() => router.back()}>
                   Back to Login
                 </Button>
@@ -119,7 +122,10 @@ export default function ForgotPasswordScreen() {
             </>
           ) : (
             <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
-              <Text variant="bodyLarge" style={{ color: theme.colors.primary, textAlign: 'center' }}>
+              <Text
+                variant="bodyLarge"
+                style={{ color: theme.colors.primary, textAlign: 'center' }}
+              >
                 If an account exists with this email, you will receive password reset instructions.
               </Text>
               <Button mode="contained" onPress={() => router.push('/login')}>

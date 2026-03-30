@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, jest } from '@jest/globals';
+import type React from 'react';
 import { server } from './src/test-utils/server';
 
 process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000/api';
@@ -52,7 +53,8 @@ jest.mock('expo-router', () => {
       return React.createElement(Text, null, `Redirect to ${href}`);
     },
     Tabs: Object.assign(
-      ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
+      ({ children }: { children: React.ReactNode }) =>
+        React.createElement(React.Fragment, null, children),
       { Screen: () => null },
     ),
   };
@@ -66,14 +68,27 @@ jest.mock('@expo/vector-icons', () => ({
 // Mock react-native-paper Icon to a stable component to avoid act() warnings
 jest.mock('react-native-paper', () => {
   const React = require('react');
-  const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper') as Record<
-    string,
-    unknown
-  >;
+  const actual = jest.requireActual<typeof import('react-native-paper')>(
+    'react-native-paper',
+  ) as Record<string, unknown>;
   const { Text } = require('react-native');
 
-  const Icon = ({ source, name, testID, ...props }: any) =>
-    React.createElement(Text, { testID: testID || 'mock-icon', ...props }, source || name || 'icon');
+  const Icon = ({
+    source,
+    name,
+    testID,
+    ...props
+  }: {
+    source?: string;
+    name?: string;
+    testID?: string;
+    [key: string]: unknown;
+  }) =>
+    React.createElement(
+      Text,
+      { testID: testID || 'mock-icon', ...props },
+      source || name || 'icon',
+    );
 
   return { ...actual, Icon };
 });
@@ -108,36 +123,46 @@ jest.mock('react-native-reanimated', () => {
   const { View, Text, Image, ScrollView } = require('react-native');
   const noopFn = jest.fn();
 
-  const AnimatedComponent = ({ children, style, ...props }: any) =>
-    React.createElement(View, { style, ...props }, children);
+  const AnimatedComponent = ({
+    children,
+    style,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    style?: Record<string, unknown>;
+    [key: string]: unknown;
+  }) => React.createElement(View, { style, ...props }, children);
   Object.assign(AnimatedComponent, {
     View,
     Text,
     Image,
     ScrollView,
-    createAnimatedComponent: (c: any) => c,
+    createAnimatedComponent: (c: React.ComponentType) => c,
   });
 
   return {
     __esModule: true,
     default: AnimatedComponent,
-    useAnimatedStyle: (fn: () => any) => {
+    useAnimatedStyle: (fn: () => Record<string, unknown>) => {
       try {
         return fn();
       } catch {
         return {};
       }
     },
-    useAnimatedProps: (fn: () => any) => {
+    useAnimatedProps: (fn: () => Record<string, unknown>) => {
       try {
         return fn();
       } catch {
         return {};
       }
     },
-    useSharedValue: (value: any) => ({ value, modify: noopFn }),
-    useAnimatedSensor: () => ({ sensor: { value: { pitch: 0, roll: 0, yaw: 0 } }, unregister: noopFn }),
-    useDerivedValue: (fn: () => any) => ({
+    useSharedValue: (value: unknown) => ({ value, modify: noopFn }),
+    useAnimatedSensor: () => ({
+      sensor: { value: { pitch: 0, roll: 0, yaw: 0 } },
+      unregister: noopFn,
+    }),
+    useDerivedValue: (fn: () => unknown) => ({
       value: (() => {
         try {
           return fn();
@@ -148,25 +173,29 @@ jest.mock('react-native-reanimated', () => {
     }),
     useAnimatedRef: () => ({ current: null }),
     useAnimatedScrollHandler: () => () => {},
-    withSpring: (value: any) => value,
-    withTiming: (value: any) => value,
-    withDelay: (_: any, value: any) => value,
-    withRepeat: (value: any) => value,
-    withSequence: (...values: any[]) => values[values.length - 1],
-    interpolate: (value: any) => value,
+    withSpring: (value: number) => value,
+    withTiming: (value: number) => value,
+    withDelay: (_: number, value: number) => value,
+    withRepeat: (value: number) => value,
+    withSequence: (...values: number[]) => values[values.length - 1],
+    interpolate: (value: number) => value,
     Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
-    SensorType: { ROTATION: 'ROTATION', GRAVITY: 'GRAVITY', GYROSCOPE: 'GYROSCOPE' },
-    runOnJS: (fn: any) => fn,
-    runOnUI: (fn: any) => fn,
+    SensorType: {
+      ROTATION: 'ROTATION',
+      GRAVITY: 'GRAVITY',
+      GYROSCOPE: 'GYROSCOPE',
+    },
+    runOnJS: <T extends (...args: unknown[]) => unknown>(fn: T): T => fn,
+    runOnUI: <T extends (...args: unknown[]) => unknown>(fn: T): T => fn,
     cancelAnimation: noopFn,
     measure: noopFn,
     Easing: {
-      linear: (t: any) => t,
-      ease: (t: any) => t,
-      bezier: () => (t: any) => t,
-      in: (fn: any) => fn,
-      out: (fn: any) => fn,
-      inOut: (fn: any) => fn,
+      linear: (t: number) => t,
+      ease: (t: number) => t,
+      bezier: () => (t: number) => t,
+      in: (fn: (t: number) => number) => fn,
+      out: (fn: (t: number) => number) => fn,
+      inOut: (fn: (t: number) => number) => fn,
     },
   };
 });
@@ -176,8 +205,10 @@ jest.mock('expo-image', () => {
   const React = require('react');
   const { View } = require('react-native');
   return {
-    Image: (props: any) => React.createElement(View, { testID: 'expo-image', ...props }),
-    ImageBackground: (props: any) => React.createElement(View, { testID: 'expo-image-bg', ...props }, props.children),
+    Image: (props: { [key: string]: unknown }) =>
+      React.createElement(View, { testID: 'expo-image', ...props }),
+    ImageBackground: (props: { children?: React.ReactNode; [key: string]: unknown }) =>
+      React.createElement(View, { testID: 'expo-image-bg', ...props }, props.children),
   };
 });
 
@@ -186,8 +217,14 @@ jest.mock('react-native-gesture-handler', () => {
   const React = require('react');
   const { View } = require('react-native');
   return {
-    GestureHandlerRootView: ({ children, style }: any) => React.createElement(View, { style }, children),
-    GestureDetector: ({ children }: any) => children,
+    GestureHandlerRootView: ({
+      children,
+      style,
+    }: {
+      children?: React.ReactNode;
+      style?: Record<string, unknown>;
+    }) => React.createElement(View, { style }, children),
+    GestureDetector: ({ children }: { children?: React.ReactNode }) => children,
     Gesture: {
       Tap: () => {
         const tap = {
@@ -215,8 +252,8 @@ jest.mock('react-native-gesture-handler', () => {
         };
         return pinch;
       },
-      Simultaneous: (..._args: any[]) => ({}),
-      Exclusive: (..._args: any[]) => ({}),
+      Simultaneous: (..._args: unknown[]) => ({}),
+      Exclusive: (..._args: unknown[]) => ({}),
     },
   };
 });

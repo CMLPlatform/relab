@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import { http, HttpResponse } from 'msw';
-import ForgotPasswordScreen from '../forgot-password';
-import { server } from '@/test-utils/server';
+import { HttpResponse, http } from 'msw';
 import { renderWithProviders } from '@/test-utils';
+import { server } from '@/test-utils/server';
+import ForgotPasswordScreen from '../forgot-password';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -33,7 +33,9 @@ describe('ForgotPasswordScreen', () => {
   });
 
   it('shows success message after successful submission', async () => {
-    server.use(http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.json({}, { status: 200 })));
+    server.use(
+      http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.json({}, { status: 200 })),
+    );
     renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
     fireEvent.press(screen.getByText('Send Reset Link'));
@@ -74,7 +76,9 @@ describe('ForgotPasswordScreen', () => {
       back: jest.fn(),
       setParams: jest.fn(),
     });
-    server.use(http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.json({}, { status: 200 })));
+    server.use(
+      http.post(`${API_URL}/auth/forgot-password`, () => HttpResponse.json({}, { status: 200 })),
+    );
     renderWithProviders(<ForgotPasswordScreen />);
     fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
     fireEvent.press(screen.getByText('Send Reset Link'));

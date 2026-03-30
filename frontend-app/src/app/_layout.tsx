@@ -1,34 +1,73 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton } from '@react-navigation/elements';
-import { DarkTheme as RNDark, DefaultTheme as RNLight, ThemeProvider } from '@react-navigation/native';
+import {
+  DarkTheme as RNDark,
+  DefaultTheme as RNLight,
+  ThemeProvider,
+} from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { type ComponentType, type ReactNode, useEffect, useState } from 'react';
 import { Animated, Platform, Pressable, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import { adaptNavigationTheme, MD3DarkTheme, MD3LightTheme, PaperProvider, useTheme } from 'react-native-paper';
-import { AuthProvider, useAuth } from '@/context/AuthProvider';
-import { DialogProvider } from '@/components/common/DialogProvider';
-import { Text } from '@/components/base/Text';
-import lightTheme from '@/assets/themes/light';
+import {
+  adaptNavigationTheme,
+  MD3DarkTheme,
+  MD3LightTheme,
+  PaperProvider,
+  useTheme,
+} from 'react-native-paper';
 import darkTheme from '@/assets/themes/dark';
+import lightTheme from '@/assets/themes/light';
+import { Text } from '@/components/base/Text';
+import { DialogProvider } from '@/components/common/DialogProvider';
+import { AuthProvider, useAuth } from '@/context/AuthProvider';
 
 // Monkey-patch Animated to always use useNativeDriver: false on web.
 // This silences warnings from third-party libraries (like react-native-paper)
 // that might have hardcoded useNativeDriver: true.
 if (Platform.OS === 'web') {
-  const methods = ['timing', 'spring', 'decay'] as const;
-  methods.forEach((method) => {
-    const original = Animated[method];
-    // @ts-ignore
-    Animated[method] = (value, config) => original(value, { ...config, useNativeDriver: false });
+  const originalTiming = Animated.timing;
+  Object.defineProperty(Animated, 'timing', {
+    value: (
+      value: Parameters<typeof Animated.timing>[0],
+      config: Parameters<typeof Animated.timing>[1],
+    ) => originalTiming(value, { ...config, useNativeDriver: false }),
+    writable: true,
+    configurable: true,
+  });
+
+  const originalSpring = Animated.spring;
+  Object.defineProperty(Animated, 'spring', {
+    value: (
+      value: Parameters<typeof Animated.spring>[0],
+      config: Parameters<typeof Animated.spring>[1],
+    ) => originalSpring(value, { ...config, useNativeDriver: false }),
+    writable: true,
+    configurable: true,
+  });
+
+  const originalDecay = Animated.decay;
+  Object.defineProperty(Animated, 'decay', {
+    value: (
+      value: Parameters<typeof Animated.decay>[0],
+      config: Parameters<typeof Animated.decay>[1],
+    ) => originalDecay(value, { ...config, useNativeDriver: false }),
+    writable: true,
+    configurable: true,
   });
 
   const originalEvent = Animated.event;
-  // @ts-ignore
-  Animated.event = (argMapping, config) => originalEvent(argMapping, { ...config, useNativeDriver: false });
+  Object.defineProperty(Animated, 'event', {
+    value: (...args: Parameters<typeof originalEvent>) => {
+      const [argMapping, config] = args;
+      return originalEvent(argMapping, { ...config, useNativeDriver: false });
+    },
+    writable: true,
+    configurable: true,
+  });
 }
 
 // Routes that show the animated background but NOT the overlay
@@ -65,7 +104,7 @@ export function HeaderRight() {
   };
 
   if (user) {
-    const username = user.username.length > 16 ? user.username.slice(0, 14) + '…' : user.username;
+    const username = user.username.length > 16 ? `${user.username.slice(0, 14)}…` : user.username;
     return (
       <Pressable
         onPress={() => router.push('/profile')}
@@ -122,7 +161,7 @@ export default function RootLayout() {
     return () => {
       isMounted = false;
     };
-  }, [BackgroundComponent, showBackground]);
+  }, [BackgroundComponent]);
 
   return (
     <Providers>
@@ -153,7 +192,9 @@ export default function RootLayout() {
                 color: isDark ? darkTheme.colors.onBackground : lightTheme.colors.onBackground,
               },
               headerStyle: {
-                backgroundColor: isDark ? darkTheme.colors.elevation.level2 : lightTheme.colors.elevation.level2,
+                backgroundColor: isDark
+                  ? darkTheme.colors.elevation.level2
+                  : lightTheme.colors.elevation.level2,
               },
               headerRight: () => <HeaderRight />,
               headerLeft: () => null,
@@ -180,7 +221,10 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
 
-          <Stack.Screen name="products/[id]/category_selection" options={{ title: 'Select Category' }} />
+          <Stack.Screen
+            name="products/[id]/category_selection"
+            options={{ title: 'Select Category' }}
+          />
         </Stack>
       </View>
     </Providers>

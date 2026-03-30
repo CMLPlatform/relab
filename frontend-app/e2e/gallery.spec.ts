@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { openGalleryLightbox, openProductByNameFromProductsPage, reachProductsPage } from './helpers';
+import {
+  openGalleryLightbox,
+  openProductByNameFromProductsPage,
+  reachProductsPage,
+} from './helpers';
 
 test.describe('Product gallery (e2e)', () => {
   // Increase the per-test timeout for slower CI environments

@@ -1,10 +1,9 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
-import { PaperProvider } from 'react-native-paper';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
-import CPVCard from '../CPVCard';
+import { PaperProvider } from 'react-native-paper';
 import type { CPVCategory } from '@/types/CPVCategory';
+import CPVCard from '../CPVCard';
 
 const mockCPV: CPVCategory = {
   id: 1,

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Platform, StyleProp, ViewStyle } from 'react-native';
+import { Animated, Platform, type StyleProp, type ViewStyle } from 'react-native';
 
 interface SkeletonProps {
   style?: StyleProp<ViewStyle>;

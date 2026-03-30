@@ -1,10 +1,9 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { TextInput } from 'react-native';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils';
+import type { CircularityProperties, Product } from '@/types/Product';
 import ProductCircularityProperties from '../ProductCircularityProperties';
-import { renderWithProviders, baseProduct as _base } from '@/test-utils';
-import type { Product, CircularityProperties } from '@/types/Product';
 
 // Extended circularity object with all optional fields explicitly set to null,
 // as required by the component's "property present" detection logic.
@@ -52,7 +51,9 @@ describe('ProductCircularityProperties', () => {
         recyclabilityObservation: '',
       },
     };
-    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+    renderWithProviders(
+      <ProductCircularityProperties product={productWithData} editMode={false} />,
+    );
     expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
 
@@ -89,7 +90,9 @@ describe('ProductCircularityProperties', () => {
       },
     };
 
-    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+    renderWithProviders(
+      <ProductCircularityProperties product={productWithData} editMode={false} />,
+    );
 
     expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
@@ -105,7 +108,9 @@ describe('ProductCircularityProperties', () => {
       },
     };
 
-    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+    renderWithProviders(
+      <ProductCircularityProperties product={productWithData} editMode={false} />,
+    );
 
     expect(screen.getByText('1 property hidden.')).toBeTruthy();
   });
@@ -113,7 +118,11 @@ describe('ProductCircularityProperties', () => {
   it('calls onChangeCircularityProperties when chip is pressed to add recyclability', async () => {
     const onChange = jest.fn();
     renderWithProviders(
-      <ProductCircularityProperties product={baseProduct} editMode={true} onChangeCircularityProperties={onChange} />,
+      <ProductCircularityProperties
+        product={baseProduct}
+        editMode={true}
+        onChangeCircularityProperties={onChange}
+      />,
     );
     fireEvent.press(screen.getByText('Show'));
     fireEvent.press(screen.getByText('Recyclability'));
@@ -148,9 +157,18 @@ describe('ProductCircularityProperties', () => {
     );
     fireEvent.press(screen.getByText('Show'));
 
-    const expandButton = UNSAFE_root.findAll(
-      (node: any) => typeof node.props.onPress === 'function' && node.props.children?.props?.name === 'chevron-down',
-    )[0];
+    const expandButton = UNSAFE_root.findAll((node: unknown) => {
+      const candidate = node as {
+        props: {
+          onPress?: unknown;
+          children?: { props?: { name?: unknown } };
+        };
+      };
+      return (
+        typeof candidate.props.onPress === 'function' &&
+        candidate.props.children?.props?.name === 'chevron-down'
+      );
+    })[0];
     fireEvent.press(expandButton);
 
     const inputs = await UNSAFE_root.findAllByType(TextInput);
@@ -215,9 +233,18 @@ describe('ProductCircularityProperties', () => {
     );
     fireEvent.press(screen.getByText('Show'));
 
-    const deleteButton = UNSAFE_root.findAll(
-      (node: any) => typeof node.props.onPress === 'function' && node.props.children?.props?.name === 'delete',
-    )[0];
+    const deleteButton = UNSAFE_root.findAll((node: unknown) => {
+      const candidate = node as {
+        props: {
+          onPress?: unknown;
+          children?: { props?: { name?: unknown } };
+        };
+      };
+      return (
+        typeof candidate.props.onPress === 'function' &&
+        candidate.props.children?.props?.name === 'delete'
+      );
+    })[0];
     fireEvent.press(deleteButton);
 
     expect(onChange).toHaveBeenCalledWith(
@@ -240,7 +267,9 @@ describe('ProductCircularityProperties', () => {
       },
     };
 
-    renderWithProviders(<ProductCircularityProperties product={productWithData} editMode={false} />);
+    renderWithProviders(
+      <ProductCircularityProperties product={productWithData} editMode={false} />,
+    );
     fireEvent.press(screen.getByText('Show'));
     expect(screen.getByText('Hide')).toBeTruthy();
     fireEvent.press(screen.getByText('Hide'));

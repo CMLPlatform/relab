@@ -76,7 +76,12 @@ export default function FilterSelectionModal({
             <ScrollView style={{ maxHeight: 320 }}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingBottom: 8 }}>
                 {canAddNew && (
-                  <Chip key="__new__" icon="plus" mode="outlined" onPress={() => toggle(searchQuery.trim())}>
+                  <Chip
+                    key="__new__"
+                    icon="plus"
+                    mode="outlined"
+                    onPress={() => toggle(searchQuery.trim())}
+                  >
                     {searchQuery.trim()}
                   </Chip>
                 )}

@@ -1,6 +1,5 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import LocalizedFloatInput from '../LocalizedFloatInput';
 
 describe('LocalizedFloatInput', () => {

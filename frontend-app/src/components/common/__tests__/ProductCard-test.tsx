@@ -1,19 +1,23 @@
 import { jest } from '@jest/globals';
 import { useRouter } from 'expo-router';
-import ProductCard from '../ProductCard';
 import { baseProduct, fireEvent, renderWithProviders, screen } from '@/test-utils';
+import ProductCard from '../ProductCard';
 
 const TWO_MONTHS_AGO = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
 
 describe('ProductCard', () => {
   it('renders name and description', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, description: 'A nice product' }} />);
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, description: 'A nice product' }} />,
+    );
     expect(screen.getByText('Test Product')).toBeTruthy();
     expect(screen.getByText('A nice product')).toBeTruthy();
   });
 
   it('falls back to placeholder text for missing name', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, name: '', description: undefined }} />);
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, name: '', description: undefined }} />,
+    );
     expect(screen.getByText('Unnamed Product')).toBeTruthy();
   });
 
@@ -23,12 +27,16 @@ describe('ProductCard', () => {
   });
 
   it('includes productTypeName in the detail line', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, brand: 'Acme', productTypeName: 'Electronics' }} />);
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, brand: 'Acme', productTypeName: 'Electronics' }} />,
+    );
     expect(screen.getByText('Acme • Electronics')).toBeTruthy();
   });
 
   it('shows thumbnail when thumbnailUrl is provided', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />);
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />,
+    );
     expect(screen.getByTestId('product-thumbnail')).toBeTruthy();
   });
 
@@ -38,7 +46,9 @@ describe('ProductCard', () => {
   });
 
   it('falls back to the placeholder thumbnail when image loading fails', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/broken.png' }} />);
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/broken.png' }} />,
+    );
 
     fireEvent(screen.getByTestId('product-thumbnail'), 'error');
 
@@ -62,20 +72,28 @@ describe('ProductCard', () => {
 
   it("shows username for another user's product when showOwner is true", () => {
     renderWithProviders(
-      <ProductCard product={{ ...baseProduct, ownedBy: 'some-uuid', ownerUsername: 'alice' }} showOwner />,
+      <ProductCard
+        product={{ ...baseProduct, ownedBy: 'some-uuid', ownerUsername: 'alice' }}
+        showOwner
+      />,
     );
     expect(screen.getByText('alice')).toBeTruthy();
   });
 
   it('hides owner label when ownerUsername is absent', () => {
     renderWithProviders(
-      <ProductCard product={{ ...baseProduct, ownedBy: 'some-uuid', ownerUsername: undefined }} showOwner />,
+      <ProductCard
+        product={{ ...baseProduct, ownedBy: 'some-uuid', ownerUsername: undefined }}
+        showOwner
+      />,
     );
     expect(screen.queryByText(/you|alice/)).toBeNull();
   });
 
   it('hides owner label when showOwner is false', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner={false} />);
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner={false} />,
+    );
     expect(screen.queryByText('you')).toBeNull();
   });
 
@@ -86,7 +104,10 @@ describe('ProductCard', () => {
     renderWithProviders(<ProductCard product={baseProduct} />);
     fireEvent.press(screen.getByText('Test Product'));
 
-    expect(mockPush).toHaveBeenCalledWith({ pathname: '/products/[id]', params: { id: baseProduct.id } });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/products/[id]',
+      params: { id: baseProduct.id },
+    });
   });
 
   it('does not navigate when disabled', () => {

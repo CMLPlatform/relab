@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react';
-import { StyleSheet, type StyleProp, type TextStyle, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { type StyleProp, StyleSheet, type TextStyle, View } from 'react-native';
 
 import { InfoTooltip, Text } from '@/components/base';
 

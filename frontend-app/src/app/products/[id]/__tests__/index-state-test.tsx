@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
-import ProductPage from '../index';
-import { baseProduct, renderWithProviders } from '@/test-utils';
 import { useProductForm } from '@/hooks/useProductForm';
+import { baseProduct, renderWithProviders } from '@/test-utils';
+import ProductPage from '../index';
 
 const mockUseProductForm = jest.mocked(useProductForm);
 const mockUseAuth = jest.fn();
@@ -52,31 +52,55 @@ jest.mock('react-native-keyboard-controller', () => {
   const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
 
   return {
-    KeyboardAwareScrollView: ({ children, ...props }: any) => mockReact.createElement(ScrollView, props, children),
+    KeyboardAwareScrollView: ({
+      children,
+      ...props
+    }: {
+      children?: ReactNode;
+      [key: string]: unknown;
+    }) => mockReact.createElement(ScrollView, props, children),
   };
 });
 
 jest.mock('react-native-paper', () => {
   const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper');
   const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
 
   return {
     ...actual,
-    AnimatedFAB: ({ icon, label, ...props }: any) => {
+    AnimatedFAB: ({
+      icon,
+      label,
+      ...props
+    }: {
+      icon?: string | (() => ReactNode);
+      label?: string;
+      [key: string]: unknown;
+    }) => {
       const iconNode = typeof icon === 'function' ? icon() : icon;
-      const iconName = iconNode?.props?.name ?? (iconNode?.type === actual.ActivityIndicator ? 'loading' : 'unknown');
+      const iconName = React.isValidElement(iconNode)
+        ? ((iconNode.props as { name?: string }).name ??
+          (iconNode.type === actual.ActivityIndicator ? 'loading' : 'unknown'))
+        : 'unknown';
       return React.createElement(Text, { ...props }, `${label}:${iconName}`);
     },
   };
 });
 
-jest.mock('@/components/product/ProductCircularityProperties', () => 'ProductCircularityProperties');
+jest.mock(
+  '@/components/product/ProductCircularityProperties',
+  () => 'ProductCircularityProperties',
+);
 jest.mock('@/components/product/ProductComponents', () => 'ProductComponents');
 jest.mock('@/components/product/ProductDelete', () => 'ProductDelete');
 jest.mock('@/components/product/ProductDescription', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
 
   function ProductDescriptionMock({ product }: { product: { name?: string } }) {
     return mockReact.createElement(Text, null, `Description:${product.name ?? ''}`);
@@ -87,7 +111,9 @@ jest.mock('@/components/product/ProductDescription', () => {
 jest.mock('@/components/product/ProductImageGallery', () => 'ProductImageGallery');
 jest.mock('@/components/product/ProductMetaData', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as { Text: typeof RNText };
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
 
   function ProductMetaDataMock({ product }: { product: { name?: string } }) {
     return mockReact.createElement(Text, null, `Meta:${product.name ?? ''}`);
@@ -192,7 +218,7 @@ describe('ProductPage state handling', () => {
     const setOptionsArg = mockSetOptions.mock.calls.at(-1)?.[0] as HeaderOptions | undefined;
     expect(setOptionsArg?.headerRight).toBeInstanceOf(Function);
 
-    renderWithProviders(<>{setOptionsArg?.headerRight?.()}</>, { withDialog: true });
+    renderWithProviders(setOptionsArg?.headerRight?.() as ReactElement, { withDialog: true });
 
     fireEvent.press(screen.getByText('Edit name'));
 

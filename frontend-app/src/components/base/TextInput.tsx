@@ -1,5 +1,5 @@
-import React from 'react';
-import { TextInput as NativeTextInput, TextInputProps, StyleSheet } from 'react-native';
+import type React from 'react';
+import { TextInput as NativeTextInput, StyleSheet, type TextInputProps } from 'react-native';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props extends TextInputProps {
@@ -8,7 +8,14 @@ interface Props extends TextInputProps {
   ref?: React.Ref<NativeTextInput>;
 }
 
-export function TextInput({ style, children, errorOnEmpty = false, customValidation, ref, ...props }: Props) {
+export function TextInput({
+  style,
+  children,
+  errorOnEmpty = false,
+  customValidation,
+  ref,
+  ...props
+}: Props) {
   const { colors } = useAppTheme();
   const emptyError = errorOnEmpty && (!props.value || props.value === '');
   const validationError = customValidation && props.value && !customValidation(props.value);

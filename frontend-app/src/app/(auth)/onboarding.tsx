@@ -8,6 +8,10 @@ import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
 import { updateUser } from '@/services/api/authentication';
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function Onboarding() {
   const router = useRouter();
   const dialog = useDialog();
@@ -31,10 +35,10 @@ export default function Onboarding() {
       await updateUser({ username });
       await refetch(false);
       router.replace({ pathname: '/products', params: { authenticated: 'true' } });
-    } catch (error: any) {
+    } catch (error: unknown) {
       dialog.alert({
         title: 'Error',
-        message: error.message || 'Unable to save username. It might be taken.',
+        message: getErrorMessage(error, 'Unable to save username. It might be taken.'),
       });
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { expect, Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 const EMAIL = 'e2e-admin@example.com';
 const PASSWORD = 'E2eTestPass123!';
@@ -20,7 +20,9 @@ export async function dismissProductsInfoCard(page: Page) {
 export async function reachProductsPage(page: Page) {
   await page.goto('/products');
   await dismissProductsInfoCard(page);
-  await expect(page.getByPlaceholder('Search products')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByPlaceholder('Search products')).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 export async function finishOnboardingIfVisible(page: Page) {
@@ -44,7 +46,9 @@ export async function loginAndReachProducts(page: Page) {
   await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
   await finishOnboardingIfVisible(page);
   await dismissProductsInfoCard(page);
-  await expect(page.getByPlaceholder('Search products')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByPlaceholder('Search products')).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 export async function loginAndGoToProfile(page: Page) {
@@ -55,7 +59,9 @@ export async function loginAndGoToProfile(page: Page) {
 
 export async function openProductCreationDialog(page: Page) {
   await page.getByRole('button', { name: 'Create new product' }).click();
-  await expect(page.getByText('Create New Product')).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText('Create New Product')).toBeVisible({
+    timeout: 5_000,
+  });
 }
 
 export async function selectMenuItem(page: Page, label: string) {
@@ -82,7 +88,9 @@ export async function openSeededProductFromProductsPage(page: Page) {
 
 export async function openProductDetail(page: Page, id: number) {
   await page.goto(`/products/${id}`);
-  await expect(page).toHaveURL(new RegExp(`/products/${id}$`), { timeout: 10_000 });
+  await expect(page).toHaveURL(new RegExp(`/products/${id}$`), {
+    timeout: 10_000,
+  });
 }
 
 export async function openProductByNameFromProductsPage(page: Page, name: string) {
@@ -90,14 +98,20 @@ export async function openProductByNameFromProductsPage(page: Page, name: string
   await expect(product).toBeVisible({ timeout: 15_000 });
   await product.click();
   await expect(page).toHaveURL(/products\/\d+/, { timeout: 15_000 });
-  await expect(page.getByPlaceholder('Add a product description')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 export async function openGalleryLightbox(page: Page) {
-  const productImage = page.getByPlaceholder('Add a product description').locator('xpath=preceding::img[1]');
+  const productImage = page
+    .getByPlaceholder('Add a product description')
+    .locator('xpath=preceding::img[1]');
   await expect(productImage).toBeVisible({ timeout: 10_000 });
   await productImage.click({ force: true });
-  await expect(page.getByLabel('Close lightbox')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByLabel('Close lightbox')).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 export { EMAIL, PASSWORD };

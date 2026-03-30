@@ -2,18 +2,21 @@ import * as Linking from 'expo-linking';
 import { Link, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextStyle, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
 import { Button, Dialog, Divider, IconButton, Portal, Switch, TextInput } from 'react-native-paper';
-import LogoutConfirm from '@/components/common/LogoutConfirm';
 import { Chip, Text } from '@/components/base';
-
+import LogoutConfirm from '@/components/common/LogoutConfirm';
+import { API_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/fetching';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
-import { API_URL } from '@/config';
 
 WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -70,8 +73,8 @@ export default function ProfileTab() {
       await updateUser({ username: newUsername });
       await refetch(false);
       setEditUsernameVisible(false);
-    } catch (err: any) {
-      alert(`Failed to update username: ${err.message}`);
+    } catch (error: unknown) {
+      alert(`Failed to update username: ${getErrorMessage(error, 'Unknown error')}`);
     }
   };
 
@@ -80,9 +83,9 @@ export default function ProfileTab() {
       await unlinkOAuth(providerToUnlink);
       setUnlinkDialogVisible(false);
       refetch();
-    } catch (err: any) {
+    } catch (error: unknown) {
       setUnlinkDialogVisible(false);
-      alert(`Failed to disconnect: ${err.message}`);
+      alert(`Failed to disconnect: ${getErrorMessage(error, 'Unknown error')}`);
     }
   };
 
@@ -93,7 +96,7 @@ export default function ProfileTab() {
 
       const token = await getToken();
       const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (token) headers.Authorization = `Bearer ${token}`;
 
       const response = await apiFetch(associateUrl, { headers });
 
@@ -104,8 +107,8 @@ export default function ProfileTab() {
       if (result.type === 'success') {
         await refetch();
       }
-    } catch (err: any) {
-      alert(`Failed to start link flow: ${err.message || ''}`);
+    } catch (error: unknown) {
+      alert(`Failed to start link flow: ${getErrorMessage(error, '')}`);
     }
   };
 
@@ -118,8 +121,8 @@ export default function ProfileTab() {
     try {
       const preference = await setNewsletterPreference(nextSubscribed);
       setNewsletterSubscribed(preference.subscribed);
-    } catch (err: any) {
-      setNewsletterError(err?.message || 'Unable to update email updates.');
+    } catch (error: unknown) {
+      setNewsletterError(getErrorMessage(error, 'Unable to update email updates.'));
     } finally {
       setNewsletterSaving(false);
     }
@@ -135,8 +138,8 @@ export default function ProfileTab() {
       const preference = await getNewsletterPreference();
       setNewsletterSubscribed(preference.subscribed);
       setNewsletterError('');
-    } catch (err: any) {
-      setNewsletterError(err?.message || 'Unable to load email updates.');
+    } catch (error: unknown) {
+      setNewsletterError(getErrorMessage(error, 'Unable to load email updates.'));
     } finally {
       setNewsletterLoading(false);
     }
@@ -166,8 +169,12 @@ export default function ProfileTab() {
           accessibilityRole="button"
           accessibilityLabel="Edit username"
         >
-          <Text style={styles.usernameText} numberOfLines={Platform.OS === 'web' ? undefined : 1} adjustsFontSizeToFit>
-            {profile.username + '.'}
+          <Text
+            style={styles.usernameText}
+            numberOfLines={Platform.OS === 'web' ? undefined : 1}
+            adjustsFontSizeToFit
+          >
+            {`${profile.username}.`}
           </Text>
         </Pressable>
 
@@ -178,7 +185,11 @@ export default function ProfileTab() {
         <View style={styles.chipRow}>
           {profile.isActive ? <Chip>Active</Chip> : <Chip style={styles.greyChip}>Inactive</Chip>}
           {profile.isSuperuser && <Chip>Superuser</Chip>}
-          {profile.isVerified ? <Chip>Verified</Chip> : <Chip style={styles.greyChip}>Unverified</Chip>}
+          {profile.isVerified ? (
+            <Chip>Verified</Chip>
+          ) : (
+            <Chip style={styles.greyChip}>Unverified</Chip>
+          )}
         </View>
       </View>
 
@@ -332,11 +343,15 @@ export default function ProfileTab() {
         <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
           <Dialog.Title>Delete Account</Dialog.Title>
           <Dialog.Content>
-            <Text>To delete your account and all associated data, please send an email request to:</Text>
+            <Text>
+              To delete your account and all associated data, please send an email request to:
+            </Text>
             <Link href="mailto:relab@cml.leidenuniv.nl">
               <Text style={{ marginTop: 10, fontWeight: 'bold' }}>relab@cml.leidenuniv.nl</Text>
             </Link>
-            <Text style={{ marginTop: 10 }}>We&apos;ll process your request and confirm the deletion via email.</Text>
+            <Text style={{ marginTop: 10 }}>
+              We&apos;ll process your request and confirm the deletion via email.
+            </Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={confirmDeleteAccount}>OK</Button>
@@ -370,7 +385,12 @@ function ProfileAction({
   hideChevron?: boolean;
 }) {
   return (
-    <Pressable style={styles.action} onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
+    <Pressable
+      style={styles.action}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
       <View style={{ flex: 1 }}>
         <Text style={[styles.actionTitle, titleStyle]}>{title}</Text>
         {subtitle && <Text style={styles.actionSubtitle}>{subtitle}</Text>}

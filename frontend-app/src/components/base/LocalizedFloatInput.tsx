@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import RN, { Platform, Pressable } from 'react-native';
+import type RN from 'react-native';
+import { Platform, Pressable } from 'react-native';
 import { Text, TextInput } from '@/components/base';
 
 interface LocalizedFloatInputProps {
@@ -61,7 +62,9 @@ export default function LocalizedFloatInput({
     ...style,
   } as RN.TextStyle;
   const webOnlyInputStyle =
-    Platform.OS === 'web' ? ({ outline: 'none', fieldSizing: 'content' } as unknown as RN.TextStyle) : undefined;
+    Platform.OS === 'web'
+      ? ({ outline: 'none', fieldSizing: 'content' } as unknown as RN.TextStyle)
+      : undefined;
 
   const decimalRegex = new RegExp(`^\\d*[${decimalSeparator.replace('.', '\\.')}]?\\d*$`);
 
@@ -80,7 +83,7 @@ export default function LocalizedFloatInput({
     const normalizedText = normalizeDecimalString(text, decimalSeparator);
     const numValue = parseFloat(normalizedText);
 
-    if (!isNaN(numValue) && numValue >= min) {
+    if (!Number.isNaN(numValue) && numValue >= min) {
       onChange?.(numValue);
     } else {
       setText(toLocalizedString(normalizedValue, decimalSeparator));

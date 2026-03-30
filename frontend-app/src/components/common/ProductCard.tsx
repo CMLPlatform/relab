@@ -3,15 +3,16 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Card, Icon, useTheme } from 'react-native-paper';
-import { Product } from '@/types/Product';
 import { Text } from '@/components/base';
+import ImagePlaceholder from '@/components/common/ImagePlaceholder';
+import type { Product } from '@/types/Product';
 
 const rtf = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
 
 function relativeTime(isoString?: string): string | null {
   if (!isoString) return null;
   const ms = new Date(isoString).getTime();
-  if (isNaN(ms)) return null;
+  if (Number.isNaN(ms)) return null;
   const diffDays = Math.round((ms - Date.now()) / 86_400_000);
   const diffMonths = Math.round(diffDays / 30);
   const diffYears = Math.round(diffDays / 365);
@@ -29,13 +30,16 @@ interface Props {
 export default function ProductCard({ product, enabled = true, showOwner = false }: Props) {
   const router = useRouter();
   const theme = useTheme();
-  const placeholderImageUrl = `https://placehold.co/80x80/png?text=${product.name.replaceAll(' ', '+')}`;
   const [hadError, setHadError] = useState(false);
 
-  const thumbnailUri = hadError ? placeholderImageUrl : (product.thumbnailUrl ?? placeholderImageUrl);
+  const hasThumbnail = !hadError && !!product.thumbnailUrl;
   const detailList = [product.brand, product.model, product.productTypeName].filter(Boolean);
   const createdAgo = relativeTime(product.createdAt);
-  const ownerLabel = showOwner ? (product.ownedBy === 'me' ? 'you' : (product.ownerUsername ?? null)) : null;
+  const ownerLabel = showOwner
+    ? product.ownedBy === 'me'
+      ? 'you'
+      : (product.ownerUsername ?? null)
+    : null;
 
   const navigateToProduct = () => {
     router.push({ pathname: '/products/[id]', params: { id: product.id } });
@@ -48,28 +52,40 @@ export default function ProductCard({ product, enabled = true, showOwner = false
       style={{ marginHorizontal: 10, marginVertical: 5 }}
     >
       <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }}>
-        <View
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 12,
-            backgroundColor: theme.colors.surfaceVariant,
-            overflow: 'hidden',
-            marginRight: 16,
-          }}
-        >
-          <Image
-            source={{ uri: thumbnailUri }}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-            onError={() => setHadError(true)}
-            testID="product-thumbnail"
-          />
+        <View style={{ marginRight: 16 }}>
+          {hasThumbnail ? (
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 12,
+                backgroundColor: theme.colors.surfaceVariant,
+                overflow: 'hidden',
+              }}
+            >
+              <Image
+                source={{ uri: product.thumbnailUrl }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+                onError={() => setHadError(true)}
+                testID="product-thumbnail"
+              />
+            </View>
+          ) : (
+            <ImagePlaceholder width={80} height={80} borderRadius={12} testID="product-thumbnail" />
+          )}
         </View>
 
         {/* Content */}
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.onSurface, marginBottom: 2 }}>
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: '700',
+              color: theme.colors.onSurface,
+              marginBottom: 2,
+            }}
+          >
             {product.name || 'Unnamed Product'}
           </Text>
           <Text

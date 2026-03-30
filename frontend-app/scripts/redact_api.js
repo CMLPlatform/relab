@@ -25,8 +25,8 @@
 */
 // Support both CommonJS and ESM execution environments.
 (async () => {
-  const modFs = typeof require === 'function' ? require('fs') : await import('fs');
-  const modPath = typeof require === 'function' ? require('path') : await import('path');
+  const modFs = typeof require === 'function' ? require('node:fs') : await import('node:fs');
+  const modPath = typeof require === 'function' ? require('node:path') : await import('node:path');
   const fs = modFs.default ?? modFs;
   const path = modPath.default ?? modPath;
 

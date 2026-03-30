@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { Skeleton } from '@/components/base';
 import DetailCard from '@/components/common/DetailCard';
-import { spacing, radius } from '@/constants/layout';
+import { radius, spacing } from '@/constants/layout';
 
 export default function ProductDetailsSkeleton() {
   const theme = useTheme();

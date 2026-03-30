@@ -1,11 +1,10 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import React from 'react';
-import { screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import Onboarding from '../onboarding';
 import { useAuth } from '@/context/AuthProvider';
-import { renderWithProviders } from '@/test-utils';
 import * as auth from '@/services/api/authentication';
+import { renderWithProviders } from '@/test-utils';
+import Onboarding from '../onboarding';
 
 jest.mock('@/services/api/authentication', () => ({
   updateUser: jest.fn(),
@@ -49,7 +48,9 @@ describe('Onboarding screen', () => {
   });
 
   it('calls updateUser with username on valid submit', async () => {
-    mockedUpdateUser.mockResolvedValue({ username: 'newuser' } as Awaited<ReturnType<typeof auth.updateUser>>);
+    mockedUpdateUser.mockResolvedValue({ username: 'newuser' } as Awaited<
+      ReturnType<typeof auth.updateUser>
+    >);
     renderWithProviders(<Onboarding />, { withDialog: true });
     fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'newuser');
     fireEvent.press(screen.getByText('Continue'));
@@ -59,7 +60,9 @@ describe('Onboarding screen', () => {
   });
 
   it('redirects to products on successful username save', async () => {
-    mockedUpdateUser.mockResolvedValue({ username: 'newuser' } as Awaited<ReturnType<typeof auth.updateUser>>);
+    mockedUpdateUser.mockResolvedValue({ username: 'newuser' } as Awaited<
+      ReturnType<typeof auth.updateUser>
+    >);
     renderWithProviders(<Onboarding />, { withDialog: true });
     fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'newuser');
     fireEvent.press(screen.getByText('Continue'));

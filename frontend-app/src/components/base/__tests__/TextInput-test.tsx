@@ -1,9 +1,8 @@
-import { describe, it, expect, jest } from '@jest/globals';
-import React from 'react';
-import * as ReactNative from 'react-native';
+import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
-import { TextInput } from '../TextInput';
+import * as ReactNative from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
+import { TextInput } from '../TextInput';
 
 describe('<TextInput />', () => {
   it('renders placeholder correctly', () => {
@@ -45,7 +44,9 @@ describe('<TextInput />', () => {
 
   it('does not treat a passing customValidation function as an error', () => {
     const passValidation = (val: string) => val.length >= 3;
-    render(<TextInput testID="passing-validation" value="okay" customValidation={passValidation} />);
+    render(
+      <TextInput testID="passing-validation" value="okay" customValidation={passValidation} />,
+    );
     expect(screen.getByTestId('passing-validation')).toBeTruthy();
   });
 });

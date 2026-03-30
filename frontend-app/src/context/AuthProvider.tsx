@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/authentication';
-import { User } from '@/types/User';
+import type { User } from '@/types/User';
 
 interface AuthContextType {
   user: User | undefined;
@@ -67,7 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <AuthContext.Provider value={{ user, isLoading, refetch }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isLoading, refetch }}>{children}</AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

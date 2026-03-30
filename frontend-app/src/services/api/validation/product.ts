@@ -2,7 +2,7 @@
  * Product validation utilities
  */
 
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
@@ -55,7 +55,10 @@ export function isValidUrl(value: string | undefined): boolean {
   }
 }
 
-export function validateProductDimension(value: number | undefined, dimensionName: string): ValidationResult {
+export function validateProductDimension(
+  value: number | undefined,
+  dimensionName: string,
+): ValidationResult {
   if (value == null || Number.isNaN(value)) {
     return { isValid: true }; // Optional field
   }

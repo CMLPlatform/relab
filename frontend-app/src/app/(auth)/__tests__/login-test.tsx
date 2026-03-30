@@ -3,12 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { http, HttpResponse } from 'msw';
+import { WebBrowserResultType } from 'expo-web-browser';
+import { HttpResponse, http } from 'msw';
 import { Platform } from 'react-native';
-import Login from '../login';
-import type { User } from '@/types/User';
-import { renderWithProviders, server } from '@/test-utils';
 import * as auth from '@/services/api/authentication';
+import { renderWithProviders, server } from '@/test-utils';
+import type { User } from '@/types/User';
+import Login from '../login';
 
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
@@ -21,6 +22,12 @@ jest.mock('@/services/api/authentication', () => ({
 jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
   openAuthSessionAsync: jest.fn(),
+  WebBrowserResultType: {
+    CANCEL: 'cancel',
+    DISMISS: 'dismiss',
+    OPENED: 'opened',
+    LOCKED: 'locked',
+  },
 }));
 
 jest.mock('expo-linking', () => ({
@@ -35,6 +42,7 @@ const mockedGetUser = jest.mocked(auth.getUser);
 const mockedGetToken = jest.mocked(auth.getToken);
 const mockedMarkWebSessionActive = jest.mocked(auth.markWebSessionActive);
 const mockedOpenAuthSessionAsync = jest.mocked(WebBrowser.openAuthSessionAsync);
+type AuthSessionResult = Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsync>>;
 
 const mockUser = (overrides: Partial<User> = {}): User => ({
   id: '1',
@@ -66,9 +74,7 @@ describe('Login screen', () => {
     });
     mockedGetToken.mockResolvedValue(undefined); // default: guest
     mockedGetUser.mockResolvedValue(undefined);
-    mockedOpenAuthSessionAsync.mockResolvedValue({ type: 'cancel' } as Awaited<
-      ReturnType<typeof WebBrowser.openAuthSessionAsync>
-    >);
+    mockedOpenAuthSessionAsync.mockResolvedValue({ type: 'cancel' } as AuthSessionResult);
     setPlatformOS(originalPlatformOS);
   });
 
@@ -95,11 +101,15 @@ describe('Login screen', () => {
 
   it('redirects to products when already authenticated on mount', async () => {
     mockedGetToken.mockResolvedValue('dummy-token');
-    mockedGetUser.mockResolvedValue(mockUser({ username: 'existing_user', email: 'e@example.com' }));
+    mockedGetUser.mockResolvedValue(
+      mockUser({ username: 'existing_user', email: 'e@example.com' }),
+    );
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await waitFor(
       () => {
-        expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+        expect(mockReplace).toHaveBeenCalledWith(
+          expect.objectContaining({ pathname: '/products' }),
+        );
       },
       { timeout: 3000 },
     );
@@ -198,7 +208,9 @@ describe('Login screen', () => {
     setPlatformOS('web');
     const authUrl = 'https://github.com/login/oauth/authorize?client_id=test-client';
     server.use(
-      http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () => HttpResponse.json({ authorization_url: authUrl })),
+      http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () =>
+        HttpResponse.json({ authorization_url: authUrl }),
+      ),
     );
 
     // Intercept window.location.href so jsdom doesn't attempt real navigation
@@ -236,7 +248,9 @@ describe('Login screen', () => {
   it('hydrates a web OAuth callback returned by page redirect params', async () => {
     setPlatformOS('web');
     (useLocalSearchParams as jest.Mock).mockReturnValue({ success: 'true' });
-    mockedGetUser.mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' }));
+    mockedGetUser.mockResolvedValueOnce(
+      mockUser({ username: 'oauth_user', email: 'oauth@example.com' }),
+    );
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
 
@@ -346,7 +360,9 @@ describe('Login screen', () => {
 
     await waitFor(
       () => {
-        expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
+        expect(mockReplace).toHaveBeenCalledWith(
+          expect.objectContaining({ pathname: '/products' }),
+        );
       },
       { timeout: 2000 },
     );
@@ -391,7 +407,9 @@ describe('Login screen', () => {
     });
     mockedGetUser
       .mockResolvedValueOnce(undefined) // initial mount
-      .mockResolvedValueOnce(mockUser({ username: 'suspended_user', email: 'suspended@example.com', isActive: false }));
+      .mockResolvedValueOnce(
+        mockUser({ username: 'suspended_user', email: 'suspended@example.com', isActive: false }),
+      );
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
@@ -457,7 +475,9 @@ describe('Login screen', () => {
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
       ),
     );
-    mockedOpenAuthSessionAsync.mockResolvedValueOnce({ type: 'cancel' } as any);
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({
+      type: WebBrowserResultType.CANCEL,
+    });
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');

@@ -1,16 +1,21 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import React from 'react';
-import { useProductForm } from '../useProductForm';
-import { useDeleteProductMutation, useProductQuery, useSaveProductMutation } from '../useProductQueries';
-import { consumeNewProductIntent } from '@/services/newProductStore';
-import { AuthProvider, useAuth } from '@/context/AuthProvider';
+import type React from 'react';
 import { DialogProvider } from '@/components/common/DialogProvider';
+import { AuthProvider, useAuth } from '@/context/AuthProvider';
+import { consumeNewProductIntent } from '@/services/newProductStore';
+import type { Product } from '@/types/Product';
+import { useProductForm } from '../useProductForm';
+import {
+  useDeleteProductMutation,
+  useProductQuery,
+  useSaveProductMutation,
+} from '../useProductQueries';
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: jest.fn(() => ({ user: { id: '1', username: 'test' }, refetch: jest.fn() })),
-  AuthProvider: jest.fn(({ children }: any) => <>{children}</>),
+  AuthProvider: jest.fn(({ children }: { children: React.ReactNode }) => <>{children}</>),
 }));
 
 jest.mock('../useProductQueries', () => ({
@@ -43,9 +48,17 @@ const mockProduct = {
   id: 123,
   name: 'Test Product',
   brand: 'Test Brand',
+  componentIDs: [],
+  physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
+  circularityProperties: {
+    recyclabilityObservation: '',
+    remanufacturabilityObservation: '',
+    repairabilityObservation: '',
+  },
   images: [],
   videos: [],
-} as any;
+  ownedBy: 'me',
+} satisfies Product;
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -112,7 +125,10 @@ describe('useProductForm', () => {
     renderHook(() => useProductForm('new'), { wrapper });
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith({ pathname: '/login', params: { redirectTo: '/products' } });
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/login',
+        params: { redirectTo: '/products' },
+      });
     });
   });
 
@@ -163,13 +179,18 @@ describe('useProductForm', () => {
   });
 
   it('sets the new id and marks the draft as just created after saving a new product', async () => {
-    const mockMutate = jest.fn((_payload: unknown, options: { onSuccess?: (savedId: number) => void }) =>
-      options.onSuccess?.(987),
+    const mockMutate = jest.fn(
+      (_payload: unknown, options: { onSuccess?: (savedId: number) => void }) =>
+        options.onSuccess?.(987),
     );
     (useProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (consumeNewProductIntent as jest.Mock).mockReturnValue({ name: 'Draft', isComponent: true, parentID: 42 });
+    (consumeNewProductIntent as jest.Mock).mockReturnValue({
+      name: 'Draft',
+      isComponent: true,
+      parentID: 42,
+    });
 
     const { result } = renderHook(() => useProductForm('new'), { wrapper });
 

@@ -1,15 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useRef, useState } from 'react';
+import { type FieldPath, type FieldPathValue, useForm } from 'react-hook-form';
 import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
-import { useDeleteProductMutation, useProductQuery, useSaveProductMutation } from '@/hooks/useProductQueries';
+import {
+  useDeleteProductMutation,
+  useProductQuery,
+  useSaveProductMutation,
+} from '@/hooks/useProductQueries';
 import { newProduct } from '@/services/api/fetching';
 import { validateProduct } from '@/services/api/validation/product';
-import { productSchema, type ProductFormValues } from '@/services/api/validation/productSchema';
+import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import { consumeNewProductIntent } from '@/services/newProductStore';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 /**
  * Manages all state and mutations for the product detail / edit form.
@@ -22,7 +26,7 @@ export function useProductForm(id: string) {
   const { user } = useAuth();
 
   const isNew = id === 'new';
-  const numericId = isNew ? ('new' as const) : parseInt(id);
+  const numericId = isNew ? ('new' as const) : parseInt(id, 10);
 
   // ─── Server state ─────────────────────────────────────────────────────────────
   const { data: serverProduct, isLoading, isError, error, refetch } = useProductQuery(numericId);
@@ -39,40 +43,64 @@ export function useProductForm(id: string) {
   const [editMode, setEditMode] = useState(isNew);
   // True for the session immediately after a new product's first save; drives the component nudge
   const [justCreated, setJustCreated] = useState(false);
+  const hydratedDraftRef = useRef(false);
+  const lastHydratedProductRef = useRef<Product | null>(null);
 
   const saveMutation = useSaveProductMutation();
   const deleteMutation = useDeleteProductMutation();
 
-  const isProductComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+  const isProductComponent =
+    typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
   // Use the existing imperative validator for FAB disabled state (backward compatible)
   const validationResult = validateProduct(product);
 
   // Seed form state when server data arrives or when creating a new product
   useEffect(() => {
     if (isNew) {
+      if (hydratedDraftRef.current) {
+        return;
+      }
       if (!user) {
         router.replace({ pathname: '/login', params: { redirectTo: '/products' } });
         return;
       }
       const intent = consumeNewProductIntent();
-      const newProd = newProduct(intent?.name, intent?.parentID ?? NaN, intent?.brand, intent?.model);
+      const newProd = newProduct(
+        intent?.name,
+        intent?.parentID ?? NaN,
+        intent?.brand,
+        intent?.model,
+      );
       if (intent?.isComponent && !newProd.amountInParent) {
         newProd.amountInParent = 1;
       }
       form.reset(newProd);
+      hydratedDraftRef.current = true;
     } else if (serverProduct && !editMode) {
       // Only sync from server when not actively editing; avoids clobbering user input
+      if (lastHydratedProductRef.current === serverProduct) {
+        return;
+      }
       form.reset(serverProduct);
+      lastHydratedProductRef.current = serverProduct;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverProduct, isNew]);
+  }, [
+    serverProduct,
+    isNew,
+    editMode, // Only sync from server when not actively editing; avoids clobbering user input
+    form.reset,
+    router.replace,
+    user,
+  ]);
 
   // ─── Field change handlers ────────────────────────────────────────────────────
-  const updateField = <K extends keyof Product>(field: K) => {
-    return (value: Product[K]) => form.setValue(field as any, value as any, { shouldValidate: true });
+  const updateField = <K extends FieldPath<ProductFormValues>>(field: K) => {
+    return (value: FieldPathValue<ProductFormValues, K>) =>
+      form.setValue(field, value, { shouldValidate: true });
   };
 
-  const onProductNameChange = (newName: string) => form.setValue('name', newName.trim(), { shouldValidate: true });
+  const onProductNameChange = (newName: string) =>
+    form.setValue('name', newName.trim(), { shouldValidate: true });
   const onChangeDescription = updateField('description');
   const onChangePhysicalProperties = updateField('physicalProperties');
   const onChangeCircularityProperties = updateField('circularityProperties');

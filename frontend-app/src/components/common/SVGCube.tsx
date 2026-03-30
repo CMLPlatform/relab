@@ -1,7 +1,6 @@
-import React from 'react';
 import { Dimensions } from 'react-native';
-import Svg, { Rect, G } from 'react-native-svg';
 import { useTheme } from 'react-native-paper';
+import Svg, { G, Rect } from 'react-native-svg';
 
 type CubeProps = {
   width?: number; // width along X
@@ -31,7 +30,13 @@ export default function Cube({ width = 1, height = 1, depth = 1 }: CubeProps) {
   return (
     <Svg width="100%" height="250">
       <G transform={`translate(${gWidth} ${(250 - svgHeight) / 2})`}>
-        <Rect width={width} height={height} fill={theme.colors.primary} stroke="black" transform="skewY(30)" />
+        <Rect
+          width={width}
+          height={height}
+          fill={theme.colors.primary}
+          stroke="black"
+          transform="skewY(30)"
+        />
         <Rect
           width={depth}
           height={height}

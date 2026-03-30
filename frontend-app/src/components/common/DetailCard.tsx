@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
+import { type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import { Card } from 'react-native-paper';
 
 interface Props {

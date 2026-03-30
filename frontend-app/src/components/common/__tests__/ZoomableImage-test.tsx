@@ -9,6 +9,22 @@ import ZoomableImage from '../ZoomableImage';
 
 describe('ZoomableImage', () => {
   const testUri = 'https://example.com/image.jpg';
+  type JsonNode = {
+    props: {
+      style?: unknown;
+      source?: unknown;
+    };
+  };
+  type PinchGestureType = ReturnType<typeof Gesture.Pinch>;
+  type PanGestureType = ReturnType<typeof Gesture.Pan>;
+  type TapGestureType = ReturnType<typeof Gesture.Tap>;
+
+  const getSingleJsonNode = (value: ReturnType<ReturnType<typeof render>['toJSON']>): JsonNode => {
+    if (!value || Array.isArray(value)) {
+      throw new Error('Expected a single rendered JSON node');
+    }
+    return value;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -28,7 +44,7 @@ describe('ZoomableImage', () => {
 
   it('applies default styles', () => {
     const { toJSON } = render(<ZoomableImage uri={testUri} />);
-    const json = toJSON() as any;
+    const json = getSingleJsonNode(toJSON());
     expect(json.props.style).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -61,7 +77,7 @@ describe('ZoomableImage', () => {
     };
     const onScaleChange = jest.fn();
     const setIsZoomed = jest.fn();
-    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as any);
+    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
 
     render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
 
@@ -83,7 +99,7 @@ describe('ZoomableImage', () => {
     };
     const onScaleChange = jest.fn();
     const setIsZoomed = jest.fn();
-    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as any);
+    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
 
     render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
 
@@ -106,7 +122,7 @@ describe('ZoomableImage', () => {
       onEnd: jest.fn().mockReturnThis(),
       onStart: jest.fn().mockReturnThis(),
     };
-    jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as any);
+    jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
 
     render(<ZoomableImage uri={testUri} />);
 
@@ -133,8 +149,8 @@ describe('ZoomableImage', () => {
     const onSwipe = jest.fn();
     const setIsZoomed = jest.fn();
 
-    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as any);
-    jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as any);
+    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
+    jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
 
     render(<ZoomableImage uri={testUri} onSwipe={onSwipe} setIsZoomed={setIsZoomed} />);
 
@@ -161,7 +177,7 @@ describe('ZoomableImage', () => {
     };
     const onScaleChange = jest.fn();
     const setIsZoomed = jest.fn();
-    jest.spyOn(Gesture, 'Tap').mockReturnValue(mockTap as any);
+    jest.spyOn(Gesture, 'Tap').mockReturnValue(mockTap as unknown as TapGestureType);
 
     render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
 
@@ -187,8 +203,8 @@ describe('ZoomableImage', () => {
     const onScaleChange = jest.fn();
     const setIsZoomed = jest.fn();
 
-    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as any);
-    jest.spyOn(Gesture, 'Tap').mockReturnValue(mockTap as any);
+    jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
+    jest.spyOn(Gesture, 'Tap').mockReturnValue(mockTap as unknown as TapGestureType);
 
     render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
 

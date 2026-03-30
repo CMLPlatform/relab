@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Card, useTheme } from 'react-native-paper';
 import { Skeleton } from '@/components/base';
-import { spacing, radius } from '@/constants/layout';
+import { radius, spacing } from '@/constants/layout';
 
 export default function ProductCardSkeleton() {
   const theme = useTheme();

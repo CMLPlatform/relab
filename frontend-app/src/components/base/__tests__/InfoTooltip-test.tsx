@@ -1,5 +1,5 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react-native';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { InfoTooltip } from '../InfoTooltip';
@@ -63,7 +63,10 @@ describe('InfoTooltip component', () => {
 
     // Restore
     Object.defineProperty(Platform, 'OS', { value: originalPlatform, configurable: true });
-    Object.defineProperty(global.navigator, 'userAgent', { value: originalUserAgent, configurable: true });
+    Object.defineProperty(global.navigator, 'userAgent', {
+      value: originalUserAgent,
+      configurable: true,
+    });
   });
 
   it('clears timer on unmount', () => {

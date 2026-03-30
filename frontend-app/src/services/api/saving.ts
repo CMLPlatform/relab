@@ -1,8 +1,12 @@
+import { API_URL } from '@/config';
 import { getToken } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/fetching';
-import { API_URL } from '@/config';
-import { Product } from '@/types/Product';
-import type { ApiProductUpdate, ApiPhysicalPropertiesUpdate, ApiCircularityPropertiesUpdate } from '@/types/api';
+import type {
+  ApiCircularityPropertiesUpdate,
+  ApiPhysicalPropertiesUpdate,
+  ApiProductUpdate,
+} from '@/types/api';
+import type { Product } from '@/types/Product';
 
 const baseUrl = API_URL;
 
@@ -21,7 +25,7 @@ type NewProductPayload = ProductBasePayload & {
 // ─── Serialization helpers ────────────────────────────────────────────────────
 
 function toBaseProductPayload(product: Product): ProductBasePayload {
-  const isComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+  const isComponent = typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
 
   return {
     name: product.name,
@@ -49,7 +53,8 @@ function toCircularityPropertiesPayload(product: Product): CircularityProperties
     recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
     remanufacturability_comment: product.circularityProperties.remanufacturabilityComment ?? null,
     remanufacturability_observation: product.circularityProperties.remanufacturabilityObservation,
-    remanufacturability_reference: product.circularityProperties.remanufacturabilityReference ?? null,
+    remanufacturability_reference:
+      product.circularityProperties.remanufacturabilityReference ?? null,
     repairability_comment: product.circularityProperties.repairabilityComment ?? null,
     repairability_observation: product.circularityProperties.repairabilityObservation,
     repairability_reference: product.circularityProperties.repairabilityReference ?? null,
@@ -79,7 +84,9 @@ function authHeaders(token: string | undefined): Record<string, string> {
 async function throwOnError(response: Response, label: string): Promise<void> {
   if (response.ok || response.status === 404) return;
   const errData = await response.json().catch(() => null);
-  throw new Error(`Failed to ${label}: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`);
+  throw new Error(
+    `Failed to ${label}: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`,
+  );
 }
 
 /**
@@ -102,19 +109,26 @@ export async function saveProduct(
 
 async function saveNewProduct(product: Product, token: string | undefined): Promise<number> {
   const url =
-    typeof product.parentID === 'number' && !isNaN(product.parentID)
+    typeof product.parentID === 'number' && !Number.isNaN(product.parentID)
       ? new URL(`${baseUrl}/products/${product.parentID}/components`)
-      : new URL(baseUrl + '/products');
+      : new URL(`${baseUrl}/products`);
 
   const headers = authHeaders(token);
-  const response = await apiFetch(url, { method: 'POST', headers, body: JSON.stringify(toNewProductPayload(product)) });
+  const response = await apiFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(toNewProductPayload(product)),
+  });
   await throwOnError(response, 'save product');
 
   const data = await response.json();
   product.id = data.id;
 
   // New product has no existing media on the server yet — uploads can run in parallel
-  await Promise.all([updateProductImages(product, [], token), updateProductVideos(product, [], token)]);
+  await Promise.all([
+    updateProductImages(product, [], token),
+    updateProductVideos(product, [], token),
+  ]);
 
   return data.id;
 }
@@ -129,17 +143,17 @@ async function updateProduct(
 
   // Run all three PATCH requests in parallel — they target independent sub-resources
   const [productRes, physicalRes, circularityRes] = await Promise.all([
-    apiFetch(new URL(baseUrl + `/products/${product.id}`), {
+    apiFetch(new URL(`${baseUrl}/products/${product.id}`), {
       method: 'PATCH',
       headers,
       body: JSON.stringify(toBaseProductPayload(product)),
     }),
-    apiFetch(new URL(baseUrl + `/products/${product.id}/physical_properties`), {
+    apiFetch(new URL(`${baseUrl}/products/${product.id}/physical_properties`), {
       method: 'PATCH',
       headers,
       body: JSON.stringify(toPhysicalPropertiesPayload(product)),
     }),
-    apiFetch(new URL(baseUrl + `/products/${product.id}/circularity_properties`), {
+    apiFetch(new URL(`${baseUrl}/products/${product.id}/circularity_properties`), {
       method: 'PATCH',
       headers,
       body: JSON.stringify(toCircularityPropertiesPayload(product)),
@@ -160,8 +174,14 @@ async function updateProduct(
   return data.id;
 }
 
-async function updateProductImages(product: Product, originalImages: Product['images'], token: string | undefined) {
-  const imagesToDelete = originalImages.filter((img) => !product.images.some((i) => i.id === img.id));
+async function updateProductImages(
+  product: Product,
+  originalImages: Product['images'],
+  token: string | undefined,
+) {
+  const imagesToDelete = originalImages.filter(
+    (img) => !product.images.some((i) => i.id === img.id),
+  );
   const imagesToAdd = product.images.filter((img) => !img.id);
 
   // Deletes can run in parallel
@@ -178,7 +198,7 @@ async function updateProductImages(product: Product, originalImages: Product['im
 }
 
 async function deleteImage(product: Product, image: { id: number }, token: string | undefined) {
-  const url = new URL(baseUrl + `/products/${product.id}/images/${image.id}`);
+  const url = new URL(`${baseUrl}/products/${product.id}/images/${image.id}`);
   return await apiFetch(url, {
     method: 'DELETE',
     headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -187,8 +207,12 @@ async function deleteImage(product: Product, image: { id: number }, token: strin
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-async function addImage(product: Product, image: { url: string; description: string }, token: string | undefined) {
-  const url = new URL(baseUrl + `/products/${product.id}/images`);
+async function addImage(
+  product: Product,
+  image: { url: string; description: string; id?: number },
+  token: string | undefined,
+) {
+  const url = new URL(`${baseUrl}/products/${product.id}/images`);
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -202,7 +226,12 @@ async function addImage(product: Product, image: { url: string; description: str
     }
     body.append('file', fileBlob, 'image.png');
   } else if (image.url.startsWith('file:')) {
-    body.append('file', { uri: image.url, name: 'image.png', type: 'image/png' } as any);
+    // React Native extends FormData to accept { uri, name, type } for native file uploads
+    body.append('file', {
+      uri: image.url,
+      name: 'image.png',
+      type: 'image/png',
+    } as unknown as Blob);
   } else if (image.url.startsWith('blob:') || image.url.startsWith('http')) {
     // Web blob or URL - fetch and convert to blob
     const response = await fetch(image.url);
@@ -213,7 +242,12 @@ async function addImage(product: Product, image: { url: string; description: str
     body.append('file', blob, 'image.png');
   }
 
-  const response = await apiFetch(url, { method: 'POST', headers: headers, body: body, timeoutMs: 30_000 });
+  const response = await apiFetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: body,
+    timeoutMs: 30_000,
+  });
   if (!response.ok) {
     const errData = await response.json().catch(() => null);
     throw new Error(`Image upload failed: ${errData?.detail || response.statusText}`);
@@ -226,11 +260,11 @@ async function addImage(product: Product, image: { url: string; description: str
     try {
       if (data.id) {
         // mutate the object in-place so callers see the updated id/url
-        (image as any).id = data.id;
+        image.id = data.id;
       }
       const newUrl = data.url || data.image_url || data.file_url || data.path || data.location;
       if (newUrl) {
-        (image as any).url = newUrl;
+        image.url = newUrl;
       }
     } catch {
       // ignore mutation errors
@@ -256,13 +290,22 @@ function dataURItoBlob(dataURI: string) {
   return new Blob([ab], { type: mimeString });
 }
 
-async function updateProductVideos(product: Product, originalVideos: Product['videos'], token: string | undefined) {
+async function updateProductVideos(
+  product: Product,
+  originalVideos: Product['videos'],
+  token: string | undefined,
+) {
   const currentVideos = originalVideos || [];
-  const videosToDelete = currentVideos.filter((vid) => !product.videos.some((v) => v.id === vid.id));
+  const videosToDelete = currentVideos.filter(
+    (vid) => !product.videos.some((v) => v.id === vid.id),
+  );
   const videosToAdd = product.videos.filter((vid) => !vid.id);
   const videosToUpdate = product.videos.filter((vid) => {
     const orig = currentVideos.find((v) => v.id === vid.id);
-    return orig && (orig.url !== vid.url || orig.description !== vid.description || orig.title !== vid.title);
+    return (
+      orig &&
+      (orig.url !== vid.url || orig.description !== vid.description || orig.title !== vid.title)
+    );
   });
 
   const headers = authHeaders(token);
@@ -272,15 +315,18 @@ async function updateProductVideos(product: Product, originalVideos: Product['vi
     ...videosToDelete
       .filter((vid) => vid.id)
       .map((vid) =>
-        apiFetch(new URL(baseUrl + `/products/${product.id}/videos/${vid.id}`), {
+        apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
           method: 'DELETE',
-          headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          headers: {
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
         }),
       ),
     ...videosToUpdate
       .filter((vid) => vid.id)
       .map((vid) =>
-        apiFetch(new URL(baseUrl + `/products/${product.id}/videos/${vid.id}`), {
+        apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
@@ -290,7 +336,7 @@ async function updateProductVideos(product: Product, originalVideos: Product['vi
 
   // Adds run sequentially
   for (const vid of videosToAdd) {
-    await apiFetch(new URL(baseUrl + `/products/${product.id}/videos`), {
+    await apiFetch(new URL(`${baseUrl}/products/${product.id}/videos`), {
       method: 'POST',
       headers,
       body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
@@ -302,7 +348,7 @@ export async function deleteProduct(product: Product): Promise<void> {
   if (product.id === 'new') {
     return;
   } // New products are not saved yet
-  const url = new URL(baseUrl + `/products/${product.id}`);
+  const url = new URL(`${baseUrl}/products/${product.id}`);
   const token = await getToken();
   const headers = {
     Accept: 'application/json',

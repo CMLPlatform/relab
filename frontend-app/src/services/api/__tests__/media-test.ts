@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { resolveApiMediaUrl, getPlaceholderImageUrl, API_PLACEHOLDER_IMAGE_PATH } from '../media';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { API_PLACEHOLDER_IMAGE_PATH, getPlaceholderImageUrl, resolveApiMediaUrl } from '../media';
 
 const ORIGINAL_ENV = process.env.EXPO_PUBLIC_API_URL;
 
@@ -29,7 +29,9 @@ describe('resolveApiMediaUrl', () => {
   });
 
   it('prepends the API base URL to root-relative paths', () => {
-    expect(resolveApiMediaUrl('/uploads/images/test.jpg')).toBe('http://localhost:8000/api/uploads/images/test.jpg');
+    expect(resolveApiMediaUrl('/uploads/images/test.jpg')).toBe(
+      'http://localhost:8000/api/uploads/images/test.jpg',
+    );
   });
 
   it('prepends the API base URL to relative paths without a leading slash', () => {
@@ -55,6 +57,8 @@ describe('getPlaceholderImageUrl', () => {
   });
 
   it('returns the API-prefixed placeholder path', () => {
-    expect(getPlaceholderImageUrl()).toBe('http://localhost:8000/api/static/images/placeholder.png');
+    expect(getPlaceholderImageUrl()).toBe(
+      'http://localhost:8000/api/static/images/placeholder.png',
+    );
   });
 });

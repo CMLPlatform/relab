@@ -1,12 +1,11 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import React from 'react';
-import { screen, waitFor, fireEvent } from '@testing-library/react-native';
-import { http, HttpResponse } from 'msw';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import VerifyEmailScreen from '../verify';
+import { HttpResponse, http } from 'msw';
+import * as auth from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils';
 import { server } from '@/test-utils/server';
-import * as auth from '@/services/api/authentication';
+import VerifyEmailScreen from '../verify';
 
 jest.mock('@/services/api/authentication', () => ({
   getToken: jest.fn(),
@@ -69,7 +68,9 @@ describe('VerifyEmailScreen', () => {
   it('shows API error when verification returns non-ok response', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'bad-token' });
     server.use(
-      http.post(`${API_URL}/auth/verify`, () => HttpResponse.json({ detail: 'Token expired' }, { status: 400 })),
+      http.post(`${API_URL}/auth/verify`, () =>
+        HttpResponse.json({ detail: 'Token expired' }, { status: 400 }),
+      ),
     );
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(() => {

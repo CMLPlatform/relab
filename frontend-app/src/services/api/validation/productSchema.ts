@@ -54,8 +54,14 @@ export const productSchema = z.object({
   parentID: z.number().optional(),
   name: z
     .string()
-    .min(PRODUCT_NAME_MIN_LENGTH, `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`)
-    .max(PRODUCT_NAME_MAX_LENGTH, `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`),
+    .min(
+      PRODUCT_NAME_MIN_LENGTH,
+      `Product name must be at least ${PRODUCT_NAME_MIN_LENGTH} characters`,
+    )
+    .max(
+      PRODUCT_NAME_MAX_LENGTH,
+      `Product name must be at most ${PRODUCT_NAME_MAX_LENGTH} characters`,
+    ),
   brand: z.string().optional(),
   model: z.string().optional(),
   description: z.string().optional(),

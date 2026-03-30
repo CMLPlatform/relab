@@ -2,7 +2,12 @@ import { Image } from 'expo-image';
 import { useCallback, useState } from 'react';
 import { Dimensions, Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -44,7 +49,15 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
     runOnJS(updateZoomState)(1);
-  }, [scale, savedScale, savedTranslateX, savedTranslateY, translateX, translateY, updateZoomState]);
+  }, [
+    scale,
+    savedScale,
+    savedTranslateX,
+    savedTranslateY,
+    translateX,
+    translateY,
+    updateZoomState,
+  ]);
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
@@ -69,7 +82,11 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
       const horizontal = translateX.value;
       const vertical = translateY.value;
       const swipeThreshold = SCREEN_WIDTH * 0.15;
-      if (Math.abs(horizontal) > Math.abs(vertical) && Math.abs(horizontal) > swipeThreshold && onSwipe) {
+      if (
+        Math.abs(horizontal) > Math.abs(vertical) &&
+        Math.abs(horizontal) > swipeThreshold &&
+        onSwipe
+      ) {
         const direction: -1 | 1 = horizontal > 0 ? -1 : 1;
         resetZoom();
         onSwipe(direction);
@@ -95,7 +112,11 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture, doubleTapGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }, { translateY: translateY.value }, { scale: scale.value }],
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
   }));
 
   return (

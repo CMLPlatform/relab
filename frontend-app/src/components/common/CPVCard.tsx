@@ -1,7 +1,7 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon } from 'react-native-paper';
-import { Pressable, View, Text, StyleSheet } from 'react-native';
-import { CPVCategory } from '@/types/CPVCategory';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {
   CPV: CPVCategory;
@@ -21,7 +21,11 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={CPV.description}
-      style={({ pressed }) => [styles.container, { backgroundColor: bgColor }, pressed && onPress && { opacity: 0.5 }]}
+      style={({ pressed }) => [
+        styles.container,
+        { backgroundColor: bgColor },
+        pressed && onPress && { opacity: 0.5 },
+      ]}
     >
       <Text style={[styles.text, { color: textColor }]} numberOfLines={3} ellipsizeMode="tail">
         {CPV.description}

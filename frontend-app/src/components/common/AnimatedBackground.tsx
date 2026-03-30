@@ -1,6 +1,11 @@
 import { ImageBackground } from 'expo-image';
 import { Platform, StyleSheet, useColorScheme } from 'react-native';
-import Animated, { SensorType, useAnimatedSensor, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, {
+  SensorType,
+  useAnimatedSensor,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 
 export function AnimatedBackground() {
   const rotation = useAnimatedSensor(SensorType.ROTATION, { interval: 20 });
@@ -18,7 +23,9 @@ export function AnimatedBackground() {
   });
 
   const image =
-    colorScheme === 'light' ? require('@/assets/images/bg-light.jpg') : require('@/assets/images/bg-dark.jpg');
+    colorScheme === 'light'
+      ? require('@/assets/images/bg-light.jpg')
+      : require('@/assets/images/bg-dark.jpg');
 
   if (Platform.OS === 'web') {
     return <ImageBackground source={image} style={StyleSheet.absoluteFill} />;
@@ -28,7 +35,10 @@ export function AnimatedBackground() {
     <Animated.Image
       source={image}
       resizeMode="cover"
-      style={[{ width: '110%', height: '110%', position: 'absolute', top: '-10%', left: '-10%' }, backgroundStyle]}
+      style={[
+        { width: '110%', height: '110%', position: 'absolute', top: '-10%', left: '-10%' },
+        backgroundStyle,
+      ]}
     />
   );
 }

@@ -4,8 +4,8 @@ import { View } from 'react-native';
 import CPVCard from '@/components/common/CPVCard';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { loadCPV } from '@/services/cpv';
-import { CPVCategory } from '@/types/CPVCategory';
-import { Product } from '@/types/Product';
+import type { CPVCategory } from '@/types/CPVCategory';
+import type { Product } from '@/types/Product';
 
 type searchParams = {
   typeSelection?: string;
@@ -27,7 +27,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   useEffect(() => {
     if (!typeSelection) return;
     router.setParams({ typeSelection: undefined });
-    onTypeChange?.(parseInt(typeSelection));
+    onTypeChange?.(parseInt(typeSelection, 10));
   }, [onTypeChange, router, typeSelection]);
 
   useEffect(() => {
@@ -53,8 +53,13 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   // Render
   return (
     <View>
-      <DetailSectionHeader title="Type or Material" tooltipTitle="Select a fitting category for the product." />
-      {selectedType ? <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} /> : null}
+      <DetailSectionHeader
+        title="Type or Material"
+        tooltipTitle="Select a fitting category for the product."
+      />
+      {selectedType ? (
+        <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} />
+      ) : null}
     </View>
   );
 }

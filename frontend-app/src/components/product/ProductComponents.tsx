@@ -1,16 +1,15 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
-
-import { useRouter } from 'expo-router';
 import { Text } from '@/components/base';
-import { useDialog } from '@/components/common/DialogProvider';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
 import { productComponents } from '@/services/api/fetching';
 import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
 import { setNewProductIntent } from '@/services/newProductStore';
-import { Product } from '@/types/Product';
+import type { Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -33,7 +32,7 @@ export default function ProductComponents({ product, editMode }: Props) {
 
   useEffect(() => {
     setExpanded(false);
-  }, [product.id]);
+  }, []);
 
   // Callbacks
   const newComponent = () => {

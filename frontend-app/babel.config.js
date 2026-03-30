@@ -1,7 +1,8 @@
-module.exports = function (api) {
+module.exports = (api) => {
   // Respect explicit Babel/NODE envs, then BUILD_MODE (used by our Docker builds),
   // otherwise default to development.
-  const env = process.env.BABEL_ENV ?? process.env.NODE_ENV ?? process.env.BUILD_MODE ?? 'development';
+  const env =
+    process.env.BABEL_ENV ?? process.env.NODE_ENV ?? process.env.BUILD_MODE ?? 'development';
   api.cache.using(() => env);
 
   // Treat staging as production-like for build optimizations.

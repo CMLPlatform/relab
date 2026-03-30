@@ -1,9 +1,8 @@
-import { describe, it, expect, jest, afterEach } from '@jest/globals';
-import React from 'react';
-import * as ReactNative from 'react-native';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
-import { Text } from '../Text';
+import * as ReactNative from 'react-native';
 import { renderWithProviders } from '@/test-utils';
+import { Text } from '../Text';
 
 describe('Text', () => {
   let useColorSchemeSpy: ReturnType<typeof jest.spyOn> | undefined;

@@ -6,8 +6,10 @@ export function isTimeoutError(error: unknown): error is TimeoutError {
     error instanceof TimeoutError ||
     (typeof error === 'object' &&
       error !== null &&
-      (error as any).name === 'TimeoutError' &&
-      typeof (error as any).timeoutMs === 'number')
+      'name' in error &&
+      error.name === 'TimeoutError' &&
+      'timeoutMs' in error &&
+      typeof error.timeoutMs === 'number')
   );
 }
 export const DEFAULT_API_TIMEOUT_MS = 15_000;
@@ -26,7 +28,10 @@ export type TimedRequestInit = RequestInit & {
   timeoutMs?: number;
 };
 
-export async function fetchWithTimeout(url: string | URL, options: TimedRequestInit = {}): Promise<Response> {
+export async function fetchWithTimeout(
+  url: string | URL,
+  options: TimedRequestInit = {},
+): Promise<Response> {
   const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, ...requestOptions } = options;
 
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
@@ -51,7 +56,7 @@ export async function fetchWithTimeout(url: string | URL, options: TimedRequestI
   // If we're in a Node.js environment (like Jest), unref the timer so it doesn't
   // keep the process alive if the request is still pending during teardown.
   if (timeoutId && typeof timeoutId === 'object' && 'unref' in timeoutId) {
-    (timeoutId as any).unref();
+    (timeoutId as { unref(): void }).unref();
   }
 
   try {

@@ -1,7 +1,7 @@
-import React from 'react';
-import { render } from '@testing-library/react-native';
-import type { RenderOptions } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { RenderOptions } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
+import type React from 'react';
 import { PaperProvider } from 'react-native-paper';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
