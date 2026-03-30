@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Self
 from pydantic import (
     AfterValidator,
     AwareDatetime,
+    BeforeValidator,
     ConfigDict,
     Field,
     PastDatetime,
@@ -44,6 +45,12 @@ if TYPE_CHECKING:
 
 
 MAX_TIMESTAMP_AGE: timedelta = timedelta(days=365)
+
+# Normalizes brand strings: strips whitespace and lowercases; empty string becomes None
+NormalizedBrand = Annotated[
+    str | None,
+    BeforeValidator(lambda v: v.strip().lower() or None if isinstance(v, str) else v),
+]
 
 
 ### Common Validators ###
@@ -177,6 +184,8 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
 
 class ProductCreateBase(BaseCreateSchema, ProductBase):
     """Base schema for product and component creation."""
+
+    brand: NormalizedBrand = Field(default=None, max_length=100)
 
     # Override base model start and end time to for validation purposes
     dismantling_time_start: ValidDateTime = Field(
@@ -349,7 +358,7 @@ class ProductUpdate(BaseUpdateSchema):
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    brand: str | None = Field(default=None, max_length=100)
+    brand: NormalizedBrand = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
 
     dismantling_notes: str | None = Field(default=None, max_length=500, description="Notes on the dismantling process")
