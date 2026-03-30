@@ -12,7 +12,7 @@ from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Column, Field, Relationship
 
-from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare, UUIDPrimaryKeyMixin
+from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare
 
 # Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
 
@@ -34,11 +34,10 @@ class UserBase(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
 
-class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, TimeStampMixinBare, table=True):
+class User(SQLModelBaseUserDB, CustomBaseBare, UserBase, TimeStampMixinBare, table=True):
     """Database model for platform users."""
 
-    # Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     # Login tracking
     last_login_at: datetime | None = Field(
@@ -93,11 +92,10 @@ class User(SQLModelBaseUserDB, CustomBaseBare, UUIDPrimaryKeyMixin, UserBase, Ti
 
 
 ### OAuthAccount Model ###
-class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare, table=True):
     """Database model for OAuth accounts. Note that the main implementation is in the base class."""
 
-    # Redefine id to allow None in the backend which is required by the > 2.12 pydantic/sqlmodel combo
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     # Redefine user_id to ensure the ForeignKey survives mixin inheritance.
     user_id: UUID4 = Field(foreign_key="user.id", nullable=False)
@@ -119,10 +117,10 @@ class OrganizationBase(CustomBase):
     description: str | None = Field(default=None, max_length=500)
 
 
-class Organization(OrganizationBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Organization(OrganizationBase, TimeStampMixinBare, table=True):
     """Database model for organizations."""
 
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
 
     # One-to-one relationship with owner User
     # Use sa_column with explicit ForeignKey to preserve constraint through mixin inheritance

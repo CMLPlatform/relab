@@ -12,7 +12,7 @@ a client secret and cannot be done client-side).
 """
 
 import logging
-from typing import Annotated, cast
+from typing import Annotated
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -107,7 +107,10 @@ async def _user_from_google_token(
     account_id: str = payload["sub"]
     email: str = payload["email"]
 
-    user = await user_manager.oauth_callback(
+    # ty false positive: User satisfies UserOAuthProtocol structurally but ty's
+    # generic Protocol-inheritance checker mishandles multi-level generic Protocols.
+    # Tracked upstream: https://github.com/astral-sh/ty/issues (invalid-argument-type)
+    user = await user_manager.oauth_callback(  # type: ignore[attr-defined]  # ty: ignore[invalid-argument-type]
         google_oauth_client.name,
         body.access_token or body.id_token,  # real access_token preferred for API storage
         account_id,
@@ -143,7 +146,7 @@ async def google_bearer_token(
     access_token = await strategy.write_token(user)
 
     redis_client = getattr(request.app.state, "redis", None)
-    refresh_token = await refresh_token_service.create_refresh_token(redis_client, cast("UUID4", user.id))
+    refresh_token = await refresh_token_service.create_refresh_token(redis_client, user.id)
 
     await update_last_login_metadata(user, request, user_manager.user_db.session)
     log_successful_login(user)

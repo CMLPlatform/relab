@@ -5,7 +5,7 @@ import uuid
 from pydantic import UUID4, EmailStr
 from sqlmodel import Field
 
-from app.api.common.models.base import CustomBase, TimeStampMixinBare, UUIDPrimaryKeyMixin
+from app.api.common.models.base import CustomBase, TimeStampMixinBare
 
 
 class NewsletterSubscriberBase(CustomBase):
@@ -14,8 +14,8 @@ class NewsletterSubscriberBase(CustomBase):
     email: EmailStr = Field(index=True, unique=True)
 
 
-class NewsletterSubscriber(NewsletterSubscriberBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class NewsletterSubscriber(NewsletterSubscriberBase, TimeStampMixinBare, table=True):
     """Database model for newsletter subscribers."""
 
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
     is_confirmed: bool = Field(default=False)

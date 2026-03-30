@@ -553,7 +553,9 @@ async def add_materials_to_product(
 
     # Validate no duplicate materials
     if db_product.bill_of_materials:
-        validate_no_duplicate_linked_items(normalized_material_ids, db_product.bill_of_materials, "Materials")
+        validate_no_duplicate_linked_items(
+            normalized_material_ids, db_product.bill_of_materials, "Materials", id_attr="material_id"
+        )
 
     # Create material-product links
     db_material_product_links: list[MaterialProductLink] = [
@@ -619,7 +621,7 @@ async def remove_materials_from_product(db: AsyncSession, product_id: int, mater
     product, normalized_material_ids = await _validate_product_material_links(db, product_id, material_ids)
 
     # Validate materials are actually assigned to the product
-    validate_linked_items_exist(normalized_material_ids, product.bill_of_materials, "Materials")
+    validate_linked_items_exist(normalized_material_ids, product.bill_of_materials, "Materials", id_attr="material_id")
 
     # Fetch material-product links to delete
     # Delete each material-product link

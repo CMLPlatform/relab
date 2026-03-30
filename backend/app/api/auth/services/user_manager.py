@@ -183,7 +183,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         """Revoke all refresh tokens when a user is deactivated."""
         if update_dict.get("is_active") is False:
             redis = getattr(request.app.state, "redis", None) if request else None
-            await refresh_token_service.revoke_all_user_tokens(redis, user.db_id)
+            await refresh_token_service.revoke_all_user_tokens(redis, user.id)
 
     async def on_after_login(
         self, user: User, request: Request | None = None, response: Response | None = None

@@ -29,7 +29,7 @@ async def init_camera(
     mode: CameraMode = Query(default=CameraMode.PHOTO, description="Camera mode (photo or video)"),
 ) -> CameraStatus:
     """Initialize camera for a given use mode (photo or video)."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     response = await camera_request(
         endpoint="/camera/open",
@@ -51,7 +51,7 @@ async def close_camera(
     current_user: CurrentActiveUserDep,
 ) -> CameraStatus:
     """Close camera and free resources."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     response = await camera_request(
         endpoint="/camera/close",

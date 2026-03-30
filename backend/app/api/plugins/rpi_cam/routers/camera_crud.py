@@ -46,7 +46,7 @@ async def get_user_cameras(
     include_status: bool = Query(default=False, description="Include camera online status"),
 ) -> Sequence[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
-    statement = select(Camera).where(Camera.owner_id == current_user.db_id)
+    statement = select(Camera).where(Camera.owner_id == current_user.id)
     db_cameras = await get_models(session, Camera, model_filter=camera_filter, statement=statement)
 
     return [
@@ -98,7 +98,7 @@ async def register_user_camera(
     db_camera = await crud.create_camera(
         session,
         camera,
-        current_user.db_id,
+        current_user.id,
     )
 
     return CameraReadWithCredentials.from_db_model_with_credentials(db_camera)

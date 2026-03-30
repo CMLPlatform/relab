@@ -130,7 +130,7 @@ async def create_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Create a new product."""
-    return await crud.create_product(session, product, current_user.db_id)
+    return await crud.create_product(session, product, current_user.id)
 
 
 @product_mutation_router.patch("/{product_id}", response_model=ProductReadWithProperties, summary="Update product")

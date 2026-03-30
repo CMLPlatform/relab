@@ -7,7 +7,7 @@ from enum import Enum
 from functools import cached_property
 from typing import Any, ClassVar, Self, cast
 
-from pydantic import UUID4, ConfigDict, model_validator
+from pydantic import ConfigDict, model_validator
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, SQLModel
@@ -16,7 +16,7 @@ from sqlmodel import Column, Field, SQLModel
 ### Base Model ###
 @dataclass
 class APIModelName:
-    """Holds derived names for a model — used in API routes and documentation."""
+    """Holds derived names for a model. Used in API routes and documentation."""
 
     name_camel: str  # The base name is expected to be in CamelCase
 
@@ -108,30 +108,6 @@ class CustomLinkingModelBase(CustomBase):
     """Base class for linking models."""
 
 
-class UUIDPrimaryKeyMixin:
-    """Mixin for models with a UUID primary key.
-
-    Provides a type-safe ``db_id`` property that returns the UUID without ``None``,
-    for use at call sites where the model is guaranteed to have been persisted to the DB.
-    The underlying ``id`` field remains ``UUID4 | None`` to satisfy SQLModel/pydantic
-    compatibility requirements (see https://github.com/fastapi/sqlmodel/issues/1623).
-    """
-
-    id: UUID4 | None  # Annotation only — actual SQLModel Field defined in the concrete model
-
-    @property
-    def db_id(self) -> UUID4:
-        """Return the non-None UUID primary key for a persisted model instance.
-
-        Raises:
-            ValueError: If ``id`` is ``None``, i.e. the model has not been committed to the DB.
-        """
-        if self.id is None:
-            msg = f"{type(self).__name__} has no ID — the instance may not have been committed to the DB yet."
-            raise ValueError(msg)
-        return self.id
-
-
 class IntPrimaryKeyMixin:
     """Mixin for models with an integer primary key.
 
@@ -139,7 +115,7 @@ class IntPrimaryKeyMixin:
     for use at call sites where the model is guaranteed to have been persisted to the DB.
     """
 
-    id: int | None  # Annotation only — actual SQLModel Field defined in the concrete model
+    id: int | None  # Annotation only; actual SQLModel Field defined in the concrete model
 
     @property
     def db_id(self) -> int:
@@ -149,7 +125,7 @@ class IntPrimaryKeyMixin:
             ValueError: If ``id`` is ``None``, i.e. the model has not been committed to the DB.
         """
         if self.id is None:
-            msg = f"{type(self).__name__} has no ID — the instance may not have been committed to the DB yet."
+            msg = f"{type(self).__name__} has no ID; the instance may not have been committed to the DB yet."
             raise ValueError(msg)
         return self.id
 

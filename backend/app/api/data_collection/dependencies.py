@@ -37,9 +37,9 @@ async def get_user_owned_product(
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
     """Verify that the current user owns the specified product."""
-    if product.owner_id == current_user.db_id or current_user.is_superuser:
+    if product.owner_id == current_user.id or current_user.is_superuser:
         return product
-    raise UserOwnershipError(model_type=Product, model_id=product.db_id, user_id=current_user.db_id) from None
+    raise UserOwnershipError(model_type=Product, model_id=product.db_id, user_id=current_user.id) from None
 
 
 UserOwnedProductDep = Annotated[Product, Depends(get_user_owned_product)]

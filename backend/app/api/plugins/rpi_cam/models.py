@@ -12,7 +12,7 @@ from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlmodel import AutoString, Field, Relationship
 
 from app.api.auth.models import User
-from app.api.common.models.base import CustomBase, TimeStampMixinBare, UUIDPrimaryKeyMixin
+from app.api.common.models.base import CustomBase, TimeStampMixinBare
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
 from app.core.cache import async_ttl_cache
@@ -66,7 +66,7 @@ class CameraBase(CustomBase):
     url: str = Field(description="HTTP(S) URL where the camera API is hosted", sa_type=AutoString)
 
 
-class Camera(CameraBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, table=True):
+class Camera(CameraBase, TimeStampMixinBare, table=True):
     """Database model for Camera."""
 
     id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)

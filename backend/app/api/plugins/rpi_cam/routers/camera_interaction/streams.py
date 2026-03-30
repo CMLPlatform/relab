@@ -68,7 +68,7 @@ async def get_camera_stream_status(
     current_user: CurrentActiveUserDep,
 ) -> StreamView:
     """Get current stream status."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     response = await camera_request(
         endpoint="/stream/status",
@@ -89,7 +89,7 @@ async def stop_all_streams(
     current_user: CurrentActiveUserDep,
 ) -> None:
     """Stop the active stream (either youtube recording or preview stream)."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     await camera_request(
         endpoint="/stream/stop",
@@ -131,7 +131,7 @@ async def start_recording(
     # Get Google OAuth account
     oauth_account = await session.scalar(
         select(OAuthAccount).where(
-            OAuthAccount.user_id == current_user.db_id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
+            OAuthAccount.user_id == current_user.id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
         )
     )
     if not oauth_account:
@@ -148,7 +148,7 @@ async def start_recording(
     )
 
     # Fetch user camera
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
 
     # Start Youtube stream
@@ -223,11 +223,11 @@ async def stop_recording(
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
 
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
 
     oauth_account = await session.scalar(
         select(OAuthAccount).where(
-            OAuthAccount.user_id == current_user.db_id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
+            OAuthAccount.user_id == current_user.id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
         )
     )
     if not oauth_account:
@@ -270,7 +270,7 @@ async def get_recording_monitor_stream(
     current_user: CurrentActiveUserDep,
 ) -> YouTubeMonitorStreamResponse:
     """Get the YouTube monitor stream configuration for the active recording."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
 
     stream_status_response = await camera_request(
@@ -288,7 +288,7 @@ async def get_recording_monitor_stream(
 
     oauth_account = await session.scalar(
         select(OAuthAccount).where(
-            OAuthAccount.user_id == current_user.db_id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
+            OAuthAccount.user_id == current_user.id, OAuthAccount.oauth_name == google_youtube_oauth_client.name
         )
     )
     if not oauth_account:
@@ -309,7 +309,7 @@ async def start_preview(
     current_user: CurrentActiveUserDep,
 ) -> StreamView:
     """Start local HLS preview stream. Stream will not be recorded."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     response = await camera_request(
         endpoint="/stream/start",
@@ -331,7 +331,7 @@ async def stop_preview(
     current_user: CurrentActiveUserDep,
 ) -> None:
     """Stop recording and save video to database."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
 
     await camera_request(
@@ -355,7 +355,7 @@ async def hls_file_proxy(
     current_user: CurrentActiveUserDep,
 ) -> Response:
     """Proxy HLS files from camera to client."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     response = await stream_from_camera_url(
         camera=camera,
         endpoint=f"/stream/hls/{file_path}",
@@ -392,7 +392,7 @@ async def watch_preview(
     Note: HTML viewer makes authenticated requests directly to camera's stream endpoint.
     """
     # Validate camera ownership
-    await get_user_owned_camera(session, camera_id, current_user.db_id, http_client)
+    await get_user_owned_camera(session, camera_id, current_user.id, http_client)
 
     return templates.TemplateResponse(
         "plugins/rpi_cam/remote_stream_viewer.html",

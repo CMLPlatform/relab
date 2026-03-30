@@ -151,8 +151,8 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
     try:
         await to_thread.run_sync(process_image_for_storage, image_path)
     except (ValueError, OSError) as e:
-        logger.warning("Image processing failed for image %s, rolling back: %s", db_image.db_id, e)
-        await delete_image(db, db_image.db_id)
+        logger.warning("Image processing failed for image %s, rolling back: %s", db_image.id, e)
+        await delete_image(db, db_image.id)
         raise ValueError(str(e)) from e
 
     return db_image

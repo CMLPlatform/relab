@@ -52,7 +52,7 @@ def serialize_file_read(file: File) -> FileReadWithinParent:
     """Convert a file model to its API read schema."""
     return FileReadWithinParent.model_validate(
         {
-            "id": file.db_id,
+            "id": file.id,
             "description": file.description,
             "filename": file.filename,
             "file_url": build_file_url(file),
@@ -66,7 +66,7 @@ def serialize_image_read(image: Image) -> ImageReadWithinParent:
     """Convert an image model to its API read schema."""
     return ImageReadWithinParent.model_validate(
         {
-            "id": image.db_id,
+            "id": image.id,
             "description": image.description,
             "image_metadata": image.image_metadata,
             "filename": image.filename,

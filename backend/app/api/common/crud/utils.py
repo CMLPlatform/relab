@@ -23,7 +23,7 @@ from app.api.common.crud.exceptions import (
 )
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import CustomBase
-from app.api.common.models.custom_types import ET, IDT, MT, FetchedModelT, HasDBID
+from app.api.common.models.custom_types import ET, IDT, MT
 from app.api.data_collection.models import Product
 from app.api.file_storage.models.models import MediaParentType
 
@@ -125,7 +125,7 @@ def clear_unloaded_relationships[T](
 
 
 ### Error Handling Utilities ###
-def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: IDT) -> FetchedModelT:
+def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: IDT) -> MT:
     """Ensure a model with a given ID exists, providing type-safe return.
 
     Args:
@@ -134,17 +134,17 @@ def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: ID
         model_id: ID that was queried
 
     Returns:
-        FetchedModelT: The model instance with guaranteed ID
+        MT: The model instance with guaranteed ID
 
     Raises:
         ModelNotFoundError: If model instance is None
     """
     if not db_result:
         raise ModelNotFoundError(model_type, model_id)
-    return cast("FetchedModelT", db_result)
+    return cast("MT", db_result)
 
 
-async def get_model_or_404(db: AsyncSession, model_type: type[MT], model_id: IDT) -> FetchedModelT:
+async def get_model_or_404(db: AsyncSession, model_type: type[MT], model_id: IDT) -> MT:
     """Get a model by ID or raise 404 error.
 
     Args:
@@ -153,7 +153,7 @@ async def get_model_or_404(db: AsyncSession, model_type: type[MT], model_id: IDT
         model_id: ID to fetch
 
     Returns:
-        FetchedModelT: The model instance with guaranteed ID
+        MT: The model instance with guaranteed ID
 
     Raises:
         ModelNotFoundError: If the model is not found
@@ -164,7 +164,7 @@ async def get_model_or_404(db: AsyncSession, model_type: type[MT], model_id: IDT
 
 async def get_models_by_ids_or_404(
     db: AsyncSession, model_type: type[MT], model_ids: set[int] | set[UUID]
-) -> list[FetchedModelT]:
+) -> list[MT]:
     """Get multiple models by IDs, raising error if any don't exist.
 
     Args:
@@ -173,7 +173,7 @@ async def get_models_by_ids_or_404(
         model_ids: Set of IDs that must all exist
 
     Returns:
-        list[FetchedModelT]: The model instances with guaranteed IDs
+        list[MT]: The model instances with guaranteed IDs
 
     Raises:
         CRUDConfigurationError: If model type doesn't have an id field
@@ -184,23 +184,23 @@ async def get_models_by_ids_or_404(
         raise CRUDConfigurationError(err_msg)
 
     statement = select(model_type).where(col(model_type.id).in_(model_ids))
-    found_models = list((await db.exec(statement)).all())
-    fetched_models = cast("list[FetchedModelT]", found_models)
+    found_models: list[MT] = list((await db.exec(statement)).all())
 
     if len(found_models) != len(model_ids):
-        found_ids: set[int | UUID] = {cast("int | UUID", model.id) for model in fetched_models}
+        found_ids: set[int | UUID] = {cast("int | UUID", model.id) for model in found_models}  # ty: ignore[unresolved-attribute]  # .id exists on all models but not on MT's bound
         missing_ids = cast("set[int | UUID]", model_ids) - found_ids
         raise ModelsNotFoundError(model_type, missing_ids)
 
-    return fetched_models
+    return found_models
 
 
 ### Linked Item Validation ###
 def validate_linked_items(
     item_ids: set[int] | set[UUID],
-    existing_items: Sequence[HasDBID] | None,
+    existing_items: Sequence[Any] | None,
     model_name_plural: str,
     *,
+    id_attr: str = "id",
     check_duplicates: bool = True,
     check_existence: bool = True,
 ) -> None:
@@ -210,9 +210,9 @@ def validate_linked_items(
         item_ids: Set of IDs to validate
         existing_items: Sequence of existing items to check against
         model_name_plural: Name of the item model for error messages
+        id_attr: Attribute name to read the ID from each item (default ``"id"``)
         check_duplicates: Whether to check if items are already assigned
         check_existence: Whether to check if items exist in the list
-        id_field: Field name for the ID in the model (default: "id")
 
     Raises:
         NoLinkedItemsError: If no items exist
@@ -222,7 +222,7 @@ def validate_linked_items(
     if not existing_items:
         raise NoLinkedItemsError(model_name_plural)
 
-    existing_ids = {item.db_id for item in existing_items}
+    existing_ids = {getattr(item, id_attr) for item in existing_items}
 
     if check_duplicates:
         duplicates = item_ids & existing_ids
@@ -266,14 +266,17 @@ def get_file_parent_type_model(parent_type: MediaParentType) -> type[CustomBase]
 
 def validate_no_duplicate_linked_items(
     new_ids: set[int] | set[UUID],
-    existing_items: Sequence[HasDBID] | None,
+    existing_items: Sequence[Any] | None,
     model_name_plural: str,
+    *,
+    id_attr: str = "id",
 ) -> None:
     """Validate that new items are not already in the existing items list."""
     validate_linked_items(
         new_ids,
         existing_items,
         model_name_plural,
+        id_attr=id_attr,
         check_duplicates=True,
         check_existence=False,
     )
@@ -281,14 +284,17 @@ def validate_no_duplicate_linked_items(
 
 def validate_linked_items_exist(
     item_ids: set[int] | set[UUID],
-    existing_items: Sequence[HasDBID] | None,
+    existing_items: Sequence[Any] | None,
     model_name_plural: str,
+    *,
+    id_attr: str = "id",
 ) -> None:
     """Validate that all item_ids are present in existing_items."""
     validate_linked_items(
         item_ids,
         existing_items,
         model_name_plural,
+        id_attr=id_attr,
         check_duplicates=False,
         check_existence=True,
     )

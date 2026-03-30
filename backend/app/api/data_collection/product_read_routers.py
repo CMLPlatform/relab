@@ -94,7 +94,7 @@ async def get_user_products(
     include_components_as_base_products: Annotated[bool | None, include_components_as_base_products_query()] = None,
 ) -> Page[Product]:
     """Get products collected by a specific user."""
-    if user_id != current_user.db_id and not current_user.is_superuser:
+    if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
 
     statement = select(Product).where(Product.owner_id == user_id)

@@ -14,7 +14,7 @@ from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
 from app.api.common.crud.utils import add_relationship_options, clear_unloaded_relationships, ensure_model_exists
-from app.api.common.models.custom_types import DT, IDT, MT, FetchedModelT
+from app.api.common.models.custom_types import DT, IDT, MT
 
 if TYPE_CHECKING:
     from fastapi_pagination import Page
@@ -125,7 +125,7 @@ async def get_models(
     model_filter: Filter | None = None,
     statement: SelectOfScalar[MT] | None = None,
     read_schema: type[BaseModel] | None = None,
-) -> list[FetchedModelT]:
+) -> list[MT]:
     """Get models with optional filtering and relationships.
 
     Args:
@@ -137,7 +137,7 @@ async def get_models(
         read_schema: Optional schema to validate relationships against
 
     Returns:
-        list[FetchedModelT]: List of model instances with guaranteed IDs
+        list[MT]: List of model instances with guaranteed IDs
     """
     statement, relationships_to_exclude = get_models_query(
         model,
@@ -148,7 +148,7 @@ async def get_models(
     )
     result: list[MT] = list((await db.exec(statement)).unique().all())
 
-    return cast("list[FetchedModelT]", clear_unloaded_relationships(result, relationships_to_exclude))
+    return clear_unloaded_relationships(result, relationships_to_exclude)
 
 
 async def get_paginated_models(
@@ -185,7 +185,7 @@ async def get_paginated_models(
 
     # Clear unloaded relationships for serialization
     result_page.items = cast(
-        "list[FetchedModelT]",
+        "list[MT]",
         clear_unloaded_relationships(result_page.items, relationships_to_exclude, db=db),
     )
 
@@ -225,7 +225,7 @@ async def get_model_by_id(
     *,
     include_relationships: set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
-) -> FetchedModelT:
+) -> MT:
     """Get a model by ID with specified relationships.
 
     Args:
@@ -236,7 +236,7 @@ async def get_model_by_id(
         read_schema: Optional schema to validate relationships against
 
     Returns:
-        FetchedModelT: Model instance with guaranteed ID
+        MT: Model instance with guaranteed ID
 
     Raises:
         CRUDConfigurationError: If model doesn't have an id field
@@ -268,7 +268,7 @@ async def get_nested_model_by_id(
     *,
     include_relationships: set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
-) -> FetchedModelT:
+) -> DT:
     """Get nested model by checking foreign key relationship.
 
     Args:
@@ -282,7 +282,7 @@ async def get_nested_model_by_id(
         read_schema: Optional schema to validate relationships against
 
     Returns:
-        FetchedModelT: Dependent model instance with guaranteed ID
+        DT: Dependent model instance with guaranteed ID
 
     Raises:
         CRUDConfigurationError: If dependent model doesn't have the specified foreign key
@@ -297,7 +297,7 @@ async def get_nested_model_by_id(
 
     # Get both models and validate existence
     await get_model_by_id(db, parent_model, parent_id)
-    dependent: FetchedModelT = await get_model_by_id(
+    dependent: DT = await get_model_by_id(
         db,
         dependent_model,
         dependent_id,

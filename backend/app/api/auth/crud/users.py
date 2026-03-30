@@ -74,7 +74,7 @@ async def add_user_role_in_organization_after_registration(
 
     if organization_data := user_create_data.get("organization"):
         # Create organization
-        organization = Organization(**organization_data, owner_id=user.db_id)
+        organization = Organization(**organization_data, owner_id=user.id)
         user_db.session.add(organization)
         await user_db.session.flush()
 

@@ -95,7 +95,7 @@ async def update_user_organization(
         db_organization = await get_model_by_id(
             db,
             Organization,
-            db_organization.db_id,
+            db_organization.id,
             include_relationships={"members", "owner"},
         )
         new_owner = next((member for member in db_organization.members if member.id == transfer_owner_id), None)
@@ -119,7 +119,7 @@ async def update_user_organization(
 
         current_owner.organization_role = OrganizationRole.MEMBER
         new_owner.organization_role = OrganizationRole.OWNER
-        db_organization.owner_id = new_owner.db_id
+        db_organization.owner_id = new_owner.id
 
     try:
         db.add(db_organization)

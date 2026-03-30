@@ -2,9 +2,8 @@
 
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from pydantic import UUID4
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.auth.config import settings as auth_settings
@@ -34,8 +33,7 @@ async def maybe_set_refresh_token_cookie(user: User, request: Request | None, re
         return
 
     redis = request.app.state.redis
-    user_id = cast("UUID4", user.id)
-    refresh_token = await refresh_token_service.create_refresh_token(redis, user_id)
+    refresh_token = await refresh_token_service.create_refresh_token(redis, user.id)
 
     if response is not None:
         response.set_cookie(

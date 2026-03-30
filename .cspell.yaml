@@ -64,7 +64,7 @@ words:
   - viewability
   - zenodo
 
-  # Temp
+  # Temp (added to cSpell repo, should be available in the next cSpell release)
   - ASGI
   - Caddyfile
   - cloudflared
@@ -79,6 +79,8 @@ words:
 ignoreWords:
   - ellipsize
   - htmlcov
+  - nosniff
   - piexif
   - worklets
   - xdist
+  - zxcvbn

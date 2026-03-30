@@ -15,7 +15,6 @@ from app.api.common.models.base import (
     IntPrimaryKeyMixin,
     SingleParentMixin,
     TimeStampMixinBare,
-    UUIDPrimaryKeyMixin,
 )
 from app.api.file_storage.models.storage import FileType, ImageType
 
@@ -41,10 +40,10 @@ class FileBase(CustomBase):
     api_model_name: ClassVar[APIModelName | None] = APIModelName(name_camel="File")
 
 
-class File(FileBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
+class File(FileBase, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
     """Database model for generic files stored in the local file system, using FastAPI-Storages."""
 
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
     filename: str = Field(description="Original file name of the file. Automatically generated.")
     file: FileType = Field(sa_column=Column(FileType, nullable=False), description="Local file path to the file")
 
@@ -74,10 +73,10 @@ class ImageBase(CustomBase):
     api_model_name: ClassVar[APIModelName | None] = APIModelName(name_camel="Image")
 
 
-class Image(ImageBase, UUIDPrimaryKeyMixin, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
+class Image(ImageBase, TimeStampMixinBare, SingleParentMixin[MediaParentType], table=True):
     """Database model for images stored in the local file system, using FastAPI-Storages."""
 
-    id: UUID4 | None = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
     filename: str = Field(description="Original file name of the image. Automatically generated.", nullable=False)
     file: ImageType = Field(
         sa_column=Column(ImageType, nullable=False),
