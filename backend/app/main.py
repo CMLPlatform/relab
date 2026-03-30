@@ -82,7 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     app.state.http_client = create_http_client()
 
     # Limit concurrent image resize workers to avoid thread pool exhaustion
-    app.state.image_resize_limiter = anyio.CapacityLimiter(10)
+    app.state.image_resize_limiter = anyio.CapacityLimiter(settings.image_resize_workers)
 
     logger.info("Application startup complete")
 

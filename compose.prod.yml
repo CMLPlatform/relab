@@ -8,6 +8,19 @@ services:
       ENVIRONMENT: prod
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
+      # ── Resource knobs ──────────────────────────────────────────────────────────
+      # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
+      # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
+      # Lower WEB_CONCURRENCY to reduce load on a shared server.
+      #
+      #                    per worker  x  workers  =  total
+      # Image threads:          5      x     4     =   20  (CPU-bound)
+      # DB connections:    10 + 10     x     4     =   80  (PostgreSQL default max=100)
+      # Outbound HTTP:        100      x     4     =  400  (mostly idle)
+      WEB_CONCURRENCY: "4"
+      IMAGE_RESIZE_WORKERS: "5"
+      DB_POOL_SIZE: "10"
+      DB_POOL_MAX_OVERFLOW: "10"
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   backend-user-upload-backups: # Automated user uploads backups to local file system

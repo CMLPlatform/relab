@@ -114,7 +114,26 @@ class CoreSettings(RelabBaseSettings):
     # Cache settings
     cache: CacheSettings = Field(default_factory=CacheSettings)
 
-    # File cleanup settings
+    # ── Concurrency & connection limits ──────────────────────────────────────────
+    # WEB_CONCURRENCY (set in compose.prod.yml) is read by Uvicorn before Python
+    # boots and controls worker process count. All values below are per-worker;
+    # effective totals = WEB_CONCURRENCY x per-worker value.
+    #
+    #   Resource           per worker   x workers = total (at WEB_CONCURRENCY=4)
+    #   DB connections     10 + 10      x    4    =  80  (PostgreSQL default max=100)
+    #   Image threads           5       x    4    =  20  (CPU-bound; keep <= cores)
+    #   Outbound HTTP         100       x    4    = 400  (email/APIs; mostly idle)
+    #
+    # Background tasks (file cleanup, email refresh) are single async coroutines
+    # and need no pool tuning.
+
+    db_pool_size: int = Field(default=10, ge=1, le=50)            # asyncpg connections held open per worker
+    db_pool_max_overflow: int = Field(default=10, ge=0, le=50)    # extra connections allowed under peak load
+    image_resize_workers: int = Field(default=5, ge=1, le=64)     # concurrent CPU-bound resize threads per worker
+    http_max_connections: int = Field(default=100, ge=1, le=1000) # outbound httpx connections per worker
+    http_max_keepalive_connections: int = Field(default=20, ge=0, le=1000)
+
+    # ── File cleanup ──────────────────────────────────────────────────────────────
     file_cleanup_enabled: bool = True
     file_cleanup_interval_hours: int = 24
     file_cleanup_min_file_age_minutes: int = 30

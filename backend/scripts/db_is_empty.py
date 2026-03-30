@@ -13,10 +13,9 @@ when using it from shell scripts that only care about the exit status.
 import argparse
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CursorResult, Engine, Inspector, MetaData, Select, Table, inspect, select
-from sqlmodel import create_engine
+from sqlalchemy import CursorResult, Inspector, MetaData, Select, Table, inspect, select
 
-from app.core.config import settings
+from scripts.db_sync import sync_engine
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -24,9 +23,6 @@ if TYPE_CHECKING:
 
 EXIT_EMPTY = 0
 EXIT_NOT_EMPTY = 10
-
-sync_engine: Engine = create_engine(settings.sync_database_url, echo=False)
-
 
 def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
     """Check if the database is empty by inspecting all tables, ignoring the alembic_version table."""

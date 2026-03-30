@@ -1,26 +1,30 @@
-"""Database initialization and session management."""
+"""Async database initialization and session management."""
 
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
-from sqlmodel import Session
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.config import settings
 from app.core.model_registry import load_sqlmodel_models
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Generator
+    from collections.abc import AsyncGenerator
 
 
 # Ensure ORM class registry is populated before sessions are created.
 load_sqlmodel_models()
 
 ### Async database connection
-async_engine: AsyncEngine = create_async_engine(settings.async_database_url, future=True, echo=settings.debug)
+async_engine: AsyncEngine = create_async_engine(
+    settings.async_database_url,
+    future=True,
+    echo=settings.debug,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_pool_max_overflow,
+)
 async_sessionmaker_factory = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -37,17 +41,3 @@ async def close_async_engine() -> None:
 
 # Async session context manager for 'async with' statements
 async_session_context = asynccontextmanager(get_async_session)
-
-
-### Sync database connection
-sync_engine = create_engine(settings.sync_database_url, echo=settings.debug)
-
-
-@contextmanager
-def sync_session_context() -> Generator[Session]:
-    """Get a new synchronous database session."""
-    with Session(sync_engine) as session:
-        try:
-            yield session
-        finally:
-            session.close()
