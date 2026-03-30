@@ -17,8 +17,8 @@ from app.api.background_data.models import (
     ProductType,  # Adjust import as needed
     TaxonomyDomain,
 )
-from app.core.database import sync_session_context
 from app.core.logging import setup_logging
+from scripts.db_sync import sync_session_context
 from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
 
 if TYPE_CHECKING:
