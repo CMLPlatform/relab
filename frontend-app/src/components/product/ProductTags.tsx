@@ -1,9 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { JSX, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, useColorScheme, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip, InfoTooltip, Text } from '@/components/base';
-import DarkTheme from '@/assets/themes/dark';
-import LightTheme from '@/assets/themes/light';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import { useSearchBrandsQuery } from '@/hooks/useProductQueries';
@@ -108,8 +107,7 @@ function AmountChip({
   editMode: boolean;
   onAmountChange?: (n: number) => void;
 }): JSX.Element {
-  const darkMode = useColorScheme() === 'dark';
-  const theme = darkMode ? DarkTheme : LightTheme;
+  const { colors } = useAppTheme();
   const amount = product.amountInParent ?? 1;
   const [inputValue, setInputValue] = useState(String(amount));
 
@@ -134,13 +132,13 @@ function AmountChip({
   };
 
   return (
-    <View style={[amountStyles.container, darkMode ? amountStyles.containerDark : null]}>
+    <View style={[amountStyles.container, { backgroundColor: colors.primaryContainer }]}>
       <View style={amountStyles.titleRow}>
-        <Text style={[amountStyles.titleText, darkMode ? amountStyles.titleTextDark : null]}>Amount</Text>
+        <Text style={[amountStyles.titleText, { color: colors.onPrimaryContainer }]}>Amount</Text>
         <InfoTooltip title="How many times this component occurs in its parent" />
       </View>
       {editMode ? (
-        <View style={[amountStyles.editorRow, { backgroundColor: theme.colors.primary }]}>
+        <View style={[amountStyles.editorRow, { backgroundColor: colors.primary }]}>
           <Pressable
             onPress={() => commit(amount - 1)}
             disabled={amount <= 1}
@@ -148,14 +146,14 @@ function AmountChip({
             accessibilityRole="button"
             accessibilityLabel="Decrease amount"
           >
-            <MaterialCommunityIcons name="minus" size={14} color={theme.colors.onPrimary} />
+            <MaterialCommunityIcons name="minus" size={14} color={colors.onPrimary} />
           </Pressable>
           <TextInput
             value={inputValue}
             onChangeText={handleTextChange}
             onBlur={handleBlur}
             keyboardType="numeric"
-            style={[amountStyles.input, { color: theme.colors.onPrimary }]}
+            style={[amountStyles.input, { color: colors.onPrimary }]}
             accessibilityLabel="Amount"
           />
           <Pressable
@@ -165,11 +163,13 @@ function AmountChip({
             accessibilityRole="button"
             accessibilityLabel="Increase amount"
           >
-            <MaterialCommunityIcons name="plus" size={14} color={theme.colors.onPrimary} />
+            <MaterialCommunityIcons name="plus" size={14} color={colors.onPrimary} />
           </Pressable>
         </View>
       ) : (
-        <Text style={[amountStyles.valueText, darkMode ? amountStyles.valueTextDark : null]}>{String(amount)}</Text>
+        <Text style={[amountStyles.valueText, { backgroundColor: colors.primary, color: colors.onPrimary }]}>
+          {String(amount)}
+        </Text>
       )}
     </View>
   );
@@ -180,10 +180,6 @@ const amountStyles = StyleSheet.create({
     borderRadius: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: LightTheme.colors.primaryContainer,
-  },
-  containerDark: {
-    backgroundColor: DarkTheme.colors.primaryContainer,
   },
   titleRow: {
     flexDirection: 'row',
@@ -194,10 +190,6 @@ const amountStyles = StyleSheet.create({
     paddingLeft: 12,
     fontWeight: '500',
     fontSize: 15,
-    color: LightTheme.colors.onPrimaryContainer,
-  },
-  titleTextDark: {
-    color: DarkTheme.colors.onPrimaryContainer,
   },
   valueText: {
     paddingVertical: 8,
@@ -205,12 +197,6 @@ const amountStyles = StyleSheet.create({
     borderRadius: 5,
     fontWeight: '500',
     fontSize: 15,
-    backgroundColor: LightTheme.colors.primary,
-    color: LightTheme.colors.onPrimary,
-  },
-  valueTextDark: {
-    backgroundColor: DarkTheme.colors.primary,
-    color: DarkTheme.colors.onPrimary,
   },
   editorRow: {
     flexDirection: 'row',

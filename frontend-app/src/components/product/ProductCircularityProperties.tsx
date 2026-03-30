@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Fragment, useState } from 'react';
-import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
-import DarkTheme from '@/assets/themes/dark';
-import LightTheme from '@/assets/themes/light';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { Chip, Text, TextInput } from '@/components/base';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import { spacing, radius } from '@/constants/layout';
 import { CircularityProperties, Product } from '@/types/Product';
 
 interface Props {
@@ -33,8 +33,7 @@ interface CircularityPropertySectionProps {
 }
 
 export default function ProductCircularityProperties({ product, editMode, onChangeCircularityProperties }: Props) {
-  const darkMode = useColorScheme() === 'dark';
-  const theme = darkMode ? DarkTheme : LightTheme;
+  const { colors } = useAppTheme();
   const [isSectionExpanded, setIsSectionExpanded] = useState(false);
   const [expandedProperty, setExpandedProperty] = useState<CircularityPropertyType | null>(null);
 
@@ -136,8 +135,12 @@ export default function ProductCircularityProperties({ product, editMode, onChan
           title="Circularity Properties"
           tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
           rightElement={
-            <Pressable onPress={() => setIsSectionExpanded(true)}>
-              <Text style={{ fontWeight: '600', color: theme.colors.primary }}>Show</Text>
+            <Pressable
+              onPress={() => setIsSectionExpanded(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Show circularity properties"
+            >
+              <Text style={{ fontWeight: '600', color: colors.primary }}>Show</Text>
             </Pressable>
           }
         />
@@ -156,8 +159,12 @@ export default function ProductCircularityProperties({ product, editMode, onChan
         title="Circularity Properties"
         tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
         rightElement={
-          <Pressable onPress={() => setIsSectionExpanded(false)}>
-            <Text style={{ fontWeight: '600', color: theme.colors.primary }}>Hide</Text>
+          <Pressable
+            onPress={() => setIsSectionExpanded(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Hide circularity properties"
+          >
+            <Text style={{ fontWeight: '600', color: colors.primary }}>Hide</Text>
           </Pressable>
         }
       />
@@ -174,7 +181,7 @@ export default function ProductCircularityProperties({ product, editMode, onChan
             <Chip
               key={type}
               onPress={() => addProperty(type)}
-              icon={<MaterialCommunityIcons name="plus" size={16} color={theme.colors.onPrimary} />}
+              icon={<MaterialCommunityIcons name="plus" size={16} color={colors.onPrimary} />}
             >
               {propertyLabels[type]}
             </Chip>
@@ -211,8 +218,7 @@ function CircularityPropertySection({
   onRemove,
   onUpdateField,
 }: CircularityPropertySectionProps) {
-  const darkMode = useColorScheme() === 'dark';
-  const theme = darkMode ? DarkTheme : LightTheme;
+  const { colors } = useAppTheme();
 
   const commentKey = `${type}Comment` as keyof CircularityProperties;
   const observationKey = `${type}Observation` as keyof CircularityProperties;
@@ -229,7 +235,7 @@ function CircularityPropertySection({
 
   return (
     <Fragment>
-      <View style={[styles.divider, darkMode && styles.dividerDark]} />
+      <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
       <View style={styles.propertySection}>
         <View style={styles.propertyHeader}>
           <Text style={styles.propertyTitle}>{propertyLabels[type]}</Text>
@@ -237,19 +243,23 @@ function CircularityPropertySection({
             <Pressable
               onPress={onToggleExpanded}
               style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={isExpanded ? `Collapse ${propertyLabels[type]}` : `Expand ${propertyLabels[type]}`}
             >
               <MaterialCommunityIcons
                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
                 size={24}
-                color={theme.colors.onSurface}
+                color={colors.onSurface}
               />
             </Pressable>
             {editMode && (
               <Pressable
                 onPress={onRemove}
                 style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${propertyLabels[type]}`}
               >
-                <MaterialCommunityIcons name="delete" size={24} color={theme.colors.onSurface} />
+                <MaterialCommunityIcons name="delete" size={24} color={colors.onSurface} />
               </Pressable>
             )}
           </View>
@@ -260,7 +270,7 @@ function CircularityPropertySection({
             {/* Observation field - always show in edit mode, only show if has content in view mode */}
             {(editMode || hasContent(observation)) && (
               <View>
-                <Text style={[styles.label, darkMode && styles.labelDark]}>Observation (Required)</Text>
+                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Observation (Required)</Text>
                 <TextInput
                   value={String(observation || '')}
                   onChangeText={(text) => onUpdateField('observation', text)}
@@ -270,9 +280,16 @@ function CircularityPropertySection({
                   style={[
                     styles.input,
                     styles.multilineInput,
-                    darkMode && styles.inputDark,
-                    editMode && !observation && styles.inputError,
-                    editMode && !observation && darkMode && styles.inputErrorDark,
+                    {
+                      borderColor: colors.outline,
+                      backgroundColor: colors.surface,
+                      color: colors.onSurface,
+                    },
+                    editMode &&
+                      !observation && {
+                        borderColor: colors.error,
+                        backgroundColor: colors.errorContainer,
+                      },
                   ]}
                   errorOnEmpty={editMode && !observation}
                 />
@@ -282,14 +299,22 @@ function CircularityPropertySection({
             {/* Comment field - always show in edit mode, only show if has content in view mode */}
             {(editMode || hasContent(comment)) && (
               <View>
-                <Text style={[styles.label, darkMode && styles.labelDark]}>Comment (Optional)</Text>
+                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Comment (Optional)</Text>
                 <TextInput
                   value={String(comment || '')}
                   onChangeText={(text) => onUpdateField('comment', text)}
                   multiline
                   numberOfLines={2}
                   editable={editMode}
-                  style={[styles.input, styles.multilineInput, darkMode && styles.inputDark]}
+                  style={[
+                    styles.input,
+                    styles.multilineInput,
+                    {
+                      borderColor: colors.outline,
+                      backgroundColor: colors.surface,
+                      color: colors.onSurface,
+                    },
+                  ]}
                 />
               </View>
             )}
@@ -297,12 +322,19 @@ function CircularityPropertySection({
             {/* Reference field - always show in edit mode, only show if has content in view mode */}
             {(editMode || hasContent(reference)) && (
               <View>
-                <Text style={[styles.label, darkMode && styles.labelDark]}>Reference (Optional)</Text>
+                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>Reference (Optional)</Text>
                 <TextInput
                   value={String(reference || '')}
                   onChangeText={(text) => onUpdateField('reference', text)}
                   editable={editMode}
-                  style={[styles.input, darkMode && styles.inputDark]}
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: colors.outline,
+                      backgroundColor: colors.surface,
+                      color: colors.onSurface,
+                    },
+                  ]}
                   placeholder="e.g., ISO 14021:2016"
                 />
               </View>
@@ -319,14 +351,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: spacing.sm,
   },
   divider: {
     height: 1,
-    backgroundColor: LightTheme.colors.outlineVariant,
-  },
-  dividerDark: {
-    backgroundColor: DarkTheme.colors.outlineVariant,
   },
   propertySection: {
     paddingVertical: 14,
@@ -344,15 +372,14 @@ const styles = StyleSheet.create({
   propertyActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: spacing.xs,
   },
   iconButton: {
-    padding: 8,
+    padding: spacing.sm,
     borderRadius: 20,
   },
   iconButtonPressed: {
     opacity: 0.6,
-    backgroundColor: LightTheme.colors.surfaceVariant,
   },
   propertyFields: {
     gap: 12,
@@ -361,32 +388,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 6,
-    color: LightTheme.colors.onSurfaceVariant,
-  },
-  labelDark: {
-    color: DarkTheme.colors.onSurfaceVariant,
   },
   input: {
     borderWidth: 1,
-    borderColor: LightTheme.colors.outline,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     padding: 12,
     fontSize: 16,
-    backgroundColor: LightTheme.colors.surface,
-    color: LightTheme.colors.onSurface,
-  },
-  inputDark: {
-    borderColor: DarkTheme.colors.outline,
-    backgroundColor: DarkTheme.colors.surface,
-    color: DarkTheme.colors.onSurface,
-  },
-  inputError: {
-    borderColor: LightTheme.colors.error,
-    backgroundColor: LightTheme.colors.errorContainer,
-  },
-  inputErrorDark: {
-    borderColor: DarkTheme.colors.error,
-    backgroundColor: DarkTheme.colors.errorContainer,
   },
   multilineInput: {
     minHeight: 80,

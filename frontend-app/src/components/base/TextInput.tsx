@@ -1,7 +1,6 @@
 import React from 'react';
-import { TextInput as NativeTextInput, TextInputProps, StyleSheet, useColorScheme } from 'react-native';
-import DarkTheme from '@/assets/themes/dark';
-import LightTheme from '@/assets/themes/light';
+import { TextInput as NativeTextInput, TextInputProps, StyleSheet } from 'react-native';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
 interface Props extends TextInputProps {
   errorOnEmpty?: boolean;
@@ -10,7 +9,7 @@ interface Props extends TextInputProps {
 }
 
 export function TextInput({ style, children, errorOnEmpty = false, customValidation, ref, ...props }: Props) {
-  const darkMode = useColorScheme() === 'dark';
+  const { colors } = useAppTheme();
   const emptyError = errorOnEmpty && (!props.value || props.value === '');
   const validationError = customValidation && props.value && !customValidation(props.value);
   const error = emptyError || validationError;
@@ -20,12 +19,11 @@ export function TextInput({ style, children, errorOnEmpty = false, customValidat
       ref={ref}
       style={[
         styles.input,
-        error ? styles.inputError : null,
-        darkMode && !error ? styles.inputDark : null,
-        darkMode && error ? styles.inputErrorDark : null,
+        { color: colors.onSurface },
+        error && { backgroundColor: colors.errorContainer, color: colors.onErrorContainer },
         style,
       ]}
-      placeholderTextColor={darkMode ? DarkTheme.colors.onSurface : LightTheme.colors.onSurface}
+      placeholderTextColor={colors.onSurface}
       {...props}
     >
       {children}
@@ -36,17 +34,5 @@ export function TextInput({ style, children, errorOnEmpty = false, customValidat
 const styles = StyleSheet.create({
   input: {
     fontFamily: 'System',
-    color: LightTheme.colors.onSurface,
-  },
-  inputDark: {
-    color: DarkTheme.colors.onSurface,
-  },
-  inputError: {
-    backgroundColor: LightTheme.colors.errorContainer,
-    color: LightTheme.colors.onErrorContainer,
-  },
-  inputErrorDark: {
-    backgroundColor: DarkTheme.colors.errorContainer,
-    color: DarkTheme.colors.onErrorContainer,
   },
 });

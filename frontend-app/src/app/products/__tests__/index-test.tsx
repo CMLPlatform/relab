@@ -1,10 +1,10 @@
-import { renderWithProviders } from '@/test-utils';
-import type { User } from '@/types/User';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Products from '../index';
+import type { User } from '@/types/User';
+import { renderWithProviders } from '@/test-utils';
 const mockUseAuth = jest.fn();
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────

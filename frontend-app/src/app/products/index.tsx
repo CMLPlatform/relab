@@ -8,6 +8,7 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   View,
   useColorScheme,
   useWindowDimensions,
@@ -873,39 +874,39 @@ export default function Products() {
   );
 }
 
-const styles = {
+const styles = StyleSheet.create({
   welcomeCard: {
     marginHorizontal: 0,
     borderRadius: 24,
-    overflow: 'hidden' as const,
+    overflow: 'hidden',
   },
   welcomeCardContent: {
     gap: 12,
   },
   welcomeHeaderRow: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   welcomeIcon: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   welcomeTitle: {
     fontSize: 19,
-    fontWeight: '800' as const,
+    fontWeight: '800',
     lineHeight: 24,
   },
   welcomeBody: {
     gap: 0,
   },
   welcomeSentence: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   welcomeBodyText: {
     fontSize: 14,
@@ -916,30 +917,30 @@ const styles = {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    alignSelf: 'center' as const,
+    alignSelf: 'center',
   },
   inlineButtonText: {
     fontSize: 14,
-    fontWeight: '700' as const,
+    fontWeight: '700',
   },
   inlineProfilePill: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
-    alignSelf: 'center' as const,
+    alignSelf: 'center',
   },
   inlineProfileText: {
     fontSize: 14,
-    fontWeight: '700' as const,
+    fontWeight: '700',
   },
   emptyStateBody: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyStateText: {
     fontSize: 14,
@@ -950,9 +951,9 @@ const styles = {
     flex: 1,
   },
   welcomeActions: {
-    flexDirection: 'row' as const,
-    justifyContent: 'flex-end' as const,
-    flexWrap: 'wrap' as const,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
     gap: 8,
   },
-};
+});

@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip, useTheme } from 'react-native-paper';
+import { spacing, radius } from '@/constants/layout';
 
 const getIsMobileWeb = () =>
   Platform.OS === 'web' && typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -28,6 +29,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           style={styles.iconContainer}
           testID="info-pressable"
           accessibilityRole="button"
+          accessibilityLabel={`Info: ${title}`}
         >
           <MaterialCommunityIcons
             name="information-outline"
@@ -65,7 +67,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
 
 const styles = StyleSheet.create({
   iconContainer: {
-    padding: 8,
+    padding: spacing.sm,
   },
   overlay: {
     flex: 1,
@@ -75,8 +77,8 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     padding: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
     maxWidth: '80%',
     minWidth: 200,
     elevation: 3,

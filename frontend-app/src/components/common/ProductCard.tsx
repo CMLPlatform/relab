@@ -1,23 +1,12 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
 import { Card, Icon, useTheme } from 'react-native-paper';
 import { Product } from '@/types/Product';
 import { Text } from '@/components/base';
 
-const rtf =
-  Platform.OS === 'web' || Platform.OS === 'ios' ? new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' }) : null;
-
-function formatFallback(value: number, unit: 'year' | 'month' | 'day'): string {
-  if (value === 0 && unit === 'day') return 'today';
-  if (value === -1 && unit === 'day') return 'yesterday';
-  if (value === 1 && unit === 'day') return 'tomorrow';
-
-  const abs = Math.abs(value);
-  const plural = abs === 1 ? '' : 's';
-  return value < 0 ? `${abs} ${unit}${plural} ago` : `in ${abs} ${unit}${plural}`;
-}
+const rtf = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
 
 function relativeTime(isoString?: string): string | null {
   if (!isoString) return null;
@@ -26,13 +15,9 @@ function relativeTime(isoString?: string): string | null {
   const diffDays = Math.round((ms - Date.now()) / 86_400_000);
   const diffMonths = Math.round(diffDays / 30);
   const diffYears = Math.round(diffDays / 365);
-  if (Math.abs(diffYears) >= 1) {
-    return rtf ? rtf.format(diffYears, 'year') : formatFallback(diffYears, 'year');
-  }
-  if (Math.abs(diffMonths) >= 1) {
-    return rtf ? rtf.format(diffMonths, 'month') : formatFallback(diffMonths, 'month');
-  }
-  return rtf ? rtf.format(diffDays, 'day') : formatFallback(diffDays, 'day');
+  if (Math.abs(diffYears) >= 1) return rtf.format(diffYears, 'year');
+  if (Math.abs(diffMonths) >= 1) return rtf.format(diffMonths, 'month');
+  return rtf.format(diffDays, 'day');
 }
 
 interface Props {
@@ -42,28 +27,20 @@ interface Props {
 }
 
 export default function ProductCard({ product, enabled = true, showOwner = false }: Props) {
-  // Hooks
   const router = useRouter();
   const theme = useTheme();
   const placeholderImageUrl = `https://placehold.co/80x80/png?text=${product.name.replaceAll(' ', '+')}`;
-  const [thumbnailUri, setThumbnailUri] = useState(product.thumbnailUrl ?? placeholderImageUrl);
+  const [hadError, setHadError] = useState(false);
 
-  // Variables
+  const thumbnailUri = hadError ? placeholderImageUrl : (product.thumbnailUrl ?? placeholderImageUrl);
   const detailList = [product.brand, product.model, product.productTypeName].filter(Boolean);
   const createdAgo = relativeTime(product.createdAt);
   const ownerLabel = showOwner ? (product.ownedBy === 'me' ? 'you' : (product.ownerUsername ?? null)) : null;
 
-  useEffect(() => {
-    setThumbnailUri(product.thumbnailUrl ?? placeholderImageUrl);
-  }, [product.thumbnailUrl, placeholderImageUrl]);
-
-  // Callbacks
   const navigateToProduct = () => {
-    const params = { id: product.id };
-    router.push({ pathname: '/products/[id]', params: params });
+    router.push({ pathname: '/products/[id]', params: { id: product.id } });
   };
 
-  // Render
   return (
     <Card
       elevation={2}
@@ -71,7 +48,6 @@ export default function ProductCard({ product, enabled = true, showOwner = false
       style={{ marginHorizontal: 10, marginVertical: 5 }}
     >
       <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }}>
-        {/* Thumbnail */}
         <View
           style={{
             width: 80,
@@ -82,21 +58,13 @@ export default function ProductCard({ product, enabled = true, showOwner = false
             marginRight: 16,
           }}
         >
-          {thumbnailUri ? (
-            <Image
-              source={{ uri: thumbnailUri }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-              onError={() => {
-                if (thumbnailUri !== placeholderImageUrl) setThumbnailUri(placeholderImageUrl);
-              }}
-              testID="product-thumbnail"
-            />
-          ) : (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, color: theme.colors.onSurfaceVariant }}>📦</Text>
-            </View>
-          )}
+          <Image
+            source={{ uri: thumbnailUri }}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            onError={() => setHadError(true)}
+            testID="product-thumbnail"
+          />
         </View>
 
         {/* Content */}

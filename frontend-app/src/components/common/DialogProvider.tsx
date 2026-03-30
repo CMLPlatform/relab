@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -68,8 +68,11 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
   // Hooks
   const theme = useTheme();
 
-  // States
+  // States — reset when options change (e.g. opening a new dialog)
   const [inputValue, setInputValue] = useState(options?.defaultValue || '');
+  useEffect(() => {
+    setInputValue(options?.defaultValue || '');
+  }, [options]);
 
   // Callbacks
   const handleClose = (btn?: DialogButton) => {

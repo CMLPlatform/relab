@@ -67,7 +67,12 @@ export function HeaderRight() {
   if (user) {
     const username = user.username.length > 16 ? user.username.slice(0, 14) + '…' : user.username;
     return (
-      <Pressable onPress={() => router.push('/profile')} style={pill}>
+      <Pressable
+        onPress={() => router.push('/profile')}
+        style={pill}
+        accessibilityRole="button"
+        accessibilityLabel={`Profile: ${username}`}
+      >
         <MaterialCommunityIcons name="account-circle" size={18} color={theme.colors.onBackground} />
         <Text style={primaryText} numberOfLines={1}>
           {username}
@@ -77,7 +82,12 @@ export function HeaderRight() {
   }
 
   return (
-    <Pressable onPress={() => router.push('/login')} style={pill}>
+    <Pressable
+      onPress={() => router.push('/login')}
+      style={pill}
+      accessibilityRole="button"
+      accessibilityLabel="Sign in"
+    >
       <Text style={primaryText}>Sign In</Text>
     </Pressable>
   );

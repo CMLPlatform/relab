@@ -234,6 +234,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
                   void updateCurrentIndex(index);
                   setLightboxOpen(true);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`View image ${index + 1}`}
               >
                 <Image source={{ uri: item }} contentFit="cover" style={{ width, height: IMAGE_HEIGHT }} />
               </Pressable>
@@ -383,6 +385,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
             {showCameraOption && (
               <Pressable
                 onPress={handleTakePhoto}
+                accessibilityRole="button"
+                accessibilityLabel="Take photo with camera"
                 style={{
                   flex: 1,
                   backgroundColor: '#eee',
@@ -400,6 +404,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
             )}
             <Pressable
               onPress={handlePickImage}
+              accessibilityRole="button"
+              accessibilityLabel="Add photos from gallery"
               style={{
                 flex: 1,
                 backgroundColor: '#eee',
@@ -432,6 +438,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
                   void updateCurrentIndex(index);
                   scrollToIndex(index);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Select image ${index + 1}`}
                 style={{
                   marginRight: 8,
                   borderRadius: 6,
@@ -699,6 +707,8 @@ function Lightbox({
                 hitSlop={15}
                 style={{ opacity: index === 0 ? 0.3 : 1, padding: 8 }}
                 disabled={index === 0}
+                accessibilityRole="button"
+                accessibilityLabel="Previous image"
               >
                 <Icon source="chevron-left" size={32} color="white" />
               </Pressable>
@@ -712,6 +722,8 @@ function Lightbox({
                 hitSlop={15}
                 style={{ opacity: index === images.length - 1 ? 0.3 : 1, padding: 8 }}
                 disabled={index === images.length - 1}
+                accessibilityRole="button"
+                accessibilityLabel="Next image"
               >
                 <Icon source="chevron-right" size={32} color="white" />
               </Pressable>

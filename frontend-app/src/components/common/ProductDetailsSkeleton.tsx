@@ -1,33 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-
+import { Skeleton } from '@/components/base';
 import DetailCard from '@/components/common/DetailCard';
-
-function SkeletonBox({ style }: { style?: object }) {
-  const opacity = useRef(new Animated.Value(0.4)).current;
-
-  useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.4,
-          duration: 800,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ]),
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [opacity]);
-
-  return <Animated.View style={[{ opacity }, style]} />;
-}
+import { spacing, radius } from '@/constants/layout';
 
 export default function ProductDetailsSkeleton() {
   const theme = useTheme();
@@ -36,21 +11,21 @@ export default function ProductDetailsSkeleton() {
   return (
     <ScrollView contentContainerStyle={styles.container} scrollEnabled={false}>
       {/* Image Gallery Placeholder */}
-      <SkeletonBox style={[styles.imageGallery, { backgroundColor: bg }]} />
+      <Skeleton style={[styles.imageGallery, { backgroundColor: bg }]} />
 
       {/* Description Placeholder */}
       <DetailCard>
         <View style={styles.content}>
-          <SkeletonBox style={[styles.descLine, { backgroundColor: bg }]} />
-          <SkeletonBox style={[styles.descLine, { backgroundColor: bg }]} />
-          <SkeletonBox style={[styles.descLine, { backgroundColor: bg, width: '90%' }]} />
+          <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
+          <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
+          <Skeleton style={[styles.descLine, { backgroundColor: bg, width: '90%' }]} />
         </View>
       </DetailCard>
 
       {/* Tags Placeholder (Brand & Model) */}
       <View style={styles.tagRow}>
-        <SkeletonBox style={[styles.chip, { backgroundColor: bg, width: 80 }]} />
-        <SkeletonBox style={[styles.chip, { backgroundColor: bg, width: 100 }]} />
+        <Skeleton style={[styles.chip, { backgroundColor: bg, width: 80 }]} />
+        <Skeleton style={[styles.chip, { backgroundColor: bg, width: 100 }]} />
       </View>
 
       {/* Product Type Placeholder */}
@@ -59,7 +34,7 @@ export default function ProductDetailsSkeleton() {
       </View>
       <DetailCard>
         <View style={styles.content}>
-          <SkeletonBox style={[styles.descLine, { backgroundColor: bg, height: 40 }]} />
+          <Skeleton style={[styles.descLine, { backgroundColor: bg, height: 40 }]} />
         </View>
       </DetailCard>
 
@@ -70,12 +45,12 @@ export default function ProductDetailsSkeleton() {
       <DetailCard>
         <View style={styles.content}>
           <View style={styles.propertyRow}>
-            <SkeletonBox style={[styles.propertyLabel, { backgroundColor: bg }]} />
-            <SkeletonBox style={[styles.propertyValue, { backgroundColor: bg }]} />
+            <Skeleton style={[styles.propertyLabel, { backgroundColor: bg }]} />
+            <Skeleton style={[styles.propertyValue, { backgroundColor: bg }]} />
           </View>
           <View style={styles.propertyRow}>
-            <SkeletonBox style={[styles.propertyLabel, { backgroundColor: bg }]} />
-            <SkeletonBox style={[styles.propertyValue, { backgroundColor: bg }]} />
+            <Skeleton style={[styles.propertyLabel, { backgroundColor: bg }]} />
+            <Skeleton style={[styles.propertyValue, { backgroundColor: bg }]} />
           </View>
         </View>
       </DetailCard>
@@ -86,7 +61,7 @@ export default function ProductDetailsSkeleton() {
       </View>
       <DetailCard>
         <View style={styles.content}>
-          <SkeletonBox style={[styles.descLine, { backgroundColor: bg }]} />
+          <Skeleton style={[styles.descLine, { backgroundColor: bg }]} />
         </View>
       </DetailCard>
 
@@ -96,7 +71,7 @@ export default function ProductDetailsSkeleton() {
       </View>
       <DetailCard>
         <View style={styles.content}>
-          <SkeletonBox style={[styles.descLine, { backgroundColor: bg, height: 60 }]} />
+          <Skeleton style={[styles.descLine, { backgroundColor: bg, height: 60 }]} />
         </View>
       </DetailCard>
     </ScrollView>
@@ -118,19 +93,19 @@ const styles = StyleSheet.create({
   },
   descLine: {
     height: 16,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     width: '100%',
   },
   tagRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     flexWrap: 'wrap',
     marginVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   chip: {
     height: 32,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     width: 60,
   },
   sectionHeader: {
@@ -149,12 +124,12 @@ const styles = StyleSheet.create({
   },
   propertyLabel: {
     height: 14,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     width: '30%',
   },
   propertyValue: {
     height: 14,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     width: '20%',
   },
 });

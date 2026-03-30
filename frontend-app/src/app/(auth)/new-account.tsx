@@ -249,6 +249,7 @@ export default function NewAccount() {
           key="next"
           testID="username-next"
           accessibilityRole="button"
+          accessibilityLabel="Continue to email"
           disabled={!isUsernameValid}
           onPress={() => setSection('email')}
           style={({ pressed }) => [
@@ -298,6 +299,7 @@ export default function NewAccount() {
           key="next"
           testID="email-next"
           accessibilityRole="button"
+          accessibilityLabel="Continue to password"
           disabled={!isEmailValid}
           onPress={() => setSection('password')}
           style={({ pressed }) => [
@@ -315,7 +317,13 @@ export default function NewAccount() {
         </HelperText>
       ) : null}
     </View>,
-    <Pressable key="back" style={styles.backButton} onPress={() => setSection('username')}>
+    <Pressable
+      key="back"
+      style={styles.backButton}
+      onPress={() => setSection('username')}
+      accessibilityRole="button"
+      accessibilityLabel="Go back to edit username"
+    >
       <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
       <Text style={[styles.backButtonText, { color: mutedColor }]}>Edit username</Text>
     </Pressable>,
@@ -366,7 +374,13 @@ export default function NewAccount() {
         </HelperText>
       ) : null}
     </View>,
-    <Pressable key="back" style={styles.backButton} onPress={() => setSection('email')}>
+    <Pressable
+      key="back"
+      style={styles.backButton}
+      onPress={() => setSection('email')}
+      accessibilityRole="button"
+      accessibilityLabel="Go back to edit email address"
+    >
       <Text style={[styles.backButtonArrow, { color: mutedColor }]}>‹</Text>
       <Text style={[styles.backButtonText, { color: mutedColor }]}>Edit email address</Text>
     </Pressable>,

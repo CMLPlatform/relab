@@ -48,7 +48,11 @@ export default function ProductDescription({ product, editMode, onChangeDescript
           {text || 'No description yet.'}
         </Text>
         {isLongDescription && (
-          <Pressable onPress={() => setExpanded((current) => !current)}>
+          <Pressable
+            onPress={() => setExpanded((current) => !current)}
+            accessibilityRole="button"
+            accessibilityLabel={expanded ? 'Show less of description' : 'Show more of description'}
+          >
             <Text style={{ fontWeight: '600' }}>{expanded ? 'Show less' : 'Show more'}</Text>
           </Pressable>
         )}

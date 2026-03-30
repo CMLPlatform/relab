@@ -1,13 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/common/CPVCard';
 import { loadCPV } from '@/services/cpv';
 
-import DarkTheme from '@/assets/themes/dark';
-import LightTheme from '@/assets/themes/light';
+import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuth } from '@/context/AuthProvider';
 import { CPVCategory } from '@/types/CPVCategory';
 
@@ -128,25 +127,23 @@ export default function CategorySelection() {
 }
 
 function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: () => void }) {
-  const darkMode = useColorScheme() === 'dark';
+  const { colors } = useAppTheme();
   return (
     <Pressable
       style={({ pressed }) => [
         styles.historyContainer,
-        darkMode ? styles.historyContainerDark : null,
+        { backgroundColor: colors.tertiaryContainer },
         pressed && { opacity: 0.5 },
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Go back to parent category"
     >
-      <Icon
-        size={20}
-        source={'chevron-left'}
-        color={darkMode ? DarkTheme.colors.onTertiaryContainer : LightTheme.colors.onTertiaryContainer}
-      />
+      <Icon size={20} source={'chevron-left'} color={colors.onTertiaryContainer} />
       <Text
         numberOfLines={2}
         ellipsizeMode={'tail'}
-        style={[styles.historyText, darkMode ? styles.historyTextDark : null]}
+        style={[styles.historyText, { color: colors.onTertiaryContainer }]}
       >
         {history[history.length - 1].description}
       </Text>
@@ -155,7 +152,7 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
 }
 
 function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
-  const darkMode = useColorScheme() === 'dark';
+  const { colors } = useAppTheme();
 
   if (CPV.directChildren.length <= 0) {
     return <View style={{ height: 50 }} />;
@@ -165,19 +162,17 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
     <Pressable
       style={({ pressed }) => [
         styles.linkContainer,
-        darkMode ? styles.linkContainerDark : null,
+        { backgroundColor: colors.secondaryContainer },
         pressed && { opacity: 0.5 },
       ]}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
     >
-      <Text style={[styles.linkText, darkMode ? styles.linkTextDark : null]}>
+      <Text style={[styles.linkText, { color: colors.onSecondaryContainer }]}>
         {`${CPV.directChildren.length} subcategories`}
       </Text>
-      <Icon
-        size={20}
-        source={'chevron-right'}
-        color={darkMode ? DarkTheme.colors.onSecondaryContainer : LightTheme.colors.onSecondaryContainer}
-      />
+      <Icon size={20} source={'chevron-right'} color={colors.onSecondaryContainer} />
     </Pressable>
   );
 }
@@ -190,20 +185,11 @@ const styles = StyleSheet.create({
     gap: 5,
     height: 30,
     paddingHorizontal: 12,
-    backgroundColor: LightTheme.colors.secondaryContainer,
-  },
-  linkContainerDark: {
-    backgroundColor: DarkTheme.colors.secondaryContainer,
   },
   linkText: {
-    color: LightTheme.colors.onSecondaryContainer,
     fontSize: 14,
     textAlign: 'right',
   },
-  linkTextDark: {
-    color: DarkTheme.colors.onSecondaryContainer,
-  },
-
   historyContainer: {
     position: 'absolute',
     flexDirection: 'row',
@@ -216,16 +202,8 @@ const styles = StyleSheet.create({
     right: 15,
     zIndex: 1,
     borderRadius: 5,
-    backgroundColor: LightTheme.colors.tertiaryContainer,
-  },
-  historyContainerDark: {
-    backgroundColor: DarkTheme.colors.tertiaryContainer,
   },
   historyText: {
     flexShrink: 1,
-    color: LightTheme.colors.onTertiaryContainer,
-  },
-  historyTextDark: {
-    color: DarkTheme.colors.onTertiaryContainer,
   },
 });

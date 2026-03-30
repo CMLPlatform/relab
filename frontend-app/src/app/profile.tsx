@@ -163,6 +163,8 @@ export default function ProfileTab() {
             setNewUsername(profile.username);
             setEditUsernameVisible(true);
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit username"
         >
           <Text style={styles.usernameText} numberOfLines={Platform.OS === 'web' ? undefined : 1} adjustsFontSizeToFit>
             {profile.username + '.'}
@@ -368,7 +370,7 @@ function ProfileAction({
   hideChevron?: boolean;
 }) {
   return (
-    <Pressable style={styles.action} onPress={onPress}>
+    <Pressable style={styles.action} onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
       <View style={{ flex: 1 }}>
         <Text style={[styles.actionTitle, titleStyle]}>{title}</Text>
         {subtitle && <Text style={styles.actionSubtitle}>{subtitle}</Text>}
