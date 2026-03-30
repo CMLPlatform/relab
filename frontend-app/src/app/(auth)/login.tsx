@@ -1,3 +1,4 @@
+import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -6,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import { apiFetch } from '@/services/api/fetching';
-import { getUser, login, markWebSessionActive } from '@/services/api/authentication';
+import { getUser, login, markWebSessionActive, oauthLoginWithGoogleToken } from '@/services/api/authentication';
 import { useAuth } from '@/context/AuthProvider';
 import { useDialog } from '@/components/common/DialogProvider';
 
@@ -16,15 +17,31 @@ const OAUTH_ACCOUNT_NOT_LINKED_ERROR = 'OAUTH_USER_ALREADY_EXISTS';
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 function getSafeRedirectTarget(redirectTo: string | string[] | undefined): string | undefined {
-  if (typeof redirectTo !== 'string') {
+  if (typeof redirectTo !== 'string' || !redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
     return undefined;
   }
-
-  if (!redirectTo.startsWith('/') || redirectTo.startsWith('//')) {
+  try {
+    // Resolve against a dummy origin; if the result leaves that origin, the
+    // input contained an absolute URL or protocol-relative trick (e.g. encoded slashes).
+    const resolved = new URL(redirectTo, 'https://placeholder.invalid');
+    if (resolved.origin !== 'https://placeholder.invalid') {
+      return undefined;
+    }
+  } catch {
     return undefined;
   }
-
   return redirectTo;
+}
+
+const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
+
+function isAllowedOAuthRedirectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && ALLOWED_OAUTH_HOSTNAMES.has(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 function parseOAuthCallbackUrl(url: string): {
@@ -111,6 +128,11 @@ export default function Login() {
   const colorScheme = useColorScheme();
   const theme = useTheme();
   const postLoginRedirect = getSafeRedirectTarget(redirectTo);
+
+  // expo-auth-session Google PKCE hook (web only — native uses backend-mediated flow)
+  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
 
   // Refs
   const emailRef = useRef<any>(null);
@@ -230,6 +252,36 @@ export default function Login() {
     [completeSuccessfulLogin, dialog],
   );
 
+  // Handle Google PKCE response on web (set by expo-auth-session after popup/redirect completes)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !googleResponse) return;
+
+    if (googleResponse.type === 'error') {
+      dialog.alert({
+        title: 'Login Failed',
+        message: googleResponse.error?.message || 'Google login failed. Please try again.',
+      });
+      return;
+    }
+
+    if (googleResponse.type !== 'success') return;
+
+    const { authentication } = googleResponse;
+    if (!authentication?.idToken) {
+      dialog.alert({ title: 'Login Failed', message: 'Google login failed. Please try again.' });
+      return;
+    }
+
+    oauthLoginWithGoogleToken(authentication.idToken, authentication.accessToken ?? null)
+      .then(() => finalizeOAuthLogin({ success: true }))
+      .catch((err: any) => {
+        dialog.alert({
+          title: 'Login Failed',
+          message: err.message || 'Google login failed.',
+        });
+      });
+  }, [googleResponse, finalizeOAuthLogin, dialog]);
+
   useEffect(() => {
     if (handledOAuthCallbackRef.current) {
       return;
@@ -246,6 +298,13 @@ export default function Login() {
 
     handledOAuthCallbackRef.current = true;
 
+    // Remove OAuth callback params from the URL so they don't linger in
+    // browser history (tokens/error codes shouldn't sit in the address bar).
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const cleanSearch = postLoginRedirect ? `?redirectTo=${encodeURIComponent(postLoginRedirect)}` : '';
+      window.history.replaceState({}, '', window.location.pathname + cleanSearch);
+    }
+
     finalizeOAuthLogin({
       success: successParam === 'true',
       error: errorParam,
@@ -256,7 +315,7 @@ export default function Login() {
         message: err.message || 'OAuth login failed.',
       });
     });
-  }, [dialog, finalizeOAuthLogin, oauthDetail, oauthError, oauthSuccess]);
+  }, [dialog, finalizeOAuthLogin, oauthDetail, oauthError, oauthSuccess, postLoginRedirect]);
 
   // Callbacks
   const attemptLogin = async () => {
@@ -298,6 +357,13 @@ export default function Login() {
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     try {
+      // On web, Google uses client-side PKCE via expo-auth-session.
+      // The googleResponse effect above handles the result.
+      if (Platform.OS === 'web' && provider === 'google') {
+        await promptGoogleAsync();
+        return;
+      }
+
       const transport = 'session';
       const redirectUri = Linking.createURL('/login');
       const authUrl = `${process.env.EXPO_PUBLIC_API_URL}/auth/oauth/${provider}/${transport}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
@@ -332,6 +398,9 @@ export default function Login() {
         // nullified), so we redirect the page and let the existing
         // useLocalSearchParams effect handle the callback when the provider
         // redirects back to /login?success=true.
+        if (!isAllowedOAuthRedirectUrl(data.authorization_url)) {
+          throw new Error('Unexpected authorization URL received. Please try again.');
+        }
         window.location.href = data.authorization_url;
         return;
       }

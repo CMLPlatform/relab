@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { fetchWithTimeout } from './request';
 import { User } from '@/types/User';
@@ -19,7 +19,7 @@ async function persistAccessToken(nextToken: string): Promise<void> {
   token = nextToken;
   explicitlyLoggedOut = false;
   if (!isWeb()) {
-    await AsyncStorage.setItem(ACCESS_TOKEN_KEY, nextToken);
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, nextToken);
   }
 }
 
@@ -28,11 +28,11 @@ async function clearCachedAuthState(): Promise<void> {
   user = undefined;
   explicitlyLoggedOut = true;
   if (!isWeb()) {
-    await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
+    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
   }
   // clear the client-visible web session flag
   try {
-    if (isWeb()) window.localStorage.removeItem(WEB_SESSION_FLAG);
+    if (isWeb()) window.sessionStorage.removeItem(WEB_SESSION_FLAG);
   } catch {
     /* ignore */
   }
@@ -41,8 +41,8 @@ async function clearCachedAuthState(): Promise<void> {
 function setWebSessionFlag(value: boolean) {
   if (!isWeb()) return;
   try {
-    if (value) window.localStorage.setItem(WEB_SESSION_FLAG, '1');
-    else window.localStorage.removeItem(WEB_SESSION_FLAG);
+    if (value) window.sessionStorage.setItem(WEB_SESSION_FLAG, '1');
+    else window.sessionStorage.removeItem(WEB_SESSION_FLAG);
   } catch {
     /* ignore */
   }
@@ -57,7 +57,7 @@ export function markWebSessionActive(): void {
 export function hasWebSessionFlag(): boolean {
   if (!isWeb()) return false;
   try {
-    return !!window.localStorage.getItem(WEB_SESSION_FLAG);
+    return !!window.sessionStorage.getItem(WEB_SESSION_FLAG);
   } catch {
     return false;
   }
@@ -72,7 +72,7 @@ export async function getToken(): Promise<string | undefined> {
   if (isWeb()) return undefined;
 
   try {
-    const storedToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+    const storedToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
     if (storedToken) {
       token = storedToken;
       return token;
@@ -236,7 +236,7 @@ export async function logout(): Promise<void> {
   await clearCachedAuthState();
   // ensure client-visible flag cleared for web
   try {
-    if (Platform.OS === 'web') window.localStorage.removeItem(WEB_SESSION_FLAG);
+    if (Platform.OS === 'web') window.sessionStorage.removeItem(WEB_SESSION_FLAG);
   } catch {
     /* ignore */
   }
@@ -380,6 +380,25 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
   } catch (error) {
     console.error('[UpdateUser Error]:', error);
     throw error;
+  }
+}
+
+/**
+ * Exchange a Google ID token (obtained via expo-auth-session PKCE on web) for
+ * app session cookies.  Sets httpOnly auth + refresh_token cookies on success.
+ */
+export async function oauthLoginWithGoogleToken(idToken: string, accessToken: string | null): Promise<void> {
+  const url = new URL(apiURL + '/auth/oauth/google/cookie/token');
+  const response = await fetchWithTimeout(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ id_token: idToken, access_token: accessToken }),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || 'Google login failed. Please try again.');
   }
 }
 

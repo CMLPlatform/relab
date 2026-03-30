@@ -194,11 +194,11 @@ describe('Login screen', () => {
     expect(mockPush).toHaveBeenCalledWith('/new-account');
   });
 
-  it('on web, OAuth login redirects the page instead of opening a popup', async () => {
+  it('on web, GitHub OAuth redirects the page instead of opening a popup', async () => {
     setPlatformOS('web');
-    const authUrl = 'https://provider.example.com/oauth/authorize';
+    const authUrl = 'https://github.com/login/oauth/authorize?client_id=test-client';
     server.use(
-      http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () => HttpResponse.json({ authorization_url: authUrl })),
+      http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () => HttpResponse.json({ authorization_url: authUrl })),
     );
 
     // Intercept window.location.href so jsdom doesn't attempt real navigation
@@ -218,8 +218,8 @@ describe('Login screen', () => {
 
     try {
       renderWithProviders(<Login />, { withDialog: true, withAuth: true });
-      await screen.findByText('Continue with Google');
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await screen.findByText('Continue with GitHub');
+      fireEvent.press(screen.getByText('Continue with GitHub'));
 
       await waitFor(() => {
         expect(capturedHref).toBe(authUrl);
@@ -263,14 +263,14 @@ describe('Login screen', () => {
   it('shows explicit account-linking guidance when OAuth account already exists', async () => {
     setPlatformOS('web');
     server.use(
-      http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
+      http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () =>
         HttpResponse.json({ detail: 'OAUTH_USER_ALREADY_EXISTS' }, { status: 400 }),
       ),
     );
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
-    await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await screen.findByText('Continue with GitHub');
+    fireEvent.press(screen.getByText('Continue with GitHub'));
 
     await waitFor(() => {
       expect(screen.getByText('Email Already Registered')).toBeTruthy();
@@ -337,7 +337,8 @@ describe('Login screen', () => {
     });
     mockedGetUser
       .mockRejectedValueOnce(new Error('Network error')) // first getUser attempt fails
-      .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' })); // second getUser attempt succeeds
+      .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' }))
+      .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' })); // refetch(false)
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');

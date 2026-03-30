@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import * as auth from '../authentication';
 import { mockResponse, setupFetchMock } from '@/test-utils';
 
 setupFetchMock();
-const asyncStorageMock = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
+const secureStoreMock = SecureStore as jest.Mocked<typeof SecureStore>;
 const fetchMock = () => global.fetch as jest.MockedFunction<typeof fetch>;
 
 describe('Authentication API Service', () => {
@@ -32,38 +32,38 @@ describe('Authentication API Service', () => {
   // ─── getToken ───────────────────────────────────────────
 
   describe('getToken', () => {
-    it('retrieves token from AsyncStorage if available', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+    it('retrieves token from SecureStore if available', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
 
       const token = await auth.getToken();
 
-      expect(AsyncStorage.getItem).toHaveBeenCalledWith('access_token');
+      expect(SecureStore.getItemAsync).toHaveBeenCalledWith('access_token');
       expect(token).toBe('test-token');
     });
 
-    it('returns undefined when no token in AsyncStorage', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce(null);
+    it('returns undefined when no token in SecureStore', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValueOnce(null);
 
       const token = await auth.getToken();
 
       expect(token).toBeUndefined();
     });
 
-    it('returns undefined when AsyncStorage throws', async () => {
-      asyncStorageMock.getItem.mockRejectedValueOnce(new Error('storage error'));
+    it('returns undefined when SecureStore throws', async () => {
+      secureStoreMock.getItemAsync.mockRejectedValueOnce(new Error('storage error'));
 
       const token = await auth.getToken();
 
       expect(token).toBeUndefined();
     });
 
-    it('returns cached token without AsyncStorage on second call', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('cached-token');
+    it('returns cached token without SecureStore on second call', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('cached-token');
       await auth.getToken(); // populate cache
 
       const token = await auth.getToken(); // should use cache
 
-      expect(AsyncStorage.getItem).toHaveBeenCalledTimes(1);
+      expect(SecureStore.getItemAsync).toHaveBeenCalledTimes(1);
       expect(token).toBe('cached-token');
     });
   });
@@ -76,7 +76,7 @@ describe('Authentication API Service', () => {
 
       const result = await auth.login('user', 'pass');
 
-      expect(asyncStorageMock.setItem).toHaveBeenCalledWith('access_token', 'new-token-123');
+      expect(secureStoreMock.setItemAsync).toHaveBeenCalledWith('access_token', 'new-token-123');
       expect(result).toBe('new-token-123');
     });
 
@@ -117,12 +117,12 @@ describe('Authentication API Service', () => {
       );
     });
 
-    it('removes access_token from AsyncStorage on native', async () => {
+    it('removes access_token from SecureStore on native', async () => {
       fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
 
       await auth.logout();
 
-      expect(asyncStorageMock.removeItem).toHaveBeenCalledWith('access_token');
+      expect(secureStoreMock.deleteItemAsync).toHaveBeenCalledWith('access_token');
     });
 
     it('does not throw when logout fetch fails', async () => {
@@ -149,7 +149,7 @@ describe('Authentication API Service', () => {
       const result = await auth.refreshAuthToken();
 
       expect(result).toBe(true);
-      expect(asyncStorageMock.setItem).toHaveBeenCalledWith('access_token', 'refreshed-token');
+      expect(secureStoreMock.setItemAsync).toHaveBeenCalledWith('access_token', 'refreshed-token');
     });
 
     it('returns false when response body has no access_token', async () => {
@@ -181,7 +181,7 @@ describe('Authentication API Service', () => {
 
   describe('fetchWithAuth', () => {
     it('refreshes token on 401 and retries', async () => {
-      asyncStorageMock.getItem.mockResolvedValue('old-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('old-token');
       fetchMock()
         .mockResolvedValueOnce(mockResponse(401, {}, false) as Response) // first call 401
         .mockResolvedValueOnce(mockResponse(200, { access_token: 'new-token' }) as Response) // refresh
@@ -208,7 +208,7 @@ describe('Authentication API Service', () => {
 
     it('fetches and returns a mapped user object', async () => {
       // fetchWithAuth calls getToken first, then fetch
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
 
       const user = await auth.getUser(true);
@@ -224,7 +224,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns cached user without fetching on second call', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
       await auth.getUser(true); // populate cache
 
@@ -237,7 +237,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined when response is not ok', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(401, { detail: 'Unauthorized' }, false) as Response);
 
       const user = await auth.getUser(true);
@@ -247,7 +247,7 @@ describe('Authentication API Service', () => {
 
     it("falls back to 'Username not defined' when username is missing", async () => {
       const userWithoutUsername = { ...rawUser, username: null };
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(200, userWithoutUsername) as Response);
 
       const user = await auth.getUser(true);
@@ -272,7 +272,7 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined when the response body cannot be parsed', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -285,14 +285,14 @@ describe('Authentication API Service', () => {
     });
 
     it('returns undefined when the network request fails', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockRejectedValueOnce(new Error('network down'));
 
       await expect(auth.getUser(true)).resolves.toBeUndefined();
     });
 
     it('returns the cached user from getCachedUser after a successful fetch', async () => {
-      asyncStorageMock.getItem.mockResolvedValueOnce('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
 
       await auth.getUser(true);
@@ -387,7 +387,7 @@ describe('Authentication API Service', () => {
         oauth_accounts: [],
       };
       // fetchWithAuth: getToken + PATCH request
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock()
         .mockResolvedValueOnce(mockResponse(200, {}) as Response) // PATCH
         .mockResolvedValueOnce(mockResponse(200, updatedUser) as Response); // getUser(true)
@@ -398,21 +398,21 @@ describe('Authentication API Service', () => {
     });
 
     it('throws on non-ok response with detail string', async () => {
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Username taken' }, false) as Response);
 
       await expect(auth.updateUser({ username: 'taken' })).rejects.toThrow('Username taken');
     });
 
     it('throws with fallback message when no detail', async () => {
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
 
       await expect(auth.updateUser({})).rejects.toThrow('Failed to update user profile');
     });
 
     it('throws with detail object message', async () => {
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(
         mockResponse(400, { detail: { message: 'Custom error message' } }, false) as Response,
       );
@@ -426,7 +426,7 @@ describe('Authentication API Service', () => {
   describe('unlinkOAuth', () => {
     it('returns true on success and busts user cache', async () => {
       // pre-populate user cache
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(
         mockResponse(200, {
           id: 1,
@@ -448,14 +448,14 @@ describe('Authentication API Service', () => {
     });
 
     it('throws when response is not ok (with detail)', async () => {
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(400, { detail: 'Provider not linked' }, false) as Response);
 
       await expect(auth.unlinkOAuth('google')).rejects.toThrow('Provider not linked');
     });
 
     it('throws with fallback message when response is not ok and no detail', async () => {
-      asyncStorageMock.getItem.mockResolvedValue('test-token');
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
 
       await expect(auth.unlinkOAuth('github')).rejects.toThrow('Failed to unlink github account');

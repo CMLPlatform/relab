@@ -3,6 +3,24 @@ import { server } from './src/test-utils/server';
 
 process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000/api';
 
+if (typeof window !== 'undefined' && typeof window.dispatchEvent !== 'function') {
+  Object.defineProperty(window, 'dispatchEvent', {
+    configurable: true,
+    writable: true,
+    value: jest.fn(() => true),
+  });
+}
+
+if (typeof window !== 'undefined' && typeof window.history?.replaceState !== 'function') {
+  Object.defineProperty(window, 'history', {
+    configurable: true,
+    writable: true,
+    value: {
+      replaceState: jest.fn(),
+    },
+  });
+}
+
 // ── MSW server lifecycle ───────────────────────────────────────────────────
 // Start the server before all tests, reset per-test overrides after each
 // test, and clean up after the full suite.
@@ -45,7 +63,29 @@ jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MaterialCommunityIcons',
 }));
 
-// Mock AsyncStorage
+// Mock react-native-paper Icon to a stable component to avoid act() warnings
+jest.mock('react-native-paper', () => {
+  const React = require('react');
+  const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper') as Record<
+    string,
+    unknown
+  >;
+  const { Text } = require('react-native');
+
+  const Icon = ({ source, name, testID, ...props }: any) =>
+    React.createElement(Text, { testID: testID || 'mock-icon', ...props }, source || name || 'icon');
+
+  return { ...actual, Icon };
+});
+
+// Mock expo-secure-store (replaces AsyncStorage for token persistence on native)
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
+}));
+
+// Mock AsyncStorage so tests never touch the native module implementation.
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
@@ -53,6 +93,11 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
+}));
+
+// Mock Expo Auth Session Google hook to avoid browser-session side effects in Jest.
+jest.mock('expo-auth-session/providers/google', () => ({
+  useAuthRequest: jest.fn(() => [null, null, jest.fn()]),
 }));
 
 // Mock react-native-reanimated
@@ -174,4 +219,9 @@ jest.mock('react-native-gesture-handler', () => {
       Exclusive: (..._args: any[]) => ({}),
     },
   };
+});
+
+afterEach(async () => {
+  const AsyncStorage = require('@react-native-async-storage/async-storage');
+  await AsyncStorage.clear();
 });

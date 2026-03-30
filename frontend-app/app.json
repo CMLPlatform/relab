@@ -7,7 +7,6 @@
     "icon": "./src/assets/images/favicon.png",
     "scheme": "relab-frontend-app",
     "userInterfaceStyle": "automatic",
-
     "ios": {
       "supportsTablet": true
     },
@@ -16,7 +15,6 @@
         "foregroundImage": "./src/assets/images/favicon.png",
         "backgroundColor": "#ffffff"
       },
-
       "package": "com.cml.relabFrontendApp"
     },
     "web": {
@@ -44,7 +42,8 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
