@@ -15,6 +15,7 @@ The deployed stack typically consists of:
 - the public web frontend
 - the docs site
 - supporting proxy and tunnel components, depending on the environment
+- optional observability components such as an OpenTelemetry collector
 
 ## Storage and Backups
 
@@ -37,4 +38,5 @@ The repository also includes dependency maintenance and repository-level checks.
 - Redis is used both for caching and parts of the authentication and token flow. Partial Redis outages have user-facing effects.
 - Uploaded media is part of the research record and should be treated as primary data, not as disposable assets.
 - Production secrets and origin/host configuration matter; the backend enforces stricter checks outside development.
+- Tracing is optional. When enabled, the backend exports OTLP traces to a local or external collector.
 - The Compose-based setup is easy to reason about, but scaling and secret rotation are less automated than in a larger platform setup. That trade-off is deliberate.

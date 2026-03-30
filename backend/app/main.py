@@ -26,12 +26,13 @@ from app.api.common.routers.openapi import init_openapi_docs
 from app.api.file_storage.manager import FileCleanupManager
 from app.core.cache import init_fastapi_cache
 from app.core.config import settings
-from app.core.database import async_sessionmaker_factory
+from app.core.database import async_engine, async_sessionmaker_factory
 from app.core.http import create_http_client
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis
 from app.core.request_id import register_request_id_middleware
 from app.core.request_size import register_request_size_limit_middleware
+from app.core.telemetry import init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -86,6 +87,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Limit concurrent image resize workers to avoid thread pool exhaustion
     app.state.image_resize_limiter = anyio.CapacityLimiter(settings.image_resize_workers)
 
+    # Initialize optional OpenTelemetry instrumentation
+    init_telemetry(app, async_engine)
+
     logger.info("Application startup complete")
 
     yield
@@ -120,6 +124,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             await app.state.http_client.aclose()
         except CloseError as e:
             logger.warning("Error closing outbound HTTP client: %s", e)
+
+    # Remove optional OpenTelemetry instrumentation and flush spans
+    try:
+        shutdown_telemetry(app)
+    except RuntimeError as e:
+        logger.warning("Error shutting down telemetry: %s", e)
 
     logger.info("Application shutdown complete")
 

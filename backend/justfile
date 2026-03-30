@@ -164,6 +164,10 @@ compile-email:
 render-erd:
     uv run python -m scripts.render_erd
 
+# Run the backend k6 baseline performance suite (requires k6 installed)
+perf-baseline:
+    k6 run perf/k6-baseline.js
+
 # ============================================================================
 # Maintenance
 # ============================================================================

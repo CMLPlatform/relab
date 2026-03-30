@@ -88,6 +88,18 @@ class TestCoreSettingsCors:
         with pytest.raises(ValidationError, match="Production security check failed"):
             CoreSettings(environment=Environment.PROD)
 
+    def test_request_body_limit_default_is_one_mebibyte(self) -> None:
+        """Non-upload request bodies should default to a conservative 1 MiB cap."""
+        settings = CoreSettings(environment=Environment.DEV)
+        assert settings.request_body_limit_bytes == 1024 * 1024
+
+    def test_otel_defaults_are_disabled_and_named(self) -> None:
+        """Telemetry should be opt-in with a stable default service name."""
+        settings = CoreSettings(environment=Environment.DEV)
+        assert settings.otel_enabled is False
+        assert settings.otel_service_name == "relab-backend"
+        assert settings.otel_exporter_otlp_endpoint is None
+
 
 @pytest.mark.unit
 class TestGetEnvFile:

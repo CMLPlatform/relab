@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import CloseError
 
+from app.core.database import async_engine
 from app.main import app, lifespan
 
 
@@ -29,7 +30,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis) as mock_init_redis,
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -45,7 +48,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker) as mock_init_checker,
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -58,7 +63,9 @@ class TestLifespan:
             patch("app.main.init_redis"),
             patch("app.main.init_email_checker"),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
             patch("app.main.ensure_storage_directories") as mock_ensure,
             patch("app.main.mount_static_directories") as mock_mount,
@@ -80,7 +87,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -97,7 +106,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis") as mock_close_redis,
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -115,7 +126,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis") as mock_close_redis,
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -133,7 +146,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis", side_effect=ConnectionError("redis gone")),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             # Must not raise
@@ -153,7 +168,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
             patch("app.main.FileCleanupManager", return_value=mock_file_cleanup_manager),
             patch("app.main.create_http_client", return_value=mock_http_client),
@@ -178,7 +195,9 @@ class TestLifespan:
             patch("app.main.init_redis", return_value=mock_redis),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
             patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
             patch("app.main.FileCleanupManager", return_value=mock_file_cleanup_manager),
             patch("app.main.create_http_client", return_value=mock_http_client),
@@ -188,3 +207,41 @@ class TestLifespan:
 
         mock_file_cleanup_manager.close.assert_awaited_once()
         mock_http_client.aclose.assert_awaited_once()
+
+    async def test_startup_initializes_telemetry(self) -> None:
+        """Startup should invoke telemetry initialization with the shared async engine."""
+        mock_redis = MagicMock()
+        mock_email_checker = AsyncMock()
+
+        with (
+            patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_email_checker", return_value=mock_email_checker),
+            patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry") as mock_init_telemetry,
+            patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry"),
+            patch("app.main.cleanup_logging"),
+        ):
+            async with lifespan(app):
+                pass
+
+        mock_init_telemetry.assert_called_once_with(app, async_engine)
+
+    async def test_shutdown_shuts_down_telemetry(self) -> None:
+        """Shutdown should uninstrument telemetry even when no exporter is enabled."""
+        mock_redis = MagicMock()
+        mock_email_checker = AsyncMock()
+
+        with (
+            patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_email_checker", return_value=mock_email_checker),
+            patch("app.main.init_fastapi_cache"),
+            patch("app.main.init_telemetry"),
+            patch("app.main.close_redis"),
+            patch("app.main.shutdown_telemetry") as mock_shutdown_telemetry,
+            patch("app.main.cleanup_logging"),
+        ):
+            async with lifespan(app):
+                pass
+
+        mock_shutdown_telemetry.assert_called_once_with(app)

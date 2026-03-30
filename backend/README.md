@@ -23,6 +23,7 @@ just check         # lint + typecheck
 just test          # run all tests
 just test-unit     # fast unit tests
 just test-cov      # tests with coverage
+just perf-baseline # run the k6 baseline suite (requires k6)
 just migrate       # apply migrations
 just fix           # lint autofix + format
 ```

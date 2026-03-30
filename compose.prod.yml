@@ -8,6 +8,7 @@ services:
       ENVIRONMENT: prod
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT_PROD:-http://otel-collector:4318/v1/traces}
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
@@ -21,6 +22,15 @@ services:
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0@sha256:611f7b58a12086c8ff8c752f5cb1cce3c88eec52d7374d8f273a609fdb9c0f63
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    profiles:
+      - telemetry
+    restart: unless-stopped
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   backend-user-upload-backups: # Automated user uploads backups to local file system

@@ -100,6 +100,15 @@ Production deployments are Docker Compose based. In the current setup, Cloudflar
    just prod-up YES
    ```
 
+   To enable backend tracing with the bundled OpenTelemetry collector:
+
+   - set `OTEL_ENABLED='true'` in `backend/.env.prod`
+   - start the collector with:
+
+   ```bash
+   just prod-telemetry-up YES
+   ```
+
 1. Run migrations.
 
    ```bash

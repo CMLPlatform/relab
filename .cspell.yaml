@@ -36,6 +36,8 @@ words:
   - ERD
   - fileparenttype
   - imageparenttype
+  - instrumentor
+  - instrumentors
   - Lierde
   - materialproductlink
   - newslettersubscriber
@@ -82,7 +84,9 @@ ignoreWords:
   - ellipsize
   - htmlcov
   - nosniff
+  - otelcol
   - piexif
+  - uninstrument
   - worklets
   - xdist
   - zxcvbn

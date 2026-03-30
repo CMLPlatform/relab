@@ -209,6 +209,11 @@ prod-up confirm='':
     @just _require-confirm "start the production stack" "just prod-up YES" "FORCE=1 just prod-up" "{{ confirm }}"
     {{ prod_compose }} up -d
 
+# Start production telemetry collector
+prod-telemetry-up confirm='':
+    @just _require-confirm "start the production telemetry collector" "just prod-telemetry-up YES" "FORCE=1 just prod-telemetry-up" "{{ confirm }}"
+    {{ prod_compose }} --profile telemetry up -d otel-collector
+
 # Build (or rebuild) prod images
 prod-build:
     {{ prod_compose }} --profile migrations --profile backups build
@@ -242,6 +247,11 @@ staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.st
 staging-up confirm='':
     @just _require-confirm "start the staging stack" "just staging-up YES" "FORCE=1 just staging-up" "{{ confirm }}"
     {{ staging_compose }} up -d
+
+# Start staging telemetry collector
+staging-telemetry-up confirm='':
+    @just _require-confirm "start the staging telemetry collector" "just staging-telemetry-up YES" "FORCE=1 just staging-telemetry-up" "{{ confirm }}"
+    {{ staging_compose }} --profile telemetry up -d otel-collector
 
 # Build (or rebuild) staging images
 staging-build:

@@ -25,7 +25,7 @@ def test_noisy_loggers_configured() -> None:
 
 
 def test_configure_loguru_handlers_dev_environment(mocker: MockerFixture, tmp_path: Path) -> None:
-    """Verify that `enqueue` is False in the DEV environment."""
+    """Verify that DEV keeps synchronous, human-readable sinks."""
     mock_add = mocker.patch("loguru.logger.add")
     mocker.patch("app.core.logging.settings.environment", new=Environment.DEV)
 
@@ -34,10 +34,11 @@ def test_configure_loguru_handlers_dev_environment(mocker: MockerFixture, tmp_pa
     assert mock_add.call_count > 0
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is False
+        assert call.kwargs.get("serialize") is False
 
 
 def test_configure_loguru_handlers_prod_environment(mocker: MockerFixture, tmp_path: Path) -> None:
-    """Verify that `enqueue` is True in the PROD environment."""
+    """Verify that PROD enables queued JSON sinks."""
     mock_add = mocker.patch("loguru.logger.add")
     mocker.patch("app.core.logging.settings.environment", new=Environment.PROD)
 
@@ -46,10 +47,11 @@ def test_configure_loguru_handlers_prod_environment(mocker: MockerFixture, tmp_p
     assert mock_add.call_count > 0
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is True
+        assert call.kwargs.get("serialize") is True
 
 
 def test_configure_loguru_handlers_staging_environment(mocker: MockerFixture, tmp_path: Path) -> None:
-    """Verify that `enqueue` is True in the STAGING environment."""
+    """Verify that STAGING matches PROD logging behavior."""
     mock_add = mocker.patch("loguru.logger.add")
     mocker.patch("app.core.logging.settings.environment", new=Environment.STAGING)
 
@@ -58,3 +60,4 @@ def test_configure_loguru_handlers_staging_environment(mocker: MockerFixture, tm
     assert mock_add.call_count > 0
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is True
+        assert call.kwargs.get("serialize") is True
