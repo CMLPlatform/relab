@@ -2,6 +2,7 @@
 
 import logging
 import time
+from pathlib import Path
 from typing import Any, cast
 
 from anyio import Path as AnyIOPath
@@ -10,8 +11,15 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.api.file_storage.models.models import File, Image
 from app.core.config import settings
+from app.core.images import THUMBNAIL_WIDTHS, thumbnail_path_for
 
 logger = logging.getLogger(__name__)
+
+
+def _get_thumbnail_paths(image_path: str) -> set[AnyIOPath]:
+    """Return the expected thumbnail paths for a stored image."""
+    path = Path(image_path)
+    return {AnyIOPath(str(thumbnail_path_for(path, width))) for width in THUMBNAIL_WIDTHS}
 
 
 async def get_referenced_files(session: AsyncSession) -> set[AnyIOPath]:
@@ -32,7 +40,9 @@ async def get_referenced_files(session: AsyncSession) -> set[AnyIOPath]:
     images = (await session.exec(image_stmt)).all()
     for img in images:
         if img and hasattr(img, "path"):
-            referenced_paths.add(await AnyIOPath(img.path).resolve())
+            resolved_path = await AnyIOPath(img.path).resolve()
+            referenced_paths.add(resolved_path)
+            referenced_paths.update(_get_thumbnail_paths(str(resolved_path)))
 
     return referenced_paths
 

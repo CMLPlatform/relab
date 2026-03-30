@@ -89,6 +89,12 @@ async def delete_file_from_storage(file_path: Path) -> None:
         await async_path.unlink()
 
 
+async def delete_image_from_storage(image_path: Path) -> None:
+    """Delete an image and any generated thumbnails from the filesystem."""
+    await to_thread.run_sync(delete_thumbnails, image_path)
+    await delete_file_from_storage(image_path)
+
+
 async def _ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
     """Validate that the target parent record exists."""
     parent_model = get_file_parent_type_model(parent_type)
@@ -233,12 +239,16 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
 
     async def delete(self, db: AsyncSession, item_id: UUID4) -> None:
         """Delete a file-backed model and best-effort clean up its storage file."""
+        cleanup_path: Path | None = None
         try:
             db_item = await get_model_or_404(db, self.model, item_id)
             file_path = stored_file_path(db_item)
+            cleanup_path = file_path
         except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
             db_item = await db.get(self.model, item_id)
             file_path = None
+            if db_item is not None and self.model is Image:
+                cleanup_path = stored_file_path(db_item)
             logger.warning(
                 "%s %s not found in storage: %s. Deleting database row only.",
                 self.model.__name__,
@@ -252,9 +262,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await db.delete(db_item)
         await db.commit()
 
-        if file_path:
-            if self.model is Image:
-                await to_thread.run_sync(delete_thumbnails, file_path)
+        if self.model is Image and cleanup_path:
+            await delete_image_from_storage(cleanup_path)
+        elif file_path:
             await delete_file_from_storage(file_path)
 
 
