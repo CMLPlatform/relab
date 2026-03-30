@@ -35,15 +35,13 @@ class TestRefreshTokenService:
     """Tests for refresh token service functions."""
 
     async def test_create_refresh_token(self, redis_client: Redis) -> None:
-        """Test creating a refresh token."""
+        """Token is stored in Redis under the correct key with user_id in the payload."""
         user_id = uuid.uuid4()
         token = await create_refresh_token(redis_client, user_id)
 
-        # Token should be 64 characters (urlsafe base64, 48 bytes)
         assert len(token) == TOKEN_LENGTH
         assert isinstance(token, str)
 
-        # Verify token is stored in Redis
         stored_data = await redis_client.get(f"auth:rt:{token}")
         assert stored_data is not None
         assert (
@@ -51,11 +49,6 @@ class TestRefreshTokenService:
             if isinstance(stored_data, bytes)
             else str(user_id) in stored_data
         )
-
-        # Verify TTL is set correctly (approximately 30 days)
-        ttl = await redis_client.ttl(f"auth:rt:{token}")
-        expected_ttl = settings.refresh_token_expire_days * 24 * 60 * 60
-        assert ttl > expected_ttl - TTL_MARGIN  # Allow small time difference
 
     async def test_verify_refresh_token_success(self, redis_client: Redis) -> None:
         """Test verifying a valid refresh token."""

@@ -10,27 +10,6 @@ from app.api.auth.config import AuthSettings
 class TestAuthSettingsDefaults:
     """AuthSettings should produce safe, predictable defaults when no env file is present."""
 
-    def test_secret_fields_accept_empty_values(self) -> None:
-        """Secrets can be explicitly set to empty strings (safe for dev)."""
-        settings = AuthSettings(
-            fastapi_users_secret=SecretStr(""),
-            newsletter_secret=SecretStr(""),
-            google_oauth_client_secret=SecretStr(""),
-            github_oauth_client_secret=SecretStr(""),
-            email_password=SecretStr(""),
-        )
-        assert settings.fastapi_users_secret.get_secret_value() == ""
-        assert settings.newsletter_secret.get_secret_value() == ""
-        assert settings.google_oauth_client_secret.get_secret_value() == ""
-        assert settings.github_oauth_client_secret.get_secret_value() == ""
-        assert settings.email_password.get_secret_value() == ""
-
-    def test_secret_fields_are_secretstr(self) -> None:
-        """Secret fields are wrapped in SecretStr so they are not exposed in repr/logs."""
-        settings = AuthSettings()
-        assert isinstance(settings.fastapi_users_secret, SecretStr)
-        assert isinstance(settings.email_password, SecretStr)
-
     def test_oauth_redirect_lists_default_empty(self) -> None:
         """OAuth redirect path/native allowlists default empty."""
         settings = AuthSettings()

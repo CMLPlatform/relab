@@ -46,4 +46,8 @@ async def login_page(
     if user:
         return RedirectResponse(url=str(router.url_path_for("index")), status_code=302)
 
+    # Only allow relative paths to prevent open redirect attacks
+    if next_page is not None and (not next_page.startswith("/") or next_page.startswith("//")):
+        next_page = None
+
     return templates.TemplateResponse("login.html", {"request": request, "next": next_page})

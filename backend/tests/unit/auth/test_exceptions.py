@@ -85,14 +85,6 @@ class TestAuthCRUDErrorHierarchy:
         """Verify AuthCRUDError stays a marker mixin, while subclasses inherit APIError via concrete families."""
         assert not issubclass(AuthCRUDError, APIError)
 
-    def test_user_name_already_exists_error_is_auth_crud_error(self) -> None:
-        """Verify UserNameAlreadyExistsError inherits from AuthCRUDError."""
-        assert issubclass(UserNameAlreadyExistsError, AuthCRUDError)
-
-    def test_already_member_error_is_auth_crud_error(self) -> None:
-        """Verify AlreadyMemberError inherits from AuthCRUDError."""
-        assert issubclass(AlreadyMemberError, AuthCRUDError)
-
     def test_user_ownership_error_is_api_error_not_auth_crud(self) -> None:
         """Verify UserOwnershipError inherits from APIError directly, not AuthCRUDError."""
         assert issubclass(UserOwnershipError, APIError)
@@ -288,6 +280,14 @@ class TestUserDoesNotOwnOrgError:
         error = UserDoesNotOwnOrgError(user_id=user_id)
         assert str(user_id) in error.message
 
+    def test_error_message_with_user_id_and_details(self) -> None:
+        """Verify error message includes both user_id and details."""
+        user_id = uuid4()
+        details = "Owner privileges required"
+        error = UserDoesNotOwnOrgError(user_id=user_id, details=details)
+        assert str(user_id) in error.message
+        assert details in error.message
+
 
 @pytest.mark.unit
 class TestInvalidOAuthProviderError:
@@ -409,10 +409,8 @@ class TestRegistrationHTTPErrorAdapters:
 
     def test_registration_user_already_exists_http_error(self) -> None:
         """Verify duplicate registration emails keep the stable conflict detail."""
-        email = "existing@example.com"
-        error = RegistrationUserAlreadyExistsHTTPError(email)
+        error = RegistrationUserAlreadyExistsHTTPError()
         assert error.status_code == status.HTTP_409_CONFLICT
-        assert email in error.detail
         assert REGISTRATION_ALREADY_EXISTS in error.detail
 
     def test_registration_invalid_password_http_error(self) -> None:
@@ -427,19 +425,6 @@ class TestRegistrationHTTPErrorAdapters:
         error = RegistrationUnexpectedHTTPError()
         assert error.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert error.detail == REGISTRATION_UNEXPECTED
-
-
-@pytest.mark.unit
-class TestUserDoesNotOwnOrgErrorDetails:
-    """Additional detail formatting tests for UserDoesNotOwnOrgError."""
-
-    def test_error_message_with_user_id_and_details(self) -> None:
-        """Verify error message includes both user_id and details."""
-        user_id = uuid4()
-        details = "Owner privileges required"
-        error = UserDoesNotOwnOrgError(user_id=user_id, details=details)
-        assert str(user_id) in error.message
-        assert details in error.message
 
 
 @pytest.mark.unit
@@ -497,8 +482,8 @@ class TestUserOwnershipError:
         """Verify UserOwnershipError has 403 Forbidden status."""
         assert UserOwnershipError.http_status_code == status.HTTP_403_FORBIDDEN
 
-    def test_error_message_includes_model_name(self) -> None:
-        """Verify error message includes the model name."""
+    def test_error_message_format(self) -> None:
+        """Verify error message includes model name, user_id, model_id and does-not-own phrasing."""
         mock_model = Mock()
         mock_model.get_api_model_name.return_value.name_capital = TEST_MODEL_NAME
 
@@ -509,29 +494,7 @@ class TestUserOwnershipError:
         assert TEST_MODEL_NAME in error.message
         assert str(user_id) in error.message
         assert str(model_id) in error.message
-
-    def test_error_message_includes_user_id(self) -> None:
-        """Verify error message includes user_id."""
-        mock_model = Mock()
-        mock_model.get_api_model_name.return_value.name_capital = "DataSet"
-
-        user_id = uuid4()
-        model_id = uuid4()
-        error = UserOwnershipError(model_type=mock_model, model_id=model_id, user_id=user_id)
-
-        assert str(user_id) in error.message
         assert DOES_NOT_OWN in error.message.lower()
-
-    def test_error_message_includes_model_id(self) -> None:
-        """Verify error message includes model_id."""
-        mock_model = Mock()
-        mock_model.get_api_model_name.return_value.name_capital = "Project"
-
-        user_id = uuid4()
-        model_id = uuid4()
-        error = UserOwnershipError(model_type=mock_model, model_id=model_id, user_id=user_id)
-
-        assert str(model_id) in error.message
 
 
 @pytest.mark.unit
@@ -600,56 +563,6 @@ class TestExceptionInheritanceChain:
             pass  # Expected
         else:
             pytest.fail("UserNameAlreadyExistsError should be able to be caught as AuthCRUDError")
-
-
-@pytest.mark.unit
-class TestExceptionStatusCodes:
-    """Tests for verifying all status codes are correctly set."""
-
-    def test_409_conflict_errors(self) -> None:
-        """Verify all 409 Conflict errors have correct status code."""
-        conflict_errors = [
-            UserNameAlreadyExistsError("test"),
-            AlreadyMemberError(),
-            UserOwnsOrgError(),
-            OrganizationHasMembersError(),
-            OrganizationNameExistsError(),
-        ]
-
-        for error in conflict_errors:
-            assert error.http_status_code == status.HTTP_409_CONFLICT
-
-    def test_403_forbidden_errors(self) -> None:
-        """Verify all 403 Forbidden errors have correct status code."""
-        forbidden_errors = [
-            UserIsNotMemberError(),
-            UserDoesNotOwnOrgError(),
-        ]
-
-        for error in forbidden_errors:
-            assert error.http_status_code == status.HTTP_403_FORBIDDEN
-
-    def test_404_not_found_errors(self) -> None:
-        """Verify all 404 Not Found errors have correct status code."""
-        error = UserHasNoOrgError()
-        assert error.http_status_code == status.HTTP_404_NOT_FOUND
-
-    def test_400_bad_request_errors(self) -> None:
-        """Verify all 400 Bad Request errors have correct status code."""
-        error = DisposableEmailError(email="test@tempmail.com")
-        assert error.http_status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_403_ownership_error(self) -> None:
-        """Verify UserOwnershipError has 403 Forbidden status code."""
-        mock_model = Mock()
-        mock_model.get_api_model_name.return_value.name_capital = TEST_MODEL_NAME
-
-        error = UserOwnershipError(
-            model_type=mock_model,
-            model_id=uuid4(),
-            user_id=uuid4(),
-        )
-        assert error.http_status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.unit

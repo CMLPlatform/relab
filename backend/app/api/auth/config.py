@@ -77,6 +77,7 @@ class AuthSettings(RelabBaseSettings):
     # Auth settings - Rate limiting
     rate_limit_login_attempts_per_minute: int = 3
     rate_limit_register_attempts_per_hour: int = 5
+    rate_limit_verify_attempts_per_hour: int = 3
     rate_limit_password_reset_attempts_per_hour: int = 3
 
     # Youtube API settings

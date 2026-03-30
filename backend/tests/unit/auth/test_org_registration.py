@@ -101,7 +101,7 @@ class TestAddUserRoleInOrganization:
 
         assert result.organization_role == OrganizationRole.MEMBER
         assert result.organization_id == str(org_id)
-        # No Organization created — flush should not have been called for org creation
+        # No Organization created; flush should not have been called for org creation
         session.flush.assert_not_awaited()
         session.commit.assert_awaited_once()
         session.refresh.assert_awaited_once_with(user)

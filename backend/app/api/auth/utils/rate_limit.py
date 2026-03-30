@@ -21,4 +21,5 @@ limiter = Limiter(
 # Rate limit strings for common use cases
 LOGIN_RATE_LIMIT = f"{auth_settings.rate_limit_login_attempts_per_minute}/60second"
 REGISTER_RATE_LIMIT = f"{auth_settings.rate_limit_register_attempts_per_hour}/3600second"
+VERIFY_RATE_LIMIT = f"{auth_settings.rate_limit_verify_attempts_per_hour}/3600second"
 PASSWORD_RESET_RATE_LIMIT = f"{auth_settings.rate_limit_password_reset_attempts_per_hour}/3600second"

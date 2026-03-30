@@ -70,7 +70,7 @@ async def register(
         logger.info("User %s registered successfully", sanitize_log_value(user.email))
 
     except UserAlreadyExists as e:
-        raise RegistrationUserAlreadyExistsHTTPError(user_create.email) from e
+        raise RegistrationUserAlreadyExistsHTTPError from e
 
     except InvalidPasswordException as e:
         raise RegistrationInvalidPasswordHTTPError(e.reason) from e

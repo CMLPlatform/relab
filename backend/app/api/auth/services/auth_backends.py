@@ -4,6 +4,7 @@ import ipaddress
 from typing import cast
 from urllib.parse import urlparse
 
+from fastapi import HTTPException
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -16,6 +17,7 @@ from pydantic import UUID4, SecretStr
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
+from app.core.config import Environment
 from app.core.config import settings as core_settings
 from app.core.redis import OptionalRedisDep
 
@@ -49,6 +51,9 @@ def get_token_strategy(redis: OptionalRedisDep) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
     if redis:
         return cast("Strategy[User, UUID4]", RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL))
+
+    if core_settings.environment not in (Environment.DEV, Environment.TESTING):
+        raise HTTPException(status_code=503, detail="Authentication service unavailable: Redis is required.")
 
     return cast(
         "Strategy[User, UUID4]",

@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 _memory_tokens: dict[str, tuple[str, float]] = {}
 _memory_blacklist: dict[str, float] = {}
 
+_USER_TOKENS_KEY_PREFIX = "auth:rt:user:"
+
 
 async def create_refresh_token(
     redis: Redis | None,
@@ -51,9 +53,12 @@ async def create_refresh_token(
         _memory_tokens[token] = (str(user_id), expire_ts)
         return token
 
-    # Store token with user_id mapping in Redis
+    # Store token with user_id mapping in Redis and add to user's token set
     token_key = f"auth:rt:{token}"
+    user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
     await redis.setex(token_key, ttl, str(user_id))
+    await redis.sadd(user_tokens_key, token)  # ty: ignore[invalid-await] # Async Redis returns awaitable, this is an upstream typing issue in the Redis client library
+    await redis.expire(user_tokens_key, ttl)
     return token
 
 
@@ -129,12 +134,49 @@ async def blacklist_token(
         if ttl_seconds <= 0:
             ttl_seconds = HOUR  # Default 1 hour if token already expired
 
-    # Add to blacklist
+    # Get user_id before deleting the token key (needed to clean up user set)
+    user_id_str = await redis.get(token_key)
+
+    # Add to blacklist and delete the token
     blacklist_key = f"auth:rt_blacklist:{token}"
     await redis.setex(blacklist_key, ttl_seconds, "1")
-
-    # Delete the token
     await redis.delete(token_key)
+
+    # Remove from user's token set
+    if user_id_str:
+        user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
+        await redis.srem(user_tokens_key, token)  # ty: ignore[invalid-await] # Async Redis returns awaitable, this is an upstream typing issue in the Redis client library
+
+
+async def revoke_all_user_tokens(
+    redis: Redis | None,
+    user_id: UUID4,
+) -> None:
+    """Revoke all active refresh tokens for a user.
+
+    Args:
+        redis: Redis client or None for in-memory fallback
+        user_id: User's UUID
+    """
+    user_id_str = str(user_id)
+
+    if redis is None:
+        tokens_to_revoke = [t for t, (uid, _) in list(_memory_tokens.items()) if uid == user_id_str]
+        for token in tokens_to_revoke:
+            await blacklist_token(redis, token)
+        return
+
+    user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
+    tokens = await redis.smembers(user_tokens_key)  # ty: ignore[invalid-await] # Async Redis returns awaitable, this is an upstream typing issue in the Redis client library
+    for token in tokens:
+        token_key = f"auth:rt:{token}"
+        ttl_seconds = await redis.ttl(token_key)
+        if ttl_seconds <= 0:
+            ttl_seconds = HOUR
+        blacklist_key = f"auth:rt_blacklist:{token}"
+        await redis.setex(blacklist_key, ttl_seconds, "1")
+        await redis.delete(token_key)
+    await redis.delete(user_tokens_key)
 
 
 async def rotate_refresh_token(
@@ -159,7 +201,11 @@ async def rotate_refresh_token(
     # Create new token
     new_token = await create_refresh_token(redis, user_id)
 
-    # Blacklist old token
-    await blacklist_token(redis, old_token)
+    # Blacklist old token; if it fails, invalidate the new token too so neither is usable
+    try:
+        await blacklist_token(redis, old_token)
+    except Exception:
+        await blacklist_token(redis, new_token)
+        raise
 
     return new_token

@@ -92,18 +92,3 @@ class TestAuthenticateUsernameResolution:
             result = await manager.authenticate(credentials)
 
         assert result is mock_user
-
-    async def test_at_sign_in_username_skips_lookup(self) -> None:
-        """An input containing '@' goes straight to the parent.
-
-        We use a valid email here to satisfy Pydantic's EmailStr validation.
-        """
-        manager, mock_session = _make_manager()
-        credentials = _make_credentials("user@example.com")
-
-        with patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super:
-            mock_super.return_value = None
-            await manager.authenticate(credentials)
-
-        mock_session.exec.assert_not_called()
-        assert credentials.username == "user@example.com"

@@ -1,12 +1,15 @@
 """User management service."""
 
+import hashlib
 import logging
 from typing import TYPE_CHECKING, cast
 
+import zxcvbn as zxcvbn_checker
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
+from httpx import AsyncClient, HTTPError
 from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
 from sqlmodel import select
 
@@ -14,6 +17,7 @@ from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserUpdate
+from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.login_hooks import (
     log_successful_login,
@@ -26,6 +30,7 @@ from app.api.auth.utils.programmatic_emails import (
     send_reset_password_email,
     send_verification_email,
 )
+from app.api.common.routers.dependencies import get_external_http_client
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -50,12 +55,44 @@ VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
 _AUTH_COOKIE_PREFIX = "auth="
 _SET_COOKIE_HEADER = "set-cookie"
 
+# zxcvbn score threshold: 0=very weak, 1=weak, 2=fair, 3=good, 4=strong
+_MIN_PASSWORD_STRENGTH_SCORE = 2
+
+
+async def _check_pwned_password(password: str, http_client: AsyncClient) -> int:
+    """Return how many times this password appears in HaveIBeenPwned breach data.
+
+    Uses k-anonymity: only the first 5 hex chars of the SHA-1 hash are sent;
+    the plaintext password never leaves this process.
+    Fails open (returns 0) if the Have I Been Pwnd API is unreachable.
+    """
+    sha1 = hashlib.sha1(password.encode(), usedforsecurity=False).hexdigest().upper()
+    prefix, suffix = sha1[:5], sha1[5:]
+    try:
+        response = await http_client.get(
+            f"https://api.pwnedpasswords.com/range/{prefix}",
+            headers={"Add-Padding": "true"},
+            timeout=5.0,
+        )
+        response.raise_for_status()
+        for line in response.text.splitlines():
+            h, _, count = line.partition(":")
+            if h == suffix:
+                return int(count)
+    except HTTPError:
+        logger.warning("Have I Been Pwnd breach check unavailable, skipping for this request")
+    return 0
+
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
     """User manager class for FastAPI-Users."""
 
     # We will initialize the user manager with a SQLModelUserDatabaseAsync instance in the dependency function below
     user_db: SQLModelUserDatabaseAsync
+
+    def __init__(self, user_db: SQLModelUserDatabaseAsync, http_client: AsyncClient) -> None:
+        super().__init__(user_db)
+        self.http_client = http_client
 
     # Set up token secrets and lifetimes
     reset_password_token_secret: SecretType = SECRET.get_secret_value()
@@ -95,8 +132,21 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
             raise InvalidPasswordException(reason="Password should not contain e-mail")
         if user.username and user.username in password:
             raise InvalidPasswordException(reason="Password should not contain username")
-        if user.username and user.username in password:
-            raise InvalidPasswordException(reason="Password should not contain username")
+
+        # Strength check: reject passwords that are too guessable (keyboard walks,
+        # common words, dates, l33t substitutions, etc.)
+        user_inputs = [s for s in [user.email, getattr(user, "username", None)] if s]
+        result = zxcvbn_checker.zxcvbn(password, user_inputs=user_inputs)
+        if result["score"] < _MIN_PASSWORD_STRENGTH_SCORE:
+            feedback = result.get("feedback", {}).get("warning") or "try a longer phrase or mix of characters"
+            raise InvalidPasswordException(reason=f"Password is too weak: {feedback}")
+
+        # Breach check: reject passwords found in known data breaches (k-anonymity, fail-open)
+        breach_count = await _check_pwned_password(password, self.http_client)
+        if breach_count > 0:
+            raise InvalidPasswordException(
+                reason="Password has appeared in a known data breach. Please choose a different password."
+            )
 
     async def update(
         self,
@@ -129,6 +179,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         logger.info("User %s has forgot their password. Sending reset token", sanitize_log_value(user.email))
         await send_reset_password_email(user.email, user.username, token)
 
+    async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
+        """Revoke all refresh tokens when a user is deactivated."""
+        if update_dict.get("is_active") is False:
+            redis = getattr(request.app.state, "redis", None) if request else None
+            await refresh_token_service.revoke_all_user_tokens(redis, user.db_id)
+
     async def on_after_login(
         self, user: User, request: Request | None = None, response: Response | None = None
     ) -> None:
@@ -140,9 +196,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 
 async def get_user_manager(
     user_db: SQLModelUserDatabaseAsync[User, UUID4] = Depends(get_user_db),
+    http_client: AsyncClient = Depends(get_external_http_client),
 ) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""
-    yield UserManager(user_db)
+    yield UserManager(user_db, http_client)
 
 
 bearer_auth_backend: AuthenticationBackend[User, UUID4]

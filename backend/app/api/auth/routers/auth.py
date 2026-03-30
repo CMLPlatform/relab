@@ -14,10 +14,11 @@ from app.api.auth.services.user_manager import (
     fastapi_user_manager,
 )
 from app.api.auth.utils.email_validation import EmailChecker, get_email_checker_dependency
-from app.api.auth.utils.rate_limit import LOGIN_RATE_LIMIT, limiter
+from app.api.auth.utils.rate_limit import LOGIN_RATE_LIMIT, VERIFY_RATE_LIMIT, limiter
 from app.api.common.routers.openapi import mark_router_routes_public
 
 LOGIN_PATH = "/login"
+REQUEST_VERIFY_TOKEN_PATH = "/request-verify-token"  # noqa: S105
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -47,8 +48,12 @@ router.include_router(refresh.router, tags=["auth"])
 # Mark all routes in the auth router thus far as public
 mark_router_routes_public(router)
 
-# Verification and password reset routes (keep FastAPI-Users defaults)
-router.include_router(fastapi_user_manager.get_verify_router(user_schema=UserRead))
+# Verification and password reset routes (rate-limit the email-sending endpoint)
+verify_router = fastapi_user_manager.get_verify_router(user_schema=UserRead)
+for route in verify_router.routes:
+    if isinstance(route, APIRoute) and route.path == REQUEST_VERIFY_TOKEN_PATH:
+        route.endpoint = limiter.limit(VERIFY_RATE_LIMIT)(route.endpoint)
+router.include_router(verify_router)
 router.include_router(fastapi_user_manager.get_reset_password_router())
 
 

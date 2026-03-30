@@ -19,6 +19,23 @@ from app.core.database import get_async_session
 from app.main import app
 from tests.factories.models import UserFactory
 
+
+class _NoNetworkTransport(httpx.AsyncBaseTransport):
+    """Async transport that returns empty 200 responses without touching the network.
+
+    Used so tests that trigger outbound HTTP calls (e.g. Have I Been Pwnd password-breach checks)
+    never make real network requests.  An empty 200 body is safe for every caller:
+    - Have I Been Pwnd interprets an empty body as "no suffixes matched → 0 breaches".
+    - Any other callers that fail open on non-OK responses are also fine.
+    """
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:  # noqa: ARG002
+        return httpx.Response(200, content=b"")
+
+
+# Shared outbound HTTP client for tests — never reaches the internet.
+_test_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
+
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
 
@@ -57,6 +74,9 @@ async def async_client(
 
     # Set up redis for on_after_login hooks
     test_app.state.redis = mock_redis_dependency
+
+    # Provide the shared outbound HTTP client (used by UserManager for Have I Been Pwnd checks etc.)
+    test_app.state.http_client = _test_http_client
 
     # Setup in-memory cache for FastAPI Cache
     FastAPICache.init(InMemoryBackend(), prefix="test-cache")
