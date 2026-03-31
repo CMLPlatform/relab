@@ -146,7 +146,7 @@ describe('NewAccount screen', () => {
     });
   });
 
-  it('shows validation alerts when "Create Account" is pressed with invalid data (force validation)', async () => {
+  it('shows validation error for short password', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     // Jump to password section manually via sections
@@ -159,11 +159,9 @@ describe('NewAccount screen', () => {
     await screen.findByPlaceholderText('Password');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), '123'); // too short
 
-    fireEvent.press(screen.getByText('Create Account'));
-
+    // RHF shows validation error text immediately on change
     await waitFor(() => {
-      // Dialog should be shown for invalid password (since it's the last check)
-      expect(screen.getByText('Invalid Password')).toBeTruthy();
+      expect(screen.getByText(/at least 8/)).toBeTruthy();
     });
   });
 

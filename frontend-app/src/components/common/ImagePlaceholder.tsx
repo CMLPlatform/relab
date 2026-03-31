@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Icon, useTheme } from 'react-native-paper';
-import { Text } from '@/components/base';
+import { Text } from '@/components/base/Text';
 
 interface Props {
   width: number;

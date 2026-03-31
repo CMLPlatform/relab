@@ -1,21 +1,24 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { Product } from '@/types/Product';
 import * as auth from '../authentication';
-import * as fetching from '../fetching';
+import * as client from '../client';
+import * as products from '../products';
 import { deleteProduct, saveProduct } from '../saving';
 
 // Mock dependencies
 jest.mock('@/services/api/authentication', () => ({
   getToken: jest.fn(),
 }));
-jest.mock('@/services/api/fetching', () => ({
-  getProduct: jest.fn(),
+jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn(),
+}));
+jest.mock('@/services/api/products', () => ({
+  getProduct: jest.fn(),
 }));
 
 const mockGetToken = jest.mocked(auth.getToken);
-const mockApiFetch = jest.mocked(fetching.apiFetch);
-const mockGetProduct = jest.mocked(fetching.getProduct);
+const mockApiFetch = jest.mocked(client.apiFetch);
+const mockGetProduct = jest.mocked(products.getProduct);
 const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 // Minimal valid product
@@ -282,6 +285,84 @@ describe('Saving API Service', () => {
         (c) => (c[0] as URL).href.includes('/videos/5') && c[1]?.method === 'PATCH',
       );
       expect(updateCalls).toHaveLength(1);
+    });
+  });
+
+  // ─── addImage edge cases ────────────────────────────────
+
+  describe('addImage edge cases', () => {
+    it('throws when image upload returns a non-ok response', async () => {
+      mockFetch.mockResolvedValueOnce({
+        blob: async () => new Blob(['data'], { type: 'image/png' }),
+      } as Response);
+      global.fetch = mockFetch;
+
+      const product = {
+        ...baseProduct,
+        id: 42 as number | 'new',
+        images: [{ url: 'https://example.com/new.jpg', description: 'test' }],
+      };
+      mockApiFetchOk({ id: 42 }); // PATCH product
+      mockApiFetchOk({}); // PATCH physical
+      mockApiFetchOk({ id: 42 }); // PATCH circularity
+      mockApiFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        statusText: 'Unprocessable Entity',
+        json: async () => ({ detail: 'File too large' }),
+      } as Response);
+
+      await expect(saveProduct(product, [], [])).rejects.toThrow('Image upload failed');
+    });
+
+    it('mutates image with server-assigned id and url after successful upload', async () => {
+      mockFetch.mockResolvedValueOnce({
+        blob: async () => new Blob(['data'], { type: 'image/png' }),
+      } as Response);
+      global.fetch = mockFetch;
+
+      const image: { url: string; description: string; id?: number } = {
+        url: 'https://example.com/new.jpg',
+        description: 'test',
+      };
+      const product = {
+        ...baseProduct,
+        id: 42 as number | 'new',
+        images: [image],
+      };
+      mockApiFetchOk({ id: 42 }); // PATCH product
+      mockApiFetchOk({}); // PATCH physical
+      mockApiFetchOk({ id: 42 }); // PATCH circularity
+      mockApiFetchOk({ id: 55, url: 'http://cdn.example.com/stored.jpg' }); // POST image
+
+      await saveProduct(product, [], []);
+
+      expect(image.id).toBe(55);
+      expect(image.url).toBe('http://cdn.example.com/stored.jpg');
+    });
+
+    it('uploads a data: URI image via FormData', async () => {
+      // Minimal 1×1 PNG as a base64 data URI
+      const dataUri =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+      const product = {
+        ...baseProduct,
+        id: 42 as number | 'new',
+        images: [{ url: dataUri, description: 'tiny png' }],
+      };
+      mockApiFetchOk({ id: 42 }); // PATCH product
+      mockApiFetchOk({}); // PATCH physical
+      mockApiFetchOk({ id: 42 }); // PATCH circularity
+      mockApiFetchOk({ id: 77 }); // POST image
+
+      await saveProduct(product, [], []);
+
+      const uploadCall = mockApiFetch.mock.calls.find(
+        (c) => (c[0] as URL).href.includes('/images') && c[1]?.method === 'POST',
+      );
+      expect(uploadCall).toBeDefined();
+      expect(uploadCall?.[1]?.body).toBeInstanceOf(FormData);
     });
   });
 

@@ -1,9 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { API_URL } from '@/config';
-import { apiFetch } from '@/services/api/fetching';
+import { apiFetch } from '@/services/api/client';
+import { resetPasswordSchema, type ResetPasswordFormValues } from '@/services/api/validation/userSchema';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -18,9 +21,17 @@ export default function ResetPasswordScreen() {
     }
   }, [tokenParam]);
 
-  const [password, setPassword] = useState('');
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: 'onChange',
+    defaultValues: { password: '' },
+  });
+
   const [success, setSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,26 +49,20 @@ export default function ResetPasswordScreen() {
   }, [success, router]);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleResetPassword = async () => {
+  const handleResetPassword = handleSubmit(async (data: ResetPasswordFormValues) => {
     const token = tokenRef.current;
     if (!token) {
       setError('No reset token provided');
       return;
     }
 
-    if (!password) {
-      setError('Please enter a new password');
-      return;
-    }
-
-    setIsLoading(true);
     setError(null);
 
     try {
       const response = await apiFetch(`${API_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, password: data.password }),
       });
 
       if (response.ok) {
@@ -70,10 +75,8 @@ export default function ResetPasswordScreen() {
     } catch (err) {
       console.error('Password reset error:', err);
       setError('An error occurred during password reset');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
@@ -83,20 +86,26 @@ export default function ResetPasswordScreen() {
 
           {!success ? (
             <>
-              <TextInput
-                label="New Password"
-                testID="password-input"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                disabled={isLoading}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? 'eye-off' : 'eye'}
-                    onPress={() => setShowPassword(!showPassword)}
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    label="New Password"
+                    testID="password-input"
+                    value={value}
+                    onChangeText={onChange}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    disabled={isSubmitting}
+                    right={
+                      <TextInput.Icon
+                        icon={showPassword ? 'eye-off' : 'eye'}
+                        onPress={() => setShowPassword(!showPassword)}
+                      />
+                    }
                   />
-                }
+                )}
               />
 
               {error && (
@@ -105,11 +114,17 @@ export default function ResetPasswordScreen() {
                 </HelperText>
               )}
 
+              {!error && errors.password && (
+                <HelperText type="error" visible>
+                  {errors.password.message}
+                </HelperText>
+              )}
+
               <Button
                 mode="contained"
                 onPress={handleResetPassword}
-                loading={isLoading}
-                disabled={isLoading || !password}
+                loading={isSubmitting}
+                disabled={isSubmitting || !isValid}
               >
                 Reset Password
               </Button>

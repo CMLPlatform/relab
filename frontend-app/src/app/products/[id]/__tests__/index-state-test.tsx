@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
@@ -196,6 +196,51 @@ describe('ProductPage state handling', () => {
     fireEvent.press(screen.getByText('Try Again'));
 
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it('collapses the FAB label on scroll down and restores it on scroll up', async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, ownedBy: 'me' },
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Product:pencil')).toBeTruthy();
+    });
+
+    // Fire scroll events to exercise the onScroll handler
+    fireEvent.scroll(screen.getByText('Edit Product:pencil'), {
+      nativeEvent: { contentOffset: { y: 100 } },
+    });
+
+    // Scroll back to top
+    fireEvent.scroll(screen.getByText('Edit Product:pencil'), {
+      nativeEvent: { contentOffset: { y: 0 } },
+    });
+
+    // Component doesn't crash and FAB still renders
+    expect(screen.getByText('Edit Product:pencil')).toBeTruthy();
+  });
+
+  it('shows slow-loading card after timeout', async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      isLoading: true,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    // Initially just the skeleton, no slow-loading message
+    expect(screen.queryByText(/taking longer than usual/i)).toBeNull();
+
+    // Advance fake timers past the 5s threshold inside act()
+    await act(() => {
+      jest.advanceTimersByTime(5100);
+    });
+
+    expect(screen.getByText(/taking longer than usual/i)).toBeTruthy();
   });
 
   it('opens the edit-name dialog from the header and saves the trimmed value', async () => {

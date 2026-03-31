@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Fragment, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Chip, Text, TextInput } from '@/components/base';
+import { Chip } from '@/components/base/Chip';
+import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { radius, spacing } from '@/constants/layout';
 import { useAppTheme } from '@/hooks/useAppTheme';

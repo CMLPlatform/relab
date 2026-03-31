@@ -1,12 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
 import { updateUser } from '@/services/api/authentication';
+import { onboardingSchema, type OnboardingFormValues } from '@/services/api/validation/userSchema';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -18,21 +21,19 @@ export default function Onboarding() {
   const { refetch } = useAuth();
   const colorScheme = useColorScheme();
 
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    formState: { isValid, isSubmitting },
+  } = useForm<OnboardingFormValues>({
+    resolver: zodResolver(onboardingSchema),
+    mode: 'onChange',
+    defaultValues: { username: '' },
+  });
 
-  const submitUsername = async () => {
-    if (username.length < 2) {
-      dialog.alert({
-        title: 'Invalid Username',
-        message: 'Username must be at least 2 characters.',
-      });
-      return;
-    }
-
-    setLoading(true);
+  const submitUsername = handleSubmit(async (data: OnboardingFormValues) => {
     try {
-      await updateUser({ username });
+      await updateUser({ username: data.username });
       await refetch(false);
       router.replace({ pathname: '/products', params: { authenticated: 'true' } });
     } catch (error: unknown) {
@@ -40,10 +41,8 @@ export default function Onboarding() {
         title: 'Error',
         message: getErrorMessage(error, 'Unable to save username. It might be taken.'),
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
   return (
     <View style={{ flex: 1 }}>
@@ -90,19 +89,25 @@ export default function Onboarding() {
         >
           Choose a username to continue.
         </Text>
-        <TextInput
-          mode={'outlined'}
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="e.g. awesome_user"
-          onSubmitEditing={submitUsername}
+        <Controller
+          control={control}
+          name="username"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="e.g. awesome_user"
+              onSubmitEditing={submitUsername}
+            />
+          )}
         />
         <Button
           mode="contained"
-          loading={loading}
-          disabled={loading}
+          loading={isSubmitting}
+          disabled={isSubmitting || !isValid}
           style={{ width: '100%', padding: 5 }}
           onPress={submitUsername}
         >

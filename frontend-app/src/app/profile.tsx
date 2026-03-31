@@ -4,12 +4,13 @@ import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
 import { Button, Dialog, Divider, IconButton, Portal, Switch, TextInput } from 'react-native-paper';
-import { Chip, Text } from '@/components/base';
+import { Chip } from '@/components/base/Chip';
+import { Text } from '@/components/base/Text';
 import LogoutConfirm from '@/components/common/LogoutConfirm';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
-import { apiFetch } from '@/services/api/fetching';
+import { apiFetch } from '@/services/api/client';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
 
 WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });

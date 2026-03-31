@@ -9,8 +9,7 @@ import {
   useProductQuery,
   useSaveProductMutation,
 } from '@/hooks/useProductQueries';
-import { newProduct } from '@/services/api/fetching';
-import { validateProduct } from '@/services/api/validation/product';
+import { newProduct } from '@/services/api/products';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import { consumeNewProductIntent } from '@/services/newProductStore';
 import type { Product } from '@/types/Product';
@@ -51,8 +50,12 @@ export function useProductForm(id: string) {
 
   const isProductComponent =
     typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
-  // Use the existing imperative validator for FAB disabled state (backward compatible)
-  const validationResult = validateProduct(product);
+  // Derive validation result from RHF's Zod resolver which validates on every change
+  const validationResult = {
+    isValid: form.formState.isValid,
+    error: Object.values(form.formState.errors)
+      .flatMap((e) => (e?.message ? [e.message] : []))[0],
+  };
 
   // Seed form state when server data arrives or when creating a new product
   useEffect(() => {

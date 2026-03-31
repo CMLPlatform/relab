@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   Linking,
   Pressable,
@@ -10,12 +11,13 @@ import {
   View,
 } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { WEBSITE_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { login, register } from '@/services/api/authentication';
-import { validateEmail, validatePassword, validateUsername } from '@/services/api/validation/user';
+import { newAccountSchema, type NewAccountFormValues } from '@/services/api/validation/userSchema';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -140,68 +142,35 @@ export default function NewAccount() {
     router.replace('/products');
   }, [user, authLoading, router]);
 
+  const {
+    control,
+    handleSubmit,
+    trigger,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<NewAccountFormValues>({
+    resolver: zodResolver(newAccountSchema),
+    mode: 'onChange',
+    defaultValues: { username: '', email: '', password: '' },
+  });
+
   const [section, setSection] = useState<'username' | 'email' | 'password'>('username');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [usernameError, setUsernameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
+  const username = watch('username');
 
-  const handleUsernameChange = (input: string) => {
-    const trimmed = input.trim();
-    setUsername(trimmed);
-    setUsernameError(validateUsername(trimmed).error || '');
+  const advanceFromUsername = async () => {
+    const isValid = await trigger('username');
+    if (isValid) setSection('email');
   };
 
-  const handleEmailChange = (input: string) => {
-    setEmail(input);
-    setEmailError(validateEmail(input).error || '');
+  const advanceFromEmail = async () => {
+    const isValid = await trigger('email');
+    if (isValid) setSection('password');
   };
 
-  const handlePasswordChange = (input: string) => {
-    setPassword(input);
-    setPasswordError(validatePassword(input, username, email).error || '');
-  };
-
-  const advanceFromUsername = () => {
-    if (validateUsername(username).isValid) {
-      setSection('email');
-    }
-  };
-
-  const advanceFromEmail = () => {
-    if (validateEmail(email).isValid) {
-      setSection('password');
-    }
-  };
-
-  const createAccount = async () => {
-    const usernameResult = validateUsername(username);
-    if (!usernameResult.isValid) {
-      dialog.alert({ title: 'Invalid Username', message: usernameResult.error || '' });
-      return;
-    }
-
-    const emailResult = validateEmail(email);
-    if (!emailResult.isValid) {
-      dialog.alert({ title: 'Invalid Email', message: emailResult.error || '' });
-      return;
-    }
-
-    const passwordResult = validatePassword(password, username, email);
-    if (!passwordResult.isValid) {
-      dialog.alert({ title: 'Invalid Password', message: passwordResult.error || '' });
-      return;
-    }
-
-    setIsRegistering(true);
-
-    const result = await register(username, email, password);
+  const createAccount = handleSubmit(async (data: NewAccountFormValues) => {
+    const result = await register(data.username, data.email, data.password);
 
     if (!result.success) {
-      setIsRegistering(false);
       dialog.alert({
         title: 'Registration Failed',
         message: result.error || 'Account creation failed. Please try again.',
@@ -209,8 +178,7 @@ export default function NewAccount() {
       return;
     }
 
-    const loginSuccess = await login(email, password);
-    setIsRegistering(false);
+    const loginSuccess = await login(data.email, data.password);
 
     if (!loginSuccess) {
       dialog.alert({
@@ -228,11 +196,7 @@ export default function NewAccount() {
     }
 
     router.replace('/products');
-  };
-
-  const isUsernameValid = validateUsername(username).isValid;
-  const isEmailValid = validateEmail(email).isValid;
-  const isPasswordValid = validatePassword(password, username, email).isValid;
+  });
 
   const usernameSection = [
     <Text key="welcome" style={[styles.welcomeText, { color: headlineColor }]}>
@@ -246,38 +210,43 @@ export default function NewAccount() {
     </Text>,
     <View key="input" style={styles.inputContainer}>
       <View key="row" style={styles.inputRow}>
-        <TextInput
-          key="input"
-          style={styles.textInput}
-          mode="outlined"
-          value={username}
-          onChangeText={handleUsernameChange}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="Username"
-          returnKeyType="next"
-          onSubmitEditing={advanceFromUsername}
-          error={!!usernameError}
+        <Controller
+          control={control}
+          name="username"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.textInput}
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="Username"
+              returnKeyType="next"
+              onSubmitEditing={advanceFromUsername}
+              error={!!errors.username}
+            />
+          )}
         />
         <Pressable
           key="next"
           testID="username-next"
           accessibilityRole="button"
           accessibilityLabel="Continue to email"
-          disabled={!isUsernameValid}
-          onPress={() => setSection('email')}
+          disabled={!!errors.username}
+          onPress={advanceFromUsername}
           style={({ pressed }) => [
             styles.arrowButton,
-            !isUsernameValid && styles.arrowButtonDisabled,
-            pressed && isUsernameValid ? { opacity: 0.7 } : null,
+            errors.username && styles.arrowButtonDisabled,
+            pressed && !errors.username ? { opacity: 0.7 } : null,
           ]}
         >
           <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
         </Pressable>
       </View>
-      {usernameError ? (
+      {errors.username ? (
         <HelperText key="error" type="error" visible style={styles.helperText}>
-          {usernameError}
+          {errors.username.message}
         </HelperText>
       ) : null}
     </View>,
@@ -295,39 +264,44 @@ export default function NewAccount() {
     </Text>,
     <View key="input" style={styles.inputContainer}>
       <View key="row" style={styles.inputRow}>
-        <TextInput
-          key="input"
-          style={styles.textInput}
-          mode="outlined"
-          value={email}
-          onChangeText={handleEmailChange}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          placeholder="Email address"
-          returnKeyType="next"
-          onSubmitEditing={advanceFromEmail}
-          error={!!emailError}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.textInput}
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholder="Email address"
+              returnKeyType="next"
+              onSubmitEditing={advanceFromEmail}
+              error={!!errors.email}
+            />
+          )}
         />
         <Pressable
           key="next"
           testID="email-next"
           accessibilityRole="button"
           accessibilityLabel="Continue to password"
-          disabled={!isEmailValid}
-          onPress={() => setSection('password')}
+          disabled={!!errors.email}
+          onPress={advanceFromEmail}
           style={({ pressed }) => [
             styles.arrowButton,
-            !isEmailValid && styles.arrowButtonDisabled,
-            pressed && isEmailValid ? { opacity: 0.7 } : null,
+            errors.email && styles.arrowButtonDisabled,
+            pressed && !errors.email ? { opacity: 0.7 } : null,
           ]}
         >
           <Text style={[styles.arrowButtonText, { color: headlineColor }]}>›</Text>
         </Pressable>
       </View>
-      {emailError ? (
+      {errors.email ? (
         <HelperText key="error" type="error" visible style={styles.helperText}>
-          {emailError}
+          {errors.email.message}
         </HelperText>
       ) : null}
     </View>,
@@ -355,36 +329,41 @@ export default function NewAccount() {
     </Text>,
     <View key="input" style={styles.inputContainer}>
       <View key="row" style={styles.inputRow}>
-        <TextInput
-          key="input"
-          style={styles.textInput}
-          mode="outlined"
-          value={password}
-          onChangeText={handlePasswordChange}
-          autoCapitalize="none"
-          secureTextEntry
-          placeholder="Password"
-          returnKeyType="done"
-          onSubmitEditing={() => {
-            if (isPasswordValid) {
-              createAccount();
-            }
-          }}
-          error={!!passwordError}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.textInput}
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              secureTextEntry
+              placeholder="Password"
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (!errors.password) {
+                  createAccount();
+                }
+              }}
+              error={!!errors.password}
+            />
+          )}
         />
         <Button
           key="submit"
           mode="contained"
           onPress={createAccount}
-          loading={isRegistering}
+          loading={isSubmitting}
           style={styles.registerButton}
         >
           Create Account
         </Button>
       </View>
-      {passwordError ? (
+      {errors.password ? (
         <HelperText key="error" type="error" visible style={styles.helperText}>
-          {passwordError}
+          {errors.password.message}
         </HelperText>
       ) : null}
     </View>,

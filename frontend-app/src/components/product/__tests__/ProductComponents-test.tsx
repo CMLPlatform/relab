@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import type { Text as RNText } from 'react-native';
-import * as fetching from '@/services/api/fetching';
+import * as products from '@/services/api/products';
 import { setNewProductIntent } from '@/services/newProductStore';
 import { baseProduct, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
 import ProductComponents from '../ProductComponents';
 
-jest.mock('@/services/api/fetching', () => ({
+jest.mock('@/services/api/products', () => ({
   productComponents: jest.fn(),
 }));
 
@@ -30,7 +30,7 @@ jest.mock('@/components/common/ProductCard', () => {
 });
 
 const mockPush = jest.fn();
-const mockedProductComponents = jest.mocked(fetching.productComponents);
+const mockedProductComponents = jest.mocked(products.productComponents);
 const mockedSetNewProductIntent = jest.mocked(setNewProductIntent);
 
 describe('ProductComponents', () => {

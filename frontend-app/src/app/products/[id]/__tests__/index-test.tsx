@@ -2,19 +2,19 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ScrollView as RNScrollView, Text as RNText } from 'react-native';
-import * as fetching from '@/services/api/fetching';
+import * as products from '@/services/api/products';
 import { renderWithProviders } from '@/test-utils';
 import ProductPage from '../index';
 
-const mockedGetProduct = jest.mocked(fetching.getProduct);
-const mockedNewProduct = jest.mocked(fetching.newProduct);
+const mockedGetProduct = jest.mocked(products.getProduct);
+const mockedNewProduct = jest.mocked(products.newProduct);
 const mockUseAuth = jest.fn();
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
-jest.mock('@/services/api/fetching', () => ({
+jest.mock('@/services/api/products', () => ({
   getProduct: jest.fn(),
   newProduct: jest.fn(),
 }));
@@ -24,10 +24,9 @@ jest.mock('@/services/api/saving', () => ({
   saveProduct: jest.fn(),
 }));
 
-jest.mock('@/services/api/validation/product', () => ({
+jest.mock('@/services/api/validation/productSchema', () => ({
+  ...jest.requireActual('@/services/api/validation/productSchema'),
   getProductNameHelperText: jest.fn(() => 'help text'),
-  validateProduct: jest.fn(() => ({ isValid: true })),
-  validateProductName: jest.fn(() => ({ isValid: true })),
 }));
 
 jest.mock('react-native-keyboard-controller', () => {
@@ -174,7 +173,7 @@ describe('ProductPage route protection', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(fetching.newProduct).toHaveBeenCalledWith(undefined, NaN, undefined, undefined);
+      expect(products.newProduct).toHaveBeenCalledWith(undefined, NaN, undefined, undefined);
       expect(screen.getByText('Description:Draft Product')).toBeTruthy();
       expect(screen.getByText('Save Product')).toBeTruthy();
     });
@@ -188,7 +187,7 @@ describe('ProductPage route protection', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(fetching.getProduct).toHaveBeenCalledWith(42);
+      expect(products.getProduct).toHaveBeenCalledWith(42);
       expect(screen.getByText('Description:Existing Product')).toBeTruthy();
     });
     expect(mockReplace).not.toHaveBeenCalled();

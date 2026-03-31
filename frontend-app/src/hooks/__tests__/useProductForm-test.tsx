@@ -28,7 +28,7 @@ jest.mock('@/services/newProductStore', () => ({
   consumeNewProductIntent: jest.fn(),
 }));
 
-jest.mock('@/services/api/fetching', () => ({
+jest.mock('@/services/api/products', () => ({
   newProduct: jest.fn((name) => ({ name, parentID: NaN, images: [], videos: [] })),
 }));
 
@@ -176,6 +176,59 @@ describe('useProductForm', () => {
       expect.objectContaining({ product: expect.objectContaining({ name: 'Test Product' }) }),
       expect.any(Object),
     );
+  });
+
+  it('shows a dialog when saving fails', async () => {
+    const mockMutate = jest.fn(
+      (
+        _payload: unknown,
+        options: { onSuccess?: (id: number) => void; onError?: (err: Error) => void },
+      ) => options.onError?.(new Error('Network failure')),
+    );
+    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+
+    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    // Enter edit mode
+    await act(async () => {
+      result.current.toggleEditMode();
+    });
+    expect(result.current.editMode).toBe(true);
+
+    // Trigger save — the onError callback fires
+    await act(async () => {
+      result.current.toggleEditMode();
+    });
+
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+  });
+
+  it('calls delete mutation and navigates to /products on success', async () => {
+    const mockDeleteMutate = jest.fn((_payload: unknown, options: { onSuccess?: () => void }) =>
+      options.onSuccess?.(),
+    );
+    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: mockDeleteMutate });
+
+    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductDelete();
+    });
+
+    expect(mockDeleteMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 123 }),
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+    expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
   it('sets the new id and marks the draft as just created after saving a new product', async () => {

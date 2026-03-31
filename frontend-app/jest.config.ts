@@ -2,6 +2,11 @@ import type { Config } from 'jest';
 
 const config: Config = {
   preset: 'jest-expo',
+  // Use fake timers globally to prevent leaked animation timers (from
+  // react-native-paper, Animated, etc.) causing "worker failed to exit
+  // gracefully" warnings.  Tests that need real timers can call
+  // jest.useRealTimers() locally.
+  fakeTimers: { enableGlobally: true },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   transformIgnorePatterns: [
@@ -26,8 +31,6 @@ const config: Config = {
     '!src/app/_layout.tsx',
     // Pure visual SVG geometry component; no branching logic to assert on
     '!src/components/common/SVGCube.tsx',
-    // Barrel re-export file; no logic, just re-exports individual components
-    '!src/components/base.ts',
     // Pure visual skeleton component; no branching logic to assert on
     '!src/components/common/ProductCardSkeleton.tsx',
   ],

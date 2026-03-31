@@ -490,6 +490,41 @@ describe('Login screen', () => {
     });
   });
 
+  it('shows dialog when getUser returns null after successful login', async () => {
+    mockedLogin.mockResolvedValue('access-token');
+    mockedGetUser.mockResolvedValueOnce(undefined); // getUser returns undefined
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByPlaceholderText('Email or username');
+
+    fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
+    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
+    fireEvent.press(screen.getByText('Login'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText(/Unable to retrieve user information/)).toBeTruthy();
+    });
+  });
+
+  it('shows error when OAuth provider returns an unsafe authorization URL on web', async () => {
+    setPlatformOS('web');
+    server.use(
+      http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () =>
+        HttpResponse.json({ authorization_url: 'http://evil.example.com/phish' }),
+      ),
+    );
+
+    renderWithProviders(<Login />, { withDialog: true, withAuth: true });
+    await screen.findByText('Continue with GitHub');
+    fireEvent.press(screen.getByText('Continue with GitHub'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText(/Unexpected authorization URL/)).toBeTruthy();
+    });
+  });
+
   it('initiates GitHub OAuth login', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with GitHub');

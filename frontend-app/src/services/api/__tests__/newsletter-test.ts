@@ -53,4 +53,30 @@ describe('Newsletter API service', () => {
 
     await expect(setNewsletterPreference(false)).rejects.toThrow('Nope');
   });
+
+  it('throws with fallback message when the update fails without a detail field', async () => {
+    server.use(http.put(`${API_URL}/newsletter/me`, () => HttpResponse.json({}, { status: 503 })));
+
+    await expect(setNewsletterPreference(true)).rejects.toThrow(
+      'Newsletter request failed with HTTP 503',
+    );
+  });
+
+  it('throws when reading newsletter preference fails', async () => {
+    server.use(
+      http.get(`${API_URL}/newsletter/me`, () =>
+        HttpResponse.json({ detail: 'Not found' }, { status: 404 }),
+      ),
+    );
+
+    await expect(getNewsletterPreference()).rejects.toThrow('Not found');
+  });
+
+  it('throws with fallback message when reading preference fails without detail', async () => {
+    server.use(http.get(`${API_URL}/newsletter/me`, () => HttpResponse.json({}, { status: 500 })));
+
+    await expect(getNewsletterPreference()).rejects.toThrow(
+      'Newsletter request failed with HTTP 500',
+    );
+  });
 });

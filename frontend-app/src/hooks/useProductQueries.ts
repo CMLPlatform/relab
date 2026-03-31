@@ -1,12 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  allProducts,
-  allProductTypes,
-  getProduct,
-  myProducts,
-  searchBrands,
-  searchProductTypes,
-} from '@/services/api/fetching';
+import { searchBrands } from '@/services/api/brands';
+import { allProducts, getProduct, myProducts } from '@/services/api/products';
+import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 

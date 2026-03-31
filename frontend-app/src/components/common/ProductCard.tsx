@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Card, Icon, useTheme } from 'react-native-paper';
-import { Text } from '@/components/base';
+import { Text } from '@/components/base/Text';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
 import type { Product } from '@/types/Product';
 

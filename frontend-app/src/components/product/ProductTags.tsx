@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { Chip, InfoTooltip, Text } from '@/components/base';
+import { Chip } from '@/components/base/Chip';
+import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { Text } from '@/components/base/Text';
 import { useDialog } from '@/components/common/DialogProvider';
 
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';

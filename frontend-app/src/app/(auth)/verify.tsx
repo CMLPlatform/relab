@@ -4,7 +4,7 @@ import { Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
-import { apiFetch } from '@/services/api/fetching';
+import { apiFetch } from '@/services/api/client';
 
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 

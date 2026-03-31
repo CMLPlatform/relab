@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import type RN from 'react-native';
 import { Platform, Pressable } from 'react-native';
-import { Text, TextInput } from '@/components/base';
+import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
 
 interface LocalizedFloatInputProps {
   value: number | undefined;

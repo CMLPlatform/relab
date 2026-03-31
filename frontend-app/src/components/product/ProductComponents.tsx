@@ -2,12 +2,12 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Button } from 'react-native-paper';
-import { Text } from '@/components/base';
+import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
-import { productComponents } from '@/services/api/fetching';
-import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
+import { productComponents } from '@/services/api/products';
+import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
 import { setNewProductIntent } from '@/services/newProductStore';
 import type { Product } from '@/types/Product';
 
@@ -45,16 +45,16 @@ export default function ProductComponents({ product, editMode }: Props) {
         {
           text: 'OK',
           disabled: (value) => {
-            const result = validateProductName(value);
-            return !result.isValid;
+            const parseResult = productSchema.shape.name.safeParse(value);
+            return !parseResult.success;
           },
           onPress: (componentName) => {
             const name = typeof componentName === 'string' ? componentName.trim() : '';
-            const result = validateProductName(name);
+            const parseResult = productSchema.shape.name.safeParse(name);
 
-            if (!result.isValid) {
+            if (!parseResult.success) {
               // This shouldn't happen due to disabled check, but handle defensively
-              alert(result.error);
+              alert(parseResult.error.errors[0]?.message || 'Invalid component name');
               return;
             }
 

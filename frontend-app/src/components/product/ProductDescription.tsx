@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text, TextInput } from '@/components/base';
+import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
 
 import type { Product } from '@/types/Product';
 

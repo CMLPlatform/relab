@@ -1,6 +1,6 @@
 import { API_URL } from '@/config';
 import { getToken } from '@/services/api/authentication';
-import { apiFetch } from '@/services/api/fetching';
+import { apiFetch } from '@/services/api/client';
 import type {
   ApiCircularityPropertiesUpdate,
   ApiPhysicalPropertiesUpdate,

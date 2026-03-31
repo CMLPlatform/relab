@@ -244,7 +244,7 @@ describe('Authentication API Service', () => {
       expect(user?.username).toBe('testuser');
     });
 
-    it('returns undefined when response is not ok', async () => {
+    it('returns undefined when response is not ok (401)', async () => {
       secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(
         mockResponse(401, { detail: 'Unauthorized' }, false) as Response,
@@ -253,6 +253,18 @@ describe('Authentication API Service', () => {
       const user = await auth.getUser(true);
 
       expect(user).toBeUndefined();
+    });
+
+    it('returns undefined and logs error on non-401 failure', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(403, { detail: 'Forbidden' }, false) as Response,
+      );
+
+      const user = await auth.getUser(true);
+
+      expect(user).toBeUndefined();
+      expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
     it("falls back to 'Username not defined' when username is missing", async () => {
@@ -432,6 +444,36 @@ describe('Authentication API Service', () => {
       );
 
       await expect(auth.updateUser({})).rejects.toThrow('Custom error message');
+    });
+  });
+
+  // ─── oauthLoginWithGoogleToken ──────────────────────────
+
+  describe('oauthLoginWithGoogleToken', () => {
+    it('resolves without error on a successful response', async () => {
+      fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
+
+      await expect(
+        auth.oauthLoginWithGoogleToken('id-token-abc', 'access-token-xyz'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('throws with server detail on non-ok response', async () => {
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(400, { detail: 'Token expired' }, false) as Response,
+      );
+
+      await expect(auth.oauthLoginWithGoogleToken('bad-token', null)).rejects.toThrow(
+        'Token expired',
+      );
+    });
+
+    it('throws a fallback message when response has no detail', async () => {
+      fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
+
+      await expect(auth.oauthLoginWithGoogleToken('token', null)).rejects.toThrow(
+        'Google login failed. Please try again.',
+      );
     });
   });
 

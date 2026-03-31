@@ -2,14 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { HttpResponse, http } from 'msw';
 import { server } from '@/test-utils/server';
 import * as auth from '../authentication';
-import {
-  allBrands,
-  allProducts,
-  getProduct,
-  myProducts,
-  newProduct,
-  productComponents,
-} from '../fetching';
+import { allBrands, searchBrands } from '../brands';
+import { allProducts, getProduct, myProducts, newProduct, productComponents } from '../products';
+import { allProductTypes, searchProductTypes } from '../productTypes';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -114,7 +109,7 @@ describe('Fetching API Service logic', () => {
     });
   });
 
-  // ─── allBrands ──────────────────────────────────────────
+  // ─── allBrands / searchBrands ───────────────────────────
 
   describe('allBrands', () => {
     it('performs fetch and returns array of strings', async () => {
@@ -136,10 +131,32 @@ describe('Fetching API Service logic', () => {
       expect(brands.length).toBe(3);
     });
 
+    it('returns empty array when items is absent', async () => {
+      server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({})));
+
+      const brands = await allBrands();
+
+      expect(brands).toEqual([]);
+    });
+
     it('throws on HTTP error', async () => {
       server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({}, { status: 500 })));
 
       await expect(allBrands()).rejects.toThrow('HTTP error');
+    });
+
+    it('sends search param when searching brands', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/brands`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json({ items: ['Samsung'] });
+        }),
+      );
+
+      await searchBrands('Samsung');
+
+      expect(capturedUrl?.searchParams.get('search')).toBe('Samsung');
     });
   });
 
@@ -359,6 +376,37 @@ describe('Fetching API Service logic', () => {
       );
 
       await expect(myProducts()).rejects.toThrow('HTTP error');
+    });
+  });
+
+  // ─── searchProductTypes / allProductTypes ───────────────
+
+  describe('searchProductTypes / allProductTypes', () => {
+    it('returns product types from the API', async () => {
+      server.use(
+        http.get(`${API_URL}/product-types`, () =>
+          HttpResponse.json({ items: [{ id: 1, name: 'Electronics' }] }),
+        ),
+      );
+
+      const result = await searchProductTypes();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('Electronics');
+    });
+
+    it('allProductTypes requests size=100', async () => {
+      let capturedUrl: URL | undefined;
+      server.use(
+        http.get(`${API_URL}/product-types`, ({ request }) => {
+          capturedUrl = new URL(request.url);
+          return HttpResponse.json({ items: [] });
+        }),
+      );
+
+      await allProductTypes();
+
+      expect(capturedUrl?.searchParams.get('size')).toBe('100');
     });
   });
 

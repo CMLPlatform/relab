@@ -82,13 +82,19 @@ describe('CategorySelection', () => {
         params: { redirectTo: '/products/1' },
       });
     });
+
+    // Flush the pending loadCPV promise so it doesn't leak into the next test
+    await waitFor(() => {
+      expect(mockedLoadCPV).toHaveBeenCalled();
+    });
   });
 
   it('renders root category items initially', async () => {
     renderWithProviders(<CategorySelection />);
-    await screen.findByText('Agricultural products');
-    expect(screen.getByText('Agricultural products')).toBeTruthy();
-    expect(screen.getByText('Petroleum products')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('Agricultural products')).toBeTruthy();
+      expect(screen.getByText('Petroleum products')).toBeTruthy();
+    });
   });
 
   it('calls dismissTo when a leaf category is pressed', async () => {

@@ -27,7 +27,7 @@ import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
-import { getProductNameHelperText, validateProductName } from '@/services/api/validation/product';
+import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
 
 import type { Product } from '@/types/Product';
 
@@ -364,12 +364,15 @@ function EditNameButton({
         { text: 'Cancel' },
         {
           text: 'OK',
-          disabled: (value) => !validateProductName(value).isValid,
+          disabled: (value) => {
+            const parseResult = productSchema.shape.name.safeParse(value);
+            return !parseResult.success;
+          },
           onPress: (newName) => {
             const name = typeof newName === 'string' ? newName.trim() : '';
-            const result = validateProductName(name);
-            if (!result.isValid) {
-              alert(result.error);
+            const parseResult = productSchema.shape.name.safeParse(name);
+            if (!parseResult.success) {
+              alert(parseResult.error.errors[0]?.message || 'Invalid product name');
               return;
             }
             onProductNameChange?.(name);

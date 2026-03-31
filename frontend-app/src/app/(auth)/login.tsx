@@ -4,8 +4,10 @@ import * as Linking from 'expo-linking';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useDialog } from '@/components/common/DialogProvider';
 import { API_URL, GOOGLE_WEB_CLIENT_ID } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
@@ -15,7 +17,8 @@ import {
   markWebSessionActive,
   oauthLoginWithGoogleToken,
 } from '@/services/api/authentication';
-import { apiFetch } from '@/services/api/fetching';
+import { apiFetch } from '@/services/api/client';
+import { loginSchema, type LoginFormValues } from '@/services/api/validation/userSchema';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -163,13 +166,22 @@ export default function Login() {
     webClientId: GOOGLE_WEB_CLIENT_ID,
   });
 
+  // Form
+  const {
+    control,
+    handleSubmit,
+    formState: { isValid, isSubmitting },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onChange',
+    defaultValues: { email: '', password: '' },
+  });
+
   // Refs
   const emailRef = useRef<{ focus(): void } | null>(null);
   const handledOAuthCallbackRef = useRef(false);
 
   // States
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [keyboardShown, setKeyBoardShown] = useState(false);
 
   // Effects
@@ -352,9 +364,9 @@ export default function Login() {
   }, [dialog, finalizeOAuthLogin, oauthDetail, oauthError, oauthSuccess, postLoginRedirect]);
 
   // Callbacks
-  const attemptLogin = async () => {
+  const attemptLogin = handleSubmit(async (data: LoginFormValues) => {
     try {
-      const token = await login(email, password);
+      const token = await login(data.email, data.password);
       if (!token) {
         dialog.alert({
           title: 'Login Failed',
@@ -387,7 +399,7 @@ export default function Login() {
         message: getErrorMessage(error, 'Unable to reach server. Please try again later.'),
       });
     }
-  };
+  });
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     try {
@@ -525,25 +537,37 @@ export default function Login() {
           {'RELab'}
         </Text>
 
-        <TextInput
-          ref={(instance: { focus(): void } | null) => {
-            emailRef.current = instance;
-          }}
-          mode={'outlined'}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="Email or username"
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              ref={(instance: { focus(): void } | null) => {
+                emailRef.current = instance;
+              }}
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="Email or username"
+            />
+          )}
         />
-        <TextInput
-          mode={'outlined'}
-          value={password}
-          onChangeText={setPassword}
-          autoCapitalize="none"
-          secureTextEntry
-          placeholder="Password"
-          onSubmitEditing={attemptLogin}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              mode="outlined"
+              value={value}
+              onChangeText={onChange}
+              autoCapitalize="none"
+              secureTextEntry
+              placeholder="Password"
+              onSubmitEditing={attemptLogin}
+            />
+          )}
         />
         <Button mode="contained" style={{ width: '100%', padding: 5 }} onPress={attemptLogin}>
           Login

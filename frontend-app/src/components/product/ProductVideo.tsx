@@ -1,10 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Linking, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
-import { TextInput } from '@/components/base';
+import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/DialogProvider';
-import { isValidUrl } from '@/services/api/validation/product';
+import { isValidUrl } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 
 interface Video {

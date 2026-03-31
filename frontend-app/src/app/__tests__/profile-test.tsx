@@ -5,7 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
 import * as auth from '@/services/api/authentication';
-import * as fetching from '@/services/api/fetching';
+import * as client from '@/services/api/client';
 import { mockUser, renderWithProviders, server } from '@/test-utils';
 import type { User } from '@/types/User';
 import Profile from '../profile';
@@ -21,7 +21,7 @@ jest.mock('@/services/api/authentication', () => ({
   verify: jest.fn(),
 }));
 
-jest.mock('@/services/api/fetching', () => ({
+jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn(),
 }));
 
@@ -44,7 +44,7 @@ jest.mock('expo-router', () => ({
 
 const mockedGetToken = jest.mocked(auth.getToken);
 const mockedGetUser = jest.mocked(auth.getUser);
-const mockedApiFetch = jest.mocked(fetching.apiFetch);
+const mockedApiFetch = jest.mocked(client.apiFetch);
 const mockedCreateURL = jest.mocked(Linking.createURL);
 const mockedOpenAuthSessionAsync = jest.mocked(WebBrowser.openAuthSessionAsync);
 
@@ -148,6 +148,33 @@ describe('Profile screen newsletter preference', () => {
       await screen.findByText('Could not load right now.', {}, { timeout: 10000 }),
     ).toBeTruthy();
     expect(screen.getByText('Try again')).toBeTruthy();
+  });
+
+  it('retries loading newsletter preference when the retry button is pressed', async () => {
+    server.use(
+      http.get(`${API_URL}/newsletter/me`, () =>
+        HttpResponse.json({ detail: 'Temporary failure' }, { status: 500 }),
+      ),
+    );
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    expect(await screen.findByText('Temporary failure', {}, { timeout: 10000 })).toBeTruthy();
+
+    // Override with a success response for the retry
+    server.use(
+      http.get(`${API_URL}/newsletter/me`, () =>
+        HttpResponse.json({
+          email: 'test@example.com',
+          subscribed: true,
+          is_confirmed: true,
+        }),
+      ),
+    );
+
+    fireEvent.press(screen.getByText('Try again'));
+
+    expect(await screen.findByText('You are subscribed.', {}, { timeout: 10000 })).toBeTruthy();
   });
 });
 
@@ -280,5 +307,167 @@ describe('Profile screen actions', () => {
         'To delete your account and all associated data, please send an email request to:',
       ),
     ).toBeTruthy();
+  });
+
+  it('alerts when username is too short', async () => {
+    global.alert = jest.fn();
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const usernameText = await screen.findByText('testuser.');
+    fireEvent.press(usernameText);
+
+    const input = screen.getByDisplayValue('testuser');
+    fireEvent.changeText(input, 'a');
+
+    fireEvent.press(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('at least 2 characters'));
+    });
+  });
+
+  it('alerts on username update failure', async () => {
+    const mockedUpdateUser = jest.mocked(auth.updateUser);
+    mockedUpdateUser.mockRejectedValueOnce(new Error('Server error'));
+    global.alert = jest.fn();
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const usernameText = await screen.findByText('testuser.');
+    fireEvent.press(usernameText);
+
+    const input = screen.getByDisplayValue('testuser');
+    fireEvent.changeText(input, 'validname');
+
+    fireEvent.press(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to update username'),
+      );
+    });
+  });
+
+  it('alerts on verification email failure', async () => {
+    const mockedVerify = jest.mocked(auth.verify);
+    mockedVerify.mockRejectedValueOnce(new Error('Failed'));
+    global.alert = jest.fn();
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const verifyBtn = await screen.findByText('Verify email address');
+    fireEvent.press(verifyBtn);
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to send verification email'),
+      );
+    });
+  });
+
+  it('alerts on OAuth unlink failure', async () => {
+    const mockedUnlink = jest.mocked(auth.unlinkOAuth);
+    mockedUnlink.mockRejectedValueOnce(new Error('Cannot disconnect'));
+    global.alert = jest.fn();
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const unlinkBtn = await screen.findByText('Unlink Google');
+    fireEvent.press(unlinkBtn);
+
+    const confirmBtn = await screen.findByText('Unlink');
+    fireEvent.press(confirmBtn);
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('Failed to disconnect'));
+    });
+  });
+
+  it('alerts when OAuth link flow fails', async () => {
+    mockedApiFetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({}),
+    } as never);
+    global.alert = jest.fn();
+
+    mockedGetUser.mockResolvedValue({
+      ...mockUser,
+      id: '1',
+      username: 'testuser',
+      email: 'test@example.com',
+      oauth_accounts: [],
+    });
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const linkBtn = await screen.findByText('Link Google Account');
+    fireEvent.press(linkBtn);
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to start link flow'),
+      );
+    });
+  });
+
+  it('handles unlinking GitHub accounts', async () => {
+    mockedGetUser.mockResolvedValue({
+      ...mockUser,
+      id: '1',
+      username: 'testuser',
+      email: 'test@example.com',
+      isVerified: false,
+      oauth_accounts: [{ oauth_name: 'github', account_id: 'gh-1', account_email: 'gh@test.com' }],
+    } satisfies User);
+    const mockedUnlink = jest.mocked(auth.unlinkOAuth);
+    mockedUnlink.mockResolvedValueOnce(true);
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const unlinkBtn = await screen.findByText('Unlink GitHub');
+    fireEvent.press(unlinkBtn);
+
+    const confirmBtn = await screen.findByText('Unlink');
+    fireEvent.press(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockedUnlink).toHaveBeenCalledWith('github');
+    });
+  });
+
+  it('opens the OAuth link flow for GitHub accounts', async () => {
+    mockedApiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ authorization_url: 'https://github.com/auth' }),
+    } as never);
+    mockedOpenAuthSessionAsync.mockResolvedValueOnce({ type: 'success' } as never);
+    mockedGetUser.mockResolvedValue({
+      ...mockUser,
+      id: '1',
+      username: 'testuser',
+      email: 'test@example.com',
+      oauth_accounts: [],
+    });
+
+    renderWithProviders(<Profile />, { withAuth: true });
+
+    const linkGithubBtn = await screen.findByText('Link GitHub Account');
+    const initialGetUserCalls = mockedGetUser.mock.calls.length;
+    fireEvent.press(linkGithubBtn);
+
+    await waitFor(() => {
+      expect(mockedApiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/oauth/github/associate/authorize'),
+        expect.objectContaining({
+          headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+        }),
+      );
+      expect(mockedOpenAuthSessionAsync).toHaveBeenCalledWith(
+        'https://github.com/auth',
+        'myapp://profile',
+      );
+      expect(mockedGetUser.mock.calls.length).toBeGreaterThan(initialGetUserCalls);
+    });
   });
 });

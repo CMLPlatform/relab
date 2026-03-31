@@ -1,21 +1,28 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { API_URL } from '@/config';
-import { apiFetch } from '@/services/api/fetching';
-import { validateEmail } from '@/services/api/validation/user';
+import { apiFetch } from '@/services/api/client';
+import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/services/api/validation/userSchema';
 
 export default function ForgotPasswordScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const emailValidation = validateEmail(email);
-  const isValidEmail = emailValidation.isValid;
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: 'onChange',
+    defaultValues: { email: '' },
+  });
 
   const [success, setSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,25 +39,14 @@ export default function ForgotPasswordScreen() {
     }
   }, [success, router]);
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
-
-    if (!emailValidation.isValid) {
-      setError(emailValidation.error || 'Please enter a valid email address');
-      return;
-    }
-
-    setIsLoading(true);
+  const handleForgotPassword = handleSubmit(async (data: ForgotPasswordFormValues) => {
     setError(null);
 
     try {
       const response = await apiFetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: data.email }),
       });
 
       if (response.ok) {
@@ -63,10 +59,8 @@ export default function ForgotPasswordScreen() {
     } catch (err) {
       console.error('Forgot password error:', err);
       setError('An error occurred. Please try again later.');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  });
 
   return (
     <View style={{ flex: 1 }}>
@@ -81,14 +75,20 @@ export default function ForgotPasswordScreen() {
                 password.
               </Text>
 
-              <TextInput
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                disabled={isLoading}
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    label="Email"
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    disabled={isSubmitting}
+                  />
+                )}
               />
 
               {error && (
@@ -97,17 +97,17 @@ export default function ForgotPasswordScreen() {
                 </HelperText>
               )}
 
-              {!error && email.length > 0 && !isValidEmail && (
+              {!error && errors.email && (
                 <HelperText type="error" visible>
-                  {emailValidation.error}
+                  {errors.email.message}
                 </HelperText>
               )}
 
               <Button
                 mode="contained"
                 onPress={handleForgotPassword}
-                loading={isLoading}
-                disabled={isLoading || !isValidEmail}
+                loading={isSubmitting}
+                disabled={isSubmitting || !isValid}
               >
                 Send Reset Link
               </Button>

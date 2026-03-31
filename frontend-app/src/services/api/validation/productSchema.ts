@@ -3,6 +3,32 @@ import { z } from 'zod';
 export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
 
+/**
+ * Validates that a string is a properly-formatted URL (http or https).
+ * Used by ProductVideo component and video schema validation.
+ */
+export function isValidUrl(value: string | undefined): boolean {
+  if (!value || typeof value !== 'string') return false;
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return false;
+
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Helper text describing the allowed name length for product names.
+ * Used in form validation feedback.
+ */
+export function getProductNameHelperText(): string {
+  return `Enter a descriptive name between ${PRODUCT_NAME_MIN_LENGTH} and ${PRODUCT_NAME_MAX_LENGTH} characters`;
+}
+
 const physicalPropertiesSchema = z.object({
   weight: z.number({ message: 'Weight is required' }).positive('Weight must be a positive number'),
   width: z.number().positive('Width must be a positive number').or(z.nan()).optional(),

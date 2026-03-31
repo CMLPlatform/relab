@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Text } from '@/components/base';
+import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import type { Product } from '@/types/Product';
 
