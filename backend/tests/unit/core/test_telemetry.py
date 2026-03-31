@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import FastAPI
 
-from app.core.telemetry import init_telemetry, shutdown_telemetry
+from app.core.observability.telemetry import init_telemetry, shutdown_telemetry
 
 
 class _FakeResource:
@@ -71,7 +71,7 @@ def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPa
     app.state.telemetry_enabled = True
     async_engine = MagicMock()
 
-    monkeypatch.setattr("app.core.telemetry.settings.otel_enabled", False)
+    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", False)
 
     assert init_telemetry(app, async_engine) is False
     assert app.state.telemetry_enabled is False
@@ -86,10 +86,12 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     sqlalchemy_instrumentor = MagicMock()
     httpx_instrumentor = MagicMock()
 
-    monkeypatch.setattr("app.core.telemetry.settings.otel_enabled", True)
-    monkeypatch.setattr("app.core.telemetry.settings.otel_service_name", "relab-test")
-    monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
-    monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
+    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", True)
+    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_service_name", "relab-test")
+    monkeypatch.setattr(
+        "app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
+    )
+    monkeypatch.setattr("app.core.observability.telemetry.settings.environment", "testing")
 
     fake_modules = _build_fake_otel_modules(fastapi_instrumentor, sqlalchemy_instrumentor, httpx_instrumentor)
     trace_module = fake_modules["opentelemetry.trace"]
@@ -117,7 +119,7 @@ def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pyt
     app = FastAPI()
     async_engine = MagicMock()
 
-    monkeypatch.setattr("app.core.telemetry.settings.otel_enabled", True)
+    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", True)
 
     # Setting a module to None in sys.modules causes ImportError on import
     with patch.dict(sys.modules, {"opentelemetry": None}):

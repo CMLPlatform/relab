@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.dependencies import current_active_superuser, current_active_user, current_active_verified_user
 from app.api.auth.models import User
-from app.api.auth.utils.rate_limit import limiter
+from app.api.auth.services.rate_limiter import limiter
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.database import get_async_session
 from app.main import app

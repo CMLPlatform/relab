@@ -2,7 +2,7 @@
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 
-from app.api.file_storage.models.models import File, Image, MediaParentType, Video
+from app.api.file_storage.models import File, Image, MediaParentType, Video
 
 
 class FileFilter(Filter):

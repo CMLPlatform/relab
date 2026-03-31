@@ -8,8 +8,8 @@ import pytest
 
 from app.api.auth.models import OrganizationRole, User
 from app.api.common.models.enums import Unit
-from app.api.data_collection.base import PhysicalPropertiesBase
-from app.api.data_collection.models import MaterialProductLink, Product
+from app.api.data_collection.models.base import PhysicalPropertiesBase
+from app.api.data_collection.models.product import MaterialProductLink, Product
 
 
 @pytest.mark.unit

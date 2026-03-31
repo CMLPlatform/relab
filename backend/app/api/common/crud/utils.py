@@ -23,8 +23,8 @@ from app.api.common.crud.exceptions import (
 )
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.custom_types import ET, IDT, MT
-from app.api.data_collection.models import Product
-from app.api.file_storage.models.models import MediaParentType
+from app.api.data_collection.models.product import Product
+from app.api.file_storage.models import MediaParentType
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -66,8 +66,8 @@ def add_relationship_options(
     *,
     read_schema: type[BaseModel] | None = None,
     load_strategy: RelationshipLoadStrategy = RelationshipLoadStrategy.SELECTIN,
-) -> tuple[SelectOfScalar, set[str]]:
-    """Add eager loading options for relationships and return unloaded relationship names.
+) -> SelectOfScalar:
+    """Add eager loading options for relationships.
 
     Args:
         statement: SQLAlchemy select statement
@@ -76,51 +76,26 @@ def add_relationship_options(
         read_schema: Optional schema to filter relationships
         load_strategy: Strategy for loading (selectin or joined)
 
-    Returns:
-        tuple: (modified statement, set of excluded relationship names)
     """
-    # Get all relationships from the model
     all_db_rels = _get_model_relationships(model)
 
-    # Determine which relationships are in scope (db ∩ schema)
     in_scope_rel_names = (
         {name for name in all_db_rels if name in read_schema.model_fields} if read_schema else set(all_db_rels.keys())
     )
 
-    # Valid relationships to include (user_input ∩ in_scope)
     to_include = (set(include) if include else set()) & in_scope_rel_names
 
-    # Add eager loading for included relationships
     for rel_name in to_include:
         rel_attr = all_db_rels[rel_name][0]
         option = joinedload(rel_attr) if load_strategy == RelationshipLoadStrategy.JOINED else selectinload(rel_attr)
         statement = statement.options(option)
 
-    # Only suppress unincluded relationships for explicit response-shaping call sites.
-    # Internal CRUD/business logic frequently fetches models without a read schema and
-    # still expects normal ORM relationship access to work.
-    relationships_to_exclude: set[str] = set()
     if read_schema is not None:
-        relationships_to_exclude = in_scope_rel_names - to_include
-        for rel_name in relationships_to_exclude:
+        for rel_name in in_scope_rel_names - to_include:
             rel_attr = all_db_rels[rel_name][0]
             statement = statement.options(noload(rel_attr))
 
-    return statement, relationships_to_exclude
-
-
-def clear_unloaded_relationships[T](
-    results: T,
-    relationships_to_clear: set[str],
-    db: AsyncSession | None = None,
-) -> T:
-    """Compatibility hook for historical call sites.
-
-    Relationship suppression is now handled at query time by `add_relationship_options`
-    via `noload`, so no post-query mutation is needed here.
-    """
-    del relationships_to_clear, db
-    return results
+    return statement
 
 
 ### Error Handling Utilities ###

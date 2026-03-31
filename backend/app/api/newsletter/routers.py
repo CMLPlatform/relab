@@ -12,6 +12,10 @@ from app.api.auth.dependencies import CurrentActiveUserDep, current_active_super
 from app.api.common.crud.base import get_paginated_models
 from app.api.common.crud.persistence import commit_and_refresh, delete_and_commit
 from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.newsletter.examples import (
+    NEWSLETTER_EMAIL_BODY_OPENAPI_EXAMPLES,
+    NEWSLETTER_TOKEN_BODY_OPENAPI_EXAMPLES,
+)
 from app.api.newsletter.exceptions import (
     NewsletterAlreadyConfirmedError,
     NewsletterAlreadySubscribedError,
@@ -51,7 +55,12 @@ def _newsletter_preference_read(
 
 @backend_router.post("/subscribe", status_code=201, response_model=NewsletterSubscriberRead)
 async def subscribe_to_newsletter(
-    email: Annotated[EmailStr, Body()], db: AsyncSessionDep, background_tasks: BackgroundTasks
+    email: Annotated[
+        EmailStr,
+        Body(description="Email address to subscribe", openapi_examples=NEWSLETTER_EMAIL_BODY_OPENAPI_EXAMPLES),
+    ],
+    db: AsyncSessionDep,
+    background_tasks: BackgroundTasks,
 ) -> NewsletterSubscriber:
     """Subscribe to the newsletter to receive updates about the app launch."""
     existing_subscriber = await _get_subscriber_by_email(db, email)
@@ -74,7 +83,16 @@ async def subscribe_to_newsletter(
 
 
 @backend_router.post("/confirm", status_code=200, response_model=NewsletterSubscriberRead)
-async def confirm_newsletter_subscription(token: Annotated[str, Body()], db: AsyncSessionDep) -> NewsletterSubscriber:
+async def confirm_newsletter_subscription(
+    token: Annotated[
+        str,
+        Body(
+            description="Confirmation token from the subscription email",
+            openapi_examples=NEWSLETTER_TOKEN_BODY_OPENAPI_EXAMPLES,
+        ),
+    ],
+    db: AsyncSessionDep,
+) -> NewsletterSubscriber:
     """Confirm the newsletter subscription."""
     email = verify_jwt_token(token, JWTType.NEWSLETTER_CONFIRMATION)
     if not email:
@@ -94,7 +112,12 @@ async def confirm_newsletter_subscription(token: Annotated[str, Body()], db: Asy
 
 @backend_router.post("/request-unsubscribe", status_code=200)
 async def request_unsubscribe(
-    email: Annotated[EmailStr, Body()], db: AsyncSessionDep, background_tasks: BackgroundTasks
+    email: Annotated[
+        EmailStr,
+        Body(description="Email address to unsubscribe", openapi_examples=NEWSLETTER_EMAIL_BODY_OPENAPI_EXAMPLES),
+    ],
+    db: AsyncSessionDep,
+    background_tasks: BackgroundTasks,
 ) -> dict:
     """Request to unsubscribe by sending an email with unsubscribe link."""
     existing_subscriber = await _get_subscriber_by_email(db, email)
@@ -109,7 +132,16 @@ async def request_unsubscribe(
 
 
 @backend_router.post("/unsubscribe", status_code=204)
-async def unsubscribe_with_token(token: Annotated[str, Body()], db: AsyncSessionDep) -> None:
+async def unsubscribe_with_token(
+    token: Annotated[
+        str,
+        Body(
+            description="Unsubscribe token from the email link",
+            openapi_examples=NEWSLETTER_TOKEN_BODY_OPENAPI_EXAMPLES,
+        ),
+    ],
+    db: AsyncSessionDep,
+) -> None:
     """One-click unsubscribe from newsletter using a token."""
     email = verify_jwt_token(token, JWTType.NEWSLETTER_UNSUBSCRIBE)
     if not email:

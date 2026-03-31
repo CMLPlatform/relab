@@ -18,7 +18,7 @@ from app.api.common.crud.base import (
 )
 from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
 from app.api.common.crud.utils import add_relationship_options
-from app.api.data_collection.models import PhysicalProperties
+from app.api.data_collection.models.product import PhysicalProperties
 
 
 @pytest.mark.unit
@@ -93,10 +93,9 @@ class TestGetModelsQueryOrderBy:
         """Internal CRUD fetches should keep normal ORM relationship behavior by default."""
         statement = select(Material)
 
-        updated_statement, relationships_to_exclude = add_relationship_options(statement, Material)
+        updated_statement = add_relationship_options(statement, Material)
 
         assert str(updated_statement) == str(statement)
-        assert relationships_to_exclude == set()
 
 
 @pytest.mark.unit
@@ -133,8 +132,7 @@ class TestGetNestedModelById:
 
         with (
             patch("app.api.common.crud.base.get_model_by_id", return_value=mock_dependent),
-            patch("app.api.common.crud.base.add_relationship_options", return_value=(MagicMock(), set())),
-            patch("app.api.common.crud.base.clear_unloaded_relationships", return_value=mock_dependent),
+            patch("app.api.common.crud.base.add_relationship_options", return_value=MagicMock()),
             pytest.raises(DependentModelOwnershipError, match="does not belong to"),
         ):
             await get_nested_model_by_id(session, Material, 1, PhysicalProperties, 2, "product_id")

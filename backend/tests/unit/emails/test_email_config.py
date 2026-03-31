@@ -3,7 +3,7 @@
 from pydantic import EmailStr, TypeAdapter
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.utils.email_config import email_conf
+from app.api.auth.services.emails import email_conf
 
 
 def test_email_config_uses_a_valid_sender_address() -> None:

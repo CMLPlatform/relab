@@ -4,7 +4,6 @@ from enum import Enum
 from typing import TypeVar
 from uuid import UUID
 
-from fastapi_filter.contrib.sqlalchemy import Filter
 from sqlmodel import SQLModel
 
 ### TypeVars ###
@@ -22,6 +21,3 @@ LMT = TypeVar("LMT", bound=SQLModel)
 
 # Enum subclass
 ET = TypeVar("ET", bound=Enum)
-
-# FastAPI-Filter subclass: reserved for future use in generic filter helpers
-FT = TypeVar("FT", bound=Filter)

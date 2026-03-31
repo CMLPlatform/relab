@@ -1,6 +1,6 @@
 """Admin routes for managing users."""
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Path, Query, Security
 from fastapi.responses import RedirectResponse
@@ -10,6 +10,7 @@ from pydantic import UUID4, EmailStr
 
 from app.api.auth.crud import get_user_by_username
 from app.api.auth.dependencies import UserManagerDep, current_active_superuser
+from app.api.auth.examples import ADMIN_USERS_RESPONSE_EXAMPLES, USER_INCLUDE_OPENAPI_EXAMPLES
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.routers.users import router as public_user_router
@@ -17,19 +18,7 @@ from app.api.auth.schemas import UserRead
 from app.api.common.crud.base import get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 
-if TYPE_CHECKING:
-    from fastapi.openapi.models import Example
-
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
-
-USER_INCLUDE_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "products": {"value": ["products"]},
-        "all": {"value": ["products", "organization"]},
-    },
-)
 
 
 ## GET ##
@@ -42,40 +31,7 @@ USER_INCLUDE_EXAMPLES = cast(
             "description": "List of users",
             "content": {
                 "application/json": {
-                    "examples": {
-                        "basic": {
-                            "summary": "Users without relationships",
-                            "value": [
-                                {
-                                    "id": "12345678-cc4e-405c-8553-7806424de2a1",
-                                    "username": "alice",
-                                    "email": "alice@example.com",
-                                    "is_active": True,
-                                    "is_superuser": False,
-                                    "is_verified": True,
-                                }
-                            ],
-                        },
-                        "with_organization": {
-                            "summary": "Users with organization",
-                            "value": [
-                                {
-                                    "id": "12345678-cc4e-405c-8553-7806424de2a1",
-                                    "username": "alice",
-                                    "email": "alice@example.com",
-                                    "is_active": True,
-                                    "is_superuser": False,
-                                    "is_verified": True,
-                                    "organization": {
-                                        "id": "12345678-cc4e-405c-8553-7806424de2a1",
-                                        "name": "University of Example",
-                                        "location": "Example City",
-                                        "description": "Example organization",
-                                    },
-                                },
-                            ],
-                        },
-                    }
+                    "examples": ADMIN_USERS_RESPONSE_EXAMPLES
                 },
             },
         },
@@ -88,7 +44,7 @@ async def get_users(
         set[str] | None,
         Query(
             description="Relationships to include",
-            openapi_examples=USER_INCLUDE_EXAMPLES,
+            openapi_examples=USER_INCLUDE_OPENAPI_EXAMPLES,
         ),
     ] = None,
 ) -> Page[UserRead]:

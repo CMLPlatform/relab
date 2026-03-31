@@ -1,6 +1,6 @@
 """Admin routes for managing organizations."""
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import Annotated
 
 from fastapi import APIRouter, Query, Security
 from fastapi_filter import FilterDepends
@@ -9,24 +9,14 @@ from pydantic import UUID4
 
 from app.api.auth import crud
 from app.api.auth.dependencies import current_active_superuser
+from app.api.auth.examples import ORGANIZATION_INCLUDE_OPENAPI_EXAMPLES
 from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization
 from app.api.auth.schemas import OrganizationReadWithRelationships
 from app.api.common.crud.base import get_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
 
-if TYPE_CHECKING:
-    from fastapi.openapi.models import Example
-
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
-
-ORGANIZATION_INCLUDE_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "all": {"value": ["owner", "members"]},
-    },
-)
 
 
 @router.get("", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations")
@@ -37,7 +27,7 @@ async def get_all_organizations(
         set[str] | None,
         Query(
             description="Relationships to include",
-            openapi_examples=ORGANIZATION_INCLUDE_EXAMPLES,
+            openapi_examples=ORGANIZATION_INCLUDE_OPENAPI_EXAMPLES,
         ),
     ] = None,
 ) -> Page[Organization]:
@@ -58,7 +48,7 @@ async def get_organization_with_relationships(
         set[str] | None,
         Query(
             description="Relationships to include",
-            openapi_examples=ORGANIZATION_INCLUDE_EXAMPLES,
+            openapi_examples=ORGANIZATION_INCLUDE_OPENAPI_EXAMPLES,
         ),
     ] = None,
 ) -> Organization:

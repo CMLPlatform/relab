@@ -11,10 +11,12 @@ from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.background_data import crud
+from app.api.background_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category, Material
 from app.api.background_data.schemas import CategoryRead, MaterialCreateWithCategories, MaterialRead, MaterialUpdate
+from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.file_storage.models.models import MediaParentType
+from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.schemas import (
     FileCreate,
     FileReadWithinParent,
@@ -82,7 +84,7 @@ async def add_categories_to_material(
         set[int],
         Body(
             description="Category IDs to assign to the material",
-            examples=[[1, 2, 3]],
+            openapi_examples=CATEGORY_IDS_OPENAPI_EXAMPLES,
         ),
     ],
 ) -> Sequence[Category]:
@@ -117,7 +119,7 @@ async def remove_categories_from_material(
         set[int],
         Body(
             description="Category IDs to remove from the material",
-            examples=[[1, 2, 3]],
+            openapi_examples=CATEGORY_IDS_OPENAPI_EXAMPLES,
         ),
     ],
 ) -> None:
@@ -191,7 +193,7 @@ async def upload_material_image(
         str | None,
         Form(
             description="Image metadata in JSON string format",
-            examples=[r'{"foo_key": "foo_value", "bar_key": {"nested_key": "nested_value"}}'],
+            openapi_examples=IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES,
         ),
         BeforeValidator(empty_str_to_none),
     ] = None,

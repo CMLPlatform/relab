@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlmodel import select
 
 from app.api.data_collection.filters import ProductFilter, get_brand_search_statement
-from app.api.data_collection.models import Product
+from app.api.data_collection.models.product import Product
 
 
 def _sql(clause: ClauseElement) -> str:

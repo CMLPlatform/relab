@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Column, Field, Relationship, SQLModel
 
-from app.api.auth.sqlmodel_adapter import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
+from app.api.auth.services.sqlmodel_user_database import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
 from app.api.common.models.base import TimeStampMixinBare
 
 # Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.

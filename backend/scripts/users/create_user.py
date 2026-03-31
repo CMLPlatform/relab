@@ -15,7 +15,7 @@ import anyio
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 from app.api.auth.schemas import UserCreate
-from app.api.auth.utils.programmatic_user_crud import create_user
+from app.api.auth.services.programmatic_user_crud import create_user
 from app.core.database import async_session_context, close_async_engine
 
 logger: logging.Logger = logging.getLogger(__name__)

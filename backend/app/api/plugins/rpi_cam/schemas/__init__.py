@@ -1,0 +1,208 @@
+"""Pydantic models used to validate CRUD operations for the Raspberry Pi Camera plugin."""
+
+from typing import TYPE_CHECKING, Annotated, Self
+
+from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter.contrib.sqlalchemy import Filter
+from pydantic import (
+    UUID4,
+    AfterValidator,
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    SecretStr,
+)
+
+from app.api.auth.filters import UserFilter
+from app.api.common.schemas.base import (
+    BaseCreateSchema,
+    BaseReadSchemaWithTimeStamp,
+    BaseUpdateSchema,
+)
+from app.api.common.schemas.custom_fields import AnyUrlToDB
+from app.api.plugins.rpi_cam.config import settings
+from app.api.plugins.rpi_cam.examples import (
+    CAMERA_CREATE_EXAMPLES,
+    CAMERA_READ_EXAMPLES,
+    CAMERA_READ_WITH_CREDENTIALS_EXAMPLES,
+    CAMERA_UPDATE_EXAMPLES,
+)
+from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus
+from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
+
+
+### Filters ###
+class CameraFilter(Filter):
+    """FastAPI-filter class for Camera filtering."""
+
+    name__ilike: str | None = None
+    description__ilike: str | None = None
+    url__ilike: str | None = None
+
+    search: str | None = None
+
+    order_by: list[str] | None = None
+
+    class Constants(Filter.Constants):  # Standard FastAPI-filter class
+        """FilterAPI class configuration."""
+
+        model = Camera
+        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+            "name",
+            "description",
+            "url",
+        ]
+
+
+class CameraFilterWithOwner(CameraFilter):
+    """FastAPI-filter class for Camera filtering with owner relationship."""
+
+    owner: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
+
+
+### Auth Header Utils ###
+MAX_AUTH_HEADERS_SIZE = 3500  # Max cookie size is 4096 bytes, 3500 allows buffer for server-generated headers
+
+
+def validate_auth_header_key(key: str) -> str:
+    """Validate that the header key is not reserved for the server-generated API key."""
+    if key.lower() == settings.api_key_header_name.lower():
+        err_msg = f"Header key '{key}' is reserved for the server-generated API key."
+        raise ValueError(err_msg)
+    return key
+
+
+class HeaderCreate(BaseModel):
+    """HTTP header key-value pair with validation."""
+
+    key: Annotated[
+        str,
+        Field(description="Header key", min_length=1, max_length=100, pattern=r"^[a-zA-Z][-.a-zA-Z0-9]*$"),
+        AfterValidator(validate_auth_header_key),
+    ]
+    value: SecretStr = Field(description="Header value", min_length=1, max_length=500)
+
+
+def serialize_auth_headers(headers: list[HeaderCreate] | None) -> dict[str, str] | None:
+    """Convert list of HeaderCreate objects to a dictionary of headers."""
+    if not headers:
+        return None
+    return {h.key: h.value.get_secret_value() for h in headers}
+
+
+def validate_auth_headers_size(headers: list[HeaderCreate] | None) -> list[HeaderCreate] | None:
+    """Validate size of HeaderCreate list."""
+    if (
+        headers
+        and (header_size := sum(len(h.key) + len(h.value.get_secret_value()) for h in headers)) > MAX_AUTH_HEADERS_SIZE
+    ):
+        err_msg = f"Total size of headers is {header_size} bytes, exceeding maximum of {MAX_AUTH_HEADERS_SIZE} bytes."
+        raise ValueError(err_msg)
+    return headers
+
+
+def validate_camera_url_scheme(url: AnyUrl) -> AnyUrl:
+    """Validate that camera URLs use plain HTTP(S)."""
+    if url.scheme not in {"http", "https"}:
+        err_msg = "Camera URLs must use HTTP or HTTPS."
+        raise ValueError(err_msg)
+    return url
+
+
+def validate_optional_camera_url_scheme(url: AnyUrl | None) -> AnyUrl | None:
+    """Validate that optional camera URLs use plain HTTP(S)."""
+    if url is None:
+        return None
+    return validate_camera_url_scheme(url)
+
+
+OptionalAuthHeaderCreateList = Annotated[
+    list[HeaderCreate] | None,
+    Field(default=None, description="List of additional authentication headers for the camera API"),
+    PlainSerializer(serialize_auth_headers),
+    AfterValidator(validate_auth_headers_size),
+]
+
+
+### CRUD schemas ###
+## Create schemas
+class CameraCreate(BaseCreateSchema, CameraBase):
+    """Schema for creating a camera."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_CREATE_EXAMPLES})
+
+    # Override url field to add validation
+    url: Annotated[
+        AnyUrlToDB,
+        AfterValidator(validate_camera_url_scheme),
+    ] = Field(description="HTTP(S) URL where the camera API is hosted")
+    auth_headers: OptionalAuthHeaderCreateList
+
+
+## Read schemas
+class CameraRead(BaseReadSchemaWithTimeStamp, CameraBase):
+    """Basic Camera Read schema."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_EXAMPLES})
+
+    owner_id: UUID4
+
+
+class CameraReadWithStatus(CameraRead):
+    """Schema for camera read with online status."""
+
+    status: CameraStatus
+
+    @classmethod
+    async def from_db_model_with_status(cls, db_model: Camera, http_client: AsyncClient) -> Self:
+        """Create CameraReadWithStatus instance from Camera database model, fetching the online status."""
+        return cls(
+            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
+            status=await db_model.get_status(http_client),
+        )
+
+
+class CameraReadWithCredentials(CameraRead):
+    """Schema for camera read with credentials."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_WITH_CREDENTIALS_EXAMPLES})
+
+    api_key: SecretStr
+    auth_headers: dict[str, SecretStr] | None
+
+    @classmethod
+    def from_db_model_with_credentials(cls, db_model: Camera) -> Self:
+        """Create CameraReadWithCredentials instance from Camera database model, decrypting the auth headers."""
+        decrypted_headers = decrypt_dict(db_model.encrypted_auth_headers) if db_model.encrypted_auth_headers else None
+        auth_headers = {k: SecretStr(v) for k, v in decrypted_headers.items()} if decrypted_headers else None
+
+        return cls(
+            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
+            api_key=SecretStr(decrypt_str(db_model.encrypted_api_key)),
+            auth_headers=auth_headers,
+        )
+
+
+## Update schemas
+class CameraUpdate(BaseUpdateSchema):
+    """Schema for updating a camera."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_UPDATE_EXAMPLES})
+
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
+    url: Annotated[
+        AnyUrlToDB | None,
+        AfterValidator(validate_optional_camera_url_scheme),
+    ] = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
+    auth_headers: OptionalAuthHeaderCreateList
+
+    owner_id: UUID4 | None = Field(
+        default=None,
+        description="Transfer ownership to an existing user in the same organization as the current owner.",
+    )

@@ -1,6 +1,6 @@
 """Utilities for including or excluding endpoints in the public OpenAPI schema and documentation."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, FastAPI, Security
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
@@ -17,7 +17,6 @@ from app.core.config import CacheNamespace, settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any
 
 ### Constants ###
 OPENAPI_PUBLIC_INCLUSION_EXTENSION: str = "x-public"
@@ -35,19 +34,6 @@ class PublicAPIRouter(APIRouter):
         existing_extra = kwargs.get("openapi_extra") or {}
         kwargs["openapi_extra"] = {**existing_extra, OPENAPI_PUBLIC_INCLUSION_EXTENSION: True}
         return super().api_route(path, *args, **kwargs)
-
-
-def public_endpoint(router_method: Callable) -> Callable:
-    """Wrapper function to mark an endpoint method as public."""
-
-    def wrapper(*args: Any, **kwargs: Any) -> Callable[[DecoratedCallable], DecoratedCallable]:  # noqa: ANN401 # Any-typed (kw)args are expected by the parent method signatures
-        existing_extra = kwargs.get("openapi_extra") or {}
-        kwargs["openapi_extra"] = {**existing_extra, OPENAPI_PUBLIC_INCLUSION_EXTENSION: True}
-        return router_method(*args, **kwargs)
-
-    return wrapper
-
-
 def mark_router_routes_public(router: APIRouter) -> None:
     """Mark all routes in a router as public."""
     for route in router.routes:

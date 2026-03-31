@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.api.file_storage.cleanup import (
+from app.api.file_storage.services.cleanup import (
     cleanup_unreferenced_files,
     get_files_on_disk,
     get_referenced_files,
@@ -181,8 +181,11 @@ async def test_get_unreferenced_files_returns_delta() -> None:
     session = MagicMock()
 
     with (
-        patch("app.api.file_storage.cleanup.get_referenced_files", new=AsyncMock(return_value={_REF_PATH})),
-        patch("app.api.file_storage.cleanup.get_files_on_disk", new=AsyncMock(return_value={_REF_PATH, _UNREF_PATH})),
+        patch("app.api.file_storage.services.cleanup.get_referenced_files", new=AsyncMock(return_value={_REF_PATH})),
+        patch(
+            "app.api.file_storage.services.cleanup.get_files_on_disk",
+            new=AsyncMock(return_value={_REF_PATH, _UNREF_PATH}),
+        ),
     ):
         result = await get_unreferenced_files(session)
 
@@ -195,8 +198,8 @@ async def test_get_unreferenced_files_all_referenced() -> None:
     session = MagicMock()
 
     with (
-        patch("app.api.file_storage.cleanup.get_referenced_files", new=AsyncMock(return_value={_REF_PATH})),
-        patch("app.api.file_storage.cleanup.get_files_on_disk", new=AsyncMock(return_value={_REF_PATH})),
+        patch("app.api.file_storage.services.cleanup.get_referenced_files", new=AsyncMock(return_value={_REF_PATH})),
+        patch("app.api.file_storage.services.cleanup.get_files_on_disk", new=AsyncMock(return_value={_REF_PATH})),
     ):
         result = await get_unreferenced_files(session)
 
@@ -210,11 +213,11 @@ async def test_get_unreferenced_files_preserves_generated_thumbnails() -> None:
 
     with (
         patch(
-            "app.api.file_storage.cleanup.get_referenced_files",
+            "app.api.file_storage.services.cleanup.get_referenced_files",
             new=AsyncMock(return_value={_REF_IMAGE_PATH, _REF_IMAGE_THUMB_PATH}),
         ),
         patch(
-            "app.api.file_storage.cleanup.get_files_on_disk",
+            "app.api.file_storage.services.cleanup.get_files_on_disk",
             new=AsyncMock(return_value={_REF_IMAGE_PATH, _REF_IMAGE_THUMB_PATH}),
         ),
     ):
@@ -231,7 +234,7 @@ async def test_cleanup_dry_run_does_not_delete(tmp_path: Path) -> None:
     session = MagicMock()
 
     with patch(
-        "app.api.file_storage.cleanup.get_unreferenced_files",
+        "app.api.file_storage.services.cleanup.get_unreferenced_files",
         new=AsyncMock(return_value=[target]),
     ):
         deleted = await cleanup_unreferenced_files(session, dry_run=True)
@@ -248,7 +251,7 @@ async def test_cleanup_force_deletes_files(tmp_path: Path) -> None:
     session = MagicMock()
 
     with patch(
-        "app.api.file_storage.cleanup.get_unreferenced_files",
+        "app.api.file_storage.services.cleanup.get_unreferenced_files",
         new=AsyncMock(return_value=[target]),
     ):
         deleted = await cleanup_unreferenced_files(session, dry_run=False)
@@ -263,7 +266,7 @@ async def test_cleanup_no_unreferenced_files() -> None:
     session = MagicMock()
 
     with patch(
-        "app.api.file_storage.cleanup.get_unreferenced_files",
+        "app.api.file_storage.services.cleanup.get_unreferenced_files",
         new=AsyncMock(return_value=[]),
     ):
         deleted = await cleanup_unreferenced_files(session, dry_run=False)
@@ -280,7 +283,7 @@ async def test_cleanup_continues_after_delete_error(tmp_path: Path) -> None:
     session = MagicMock()
 
     with patch(
-        "app.api.file_storage.cleanup.get_unreferenced_files",
+        "app.api.file_storage.services.cleanup.get_unreferenced_files",
         new=AsyncMock(return_value=[missing, good]),
     ):
         deleted = await cleanup_unreferenced_files(session, dry_run=False)

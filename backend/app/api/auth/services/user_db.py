@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
+from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 if TYPE_CHECKING:

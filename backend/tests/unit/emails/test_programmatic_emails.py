@@ -11,7 +11,7 @@ from faker import Faker
 from fastapi import BackgroundTasks
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.utils.programmatic_emails import (
+from app.api.auth.services.emails import (
     generate_token_link,
     send_post_verification_email,
     send_registration_email,

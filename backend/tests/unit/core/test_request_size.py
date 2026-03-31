@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
-from app.core.request_size import register_request_size_limit_middleware
+from app.core.middleware.request_size import register_request_size_limit_middleware
 
 
 def _create_test_app() -> FastAPI:
@@ -30,7 +30,7 @@ def _create_test_app() -> FastAPI:
 @pytest.mark.anyio
 async def test_request_size_limit_accepts_small_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """JSON requests under the limit should pass through unchanged."""
-    monkeypatch.setattr("app.core.request_size.settings.request_body_limit_bytes", 64)
+    monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 64)
     app = _create_test_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -43,7 +43,7 @@ async def test_request_size_limit_accepts_small_json(monkeypatch: pytest.MonkeyP
 @pytest.mark.anyio
 async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """JSON requests over the limit should receive a 413 response."""
-    monkeypatch.setattr("app.core.request_size.settings.request_body_limit_bytes", 32)
+    monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 32)
     app = _create_test_app()
     body = json.dumps({"payload": "x" * 40}).encode()
 
@@ -61,7 +61,7 @@ async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyP
 @pytest.mark.anyio
 async def test_request_size_limit_skips_multipart_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     """Multipart requests should remain governed by route-specific upload validation."""
-    monkeypatch.setattr("app.core.request_size.settings.request_body_limit_bytes", 8)
+    monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 8)
     app = _create_test_app()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

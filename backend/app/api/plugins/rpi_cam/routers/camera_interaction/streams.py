@@ -18,9 +18,15 @@ from app.api.common.crud.utils import get_model_or_404
 from app.api.common.exceptions import APIError
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.data_collection.models import Product
+from app.api.data_collection.models.product import Product
+from app.api.file_storage.crud.video import create_video
 from app.api.file_storage.schemas import VideoCreate, VideoRead
-from app.api.file_storage.video_crud import create_video
+from app.api.plugins.rpi_cam.examples import (
+    CAMERA_START_RECORDING_DESCRIPTION_OPENAPI_EXAMPLES,
+    CAMERA_START_RECORDING_PRIVACY_OPENAPI_EXAMPLES,
+    CAMERA_START_RECORDING_PRODUCT_ID_OPENAPI_EXAMPLES,
+    CAMERA_START_RECORDING_TITLE_OPENAPI_EXAMPLES,
+)
 from app.api.plugins.rpi_cam.exceptions import (
     GoogleOAuthAssociationRequiredError,
     InvalidCameraResponseError,
@@ -32,6 +38,7 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     get_user_owned_camera,
     stream_from_camera_url,
 )
+from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import (
     YouTubePrivacyStatus,
     YouTubeRecordingSession,
@@ -42,7 +49,6 @@ from app.api.plugins.rpi_cam.services import (
     serialize_stream_metadata,
     store_recording_session,
 )
-from app.api.plugins.rpi_cam.youtube_schemas import YouTubeMonitorStreamResponse
 from app.core.config import settings
 from app.core.logging import sanitize_log_value
 from app.core.redis import OptionalRedisDep, require_redis
@@ -111,11 +117,33 @@ async def start_recording(
     http_client: ExternalHTTPClientDep,
     redis: OptionalRedisDep,
     current_user: CurrentActiveUserDep,
-    product_id: Annotated[PositiveInt, Body(description="ID of product to associate the video with")],
-    title: Annotated[str | None, Body(description="Custom video title")] = None,
-    description: Annotated[str | None, Body(description="Custom description for the video")] = None,
+    product_id: Annotated[
+        PositiveInt,
+        Body(
+            description="ID of product to associate the video with",
+            openapi_examples=CAMERA_START_RECORDING_PRODUCT_ID_OPENAPI_EXAMPLES,
+        ),
+    ],
+    title: Annotated[
+        str | None,
+        Body(
+            description="Custom video title",
+            openapi_examples=CAMERA_START_RECORDING_TITLE_OPENAPI_EXAMPLES,
+        ),
+    ] = None,
+    description: Annotated[
+        str | None,
+        Body(
+            description="Custom description for the video",
+            openapi_examples=CAMERA_START_RECORDING_DESCRIPTION_OPENAPI_EXAMPLES,
+        ),
+    ] = None,
     privacy_status: Annotated[
-        YouTubePrivacyStatus, Body(description="Privacy status for the YouTube video")
+        YouTubePrivacyStatus,
+        Body(
+            description="Privacy status for the YouTube video",
+            openapi_examples=CAMERA_START_RECORDING_PRIVACY_OPENAPI_EXAMPLES,
+        ),
     ] = YouTubePrivacyStatus.PRIVATE,
 ) -> StreamView:
     """Start recording to YouTube and cache the recording session in Redis."""

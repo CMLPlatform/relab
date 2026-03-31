@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Path, Query
 from fastapi_pagination import Page
@@ -11,6 +11,7 @@ from sqlmodel import select
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, CategoryFilterWithRelationshipsDep
+from app.api.background_data.examples import CATEGORY_INCLUDE_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
@@ -27,17 +28,6 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from fastapi.openapi.models import Example
-
-CATEGORY_INCLUDE_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "materials": {"value": ["materials"]},
-        "all": {"value": ["materials", "product_types", "subcategories"]},
-    },
-)
-
 router = BackgroundDataAPIRouter(prefix="/categories", tags=["categories"])
 
 
@@ -51,7 +41,7 @@ async def get_categories(
     category_filter: CategoryFilterWithRelationshipsDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Page[Category]:
     """Get all categories with specified relationships."""
@@ -99,7 +89,7 @@ async def get_category(
     category_id: PositiveInt,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Category:
     """Get category by ID with specified relationships."""
@@ -123,7 +113,7 @@ async def get_subcategories(
     session: AsyncSessionDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Page[Category]:
     """Get paginated subcategories of a category with specified relationships."""
@@ -177,7 +167,7 @@ async def get_subcategory(
     session: AsyncSessionDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Category:
     """Get subcategory by ID with specified relationships."""

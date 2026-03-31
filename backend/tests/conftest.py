@@ -275,7 +275,7 @@ def cleanup_loguru() -> Generator[None]:
 def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
     """Automatically mock email sending for all tests."""
     return mocker.patch(
-        "app.api.auth.utils.programmatic_emails.fm.send_message",
+        "app.api.auth.services.emails.fm.send_message",
         new_callable=AsyncMock,
     )
 

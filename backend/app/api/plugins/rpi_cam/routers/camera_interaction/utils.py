@@ -16,7 +16,7 @@ from pydantic import UUID4
 from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.background import BackgroundTask
 
-from app.api.common.utils import get_user_owned_object
+from app.api.common.ownership import get_user_owned_object
 from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
 from app.core.logging import sanitize_log_value

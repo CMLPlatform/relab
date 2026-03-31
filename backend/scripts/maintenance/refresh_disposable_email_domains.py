@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import anyio
 import httpx
 
-from app.api.auth.utils.email_validation import DISPOSABLE_DOMAINS_FALLBACK_PATH, DISPOSABLE_DOMAINS_URL
+from app.api.auth.services.email_checker import DISPOSABLE_DOMAINS_FALLBACK_PATH, DISPOSABLE_DOMAINS_URL
 
 if TYPE_CHECKING:
     from pathlib import Path

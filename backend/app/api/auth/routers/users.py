@@ -8,9 +8,13 @@ from fastapi import Security
 from fastapi_pagination import Page
 
 from app.api.auth import crud
-from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, current_active_user
-from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserHasNoOrgError
-from app.api.auth.models import Organization, OrganizationRole
+from app.api.auth.dependencies import (
+    CurrentActiveVerifiedUserDep,
+    CurrentUserOrgDep,
+    CurrentUserOwnedOrgDep,
+    current_active_user,
+)
+from app.api.auth.models import Organization
 from app.api.auth.schemas import (
     OrganizationRead,
     OrganizationReadPublic,
@@ -20,7 +24,6 @@ from app.api.auth.schemas import (
     UserUpdate,
 )
 from app.api.auth.services.user_manager import fastapi_user_manager
-from app.api.common.crud.base import get_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 
@@ -38,11 +41,9 @@ router.include_router(
 @router.get(
     "/me/organization", response_model=OrganizationReadPublic, summary="Get the organization of the current user"
 )
-async def get_user_organization(current_user: CurrentActiveVerifiedUserDep) -> Organization:
+async def get_user_organization(current_user_organization: CurrentUserOrgDep) -> Organization:
     """Get the organization of the current user."""
-    if not current_user.organization:
-        raise UserHasNoOrgError(user_id=current_user.id)
-    return current_user.organization
+    return current_user_organization
 
 
 @router.get(
@@ -51,17 +52,16 @@ async def get_user_organization(current_user: CurrentActiveVerifiedUserDep) -> O
     summary="Get the members of the organization of the current user",
 )
 async def get_user_organization_members(
+    current_user_organization: CurrentUserOrgDep,
     current_user: CurrentActiveVerifiedUserDep,
     session: AsyncSessionDep,
 ) -> Page[UserReadPublic]:
     """Get the members of the organization of the current user."""
-    if current_user.organization_id is None:
-        raise UserHasNoOrgError(user_id=current_user.id)
     return cast(
         "Page[UserReadPublic]",
         await crud.get_organization_members(
             session,
-            current_user.organization_id,
+            current_user_organization.id,
             current_user,
             paginate=True,
             read_schema=UserReadPublic,
@@ -71,25 +71,11 @@ async def get_user_organization_members(
 
 @router.patch("/me/organization", response_model=OrganizationRead, summary="Update your organization")
 async def update_organization(
-    current_user: CurrentActiveVerifiedUserDep,
+    db_organization: CurrentUserOwnedOrgDep,
     organization_in: OrganizationUpdate,
     session: AsyncSessionDep,
 ) -> Organization:
     """Update organization as owner."""
-    db_organization = current_user.organization
-    if db_organization is None:
-        if current_user.organization_id is None:
-            raise UserDoesNotOwnOrgError(user_id=current_user.id)
-        db_organization = await get_model_by_id(
-            session,
-            Organization,
-            current_user.organization_id,
-            include_relationships={"members", "owner"},
-        )
-
-    if current_user.organization_role != OrganizationRole.OWNER:
-        raise UserDoesNotOwnOrgError(user_id=current_user.id)
-
     return await crud.update_user_organization(session, db_organization, organization_in)
 
 

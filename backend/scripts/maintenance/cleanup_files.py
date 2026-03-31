@@ -13,7 +13,7 @@ from anyio import run
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from functools import partial
 
-from app.api.file_storage.cleanup import cleanup_unreferenced_files
+from app.api.file_storage.services.cleanup import cleanup_unreferenced_files
 from app.core.config import Environment, settings
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging

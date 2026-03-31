@@ -8,13 +8,13 @@ from pydantic import EmailStr  # Needed for Fastapi dependency injection
 
 from app.api.auth.routers import refresh, register
 from app.api.auth.schemas import UserRead
+from app.api.auth.services.email_checker import EmailChecker, get_email_checker_dependency
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, VERIFY_RATE_LIMIT, limiter
 from app.api.auth.services.user_manager import (
     bearer_auth_backend,
     cookie_auth_backend,
     fastapi_user_manager,
 )
-from app.api.auth.utils.email_validation import EmailChecker, get_email_checker_dependency
-from app.api.auth.utils.rate_limit import LOGIN_RATE_LIMIT, VERIFY_RATE_LIMIT, limiter
 from app.api.common.routers.openapi import mark_router_routes_public
 
 LOGIN_PATH = "/login"

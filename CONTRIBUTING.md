@@ -165,6 +165,27 @@ The API is available at <http://127.0.0.1:8000>.
 - Public docs: <http://127.0.0.1:8000/docs>
 - Full docs: <http://127.0.0.1:8000/docs/full> after authenticating as a superuser
 
+### OpenAPI Examples
+
+Keep examples centralized and predictable:
+
+- Domain-specific examples go in `examples.py` (e.g., `backend/app/api/data_collection/examples.py`)
+- Cross-domain examples go in `backend/app/api/common/openapi_examples.py`
+- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for FastAPI named maps
+- In routers, pass examples via `openapi_examples=...` parameter
+- Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
+
+### Backend Module Structure
+
+Keep modules small, explicit, and domain-shaped:
+
+- One top-level package per domain: `auth`, `background_data`, `data_collection`, `file_storage`, `newsletter`, `plugins/rpi_cam`
+- Prefer flat modules first: `crud.py`, `dependencies.py`, `examples.py`, `exceptions.py`, `filters.py`, `models.py`, `schemas.py`
+- Use `routers/` only when multiple route files exist; entrypoint goes in `routers/__init__.py`
+- Use `models/` only when both ORM models and storage primitives exist; expose public surface at `models/__init__.py`
+- Use `services/` and `utils/` only when they reflect a real boundary; delete pass-through layers when simple enough to call directly
+- Keep shared behavior in `backend/app/api/common/`
+
 ## Frontend Setup
 
 ### `frontend-app`

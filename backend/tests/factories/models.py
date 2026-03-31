@@ -17,7 +17,12 @@ from app.api.background_data.models import (
     Taxonomy,
     TaxonomyDomain,
 )
-from app.api.data_collection.models import CircularityProperties, MaterialProductLink, PhysicalProperties, Product
+from app.api.data_collection.models.product import (
+    CircularityProperties,
+    MaterialProductLink,
+    PhysicalProperties,
+    Product,
+)
 
 T = TypeVar("T")
 

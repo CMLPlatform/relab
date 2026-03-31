@@ -12,8 +12,8 @@ from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 from app.api.auth.schemas import UserCreate
-from app.api.auth.utils.email_validation import EmailChecker, load_local_disposable_domains
-from app.api.auth.utils.programmatic_user_crud import create_user
+from app.api.auth.services.email_checker import EmailChecker, load_local_disposable_domains
+from app.api.auth.services.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -39,7 +39,7 @@ class TestEmailChecker:
         checker = EmailChecker(redis_client=None)
 
         with patch(
-            "app.api.auth.utils.email_validation.load_local_disposable_domains",
+            "app.api.auth.services.email_checker.load_local_disposable_domains",
             return_value={"temp-mail.org"},
         ):
             await checker.initialize()
@@ -58,7 +58,7 @@ class TestEmailChecker:
         checker = EmailChecker(redis_client=mock_redis)
 
         with patch(
-            "app.api.auth.utils.email_validation.load_local_disposable_domains",
+            "app.api.auth.services.email_checker.load_local_disposable_domains",
             return_value={"mailinator.com", "temp-mail.org"},
         ):
             await checker.initialize()
@@ -76,7 +76,7 @@ class TestEmailChecker:
         checker = EmailChecker(redis_client=mock_redis)
 
         with patch(
-            "app.api.auth.utils.email_validation.load_local_disposable_domains",
+            "app.api.auth.services.email_checker.load_local_disposable_domains",
             return_value={"temp-mail.org"},
         ):
             await checker.initialize()
@@ -215,7 +215,7 @@ class TestProgrammaticUserCrud:
         mock_context.__aexit__.return_value = None
 
         with patch(
-            "app.api.auth.utils.programmatic_user_crud.get_chained_async_user_manager_context",
+            "app.api.auth.services.programmatic_user_crud.get_chained_async_user_manager_context",
             return_value=mock_context,
         ):
             user = await create_user(mock_session, user_create, send_registration_email=False)
@@ -237,7 +237,7 @@ class TestProgrammaticUserCrud:
         mock_context.__aexit__.return_value = None
 
         with patch(
-            "app.api.auth.utils.programmatic_user_crud.get_chained_async_user_manager_context",
+            "app.api.auth.services.programmatic_user_crud.get_chained_async_user_manager_context",
             return_value=mock_context,
         ):
             user = await create_user(mock_session, user_create, send_registration_email=True)
@@ -260,7 +260,7 @@ class TestProgrammaticUserCrud:
         mock_context.__aexit__.return_value = None
 
         with patch(
-            "app.api.auth.utils.programmatic_user_crud.get_chained_async_user_manager_context",
+            "app.api.auth.services.programmatic_user_crud.get_chained_async_user_manager_context",
             return_value=mock_context,
         ):
             user = await create_user(mock_session, user_create, skip_breach_check=True)
@@ -280,7 +280,7 @@ class TestProgrammaticUserCrud:
         mock_context.__aexit__.return_value = None
 
         with patch(
-            "app.api.auth.utils.programmatic_user_crud.get_chained_async_user_manager_context",
+            "app.api.auth.services.programmatic_user_crud.get_chained_async_user_manager_context",
             return_value=mock_context,
         ):
             with pytest.raises(UserAlreadyExists) as exc:
@@ -299,7 +299,7 @@ class TestProgrammaticUserCrud:
         mock_context.__aexit__.return_value = None
 
         with patch(
-            "app.api.auth.utils.programmatic_user_crud.get_chained_async_user_manager_context",
+            "app.api.auth.services.programmatic_user_crud.get_chained_async_user_manager_context",
             return_value=mock_context,
         ):
             with pytest.raises(InvalidPasswordException) as exc:

@@ -13,7 +13,7 @@ from sqlmodel import select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
 from app.api.common.search_utils import TSVectorSearchMixin, build_text_search_clause, ts_rank_expr
-from app.api.data_collection.models import MaterialProductLink, PhysicalProperties, Product
+from app.api.data_collection.models.product import MaterialProductLink, PhysicalProperties, Product
 
 if TYPE_CHECKING:
     from sqlalchemy import Select

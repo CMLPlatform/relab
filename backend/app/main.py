@@ -16,23 +16,22 @@ from fastapi_pagination import add_pagination
 from httpx import CloseError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.auth.utils.email_validation import init_email_checker
-from app.api.auth.utils.rate_limit import limiter
+from app.api.auth.services.email_checker import init_email_checker
+from app.api.auth.services.rate_limiter import limiter
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.api.common.routers.health import router as health_router
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
-from app.api.file_storage.manager import FileCleanupManager
+from app.api.file_storage.services.manager import FileCleanupManager
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
+from app.core.clients import create_http_client
 from app.core.config import settings
 from app.core.database import async_engine, async_sessionmaker_factory
-from app.core.http import create_http_client
 from app.core.logging import cleanup_logging, setup_logging
+from app.core.middleware import register_request_id_middleware, register_request_size_limit_middleware
+from app.core.observability import init_telemetry, shutdown_telemetry
 from app.core.redis import close_redis, init_redis
-from app.core.request_id import register_request_id_middleware
-from app.core.request_size import register_request_size_limit_middleware
-from app.core.telemetry import init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator

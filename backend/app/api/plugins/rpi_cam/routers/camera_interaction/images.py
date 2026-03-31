@@ -8,8 +8,12 @@ from pydantic import UUID4, PositiveInt
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.file_storage.models.models import Image
+from app.api.file_storage.models import Image
 from app.api.file_storage.schemas import ImageRead
+from app.api.plugins.rpi_cam.examples import (
+    CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES,
+    CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES,
+)
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.services import capture_and_store_image
 
@@ -33,8 +37,21 @@ async def capture_image(
     http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
     *,
-    product_id: Annotated[PositiveInt, Body(description="ID of product to associate the image with")],
-    description: Annotated[str | None, Body(description="Custom description for the image", max_length=500)] = None,
+    product_id: Annotated[
+        PositiveInt,
+        Body(
+            description="ID of product to associate the image with",
+            openapi_examples=CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES,
+        ),
+    ],
+    description: Annotated[
+        str | None,
+        Body(
+            description="Custom description for the image",
+            max_length=500,
+            openapi_examples=CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES,
+        ),
+    ] = None,
 ) -> Image:
     """Capture a still image with a remote Raspberry Pi Camera."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)

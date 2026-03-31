@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.core.request_id import REQUEST_ID_HEADER, register_request_id_middleware
+from app.core.middleware.request_id import REQUEST_ID_HEADER, register_request_id_middleware
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -31,7 +31,7 @@ async def test_request_id_middleware_generates_response_header(mocker: MockerFix
     """Requests without an ID should receive a generated request ID."""
     bind_logger = MagicMock()
     bind_logger.info = MagicMock()
-    bind_mock = mocker.patch("app.core.request_id.loguru_logger.bind", return_value=bind_logger)
+    bind_mock = mocker.patch("app.core.middleware.request_id.loguru_logger.bind", return_value=bind_logger)
 
     app = _create_test_app()
 
@@ -59,7 +59,7 @@ async def test_request_id_middleware_preserves_incoming_header(mocker: MockerFix
     """Requests with an ID should echo the same request ID back to callers."""
     bind_logger = MagicMock()
     bind_logger.info = MagicMock()
-    bind_mock = mocker.patch("app.core.request_id.loguru_logger.bind", return_value=bind_logger)
+    bind_mock = mocker.patch("app.core.middleware.request_id.loguru_logger.bind", return_value=bind_logger)
 
     app = _create_test_app()
     request_id = "frontend-request-123"

@@ -16,7 +16,7 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserReadPublic
-from app.api.auth.utils.rate_limit import REGISTER_RATE_LIMIT, limiter
+from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
 from app.core.logging import sanitize_log_value
 
@@ -30,11 +30,6 @@ router = APIRouter()
     response_model=UserReadPublic,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
-    responses={
-        status.HTTP_400_BAD_REQUEST: {"description": "Bad request (disposable email, invalid password, etc.)"},
-        status.HTTP_409_CONFLICT: {"description": "Conflict (user with email or username already exists)"},
-        status.HTTP_429_TOO_MANY_REQUESTS: {"description": "Too many registration attempts"},
-    },
 )
 @limiter.limit(REGISTER_RATE_LIMIT)
 async def register(

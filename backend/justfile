@@ -25,7 +25,7 @@ serve:
 
 # Open Python REPL with app context
 shell:
-    uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models import *"
+    uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models.product import *"
 
 # ============================================================================
 # Linting & Formatting

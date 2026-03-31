@@ -9,7 +9,7 @@ import pytest
 from fastapi import status
 from sqlmodel import select
 
-from app.api.data_collection.models import Product
+from app.api.data_collection.models.product import Product
 from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:

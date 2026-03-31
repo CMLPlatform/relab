@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.api.data_collection.models import Product
+from app.api.data_collection.models.product import Product
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
 
 if TYPE_CHECKING:

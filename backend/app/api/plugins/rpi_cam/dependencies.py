@@ -10,8 +10,8 @@ from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.exceptions import UserHasNoOrgError, UserIsNotMemberError
 from app.api.auth.models import User
 from app.api.common.crud.utils import get_model_or_404
+from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.utils import get_user_owned_object
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraOwnershipTransferError
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import CameraFilter, CameraFilterWithOwner, CameraUpdate

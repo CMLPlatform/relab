@@ -3,7 +3,7 @@
 from fastapi import BackgroundTasks
 from pydantic import EmailStr
 
-from app.api.auth.utils.programmatic_emails import generate_token_link, send_email_with_template
+from app.api.auth.services.emails import generate_token_link, send_email_with_template
 from app.api.newsletter.utils.tokens import JWTType, create_jwt_token
 from app.core.config import settings as core_settings
 

@@ -14,6 +14,7 @@ from httpx import Request, Response
 from app.api.common.exceptions import BadRequestError, ConflictError, ServiceUnavailableError
 from app.api.plugins.rpi_cam.exceptions import GoogleOAuthAssociationRequiredError
 from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import (
     YouTubeAPIError,
     YouTubeService,
@@ -22,7 +23,6 @@ from app.api.plugins.rpi_cam.services import (
     store_recording_session,
 )
 from app.api.plugins.rpi_cam.utils.encryption import encrypt_str
-from app.api.plugins.rpi_cam.youtube_schemas import YouTubeMonitorStreamResponse
 
 # Constants for magic values
 FAKE_ACCESS_TOKEN = "fake_access_token"

@@ -8,6 +8,7 @@ from relab_rpi_cam_models.camera import CameraMode
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.plugins.rpi_cam.examples import CAMERA_MODE_OPENAPI_EXAMPLES
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
 from app.api.plugins.rpi_cam.models import CameraConnectionStatus, CameraStatus, CameraStatusDetails
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
@@ -26,7 +27,11 @@ async def init_camera(
     session: AsyncSessionDep,
     http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
-    mode: CameraMode = Query(default=CameraMode.PHOTO, description="Camera mode (photo or video)"),
+    mode: CameraMode = Query(
+        default=CameraMode.PHOTO,
+        description="Camera mode (photo or video)",
+        openapi_examples=CAMERA_MODE_OPENAPI_EXAMPLES,
+    ),
 ) -> CameraStatus:
     """Initialize camera for a given use mode (photo or video)."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)

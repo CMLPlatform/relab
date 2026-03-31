@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, cast
 from uuid import uuid4
 
 from app.api.file_storage.crud import storage_item_exists
-from app.api.file_storage.models.models import File, Image, MediaParentType
+from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage import FileType, ImageType
 from app.api.file_storage.schemas import FileReadWithinParent, ImageRead, ImageReadWithinParent
 from app.core.config import settings

@@ -27,9 +27,6 @@ router = APIRouter()
     "/refresh",
     name="auth:bearer.refresh",
     response_model=RefreshTokenResponse,
-    responses={
-        status.HTTP_401_UNAUTHORIZED: {"description": "Invalid or expired refresh token"},
-    },
 )
 async def refresh_access_token(
     user_manager: UserManagerDep,
@@ -70,10 +67,6 @@ async def refresh_access_token(
 @router.post(
     "/cookie/refresh",
     name="auth:cookie.refresh",
-    responses={
-        status.HTTP_204_NO_CONTENT: {"description": "Successfully refreshed"},
-        status.HTTP_401_UNAUTHORIZED: {"description": "Invalid or expired refresh token"},
-    },
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def refresh_access_token_cookie(

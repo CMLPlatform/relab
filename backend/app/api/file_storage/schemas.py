@@ -5,11 +5,18 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 from urllib.parse import quote
 
 from fastapi import UploadFile
-from pydantic import AfterValidator, Field, PositiveInt, model_validator
+from pydantic import AfterValidator, ConfigDict, Field, PositiveInt, model_validator
 
 from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
 from app.api.common.schemas.custom_fields import AnyUrlToDB
-from app.api.file_storage.models.models import FileBase, ImageBase, MediaParentType, VideoBase
+from app.api.file_storage.examples import (
+    FILE_READ_WITHIN_PARENT_EXAMPLES,
+    IMAGE_READ_WITHIN_PARENT_EXAMPLES,
+    VIDEO_CREATE_WITHIN_PRODUCT_EXAMPLES,
+    VIDEO_READ_WITHIN_PRODUCT_EXAMPLES,
+    VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES,
+)
+from app.api.file_storage.models import FileBase, ImageBase, MediaParentType, VideoBase
 from app.core.config import settings
 from app.core.images import validate_image_mime_type
 
@@ -97,6 +104,8 @@ class FileCreate(FileCreateWithinParent):
 class FileReadWithinParent(BaseReadSchemaWithTimeStamp, FileBase):
     """Schema for reading file information within a parent object."""
 
+    model_config = ConfigDict(json_schema_extra={"examples": FILE_READ_WITHIN_PARENT_EXAMPLES})
+
     filename: str
     file_url: str | None
 
@@ -160,6 +169,8 @@ class ImageCreateFromForm(ImageCreateInternal):
 class ImageReadWithinParent(BaseReadSchemaWithTimeStamp, ImageBase):
     """Schema for reading image information within a parent object."""
 
+    model_config = ConfigDict(json_schema_extra={"examples": IMAGE_READ_WITHIN_PARENT_EXAMPLES})
+
     filename: str
     image_url: str | None
     thumbnail_url: str | None = None
@@ -209,6 +220,8 @@ class ImageUpdate(BaseUpdateSchema, ImageBase):
 class VideoCreateWithinProduct(BaseCreateSchema, VideoBase):
     """Schema for creating a video."""
 
+    model_config = ConfigDict(json_schema_extra={"examples": VIDEO_CREATE_WITHIN_PRODUCT_EXAMPLES})
+
     url: AnyUrlToDB
 
 
@@ -222,6 +235,8 @@ class VideoCreate(BaseCreateSchema, VideoBase):
 class VideoReadWithinProduct(BaseReadSchemaWithTimeStamp, VideoBase):
     """Schema for reading video information within a product."""
 
+    model_config = ConfigDict(json_schema_extra={"examples": VIDEO_READ_WITHIN_PRODUCT_EXAMPLES})
+
 
 class VideoRead(BaseReadSchemaWithTimeStamp, VideoBase):
     """Schema for reading video information."""
@@ -231,6 +246,8 @@ class VideoRead(BaseReadSchemaWithTimeStamp, VideoBase):
 
 class VideoUpdateWithinProduct(BaseUpdateSchema):
     """Schema for updating a video within a product."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES})
 
     url: AnyUrlToDB | None = Field(default=None, description="URL linking to the video")
     title: str | None = Field(default=None, max_length=100, description="Title of the video")

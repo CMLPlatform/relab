@@ -10,7 +10,7 @@ import hashlib
 import json
 import logging
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 from cashews import Cache
 from fastapi.responses import HTMLResponse
@@ -33,6 +33,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 _HTML_RESPONSE_TYPE = "HTMLResponse"
+_MEMORY_CACHE_BACKEND = "mem://"
 _MISSING = object()
 _backend = Cache()
 _cache_state = {"initialized": False}
@@ -40,21 +41,7 @@ _cache_state = {"initialized": False}
 JSONValue = HTMLResponse | dict[str, Any] | list[Any] | str | float | bool | None
 
 
-class Coder:
-    """Minimal coder interface for custom cache serialization."""
-
-    @classmethod
-    def encode(cls, value: Any) -> bytes:  # noqa: ANN401
-        """Encode a Python value to bytes."""
-        raise NotImplementedError
-
-    @classmethod
-    def decode(cls, value: bytes | str) -> Any:  # noqa: ANN401
-        """Decode bytes or strings into a Python value."""
-        raise NotImplementedError
-
-
-class HTMLCoder(Coder):
+class HTMLCoder:
     """Custom coder for caching HTMLResponse objects."""
 
     @classmethod
@@ -87,21 +74,43 @@ class HTMLCoder(Coder):
             )
         return data
 
-    @overload
-    @classmethod
-    def decode_as_type(cls, value: bytes | str, type_: type[T]) -> T: ...
-
-    @overload
-    @classmethod
-    def decode_as_type(cls, value: bytes | str, type_: None = None) -> JSONValue: ...
-
-    @classmethod
-    def decode_as_type(cls, value: bytes | str, type_: type[T] | None = None) -> T | JSONValue:  # noqa: ARG003
-        """Decode bytes to the specified type."""
-        return cls.decode(value)
-
 
 _EXCLUDED_TYPES = (AsyncSession, Request, Response)
+
+
+def _get_cache_backend_location(redis_client: Redis | None) -> str:
+    """Return the configured cache backend URL for the current runtime."""
+    if not settings.enable_caching or redis_client is None:
+        return _MEMORY_CACHE_BACKEND
+    return settings.cache_url
+
+
+def _log_cache_backend_selection(redis_client: Redis | None, backend_location: str) -> None:
+    """Log the cache backend choice in one place."""
+    if backend_location == _MEMORY_CACHE_BACKEND:
+        if not settings.enable_caching:
+            logger.info("Caching disabled in '%s' environment. Using in-memory backend.", settings.environment)
+        elif redis_client is None:
+            logger.warning("Endpoint cache initialized with in-memory backend - Redis unavailable")
+        return
+
+    logger.info("Endpoint cache initialized with Redis backend")
+
+
+async def _get_cached_result(key: str, coder: type[HTMLCoder] | None) -> T | JSONValue | object:
+    """Read and decode a cached result when present."""
+    cached_value = await _backend.get(key, default=_MISSING)
+    if cached_value is _MISSING:
+        return _MISSING
+    if coder is not None:
+        return coder.decode(cast("bytes | str", cached_value))
+    return cast("T", cached_value)
+
+
+async def _set_cached_result[T](key: str, result: T, *, expire: int, coder: type[HTMLCoder] | None) -> None:
+    """Encode and store a cached result."""
+    value_to_store = coder.encode(cast("JSONValue", result)) if coder is not None else result
+    await _backend.set(key, value_to_store, expire=expire)
 
 
 def _cache_namespace(namespace: str = "") -> str:
@@ -135,7 +144,7 @@ def cache(
     *,
     expire: int,
     namespace: str = "",
-    coder: type[Coder] | None = None,
+    coder: type[HTMLCoder] | None = None,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
     """Cache async endpoint/function results with ``cashews``."""
 
@@ -148,15 +157,12 @@ def cache(
                 args=args,
                 kwargs=dict(kwargs),
             )
-            cached_value = await _backend.get(key, default=_MISSING)
+            cached_value = await _get_cached_result(key, coder)
             if cached_value is not _MISSING:
-                if coder is not None:
-                    return coder.decode(cast("bytes | str", cached_value))
                 return cast("T", cached_value)
 
             result = await func(*args, **kwargs)
-            value_to_store = coder.encode(result) if coder is not None else result
-            await _backend.set(key, value_to_store, expire=expire)
+            await _set_cached_result(key, result, expire=expire, coder=coder)
             return result
 
         return wrapper
@@ -188,25 +194,14 @@ def init_fastapi_cache(redis_client: Redis | None) -> None:
     if _cache_state["initialized"]:
         return
 
-    if not settings.enable_caching:
-        logger.info("Caching disabled in '%s' environment. Using in-memory backend.", settings.environment)
-        _backend.setup("mem://")
-        _cache_state["initialized"] = True
-        return
-
-    if redis_client is None:
-        logger.warning("Endpoint cache initialized with in-memory backend - Redis unavailable")
-        _backend.setup("mem://")
-        _cache_state["initialized"] = True
-        return
-
+    backend_location = _get_cache_backend_location(redis_client)
     try:
-        _backend.setup(settings.cache_url)
+        _backend.setup(backend_location)
         _cache_state["initialized"] = True
-        logger.info("Endpoint cache initialized with Redis backend")
-    except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive fallback
+        _log_cache_backend_selection(redis_client, backend_location)
+    except OSError, RuntimeError, ValueError:  # pragma: no cover - defensive fallback
         logger.warning("Endpoint cache fell back to in-memory backend - Redis unavailable", exc_info=True)
-        _backend.setup("mem://")
+        _backend.setup(_MEMORY_CACHE_BACKEND)
         _cache_state["initialized"] = True
 
 

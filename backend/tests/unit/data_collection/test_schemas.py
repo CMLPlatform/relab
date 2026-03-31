@@ -26,7 +26,7 @@ from app.api.data_collection.schemas import (
     ensure_timezone,
     not_too_old,
 )
-from app.api.file_storage.models.models import MediaParentType
+from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.schemas import ImageRead
 
 # Constants for test values to avoid magic value warnings

@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
+
+from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 if TYPE_CHECKING:
     from fastapi.openapi.models import Example
 
 
-PHYSICAL_PROPERTIES_CREATE_EXAMPLES = [
-    {"weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}
-]
+PHYSICAL_PROPERTIES_CREATE_EXAMPLES = [{"weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]
 
-PHYSICAL_PROPERTIES_READ_EXAMPLES = [
-    {"id": 1, "weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}
-]
+PHYSICAL_PROPERTIES_READ_EXAMPLES = [{"id": 1, "weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]
 
 PHYSICAL_PROPERTIES_UPDATE_EXAMPLES = [{"weight_g": 15000, "height_cm": 120}]
 
@@ -60,9 +58,7 @@ PRODUCT_CREATE_BASE_EXAMPLE = {
         "width_cm": 70,
         "depth_cm": 50,
     },
-    "videos": [
-        {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
-    ],
+    "videos": [{"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}],
     "bill_of_materials": [
         {"quantity": 0.3, "unit": "g", "material_id": 1},
         {"quantity": 0.1, "unit": "g", "material_id": 2},
@@ -111,18 +107,9 @@ PRODUCT_CREATE_WITH_COMPONENTS_EXAMPLE = {
 
 PRODUCT_CREATE_EXAMPLES = [PRODUCT_CREATE_BASE_EXAMPLE]
 
-PRODUCT_CREATE_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "basic": {
-            "summary": "Basic product without components",
-            "value": PRODUCT_CREATE_BASE_EXAMPLE,
-        },
-        "with_components": {
-            "summary": "Product with components",
-            "value": PRODUCT_CREATE_WITH_COMPONENTS_EXAMPLE,
-        },
-    },
+PRODUCT_CREATE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    basic=openapi_example(PRODUCT_CREATE_BASE_EXAMPLE, summary="Basic product without components"),
+    with_components=openapi_example(PRODUCT_CREATE_WITH_COMPONENTS_EXAMPLE, summary="Product with components"),
 )
 
 COMPONENT_CREATE_SIMPLE_EXAMPLE = {
@@ -146,43 +133,37 @@ COMPONENT_CREATE_NESTED_EXAMPLE = {
     ],
 }
 
-COMPONENT_CREATE_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "simple": {
-            "summary": "Basic component",
-            "description": "Create a component without subcomponents",
-            "value": COMPONENT_CREATE_SIMPLE_EXAMPLE,
-        },
-        "nested": {
-            "summary": "Component with subcomponents",
-            "description": "Create a component with nested subcomponents",
-            "value": COMPONENT_CREATE_NESTED_EXAMPLE,
-        },
-    },
+COMPONENT_CREATE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    simple=openapi_example(
+        COMPONENT_CREATE_SIMPLE_EXAMPLE,
+        summary="Basic component",
+        description="Create a component without subcomponents",
+    ),
+    nested=openapi_example(
+        COMPONENT_CREATE_NESTED_EXAMPLE,
+        summary="Component with subcomponents",
+        description="Create a component with nested subcomponents",
+    ),
 )
 
-PRODUCT_INCLUDE_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "properties": {"value": ["physical_properties", "circularity_properties"]},
-        "materials": {"value": ["bill_of_materials"]},
-        "media": {"value": ["images", "videos", "files"]},
-        "components": {"value": ["components"]},
-        "all": {
-            "value": [
-                "physical_properties",
-                "circularity_properties",
-                "images",
-                "videos",
-                "files",
-                "product_type",
-                "bill_of_materials",
-                "components",
-            ]
-        },
-    },
+PRODUCT_INCLUDE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    none=openapi_example([]),
+    properties=openapi_example(["physical_properties", "circularity_properties"]),
+    materials=openapi_example(["bill_of_materials"]),
+    media=openapi_example(["images", "videos", "files"]),
+    components=openapi_example(["components"]),
+    all=openapi_example(
+        [
+            "physical_properties",
+            "circularity_properties",
+            "images",
+            "videos",
+            "files",
+            "product_type",
+            "bill_of_materials",
+            "components",
+        ]
+    ),
 )
 
 PRODUCT_MATERIAL_LINKS_BULK_EXAMPLE = [
@@ -190,44 +171,20 @@ PRODUCT_MATERIAL_LINKS_BULK_EXAMPLE = [
     {"material_id": 2, "quantity": 10, "unit": "g"},
 ]
 
-PRODUCT_MATERIAL_LINKS_BULK_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "multiple_materials": {
-            "summary": "Add multiple materials",
-            "value": PRODUCT_MATERIAL_LINKS_BULK_EXAMPLE,
-        }
-    },
+PRODUCT_MATERIAL_LINKS_BULK_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    multiple_materials=openapi_example(PRODUCT_MATERIAL_LINKS_BULK_EXAMPLE, summary="Add multiple materials"),
 )
 
-PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "material_id": {
-            "summary": "Existing material ID",
-            "value": 1,
-        }
-    },
+PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    material_id=openapi_example(1, summary="Existing material ID"),
 )
 
 PRODUCT_SINGLE_MATERIAL_LINK_EXAMPLE = {"quantity": 5, "unit": "g"}
 
-PRODUCT_SINGLE_MATERIAL_LINK_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "single_material": {
-            "summary": "Link details for one material",
-            "value": PRODUCT_SINGLE_MATERIAL_LINK_EXAMPLE,
-        }
-    },
+PRODUCT_SINGLE_MATERIAL_LINK_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    single_material=openapi_example(PRODUCT_SINGLE_MATERIAL_LINK_EXAMPLE, summary="Link details for one material"),
 )
 
-PRODUCT_REMOVE_MATERIAL_IDS_OPENAPI_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "multiple_material_ids": {
-            "summary": "Remove multiple material links",
-            "value": [1, 2, 3],
-        }
-    },
+PRODUCT_REMOVE_MATERIAL_IDS_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    multiple_material_ids=openapi_example([1, 2, 3], summary="Remove multiple material links"),
 )

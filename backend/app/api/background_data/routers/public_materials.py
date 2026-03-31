@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Path, Query
 from fastapi_filter import FilterDepends
@@ -11,6 +11,10 @@ from pydantic import UUID4, PositiveInt
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, MaterialFilterWithRelationshipsDep
+from app.api.background_data.examples import (
+    BACKGROUND_DATA_RESOURCE_INCLUDE_OPENAPI_EXAMPLES,
+    TAXONOMY_CATEGORY_INCLUDE_OPENAPI_EXAMPLES,
+)
 from app.api.background_data.models import Category, CategoryMaterialLink, Material
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, MaterialReadWithRelationships
@@ -22,26 +26,6 @@ from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinPa
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from fastapi.openapi.models import Example
-
-MATERIAL_INCLUDE_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "categories": {"value": ["categories"]},
-        "all": {"value": ["categories", "files", "images", "product_links"]},
-    },
-)
-
-TAXONOMY_CATEGORY_INCLUDE_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "taxonomy": {"value": ["taxonomy"]},
-        "all": {"value": ["taxonomy", "subcategories"]},
-    },
-)
 
 router = BackgroundDataAPIRouter(prefix="/materials", tags=["materials"])
 
@@ -56,7 +40,10 @@ async def get_materials(
     material_filter: MaterialFilterWithRelationshipsDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=MATERIAL_INCLUDE_EXAMPLES),
+        Query(
+            description="Relationships to include",
+            openapi_examples=BACKGROUND_DATA_RESOURCE_INCLUDE_OPENAPI_EXAMPLES,
+        ),
     ] = None,
 ) -> Page[Material]:
     """Get all materials with specified relationships."""
@@ -78,7 +65,10 @@ async def get_material(
     material_id: PositiveInt,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=MATERIAL_INCLUDE_EXAMPLES),
+        Query(
+            description="Relationships to include",
+            openapi_examples=BACKGROUND_DATA_RESOURCE_INCLUDE_OPENAPI_EXAMPLES,
+        ),
     ] = None,
 ) -> Material:
     """Get material by ID with specified relationships."""
@@ -102,7 +92,7 @@ async def get_material_categories(
     category_filter: CategoryFilterDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=TAXONOMY_CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=TAXONOMY_CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Sequence[Category]:
     """Get categories linked to a material."""
@@ -130,7 +120,7 @@ async def get_material_category(
     session: AsyncSessionDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=TAXONOMY_CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=TAXONOMY_CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Category:
     """Get a material category by ID."""

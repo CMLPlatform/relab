@@ -13,7 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
-from app.api.common.crud.utils import add_relationship_options, clear_unloaded_relationships, ensure_model_exists
+from app.api.common.crud.utils import add_relationship_options, ensure_model_exists
 from app.api.common.models.base import get_model_label
 from app.api.common.models.custom_types import DT, IDT, MT
 
@@ -84,18 +84,11 @@ def get_models_query(
     model_filter: Filter | None = None,
     statement: SelectOfScalar[MT] | None = None,
     read_schema: type[BaseModel] | None = None,
-) -> tuple[SelectOfScalar[MT], set[str]]:
+) -> SelectOfScalar[MT]:
     """Build a query for fetching models with optional filtering and relationships.
 
-    Args:
-        model: The model class to query
-        include_relationships: Set of relationship names to eagerly load
-        model_filter: Optional filter to apply
-        statement: Optional base statement (defaults to select(model))
-        read_schema: Optional schema to validate relationships against
-
-    Returns:
-        tuple: (SQLAlchemy statement, set of excluded relationship names)
+    Relationship inclusion and suppression now happens entirely at query time,
+    so this helper only returns the final SQL statement.
     """
     if statement is None:
         statement = select(model)
@@ -111,11 +104,7 @@ def get_models_query(
             if callable(sort_func):
                 statement = sort_func(statement)
 
-    statement, relationships_to_exclude = add_relationship_options(
-        statement, model, include_relationships, read_schema=read_schema
-    )
-
-    return statement, relationships_to_exclude
+    return add_relationship_options(statement, model, include_relationships, read_schema=read_schema)
 
 
 async def get_models(
@@ -140,16 +129,14 @@ async def get_models(
     Returns:
         list[MT]: List of model instances with guaranteed IDs
     """
-    statement, relationships_to_exclude = get_models_query(
+    statement = get_models_query(
         model,
         include_relationships=include_relationships,
         model_filter=model_filter,
         statement=statement,
         read_schema=read_schema,
     )
-    result: list[MT] = list((await db.exec(statement)).unique().all())
-
-    return clear_unloaded_relationships(result, relationships_to_exclude)
+    return list((await db.exec(statement)).unique().all())
 
 
 async def get_paginated_models(
@@ -174,7 +161,7 @@ async def get_paginated_models(
     Returns:
         Page[DT]: Paginated results
     """
-    statement, relationships_to_exclude = get_models_query(
+    statement = get_models_query(
         model,
         include_relationships=include_relationships,
         model_filter=model_filter,
@@ -182,15 +169,7 @@ async def get_paginated_models(
         read_schema=read_schema,
     )
 
-    result_page = await paginate_with_exec(db, statement)
-
-    # Clear unloaded relationships for serialization
-    result_page.items = cast(
-        "list[MT]",
-        clear_unloaded_relationships(result_page.items, relationships_to_exclude, db=db),
-    )
-
-    return result_page
+    return await paginate_with_exec(db, statement)
 
 
 async def paginate_with_exec(
@@ -249,14 +228,11 @@ async def get_model_by_id(
 
     statement: SelectOfScalar[MT] = select(model).where(model.id == model_id)
 
-    statement, relationships_to_exclude = add_relationship_options(
-        statement, model, include_relationships, read_schema=read_schema
-    )
+    statement = add_relationship_options(statement, model, include_relationships, read_schema=read_schema)
 
     result: MT | None = (await db.exec(statement)).unique().one_or_none()
 
-    result = ensure_model_exists(result, model, model_id)
-    return clear_unloaded_relationships(result, relationships_to_exclude, db=db)
+    return ensure_model_exists(result, model, model_id)
 
 
 async def get_nested_model_by_id(

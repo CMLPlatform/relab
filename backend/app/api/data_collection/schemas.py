@@ -30,12 +30,6 @@ from app.api.common.schemas.field_mixins import (
     CircularityPropertiesFields,
     PhysicalPropertiesFields,
 )
-from app.api.data_collection.base import (
-    CircularityPropertiesBase,
-    PhysicalPropertiesBase,
-    ProductBase,
-    validate_start_and_end_time,
-)
 from app.api.data_collection.examples import (
     CIRCULARITY_PROPERTIES_CREATE_EXAMPLES,
     CIRCULARITY_PROPERTIES_READ_EXAMPLES,
@@ -44,6 +38,12 @@ from app.api.data_collection.examples import (
     PHYSICAL_PROPERTIES_READ_EXAMPLES,
     PHYSICAL_PROPERTIES_UPDATE_EXAMPLES,
     PRODUCT_CREATE_EXAMPLES,
+)
+from app.api.data_collection.models.base import (
+    CircularityPropertiesBase,
+    PhysicalPropertiesBase,
+    ProductBase,
+    validate_start_and_end_time,
 )
 from app.api.file_storage.schemas import (
     FileRead,

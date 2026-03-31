@@ -8,7 +8,7 @@ from app.api.background_data.routers.public import router as background_data_pub
 from app.api.data_collection.routers import router as data_collection_router
 from app.api.file_storage.routers import router as file_storage_router
 from app.api.newsletter.routers import router as newsletter_backend_router
-from app.api.plugins.rpi_cam.routers.main import router as rpi_cam_router
+from app.api.plugins.rpi_cam.routers import router as rpi_cam_router
 
 router = APIRouter()
 

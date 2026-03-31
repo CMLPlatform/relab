@@ -11,8 +11,8 @@ import pytest
 from fastapi import UploadFile
 from pydantic import HttpUrl
 
-from app.api.data_collection.models import Product
-from app.api.file_storage import crud, video_crud
+from app.api.data_collection.models.product import Product
+from app.api.file_storage import crud
 from app.api.file_storage.crud import (
     ParentStorageCrud,
     create_file,
@@ -22,8 +22,9 @@ from app.api.file_storage.crud import (
     process_uploadfile_name,
     sanitize_filename,
 )
+from app.api.file_storage.crud import video as video_crud
 from app.api.file_storage.exceptions import ParentStorageOwnershipError, UploadTooLargeError
-from app.api.file_storage.models.models import File, Image, MediaParentType, Video
+from app.api.file_storage.models import File, Image, MediaParentType, Video
 from app.api.file_storage.schemas import FileCreate, FileUpdate, ImageCreateInternal, ImageUpdate, VideoCreate
 from tests.factories.models import ProductFactory
 
@@ -316,7 +317,7 @@ class TestVideoCrud:
         """Test creating a video."""
         video_create = VideoCreate(url=YOUTUBE_URL, product_id=1, title=TEST_VIDEO_TITLE)
 
-        with patch("app.api.file_storage.video_crud.get_model_or_404"):
+        with patch("app.api.file_storage.crud.video.get_model_or_404"):
             result = await video_crud.create_video(mock_session, video_create, commit=True)
             assert isinstance(result, Video)
             assert result.title == TEST_VIDEO_TITLE
@@ -326,7 +327,7 @@ class TestVideoCrud:
         video_id = 1
         mock_db_video = MagicMock(spec=Video)
 
-        with patch("app.api.file_storage.video_crud.get_model_or_404", return_value=mock_db_video):
+        with patch("app.api.file_storage.crud.video.get_model_or_404", return_value=mock_db_video):
             await video_crud.delete_video(mock_session, video_id)
             mock_session.delete.assert_called_once()
 

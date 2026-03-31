@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sqlmodel.ext.asyncio.session import AsyncSession
 
     from app.api.auth.models import User
-    from app.api.data_collection.models import Product
+    from app.api.data_collection.models.product import Product
 
 # Constants for test values
 PRODUCT_FILES_NAME = "Test Product Files"

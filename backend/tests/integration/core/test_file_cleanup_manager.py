@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, cast
 import pytest
 from sqlalchemy import text
 
-from app.api.file_storage.manager import FileCleanupManager
-from app.api.file_storage.models.models import MediaParentType
+from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.services.manager import FileCleanupManager
 from app.core.config import settings
 from app.core.images import thumbnail_path_for
 from tests.factories.models import ProductFactory, ProductTypeFactory

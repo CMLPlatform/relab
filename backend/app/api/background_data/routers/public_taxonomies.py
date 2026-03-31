@@ -11,6 +11,7 @@ from sqlmodel import select
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, TaxonomyFilterDep
+from app.api.background_data.examples import CATEGORY_INCLUDE_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category, Taxonomy
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
@@ -23,17 +24,6 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from fastapi.openapi.models import Example
-
-CATEGORY_INCLUDE_EXAMPLES = cast(
-    "dict[str, Example]",
-    {
-        "none": {"value": []},
-        "materials": {"value": ["materials"]},
-        "all": {"value": ["materials", "product_types", "subcategories"]},
-    },
-)
 
 router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 
@@ -98,7 +88,7 @@ async def get_taxonomy_categories(
     category_filter: CategoryFilterDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Page[Category]:
     """Get taxonomy categories with optional filtering."""
@@ -125,7 +115,7 @@ async def get_taxonomy_category_by_id(
     session: AsyncSessionDep,
     include: Annotated[
         set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_EXAMPLES),
+        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
     ] = None,
 ) -> Category:
     """Get a taxonomy category by ID."""

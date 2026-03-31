@@ -12,7 +12,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import User
 from app.api.common.crud.exceptions import DependentModelOwnershipError
-from app.api.common.utils.ownership import get_user_owned_object
+from app.api.common.ownership import get_user_owned_object
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -38,7 +38,7 @@ class TestGetUserOwnedObject:
         model_id = uuid4()
         expected = MagicMock()
         mock_get_nested = mocker.patch(
-            "app.api.common.utils.ownership.get_nested_model_by_id",
+            "app.api.common.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             return_value=expected,
         )
@@ -67,7 +67,7 @@ class TestGetUserOwnedObject:
         user_id = uuid4()
         model_id = uuid4()
         mocker.patch(
-            "app.api.common.utils.ownership.get_nested_model_by_id",
+            "app.api.common.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             side_effect=_ownership_error(user_id, model_id),
         )
@@ -91,7 +91,7 @@ class TestGetUserOwnedObject:
         model_id = uuid4()
         original = _ownership_error(user_id, model_id)
         mocker.patch(
-            "app.api.common.utils.ownership.get_nested_model_by_id",
+            "app.api.common.ownership.get_nested_model_by_id",
             new_callable=AsyncMock,
             side_effect=original,
         )

@@ -2,6 +2,14 @@
 
 from pydantic import ConfigDict, Field, PositiveInt
 
+from app.api.background_data.examples import (
+    CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES,
+    CATEGORY_READ_EXAMPLES,
+    CATEGORY_READ_RECURSIVE_EXAMPLES,
+    CATEGORY_UPDATE_EXAMPLES,
+    TAXONOMY_READ_EXAMPLES,
+    TAXONOMY_READ_WITH_TREE_EXAMPLES,
+)
 from app.api.background_data.models import (
     CategoryBase,
     MaterialBase,
@@ -61,17 +69,7 @@ class CategoryCreateWithSubCategories(CategoryCreateWithinTaxonomyWithSubCategor
 class CategoryReadAsSubCategory(BaseReadSchema, CategoryFields):
     """Schema for reading subcategory information."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 2,
-                    "name": "Ferrous metals",
-                    "description": "Iron and its alloys",
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES})
 
 
 class CategoryRead(CategoryReadAsSubCategory):
@@ -80,19 +78,7 @@ class CategoryRead(CategoryReadAsSubCategory):
     taxonomy_id: PositiveInt = Field(description="ID of the taxonomy")
     supercategory_id: PositiveInt | None = None
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 2,
-                    "name": "Ferrous metals",
-                    "description": "Iron and its alloys",
-                    "taxonomy_id": 1,
-                    "supercategory_id": 1,
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_EXAMPLES})
 
 
 class CategoryReadWithRelationships(CategoryRead):
@@ -117,31 +103,7 @@ class CategoryReadAsSubCategoryWithRecursiveSubCategories(CategoryReadAsSubCateg
         default_factory=list, description="List of subcategories"
     )
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 1,
-                    "name": "Metals",
-                    "description": "All kinds of metals",
-                    "subcategories": [
-                        {
-                            "id": 2,
-                            "name": "Ferrous metals",
-                            "description": "Iron and its alloys",
-                            "subcategories": [
-                                {
-                                    "id": 3,
-                                    "name": "Steel",
-                                    "description": "Steel alloys",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_RECURSIVE_EXAMPLES})
 
 
 # # Rebuild schema to allow for nested subcategories
@@ -170,18 +132,7 @@ class CategoryUpdate(BaseUpdateSchema):
     name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the category")
     description: str | None = Field(default=None, max_length=500, description="Description of the category")
 
-    model_config: ConfigDict = ConfigDict(
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "name": "Metals",
-                        "description": "All kinds of metals",
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_UPDATE_EXAMPLES})
 
 
 ### Taxonomy Schemas ###
@@ -202,20 +153,7 @@ class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
 class TaxonomyRead(BaseReadSchemaWithTimeStamp, TaxonomyFields):
     """Schema for reading minimal taxonomy information."""
 
-    model_config: ConfigDict = ConfigDict(
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "name": "Materials Taxonomy",
-                        "description": "Taxonomy for materials",
-                        "domains": ["materials"],
-                        "source": "DOI:10.2345/12345",
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_EXAMPLES})
 
 
 class TaxonomyReadWithCategoryTree(TaxonomyRead):
@@ -225,34 +163,7 @@ class TaxonomyReadWithCategoryTree(TaxonomyRead):
         default_factory=set, description="Set of categories in the taxonomy"
     )
 
-    model_config: ConfigDict = ConfigDict(
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "name": "Materials Taxonomy",
-                        "description": "Taxonomy for materials",
-                        "domains": ["materials"],
-                        "source": "DOI:10.2345/12345",
-                        "categories": [
-                            {
-                                "id": 1,
-                                "name": "Metals",
-                                "description": "All kinds of metals",
-                                "subcategories": [
-                                    {
-                                        "name": "Ferrous metals",
-                                        "description": "Iron and its alloys",
-                                        "subcategories": [{"name": "Steel", "description": "Steel alloys"}],
-                                    }
-                                ],
-                            }
-                        ],
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_WITH_TREE_EXAMPLES})
 
 
 class TaxonomyUpdate(BaseUpdateSchema):

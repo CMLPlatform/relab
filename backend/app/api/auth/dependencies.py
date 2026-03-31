@@ -5,11 +5,11 @@ from typing import Annotated
 from fastapi import Depends, Security
 from pydantic import UUID4
 
-from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserIsNotMemberError
+from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserHasNoOrgError
 from app.api.auth.models import Organization, OrganizationRole, User
+from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_db, get_user_manager
-from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.base import get_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 # Dependencies
@@ -26,41 +26,29 @@ CurrentActiveVerifiedUserDep = Annotated[User, Security(current_active_verified_
 CurrentActiveSuperUserDep = Annotated[User, Security(current_active_superuser)]
 OptionalCurrentActiveUserDep = Annotated[User | None, Security(optional_current_active_user)]
 
+async def get_current_user_organization(current_user: CurrentActiveVerifiedUserDep) -> Organization:
+    """Return the current user's organization or raise a stable not-found error."""
+    if current_user.organization is None:
+        raise UserHasNoOrgError(user_id=current_user.id)
+    return current_user.organization
 
-# Organizations
-async def get_org_by_id(
-    organization_id: UUID4,
+
+async def get_current_user_owned_organization(
+    current_user: CurrentActiveVerifiedUserDep,
     session: AsyncSessionDep,
 ) -> Organization:
-    """Get a valid organization by ID."""
-    return await get_model_or_404(session, Organization, organization_id)
+    """Return the current user's organization when they are its owner."""
+    if current_user.organization_role != OrganizationRole.OWNER or current_user.organization_id is None:
+        raise UserDoesNotOwnOrgError(user_id=current_user.id)
 
-
-async def get_org_by_id_as_owner(
-    organization_id: UUID4,
-    current_user: CurrentActiveVerifiedUserDep,
-) -> Organization:
-    """Dependency function to retrieve an organization by ID and ensure it's owned by the current user."""
-    if (
-        current_user.organization
-        and current_user.organization_id == organization_id
-        and current_user.organization_role == OrganizationRole.OWNER
-    ):
+    if current_user.organization is not None:
         return current_user.organization
 
-    raise UserDoesNotOwnOrgError
-
-
-async def get_org_by_id_as_member(
-    organization_id: UUID4,
-    current_user: CurrentActiveVerifiedUserDep,
-) -> Organization:
-    """Dependency function to retrieve an organization by ID and ensure the current user is a member."""
-    if current_user.organization and current_user.organization_id == organization_id:
-        return current_user.organization
-    raise UserIsNotMemberError
-
-
-OrgByID = Annotated[Organization, Depends(get_org_by_id)]
-OrgAsOwner = Annotated[Organization, Depends(get_org_by_id_as_owner)]
-OrgAsMember = Annotated[Organization, Depends(get_org_by_id_as_member)]
+    return await get_model_by_id(
+        session,
+        Organization,
+        current_user.organization_id,
+        include_relationships={"members", "owner"},
+    )
+CurrentUserOrgDep = Annotated[Organization, Depends(get_current_user_organization)]
+CurrentUserOwnedOrgDep = Annotated[Organization, Depends(get_current_user_owned_organization)]

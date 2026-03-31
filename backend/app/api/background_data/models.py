@@ -12,7 +12,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.api.common.models.base import TimeStampMixinBare
-from app.api.file_storage.models.models import File, Image
+from app.api.file_storage.models import File, Image
 
 
 ### Linking Models ###

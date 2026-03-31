@@ -79,13 +79,13 @@ class TestMapperWithRegistry:
 
         from app.api.auth.models import Organization, User
         from app.api.background_data.models import Category, Material, ProductType, Taxonomy
-        from app.api.data_collection.models import (
+        from app.api.data_collection.models.product import (
             CircularityProperties,
             MaterialProductLink,
             PhysicalProperties,
             Product,
         )
-        from app.api.file_storage.models.models import File, Image, Video
+        from app.api.file_storage.models import File, Image, Video
 
         for model in [
             User,

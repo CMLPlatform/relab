@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Body
+from fastapi import APIRouter
 from pydantic import PositiveInt
 
 from app.api.background_data import crud
@@ -23,7 +21,7 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 @router.post("", response_model=CategoryRead, summary="Create a new category", status_code=201)
 async def create_category(
-    category: Annotated[CategoryCreateWithSubCategories, Body()],
+    category: CategoryCreateWithSubCategories,
     session: AsyncSessionDep,
 ) -> Category:
     """Create a new category, optionally with subcategories."""
@@ -33,7 +31,7 @@ async def create_category(
 @router.patch("/{category_id}", response_model=CategoryRead, summary="Update category")
 async def update_category(
     category_id: PositiveInt,
-    category: Annotated[CategoryUpdate, Body()],
+    category: CategoryUpdate,
     session: AsyncSessionDep,
 ) -> Category:
     """Update an existing category."""
@@ -49,7 +47,7 @@ async def delete_category(category_id: PositiveInt, session: AsyncSessionDep) ->
 @router.post("/{category_id}/subcategories", response_model=CategoryRead, status_code=201)
 async def create_subcategory(
     category_id: PositiveInt,
-    category: Annotated[CategoryCreateWithinCategoryWithSubCategories, Body()],
+    category: CategoryCreateWithinCategoryWithSubCategories,
     session: AsyncSessionDep,
 ) -> Category:
     """Create a new subcategory under an existing category."""

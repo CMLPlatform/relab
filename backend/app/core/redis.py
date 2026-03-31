@@ -11,9 +11,34 @@ from app.core.config import settings
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from redis.typing import EncodableT
 
 logger = logging.getLogger(__name__)
+
+
+def _redis_from_request(request: Request) -> Redis | None:
+    """Return the Redis client from app state when available."""
+    return request.app.state.redis if hasattr(request.app.state, "redis") else None
+
+
+async def _execute_redis_operation[T](
+    operation_name: str,
+    operation: Callable[[], Awaitable[T]],
+    failure_result: T,
+    *,
+    log_key: str | None = None,
+) -> T:
+    """Run a Redis operation with consistent error handling."""
+    try:
+        return await operation()
+    except (TimeoutError, RedisError, OSError):
+        if log_key is None:
+            logger.exception("Redis %s failed.", operation_name)
+        else:
+            logger.exception("Redis %s failed for key %s.", operation_name, sanitize_log_value(log_key))
+        return failure_result
 
 
 async def init_redis() -> Redis | None:
@@ -73,13 +98,7 @@ async def ping_redis(redis_client: Redis) -> bool:
 
     This is useful for health check endpoints.
     """
-    try:
-        await redis_client.pubsub().ping()
-    except (TimeoutError, RedisError, OSError) as e:
-        logger.warning("Redis ping failed: %s", e)
-        return False
-    else:
-        return True
+    return await _execute_redis_operation("ping", redis_client.pubsub().ping, failure_result=False)
 
 
 async def get_redis_value(redis_client: Redis, key: str) -> str | None:
@@ -92,11 +111,7 @@ async def get_redis_value(redis_client: Redis, key: str) -> str | None:
     Returns:
         Value as string, or None if not found
     """
-    try:
-        return await redis_client.get(key)
-    except (TimeoutError, RedisError, OSError):
-        logger.exception("Failed to get Redis value for key %s.", sanitize_log_value(key))
-        return None
+    return await _execute_redis_operation("get", lambda: redis_client.get(key), None, log_key=key)
 
 
 async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
@@ -111,13 +126,11 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
     Returns:
         bool: True if successful, False otherwise
     """
-    try:
+    async def operation() -> bool:
         await redis_client.set(key, value, ex=ex)
-    except (TimeoutError, RedisError, OSError):
-        logger.exception("Failed to set Redis value for key %s.", sanitize_log_value(key))
-        return False
-    else:
         return True
+
+    return await _execute_redis_operation("set", operation, failure_result=False, log_key=key)
 
 
 async def delete_redis_key(redis_client: Redis, key: str) -> bool:
@@ -130,13 +143,11 @@ async def delete_redis_key(redis_client: Redis, key: str) -> bool:
     Returns:
         bool: True if successful, False otherwise
     """
-    try:
+    async def operation() -> bool:
         await redis_client.delete(key)
-    except (TimeoutError, RedisError, OSError):
-        logger.exception("Failed to delete Redis key %s.", sanitize_log_value(key))
-        return False
-    else:
         return True
+
+    return await _execute_redis_operation("delete", operation, failure_result=False, log_key=key)
 
 
 def get_redis(request: Request) -> Redis:
@@ -151,7 +162,7 @@ def get_redis(request: Request) -> Redis:
     Raises:
         RuntimeError: If Redis not initialized or unavailable
     """
-    redis_client = request.app.state.redis if hasattr(request.app.state, "redis") else None
+    redis_client = _redis_from_request(request)
 
     if redis_client is None:
         msg = "Redis not available. Check Redis connection settings."
@@ -169,7 +180,7 @@ def get_redis_optional(request: Request) -> Redis | None:
 
     Use this where Redis is optional (e.g. in development where Redis may be unavailable).
     """
-    return request.app.state.redis if hasattr(request.app.state, "redis") else None
+    return _redis_from_request(request)
 
 
 # Optional Redis dependency annotation

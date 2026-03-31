@@ -15,6 +15,10 @@ from app.api.plugins.rpi_cam.dependencies import (
     CameraTransferOwnerIDDep,
     UserOwnedCameraDep,
 )
+from app.api.plugins.rpi_cam.examples import (
+    CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES,
+    CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
+)
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
 from app.api.plugins.rpi_cam.schemas import (
     CameraCreate,
@@ -43,7 +47,11 @@ async def get_user_cameras(
     current_user: CurrentActiveUserDep,
     camera_filter: CameraFilterDep,
     *,
-    include_status: bool = Query(default=False, description="Include camera online status"),
+    include_status: bool = Query(
+        default=False,
+        description="Include camera online status",
+        openapi_examples=CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
+    ),
 ) -> Sequence[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
     statement = select(Camera).where(Camera.owner_id == current_user.id)
@@ -64,7 +72,11 @@ async def get_user_camera(
     db_camera: UserOwnedCameraDep,
     http_client: ExternalHTTPClientDep,
     *,
-    include_status: bool = Query(default=False, description="Include camera online status"),
+    include_status: bool = Query(
+        default=False,
+        description="Include camera online status",
+        openapi_examples=CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
+    ),
 ) -> Camera | CameraReadWithStatus:
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
     return await CameraReadWithStatus.from_db_model_with_status(db_camera, http_client) if include_status else db_camera
@@ -78,7 +90,11 @@ async def get_user_camera_status(
     db_camera: UserOwnedCameraDep,
     http_client: ExternalHTTPClientDep,
     *,
-    force_refresh: bool = Query(default=False, description="Force a refresh of the status by bypassing the cache"),
+    force_refresh: bool = Query(
+        default=False,
+        description="Force a refresh of the status by bypassing the cache",
+        openapi_examples=CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES,
+    ),
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
     return await db_camera.get_status(http_client, force_refresh=force_refresh)

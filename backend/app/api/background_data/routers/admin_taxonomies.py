@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Body
+from fastapi import APIRouter
 from pydantic import PositiveInt
 
 from app.api.background_data import crud
@@ -25,7 +23,7 @@ router = APIRouter(prefix="/taxonomies", tags=["taxonomies"])
 
 @router.post("", response_model=TaxonomyRead, summary="Create a new taxonomy", status_code=201)
 async def create_taxonomy(
-    taxonomy: Annotated[TaxonomyCreate | TaxonomyCreateWithCategories, Body()],
+    taxonomy: TaxonomyCreate | TaxonomyCreateWithCategories,
     session: AsyncSessionDep,
 ) -> Taxonomy:
     """Create a new taxonomy, optionally with categories."""
@@ -35,7 +33,7 @@ async def create_taxonomy(
 @router.patch("/{taxonomy_id}", response_model=TaxonomyRead, summary="Update taxonomy")
 async def update_taxonomy(
     taxonomy_id: PositiveInt,
-    taxonomy: Annotated[TaxonomyUpdate, Body()],
+    taxonomy: TaxonomyUpdate,
     session: AsyncSessionDep,
 ) -> Taxonomy:
     """Update an existing taxonomy."""
@@ -56,7 +54,7 @@ async def delete_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) ->
 )
 async def create_category_in_taxonomy(
     taxonomy_id: PositiveInt,
-    category: Annotated[CategoryCreateWithinTaxonomyWithSubCategories, Body()],
+    category: CategoryCreateWithinTaxonomyWithSubCategories,
     session: AsyncSessionDep,
 ) -> Category:
     """Create a new category in a taxonomy, optionally with subcategories."""

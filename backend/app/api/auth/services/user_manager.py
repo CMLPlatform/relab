@@ -19,17 +19,17 @@ from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserUpdate
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
+from app.api.auth.services.emails import (
+    send_post_verification_email,
+    send_reset_password_email,
+    send_verification_email,
+)
 from app.api.auth.services.login_hooks import (
     log_successful_login,
     maybe_set_refresh_token_cookie,
     update_last_login_metadata,
 )
 from app.api.auth.services.user_db import get_user_db
-from app.api.auth.utils.programmatic_emails import (
-    send_post_verification_email,
-    send_reset_password_email,
-    send_verification_email,
-)
 from app.api.common.routers.dependencies import get_external_http_client
 from app.core.logging import sanitize_log_value
 
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from starlette.requests import Request
     from starlette.responses import Response
 
-    from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
+    from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
 # Set up logging
 logger = logging.getLogger(__name__)
 

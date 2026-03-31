@@ -18,9 +18,9 @@ from app.api.auth.models import OAuthAccount
 from app.api.common.crud.utils import get_model_or_404
 from app.api.common.exceptions import APIError
 from app.api.common.schemas.base import serialize_datetime_with_z
-from app.api.data_collection.models import Product
+from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud import create_image
-from app.api.file_storage.models.models import Image, MediaParentType
+from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
 from app.api.plugins.rpi_cam.exceptions import (
     GoogleOAuthAssociationRequiredError,
@@ -30,7 +30,7 @@ from app.api.plugins.rpi_cam.exceptions import (
 )
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod
-from app.api.plugins.rpi_cam.youtube_schemas import (
+from app.api.plugins.rpi_cam.schemas.youtube import (
     YouTubeAPIErrorResponse,
     YouTubeBroadcastContentDetailsCreate,
     YouTubeBroadcastCreateRequest,

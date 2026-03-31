@@ -22,8 +22,8 @@ from app.api.common.crud.utils import get_model_or_404
 if TYPE_CHECKING:
     from sqlmodel.ext.asyncio.session import AsyncSession
 
-    from app.api.auth.sqlmodel_adapter import SQLModelUserDatabaseAsync
-    from app.api.auth.utils.email_validation import EmailChecker
+    from app.api.auth.services.email_checker import EmailChecker
+    from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
 
 
 ## Create User ##

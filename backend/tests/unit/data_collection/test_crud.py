@@ -40,7 +40,7 @@ from app.api.data_collection.exceptions import (
     ProductPropertyNotFoundError,
     ProductTreeMissingContentError,
 )
-from app.api.data_collection.models import CircularityProperties, PhysicalProperties, Product
+from app.api.data_collection.models.product import CircularityProperties, PhysicalProperties, Product
 from app.api.data_collection.schemas import (
     CircularityPropertiesCreate,
     CircularityPropertiesUpdate,
@@ -107,7 +107,7 @@ class TestPhysicalPropertiesCrud:
         product = ProductFactory.build(id=product_id, name=TEST_PRODUCT_NAME)
         product.physical_properties = None
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
+        with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await create_physical_properties(mock_session, props_create, product_id)
 
             assert isinstance(result, PhysicalProperties)
@@ -128,7 +128,7 @@ class TestPhysicalPropertiesCrud:
         product.physical_properties = PhysicalPropertiesFactory.build(weight_g=5.0)
 
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
             pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_PROPS),
         ):
             await create_physical_properties(mock_session, props_create, product_id)
@@ -140,7 +140,7 @@ class TestPhysicalPropertiesCrud:
         props = PhysicalPropertiesFactory.build(weight_g=TEST_WEIGHT_10G)
         product.physical_properties = props
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
+        with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await get_physical_properties(mock_session, product_id)
             assert result == props
 
@@ -149,7 +149,7 @@ class TestPhysicalPropertiesCrud:
         product = ProductFactory.build(id=1)
         product.physical_properties = None
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
             pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await get_physical_properties(mock_session, 1)
@@ -162,7 +162,7 @@ class TestPhysicalPropertiesCrud:
         product = ProductFactory.build(id=product_id)
         product.physical_properties = PhysicalPropertiesFactory.build(weight_g=TEST_WEIGHT_10G)
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
+        with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await update_physical_properties(mock_session, product_id, props_update)
             assert result.weight_g == TEST_WEIGHT_20G
             mock_session.add.assert_called_once()
@@ -173,7 +173,7 @@ class TestPhysicalPropertiesCrud:
         product = ProductFactory.build(id=1)
         product.physical_properties = None
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
             pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await update_physical_properties(mock_session, 1, PhysicalPropertiesUpdate())
@@ -205,7 +205,7 @@ class TestCircularityPropertiesCrud:
         product = ProductFactory.build(id=product_id)
         product.circularity_properties = None
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
+        with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await create_circularity_properties(mock_session, props_create, product_id)
             assert isinstance(result, CircularityProperties)
             assert result.recyclability_observation == EASY_OBS
@@ -218,7 +218,7 @@ class TestCircularityPropertiesCrud:
         product = ProductFactory.build(id=1)
         product.circularity_properties = CircularityPropertiesFactory.build(product_id=1)
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
             pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_CIRC),
         ):
             await create_circularity_properties(mock_session, CircularityPropertiesCreate(), 1)
@@ -230,7 +230,7 @@ class TestCircularityPropertiesCrud:
         props = CircularityPropertiesFactory.build(recyclability_observation=EASY_OBS)
         product.circularity_properties = props
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
+        with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await get_circularity_properties(mock_session, product_id)
             assert result == props
 
@@ -239,7 +239,7 @@ class TestCircularityPropertiesCrud:
         product = ProductFactory.build(id=1)
         product.circularity_properties = None
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
             pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await get_circularity_properties(mock_session, 1)
@@ -252,7 +252,7 @@ class TestCircularityPropertiesCrud:
         product = ProductFactory.build(id=product_id)
         product.circularity_properties = CircularityPropertiesFactory.build(recyclability_observation=EASY_OBS)
 
-        with patch("app.api.data_collection.crud.get_model_by_id", return_value=product):
+        with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await update_circularity_properties(mock_session, product_id, props_update)
             assert result.repairability_observation == HARD_OBS
             mock_session.add.assert_called_once()
@@ -263,7 +263,7 @@ class TestCircularityPropertiesCrud:
         product = ProductFactory.build(id=1)
         product.circularity_properties = None
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
             pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
         ):
             await update_circularity_properties(mock_session, 1, CircularityPropertiesUpdate())
@@ -298,7 +298,7 @@ class TestProductCrud:
             bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
         )
 
-        with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
+        with patch("app.api.data_collection.crud.products.get_models_by_ids_or_404"):
             result = await create_product(mock_session, product_create, owner_id)
 
         assert isinstance(result, Product)
@@ -310,7 +310,7 @@ class TestProductCrud:
 
     async def test_get_product_trees(self, mock_session: AsyncMock) -> None:
         """Test retrieving product trees."""
-        with patch("app.api.data_collection.crud.get_model_by_id"):
+        with patch("app.api.data_collection.crud.products.get_model_by_id"):
             # Setup mock_session to return results for exec().all()
             mock_result = MagicMock()
             mock_result.all.return_value = ["Product 1"]
@@ -327,8 +327,8 @@ class TestProductCrud:
         db_product = ProductFactory.build(id=product_id, name=OLD_NAME)
 
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.get_models_by_ids_or_404", return_value=[]),
+            patch("app.api.data_collection.crud.products.get_model_by_id", return_value=db_product),
+            patch("app.api.data_collection.crud.products.get_models_by_ids_or_404", return_value=[]),
         ):
             result = await update_product(mock_session, product_id, product_update)
             assert result.name == UPDATED_NAME
@@ -341,9 +341,9 @@ class TestProductCrud:
         db_product = ProductFactory.build(id=product_id)
 
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.product_files_crud.delete_all"),
-            patch("app.api.data_collection.crud.product_images_crud.delete_all"),
+            patch("app.api.data_collection.crud.products.get_model_by_id", return_value=db_product),
+            patch("app.api.data_collection.crud.products.product_files_crud.delete_all"),
+            patch("app.api.data_collection.crud.products.product_images_crud.delete_all"),
         ):
             await delete_product(mock_session, product_id)
             mock_session.delete.assert_called_once_with(db_product)
@@ -372,7 +372,7 @@ class TestProductCrud:
             bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
         )
 
-        with patch("app.api.data_collection.crud.get_models_by_ids_or_404"):
+        with patch("app.api.data_collection.crud.products.get_models_by_ids_or_404"):
             res = await create_component(mock_session, comp_create, parent_product)
             assert res.name == COMP_NAME
             assert res.owner_id == owner_id
@@ -408,8 +408,8 @@ class TestBillOfMaterialsCrud:
         product = ProductFactory.build(id=1)
         product.bill_of_materials = []
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=product),
-            patch("app.api.data_collection.crud.get_models_by_ids_or_404"),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
+            patch("app.api.data_collection.crud.shared.get_models_by_ids_or_404"),
         ):
             links = [MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)]
             res = await add_materials_to_product(mock_session, 1, links)
@@ -427,9 +427,9 @@ class TestBillOfMaterialsCrud:
         db_product.bill_of_materials = []
 
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.get_models_by_ids_or_404"),
-            patch("app.api.data_collection.crud.add_materials_to_product") as mock_add_batch,
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=db_product),
+            patch("app.api.data_collection.crud.shared.get_models_by_ids_or_404"),
+            patch("app.api.data_collection.crud.material_links.add_materials_to_product") as mock_add_batch,
         ):
             expected_link = MagicMock()
             mock_add_batch.return_value = [expected_link]
@@ -451,8 +451,8 @@ class TestBillOfMaterialsCrud:
     async def test_update_material_within_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful update of material within product."""
         with (
-            patch("app.api.data_collection.crud.get_model_by_id"),
-            patch("app.api.data_collection.crud.get_linking_model_with_ids_if_it_exists") as mock_link,
+            patch("app.api.data_collection.crud.shared.get_model_by_id"),
+            patch("app.api.data_collection.crud.material_links.get_linking_model_with_ids_if_it_exists") as mock_link,
         ):
             mock_link_obj = MagicMock()
             mock_link.return_value = mock_link_obj
@@ -478,8 +478,8 @@ class TestBillOfMaterialsCrud:
         mock_session.exec = AsyncMock(return_value=mock_result)
 
         with (
-            patch("app.api.data_collection.crud.get_model_by_id", return_value=db_product),
-            patch("app.api.data_collection.crud.get_models_by_ids_or_404"),
+            patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=db_product),
+            patch("app.api.data_collection.crud.shared.get_models_by_ids_or_404"),
         ):
             await remove_materials_from_product(mock_session, product_id, material_ids)
             # Should have executed a select statement with exec()

@@ -13,7 +13,7 @@ from httpx import Response
 
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.oauth_clients import google_youtube_oauth_client
-from app.api.file_storage.models.models import Video
+from app.api.file_storage.models import Video
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
     YouTubePrivacyStatus,
@@ -27,8 +27,8 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
     stop_recording,
     watch_preview,
 )
+from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import YoutubeStreamConfigWithID
-from app.api.plugins.rpi_cam.youtube_schemas import YouTubeMonitorStreamResponse
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
