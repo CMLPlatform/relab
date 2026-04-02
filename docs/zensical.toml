@@ -38,6 +38,7 @@
       { "Authentication" = "architecture/auth.md" },
       { "RPI Camera Plugin" = "architecture/rpi-cam.md" },
       { "Deployment & Operations" = "architecture/deployment.md" },
+      { "C4 Architecture Diagrams" = "architecture/c4-diagrams.md" },
     ] },
 
     { "User Guides" = [

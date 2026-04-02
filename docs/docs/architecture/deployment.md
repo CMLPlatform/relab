@@ -4,18 +4,40 @@
 The platform runs as a self-hosted Docker Compose stack. It is intentionally simple: understandable, reproducible, and cheap to operate at PhD-project scale.
 </div>
 
-## Deployment Model
+## Compose Service Topology
 
-The deployed stack typically consists of:
+The deployed stack is defined entirely in Docker Compose. Core services run in all environments; operational services are layered on top in staging and production, some via Compose profiles.
 
-- the FastAPI backend
-- PostgreSQL
-- Redis
-- the Expo web build used for the app frontend
-- the public web frontend
-- the docs site
-- supporting proxy and tunnel components, depending on the environment
-- optional observability components such as an OpenTelemetry collector
+```mermaid
+graph LR
+    subgraph Core ["Core Services"]
+        Backend[FastAPI Backend]
+        DB[(PostgreSQL)]
+        Cache[(Redis)]
+        Uploads[(User Media)]
+        FrontendApp[Expo App]
+        FrontendWeb[Astro Landing Page]
+        Docs[Zensical Docs]
+    end
+
+    subgraph Operational ["Operational Services (staging / prod)"]
+        Migrations[backend-migrations\none-shot on deploy]
+        DBBackups[database-backups\ndaily pg_dump + zstd]
+        UploadBackups[user-upload-backups\ndaily file archives]
+        Cloudflared[cloudflared\noutbound tunnel]
+        OTel[otel-collector\nOTLP traces]
+    end
+
+    Migrations -->|schema forward| DB
+    DBBackups -->|dumps| DB
+    UploadBackups -->|archives| Uploads
+    Cloudflared -->|proxies inbound traffic| Backend
+    OTel -->|receives OTLP from| Backend
+```
+
+Backup services and the OpenTelemetry collector are activated via Compose profiles (`backups`, `telemetry`) so they can be started independently without restarting the core stack.
+
+For formal architecture views of the platform as a whole, see [C4 Architecture Diagrams](c4-diagrams.md).
 
 ## Storage and Backups
 
