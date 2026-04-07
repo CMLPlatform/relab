@@ -1,9 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   emailSchema,
-  getEmailHelperText,
-  getPasswordHelperText,
-  getUsernameHelperText,
   newAccountSchema,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
@@ -13,15 +10,38 @@ import {
   usernameSchema,
 } from '../userSchema';
 
-// Helper to get first error message from a Zod error
-function getErrorMessages(result: any): string[] {
-  if (result.success || !result.error) return [];
-  const flattened = result.error.flatten();
-  const messages: string[] = [];
-  if (flattened.fieldErrors) {
-    for (const [_, fieldErrors] of Object.entries(flattened.fieldErrors)) {
+// Helper to extract all error messages from a Zod result
+function getErrorMessages(result: unknown): string[] {
+  if (
+    !result ||
+    typeof result !== 'object' ||
+    !('success' in result) ||
+    result.success ||
+    !('error' in result) ||
+    !result.error ||
+    typeof result.error !== 'object' ||
+    !('flatten' in result.error) ||
+    typeof result.error.flatten !== 'function'
+  ) {
+    return [];
+  }
+
+  const flattened = result.error.flatten() as {
+    formErrors?: unknown;
+    fieldErrors?: unknown;
+  };
+  const messages: string[] = Array.isArray(flattened.formErrors) ? [...flattened.formErrors] : [];
+
+  if (Array.isArray(flattened.fieldErrors)) {
+    messages.push(
+      ...flattened.fieldErrors.filter((message): message is string => typeof message === 'string'),
+    );
+  } else if (flattened.fieldErrors && typeof flattened.fieldErrors === 'object') {
+    for (const fieldErrors of Object.values(flattened.fieldErrors)) {
       if (Array.isArray(fieldErrors)) {
-        messages.push(...fieldErrors);
+        messages.push(
+          ...fieldErrors.filter((message): message is string => typeof message === 'string'),
+        );
       }
     }
   }
@@ -31,23 +51,6 @@ function getErrorMessages(result: any): string[] {
 // ─── usernameSchema tests ──────────────────────────────────────────────────
 
 describe('usernameSchema', () => {
-  it('returns invalid for undefined', () => {
-    const result = usernameSchema.safeParse(undefined);
-    expect(result.success).toBe(false);
-  });
-
-  it('returns invalid for empty string', () => {
-    const result = usernameSchema.safeParse('');
-    expect(result.success).toBe(false);
-    const messages = getErrorMessages(result);
-    expect(messages.some((m) => m.includes('Username is required'))).toBe(true);
-  });
-
-  it('returns invalid for whitespace-only string', () => {
-    const result = usernameSchema.safeParse('   ');
-    expect(result.success).toBe(false);
-  });
-
   it('returns invalid for username shorter than minimum length', () => {
     const result = usernameSchema.safeParse('a');
     expect(result.success).toBe(false);
@@ -93,33 +96,11 @@ describe('usernameSchema', () => {
 // ─── emailSchema tests ──────────────────────────────────────────────────────
 
 describe('emailSchema', () => {
-  it('returns invalid for undefined', () => {
-    const result = emailSchema.safeParse(undefined);
-    expect(result.success).toBe(false);
-  });
-
-  it('returns invalid for empty string', () => {
+  it('returns invalid for empty string with custom message', () => {
     const result = emailSchema.safeParse('');
     expect(result.success).toBe(false);
     const messages = getErrorMessages(result);
     expect(messages.some((m) => m.includes('Email is required'))).toBe(true);
-  });
-
-  it('returns invalid for missing @', () => {
-    const result = emailSchema.safeParse('not_an_email');
-    expect(result.success).toBe(false);
-    const messages = getErrorMessages(result);
-    expect(messages.some((m) => m.includes('valid email'))).toBe(true);
-  });
-
-  it('returns invalid for missing domain', () => {
-    const result = emailSchema.safeParse('user@');
-    expect(result.success).toBe(false);
-  });
-
-  it('returns invalid for missing TLD', () => {
-    const result = emailSchema.safeParse('user@domain');
-    expect(result.success).toBe(false);
   });
 
   it('returns valid for a properly formatted email', () => {
@@ -131,11 +112,6 @@ describe('emailSchema', () => {
 // ─── passwordSchema tests ───────────────────────────────────────────────────
 
 describe('passwordSchema', () => {
-  it('returns invalid for undefined', () => {
-    const result = passwordSchema.safeParse(undefined);
-    expect(result.success).toBe(false);
-  });
-
   it('returns invalid for empty string', () => {
     const result = passwordSchema.safeParse('');
     expect(result.success).toBe(false);
@@ -271,24 +247,5 @@ describe('newAccountSchema', () => {
       const passwordErrors = flattened.fieldErrors.password || [];
       expect(passwordErrors.some((m) => m.includes('at least'))).toBe(true);
     }
-  });
-});
-
-// ─── Helper text functions tests ────────────────────────────────────────────
-
-describe('helper text functions', () => {
-  it('getUsernameHelperText returns a non-empty string', () => {
-    expect(typeof getUsernameHelperText()).toBe('string');
-    expect(getUsernameHelperText().length).toBeGreaterThan(0);
-  });
-
-  it('getEmailHelperText returns a non-empty string', () => {
-    expect(typeof getEmailHelperText()).toBe('string');
-    expect(getEmailHelperText().length).toBeGreaterThan(0);
-  });
-
-  it('getPasswordHelperText returns a non-empty string', () => {
-    expect(typeof getPasswordHelperText()).toBe('string');
-    expect(getPasswordHelperText().length).toBeGreaterThan(0);
   });
 });

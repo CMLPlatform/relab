@@ -1,3 +1,4 @@
+import '@testing-library/react-native/build/matchers/extend-expect';
 import { afterAll, afterEach, beforeAll, jest } from '@jest/globals';
 import type React from 'react';
 import { server } from './src/test-utils/server';

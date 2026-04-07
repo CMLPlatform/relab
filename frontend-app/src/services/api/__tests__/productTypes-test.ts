@@ -3,6 +3,8 @@ import { HttpResponse, http } from 'msw';
 import { server } from '@/test-utils/server';
 import { allProductTypes, searchProductTypes } from '../productTypes';
 
+// spell-checker: ignore electr, furnitur
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 describe('productTypes API service', () => {

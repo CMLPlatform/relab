@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -11,13 +12,12 @@ import {
   View,
 } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { WEBSITE_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { login, register } from '@/services/api/authentication';
-import { newAccountSchema, type NewAccountFormValues } from '@/services/api/validation/userSchema';
+import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
 
 const styles = StyleSheet.create({
   welcomeText: {

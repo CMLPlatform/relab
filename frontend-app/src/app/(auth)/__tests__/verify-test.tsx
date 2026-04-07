@@ -35,7 +35,7 @@ describe('VerifyEmailScreen', () => {
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(
       () => {
-        expect(screen.getByText(/No verification token/)).toBeTruthy();
+        expect(screen.getByText(/No verification token/)).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );
@@ -52,7 +52,7 @@ describe('VerifyEmailScreen', () => {
     );
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(() => {
-      expect(screen.getByText('Verifying your email...')).toBeTruthy();
+      expect(screen.getByText('Verifying your email...')).toBeOnTheScreen();
     });
   });
 
@@ -61,7 +61,7 @@ describe('VerifyEmailScreen', () => {
     server.use(http.post(`${API_URL}/auth/verify`, () => HttpResponse.json({}, { status: 200 })));
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(() => {
-      expect(screen.getByText(/Email verified successfully/)).toBeTruthy();
+      expect(screen.getByText(/Email verified successfully/)).toBeOnTheScreen();
     });
   });
 
@@ -74,7 +74,7 @@ describe('VerifyEmailScreen', () => {
     );
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(() => {
-      expect(screen.getByText('Token expired')).toBeTruthy();
+      expect(screen.getByText('Token expired')).toBeOnTheScreen();
     });
   });
 
@@ -83,7 +83,7 @@ describe('VerifyEmailScreen', () => {
     server.use(http.post(`${API_URL}/auth/verify`, () => HttpResponse.error()));
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(() => {
-      expect(screen.getByText(/An error occurred/)).toBeTruthy();
+      expect(screen.getByText(/An error occurred/)).toBeOnTheScreen();
     });
   });
 
@@ -98,7 +98,7 @@ describe('VerifyEmailScreen', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
     renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
     await waitFor(() => {
-      expect(screen.getByText('Back to Home')).toBeTruthy();
+      expect(screen.getByText('Back to Home')).toBeOnTheScreen();
     });
     fireEvent.press(screen.getByText('Back to Home'));
     expect(mockReplace).toHaveBeenCalledWith('/');

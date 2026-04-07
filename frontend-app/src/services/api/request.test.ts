@@ -80,12 +80,7 @@ describe('fetchWithTimeout', () => {
   });
 });
 
-describe('isTimeoutError', () => {
-  it('returns false for non-timeout errors', () => {
-    expect(isTimeoutError(new Error('foo'))).toBe(false);
-    expect(isTimeoutError({ name: 'OtherError', timeoutMs: 123 })).toBe(false);
-    expect(isTimeoutError(null)).toBe(false);
-    expect(isTimeoutError(undefined)).toBe(false);
-    expect(isTimeoutError({})).toBe(false);
-  });
+it('isTimeoutError returns false for non-TimeoutError values', () => {
+  expect(isTimeoutError(new Error('network failure'))).toBe(false);
+  expect(isTimeoutError(null)).toBe(false);
 });

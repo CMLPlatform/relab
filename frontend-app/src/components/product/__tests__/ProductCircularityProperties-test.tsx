@@ -24,21 +24,21 @@ const baseProduct: Product = { ..._base, circularityProperties: emptyCircularity
 describe('ProductCircularityProperties', () => {
   it('renders the section heading', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
-    expect(screen.getByText(/Circularity Properties/)).toBeTruthy();
-    expect(screen.getByText('Show')).toBeTruthy();
+    expect(screen.getByText(/Circularity Properties/)).toBeOnTheScreen();
+    expect(screen.getByText('Show')).toBeOnTheScreen();
   });
 
   it("shows 'No associated circularity properties' in view mode with empty data", () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
-    expect(screen.getByText('No associated circularity properties.')).toBeTruthy();
+    expect(screen.getByText('No associated circularity properties.')).toBeOnTheScreen();
   });
 
   it('shows add-property chips in edit mode', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
     fireEvent.press(screen.getByText('Show'));
-    expect(screen.getByText('Recyclability')).toBeTruthy();
-    expect(screen.getByText('Remanufacturability')).toBeTruthy();
-    expect(screen.getByText('Repairability')).toBeTruthy();
+    expect(screen.getByText('Recyclability')).toBeOnTheScreen();
+    expect(screen.getByText('Remanufacturability')).toBeOnTheScreen();
+    expect(screen.getByText('Repairability')).toBeOnTheScreen();
   });
 
   it('renders property section when property has data', () => {
@@ -54,7 +54,7 @@ describe('ProductCircularityProperties', () => {
     renderWithProviders(
       <ProductCircularityProperties product={productWithData} editMode={false} />,
     );
-    expect(screen.getByText('1 property hidden.')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
   });
 
   it('renders property section header when property has observation content', () => {
@@ -94,7 +94,7 @@ describe('ProductCircularityProperties', () => {
       <ProductCircularityProperties product={productWithData} editMode={false} />,
     );
 
-    expect(screen.getByText('1 property hidden.')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
   });
 
   it('renders repairability when only the reference field has content', () => {
@@ -112,7 +112,7 @@ describe('ProductCircularityProperties', () => {
       <ProductCircularityProperties product={productWithData} editMode={false} />,
     );
 
-    expect(screen.getByText('1 property hidden.')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
   });
 
   it('calls onChangeCircularityProperties when chip is pressed to add recyclability', async () => {
@@ -271,8 +271,8 @@ describe('ProductCircularityProperties', () => {
       <ProductCircularityProperties product={productWithData} editMode={false} />,
     );
     fireEvent.press(screen.getByText('Show'));
-    expect(screen.getByText('Hide')).toBeTruthy();
+    expect(screen.getByText('Hide')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Hide'));
-    expect(screen.getByText('1 property hidden.')).toBeTruthy();
+    expect(screen.getByText('1 property hidden.')).toBeOnTheScreen();
   });
 });

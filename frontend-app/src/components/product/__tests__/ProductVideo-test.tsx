@@ -9,21 +9,21 @@ describe('ProductVideo', () => {
     renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText(/Recordings/)).toBeTruthy();
+    expect(screen.getByText(/Recordings/)).toBeOnTheScreen();
   });
 
   it("shows 'no recordings' message when empty", () => {
     renderWithProviders(<ProductVideo product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText('This product has no associated recordings.')).toBeTruthy();
+    expect(screen.getByText('This product has no associated recordings.')).toBeOnTheScreen();
   });
 
   it("shows 'Add recording' button in editMode", () => {
     renderWithProviders(<ProductVideo product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByText('Add recording')).toBeTruthy();
+    expect(screen.getByText('Add recording')).toBeOnTheScreen();
   });
 
   it("hides 'Add recording' button in view mode", () => {
@@ -39,7 +39,7 @@ describe('ProductVideo', () => {
     });
     fireEvent.press(screen.getByText('Add recording'));
     await waitFor(() => {
-      expect(screen.getByText('Add Recording')).toBeTruthy();
+      expect(screen.getByText('Add Recording')).toBeOnTheScreen();
     });
   });
 
@@ -53,7 +53,7 @@ describe('ProductVideo', () => {
     renderWithProviders(<ProductVideo product={productWithVideo} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText('https://youtube.com/watch?v=abc')).toBeTruthy();
+    expect(screen.getByText('https://youtube.com/watch?v=abc')).toBeOnTheScreen();
   });
 
   it('shows title and URL inputs for videos in editMode', () => {
@@ -64,8 +64,8 @@ describe('ProductVideo', () => {
     renderWithProviders(<ProductVideo product={productWithVideo} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByPlaceholderText('Title')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Video URL')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Title')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('Video URL')).toBeOnTheScreen();
   });
 
   it('calls onVideoChange when a field is updated', () => {
@@ -158,7 +158,7 @@ describe('ProductVideo', () => {
     renderWithProviders(<ProductVideo product={productWithVideo} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByPlaceholderText('Add description (optional)')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Add description (optional)')).toBeOnTheScreen();
   });
 
   it('calls onVideoChange when a video is removed', () => {

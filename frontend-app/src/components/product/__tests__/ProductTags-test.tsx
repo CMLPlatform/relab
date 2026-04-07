@@ -6,10 +6,13 @@ import type { Product } from '@/types/Product';
 import ProductTags from '../ProductTags';
 
 jest.mock('@/hooks/useProductQueries', () => ({
-  useSearchBrandsQuery: jest.fn(() => ({ data: ['Apple', 'Samsung', 'Sony'], isLoading: false })),
+  useSearchBrandsQuery: jest.fn(() => ({
+    data: ['Apple', 'Samsung', 'Sony'],
+    isLoading: false,
+  })),
 }));
 
-const baseProduct: Product = { ..._base, brand: 'Acme', model: 'X100' };
+const baseProduct: Product = { ..._base, brand: 'CircularTech', model: 'X100' };
 
 describe('ProductTags', () => {
   beforeEach(() => {
@@ -25,19 +28,23 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText('Acme')).toBeTruthy();
-    expect(screen.getByText('X100')).toBeTruthy();
+    expect(screen.getByText('CircularTech')).toBeOnTheScreen();
+    expect(screen.getByText('X100')).toBeOnTheScreen();
   });
 
   it("renders 'Unknown' when brand is missing", () => {
     const product = { ...baseProduct, brand: undefined };
-    renderWithProviders(<ProductTags product={product} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={product} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
   });
 
   it("renders 'Unknown' when model is missing", () => {
     const product = { ...baseProduct, model: undefined };
-    renderWithProviders(<ProductTags product={product} editMode={false} />, { withDialog: true });
+    renderWithProviders(<ProductTags product={product} editMode={false} />, {
+      withDialog: true,
+    });
     expect(screen.getAllByText('Unknown').length).toBeGreaterThan(0);
   });
 
@@ -45,15 +52,15 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('Acme'));
-    expect(screen.getByText('Select Brand')).toBeTruthy();
+    fireEvent.press(screen.getByText('CircularTech'));
+    expect(screen.getByText('Select Brand')).toBeOnTheScreen();
   });
 
   it('does not open brand modal when not in editMode', async () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('Acme'));
+    fireEvent.press(screen.getByText('CircularTech'));
     expect(screen.queryByText('Select Brand')).toBeNull();
   });
 
@@ -65,7 +72,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText('Acme'));
+    fireEvent.press(screen.getByText('CircularTech'));
     await screen.findByText('Select Brand');
     fireEvent.press(screen.getByText('Samsung'));
     expect(onBrandChange).toHaveBeenCalledWith('Samsung');
@@ -75,7 +82,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('Acme'));
+    fireEvent.press(screen.getByText('CircularTech'));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
@@ -89,7 +96,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText('Acme'));
+    fireEvent.press(screen.getByText('CircularTech'));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
@@ -102,7 +109,7 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     fireEvent.press(screen.getByText('X100'));
-    expect(screen.getByText('Set Model')).toBeTruthy();
+    expect(screen.getByText('Set Model')).toBeOnTheScreen();
   });
 
   it('calls onModelChange with the new name when OK is pressed in the model dialog', async () => {
@@ -120,7 +127,11 @@ describe('ProductTags', () => {
   });
 
   it('renders without error chips when product is a component (isComponent=true)', () => {
-    const componentProduct = { ...baseProduct, brand: undefined, model: undefined };
+    const componentProduct = {
+      ...baseProduct,
+      brand: undefined,
+      model: undefined,
+    };
     renderWithProviders(
       <ProductTags product={componentProduct} editMode={true} isComponent={true} />,
       {
@@ -141,7 +152,7 @@ describe('AmountChip (isComponent=true)', () => {
         withDialog: true,
       },
     );
-    expect(screen.getByText('3')).toBeTruthy();
+    expect(screen.getByText('3')).toBeOnTheScreen();
   });
 
   it('does not render when isComponent is false', () => {
@@ -159,7 +170,7 @@ describe('AmountChip (isComponent=true)', () => {
     renderWithProviders(<ProductTags product={product} editMode={false} isComponent={true} />, {
       withDialog: true,
     });
-    expect(screen.getByText('1')).toBeTruthy();
+    expect(screen.getByText('1')).toBeOnTheScreen();
   });
 
   it('shows a text input with the current amount in edit mode', () => {
@@ -169,7 +180,7 @@ describe('AmountChip (isComponent=true)', () => {
         withDialog: true,
       },
     );
-    expect(screen.getByDisplayValue('3')).toBeTruthy();
+    expect(screen.getByDisplayValue('3')).toBeOnTheScreen();
   });
 
   it('calls onAmountChange instantly when text changes', () => {

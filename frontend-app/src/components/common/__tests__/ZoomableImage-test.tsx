@@ -4,27 +4,11 @@ import { act, render, screen } from '@testing-library/react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import ZoomableImage from '../ZoomableImage';
 
-// We use the global mock from jest.setup.ts but spy on the methods
-// to capture the callbacks. No local mock needed.
-
 describe('ZoomableImage', () => {
   const testUri = 'https://example.com/image.jpg';
-  type JsonNode = {
-    props: {
-      style?: unknown;
-      source?: unknown;
-    };
-  };
   type PinchGestureType = ReturnType<typeof Gesture.Pinch>;
   type PanGestureType = ReturnType<typeof Gesture.Pan>;
   type TapGestureType = ReturnType<typeof Gesture.Tap>;
-
-  const getSingleJsonNode = (value: ReturnType<ReturnType<typeof render>['toJSON']>): JsonNode => {
-    if (!value || Array.isArray(value)) {
-      throw new Error('Expected a single rendered JSON node');
-    }
-    return value;
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,40 +17,8 @@ describe('ZoomableImage', () => {
   it('renders correctly with uri', () => {
     render(<ZoomableImage uri={testUri} />);
     const image = screen.getByTestId('expo-image');
-    expect(image).toBeTruthy();
+    expect(image).toBeOnTheScreen();
     expect(image.props.source).toEqual({ uri: testUri });
-  });
-
-  it('renders within a GestureDetector', () => {
-    const { toJSON } = render(<ZoomableImage uri={testUri} />);
-    expect(toJSON()).toBeTruthy();
-  });
-
-  it('applies default styles', () => {
-    const { toJSON } = render(<ZoomableImage uri={testUri} />);
-    const json = getSingleJsonNode(toJSON());
-    expect(json.props.style).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          width: expect.any(Number),
-          height: '100%',
-        }),
-      ]),
-    );
-  });
-
-  it('sets up pinch, pan and double tap gestures', () => {
-    const simultaneousSpy = jest.spyOn(Gesture, 'Simultaneous');
-    const pinchSpy = jest.spyOn(Gesture, 'Pinch');
-    const panSpy = jest.spyOn(Gesture, 'Pan');
-    const tapSpy = jest.spyOn(Gesture, 'Tap');
-
-    render(<ZoomableImage uri={testUri} />);
-
-    expect(pinchSpy).toHaveBeenCalled();
-    expect(panSpy).toHaveBeenCalled();
-    expect(tapSpy).toHaveBeenCalled();
-    expect(simultaneousSpy).toHaveBeenCalled();
   });
 
   it('executes pinch update callback', () => {

@@ -1,12 +1,15 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { API_URL } from '@/config';
 import { apiFetch } from '@/services/api/client';
-import { resetPasswordSchema, type ResetPasswordFormValues } from '@/services/api/validation/userSchema';
+import {
+  type ResetPasswordFormValues,
+  resetPasswordSchema,
+} from '@/services/api/validation/userSchema';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();

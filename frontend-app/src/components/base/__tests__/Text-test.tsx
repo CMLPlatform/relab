@@ -13,7 +13,7 @@ describe('Text', () => {
 
   it('renders children text', () => {
     renderWithProviders(<Text>Hello</Text>);
-    expect(screen.getByText('Hello')).toBeTruthy();
+    expect(screen.getByText('Hello')).toBeOnTheScreen();
   });
 
   it('applies light-mode text color in light mode', () => {

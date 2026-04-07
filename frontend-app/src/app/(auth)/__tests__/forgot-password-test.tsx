@@ -1,51 +1,149 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import { HttpResponse, http } from 'msw';
+import * as client from '@/services/api/client';
 import { renderWithProviders } from '@/test-utils';
-import { server } from '@/test-utils/server';
 import ForgotPasswordScreen from '../forgot-password';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+jest.mock('@/services/api/client', () => ({
+  apiFetch: jest.fn(),
+}));
+
+const mockedApiFetch = client.apiFetch as jest.MockedFunction<typeof client.apiFetch>;
+
+function createMockResponse(ok: boolean, body: Record<string, unknown> = {}): Response {
+  return {
+    ok,
+    json: async () => body,
+  } as unknown as Response;
+}
 
 describe('ForgotPasswordScreen', () => {
+  const mockBack = jest.fn();
+  const mockPush = jest.fn();
+  const mockReplace = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+    mockedApiFetch.mockResolvedValue(createMockResponse(true));
     (useRouter as jest.Mock).mockReturnValue({
-      push: jest.fn(),
-      replace: jest.fn(),
-      back: jest.fn(),
+      push: mockPush,
+      replace: mockReplace,
+      back: mockBack,
       setParams: jest.fn(),
     });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('renders the forgot password form', () => {
     renderWithProviders(<ForgotPasswordScreen />);
-    expect(screen.getByText('Forgot Password')).toBeTruthy();
-    expect(screen.getByText('Send Reset Link')).toBeTruthy();
+    expect(screen.getByText('Forgot Password')).toBeOnTheScreen();
+    expect(screen.getAllByText('Send Reset Link')).not.toHaveLength(0);
+    expect(screen.getByText(/send you instructions to reset your password/i)).toBeOnTheScreen();
   });
 
-  it('renders Forgot Password form with inputs', () => {
+  it('shows a validation error for an invalid email address', async () => {
     renderWithProviders(<ForgotPasswordScreen />);
-    expect(screen.getByText('Forgot Password')).toBeTruthy();
-    expect(screen.getByTestId('text-input-flat')).toBeTruthy();
-  });
 
-  it('renders Send Reset Link button', () => {
-    renderWithProviders(<ForgotPasswordScreen />);
-    expect(screen.getByText('Send Reset Link')).toBeTruthy();
-  });
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'not-an-email');
 
-  it('back to login button calls router.back', () => {
-    const mockBack = jest.fn();
-    (useRouter as jest.Mock).mockReturnValue({
-      push: jest.fn(),
-      replace: jest.fn(),
-      back: mockBack,
-      setParams: jest.fn(),
+    await waitFor(() => {
+      expect(screen.getByText(/valid email/i)).toBeOnTheScreen();
     });
+  });
+
+  it('submits the email and shows the success state', async () => {
     renderWithProviders(<ForgotPasswordScreen />);
+
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
+    });
+    fireEvent.press(screen.getAllByTestId('button')[0]);
+
+    await waitFor(() => {
+      expect(mockedApiFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/forgot-password'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ email: 'user@example.com' }),
+        }),
+      );
+      expect(screen.getByText(/If an account exists with this email/i)).toBeOnTheScreen();
+    });
+  });
+
+  it('shows the API error message when the request fails', async () => {
+    mockedApiFetch.mockResolvedValue(createMockResponse(false, { detail: 'No matching account' }));
+
+    renderWithProviders(<ForgotPasswordScreen />);
+
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
+    });
+    fireEvent.press(screen.getAllByTestId('button')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('No matching account')).toBeOnTheScreen();
+    });
+  });
+
+  it('shows a generic error when the request throws', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockedApiFetch.mockRejectedValue(new Error('network down'));
+
+    renderWithProviders(<ForgotPasswordScreen />);
+
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
+    });
+    fireEvent.press(screen.getAllByTestId('button')[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Please try again later/i)).toBeOnTheScreen();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('redirects to login after a successful request delay', async () => {
+    renderWithProviders(<ForgotPasswordScreen />);
+
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
+    });
+    fireEvent.press(screen.getAllByTestId('button')[0]);
+
+    await screen.findByText(/If an account exists with this email/i);
+
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith('/login');
+  });
+
+  it('allows navigating back to login from both states', async () => {
+    renderWithProviders(<ForgotPasswordScreen />);
+
+    fireEvent.press(screen.getAllByTestId('button')[1]);
+    expect(mockBack).toHaveBeenCalledTimes(1);
+
+    fireEvent.changeText(screen.getByTestId('text-input-flat'), 'user@example.com');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('button')[0].props.accessibilityState.disabled).toBe(false);
+    });
+    fireEvent.press(screen.getAllByTestId('button')[0]);
+    await screen.findByText(/If an account exists with this email/i);
+
     fireEvent.press(screen.getByText('Back to Login'));
-    expect(mockBack).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/login');
   });
 });

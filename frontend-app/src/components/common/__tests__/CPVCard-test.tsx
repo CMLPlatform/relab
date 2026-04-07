@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
+import { renderWithProviders, setupUser } from '@/test-utils';
 import type { CPVCategory } from '@/types/CPVCategory';
 import CPVCard from '../CPVCard';
 
@@ -16,53 +16,33 @@ const mockCPV: CPVCategory = {
 };
 
 describe('CPVCard', () => {
+  const user = setupUser();
   it('renders the CPV description', () => {
-    render(
-      <PaperProvider>
-        <CPVCard CPV={mockCPV} />
-      </PaperProvider>,
-    );
-    expect(screen.getByText('Agricultural products')).toBeTruthy();
+    renderWithProviders(<CPVCard CPV={mockCPV} />);
+    expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
   });
 
   it('renders CPV name as sub text', () => {
-    render(
-      <PaperProvider>
-        <CPVCard CPV={mockCPV} />
-      </PaperProvider>,
-    );
-    expect(screen.getByText('03000000-1')).toBeTruthy();
+    renderWithProviders(<CPVCard CPV={mockCPV} />);
+    expect(screen.getByText('03000000-1')).toBeOnTheScreen();
   });
 
   it("applies error style when CPV.name is 'undefined'", () => {
     const errorCPV = { ...mockCPV, name: 'undefined' };
-    const { toJSON } = render(
-      <PaperProvider>
-        <CPVCard CPV={errorCPV} />
-      </PaperProvider>,
-    );
-    expect(toJSON()).toBeTruthy();
+    renderWithProviders(<CPVCard CPV={errorCPV} />);
+    expect(screen.toJSON()).toBeTruthy();
   });
 
-  it('calls onPress when pressed', () => {
+  it('calls onPress when pressed', async () => {
     const onPress = jest.fn();
-    render(
-      <PaperProvider>
-        <CPVCard CPV={mockCPV} onPress={onPress} />
-      </PaperProvider>,
-    );
-    fireEvent.press(screen.getByText('Agricultural products'));
+    renderWithProviders(<CPVCard CPV={mockCPV} onPress={onPress} />);
+    await user.press(screen.getByText('Agricultural products'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('renders actionElement instead of subText when provided', () => {
-    render(
-      <PaperProvider>
-        <CPVCard CPV={mockCPV} actionElement={<Text>Custom Action</Text>} />
-      </PaperProvider>,
-    );
-    expect(screen.getByText('Custom Action')).toBeTruthy();
-    // subText (CPV.name) should not be rendered
+    renderWithProviders(<CPVCard CPV={mockCPV} actionElement={<Text>Custom Action</Text>} />);
+    expect(screen.getByText('Custom Action')).toBeOnTheScreen();
     expect(screen.queryByText('03000000-1')).toBeNull();
   });
 });

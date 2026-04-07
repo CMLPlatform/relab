@@ -1,5 +1,6 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { mockUser } from './api-mocks';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -19,17 +20,18 @@ export const handlers = [
   http.post(`${API_URL}/auth/refresh`, () =>
     HttpResponse.json({ access_token: 'refreshed-token' }),
   ),
-  http.get(`${API_URL}/users/me`, () =>
-    HttpResponse.json({
-      id: 1,
-      email: 'test@example.com',
-      is_active: true,
-      is_superuser: false,
-      is_verified: true,
-      username: 'testuser',
-      oauth_accounts: [],
-    }),
-  ),
+  http.get(`${API_URL}/users/me`, () => {
+    const user = mockUser();
+    return HttpResponse.json({
+      id: user.id,
+      email: user.email,
+      is_active: user.isActive,
+      is_superuser: user.isSuperuser,
+      is_verified: user.isVerified,
+      username: user.username,
+      oauth_accounts: user.oauth_accounts,
+    });
+  }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
   http.get(`${API_URL}/products`, () => HttpResponse.json([])),
   http.get(`${API_URL}/newsletter/me`, () =>

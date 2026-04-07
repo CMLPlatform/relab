@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { renderWithProviders } from '@/test-utils';
-import type { User } from '@/types/User';
+import { mockUser, renderWithProviders } from '@/test-utils';
 import Products from '../index';
 
 const mockUseAuth = jest.fn();
@@ -105,17 +104,6 @@ const mockUseProductTypesQuery = jest.fn();
 const mockSetParams = jest.fn();
 const mockPush = jest.fn();
 
-const mockUser = (overrides: Partial<User> = {}): User => ({
-  id: '1',
-  email: 'a@b.com',
-  username: 'alice',
-  isActive: true,
-  isVerified: true,
-  isSuperuser: false,
-  oauth_accounts: [],
-  ...overrides,
-});
-
 jest.mock('@/hooks/useProductQueries', () => ({
   useProductsQuery: (...args: unknown[]) => mockUseProductsQuery(...args),
   useSearchBrandsQuery: (...args: unknown[]) => mockUseBrandsQuery(...args),
@@ -201,7 +189,7 @@ describe('Products screen', () => {
   it('renders the search bar and sort button', async () => {
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search products')).toBeTruthy();
+      expect(screen.getByPlaceholderText('Search products')).toBeOnTheScreen();
     });
   });
 
@@ -217,7 +205,9 @@ describe('Products screen', () => {
   it('shows empty state when no products match', async () => {
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText('No products available yet. Sign in to add your own.')).toBeTruthy();
+      expect(
+        screen.getByText('No products available yet. Sign in to add your own.'),
+      ).toBeOnTheScreen();
     });
   });
 
@@ -228,7 +218,7 @@ describe('Products screen', () => {
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
 
     await waitFor(() => {
-      expect(screen.getByText('No products found matching your search.')).toBeTruthy();
+      expect(screen.getByText('No products found matching your search.')).toBeOnTheScreen();
     });
   });
 
@@ -284,10 +274,10 @@ describe('Products screen', () => {
   it('renders welcome banner on first visit', async () => {
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText('Welcome to RELab')).toBeTruthy();
+      expect(screen.getByText('Welcome to RELab')).toBeOnTheScreen();
       expect(
         screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
-      ).toBeTruthy();
+      ).toBeOnTheScreen();
     });
   });
 
@@ -309,9 +299,9 @@ describe('Products screen', () => {
     rerender(<Products />);
 
     await waitFor(() => {
-      expect(screen.getByText('Ready to add products')).toBeTruthy();
+      expect(screen.getByText('Ready to add products')).toBeOnTheScreen();
       expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-      expect(screen.getByText('profile')).toBeTruthy();
+      expect(screen.getByText('profile')).toBeOnTheScreen();
     });
   });
 
@@ -321,11 +311,11 @@ describe('Products screen', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Verify your email to start creating')).toBeTruthy();
+      expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
       expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-      expect(screen.getByText('profile')).toBeTruthy();
-      expect(screen.getByText('Got it')).toBeTruthy();
-      expect(screen.getByText('Verify email')).toBeTruthy();
+      expect(screen.getByText('profile')).toBeOnTheScreen();
+      expect(screen.getByText('Got it')).toBeOnTheScreen();
+      expect(screen.getByText('Verify email')).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByText('Verify email'));
@@ -338,8 +328,8 @@ describe('Products screen', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Got it')).toBeTruthy();
-      expect(screen.getByText('profile')).toBeTruthy();
+      expect(screen.getByText('Got it')).toBeOnTheScreen();
+      expect(screen.getByText('profile')).toBeOnTheScreen();
     });
   });
 });
@@ -350,7 +340,7 @@ describe('FAB and new-product flow', () => {
     await screen.findByLabelText('Sign in to create products');
     fireEvent.press(screen.getByLabelText('Sign in to create products'));
     await waitFor(() => {
-      expect(screen.getByText('Sign in to create products')).toBeTruthy();
+      expect(screen.getByText('Sign in to create products')).toBeOnTheScreen();
     });
   });
 
@@ -360,7 +350,7 @@ describe('FAB and new-product flow', () => {
     await screen.findByLabelText('Create new product');
     fireEvent.press(screen.getByLabelText('Create new product'));
     await waitFor(() => {
-      expect(screen.getByText('Create New Product')).toBeTruthy();
+      expect(screen.getByText('Create New Product')).toBeOnTheScreen();
     });
   });
 
@@ -370,7 +360,7 @@ describe('FAB and new-product flow', () => {
     await screen.findByLabelText('Create new product');
     fireEvent.press(screen.getByLabelText('Create new product'));
     await waitFor(() => {
-      expect(screen.getByText('Email Verification Required')).toBeTruthy();
+      expect(screen.getByText('Email Verification Required')).toBeOnTheScreen();
     });
   });
 });
@@ -381,7 +371,7 @@ describe('Filter chips and modals', () => {
     await screen.findByText('Brand');
     fireEvent.press(screen.getByText('Brand'));
     await waitFor(() => {
-      expect(screen.getByText('Filter by Brand')).toBeTruthy();
+      expect(screen.getByText('Filter by Brand')).toBeOnTheScreen();
     });
   });
 
@@ -390,7 +380,7 @@ describe('Filter chips and modals', () => {
     await screen.findByText('Type');
     fireEvent.press(screen.getByText('Type'));
     await waitFor(() => {
-      expect(screen.getByText('Filter by Product Type')).toBeTruthy();
+      expect(screen.getByText('Filter by Product Type')).toBeOnTheScreen();
     });
   });
 
@@ -399,9 +389,9 @@ describe('Filter chips and modals', () => {
     await screen.findByText('Date');
     fireEvent.press(screen.getByText('Date'));
     await waitFor(() => {
-      expect(screen.getByText('Last 7d')).toBeTruthy();
-      expect(screen.getByText('Last 30d')).toBeTruthy();
-      expect(screen.getByText('Last 90d')).toBeTruthy();
+      expect(screen.getByText('Last 7d')).toBeOnTheScreen();
+      expect(screen.getByText('Last 30d')).toBeOnTheScreen();
+      expect(screen.getByText('Last 90d')).toBeOnTheScreen();
     });
   });
 
@@ -418,7 +408,7 @@ describe('Filter chips and modals', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '30' });
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText('Last 30d')).toBeTruthy();
+      expect(screen.getByText('Last 30d')).toBeOnTheScreen();
       // The chip label reflects the active selection
     });
   });
@@ -426,7 +416,7 @@ describe('Filter chips and modals', () => {
   it('clears an active date preset via the chip close button', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7' });
     renderWithProviders(<Products />, { withDialog: true });
-    expect(await screen.findByText('Last 7d')).toBeTruthy();
+    expect(await screen.findByText('Last 7d')).toBeOnTheScreen();
     // react-native-paper Chip renders its close button with accessibilityLabel="Close"
     const closeBtn = screen.getByLabelText('Close');
     fireEvent.press(closeBtn);
@@ -442,8 +432,8 @@ describe('Error state', () => {
     });
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText(/Network failure/)).toBeTruthy();
-      expect(screen.getByLabelText('Retry loading products')).toBeTruthy();
+      expect(screen.getByText(/Network failure/)).toBeOnTheScreen();
+      expect(screen.getByLabelText('Retry loading products')).toBeOnTheScreen();
     });
   });
 });
@@ -468,7 +458,7 @@ describe('Empty-state messages', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText("You haven't created any products yet. Tap the")).toBeTruthy();
+      expect(screen.getByText("You haven't created any products yet. Tap the")).toBeOnTheScreen();
       expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
     });
   });
@@ -479,7 +469,7 @@ describe('Empty-state messages', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('No products yet. Start by tapping the')).toBeTruthy();
+      expect(screen.getByText('No products yet. Start by tapping the')).toBeOnTheScreen();
       expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
     });
   });
@@ -500,15 +490,15 @@ describe('PaginationControls (multi-column)', () => {
   it('renders pagination buttons on desktop when totalPages > 1', async () => {
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByLabelText('Previous page')).toBeTruthy();
-      expect(screen.getByLabelText('Next page')).toBeTruthy();
+      expect(screen.getByLabelText('Previous page')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Next page')).toBeOnTheScreen();
     });
   });
 
   it('shows correct page count text', async () => {
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText(/Page 1 of 3/)).toBeTruthy();
+      expect(screen.getByText(/Page 1 of 3/)).toBeOnTheScreen();
     });
   });
 
@@ -550,7 +540,7 @@ describe('PaginationControls (multi-column)', () => {
 
     await waitFor(() => {
       expect(screen.getAllByText('…').length).toBeGreaterThan(0);
-      expect(screen.getByLabelText('Page 6')).toBeTruthy();
+      expect(screen.getByLabelText('Page 6')).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByLabelText('Page 6'));
@@ -589,7 +579,7 @@ describe('Mobile footer (single-column)', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Load more products')).toBeTruthy();
+      expect(screen.getByLabelText('Load more products')).toBeOnTheScreen();
     });
   });
 
@@ -612,7 +602,7 @@ describe('Mobile footer (single-column)', () => {
     });
 
     renderWithProviders(<Products />, { withDialog: true });
-    expect(await screen.findByLabelText('Load more products')).toBeTruthy();
+    expect(await screen.findByLabelText('Load more products')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByLabelText('Load more products'));
 
@@ -643,7 +633,7 @@ describe('Mobile footer (single-column)', () => {
     renderWithProviders(<Products />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('All 57 products shown')).toBeTruthy();
+      expect(screen.getByText('All 57 products shown')).toBeOnTheScreen();
     });
   });
 });
@@ -664,7 +654,7 @@ describe('Mine filter chip', () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText('Mine')).toBeTruthy();
+      expect(screen.getByText('Mine')).toBeOnTheScreen();
     });
   });
 
@@ -701,9 +691,9 @@ describe('Date filter dropdown', () => {
     await screen.findByText('Date');
     fireEvent.press(screen.getByText('Date'));
     await waitFor(() => {
-      expect(screen.getByText('Last 7d')).toBeTruthy();
-      expect(screen.getByText('Last 30d')).toBeTruthy();
-      expect(screen.getByText('Last 90d')).toBeTruthy();
+      expect(screen.getByText('Last 7d')).toBeOnTheScreen();
+      expect(screen.getByText('Last 30d')).toBeOnTheScreen();
+      expect(screen.getByText('Last 90d')).toBeOnTheScreen();
     });
   });
 
@@ -720,7 +710,7 @@ describe('Date filter dropdown', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '90' });
     renderWithProviders(<Products />, { withDialog: true });
     await waitFor(() => {
-      expect(screen.getByText('Last 90d')).toBeTruthy();
+      expect(screen.getByText('Last 90d')).toBeOnTheScreen();
     });
   });
 });
@@ -782,7 +772,7 @@ describe('Sort — Relevance default when searching', () => {
     await screen.findByLabelText('Sort products');
     fireEvent.press(screen.getByLabelText('Sort products'));
     await waitFor(() => {
-      expect(screen.getByText('Relevance')).toBeTruthy();
+      expect(screen.getByText('Relevance')).toBeOnTheScreen();
     });
   });
 

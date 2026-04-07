@@ -54,7 +54,7 @@ export default function ProductComponents({ product, editMode }: Props) {
 
             if (!parseResult.success) {
               // This shouldn't happen due to disabled check, but handle defensively
-              alert(parseResult.error.errors[0]?.message || 'Invalid component name');
+              alert(parseResult.error.issues[0]?.message || 'Invalid component name');
               return;
             }
 

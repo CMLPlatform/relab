@@ -1,12 +1,15 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
-import { baseProduct as _base, renderWithProviders } from '@/test-utils';
+import { screen } from '@testing-library/react-native';
+import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils';
+
 import type { Product } from '@/types/Product';
 import ProductDelete from '../ProductDelete';
 
 const existingProduct: Product = { ..._base, id: 42 };
 
 describe('ProductDelete', () => {
+  const user = setupUser();
+
   it("returns null when product.id is 'new'", () => {
     const product = { ...existingProduct, id: 'new' as const };
     renderWithProviders(<ProductDelete product={product} editMode={true} />, { withDialog: true });
@@ -24,7 +27,7 @@ describe('ProductDelete', () => {
     renderWithProviders(<ProductDelete product={existingProduct} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByText('Delete product')).toBeTruthy();
+    expect(screen.getByText('Delete product')).toBeOnTheScreen();
   });
 
   it('shows confirmation dialog when delete button is pressed', async () => {
@@ -32,10 +35,10 @@ describe('ProductDelete', () => {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getByText('Delete product'));
+    await user.press(screen.getByText('Delete product'));
 
-    expect(screen.getByText('Delete Product')).toBeTruthy();
-    expect(screen.getByText(/Are you sure/)).toBeTruthy();
+    expect(screen.getByText('Delete Product')).toBeOnTheScreen();
+    expect(screen.getByText(/Are you sure/)).toBeOnTheScreen();
   });
 
   it('pressing Cancel in the dialog does not call onDelete', async () => {
@@ -46,8 +49,8 @@ describe('ProductDelete', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText('Delete product'));
-    fireEvent.press(screen.getByText('Cancel'));
+    await user.press(screen.getByText('Delete product'));
+    await user.press(screen.getByText('Cancel'));
     expect(onDelete).not.toHaveBeenCalled();
   });
 
@@ -60,9 +63,9 @@ describe('ProductDelete', () => {
       },
     );
 
-    fireEvent.press(screen.getByText('Delete product'));
+    await user.press(screen.getByText('Delete product'));
 
-    fireEvent.press(screen.getByText('Delete'));
+    await user.press(screen.getByText('Delete'));
 
     expect(onDelete).toHaveBeenCalledTimes(1);
   });

@@ -38,14 +38,8 @@ export const emailSchema = z
 export const passwordSchema = z
   .string({ message: 'Password is required' })
   .min(1, 'Password is required')
-  .min(
-    PASSWORD_MIN_LENGTH,
-    `Password must be at least ${PASSWORD_MIN_LENGTH} characters`,
-  )
-  .max(
-    PASSWORD_MAX_LENGTH,
-    `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
-  );
+  .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+  .max(PASSWORD_MAX_LENGTH, `Password must be at most ${PASSWORD_MAX_LENGTH} characters`);
 
 // ─── Form schemas ──────────────────────────────────────────────────────────
 

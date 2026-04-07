@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
@@ -7,7 +8,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useDialog } from '@/components/common/DialogProvider';
 import { API_URL, GOOGLE_WEB_CLIENT_ID } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
@@ -18,7 +18,7 @@ import {
   oauthLoginWithGoogleToken,
 } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
-import { loginSchema, type LoginFormValues } from '@/services/api/validation/userSchema';
+import { type LoginFormValues, loginSchema } from '@/services/api/validation/userSchema';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -167,11 +167,7 @@ export default function Login() {
   });
 
   // Form
-  const {
-    control,
-    handleSubmit,
-    formState: { isValid, isSubmitting },
-  } = useForm<LoginFormValues>({
+  const { control, handleSubmit } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
     defaultValues: { email: '', password: '' },

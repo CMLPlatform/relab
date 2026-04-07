@@ -15,15 +15,15 @@ const baseProduct: Product = {
 describe('ProductPhysicalProperties', () => {
   it('renders all four property labels', () => {
     renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
-    expect(screen.getByText('Weight')).toBeTruthy();
-    expect(screen.getByText('Height')).toBeTruthy();
-    expect(screen.getByText('Width')).toBeTruthy();
-    expect(screen.getByText('Depth')).toBeTruthy();
+    expect(screen.getByText('Weight')).toBeOnTheScreen();
+    expect(screen.getByText('Height')).toBeOnTheScreen();
+    expect(screen.getByText('Width')).toBeOnTheScreen();
+    expect(screen.getByText('Depth')).toBeOnTheScreen();
   });
 
   it('renders current weight value', () => {
     renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
-    expect(screen.getByDisplayValue('500')).toBeTruthy();
+    expect(screen.getByDisplayValue('500')).toBeOnTheScreen();
   });
 
   it('calls onChangePhysicalProperties when a value changes', () => {

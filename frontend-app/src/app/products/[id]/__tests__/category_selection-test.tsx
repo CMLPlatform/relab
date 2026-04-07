@@ -92,8 +92,8 @@ describe('CategorySelection', () => {
   it('renders root category items initially', async () => {
     renderWithProviders(<CategorySelection />);
     await waitFor(() => {
-      expect(screen.getByText('Agricultural products')).toBeTruthy();
-      expect(screen.getByText('Petroleum products')).toBeTruthy();
+      expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
+      expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
     });
   });
 
@@ -115,11 +115,11 @@ describe('CategorySelection', () => {
     renderWithProviders(<CategorySelection />);
     // Agricultural products has 1 subcategory; shows "1 subcategories" link
     await waitFor(() => {
-      expect(screen.getByText(/1 subcategor/)).toBeTruthy(); // spell-checker: ignore subcategor
+      expect(screen.getByText(/1 subcategor/)).toBeOnTheScreen(); // spell-checker: ignore subcategor
     });
     fireEvent.press(screen.getByText('1 subcategories'));
     await waitFor(() => {
-      expect(screen.getByText('Agricultural and horticultural products')).toBeTruthy();
+      expect(screen.getByText('Agricultural and horticultural products')).toBeOnTheScreen();
     });
   });
 
@@ -128,7 +128,7 @@ describe('CategorySelection', () => {
     await screen.findByText('1 subcategories');
     fireEvent.press(screen.getByText('1 subcategories'));
     await waitFor(() => {
-      expect(screen.getByText('Agricultural products')).toBeTruthy();
+      expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
     });
   });
 
@@ -138,12 +138,12 @@ describe('CategorySelection', () => {
     fireEvent.press(screen.getByText('1 subcategories'));
     // Now inside Agricultural products; breadcrumb shows
     await waitFor(() => {
-      expect(screen.getByText('Agricultural products')).toBeTruthy();
+      expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
     });
     // Pressing the breadcrumb triggers moveUp; root categories re-appear
     fireEvent.press(screen.getByText('Agricultural products'));
     await waitFor(() => {
-      expect(screen.getByText('Petroleum products')).toBeTruthy();
+      expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
     });
   });
 
@@ -152,7 +152,7 @@ describe('CategorySelection', () => {
     await screen.findByPlaceholderText('Search');
     fireEvent.changeText(screen.getByPlaceholderText('Search'), 'petroleum');
     await waitFor(() => {
-      expect(screen.getByText('Petroleum products')).toBeTruthy();
+      expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
       expect(screen.queryByText('Agricultural products')).toBeNull();
     });
   });

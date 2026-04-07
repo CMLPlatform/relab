@@ -5,10 +5,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { WebBrowserResultType } from 'expo-web-browser';
 import { HttpResponse, http } from 'msw';
-import { Platform } from 'react-native';
 import * as auth from '@/services/api/authentication';
-import { renderWithProviders, server } from '@/test-utils';
-import type { User } from '@/types/User';
+import { mockPlatform, mockUser, renderWithProviders, restorePlatform, server } from '@/test-utils';
 import Login from '../login';
 
 jest.mock('@/services/api/authentication', () => ({
@@ -36,31 +34,12 @@ jest.mock('expo-linking', () => ({
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
-const originalPlatformOS = Platform.OS;
 const mockedLogin = jest.mocked(auth.login);
 const mockedGetUser = jest.mocked(auth.getUser);
 const mockedGetToken = jest.mocked(auth.getToken);
 const mockedMarkWebSessionActive = jest.mocked(auth.markWebSessionActive);
 const mockedOpenAuthSessionAsync = jest.mocked(WebBrowser.openAuthSessionAsync);
 type AuthSessionResult = Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsync>>;
-
-const mockUser = (overrides: Partial<User> = {}): User => ({
-  id: '1',
-  username: 'testuser',
-  email: 't@example.com',
-  isActive: true,
-  isVerified: true,
-  isSuperuser: false,
-  oauth_accounts: [],
-  ...overrides,
-});
-
-function setPlatformOS(os: string): void {
-  Object.defineProperty(Platform, 'OS', {
-    value: os,
-    configurable: true,
-  });
-}
 
 describe('Login screen', () => {
   beforeEach(() => {
@@ -75,25 +54,25 @@ describe('Login screen', () => {
     mockedGetToken.mockResolvedValue(undefined); // default: guest
     mockedGetUser.mockResolvedValue(undefined);
     mockedOpenAuthSessionAsync.mockResolvedValue({ type: 'cancel' } as AuthSessionResult);
-    setPlatformOS(originalPlatformOS);
+    restorePlatform();
   });
 
   afterEach(() => {
-    setPlatformOS(originalPlatformOS);
+    restorePlatform();
   });
 
   it('renders login form elements', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Login', {}, { timeout: 3000 });
-    expect(screen.getByPlaceholderText('Email or username')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Password')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Email or username')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('Password')).toBeOnTheScreen();
   });
 
   it('shows Login button', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await waitFor(
       () => {
-        expect(screen.getByText('Login')).toBeTruthy();
+        expect(screen.getByText('Login')).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );
@@ -171,7 +150,7 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Login'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
     });
   });
 
@@ -186,7 +165,7 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Login'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
     });
   });
 
@@ -205,7 +184,7 @@ describe('Login screen', () => {
   });
 
   it('on web, GitHub OAuth redirects the page instead of opening a popup', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     const authUrl = 'https://github.com/login/oauth/authorize?client_id=test-client';
     server.use(
       http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () =>
@@ -246,7 +225,7 @@ describe('Login screen', () => {
   });
 
   it('hydrates a web OAuth callback returned by page redirect params', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     (useLocalSearchParams as jest.Mock).mockReturnValue({ success: 'true' });
     mockedGetUser.mockResolvedValueOnce(
       mockUser({ username: 'oauth_user', email: 'oauth@example.com' }),
@@ -262,20 +241,20 @@ describe('Login screen', () => {
   });
 
   it('shows error when OAuth provider denies access via web page redirect', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     (useLocalSearchParams as jest.Mock).mockReturnValue({ error: 'access_denied' });
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
-      expect(screen.getByText(/You denied access/i)).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(screen.getByText(/You denied access/i)).toBeOnTheScreen();
       expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 
   it('shows explicit account-linking guidance when OAuth account already exists', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     server.use(
       http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () =>
         HttpResponse.json({ detail: 'OAUTH_USER_ALREADY_EXISTS' }, { status: 400 }),
@@ -287,13 +266,13 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Continue with GitHub'));
 
     await waitFor(() => {
-      expect(screen.getByText('Email Already Registered')).toBeTruthy();
+      expect(screen.getByText('Email Already Registered')).toBeOnTheScreen();
       expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
     });
   });
 
   it('shows error when OAuth provider denies access', async () => {
-    setPlatformOS('android');
+    mockPlatform('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -309,13 +288,13 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Continue with Google'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
-      expect(screen.getByText(/You denied access/i)).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(screen.getByText(/You denied access/i)).toBeOnTheScreen();
     });
   });
 
   it('shows platform-specific retry guidance on native OAuth failure', async () => {
-    setPlatformOS('android');
+    mockPlatform('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -332,14 +311,14 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Continue with Google'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
       // Native platform should show device/internet guidance
-      expect(screen.getByText(/ensure your device has internet/i)).toBeTruthy();
+      expect(screen.getByText(/ensure your device has internet/i)).toBeOnTheScreen();
     });
   });
 
   it('retries session validation after OAuth success', async () => {
-    setPlatformOS('android');
+    mockPlatform('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -369,7 +348,7 @@ describe('Login screen', () => {
   });
 
   it('shows error when OAuth succeeds but session validation fails after max retries', async () => {
-    setPlatformOS('android');
+    mockPlatform('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -387,15 +366,15 @@ describe('Login screen', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText('Login Failed')).toBeTruthy();
-        expect(screen.getByText(/couldn't establish your session/i)).toBeTruthy();
+        expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+        expect(screen.getByText(/couldn't establish your session/i)).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );
   });
 
   it('shows account suspended message when OAuth succeeds but user is inactive', async () => {
-    setPlatformOS('android');
+    mockPlatform('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -416,8 +395,8 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Continue with Google'));
 
     await waitFor(() => {
-      expect(screen.getByText('Account Suspended')).toBeTruthy();
-      expect(screen.getByText(/your account has been suspended/i)).toBeTruthy();
+      expect(screen.getByText('Account Suspended')).toBeOnTheScreen();
+      expect(screen.getByText(/your account has been suspended/i)).toBeOnTheScreen();
     });
   });
 
@@ -431,8 +410,8 @@ describe('Login screen', () => {
   it('shows forgot password link and create account button', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await waitFor(() => {
-      expect(screen.getByText('Forgot password?')).toBeTruthy();
-      expect(screen.getByText('Create a new account')).toBeTruthy();
+      expect(screen.getByText('Forgot password?')).toBeOnTheScreen();
+      expect(screen.getByText('Create a new account')).toBeOnTheScreen();
     });
   });
 
@@ -447,7 +426,7 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Login'));
 
     await waitFor(() => {
-      expect(screen.getByText('Account Suspended')).toBeTruthy();
+      expect(screen.getByText('Account Suspended')).toBeOnTheScreen();
     });
   });
 
@@ -463,13 +442,13 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Continue with Google'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
-      expect(screen.getByText('Endpoint not found')).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(screen.getByText('Endpoint not found')).toBeOnTheScreen();
     });
   });
 
   it('handles user cancellation during OAuth browser session', async () => {
-    setPlatformOS('android');
+    mockPlatform('android');
     server.use(
       http.get(/\/auth\/oauth\/google\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'https://provider.example.com/oauth' }),
@@ -502,13 +481,13 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Login'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
-      expect(screen.getByText(/Unable to retrieve user information/)).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(screen.getByText(/Unable to retrieve user information/)).toBeOnTheScreen();
     });
   });
 
   it('shows error when OAuth provider returns an unsafe authorization URL on web', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     server.use(
       http.get(/\/auth\/oauth\/github\/session\/authorize.*/, () =>
         HttpResponse.json({ authorization_url: 'http://evil.example.com/phish' }),
@@ -520,8 +499,8 @@ describe('Login screen', () => {
     fireEvent.press(screen.getByText('Continue with GitHub'));
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeTruthy();
-      expect(screen.getByText(/Unexpected authorization URL/)).toBeTruthy();
+      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(screen.getByText(/Unexpected authorization URL/)).toBeOnTheScreen();
     });
   });
 

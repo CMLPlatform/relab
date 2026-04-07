@@ -54,7 +54,7 @@ describe('Profile screen newsletter preference', () => {
   beforeEach(() => {
     mockedGetToken.mockResolvedValue('token');
     mockedGetUser.mockResolvedValue({
-      ...mockUser,
+      ...mockUser(),
       id: '1',
       username: 'testuser',
       email: 'test@example.com',
@@ -75,7 +75,9 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true });
 
-    expect(await screen.findByText('You are subscribed.', {}, { timeout: 10000 })).toBeTruthy();
+    expect(
+      await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
+    ).toBeOnTheScreen();
   });
 
   it('updates the preference when the switch is toggled', async () => {
@@ -100,12 +102,14 @@ describe('Profile screen newsletter preference', () => {
     renderWithProviders(<Profile />, { withAuth: true });
 
     await waitFor(() => {
-      expect(screen.getByText('You are not subscribed.')).toBeTruthy();
+      expect(screen.getByText('You are not subscribed.')).toBeOnTheScreen();
     });
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 
-    expect(await screen.findByText('You are subscribed.', {}, { timeout: 10000 })).toBeTruthy();
+    expect(
+      await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
+    ).toBeOnTheScreen();
   });
 
   it('shows an error when updating the preference fails', async () => {
@@ -125,14 +129,14 @@ describe('Profile screen newsletter preference', () => {
     renderWithProviders(<Profile />, { withAuth: true });
 
     await waitFor(() => {
-      expect(screen.getByText('You are not subscribed.')).toBeTruthy();
+      expect(screen.getByText('You are not subscribed.')).toBeOnTheScreen();
     });
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 
     expect(
       await screen.findByText('Unable to save right now.', {}, { timeout: 10000 }),
-    ).toBeTruthy();
+    ).toBeOnTheScreen();
   });
 
   it('shows an error and retry action when newsletter preferences fail to load', async () => {
@@ -146,8 +150,8 @@ describe('Profile screen newsletter preference', () => {
 
     expect(
       await screen.findByText('Could not load right now.', {}, { timeout: 10000 }),
-    ).toBeTruthy();
-    expect(screen.getByText('Try again')).toBeTruthy();
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Try again')).toBeOnTheScreen();
   });
 
   it('retries loading newsletter preference when the retry button is pressed', async () => {
@@ -159,7 +163,7 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true });
 
-    expect(await screen.findByText('Temporary failure', {}, { timeout: 10000 })).toBeTruthy();
+    expect(await screen.findByText('Temporary failure', {}, { timeout: 10000 })).toBeOnTheScreen();
 
     // Override with a success response for the retry
     server.use(
@@ -174,15 +178,19 @@ describe('Profile screen newsletter preference', () => {
 
     fireEvent.press(screen.getByText('Try again'));
 
-    expect(await screen.findByText('You are subscribed.', {}, { timeout: 10000 })).toBeTruthy();
+    expect(
+      await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
+    ).toBeOnTheScreen();
   });
 });
 
 describe('Profile screen actions', () => {
+  // Increase timeout for potentially slow UI interactions in this suite
+  jest.setTimeout(10000);
   beforeEach(() => {
     mockedGetToken.mockResolvedValue('token');
     mockedGetUser.mockResolvedValue({
-      ...mockUser,
+      ...mockUser(),
       id: '1',
       username: 'testuser',
       email: 'test@example.com',
@@ -256,7 +264,7 @@ describe('Profile screen actions', () => {
     const logoutBtn = await screen.findByText('Logout');
     fireEvent.press(logoutBtn);
 
-    expect(screen.getByText('Are you sure you want to log out?')).toBeTruthy();
+    expect(screen.getByText('Are you sure you want to log out?')).toBeOnTheScreen();
   });
 
   it('opens the OAuth link flow for Google accounts', async () => {
@@ -266,7 +274,7 @@ describe('Profile screen actions', () => {
     } as never);
     mockedOpenAuthSessionAsync.mockResolvedValue({ type: 'success' } as never);
     mockedGetUser.mockResolvedValue({
-      ...mockUser,
+      ...mockUser(),
       id: '1',
       username: 'testuser',
       email: 'test@example.com',
@@ -301,12 +309,12 @@ describe('Profile screen actions', () => {
     const deleteBtn = await screen.findByText('Delete Account?');
     fireEvent.press(deleteBtn);
 
-    expect(screen.getByText('Delete Account')).toBeTruthy();
+    expect(screen.getByText('Delete Account')).toBeOnTheScreen();
     expect(
       screen.getByText(
         'To delete your account and all associated data, please send an email request to:',
       ),
-    ).toBeTruthy();
+    ).toBeOnTheScreen();
   });
 
   it('alerts when username is too short', async () => {
@@ -392,7 +400,7 @@ describe('Profile screen actions', () => {
     global.alert = jest.fn();
 
     mockedGetUser.mockResolvedValue({
-      ...mockUser,
+      ...mockUser(),
       id: '1',
       username: 'testuser',
       email: 'test@example.com',
@@ -413,7 +421,7 @@ describe('Profile screen actions', () => {
 
   it('handles unlinking GitHub accounts', async () => {
     mockedGetUser.mockResolvedValue({
-      ...mockUser,
+      ...mockUser(),
       id: '1',
       username: 'testuser',
       email: 'test@example.com',
@@ -443,7 +451,7 @@ describe('Profile screen actions', () => {
     } as never);
     mockedOpenAuthSessionAsync.mockResolvedValueOnce({ type: 'success' } as never);
     mockedGetUser.mockResolvedValue({
-      ...mockUser,
+      ...mockUser(),
       id: '1',
       username: 'testuser',
       email: 'test@example.com',

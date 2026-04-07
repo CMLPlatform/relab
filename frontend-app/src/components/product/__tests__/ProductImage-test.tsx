@@ -4,9 +4,9 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type React from 'react';
-import { Platform, View, type ViewProps } from 'react-native';
+import { View, type ViewProps } from 'react-native';
 import * as imageProcessing from '@/services/media/imageProcessing';
-import { baseProduct, renderWithProviders } from '@/test-utils';
+import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils';
 import type { Product } from '@/types/Product';
 import ProductImages from '../ProductImageGallery';
 
@@ -143,13 +143,6 @@ const mockedLaunchCameraAsync = jest.mocked(ImagePicker.launchCameraAsync);
 const mockedRequestCameraPermissionsAsync = jest.mocked(ImagePicker.requestCameraPermissionsAsync);
 const mockedProcessImage = jest.mocked(imageProcessing.processImage);
 
-function setPlatformOS(os: 'ios' | 'web') {
-  Object.defineProperty(Platform, 'OS', {
-    configurable: true,
-    value: os,
-  });
-}
-
 function setMatchMedia(matches: boolean) {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -193,7 +186,7 @@ function setWindowEventListeners() {
 describe('ProductImages', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    setPlatformOS('ios');
+    mockPlatform('ios');
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
@@ -215,7 +208,7 @@ describe('ProductImages', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByTestId('image-placeholder')).toBeTruthy();
+    expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
 
   it('renders placeholder image when product.images is missing', () => {
@@ -228,7 +221,7 @@ describe('ProductImages', () => {
         withDialog: true,
       },
     );
-    expect(screen.getByTestId('image-placeholder')).toBeTruthy();
+    expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
 
   it('renders product images when present', () => {
@@ -239,7 +232,7 @@ describe('ProductImages', () => {
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText('img:file://photo1.jpg')).toBeTruthy();
+    expect(screen.getByText('img:file://photo1.jpg')).toBeOnTheScreen();
   });
 
   it('does not show image counter text for a single image', () => {
@@ -273,8 +266,8 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    expect(screen.getByLabelText('Previous image')).toBeTruthy();
-    expect(screen.getByLabelText('Next image')).toBeTruthy();
+    expect(screen.getByLabelText('Previous image')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Next image')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByLabelText('Next image'));
 
@@ -343,7 +336,7 @@ describe('ProductImages', () => {
     fireEvent.press(imgs[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
   });
 
@@ -360,7 +353,7 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getByText('img:file://photo1.jpg'));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByLabelText('Close lightbox'));
@@ -387,7 +380,7 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
       expect(screen.getAllByText('1 / 2').length).toBeGreaterThan(0);
     });
 
@@ -432,7 +425,7 @@ describe('ProductImages', () => {
   });
 
   it('navigates between lightbox images with touch gestures on web', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
     setWindowEventListeners();
@@ -453,7 +446,7 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
     const touchTarget = UNSAFE_getAllByType(View).find(
@@ -480,7 +473,7 @@ describe('ProductImages', () => {
   });
 
   it('handles keyboard and scroll navigation on web lightbox', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(false);
     setWindowImageConstructor();
     setWindowEventListeners();
@@ -500,7 +493,7 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
     const lightboxListProps = mockFlatListCalls.find(
@@ -593,7 +586,7 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
     const lightboxListProps = mockFlatListCalls.find(
@@ -628,12 +621,12 @@ describe('ProductImages', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByText('Camera')).toBeTruthy();
-    expect(screen.getByText('Add Photos')).toBeTruthy();
+    expect(screen.getByText('Camera')).toBeOnTheScreen();
+    expect(screen.getByText('Add Photos')).toBeOnTheScreen();
   });
 
   it('shows only Add Photos tile on desktop web when no images in edit mode', () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(false);
     setWindowImageConstructor();
     setWindowEventListeners();
@@ -641,19 +634,19 @@ describe('ProductImages', () => {
       withDialog: true,
     });
     expect(screen.queryByText('Camera')).toBeNull();
-    expect(screen.getByText('Add Photos')).toBeTruthy();
+    expect(screen.getByText('Add Photos')).toBeOnTheScreen();
   });
 
   it('shows Camera and Add Photos tiles on mobile web when no images in edit mode', () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
     setWindowEventListeners();
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByText('Camera')).toBeTruthy();
-    expect(screen.getByText('Add Photos')).toBeTruthy();
+    expect(screen.getByText('Camera')).toBeOnTheScreen();
+    expect(screen.getByText('Add Photos')).toBeOnTheScreen();
   });
 
   it('requests camera permission then calls launchCameraAsync when Camera tile is pressed on native', async () => {
@@ -712,12 +705,12 @@ describe('ProductImages', () => {
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByLabelText('Take photo')).toBeTruthy();
-    expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
+    expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
   });
 
   it('hides Take photo overlay icon on desktop web with images in edit mode', () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(false);
     setWindowImageConstructor();
     setWindowEventListeners();
@@ -729,11 +722,11 @@ describe('ProductImages', () => {
       withDialog: true,
     });
     expect(screen.queryByLabelText('Take photo')).toBeNull();
-    expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
+    expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
   });
 
   it('shows Take photo overlay icon on mobile web with images in edit mode', () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
     setWindowEventListeners();
@@ -744,12 +737,12 @@ describe('ProductImages', () => {
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
     });
-    expect(screen.getByLabelText('Take photo')).toBeTruthy();
-    expect(screen.getByLabelText('Add photo from gallery')).toBeTruthy();
+    expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
   });
 
   it('calls launchCameraAsync without requesting permission when Take photo overlay is pressed on web', async () => {
-    setPlatformOS('web');
+    mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
     setWindowEventListeners();
@@ -796,7 +789,7 @@ describe('ProductImages', () => {
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeTruthy();
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
     const zoomableImageProps = mockZoomableImageCalls.find(

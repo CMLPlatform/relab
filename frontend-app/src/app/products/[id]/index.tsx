@@ -372,7 +372,7 @@ function EditNameButton({
             const name = typeof newName === 'string' ? newName.trim() : '';
             const parseResult = productSchema.shape.name.safeParse(name);
             if (!parseResult.success) {
-              alert(parseResult.error.errors[0]?.message || 'Invalid product name');
+              alert(parseResult.error.issues[0]?.message || 'Invalid product name');
               return;
             }
             onProductNameChange?.(name);

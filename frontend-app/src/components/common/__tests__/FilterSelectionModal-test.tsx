@@ -1,9 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
-import { renderWithProviders } from '@/test-utils';
+import { screen } from '@testing-library/react-native';
+import { renderWithProviders, setupUser } from '@/test-utils';
 import FilterSelectionModal from '../FilterSelectionModal';
 
 describe('FilterSelectionModal', () => {
+  const user = setupUser();
   it('shows a loading indicator while items are being fetched', () => {
     renderWithProviders(
       <FilterSelectionModal
@@ -20,7 +21,7 @@ describe('FilterSelectionModal', () => {
       { withDialog: true },
     );
 
-    expect(screen.getByRole('progressbar')).toBeTruthy();
+    expect(screen.getByRole('progressbar')).toBeOnTheScreen();
   });
 
   it('shows an empty state when there are no results', () => {
@@ -38,10 +39,10 @@ describe('FilterSelectionModal', () => {
       { withDialog: true },
     );
 
-    expect(screen.getByText('No results')).toBeTruthy();
+    expect(screen.getByText('No results')).toBeOnTheScreen();
   });
 
-  it('toggles selections in multi-select mode', () => {
+  it('toggles selections in multi-select mode', async () => {
     const onSelectionChange = jest.fn();
 
     renderWithProviders(
@@ -58,7 +59,7 @@ describe('FilterSelectionModal', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByText('beta'));
+    await user.press(screen.getByText('beta'));
 
     expect(onSelectionChange).toHaveBeenCalledWith(['alpha', 'beta']);
   });
@@ -82,10 +83,10 @@ describe('FilterSelectionModal', () => {
     );
 
     expect(screen.queryByText('No results')).toBeNull();
-    expect(screen.getByText('BrandNew')).toBeTruthy();
+    expect(screen.getByText('BrandNew')).toBeOnTheScreen();
   });
 
-  it('calls onSelectionChange and onDismiss when add-new chip is pressed with no existing items', () => {
+  it('calls onSelectionChange and onDismiss when add-new chip is pressed with no existing items', async () => {
     const onSelectionChange = jest.fn();
     const onDismiss = jest.fn();
 
@@ -104,7 +105,7 @@ describe('FilterSelectionModal', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByText('BrandNew'));
+    await user.press(screen.getByText('BrandNew'));
 
     expect(onSelectionChange).toHaveBeenCalledWith(['BrandNew']);
     expect(onDismiss).toHaveBeenCalled();
@@ -125,10 +126,10 @@ describe('FilterSelectionModal', () => {
       { withDialog: true },
     );
 
-    expect(screen.getByText('No results')).toBeTruthy();
+    expect(screen.getByText('No results')).toBeOnTheScreen();
   });
 
-  it('creates a new value in single-select mode and closes', () => {
+  it('creates a new value in single-select mode and closes', async () => {
     const onSelectionChange = jest.fn();
     const onDismiss = jest.fn();
 
@@ -147,10 +148,10 @@ describe('FilterSelectionModal', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByText('gamma'));
+    await user.press(screen.getByText('gamma'));
 
     expect(onSelectionChange).toHaveBeenCalledWith(['gamma']);
     expect(onDismiss).toHaveBeenCalled();
-    expect(screen.getByText('Cancel')).toBeTruthy();
+    expect(screen.getByText('Cancel')).toBeOnTheScreen();
   });
 });

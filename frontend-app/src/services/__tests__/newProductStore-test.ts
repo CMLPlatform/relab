@@ -9,9 +9,9 @@ describe('newProductStore', () => {
   });
 
   it('returns the intent set by setNewProductIntent', () => {
-    setNewProductIntent({ name: 'Widget', brand: 'Acme' });
+    setNewProductIntent({ name: 'Widget', brand: 'CircularTech' });
     const result = consumeNewProductIntent();
-    expect(result).toEqual({ name: 'Widget', brand: 'Acme' });
+    expect(result).toEqual({ name: 'Widget', brand: 'CircularTech' });
   });
 
   it('clears the intent after consuming it', () => {

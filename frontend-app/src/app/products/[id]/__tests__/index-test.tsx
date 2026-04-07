@@ -24,10 +24,16 @@ jest.mock('@/services/api/saving', () => ({
   saveProduct: jest.fn(),
 }));
 
-jest.mock('@/services/api/validation/productSchema', () => ({
-  ...jest.requireActual('@/services/api/validation/productSchema'),
-  getProductNameHelperText: jest.fn(() => 'help text'),
-}));
+jest.mock('@/services/api/validation/productSchema', () => {
+  const actual = jest.requireActual<typeof import('@/services/api/validation/productSchema')>(
+    '@/services/api/validation/productSchema',
+  );
+
+  return {
+    ...actual,
+    getProductNameHelperText: jest.fn(() => 'help text'),
+  };
+});
 
 jest.mock('react-native-keyboard-controller', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
@@ -174,8 +180,8 @@ describe('ProductPage route protection', () => {
 
     await waitFor(() => {
       expect(products.newProduct).toHaveBeenCalledWith(undefined, NaN, undefined, undefined);
-      expect(screen.getByText('Description:Draft Product')).toBeTruthy();
-      expect(screen.getByText('Save Product')).toBeTruthy();
+      expect(screen.getByText('Description:Draft Product')).toBeOnTheScreen();
+      expect(screen.getByText('Save Product')).toBeOnTheScreen();
     });
     expect(mockReplace).not.toHaveBeenCalled();
   });
@@ -188,7 +194,7 @@ describe('ProductPage route protection', () => {
 
     await waitFor(() => {
       expect(products.getProduct).toHaveBeenCalledWith(42);
-      expect(screen.getByText('Description:Existing Product')).toBeTruthy();
+      expect(screen.getByText('Description:Existing Product')).toBeOnTheScreen();
     });
     expect(mockReplace).not.toHaveBeenCalled();
   });

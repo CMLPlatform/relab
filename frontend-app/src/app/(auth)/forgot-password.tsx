@@ -1,12 +1,15 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { API_URL } from '@/config';
 import { apiFetch } from '@/services/api/client';
-import { forgotPasswordSchema, type ForgotPasswordFormValues } from '@/services/api/validation/userSchema';
+import {
+  type ForgotPasswordFormValues,
+  forgotPasswordSchema,
+} from '@/services/api/validation/userSchema';
 
 export default function ForgotPasswordScreen() {
   const theme = useTheme();

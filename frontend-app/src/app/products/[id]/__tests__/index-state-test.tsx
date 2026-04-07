@@ -173,7 +173,7 @@ describe('ProductPage state handling', () => {
     const { unmount } = renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Product:check-bold')).toBeTruthy();
+      expect(screen.getByText('Edit Product:check-bold')).toBeOnTheScreen();
     });
 
     unmount();
@@ -190,8 +190,8 @@ describe('ProductPage state handling', () => {
 
     renderWithProviders(<ProductPage />, { withDialog: true });
 
-    expect(screen.getByText('Oops! Something went wrong')).toBeTruthy();
-    expect(screen.getByText('Error: boom')).toBeTruthy();
+    expect(screen.getByText('Oops! Something went wrong')).toBeOnTheScreen();
+    expect(screen.getByText('Error: boom')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Try Again'));
 
@@ -207,7 +207,7 @@ describe('ProductPage state handling', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Product:pencil')).toBeTruthy();
+      expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
     });
 
     // Fire scroll events to exercise the onScroll handler
@@ -221,7 +221,7 @@ describe('ProductPage state handling', () => {
     });
 
     // Component doesn't crash and FAB still renders
-    expect(screen.getByText('Edit Product:pencil')).toBeTruthy();
+    expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
   });
 
   it('shows slow-loading card after timeout', async () => {
@@ -240,7 +240,7 @@ describe('ProductPage state handling', () => {
       jest.advanceTimersByTime(5100);
     });
 
-    expect(screen.getByText(/taking longer than usual/i)).toBeTruthy();
+    expect(screen.getByText(/taking longer than usual/i)).toBeOnTheScreen();
   });
 
   it('opens the edit-name dialog from the header and saves the trimmed value', async () => {
@@ -267,9 +267,11 @@ describe('ProductPage state handling', () => {
 
     fireEvent.press(screen.getByText('Edit name'));
 
-    expect(screen.getByPlaceholderText('Product Name')).toBeTruthy();
-    expect(screen.getByText('Enter a descriptive name between 2 and 100 characters')).toBeTruthy();
-    expect(screen.getByDisplayValue('Original Name')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Product Name')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Enter a descriptive name between 2 and 100 characters'),
+    ).toBeOnTheScreen();
+    expect(screen.getByDisplayValue('Original Name')).toBeOnTheScreen();
 
     fireEvent.changeText(screen.getByDisplayValue('Original Name'), '  Updated Name  ');
     fireEvent.press(screen.getByText('OK'));

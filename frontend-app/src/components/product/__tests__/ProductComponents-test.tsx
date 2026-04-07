@@ -57,7 +57,7 @@ describe('ProductComponents', () => {
       withDialog: true,
     });
     await waitFor(() => {
-      expect(screen.getByText('This product has no subcomponents.')).toBeTruthy();
+      expect(screen.getByText('This product has no subcomponents.')).toBeOnTheScreen();
     });
   });
 
@@ -68,7 +68,7 @@ describe('ProductComponents', () => {
       withDialog: true,
     });
     await waitFor(() => {
-      expect(screen.getByText('Sub Component')).toBeTruthy();
+      expect(screen.getByText('Sub Component')).toBeOnTheScreen();
     });
   });
 
@@ -85,15 +85,15 @@ describe('ProductComponents', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Component 5')).toBeTruthy();
+      expect(screen.getByText('Component 5')).toBeOnTheScreen();
     });
     expect(screen.queryByText('Component 6')).toBeNull();
-    expect(screen.getByText('Show 2 more')).toBeTruthy();
+    expect(screen.getByText('Show 2 more')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Show 2 more'));
-    expect(screen.getByText('Component 6')).toBeTruthy();
-    expect(screen.getByText('Component 7')).toBeTruthy();
-    expect(screen.getByText('Show less')).toBeTruthy();
+    expect(screen.getByText('Component 6')).toBeOnTheScreen();
+    expect(screen.getByText('Component 7')).toBeOnTheScreen();
+    expect(screen.getByText('Show less')).toBeOnTheScreen();
   });
 
   it('shows Add component button when owned by me and not in editMode', async () => {
@@ -101,7 +101,7 @@ describe('ProductComponents', () => {
       withDialog: true,
     });
     await waitFor(() => {
-      expect(screen.getByText('Add component')).toBeTruthy();
+      expect(screen.getByText('Add component')).toBeOnTheScreen();
     });
   });
 
@@ -131,7 +131,7 @@ describe('ProductComponents', () => {
     await screen.findByText('Add component');
     fireEvent.press(screen.getByText('Add component'));
     await waitFor(() => {
-      expect(screen.getByText('Create New Component')).toBeTruthy();
+      expect(screen.getByText('Create New Component')).toBeOnTheScreen();
     });
   });
 

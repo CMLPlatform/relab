@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { Dimensions, Platform } from 'react-native';
+import { Dimensions } from 'react-native';
 import { breakpoints } from '@/constants/layout';
+import { mockPlatform, restorePlatform } from '@/test-utils';
 import { useIsDesktop } from '../useIsDesktop';
 
-const originalOS = Platform.OS;
 const originalWindow = Dimensions.get('window');
 
 // Platform is native by default in Jest (Platform.OS === 'ios')
 describe('useIsDesktop', () => {
   afterEach(() => {
-    (Platform as { OS: string }).OS = originalOS;
+    restorePlatform();
     act(() => {
       Dimensions.set({ window: originalWindow, screen: originalWindow });
     });
@@ -31,7 +31,7 @@ describe('useIsDesktop', () => {
   });
 
   it('returns true on web with viewport >= desktop breakpoint', () => {
-    (Platform as { OS: string }).OS = 'web';
+    mockPlatform('web');
     Dimensions.set({
       window: { width: breakpoints.desktop, height: 1024, scale: 1, fontScale: 1 },
       screen: { width: breakpoints.desktop, height: 1024, scale: 1, fontScale: 1 },
@@ -41,7 +41,7 @@ describe('useIsDesktop', () => {
   });
 
   it('returns false on web with viewport below desktop breakpoint', () => {
-    (Platform as { OS: string }).OS = 'web';
+    mockPlatform('web');
     Dimensions.set({
       window: { width: breakpoints.desktop - 1, height: 800, scale: 1, fontScale: 1 },
       screen: { width: breakpoints.desktop - 1, height: 800, scale: 1, fontScale: 1 },

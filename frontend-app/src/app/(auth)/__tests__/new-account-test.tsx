@@ -51,14 +51,18 @@ describe('NewAccount screen', () => {
 
   it('renders the username section by default', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    expect(screen.getByPlaceholderText('Username')).toBeTruthy();
-    expect(screen.getByText('Who are you?')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
+    expect(screen.getByText('Who are you?')).toBeOnTheScreen();
   });
 
-  it('shows validation error for invalid username', () => {
+  it('shows validation error for invalid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a'); // too short
-    expect(screen.getByText(/at least 2/)).toBeTruthy();
+    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+
+    await waitFor(() => {
+      expect(screen.getByText(/at least 2/)).toBeOnTheScreen();
+    });
   });
 
   it('chevron button is disabled for invalid username', () => {
@@ -68,7 +72,7 @@ describe('NewAccount screen', () => {
     const input = screen.getByPlaceholderText('Username');
     fireEvent.changeText(input, '');
     // The forward button exists but is disabled (empty username)
-    expect(screen.getByPlaceholderText('Username')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
   });
 
   it('advances to email section with valid username', async () => {
@@ -77,7 +81,7 @@ describe('NewAccount screen', () => {
     fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
 
     await waitFor(() => {
-      expect(screen.getByText(/How do we reach you/)).toBeTruthy();
+      expect(screen.getByText(/How do we reach you/)).toBeOnTheScreen();
     });
   });
 
@@ -92,12 +96,15 @@ describe('NewAccount screen', () => {
 
   it('shows email validation error for invalid email', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    // Navigate to email section
     fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
     fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
     await screen.findByPlaceholderText('Email address');
     fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'not_an_email');
-    expect(screen.getByText(/valid email/)).toBeTruthy();
+    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+
+    await waitFor(() => {
+      expect(screen.getByText(/valid email/)).toBeOnTheScreen();
+    });
   });
 
   it('navigates to products on successful registration and login', async () => {
@@ -161,7 +168,7 @@ describe('NewAccount screen', () => {
 
     // RHF shows validation error text immediately on change
     await waitFor(() => {
-      expect(screen.getByText(/at least 8/)).toBeTruthy();
+      expect(screen.getByText(/at least 8/)).toBeOnTheScreen();
     });
   });
 
@@ -174,7 +181,7 @@ describe('NewAccount screen', () => {
     await screen.findByPlaceholderText('Email address');
     fireEvent.press(screen.getByText('Edit username'));
 
-    expect(screen.getByPlaceholderText('Username')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
   });
 
   it('navigates to login via "I already have an account"', () => {

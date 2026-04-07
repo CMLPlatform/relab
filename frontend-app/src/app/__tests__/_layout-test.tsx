@@ -45,7 +45,7 @@ describe('HeaderRight', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText('Sign In')).toBeTruthy();
+        expect(screen.getByText('Sign In')).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );
@@ -60,7 +60,7 @@ describe('HeaderRight', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText('testuser')).toBeTruthy();
+        expect(screen.getByText('testuser')).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );
@@ -77,6 +77,6 @@ describe('Providers', () => {
       </Providers>,
       { withAuth: true },
     );
-    expect(screen.getByTestId('child')).toBeTruthy();
+    expect(screen.getByTestId('child')).toBeOnTheScreen();
   });
 });

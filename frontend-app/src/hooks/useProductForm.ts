@@ -53,8 +53,7 @@ export function useProductForm(id: string) {
   // Derive validation result from RHF's Zod resolver which validates on every change
   const validationResult = {
     isValid: form.formState.isValid,
-    error: Object.values(form.formState.errors)
-      .flatMap((e) => (e?.message ? [e.message] : []))[0],
+    error: Object.values(form.formState.errors).flatMap((e) => (e?.message ? [e.message] : []))[0],
   };
 
   // Seed form state when server data arrives or when creating a new product

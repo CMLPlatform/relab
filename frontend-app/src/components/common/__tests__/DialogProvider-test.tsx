@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { Pressable, Text } from 'react-native';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders, setupUser } from '@/test-utils';
 import { useDialog } from '../DialogProvider';
 
 // A test component that exposes dialog controls
@@ -19,9 +19,11 @@ function AlertTrigger({ onPress }: { onPress: () => void }) {
 // provides when withDialog: true is set.
 
 describe('DialogProvider', () => {
+  const user = setupUser();
+
   it('renders children without showing a dialog by default', () => {
     renderWithProviders(<Text>Hello World</Text>, { withDialog: true });
-    expect(screen.getByText('Hello World')).toBeTruthy();
+    expect(screen.getByText('Hello World')).toBeOnTheScreen();
   });
 
   it('useDialog throws when used outside DialogProvider', () => {
@@ -46,10 +48,10 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<AlertTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    expect(screen.getByText('Alert Title')).toBeTruthy();
-    expect(screen.getByText('OK')).toBeTruthy();
+    expect(screen.getByText('Alert Title')).toBeOnTheScreen();
+    expect(screen.getByText('OK')).toBeOnTheScreen();
   });
 
   it('alert() shows dialog with message', async () => {
@@ -66,9 +68,9 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<MessageTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    expect(screen.getByText('Some message')).toBeTruthy();
+    expect(screen.getByText('Some message')).toBeOnTheScreen();
   });
 
   it('input() shows dialog with TextInput', async () => {
@@ -89,10 +91,10 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<InputTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    expect(screen.getByText('Input Dialog')).toBeTruthy();
-    expect(screen.getByPlaceholderText('Type something...')).toBeTruthy();
+    expect(screen.getByText('Input Dialog')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('Type something...')).toBeOnTheScreen();
   });
 
   it('input() dialog onPress callback receives the typed value', async () => {
@@ -115,11 +117,11 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<InputTypingTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'hello world');
+    await user.type(screen.getByPlaceholderText('Your name'), 'hello world');
 
-    fireEvent.press(screen.getByText('Submit'));
+    await user.press(screen.getByText('Submit'));
 
     expect(onSubmit).toHaveBeenCalledWith('hello world');
   });
@@ -143,9 +145,9 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<AlertTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    fireEvent.press(screen.getByText('Yes'));
+    await user.press(screen.getByText('Yes'));
 
     expect(onConfirm).toHaveBeenCalledWith(undefined); // alert mode → undefined value
   });
@@ -170,9 +172,10 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<InputSubmitTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'hello');
+    await user.type(screen.getByPlaceholderText('Your name'), 'hello');
+    // submitEditing is a custom event not supported by userEvent
     fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
 
     expect(onSubmit).toHaveBeenCalledWith('hello');
@@ -186,13 +189,12 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<DefaultTest />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    expect(screen.getByText('OK')).toBeTruthy();
+    expect(screen.getByText('OK')).toBeOnTheScreen();
   });
 
   it('pressing a button with no onPress closes the dialog without throwing', async () => {
-    // Covers the false branch of `if (btn?.onPress)` in handleClose
     function Test() {
       const dialog = useDialog();
       return (
@@ -202,14 +204,12 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<Test />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    // Press the button that has no onPress; should not throw
-    fireEvent.press(screen.getByText('OK'));
+    await user.press(screen.getByText('OK'));
   });
 
   it('submitEditing on input with no buttons calls handleClose without crashing', async () => {
-    // Covers the false branch of `options?.buttons ? ... : undefined` in onSubmitEditing
     function Test() {
       const dialog = useDialog();
       return (
@@ -221,9 +221,9 @@ describe('DialogProvider', () => {
 
     renderWithProviders(<Test />, { withDialog: true });
 
-    fireEvent.press(screen.getByTestId('trigger'));
+    await user.press(screen.getByTestId('trigger'));
 
-    // Submit without any buttons; handleClose(undefined) should not throw
+    // submitEditing is a custom event not supported by userEvent
     fireEvent(screen.getByPlaceholderText('type here'), 'submitEditing');
   });
 });

@@ -25,7 +25,7 @@ const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 const baseProduct: Product = {
   id: 'new',
   name: 'Test Widget',
-  brand: 'Acme',
+  brand: 'CircularTech',
   model: 'X1',
   description: 'A test product',
   componentIDs: [],
@@ -68,7 +68,12 @@ describe('Saving API Service', () => {
     jest.clearAllMocks();
     mockGetToken.mockResolvedValue('test-token');
     // Default: getProduct returns a product with no images or videos
-    mockGetProduct.mockResolvedValue({ ...baseProduct, id: 1, images: [], videos: [] });
+    mockGetProduct.mockResolvedValue({
+      ...baseProduct,
+      id: 1,
+      images: [],
+      videos: [],
+    });
   });
 
   // ─── saveProduct (new) ───────────────────────────────────
@@ -89,7 +94,11 @@ describe('Saving API Service', () => {
     });
 
     it('POSTs to /products/:parentID/components when product has parentID', async () => {
-      const componentProduct = { ...baseProduct, parentID: 5, amountInParent: 2 };
+      const componentProduct = {
+        ...baseProduct,
+        parentID: 5,
+        amountInParent: 2,
+      };
       mockApiFetchOk({ id: 100 });
 
       await saveProduct(componentProduct);
@@ -99,7 +108,11 @@ describe('Saving API Service', () => {
     });
 
     it('includes amount_in_parent in body when product is a component', async () => {
-      const componentProduct = { ...baseProduct, parentID: 5, amountInParent: 3 };
+      const componentProduct = {
+        ...baseProduct,
+        parentID: 5,
+        amountInParent: 3,
+      };
       mockApiFetchOk({ id: 101 });
 
       await saveProduct(componentProduct);
@@ -214,7 +227,12 @@ describe('Saving API Service', () => {
         id: 42 as number | 'new',
         images: [{ url: 'https://example.com/new.jpg', description: 'new' }],
       };
-      mockGetProduct.mockResolvedValue({ ...baseProduct, id: 42, images: [], videos: [] });
+      mockGetProduct.mockResolvedValue({
+        ...baseProduct,
+        id: 42,
+        images: [],
+        videos: [],
+      });
       mockApiFetchOk({ id: 42 }); // PATCH product
       mockApiFetchOk({}); // PATCH physical
       mockApiFetchOk({ id: 42 }); // PATCH circularity
@@ -233,9 +251,22 @@ describe('Saving API Service', () => {
 
   describe('video management during save', () => {
     it('adds new videos (no id) during save', async () => {
-      const newVideo = { url: 'https://youtube.com/watch?v=1', description: '', title: 'New' };
-      const product = { ...baseProduct, id: 42 as number | 'new', videos: [newVideo] };
-      mockGetProduct.mockResolvedValue({ ...baseProduct, id: 42, images: [], videos: [] });
+      const newVideo = {
+        url: 'https://youtube.com/watch?v=1',
+        description: '',
+        title: 'New',
+      };
+      const product = {
+        ...baseProduct,
+        id: 42 as number | 'new',
+        videos: [newVideo],
+      };
+      mockGetProduct.mockResolvedValue({
+        ...baseProduct,
+        id: 42,
+        images: [],
+        videos: [],
+      });
 
       mockApiFetchOk({ id: 42 }); // product PATCH
       mockApiFetchOk({}); // physical PATCH
@@ -271,8 +302,17 @@ describe('Saving API Service', () => {
       const originalVideos = [
         { id: 5, url: 'https://old.com', description: '', title: 'Old Title' },
       ];
-      const updated = { id: 5, url: 'https://new.com', description: 'updated', title: 'New Title' };
-      const product = { ...baseProduct, id: 42 as number | 'new', videos: [updated] };
+      const updated = {
+        id: 5,
+        url: 'https://new.com',
+        description: 'updated',
+        title: 'New Title',
+      };
+      const product = {
+        ...baseProduct,
+        id: 42 as number | 'new',
+        videos: [updated],
+      };
 
       mockApiFetchOk({ id: 42 }); // product PATCH
       mockApiFetchOk({}); // physical PATCH
@@ -381,7 +421,9 @@ describe('Saving API Service', () => {
       await deleteProduct({ ...baseProduct, id: 42 });
 
       expect(mockApiFetch).toHaveBeenCalledWith(
-        expect.objectContaining({ href: expect.stringContaining('/products/42') }),
+        expect.objectContaining({
+          href: expect.stringContaining('/products/42'),
+        }),
         expect.objectContaining({ method: 'DELETE' }),
       );
     });

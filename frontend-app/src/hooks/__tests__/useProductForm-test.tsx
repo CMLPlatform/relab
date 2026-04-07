@@ -46,8 +46,8 @@ jest.mock('expo-router', () => ({
 
 const mockProduct = {
   id: 123,
-  name: 'Test Product',
-  brand: 'Test Brand',
+  name: 'Recycled Aluminum Laptop Stand',
+  brand: 'CircularTech',
   componentIDs: [],
   physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
   circularityProperties: {
@@ -89,7 +89,7 @@ describe('useProductForm', () => {
 
     await waitFor(() => {
       expect(result.current.product.id).toBe(123);
-      expect(result.current.product.name).toBe('Test Product');
+      expect(result.current.product.name).toBe('Recycled Aluminum Laptop Stand');
       expect(result.current.editMode).toBe(false);
     });
   });
@@ -140,7 +140,7 @@ describe('useProductForm', () => {
     const { result } = renderHook(() => useProductForm('123'), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.product.name).toBe('Test Product');
+      expect(result.current.product.name).toBe('Recycled Aluminum Laptop Stand');
     });
 
     await act(async () => {
@@ -173,7 +173,9 @@ describe('useProductForm', () => {
     });
 
     expect(mockMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ product: expect.objectContaining({ name: 'Test Product' }) }),
+      expect.objectContaining({
+        product: expect.objectContaining({ name: 'Recycled Aluminum Laptop Stand' }),
+      }),
       expect.any(Object),
     );
   });

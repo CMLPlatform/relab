@@ -23,7 +23,7 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
-    "astro": "^6.1.1"
+    "astro": "^6.1.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",

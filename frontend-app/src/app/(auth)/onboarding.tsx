@@ -1,15 +1,14 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, useColorScheme, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
 import { updateUser } from '@/services/api/authentication';
-import { onboardingSchema, type OnboardingFormValues } from '@/services/api/validation/userSchema';
+import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;

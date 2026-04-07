@@ -22,6 +22,6 @@ describe('ImageWithPlaceholder', () => {
 
   it('renders the expo-image component with the provided uri', () => {
     render(React.createElement(Image, { source: { uri: 'https://example.com/image.jpg' } }));
-    expect(screen.getByTestId('expo-image')).toBeTruthy();
+    expect(screen.getByTestId('expo-image')).toBeOnTheScreen();
   });
 });

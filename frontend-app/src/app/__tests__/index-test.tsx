@@ -11,7 +11,7 @@ describe('Main App Entry', () => {
     render(<Main />);
 
     await waitFor(() => {
-      expect(screen.getByText('Redirect to /products')).toBeTruthy();
+      expect(screen.getByText('Redirect to /products')).toBeOnTheScreen();
     });
   });
 });

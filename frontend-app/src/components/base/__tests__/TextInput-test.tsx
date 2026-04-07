@@ -7,7 +7,7 @@ import { TextInput } from '../TextInput';
 describe('<TextInput />', () => {
   it('renders placeholder correctly', () => {
     render(<TextInput placeholder="Enter text" />);
-    expect(screen.getByPlaceholderText('Enter text')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Enter text')).toBeOnTheScreen();
   });
 
   it('applies error style (background + text color) when errorOnEmpty is set and value is empty', () => {
@@ -47,6 +47,6 @@ describe('<TextInput />', () => {
     render(
       <TextInput testID="passing-validation" value="okay" customValidation={passValidation} />,
     );
-    expect(screen.getByTestId('passing-validation')).toBeTruthy();
+    expect(screen.getByTestId('passing-validation')).toBeOnTheScreen();
   });
 });

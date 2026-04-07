@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
-import { server } from '@/test-utils/server';
+import { mockUser, server } from '@/test-utils';
 import * as auth from '../authentication';
 import { allBrands, searchBrands } from '../brands';
 import { allProducts, getProduct, myProducts, newProduct, productComponents } from '../products';
@@ -8,19 +8,14 @@ import { allProductTypes, searchProductTypes } from '../productTypes';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
-const mockUser = {
-  id: 'me-user-id',
-  email: 'test@test.com',
-  isActive: true,
-  isSuperuser: false,
-  isVerified: true,
-  username: 'me',
-  oauth_accounts: [],
-};
-
 function makePage<T>(
   items: T[],
-  overrides: Partial<{ total: number; page: number; size: number; pages: number }> = {},
+  overrides: Partial<{
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+  }> = {},
 ) {
   return {
     items,
@@ -34,10 +29,10 @@ function makePage<T>(
 // Minimal ProductData as returned by the API
 const rawProductData = {
   id: 42,
-  name: 'Test Product',
-  brand: 'Acme',
-  model: 'X100',
-  description: 'A test product',
+  name: 'Recycled Aluminum Laptop Stand',
+  brand: 'CircularTech',
+  model: 'EcoStand Pro',
+  description: 'Laptop stand made from 95% post-consumer recycled aluminum',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-02T00:00:00Z',
   product_type_id: 1,
@@ -69,7 +64,7 @@ const rawProductData = {
 describe('Fetching API Service logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(auth, 'getUser').mockResolvedValue(mockUser);
+    jest.spyOn(auth, 'getUser').mockResolvedValue(mockUser({ id: 'me-user-id', username: 'me' }));
   });
 
   afterEach(() => {
@@ -103,8 +98,8 @@ describe('Fetching API Service logic', () => {
     });
 
     it('includes brand and model when provided', () => {
-      const p = newProduct('Product', NaN, 'Acme', 'X1');
-      expect(p.brand).toBe('Acme');
+      const p = newProduct('Product', NaN, 'CircularTech', 'X1');
+      expect(p.brand).toBe('CircularTech');
       expect(p.model).toBe('X1');
     });
   });
@@ -175,8 +170,8 @@ describe('Fetching API Service logic', () => {
       const p = await getProduct(42);
 
       expect(p.id).toBe(42);
-      expect(p.name).toBe('Test Product');
-      expect(p.brand).toBe('Acme');
+      expect(p.name).toBe('Recycled Aluminum Laptop Stand');
+      expect(p.brand).toBe('CircularTech');
       expect(p.physicalProperties.weight).toBe(100);
       expect(p.physicalProperties.height).toBe(10);
       expect(p.componentIDs).toEqual([1]);
@@ -221,7 +216,7 @@ describe('Fetching API Service logic', () => {
       const products = await allProducts();
 
       expect(products.items).toHaveLength(1);
-      expect(products.items[0].name).toBe('Test Product');
+      expect(products.items[0].name).toBe('Recycled Aluminum Laptop Stand');
       expect(products.total).toBe(1);
       expect(products.page).toBe(1);
       expect(products.size).toBe(50);
@@ -319,7 +314,13 @@ describe('Fetching API Service logic', () => {
 
       const products = await myProducts();
 
-      expect(products).toEqual({ items: [], total: 0, page: 1, size: 50, pages: 0 });
+      expect(products).toEqual({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 50,
+        pages: 0,
+      });
     });
 
     it('returns an empty paginated response on 401 response', async () => {
@@ -332,7 +333,13 @@ describe('Fetching API Service logic', () => {
 
       const products = await myProducts();
 
-      expect(products).toEqual({ items: [], total: 0, page: 1, size: 50, pages: 0 });
+      expect(products).toEqual({
+        items: [],
+        total: 0,
+        page: 1,
+        size: 50,
+        pages: 0,
+      });
     });
 
     it('fetches and returns mapped products in a paginated response', async () => {
@@ -346,7 +353,7 @@ describe('Fetching API Service logic', () => {
       const products = await myProducts();
 
       expect(products.items).toHaveLength(1);
-      expect(products.items[0].name).toBe('Test Product');
+      expect(products.items[0].name).toBe('Recycled Aluminum Laptop Stand');
       expect(products.total).toBe(1);
       expect(products.page).toBe(1);
       expect(products.size).toBe(50);

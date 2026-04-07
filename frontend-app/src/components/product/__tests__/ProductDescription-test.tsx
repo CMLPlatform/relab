@@ -9,13 +9,13 @@ const baseProduct: Product = { ..._base, description: 'Initial description' };
 describe('ProductDescription', () => {
   it('renders the product description as input value', () => {
     render(<ProductDescription product={baseProduct} editMode={true} />);
-    expect(screen.getByDisplayValue('Initial description')).toBeTruthy();
+    expect(screen.getByDisplayValue('Initial description')).toBeOnTheScreen();
   });
 
   it('renders placeholder when description is empty', () => {
     const product = { ...baseProduct, description: undefined };
     render(<ProductDescription product={product} editMode={true} />);
-    expect(screen.getByPlaceholderText('Add a product description')).toBeTruthy();
+    expect(screen.getByPlaceholderText('Add a product description')).toBeOnTheScreen();
   });
 
   it('calls onChangeDescription on blur', () => {
@@ -35,16 +35,16 @@ describe('ProductDescription', () => {
 
   it('is not editable when editMode is false', () => {
     render(<ProductDescription product={baseProduct} editMode={false} />);
-    expect(screen.getByText('Initial description')).toBeTruthy();
+    expect(screen.getByText('Initial description')).toBeOnTheScreen();
   });
 
   it('shows a collapsed description with a toggle for long text in view mode', () => {
     const product = { ...baseProduct, description: 'Long description. '.repeat(30) };
     render(<ProductDescription product={product} editMode={false} />);
 
-    expect(screen.getByText('Show more')).toBeTruthy();
+    expect(screen.getByText('Show more')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Show more'));
-    expect(screen.getByText('Show less')).toBeTruthy();
+    expect(screen.getByText('Show less')).toBeOnTheScreen();
   });
 
   it('shows a toggle for multi-line descriptions even when they are short', () => {
@@ -56,13 +56,13 @@ describe('ProductDescription', () => {
     };
     render(<ProductDescription product={product} editMode={false} />);
 
-    expect(screen.getByText('Show more')).toBeTruthy();
+    expect(screen.getByText('Show more')).toBeOnTheScreen();
   });
 
   it('shows an empty-state message when no description is available in view mode', () => {
     const product = { ...baseProduct, description: undefined };
     render(<ProductDescription product={product} editMode={false} />);
 
-    expect(screen.getByText('No description yet.')).toBeTruthy();
+    expect(screen.getByText('No description yet.')).toBeOnTheScreen();
   });
 });

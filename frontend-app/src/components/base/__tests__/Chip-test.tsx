@@ -1,19 +1,22 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import * as ReactNative from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
+import { setupUser } from '@/test-utils';
 import { Chip } from '../Chip';
 
 describe('Chip', () => {
+  const user = setupUser();
+
   it('renders children text', () => {
     render(<Chip>My Label</Chip>);
-    expect(screen.getByText('My Label')).toBeTruthy();
+    expect(screen.getByText('My Label')).toBeOnTheScreen();
   });
 
   it('renders title when provided', () => {
     render(<Chip title="Title Text">Content</Chip>);
-    expect(screen.getByText('Title Text')).toBeTruthy();
+    expect(screen.getByText('Title Text')).toBeOnTheScreen();
   });
 
   it('renders without title by default', () => {
@@ -21,10 +24,10 @@ describe('Chip', () => {
     expect(screen.queryByText('Title Text')).toBeNull();
   });
 
-  it('calls onPress handler when pressed', () => {
+  it('calls onPress handler when pressed', async () => {
     const onPress = jest.fn();
     render(<Chip onPress={onPress}>Press Me</Chip>);
-    fireEvent.press(screen.getByText('Press Me'));
+    await user.press(screen.getByText('Press Me'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
@@ -63,6 +66,6 @@ describe('Chip', () => {
       </Chip>,
     );
 
-    expect(screen.getByTestId('chip-icon')).toBeTruthy();
+    expect(screen.getByTestId('chip-icon')).toBeOnTheScreen();
   });
 });
