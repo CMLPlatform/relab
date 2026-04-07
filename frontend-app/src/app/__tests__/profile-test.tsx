@@ -1,13 +1,13 @@
+import * as auth from '@/services/api/authentication';
+import * as client from '@/services/api/client';
+import { mockUser, renderWithProviders, server } from '@/test-utils';
+import type { User } from '@/types/User';
 import { describe, expect, it } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
-import * as auth from '@/services/api/authentication';
-import * as client from '@/services/api/client';
-import { mockUser, renderWithProviders, server } from '@/test-utils';
-import type { User } from '@/types/User';
 import Profile from '../profile';
 
 jest.mock('@/services/api/authentication', () => ({
