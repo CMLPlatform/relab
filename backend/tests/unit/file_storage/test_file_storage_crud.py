@@ -48,14 +48,6 @@ MY_DOC_RAW = "my document.pdf"
 MB = 1024 * 1024
 
 
-@pytest.fixture
-def mock_session() -> AsyncMock:
-    """Return a mock database session."""
-    session = AsyncMock()
-    session.add = MagicMock()
-    session.add_all = MagicMock()
-    return session
-
 
 class TestFileStorageCrudUtils:
     """Test utility functions for file storage."""

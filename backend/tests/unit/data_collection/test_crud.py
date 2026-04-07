@@ -57,23 +57,9 @@ from tests.factories.models import (
     ProductFactory,
 )
 
-# Constants for test values to avoid magic value warnings
-TEST_WEIGHT_10G = 10.0
-TEST_WEIGHT_20G = 20.0
-TEST_WIDTH_5CM = 5.0
-BRAND_A = "Brand A"
-BRAND_B = "Brand B"
-TEST_PRODUCT_NAME = "Test Product"
-NEW_PRODUCT_NAME = "New Product"
-UPDATED_NAME = "Updated Name"
-OLD_NAME = "Old Name"
-EASY_OBS = "Easy"
-HARD_OBS = "Hard"
-COMP_NAME = "Comp"
-ALREADY_HAS_PROPS = "already has physical properties"
-ALREADY_HAS_CIRC = "already has"
-NOT_FOUND = "not found"
-MATERIAL_ID_REQ = "Material ID is required"
+# Realistic test data for reverse-engineering lab products
+BRAND_BOSCH = "bosch"
+BRAND_MAKITA = "makita"
 
 
 @pytest.fixture
@@ -87,8 +73,8 @@ def mock_session() -> AsyncMock:
 
     # For execute/exec mocking
     mock_result = MagicMock()
-    mock_result.scalars.return_value.all.return_value = [BRAND_A, BRAND_B]
-    mock_result.all.return_value = [BRAND_A, BRAND_B]
+    mock_result.scalars.return_value.all.return_value = [BRAND_BOSCH, BRAND_MAKITA]
+    mock_result.all.return_value = [BRAND_BOSCH, BRAND_MAKITA]
     session.execute.return_value = mock_result
     session.exec = AsyncMock(return_value=mock_result)
 
@@ -101,17 +87,17 @@ class TestPhysicalPropertiesCrud:
     async def test_create_physical_properties_success(self, mock_session: AsyncMock) -> None:
         """Test successful creation of physical properties."""
         product_id = 1
-        props_create = PhysicalPropertiesCreate(weight_g=TEST_WEIGHT_10G, width_cm=TEST_WIDTH_5CM)
+        props_create = PhysicalPropertiesCreate(weight_g=10.0, width_cm=5.0)
 
         # Mock product that exists and has no properties
-        product = ProductFactory.build(id=product_id, name=TEST_PRODUCT_NAME)
+        product = ProductFactory.build(id=product_id, name="Bosch IXO 7 Screwdriver")
         product.physical_properties = None
 
         with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await create_physical_properties(mock_session, props_create, product_id)
 
             assert isinstance(result, PhysicalProperties)
-            assert result.weight_g == TEST_WEIGHT_10G
+            assert result.weight_g == 10.0
             assert result.product_id == product_id
 
             mock_session.add.assert_called_once()
@@ -121,15 +107,15 @@ class TestPhysicalPropertiesCrud:
     async def test_create_physical_properties_already_exist(self, mock_session: AsyncMock) -> None:
         """Test error when product already has properties."""
         product_id = 1
-        props_create = PhysicalPropertiesCreate(weight_g=TEST_WEIGHT_10G)
+        props_create = PhysicalPropertiesCreate(weight_g=10.0)
 
         # Mock product that already has properties
-        product = ProductFactory.build(id=product_id, name=TEST_PRODUCT_NAME)
+        product = ProductFactory.build(id=product_id, name="Bosch IXO 7 Screwdriver")
         product.physical_properties = PhysicalPropertiesFactory.build(weight_g=5.0)
 
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
-            pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_PROPS),
+            pytest.raises(ProductPropertyAlreadyExistsError, match="already has physical properties"),
         ):
             await create_physical_properties(mock_session, props_create, product_id)
 
@@ -137,7 +123,7 @@ class TestPhysicalPropertiesCrud:
         """Test successful retrieval of physical properties."""
         product_id = 1
         product = ProductFactory.build(id=product_id)
-        props = PhysicalPropertiesFactory.build(weight_g=TEST_WEIGHT_10G)
+        props = PhysicalPropertiesFactory.build(weight_g=10.0)
         product.physical_properties = props
 
         with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
@@ -150,21 +136,21 @@ class TestPhysicalPropertiesCrud:
         product.physical_properties = None
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
-            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match="not found"),
         ):
             await get_physical_properties(mock_session, 1)
 
     async def test_update_physical_properties_success(self, mock_session: AsyncMock) -> None:
         """Test successful update of physical properties."""
         product_id = 1
-        props_update = PhysicalPropertiesUpdate(weight_g=TEST_WEIGHT_20G)
+        props_update = PhysicalPropertiesUpdate(weight_g=20.0)
 
         product = ProductFactory.build(id=product_id)
-        product.physical_properties = PhysicalPropertiesFactory.build(weight_g=TEST_WEIGHT_10G)
+        product.physical_properties = PhysicalPropertiesFactory.build(weight_g=10.0)
 
         with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await update_physical_properties(mock_session, product_id, props_update)
-            assert result.weight_g == TEST_WEIGHT_20G
+            assert result.weight_g == 20.0
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
@@ -174,7 +160,7 @@ class TestPhysicalPropertiesCrud:
         product.physical_properties = None
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
-            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match="not found"),
         ):
             await update_physical_properties(mock_session, 1, PhysicalPropertiesUpdate())
 
@@ -190,7 +176,7 @@ class TestPhysicalPropertiesCrud:
         """Test error when deleting missing physical properties."""
         product = ProductFactory.build(id=1)
         product.physical_properties = None
-        with pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND):
+        with pytest.raises(ProductPropertyNotFoundError, match="not found"):
             await delete_physical_properties(mock_session, product)
 
 
@@ -200,7 +186,9 @@ class TestCircularityPropertiesCrud:
     async def test_create_circularity_properties_success(self, mock_session: AsyncMock) -> None:
         """Test successful creation of circularity properties."""
         product_id = 1
-        props_create = CircularityPropertiesCreate(recyclability_observation=EASY_OBS)
+        props_create = CircularityPropertiesCreate(
+            recyclability_observation="ABS housing separable from PCB; no adhesive bonding"
+        )
 
         product = ProductFactory.build(id=product_id)
         product.circularity_properties = None
@@ -208,7 +196,7 @@ class TestCircularityPropertiesCrud:
         with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await create_circularity_properties(mock_session, props_create, product_id)
             assert isinstance(result, CircularityProperties)
-            assert result.recyclability_observation == EASY_OBS
+            assert result.recyclability_observation == "ABS housing separable from PCB; no adhesive bonding"
             assert result.product_id == product_id
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
@@ -219,7 +207,7 @@ class TestCircularityPropertiesCrud:
         product.circularity_properties = CircularityPropertiesFactory.build(product_id=1)
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
-            pytest.raises(ProductPropertyAlreadyExistsError, match=ALREADY_HAS_CIRC),
+            pytest.raises(ProductPropertyAlreadyExistsError, match="already has"),
         ):
             await create_circularity_properties(mock_session, CircularityPropertiesCreate(), 1)
 
@@ -227,7 +215,9 @@ class TestCircularityPropertiesCrud:
         """Test successful retrieval of circularity properties."""
         product_id = 1
         product = ProductFactory.build(id=product_id)
-        props = CircularityPropertiesFactory.build(recyclability_observation=EASY_OBS)
+        props = CircularityPropertiesFactory.build(
+            recyclability_observation="ABS housing separable from PCB; no adhesive bonding"
+        )
         product.circularity_properties = props
 
         with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
@@ -240,21 +230,25 @@ class TestCircularityPropertiesCrud:
         product.circularity_properties = None
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
-            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match="not found"),
         ):
             await get_circularity_properties(mock_session, 1)
 
     async def test_update_circularity_properties_success(self, mock_session: AsyncMock) -> None:
         """Test successful update of circularity properties."""
         product_id = 1
-        props_update = CircularityPropertiesUpdate(repairability_observation=HARD_OBS)
+        props_update = CircularityPropertiesUpdate(
+            repairability_observation="Glued battery; requires heat gun for disassembly"
+        )
 
         product = ProductFactory.build(id=product_id)
-        product.circularity_properties = CircularityPropertiesFactory.build(recyclability_observation=EASY_OBS)
+        product.circularity_properties = CircularityPropertiesFactory.build(
+            recyclability_observation="ABS housing separable from PCB; no adhesive bonding"
+        )
 
         with patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product):
             result = await update_circularity_properties(mock_session, product_id, props_update)
-            assert result.repairability_observation == HARD_OBS
+            assert result.repairability_observation == "Glued battery; requires heat gun for disassembly"
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
@@ -264,7 +258,7 @@ class TestCircularityPropertiesCrud:
         product.circularity_properties = None
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=product),
-            pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND),
+            pytest.raises(ProductPropertyNotFoundError, match="not found"),
         ):
             await update_circularity_properties(mock_session, 1, CircularityPropertiesUpdate())
 
@@ -280,7 +274,7 @@ class TestCircularityPropertiesCrud:
         """Test error when deleting missing circularity properties."""
         product = ProductFactory.build(id=1)
         product.circularity_properties = None
-        with pytest.raises(ProductPropertyNotFoundError, match=NOT_FOUND):
+        with pytest.raises(ProductPropertyNotFoundError, match="not found"):
             await delete_circularity_properties(mock_session, product)
 
 
@@ -292,7 +286,7 @@ class TestProductCrud:
         owner_id = uuid4()
         # Product must have at least one material or component
         product_create = ProductCreateWithComponents(
-            name=NEW_PRODUCT_NAME,
+            name="Makita DHP486 Combi Drill",
             product_type_id=1,
             components=[],
             bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
@@ -302,7 +296,7 @@ class TestProductCrud:
             result = await create_product(mock_session, product_create, owner_id)
 
         assert isinstance(result, Product)
-        assert result.name == NEW_PRODUCT_NAME
+        assert result.name == "Makita DHP486 Combi Drill"
         assert result.owner_id == owner_id
 
         mock_session.add.assert_called()
@@ -322,16 +316,16 @@ class TestProductCrud:
     async def test_update_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful product update."""
         product_id = 1
-        product_update = ProductUpdate(name=UPDATED_NAME)
+        product_update = ProductUpdate(name="Bosch GSR 18V-90 C")
 
-        db_product = ProductFactory.build(id=product_id, name=OLD_NAME)
+        db_product = ProductFactory.build(id=product_id, name="Bosch PSR 1800 LI-2")
 
         with (
             patch("app.api.data_collection.crud.products.get_model_by_id", return_value=db_product),
             patch("app.api.data_collection.crud.products.get_models_by_ids_or_404", return_value=[]),
         ):
             result = await update_product(mock_session, product_id, product_update)
-            assert result.name == UPDATED_NAME
+            assert result.name == "Bosch GSR 18V-90 C"
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
@@ -374,14 +368,14 @@ class TestProductCrud:
 
         with patch("app.api.data_collection.crud.products.get_models_by_ids_or_404"):
             res = await create_component(mock_session, comp_create, parent_product)
-            assert res.name == COMP_NAME
+            assert res.name == "Comp"
             assert res.owner_id == owner_id
 
     async def test_create_product_requires_materials_or_components(self, mock_session: AsyncMock) -> None:
         """Product creation should fail when the payload has no materials and no components."""
         owner_id = uuid4()
         product_create = ProductCreateWithComponents.model_construct(
-            name=NEW_PRODUCT_NAME,
+            name="Makita DHP486 Combi Drill",
             components=[],
             bill_of_materials=[],
         )
@@ -392,7 +386,7 @@ class TestProductCrud:
     async def test_create_product_tree_requires_owner(self, mock_session: AsyncMock) -> None:
         """The shared tree helper should reject creation attempts without an owner id."""
         product_create = ProductCreateWithComponents(
-            name=NEW_PRODUCT_NAME,
+            name="Makita DHP486 Combi Drill",
             bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1.0, unit=Unit.KILOGRAM)],
         )
 
@@ -423,7 +417,7 @@ class TestBillOfMaterialsCrud:
         material_id = 10
         link_create = MaterialProductLinkCreateWithinProductAndMaterial(quantity=5.0)
 
-        db_product = ProductFactory.build(id=product_id, name=TEST_PRODUCT_NAME)
+        db_product = ProductFactory.build(id=product_id, name="Bosch IXO 7 Screwdriver")
         db_product.bill_of_materials = []
 
         with (
@@ -445,7 +439,7 @@ class TestBillOfMaterialsCrud:
         """Test error when material ID is missing."""
         link_create = MaterialProductLinkCreateWithinProductAndMaterial(quantity=5.0)
 
-        with pytest.raises(MaterialIDRequiredError, match=MATERIAL_ID_REQ):
+        with pytest.raises(MaterialIDRequiredError, match="Material ID is required"):
             await add_material_to_product(mock_session, product_id=1, material_link=link_create, material_id=None)
 
     async def test_update_material_within_product_success(self, mock_session: AsyncMock) -> None:

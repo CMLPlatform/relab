@@ -50,14 +50,6 @@ def build_camera(*, owner_id: UUID, name: str, encrypted_api_key: str, url: str)
     return Camera(name=name, owner_id=owner_id, encrypted_api_key=encrypted_api_key, url=url)
 
 
-def _make_session() -> AsyncMock:
-    """Build an async session mock for camera CRUD tests."""
-    session = AsyncMock()
-    session.add = MagicMock()
-    session.commit = AsyncMock()
-    session.refresh = AsyncMock()
-    return session
-
 
 @pytest.fixture
 def mock_encryption() -> Generator[MagicMock]:
@@ -131,9 +123,8 @@ async def test_update_camera(session: AsyncSession, superuser: User) -> None:
     assert camera.encrypted_auth_headers == TEST_ENC_HEADERS
 
 
-async def test_update_camera_applies_validated_owner_transfer() -> None:
+async def test_update_camera_applies_validated_owner_transfer(mock_session: AsyncMock) -> None:
     """CRUD applies an owner change once the router has already validated it."""
-    session = _make_session()
     camera = build_camera(
         owner_id=uuid.uuid4(),
         name=TEST_OLD_NAME,
@@ -143,10 +134,10 @@ async def test_update_camera_applies_validated_owner_transfer() -> None:
     new_owner_id = uuid.uuid4()
     update_data = CameraUpdate.model_validate({"owner_id": new_owner_id})
 
-    updated_camera = await update_camera(session, camera, update_data, new_owner_id=new_owner_id)
+    updated_camera = await update_camera(mock_session, camera, update_data, new_owner_id=new_owner_id)
 
     assert updated_camera.owner_id == new_owner_id
-    session.commit.assert_awaited_once()
+    mock_session.commit.assert_awaited_once()
 
 
 async def test_regenerate_camera_api_key(

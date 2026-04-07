@@ -29,12 +29,6 @@ def _make_user() -> User:
     return user
 
 
-def _make_session() -> AsyncMock:
-    session = AsyncMock()
-    session.add = MagicMock()  # session.add() is synchronous in SQLAlchemy
-    return session
-
-
 def _make_user_db(session: AsyncMock) -> MagicMock:
     user_db = MagicMock()
     user_db.session = session
@@ -51,9 +45,9 @@ def _make_request(body: dict) -> MagicMock:
 class TestAddUserRoleInOrganization:
     """add_user_role_in_organization_after_registration branch coverage."""
 
-    async def test_no_org_data_returns_user_unchanged(self) -> None:
+    async def test_no_org_data_returns_user_unchanged(self, mock_session: AsyncMock) -> None:
         """When the request body has no org fields, the user is returned without modification."""
-        session = _make_session()
+        session = mock_session
         user = _make_user()
         user_db = _make_user_db(session)
         request = _make_request({})
@@ -66,12 +60,12 @@ class TestAddUserRoleInOrganization:
         session.add.assert_not_called()
         session.commit.assert_not_called()
 
-    async def test_organization_dict_creates_org_and_sets_owner_role(self) -> None:
+    async def test_organization_dict_creates_org_and_sets_owner_role(self, mock_session: AsyncMock) -> None:
         """When 'organization' dict is in request body, a new org is created and user becomes OWNER."""
-        session = _make_session()
+        session = mock_session
         user = _make_user()
         user_db = _make_user_db(session)
-        org_data = {"name": "ACME Corp", "location": "Berlin"}
+        org_data = {"name": "CircularTech", "location": "Berlin"}
         request = _make_request({"organization": org_data})
 
         with patch("app.api.auth.crud.users.Organization") as mock_org:
@@ -89,9 +83,9 @@ class TestAddUserRoleInOrganization:
         session.commit.assert_awaited_once()
         session.refresh.assert_awaited_once_with(user)
 
-    async def test_organization_id_sets_member_role(self) -> None:
+    async def test_organization_id_sets_member_role(self, mock_session: AsyncMock) -> None:
         """When 'organization_id' is in request body, user is added as MEMBER (no org created)."""
-        session = _make_session()
+        session = mock_session
         user = _make_user()
         user_db = _make_user_db(session)
         org_id = uuid.uuid4()
@@ -106,9 +100,9 @@ class TestAddUserRoleInOrganization:
         session.commit.assert_awaited_once()
         session.refresh.assert_awaited_once_with(user)
 
-    async def test_organization_dict_takes_priority_over_organization_id(self) -> None:
+    async def test_organization_dict_takes_priority_over_organization_id(self, mock_session: AsyncMock) -> None:
         """If both 'organization' and 'organization_id' are present, the dict branch wins."""
-        session = _make_session()
+        session = mock_session
         user = _make_user()
         user_db = _make_user_db(session)
         org_id = uuid.uuid4()

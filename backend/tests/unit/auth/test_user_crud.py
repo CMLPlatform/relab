@@ -89,7 +89,7 @@ class TestValidateUserCreate:
         user_create = UserCreateWithOrganization(
             email="orgfounder@example.com",
             password="ValidPass1",
-            organization=OrganizationCreate(name="ACME", location="Berlin"),
+            organization=OrganizationCreate(name="CircularTech", location="Berlin"),
         )
 
         result = await validate_user_create(user_db, user_create)

@@ -37,23 +37,6 @@ from app.api.background_data.schemas import (
 from app.api.common.exceptions import BadRequestError
 from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory, TaxonomyFactory
 
-# Constants for test values to avoid magic value warnings
-TAXONOMY_ID_10 = 10
-TAXONOMY_ID_20 = 20
-TAXONOMY_ID_99 = 99
-CATEGORY_ID_1 = 1
-CATEGORY_ID_2 = 2
-BELONG_MSG = "does not belong to taxonomy with id"
-MISSING_MSG = "not found"
-BELONG_OUTSIDE_MSG = "belong to taxonomies outside of domains"
-MISSING_TAX_MSG = "Taxonomy ID is required"
-
-
-@pytest.fixture
-def mock_session() -> AsyncMock:
-    """Fixture for an AsyncSession mock."""
-    return AsyncMock()
-
 
 class TestCategoryValidation:
     """Tests for category creation validation."""
@@ -61,58 +44,56 @@ class TestCategoryValidation:
     async def test_validate_category_creation_with_supercategory(self, mock_session: AsyncMock) -> None:
         """Test validation when supercategory is provided."""
         category_create = AsyncMock()
-        category_create.taxonomy_id = TAXONOMY_ID_99  # Should be ignored if supercategory provided
+        category_create.taxonomy_id = 99  # Should be ignored if supercategory provided
 
-        super_category = CategoryFactory.build(id=CATEGORY_ID_1, taxonomy_id=TAXONOMY_ID_10, name="Super")
+        super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
 
         with patch("app.api.background_data.crud.categories.get_model_or_404", return_value=super_category) as mock_get:
             # Case 1: Matching taxonomy_id
             result_id, result_cat = await validate_category_creation(
-                mock_session, category_create, taxonomy_id=TAXONOMY_ID_10, supercategory_id=CATEGORY_ID_1
+                mock_session, category_create, taxonomy_id=10, supercategory_id=1
             )
 
-            assert result_id == TAXONOMY_ID_10
+            assert result_id == 10
             assert result_cat == super_category
-            mock_get.assert_called_with(mock_session, Category, CATEGORY_ID_1)
+            mock_get.assert_called_with(mock_session, Category, 1)
 
     async def test_validate_category_creation_supercategory_mismatch(self, mock_session: AsyncMock) -> None:
         """Test validation fails when supercategory taxonomy mismatches."""
         category_create = AsyncMock()
-        super_category = CategoryFactory.build(id=CATEGORY_ID_1, taxonomy_id=TAXONOMY_ID_10, name="Super")
+        super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
 
         with (
             patch("app.api.background_data.crud.categories.get_model_or_404", return_value=super_category),
-            pytest.raises(BadRequestError, match=BELONG_MSG) as exc,
+            pytest.raises(BadRequestError, match="does not belong to taxonomy with id") as exc,
         ):
             # Case 2: Mismatched taxonomy_id
-            await validate_category_creation(
-                mock_session, category_create, taxonomy_id=TAXONOMY_ID_20, supercategory_id=CATEGORY_ID_1
-            )
+            await validate_category_creation(mock_session, category_create, taxonomy_id=20, supercategory_id=1)
 
-        assert f"id {TAXONOMY_ID_20}" in str(exc.value)
+        assert f"id {20}" in str(exc.value)
 
     async def test_validate_category_creation_top_level(self, mock_session: AsyncMock) -> None:
         """Test validation for top-level category info."""
         category_create = AsyncMock()
-        category_create.taxonomy_id = TAXONOMY_ID_10
+        category_create.taxonomy_id = 10
 
-        mock_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10, name="Tax")
+        mock_taxonomy = TaxonomyFactory.build(id=10, name="Tax")
 
         with patch("app.api.background_data.crud.categories.get_model_or_404", return_value=mock_taxonomy) as mock_get:
             result_id, result_cat = await validate_category_creation(
                 mock_session, category_create, taxonomy_id=None, supercategory_id=None
             )
 
-            assert result_id == TAXONOMY_ID_10
+            assert result_id == 10
             assert result_cat is None
-            mock_get.assert_called_with(mock_session, Taxonomy, TAXONOMY_ID_10)
+            mock_get.assert_called_with(mock_session, Taxonomy, 10)
 
     async def test_validate_category_creation_missing_taxonomy(self, mock_session: AsyncMock) -> None:
         """Test validation fails if no taxonomy ID for top-level."""
         category_create = AsyncMock()
         category_create.taxonomy_id = None
 
-        with pytest.raises(BadRequestError, match=MISSING_TAX_MSG):
+        with pytest.raises(BadRequestError, match="Taxonomy ID is required"):
             await validate_category_creation(mock_session, category_create, taxonomy_id=None, supercategory_id=None)
 
 
@@ -121,15 +102,13 @@ class TestTaxonomyDomainValidation:
 
     async def test_validate_domains_success(self, mock_session: AsyncMock) -> None:
         """Test successful domain validation."""
-        category_ids = {CATEGORY_ID_1, CATEGORY_ID_2}
+        category_ids = {1, 2}
         expected_domain = TaxonomyDomain.PRODUCTS
 
         # Mock DB response
-        cat1 = CategoryFactory.build(
-            id=CATEGORY_ID_1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS})
-        )
+        cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS}))
         cat2 = CategoryFactory.build(
-            id=CATEGORY_ID_2,
+            id=2,
             taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS, TaxonomyDomain.MATERIALS}),
         )
 
@@ -147,38 +126,34 @@ class TestTaxonomyDomainValidation:
 
     async def test_validate_domains_missing_category(self, mock_session: AsyncMock) -> None:
         """Test validation fails when category is missing."""
-        category_ids = {CATEGORY_ID_1, CATEGORY_ID_2}
+        category_ids = {1, 2}
         expected_domain = TaxonomyDomain.PRODUCTS
 
         # Only return one category
-        cat1 = CategoryFactory.build(
-            id=CATEGORY_ID_1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS})
-        )
+        cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS}))
 
         mock_result = MagicMock()
         mock_result.all.return_value = [cat1]
         mock_session.exec.return_value = mock_result
 
-        with pytest.raises(BadRequestError, match=MISSING_MSG) as exc:
+        with pytest.raises(BadRequestError, match="not found") as exc:
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
-        assert str(CATEGORY_ID_2) in str(exc.value)
+        assert str(2) in str(exc.value)
 
     async def test_validate_domains_invalid_domain(self, mock_session: AsyncMock) -> None:
         """Test validation fails when category has wrong domain."""
-        category_ids = {CATEGORY_ID_1}
+        category_ids = {1}
         expected_domain = TaxonomyDomain.PRODUCTS
 
         # Category has wrong domain
-        cat1 = CategoryFactory.build(
-            id=CATEGORY_ID_1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.MATERIALS})
-        )
+        cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.MATERIALS}))
 
         mock_result = MagicMock()
         mock_result.all.return_value = [cat1]
         mock_session.exec.return_value = mock_result
 
-        with pytest.raises(BadRequestError, match=BELONG_OUTSIDE_MSG):
+        with pytest.raises(BadRequestError, match="belong to taxonomies outside of domains"):
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
 
@@ -199,11 +174,11 @@ class TestCategoryCrud:
     async def test_update_category_name(self) -> None:
         """Test updating a category's name."""
         session = _make_session()
-        db_category = CategoryFactory.build(id=CATEGORY_ID_1, name="Old Name")
+        db_category = CategoryFactory.build(id=1, name="Old Name")
         category_update = CategoryUpdate(name="New Name")
 
         with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_category):
-            result = await update_category(session, CATEGORY_ID_1, category_update)
+            result = await update_category(session, 1, category_update)
 
         assert result.name == "New Name"
         session.add.assert_called_once()
@@ -212,10 +187,10 @@ class TestCategoryCrud:
     async def test_delete_category_success(self) -> None:
         """Test successful category deletion."""
         session = _make_session()
-        db_category = CategoryFactory.build(id=CATEGORY_ID_1)
+        db_category = CategoryFactory.build(id=1)
 
         with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_category):
-            await delete_category(session, CATEGORY_ID_1)
+            await delete_category(session, 1)
 
         session.delete.assert_called_once_with(db_category)
         session.commit.assert_called_once()
@@ -227,23 +202,25 @@ class TestTaxonomyCrud:
     async def test_create_taxonomy_simple(self) -> None:
         """Test simple taxonomy creation without categories."""
         session = _make_session()
-        taxonomy_create = TaxonomyCreate(name="Test Tax", domains={TaxonomyDomain.PRODUCTS}, version="1.0")
+        taxonomy_create = TaxonomyCreate(
+            name="EN 45554 Repairability Scoring", domains={TaxonomyDomain.PRODUCTS}, version="1.0"
+        )
 
         result = await create_taxonomy(session, taxonomy_create)
 
         assert isinstance(result, Taxonomy)
-        assert result.name == "Test Tax"
+        assert result.name == "EN 45554 Repairability Scoring"
         session.add.assert_called_once()
         session.commit.assert_called_once()
 
     async def test_update_taxonomy_name(self) -> None:
         """Test updating a taxonomy's name."""
         session = _make_session()
-        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10, name="Old Name")
+        db_taxonomy = TaxonomyFactory.build(id=10, name="Old Name")
         taxonomy_update = TaxonomyUpdate(name="New Name")
 
         with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_taxonomy):
-            result = await update_taxonomy(session, TAXONOMY_ID_10, taxonomy_update)
+            result = await update_taxonomy(session, 10, taxonomy_update)
 
         assert result.name == "New Name"
         session.add.assert_called_once()
@@ -252,10 +229,10 @@ class TestTaxonomyCrud:
     async def test_delete_taxonomy_success(self) -> None:
         """Test successful taxonomy deletion."""
         session = _make_session()
-        db_taxonomy = TaxonomyFactory.build(id=TAXONOMY_ID_10)
+        db_taxonomy = TaxonomyFactory.build(id=10)
 
         with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_taxonomy):
-            await delete_taxonomy(session, TAXONOMY_ID_10)
+            await delete_taxonomy(session, 10)
 
         session.delete.assert_called_once_with(db_taxonomy)
         session.commit.assert_called_once()
@@ -309,7 +286,7 @@ class TestMaterialCrud:
         session = _make_session()
         db_material = MaterialFactory.build(id=1)
         db_material.categories = []
-        db_categories = [CategoryFactory.build(id=CATEGORY_ID_1)]
+        db_categories = [CategoryFactory.build(id=1)]
 
         with (
             patch("app.api.background_data.crud.shared.get_model_by_id", return_value=db_material),
@@ -317,7 +294,7 @@ class TestMaterialCrud:
             patch("app.api.background_data.crud.materials.validate_category_taxonomy_domains", new=AsyncMock()),
             patch("app.api.background_data.crud.shared.create_model_links", new=AsyncMock()) as mock_create_links,
         ):
-            result = await add_categories_to_material(session, 1, {CATEGORY_ID_1})
+            result = await add_categories_to_material(session, 1, {1})
 
         assert result == db_categories
         mock_create_links.assert_awaited_once()
@@ -340,7 +317,7 @@ class TestGetCategoryTrees:
     async def test_returns_top_level_categories(self) -> None:
         """Test fetching top-level categories (no supercategory or taxonomy filter)."""
         session = _make_session()
-        cat = CategoryFactory.build(id=CATEGORY_ID_1)
+        cat = CategoryFactory.build(id=1)
         mock_result = MagicMock()
         mock_result.all.return_value = [cat]
         session.exec.return_value = mock_result
@@ -352,26 +329,26 @@ class TestGetCategoryTrees:
     async def test_filters_by_taxonomy_id(self) -> None:
         """Test that taxonomy_id narrows results."""
         session = _make_session()
-        cat = CategoryFactory.build(id=CATEGORY_ID_1, taxonomy_id=TAXONOMY_ID_10)
+        cat = CategoryFactory.build(id=1, taxonomy_id=10)
         mock_result = MagicMock()
         mock_result.all.return_value = [cat]
         session.exec.return_value = mock_result
 
         with patch("app.api.background_data.crud.categories.get_model_or_404"):
-            result = await get_category_trees(session, taxonomy_id=TAXONOMY_ID_10)
+            result = await get_category_trees(session, taxonomy_id=10)
 
         assert result == [cat]
 
     async def test_filters_by_supercategory_id(self) -> None:
         """Test that supercategory_id narrows results to children."""
         session = _make_session()
-        child_cat = CategoryFactory.build(id=CATEGORY_ID_2, supercategory_id=CATEGORY_ID_1)
+        child_cat = CategoryFactory.build(id=2, supercategory_id=1)
         mock_result = MagicMock()
         mock_result.all.return_value = [child_cat]
         session.exec.return_value = mock_result
 
         with patch("app.api.background_data.crud.categories.get_model_or_404"):
-            result = await get_category_trees(session, supercategory_id=CATEGORY_ID_1)
+            result = await get_category_trees(session, supercategory_id=1)
 
         assert result == [child_cat]
 
@@ -384,7 +361,7 @@ class TestProductTypeCrud:
         session = _make_session()
         db_product_type = ProductTypeFactory.build(id=1)
         db_product_type.categories = []
-        db_categories = [CategoryFactory.build(id=CATEGORY_ID_1)]
+        db_categories = [CategoryFactory.build(id=1)]
 
         with (
             patch("app.api.background_data.crud.shared.get_model_by_id", return_value=db_product_type),
@@ -392,7 +369,7 @@ class TestProductTypeCrud:
             patch("app.api.background_data.crud.product_types.validate_category_taxonomy_domains", new=AsyncMock()),
             patch("app.api.background_data.crud.shared.create_model_links", new=AsyncMock()) as mock_create_links,
         ):
-            result = await add_categories_to_product_type(session, 1, {CATEGORY_ID_1})
+            result = await add_categories_to_product_type(session, 1, {1})
 
         assert result == db_categories
         mock_create_links.assert_awaited_once()

@@ -197,11 +197,6 @@ class TestProgrammaticUserCrud:
         """Fixture for a mock user manager."""
         return AsyncMock()
 
-    @pytest.fixture
-    def mock_session(self) -> AsyncMock:
-        """Fixture for a mock database session."""
-        return AsyncMock()
-
     async def test_create_user_success(
         self, mock_session: AsyncSession, user_create: UserCreate, mock_user_manager: AsyncMock
     ) -> None:

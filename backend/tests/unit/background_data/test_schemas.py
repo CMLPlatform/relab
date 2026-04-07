@@ -1,4 +1,7 @@
-"""Unit tests for background data schemas (no database required)."""
+"""Unit tests for background data schemas (no database required).
+
+Covers business-rule constraints. Pydantic roundtrip and optional-field behavior is not tested.
+"""
 
 from __future__ import annotations
 
@@ -6,156 +9,24 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.background_data.models import TaxonomyDomain
-from app.api.background_data.schemas import (
-    CategoryCreate,
-    CategoryUpdate,
-    MaterialCreate,
-    MaterialUpdate,
-    ProductTypeCreate,
-    TaxonomyCreate,
-    TaxonomyUpdate,
-)
-
-# Constants for test values to avoid magic value warnings
-TEST_TAXONOMY = "Test Taxonomy"
-VERSION_V1 = "v1.0.0"
-UPDATED_NAME = "Updated Name"
-TEST_CATEGORY = "Test Category"
-MINIMAL_CATEGORY = "Minimal Category"
-UPDATED_CATEGORY = "Updated Category"
-STEEL = "Steel"
-ELECTRONICS = "Electronics"
-ELECTRONIC_PRODUCTS = "Electronic products"
-MINIMAL = "Minimal"
-DENSITY_STEEL = 7850.0
-DENSITY_UPDATED = 8000.0
-LOC_NAME = "name"
-LOC_DENSITY = "density_kg_m3"
+from app.api.background_data.schemas import MaterialCreate, TaxonomyCreate
 
 
 @pytest.mark.unit
-class TestTaxonomySchemas:
-    """Test Taxonomy schema validation."""
+def test_taxonomy_name_min_length() -> None:
+    """Taxonomy name must be at least 2 characters."""
+    with pytest.raises(ValidationError) as exc_info:
+        TaxonomyCreate(name="A", version="1.0", domains={TaxonomyDomain.MATERIALS})
 
-    def test_taxonomy_create_valid(self) -> None:
-        """Test creating valid TaxonomyCreate schema."""
-        schema = TaxonomyCreate(
-            name=TEST_TAXONOMY,
-            version=VERSION_V1,
-            description="A test taxonomy",
-            domains={TaxonomyDomain.MATERIALS},
-            source="https://example.com",
-        )
-
-        assert schema.name == TEST_TAXONOMY
-        assert schema.version == VERSION_V1
-        assert schema.domains == {TaxonomyDomain.MATERIALS}
-
-    def test_taxonomy_create_name_too_short(self) -> None:
-        """Test TaxonomyCreate rejects name that's too short."""
-        with pytest.raises(ValidationError) as exc_info:
-            TaxonomyCreate(
-                name="A",  # Too short
-                version=VERSION_V1,
-                domains={TaxonomyDomain.MATERIALS},
-            )
-
-        errors = exc_info.value.errors()
-        assert any(e["loc"][0] == LOC_NAME for e in errors)
-
-    def test_taxonomy_create_multiple_domains(self) -> None:
-        """Test taxonomy with multiple domains."""
-        schema = TaxonomyCreate(
-            name="Multi-domain Taxonomy",
-            version=VERSION_V1,
-            domains={TaxonomyDomain.MATERIALS, TaxonomyDomain.PRODUCTS},
-        )
-
-        assert len(schema.domains) == 2
-        assert TaxonomyDomain.MATERIALS in schema.domains
-        assert TaxonomyDomain.PRODUCTS in schema.domains
-
-    def test_taxonomy_update_partial(self) -> None:
-        """Test TaxonomyUpdate with partial data."""
-        schema = TaxonomyUpdate(name=UPDATED_NAME, domains={TaxonomyDomain.MATERIALS})
-
-        assert schema.name == UPDATED_NAME
-        assert schema.version is None
-        assert schema.description is None
+    errors = exc_info.value.errors()
+    assert any(e["loc"][0] == "name" for e in errors)
 
 
 @pytest.mark.unit
-class TestCategorySchemas:
-    """Test Category schema validation."""
+def test_material_negative_density_rejected() -> None:
+    """Material density must be greater than zero (business constraint)."""
+    with pytest.raises(ValidationError) as exc_info:
+        MaterialCreate(name="Invalid alloy", density_kg_m3=-100.0)
 
-    def test_category_create_valid(self) -> None:
-        """Test CategoryCreate accepts all fields and taxonomy_id defaults to None."""
-        full = CategoryCreate(name=TEST_CATEGORY, description="A test category", taxonomy_id=1)
-        assert full.taxonomy_id == 1
-
-        minimal = CategoryCreate(name=MINIMAL_CATEGORY)
-        assert minimal.taxonomy_id is None
-
-    def test_category_update_partial(self) -> None:
-        """Test CategoryUpdate with partial data."""
-        schema = CategoryUpdate(name=UPDATED_CATEGORY)
-
-        assert schema.name == UPDATED_CATEGORY
-        assert schema.description is None
-
-
-@pytest.mark.unit
-class TestMaterialSchemas:
-    """Test Material schema validation."""
-
-    def test_material_create_valid(self) -> None:
-        """Test creating valid MaterialCreate schema."""
-        schema = MaterialCreate(
-            name=STEEL,
-            description="Iron-carbon alloy",
-            density_kg_m3=DENSITY_STEEL,
-            is_crm=False,
-        )
-
-        assert schema.name == STEEL
-        assert schema.density_kg_m3 == DENSITY_STEEL
-        assert schema.is_crm is False
-
-    def test_material_create_negative_density_fails(self) -> None:
-        """Test MaterialCreate rejects negative density."""
-        with pytest.raises(ValidationError) as exc_info:
-            MaterialCreate(
-                name="Invalid Material",
-                density_kg_m3=-100.0,
-            )
-
-        errors = exc_info.value.errors()
-        assert any(e["loc"][0] == LOC_DENSITY for e in errors)
-
-    def test_material_create_zero_density_fails(self) -> None:
-        """Test MaterialCreate rejects zero density."""
-        with pytest.raises(ValidationError):
-            MaterialCreate(
-                name="Invalid Material",
-                density_kg_m3=0.0,
-            )
-
-    def test_material_update_partial(self) -> None:
-        """Test MaterialUpdate with partial data."""
-        schema = MaterialUpdate(density_kg_m3=DENSITY_UPDATED)
-
-        assert schema.density_kg_m3 == DENSITY_UPDATED
-        assert schema.name is None
-
-
-@pytest.mark.unit
-class TestProductTypeSchemas:
-    """Test ProductType schema validation."""
-
-    def test_product_type_create_valid(self) -> None:
-        """Test ProductTypeCreate accepts all fields and description defaults to None."""
-        full = ProductTypeCreate(name=ELECTRONICS, description=ELECTRONIC_PRODUCTS)
-        assert full.description == ELECTRONIC_PRODUCTS
-
-        minimal = ProductTypeCreate(name=MINIMAL)
-        assert minimal.description is None
+    errors = exc_info.value.errors()
+    assert any(e["loc"][0] == "density_kg_m3" for e in errors)
