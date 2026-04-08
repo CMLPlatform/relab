@@ -3,25 +3,25 @@
 import re
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
 from enum import Enum
-from typing import Any, Self, cast
+from typing import Any, Self
 
 import inflect
-from pydantic import ConfigDict, model_validator
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase
-from sqlmodel import Column, Field, SQLModel
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    """SQLAlchemy 2.0 declarative base for all ORM models.
+    """SQLAlchemy 2.0 declarative base for all ORM models."""
 
-    Uses SQLModel.metadata as a bridge so that rpi_cam plugin models
-    (still on SQLModel) share the same registry. Remove this bridge
-    when rpi_cam is migrated.
-    """
-
-    metadata = SQLModel.metadata  # type: ignore[assignment]
+    def model_dump(self, *, exclude: set[str] | None = None, exclude_unset: bool = False) -> dict[str, Any]:
+        """Serialize ORM instance to a dict (backward compat with SQLModel)."""
+        exclude = exclude or set()
+        return {
+            c.key: getattr(self, c.key)
+            for c in self.__table__.columns
+            if c.key not in exclude
+        }
 
 
 _INFLECT_ENGINE = inflect.engine()
@@ -66,38 +66,29 @@ def get_model_label_plural(model_type: type[object], *, default: str = "Models")
 ### Mixins ###
 ## Timestamps ##
 class TimeStampMixinBare:
-    """Bare mixin to add created_at and updated_at columns to Pydantic BaseModel-based classes.
+    """Mixin that adds created_at and updated_at columns with server-side defaults."""
 
-    Can be used to mixin timestamp properties for classes which already have BaseModel as base class.
-    """
-
-    created_at: datetime | None = Field(
-        default=None,
-        sa_type=cast("Any", DateTime(timezone=True)),
-        sa_column_kwargs={"server_default": func.now()},
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=None
     )
-    updated_at: datetime | None = Field(
-        default=None,
-        sa_type=cast("Any", DateTime(timezone=True)),
-        sa_column_kwargs={"server_default": func.now(), "onupdate": func.now()},  # spell-checker: ignore onupdate
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), default=None  # spell-checker: ignore onupdate
     )
 
 
 ## Quasi-Polymorphic Associations ##
-class SingleParentMixin[ParentTypeEnum: Enum](SQLModel):
+class SingleParentMixin[ParentTypeEnum: Enum]:
     """Mixin to ensure an object belongs to exactly one parent.
 
     ``ParentTypeEnum`` must be a ``StrEnum`` whose values are the snake_case names of the
     parent model tables (e.g. ``"product"``, ``"material"``).  The mixin derives the
     corresponding foreign-key field names automatically (e.g. ``product_id``).
+
+    Note: validation that exactly one parent FK is set belongs in the create/update
+    schemas, not in the ORM model (per ADR-013).
     """
 
-    # TODO: Replace with proper polymorphic associations once the upstream SQLModel issue is
-    # resolved: https://github.com/fastapi/sqlmodel/pull/1226
-
-    parent_type: ParentTypeEnum
-
-    model_config: ConfigDict = ConfigDict(arbitrary_types_allowed=True)
+    parent_type: ParentTypeEnum  # Concrete column defined by each subclass
 
     @classmethod
     def get_parent_type_description(cls, enum_class: type[Enum]) -> str:
@@ -114,20 +105,6 @@ class SingleParentMixin[ParentTypeEnum: Enum](SQLModel):
     def set_parent_fields(self) -> list[str]:
         """Get currently set parent ID field names."""
         return [field for field in self.possible_parent_fields if getattr(self, field, None) is not None]
-
-    @model_validator(mode="after")
-    def validate_single_parent(self) -> Self:
-        """Ensure parent_type and ID are consistent."""
-        if len(self.set_parent_fields) != 1:
-            err_msg = f"Exactly one parent ID must be set, found {self.set_parent_fields}"
-            raise ValueError(err_msg)
-
-        expected_field = f"{self.parent_type!s}_id"
-        if expected_field not in self.set_parent_fields:
-            err_msg = f"Parent type {self.parent_type} doesn't match set parent ID"
-            raise ValueError(err_msg)
-
-        return self
 
     @property
     def parent_id(self) -> int:
@@ -159,6 +136,4 @@ class MetadataMixin:
     Note: Validation of the metadata content should be done in the DTO schemas.
     """
 
-    metadata_json: dict[str, Any] | None = Field(
-        default=None, alias="metadata", description="Object metadata as a JSON dict", sa_column=Column(JSONB)
-    )
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
-from sqlmodel import select
+from sqlalchemy import select
 
 # Import auth dependency to override
 from app.api.auth.dependencies import current_active_user
@@ -93,7 +93,7 @@ async def test_camera_lifecycle_and_constraints(
 
     # Verify in DB that key changed
     stmt = select(Camera).where(Camera.id == camera_id)
-    await session.exec(stmt)
+    await session.execute(stmt)
 
     # 5. Connect Status (Mocked)
 

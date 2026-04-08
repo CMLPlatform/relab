@@ -1,4 +1,4 @@
-"""Local SQLModel adapter for FastAPI Users.
+"""Local SQLAlchemy adapter for FastAPI Users.
 
 This keeps RELab independent from the archived ``fastapi-users-db-sqlmodel``
 package while preserving the small API surface we actually use.
@@ -10,64 +10,56 @@ from typing import TYPE_CHECKING, Any, cast
 
 from fastapi_users.db.base import BaseUserDatabase
 from fastapi_users.models import ID, OAP, UOAP, UP
-from pydantic import UUID4, ConfigDict, EmailStr
 from sqlalchemy import String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import QueryableAttribute, selectinload
-from sqlmodel import Field, SQLModel
+from sqlalchemy.orm import Mapped, QueryableAttribute, mapped_column, selectinload
+
+from app.api.common.models.base import Base
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class SQLModelBaseUserDB(SQLModel):
-    """Base SQLModel user table fields expected by FastAPI Users."""
+class SQLModelBaseUserDB(Base):
+    """Base user table fields expected by FastAPI Users."""
 
     __tablename__ = "user"
+    __abstract__ = True
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
-    if TYPE_CHECKING:  # pragma: no cover
-        email: str
-    else:
-        email: EmailStr = Field(
-            sa_column_kwargs={"unique": True, "index": True},
-            nullable=False,
-            sa_type=String,
-        )
-    hashed_password: str
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    hashed_password: Mapped[str] = mapped_column(String)
 
-    is_active: bool = Field(default=True, nullable=False)
-    is_superuser: bool = Field(default=False, nullable=False)
-    is_verified: bool = Field(default=False, nullable=False)
-
-    model_config = ConfigDict(from_attributes=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    is_superuser: Mapped[bool] = mapped_column(default=False)
+    is_verified: Mapped[bool] = mapped_column(default=False)
 
 
-class SQLModelBaseOAuthAccount(SQLModel):
-    """Base SQLModel OAuth account fields expected by FastAPI Users."""
+class SQLModelBaseOAuthAccount(Base):
+    """Base OAuth account fields expected by FastAPI Users."""
 
     __tablename__ = "oauthaccount"
+    __abstract__ = True
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True)
-    user_id: UUID4 = Field(foreign_key="user.id", nullable=False)
-    oauth_name: str = Field(index=True, nullable=False)
-    access_token: str = Field(nullable=False)
-    expires_at: int | None = Field(nullable=True)
-    refresh_token: str | None = Field(nullable=True)
-    account_id: str = Field(index=True, nullable=False)
-    account_email: str = Field(nullable=False)
-
-    model_config = ConfigDict(from_attributes=True)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
+    oauth_name: Mapped[str] = mapped_column(String, index=True)
+    access_token: Mapped[str] = mapped_column(String)
+    expires_at: Mapped[int | None] = mapped_column(default=None)
+    refresh_token: Mapped[str | None] = mapped_column(default=None)
+    account_id: Mapped[str] = mapped_column(String, index=True)
+    account_email: Mapped[str] = mapped_column(String)
 
 
 class OAuthAccountWithUser(SQLModelBaseOAuthAccount):
     """Typing helper for OAuth account models that expose a ``user`` relationship."""
 
+    __abstract__ = True
     user: Any
 
 
 class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
-    """Async SQLModel user adapter for FastAPI Users."""
+    """Async SQLAlchemy user adapter for FastAPI Users."""
 
     session: AsyncSession
     user_model: type[UP]

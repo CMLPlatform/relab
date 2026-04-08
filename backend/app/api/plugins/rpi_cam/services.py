@@ -14,7 +14,7 @@ from fastapi.datastructures import Headers
 from httpx import AsyncClient, HTTPStatusError, RequestError, Response
 from pydantic import UUID4, AnyUrl, BaseModel, Field, PositiveInt, ValidationError
 from relab_rpi_cam_models.stream import YoutubeStreamConfig
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import OAuthAccount
 from app.api.common.crud.utils import get_model_or_404

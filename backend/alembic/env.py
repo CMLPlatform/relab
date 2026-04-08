@@ -7,11 +7,10 @@ import alembic_postgresql_enum
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url
-from sqlmodel import SQLModel  # Include the SQLModel metadata
-
+from app.api.common.models.base import Base
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.core.model_registry import load_sqlmodel_models
+from app.core.model_registry import load_models
 
 # Load settings from the FastAPI app config
 project_root = Path(__file__).resolve().parents[1]
@@ -32,11 +31,11 @@ else:
 
 logger = logging.getLogger("alembic.env")
 
-# Import all models so SQLModel.metadata is complete for autogenerate
-load_sqlmodel_models()
+# Import all models so Base.metadata is complete for autogenerate
+load_models()
 
 # Combine metadata from all imported models
-target_metadata = SQLModel.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

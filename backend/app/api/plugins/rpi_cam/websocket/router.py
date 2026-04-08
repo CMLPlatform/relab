@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from pydantic import UUID4
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_str

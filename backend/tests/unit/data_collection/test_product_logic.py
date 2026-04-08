@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
 from uuid import UUID, uuid4
 
 import pytest
 
 from app.api.data_collection.models.product import Product
+from app.api.data_collection.validators import validate_product
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 # Constants for test values to avoid magic value warnings
 AMOUNT_IN_PARENT_5 = 5
 ERR_MIN_CONTENT = "must have at least one material or one component"
 ERR_MISSING_AMOUNT = "must have amount_in_parent set"
 
-_VALIDATE_PRODUCT = cast("Callable[[Product], Product]", Product.validate_product)
+_VALIDATE_PRODUCT = validate_product
 
 
 @pytest.mark.unit

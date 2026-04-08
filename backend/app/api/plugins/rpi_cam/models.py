@@ -6,13 +6,14 @@ from urllib.parse import urljoin
 
 from cachetools import TTLCache
 from httpx import AsyncClient, RequestError
-from pydantic import UUID4, AnyUrl, BaseModel, ConfigDict, SecretStr, computed_field
+from pydantic import UUID4, AnyUrl, BaseModel, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
+from sqlalchemy import ForeignKey, String
 from sqlalchemy import Enum as SAEnum
-from sqlmodel import AutoString, Column, Field, Relationship, SQLModel
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.auth.models import User
-from app.api.common.models.base import TimeStampMixinBare
+from app.api.common.models.base import Base, TimeStampMixinBare
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
 from app.api.plugins.rpi_cam.websocket.connection_manager import get_connection_manager
@@ -34,9 +35,9 @@ class CameraConnectionStatus(StrEnum):
 
     ONLINE = "online"
     OFFLINE = "offline"
-    UNAUTHORIZED = "unauthorized"  # Camera is online but user is unauthorized
-    FORBIDDEN = "forbidden"  # Camera is online but user is forbidden
-    ERROR = "error"  # Camera is online but there is another error
+    UNAUTHORIZED = "unauthorized"
+    FORBIDDEN = "forbidden"
+    ERROR = "error"
 
     def to_http_error(self) -> tuple[int, str]:
         """Get appropriate HTTP status code and message for non-online status."""
@@ -56,54 +57,44 @@ class CameraConnectionStatus(StrEnum):
 class CameraStatus(BaseModel):
     """Camera connection status and details."""
 
-    connection: CameraConnectionStatus = Field(description="Connection status of the camera")
+    connection: CameraConnectionStatus
+    details: CameraStatusDetails | None = None
 
-    details: CameraStatusDetails | None = Field(
-        default=None, description="Additional status details from the Raspberry Pi camera API"
-    )
+
+### Pydantic base schema (shared with schemas/) ###
+class CameraBase(BaseModel):
+    """Base schema for Camera. Used by Pydantic schemas only, not ORM."""
+
+    name: str
+    description: str | None = None
+    connection_mode: ConnectionMode = ConnectionMode.HTTP
+    url: str | None = None
+
+    model_config = {"use_enum_values": True}
 
 
 ### RpiCam Model ###
-class CameraBase(SQLModel):
-    """Base model for Camera with common fields."""
-
-    name: str = Field(index=True, min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    connection_mode: ConnectionMode = Field(
-        default=ConnectionMode.HTTP,
-        description="How the backend communicates with this camera.",
-        sa_column=Column(SAEnum(ConnectionMode), nullable=False, server_default=ConnectionMode.HTTP.name),
-    )
-
-    # NOTE: Camera URLs are validated in the Pydantic create/update schemas.
-    # The database stores the URL as a plain string so the API can make normal
-    # HTTP requests to locally hosted camera APIs or tunnel endpoints.
-    # Nullable: WebSocket-mode cameras do not need a public URL.
-    url: str | None = Field(
-        default=None,
-        description="HTTP(S) URL where the camera API is hosted (required for HTTP mode).",
-        sa_type=AutoString,
-        nullable=True,
-    )
-
-    model_config: ConfigDict = ConfigDict(use_enum_values=True)
-
-
-class Camera(CameraBase, TimeStampMixinBare, table=True):
+class Camera(TimeStampMixinBare, Base):
     """Database model for Camera."""
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    __tablename__ = "camera"
 
-    encrypted_api_key: str = Field(nullable=False)
-    encrypted_auth_headers: str | None = Field(default=None)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
+    connection_mode: Mapped[ConnectionMode] = mapped_column(
+        SAEnum(ConnectionMode), nullable=False, server_default=ConnectionMode.HTTP.name
+    )
+    url: Mapped[str | None] = mapped_column(String, default=None)
+
+    encrypted_api_key: Mapped[str] = mapped_column(nullable=False)
+    encrypted_auth_headers: Mapped[str | None] = mapped_column(default=None)
 
     # Many-to-one relationship with User
-    owner_id: UUID4 = Field(foreign_key="user.id")
-    owner: User = Relationship(  # One-way relationship to maintain plugin isolation
-        sa_relationship_kwargs={
-            "primaryjoin": "Camera.owner_id == User.id",
-            "foreign_keys": "[Camera.owner_id]",
-        }
+    owner_id: Mapped[UUID4] = mapped_column(ForeignKey("user.id"))
+    owner: Mapped[User] = relationship(
+        primaryjoin="Camera.owner_id == User.id",
+        foreign_keys="[Camera.owner_id]",
     )
 
     @computed_field
@@ -137,13 +128,9 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
         return hash(self.id)
 
     async def get_status(self, http_client: AsyncClient, *, force_refresh: bool = False) -> CameraStatus:
-        """Get the current connection status of the camera, using cache if not force_refresh.
-
-        Status is cached for 15 seconds to avoid excessive requests to the camera API.
-        """
+        """Get the current connection status of the camera."""
         if force_refresh:
             return await self._fetch_status(http_client)
-
         return await self._get_cached_status(http_client)
 
     @async_ttl_cache(TTLCache(maxsize=1, ttl=15))

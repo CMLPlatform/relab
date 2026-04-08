@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from fastapi import Query
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.base import get_models

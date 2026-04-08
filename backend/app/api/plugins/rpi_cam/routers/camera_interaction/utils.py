@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from pydantic import UUID4
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class HttpMethod(StrEnum):

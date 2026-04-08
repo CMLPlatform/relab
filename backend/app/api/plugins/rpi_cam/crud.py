@@ -1,7 +1,7 @@
 """CRUD operations for the Raspberry Pi Camera plugin."""
 
 from pydantic import UUID4
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.persistence import commit_and_refresh, update_and_commit
 from app.api.plugins.rpi_cam.models import Camera

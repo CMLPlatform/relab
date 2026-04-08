@@ -8,7 +8,7 @@ import pytest
 
 from app.api.auth.models import OrganizationRole, User
 from app.api.common.models.enums import Unit
-from app.api.data_collection.models.base import PhysicalPropertiesBase
+from tests.factories.models import ProductFactory
 from app.api.data_collection.models.product import MaterialProductLink, Product
 
 
@@ -34,13 +34,13 @@ def test_user_organization_owner_property_tracks_mutations() -> None:
 @pytest.mark.unit
 def test_physical_properties_volume_tracks_dimension_updates() -> None:
     """Computed volume should not retain stale cached values after mutation."""
-    props = PhysicalPropertiesBase(height_cm=2, width_cm=3, depth_cm=4)
+    product = ProductFactory.build(height_cm=2, width_cm=3, depth_cm=4, owner_id=uuid.uuid4())
 
-    assert props.volume_cm3 == 24
+    assert product.volume_cm3 == 24
 
-    props.depth_cm = 5
+    product.depth_cm = 5
 
-    assert props.volume_cm3 == 30
+    assert product.volume_cm3 == 30
 
 
 @pytest.mark.unit
