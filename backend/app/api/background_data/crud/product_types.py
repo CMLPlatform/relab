@@ -9,7 +9,7 @@ from app.api.background_data.schemas import ProductTypeCreate, ProductTypeCreate
 from app.api.common.crud.associations import create_model_links
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.exceptions import InternalServerError
-from app.api.file_storage.crud import ParentStorageCrud, file_storage_service, image_storage_service
+from app.api.file_storage.crud import ParentFileCrud, ParentImageCrud
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
@@ -111,18 +111,14 @@ async def remove_categories_from_product_type(
     await db.commit()
 
 
-product_type_files_crud = ParentStorageCrud[File, FileCreate, FileFilter](
+product_type_files_crud = ParentFileCrud(
     parent_model=ProductType,
-    storage_model=File,
     parent_type=MediaParentType.PRODUCT_TYPE,
     parent_field="product_type_id",
-    storage_service=file_storage_service,
 )
 
-product_type_images_crud = ParentStorageCrud[Image, ImageCreateFromForm, ImageFilter](
+product_type_images_crud = ParentImageCrud(
     parent_model=ProductType,
-    storage_model=Image,
     parent_type=MediaParentType.PRODUCT_TYPE,
     parent_field="product_type_id",
-    storage_service=image_storage_service,
 )

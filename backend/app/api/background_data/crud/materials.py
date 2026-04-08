@@ -9,7 +9,7 @@ from app.api.background_data.schemas import MaterialCreate, MaterialCreateWithCa
 from app.api.common.crud.associations import create_model_links
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.exceptions import InternalServerError
-from app.api.file_storage.crud import ParentStorageCrud, file_storage_service, image_storage_service
+from app.api.file_storage.crud import ParentFileCrud, ParentImageCrud
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
@@ -110,18 +110,14 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
     await db.commit()
 
 
-material_files_crud = ParentStorageCrud[File, FileCreate, FileFilter](
+material_files_crud = ParentFileCrud(
     parent_model=Material,
-    storage_model=File,
     parent_type=MediaParentType.MATERIAL,
     parent_field="material_id",
-    storage_service=file_storage_service,
 )
 
-material_images_crud = ParentStorageCrud[Image, ImageCreateFromForm, ImageFilter](
+material_images_crud = ParentImageCrud(
     parent_model=Material,
-    storage_model=Image,
     parent_type=MediaParentType.MATERIAL,
     parent_field="material_id",
-    storage_service=image_storage_service,
 )

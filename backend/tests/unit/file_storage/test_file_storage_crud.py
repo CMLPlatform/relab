@@ -14,7 +14,8 @@ from pydantic import HttpUrl
 from app.api.data_collection.models.product import Product
 from app.api.file_storage import crud
 from app.api.file_storage.crud import (
-    ParentStorageCrud,
+    ParentFileCrud,
+    ParentImageCrud,
     create_file,
     delete_file,
     delete_file_from_storage,
@@ -329,9 +330,8 @@ class TestParentStorageCrud:
 
     async def test_create_rejects_parent_scope_mismatch(self, mock_session: AsyncMock) -> None:
         """Create should fail if the payload is not already scoped to the target parent."""
-        operations = ParentStorageCrud(
+        operations = ParentImageCrud(
             parent_model=Product,
-            storage_model=Image,
             parent_type=MediaParentType.PRODUCT,
             parent_field="product_id",
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
@@ -351,9 +351,8 @@ class TestParentStorageCrud:
         """Delete should succeed even if the underlying file is already gone."""
         storage_service = MagicMock()
         storage_service.delete = AsyncMock()
-        operations = ParentStorageCrud(
+        operations = ParentImageCrud(
             parent_model=Product,
-            storage_model=Image,
             parent_type=MediaParentType.PRODUCT,
             parent_field="product_id",
             storage_service=storage_service,
@@ -371,9 +370,8 @@ class TestParentStorageCrud:
 
     async def test_get_by_id_raises_not_found_for_wrong_parent(self, mock_session: AsyncMock) -> None:
         """Fetching an item through the wrong parent should return a parent-scoped not found error."""
-        operations = ParentStorageCrud(
+        operations = ParentImageCrud(
             parent_model=Product,
-            storage_model=Image,
             parent_type=MediaParentType.PRODUCT,
             parent_field="product_id",
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),

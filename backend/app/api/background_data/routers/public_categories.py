@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Path, Query
+from fastapi import Path
 from fastapi_pagination import Page
 from pydantic import PositiveInt
 from sqlmodel import select
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, CategoryFilterWithRelationshipsDep
-from app.api.background_data.examples import CATEGORY_INCLUDE_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
@@ -34,21 +33,17 @@ router = BackgroundDataAPIRouter(prefix="/categories", tags=["categories"])
 @router.get(
     "",
     response_model=Page[CategoryReadWithRelationshipsAndFlatSubCategories],
-    summary="Get all categories with optional filtering and relationships",
+    summary="Get all categories with optional filtering and all relationships",
 )
 async def get_categories(
     session: AsyncSessionDep,
     category_filter: CategoryFilterWithRelationshipsDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Page[Category]:
-    """Get all categories with specified relationships."""
+    """Get all categories with all relationships loaded."""
     return await get_paginated_models(
         session,
         Category,
-        include_relationships=include,
+        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
         model_filter=category_filter,
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
@@ -87,17 +82,13 @@ async def get_categories_tree(
 async def get_category(
     session: AsyncSessionDep,
     category_id: PositiveInt,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Category:
-    """Get category by ID with specified relationships."""
+    """Get category by ID with all relationships."""
     return await get_model_by_id(
         session,
         Category,
         category_id,
-        include_relationships=include,
+        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
 
@@ -105,24 +96,20 @@ async def get_category(
 @router.get(
     "{category_id}/subcategories",
     response_model=Page[CategoryReadWithRelationshipsAndFlatSubCategories],
-    summary="Get category subcategories with optional filtering and relationships",
+    summary="Get category subcategories with optional filtering and all relationships",
 )
 async def get_subcategories(
     category_id: Annotated[PositiveInt, Path(description="Category ID")],
     category_filter: CategoryFilterDep,
     session: AsyncSessionDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Page[Category]:
-    """Get paginated subcategories of a category with specified relationships."""
+    """Get paginated subcategories of a category with all relationships loaded."""
     await get_model_by_id(session, Category, category_id)
     statement = select(Category).where(Category.supercategory_id == category_id)
     return await get_paginated_models(
         session,
         Category,
-        include_relationships=include,
+        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
         model_filter=category_filter,
         statement=statement,
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
