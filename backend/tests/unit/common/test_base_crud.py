@@ -18,7 +18,7 @@ from app.api.common.crud.base import (
 )
 from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
 from app.api.common.crud.utils import add_relationship_options
-from app.api.data_collection.models.product import PhysicalProperties
+from app.api.file_storage.models import Video
 
 
 @pytest.mark.unit
@@ -135,4 +135,4 @@ class TestGetNestedModelById:
             patch("app.api.common.crud.base.add_relationship_options", return_value=MagicMock()),
             pytest.raises(DependentModelOwnershipError, match="does not belong to"),
         ):
-            await get_nested_model_by_id(session, Material, 1, PhysicalProperties, 2, "product_id")
+            await get_nested_model_by_id(session, Material, 1, Video, 2, "product_id")

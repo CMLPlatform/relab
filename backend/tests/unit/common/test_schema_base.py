@@ -6,10 +6,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.api.common.schemas.base import BaseReadSchemaWithTimeStamp
+from app.api.common.schemas.base import IntIdReadSchemaWithTimeStamp
 
 
-class ExampleReadSchema(BaseReadSchemaWithTimeStamp):
+class ExampleReadSchema(IntIdReadSchemaWithTimeStamp):
     """Concrete test schema using the shared read base."""
 
     name: str

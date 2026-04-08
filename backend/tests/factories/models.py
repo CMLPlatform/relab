@@ -18,9 +18,7 @@ from app.api.background_data.models import (
     TaxonomyDomain,
 )
 from app.api.data_collection.models.product import (
-    CircularityProperties,
     MaterialProductLink,
-    PhysicalProperties,
     Product,
 )
 
@@ -326,53 +324,6 @@ class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
     def quantity(cls) -> float:
         """Generate mock value."""
         return cls.__faker__.pyfloat(positive=True, min_value=0.1, max_value=10.0)
-
-
-class PhysicalPropertiesFactory(BaseModelFactory[PhysicalProperties]):
-    """Factory for creating PhysicalProperties test instances."""
-
-    __model__ = PhysicalProperties
-
-    @classmethod
-    def weight_g(cls) -> float | None:
-        """Generate mock value."""
-        return round(cls.__faker__.pyfloat(min_value=0.1, max_value=10000.0), 2)
-
-    @classmethod
-    def height_cm(cls) -> float | None:
-        """Generate mock value."""
-        return round(cls.__faker__.pyfloat(min_value=0.1, max_value=200.0), 2)
-
-    @classmethod
-    def width_cm(cls) -> float | None:
-        """Generate mock value."""
-        return round(cls.__faker__.pyfloat(min_value=0.1, max_value=200.0), 2)
-
-    @classmethod
-    def depth_cm(cls) -> float | None:
-        """Generate mock value."""
-        return round(cls.__faker__.pyfloat(min_value=0.1, max_value=200.0), 2)
-
-
-class CircularityPropertiesFactory(BaseModelFactory[CircularityProperties]):
-    """Factory for creating CircularityProperties test instances."""
-
-    __model__ = CircularityProperties
-
-    @classmethod
-    def recyclability_observation(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.text(max_nb_chars=200)
-
-    @classmethod
-    def repairability_observation(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.text(max_nb_chars=200)
-
-    @classmethod
-    def remanufacturability_observation(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.text(max_nb_chars=200)
 
 
 class OrganizationFactory(BaseModelFactory[Organization]):

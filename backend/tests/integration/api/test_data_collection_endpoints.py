@@ -136,11 +136,9 @@ class TestDataCollectionEndpoints:
             "name": NEW_PRODUCT_NAME,
             "description": PRODUCT_DESC,
             "product_type_id": pt.id,
-            "physical_properties": {
-                "weight_g": WEIGHT_500,
-                "height_cm": HEIGHT_10,
-            },
-            "circularity_properties": {"recyclability_observation": RECYCLABILITY_GOOD},
+            "weight_g": WEIGHT_500,
+            "height_cm": HEIGHT_10,
+            "recyclability_observation": RECYCLABILITY_GOOD,
             "bill_of_materials": [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
         }
 
@@ -224,31 +222,6 @@ class TestDataCollectionEndpoints:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert BRAND_X in data["items"]
-
-    async def test_create_and_get_physical_properties(
-        self, superuser_client: AsyncClient, setup_product: Product
-    ) -> None:
-        """Test POST and GET physical properties for a product."""
-        payload = {"weight_g": WEIGHT_1000}
-        response = await superuser_client.post(f"/products/{setup_product.id}/physical_properties", json=payload)
-        assert response.status_code == status.HTTP_201_CREATED
-
-        response = await superuser_client.get(f"/products/{setup_product.id}/physical_properties")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["weight_g"] == WEIGHT_1000
-
-    async def test_create_and_get_circularity_properties(
-        self, superuser_client: AsyncClient, setup_product: Product
-    ) -> None:
-        """Test POST and GET circularity properties for a product."""
-        payload = {"recyclability_observation": RECYCLABILITY_TEST}
-        response = await superuser_client.post(f"/products/{setup_product.id}/circularity_properties", json=payload)
-        assert response.status_code == status.HTTP_201_CREATED
-
-        response = await superuser_client.get(f"/products/{setup_product.id}/circularity_properties")
-        assert response.status_code == status.HTTP_200_OK
-        assert response.json()["recyclability_observation"] == RECYCLABILITY_TEST
-
 
 class TestBrandsEndpoint:
     """Tests for GET /brands."""

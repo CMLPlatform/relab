@@ -1,4 +1,5 @@
 """Test S3-compatible storage backend."""
+# spell-checker: ignore AKIAIOSFODNN7EXAMPLE
 
 import io
 import sys

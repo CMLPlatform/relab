@@ -29,8 +29,6 @@ EXPECTED_TABLES = {
     "categoryproducttypelink",
     # Data collection
     "product",
-    "physicalproperties",
-    "circularityproperties",
     "materialproductlink",
     # File storage
     "file",
@@ -75,15 +73,6 @@ def test_category_foreign_key_to_taxonomy(migration_helper: MigrationHelper) -> 
     constraints = migration_helper.get_table_constraints("category")
     fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
     assert "taxonomy" in fk_tables, "category is missing its FK to the taxonomy table"
-
-
-@pytest.mark.migration
-def test_physical_and_circularity_fk_to_product(migration_helper: MigrationHelper) -> None:
-    """Physicalproperties and circularityproperties must each have a FK back to product."""
-    for child_table in ("physicalproperties", "circularityproperties"):
-        constraints = migration_helper.get_table_constraints(child_table)
-        fk_tables = {fk["referred_table"] for fk in constraints["fk"]}
-        assert "product" in fk_tables, f"{child_table} is missing its FK to the product table"
 
 
 @pytest.mark.migration
