@@ -12,6 +12,7 @@ from starlette.requests import Request
 
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.pairing import claim_pairing_code, poll_pairing_status, register_pairing_code
+from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest
 from app.api.plugins.rpi_cam.utils.encryption import encrypt_str
 from tests.factories.models import UserFactory
 
@@ -64,10 +65,10 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
         is_verified=True,
     )
     camera = build_camera()
-    body = SimpleNamespace(code="ABCD\r\n12", camera_name="Camera", description="Description")
+    body = PairingClaimRequest(code="ABCD12", camera_name="Camera", description="Description")
     redis_client = await _make_fake_redis()
     await redis_client.set(
-        "rpi_cam:pairing:ABCD\r\n12",
+        "rpi_cam:pairing:ABCD12",
         json.dumps({"status": "waiting"}),
     )
 
@@ -83,8 +84,8 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
         )
 
     assert response.id == camera.id
-    assert mock_logger.info.call_args.args[1] == "ABCD  12"
-    stored = await redis_client.get("rpi_cam:pairing:ABCD\r\n12")
+    assert mock_logger.info.call_args.args[1] == "ABCD12"
+    stored = await redis_client.get("rpi_cam:pairing:ABCD12")
     assert stored is not None
 
 

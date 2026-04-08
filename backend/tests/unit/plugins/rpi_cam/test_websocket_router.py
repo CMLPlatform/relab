@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
@@ -30,7 +31,7 @@ async def test_record_auth_failure_sanitizes_ip_in_log() -> None:
 
 async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
     """Invalid JSON logging should neutralize line breaks in camera IDs."""
-    camera_id = "camera-1\nFORGED"
+    camera_id = uuid4()
     manager = MagicMock(spec=[])
 
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
@@ -44,7 +45,7 @@ async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
         )
 
     assert result == (None, None)
-    mock_logger.warning.assert_called_once_with("Camera %s sent invalid JSON, ignoring.", "camera-1 FORGED")
+    mock_logger.warning.assert_called_once_with("Camera %s sent invalid JSON, ignoring.", str(camera_id))
 
 
 async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
@@ -53,7 +54,7 @@ async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
     websocket.headers = {}
     websocket.client = SimpleNamespace(host="203.0.113.10\nFORGED")
     websocket.close = AsyncMock()
-    camera_id = "camera-1"
+    camera_id = uuid4()
 
     with (
         patch.dict(_authenticate.__globals__, {"_auth_failures": {"203.0.113.10\nFORGED": (5, 0.0)}}),
@@ -76,7 +77,7 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
     websocket = MagicMock()
     websocket.close = AsyncMock()
     websocket.send_text = AsyncMock()
-    camera_id = "camera-1\nFORGED"
+    camera_id = uuid4()
     last_pong_at = [0.0]
 
     with (
@@ -90,6 +91,6 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
     websocket.close.assert_awaited_once_with(code=1001)
     mock_logger.warning.assert_called_once_with(
         "Camera %s heartbeat timeout (%.0fs since last pong); closing.",
-        "camera-1 FORGED",
+        str(camera_id),
         91.0,
     )

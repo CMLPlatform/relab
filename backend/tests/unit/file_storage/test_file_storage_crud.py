@@ -336,7 +336,7 @@ class TestParentStorageCrud:
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
         )
 
-        file_create = FileCreate(
+        image_create = ImageCreateInternal(
             file=MagicMock(spec=UploadFile, filename=TEST_FILENAME, size=1024),
             description=TEST_FILE_DESC,
             parent_id=2,
@@ -344,7 +344,7 @@ class TestParentStorageCrud:
         )
 
         with pytest.raises(ValueError, match="Parent ID mismatch"):
-            await operations.create(mock_session, 1, file_create)
+            await operations.create(mock_session, 1, image_create)
 
     async def test_delete_removes_db_record_when_storage_file_is_missing(self, mock_session: AsyncMock) -> None:
         """Delete should succeed even if the underlying file is already gone."""

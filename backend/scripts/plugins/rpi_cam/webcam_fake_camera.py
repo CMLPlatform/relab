@@ -29,7 +29,6 @@ import json
 import logging
 import sys
 import threading
-import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -42,7 +41,7 @@ import cv2
 import uvicorn
 import websockets
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("webcam-fake-camera")
@@ -108,29 +107,6 @@ def release_camera() -> None:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-async def _mjpeg_generate() -> AsyncIterator[bytes]:
-    """Yield MJPEG frames for streaming."""
-    loop = asyncio.get_running_loop()
-    try:
-        while True:
-            t0 = time.monotonic()
-            try:
-                frame = await loop.run_in_executor(None, grab_frame)
-            except RuntimeError:
-                break
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n"
-                b"Content-Length: " + str(len(frame)).encode() + b"\r\n"
-                b"\r\n" + frame + b"\r\n"
-            )
-            remaining = 0.05 - (time.monotonic() - t0)
-            if remaining > 0:
-                await asyncio.sleep(remaining)
-    except (asyncio.CancelledError, GeneratorExit):
-        pass
-
-
 def _create_http_app() -> FastAPI:
     """Build the FastAPI application with all HTTP-mode routes."""
     captured_images: dict[str, bytes] = {}
@@ -149,14 +125,6 @@ def _create_http_app() -> FastAPI:
         loop = asyncio.get_running_loop()
         jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=70))
         return Response(content=jpeg, media_type="image/jpeg")
-
-    @app.get("/images/mjpeg")
-    def mjpeg() -> StreamingResponse:
-        return StreamingResponse(
-            _mjpeg_generate(),
-            media_type="multipart/x-mixed-replace; boundary=frame",
-            headers={"Cache-Control": "no-store"},
-        )
 
     @app.post("/images")
     async def capture() -> JSONResponse:

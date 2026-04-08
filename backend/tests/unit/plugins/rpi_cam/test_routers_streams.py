@@ -35,9 +35,7 @@ TEST_HASHED_PASSWORD = "hashed_password"
 TEST_CAMERA_NAME = "Test Camera"
 TEST_CAMERA_DESC = "A test camera"
 TEST_STREAM_URL = "http://stream.url"
-TEST_PLAYLIST_FILE = "playlist.m3u8"
 YOUTUBE_STREAM_URL = "http://youtube.stream"
-PREVIEW_STREAM_URL = "http://preview.stream"
 FAKE_ACCESS_TOKEN = "test"
 FAKE_ACCOUNT_ID = "123"
 FAKE_ACCOUNT_EMAIL = "test@test.com"
@@ -47,8 +45,6 @@ FAKE_STREAM_ID = "stream"
 HTTP_OK = 200
 HTTP_NO_CONTENT = 204
 VIDEO_CREATED_MSG = "Video Created"
-TEMPLATE_HTML_CONTENT = "Template HTML"
-HLS_DATA_CONTENT = b"hls data"
 
 
 def require_uuid(value: UUID | None) -> UUID:
