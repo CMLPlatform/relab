@@ -140,6 +140,8 @@ If you want camera-assisted capture, see the external plugin repository:
 
 [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
 
+The recommended setup uses **WebSocket relay with automatic pairing** — the RPi connects outbound to the backend, so no public IP or port forwarding is needed. Set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the displayed pairing code in the app. See the [plugin README](https://github.com/CMLPlatform/relab-rpi-cam-plugin) and the [platform camera guide](https://docs.cml-relab.org/user-guides/rpi-cam/) for details.
+
 ## Need Help?
 
 - Docs: [docs.cml-relab.org](https://docs.cml-relab.org)
