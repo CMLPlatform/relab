@@ -2,7 +2,7 @@
   "recommendations": [
     // SHARED
     "KnisterPeter.vscode-commitizen",
-        "biomejs.biome",
+    "biomejs.biome",
 
 
     // BACKEND (backend/)
@@ -14,10 +14,6 @@
     // FRONTEND-WEB (frontend-web/)
     "astro-build.astro-vscode",
     "christian-kohler.npm-intellisense",
-    "biomejs.biome",
-
-    // FRONTEND-APP (frontend-app/)
-    "biomejs.biome",
 
     // DOCS (docs/)
     "bierner.markdown-mermaid",
