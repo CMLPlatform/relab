@@ -1899,7 +1899,7 @@ requires-dist = [
     { name = "python-slugify", specifier = ">=8.0.4" },
     { name = "redis", specifier = ">=5.2.1" },
     { name = "relab-rpi-cam-models", specifier = ">=0.1.1" },
-    { name = "slowapi", git = "https://github.com/simonvanlierde/slowapi" },
+    { name = "slowapi", git = "https://github.com/simonvanlierde/slowapi?rev=3193123f4ffd3faa29786777d102d6d4357b89a3" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "sqlmodel", specifier = ">=0.0.27" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.42.0" },
@@ -2040,7 +2040,7 @@ wheels = [
 [[package]]
 name = "slowapi"
 version = "0.1.9"
-source = { git = "https://github.com/simonvanlierde/slowapi#3193123f4ffd3faa29786777d102d6d4357b89a3" }
+source = { git = "https://github.com/simonvanlierde/slowapi?rev=3193123f4ffd3faa29786777d102d6d4357b89a3#3193123f4ffd3faa29786777d102d6d4357b89a3" }
 dependencies = [
     { name = "limits" },
 ]
