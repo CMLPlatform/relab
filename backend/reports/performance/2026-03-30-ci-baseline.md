@@ -16,4 +16,3 @@
 - This file was generated from the latest CI-stack `k6` summary export.
 - If these numbers replace the prior baseline, keep older docker-dev reports as historical context only.
 - Re-run `just perf-thresholds-apply` if you intentionally want the thresholds to track this new baseline.
-

@@ -33,7 +33,7 @@ async def _execute_redis_operation[T](
     """Run a Redis operation with consistent error handling."""
     try:
         return await operation()
-    except (TimeoutError, RedisError, OSError):
+    except TimeoutError, RedisError, OSError:
         if log_key is None:
             logger.exception("Redis %s failed.", operation_name)
         else:
@@ -62,7 +62,7 @@ async def init_redis() -> Redis | None:
         )
 
         # Verify connection on startup
-        await redis_client.ping()
+        await redis_client.ping()  # ty: ignore[invalid-await] # ping is async in redis.asyncio, known issue with the Redis type annotations
         logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
@@ -98,7 +98,7 @@ async def ping_redis(redis_client: Redis) -> bool:
 
     This is useful for health check endpoints.
     """
-    return await _execute_redis_operation("ping", redis_client.ping, failure_result=False)
+    return await _execute_redis_operation("ping", redis_client.ping, failure_result=False)  # ty: ignore[invalid-argument-type] # ping is async in redis.asyncio, known issue with the Redis type annotations
 
 
 async def get_redis_value(redis_client: Redis, key: str) -> str | None:
@@ -126,6 +126,7 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
     Returns:
         bool: True if successful, False otherwise
     """
+
     async def operation() -> bool:
         await redis_client.set(key, value, ex=ex)
         return True
@@ -143,6 +144,7 @@ async def delete_redis_key(redis_client: Redis, key: str) -> bool:
     Returns:
         bool: True if successful, False otherwise
     """
+
     async def operation() -> bool:
         await redis_client.delete(key)
         return True

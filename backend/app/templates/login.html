@@ -33,7 +33,7 @@
     </div>
 
     <script>
-      const defaultNext = {{ url_for("index") | tojson }}
+      const defaultNext = {{ url_for("index") | string | tojson }}
 
       document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault()
