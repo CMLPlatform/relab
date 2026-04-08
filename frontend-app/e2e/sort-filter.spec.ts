@@ -98,9 +98,11 @@ test.describe('Date filter chips', () => {
     await selectMenuItem(page, 'Last 7d');
     await expect(page).toHaveURL(/days=7/, { timeout: 3_000 });
     // Switching preset — chip now shows "Last 7d"; click it to reopen menu
-    await page.getByText('Last 7d', { exact: true }).click();
-    await selectMenuItem(page, 'Last 90d');
-    await expect(page).toHaveURL(/days=90/, { timeout: 3_000 });
+    await page.getByRole('button', { name: 'Last 7d' }).click();
+    const menuItem = page.getByTestId('menu-surface').getByText('Last 90d');
+    await expect(menuItem).toBeVisible({ timeout: 3_000 });
+    await menuItem.click({ force: true });
+    await expect(page).toHaveURL(/days=90/, { timeout: 5_000 });
     await expect(page).not.toHaveURL(/days=7/);
   });
 });

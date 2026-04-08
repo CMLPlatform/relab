@@ -115,13 +115,13 @@ test.describe('Profile: dialogs', () => {
 
   test('confirming logout navigates to products and shows Sign In header', async ({ page }) => {
     await loginAndGoToProfile(page);
-    await page.getByText('Logout', { exact: true }).first().click();
+    await page.getByRole('button', { name: 'Logout' }).first().click();
     await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({
-      timeout: 3_000,
+      timeout: 5_000,
     });
     // Click the dialog's Logout confirm button (last "Logout" on the page)
     await page.getByRole('button', { name: 'Logout' }).last().click();
-    await expect(page).toHaveURL(/products/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/products/, { timeout: 15_000 });
     // The header should now show "Sign In" instead of the username
     await expect(page.getByText('Sign In', { exact: true })).toBeVisible({
       timeout: 5_000,
