@@ -260,4 +260,4 @@
   default-groups = ["api", "dev"]
 
   [tool.uv.sources]
-    slowapi = { git = "https://github.com/simonvanlierde/slowapi" } # Fork with Python 3.14 deprecation fix; upstream PR: https://github.com/laurentS/slowapi/pull/264
+    slowapi = { git = "https://github.com/simonvanlierde/slowapi", rev = "3193123f4ffd3faa29786777d102d6d4357b89a3" } # Fork with Python 3.14 deprecation fix; upstream PR: https://github.com/laurentS/slowapi/pull/264
