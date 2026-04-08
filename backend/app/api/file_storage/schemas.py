@@ -7,7 +7,12 @@ from urllib.parse import quote
 from fastapi import UploadFile
 from pydantic import AfterValidator, ConfigDict, Field, PositiveInt, model_validator
 
-from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema
+from app.api.common.schemas.base import (
+    BaseCreateSchema,
+    BaseUpdateSchema,
+    IntIdReadSchemaWithTimeStamp,
+    UUIDIdReadSchemaWithTimeStamp,
+)
 from app.api.common.schemas.custom_fields import AnyUrlToDB
 from app.api.file_storage.examples import (
     FILE_READ_WITHIN_PARENT_EXAMPLES,
@@ -101,7 +106,7 @@ class FileCreate(FileCreateWithinParent):
     parent_type: MediaParentType = Field(description=PARENT_TYPE_DESCRIPTION)
 
 
-class FileReadWithinParent(BaseReadSchemaWithTimeStamp, FileBase):
+class FileReadWithinParent(UUIDIdReadSchemaWithTimeStamp, FileBase):
     """Schema for reading file information within a parent object."""
 
     model_config = ConfigDict(json_schema_extra={"examples": FILE_READ_WITHIN_PARENT_EXAMPLES})
@@ -166,7 +171,7 @@ class ImageCreateFromForm(ImageCreateInternal):
     )
 
 
-class ImageReadWithinParent(BaseReadSchemaWithTimeStamp, ImageBase):
+class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
     """Schema for reading image information within a parent object."""
 
     model_config = ConfigDict(json_schema_extra={"examples": IMAGE_READ_WITHIN_PARENT_EXAMPLES})
@@ -232,13 +237,13 @@ class VideoCreate(BaseCreateSchema, VideoBase):
     product_id: PositiveInt
 
 
-class VideoReadWithinProduct(BaseReadSchemaWithTimeStamp, VideoBase):
+class VideoReadWithinProduct(IntIdReadSchemaWithTimeStamp, VideoBase):
     """Schema for reading video information within a product."""
 
     model_config = ConfigDict(json_schema_extra={"examples": VIDEO_READ_WITHIN_PRODUCT_EXAMPLES})
 
 
-class VideoRead(BaseReadSchemaWithTimeStamp, VideoBase):
+class VideoRead(IntIdReadSchemaWithTimeStamp, VideoBase):
     """Schema for reading video information."""
 
     product_id: PositiveInt

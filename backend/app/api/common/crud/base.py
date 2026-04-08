@@ -184,7 +184,7 @@ async def paginate_with_exec(
     total = None
     if raw_params.include_total:
         count_query = select(func.count()).select_from(statement.order_by(None).subquery())
-        total = cast("int", (await db.exec(count_query)).one())
+        total = (await db.exec(count_query)).one()
 
     limit = getattr(raw_params, "limit", None)
     offset = getattr(raw_params, "offset", None)

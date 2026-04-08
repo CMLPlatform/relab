@@ -1,4 +1,5 @@
 """EXIF cleaning and orientation helpers."""
+# spell-checker: ignore getexif
 
 from __future__ import annotations
 

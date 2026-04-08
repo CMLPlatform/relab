@@ -56,7 +56,7 @@ _AUTH_COOKIE_PREFIX = "auth="
 _SET_COOKIE_HEADER = "set-cookie"
 
 # zxcvbn score threshold: 0=very weak, 1=weak, 2=fair, 3=good, 4=strong
-_MIN_PASSWORD_STRENGTH_SCORE = 2
+_MIN_PASSWORD_STRENGTH_SCORE = 1
 
 
 async def _check_pwned_password(password: str, http_client: AsyncClient) -> int:

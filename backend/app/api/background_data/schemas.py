@@ -20,9 +20,9 @@ from app.api.background_data.models import (
 from app.api.common.schemas.associations import MaterialProductLinkReadWithinMaterial
 from app.api.common.schemas.base import (
     BaseCreateSchema,
-    BaseReadSchema,
-    BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
+    IntIdReadSchema,
+    IntIdReadSchemaWithTimeStamp,
     MaterialRead,
     ProductRead,
 )
@@ -66,7 +66,7 @@ class CategoryCreateWithSubCategories(CategoryCreateWithinTaxonomyWithSubCategor
 
 
 ## Read Schemas ##
-class CategoryReadAsSubCategory(BaseReadSchema, CategoryFields):
+class CategoryReadAsSubCategory(IntIdReadSchema, CategoryFields):
     """Schema for reading subcategory information."""
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES})
@@ -150,7 +150,7 @@ class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
 
 
 ## Read Schemas ##
-class TaxonomyRead(BaseReadSchemaWithTimeStamp, TaxonomyFields):
+class TaxonomyRead(IntIdReadSchemaWithTimeStamp, TaxonomyFields):
     """Schema for reading minimal taxonomy information."""
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_EXAMPLES})
@@ -235,7 +235,7 @@ class ProductTypeCreateWithCategories(BaseCreateSchema, ProductTypeBase):
 
 
 ## Read Schemas ##
-class ProductTypeRead(BaseReadSchema, ProductTypeFields):
+class ProductTypeRead(IntIdReadSchema, ProductTypeFields):
     """Schema for reading flat product type information."""
 
 

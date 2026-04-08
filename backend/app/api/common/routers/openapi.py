@@ -13,7 +13,7 @@ from app.api.auth.dependencies import current_active_superuser
 from app.api.common.config import settings as api_settings
 from app.api.common.routers.file_mounts import FAVICON_ROUTE
 from app.core.cache import HTMLCoder, cache
-from app.core.config import CacheNamespace, settings
+from app.core.config import CacheNamespace, Environment, settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -100,8 +100,13 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:
 
     app.include_router(public_docs_router)
 
-    # Full documentation (requires superuser)
-    full_docs_router = APIRouter(prefix="", dependencies=[Security(current_active_superuser)], include_in_schema=False)
+    # Full documentation — requires superuser in staging/prod, open in dev/testing
+    full_docs_deps = (
+        []
+        if settings.environment in (Environment.DEV, Environment.TESTING)
+        else [Security(current_active_superuser)]
+    )
+    full_docs_router = APIRouter(prefix="", dependencies=full_docs_deps, include_in_schema=False)
 
     @full_docs_router.get("/openapi_full.json")
     @cache(expire=settings.cache.ttls[CacheNamespace.DOCS])

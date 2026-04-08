@@ -14,26 +14,34 @@ from app.api.background_data.models import TaxonomyDomain
 
 
 class PhysicalPropertiesFields(BaseModel):
-    """Shared physical property fields for API schemas."""
+    """Shared physical property fields for read schemas.
 
-    weight_g: float | None = Field(default=None, gt=0)
-    height_cm: float | None = Field(default=None, gt=0)
-    width_cm: float | None = Field(default=None, gt=0)
-    depth_cm: float | None = Field(default=None, gt=0)
+    No gt=0 constraints here — validation belongs on write schemas / model base.
+    Read schemas must accept whatever the DB returns.
+    """
+
+    weight_g: float | None = None
+    height_cm: float | None = None
+    width_cm: float | None = None
+    depth_cm: float | None = None
+    volume_cm3: float | None = None
 
 
 class CircularityPropertiesFields(BaseModel):
-    """Shared circularity property fields for API schemas."""
+    """Shared circularity property fields for read schemas.
 
-    recyclability_observation: str | None = Field(default=None, max_length=500)
-    recyclability_comment: str | None = Field(default=None, max_length=100)
-    recyclability_reference: str | None = Field(default=None, max_length=100)
-    repairability_observation: str | None = Field(default=None, max_length=500)
-    repairability_comment: str | None = Field(default=None, max_length=100)
-    repairability_reference: str | None = Field(default=None, max_length=100)
-    remanufacturability_observation: str | None = Field(default=None, max_length=500)
-    remanufacturability_comment: str | None = Field(default=None, max_length=100)
-    remanufacturability_reference: str | None = Field(default=None, max_length=100)
+    No max_length constraints here — validation belongs on write schemas / model base.
+    """
+
+    recyclability_observation: str | None = None
+    recyclability_comment: str | None = None
+    recyclability_reference: str | None = None
+    repairability_observation: str | None = None
+    repairability_comment: str | None = None
+    repairability_reference: str | None = None
+    remanufacturability_observation: str | None = None
+    remanufacturability_comment: str | None = None
+    remanufacturability_reference: str | None = None
 
 
 class ProductFields(BaseModel):

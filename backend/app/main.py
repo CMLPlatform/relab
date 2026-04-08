@@ -24,6 +24,7 @@ from app.api.common.routers.health import router as health_router
 from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.api.file_storage.services.manager import FileCleanupManager
+from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager, set_connection_manager
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.clients import create_http_client
 from app.core.config import settings
@@ -63,6 +64,10 @@ async def initialize_app_state(app: FastAPI) -> None:
     app.state.redis = await init_redis()
     app.state.email_checker = await init_email_checker(app.state.redis)
     init_fastapi_cache(app.state.redis)
+
+    camera_manager = CameraConnectionManager()
+    app.state.camera_connection_manager = camera_manager
+    set_connection_manager(camera_manager)
 
     app.state.file_cleanup_manager = FileCleanupManager(async_sessionmaker_factory)
     await app.state.file_cleanup_manager.initialize()

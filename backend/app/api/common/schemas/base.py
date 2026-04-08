@@ -12,7 +12,12 @@ from pydantic import (
     field_serializer,
 )
 
-from app.api.common.schemas.field_mixins import MaterialFields, ProductFields
+from app.api.common.schemas.field_mixins import (
+    CircularityPropertiesFields,
+    MaterialFields,
+    PhysicalPropertiesFields,
+    ProductFields,
+)
 
 
 ### Common Validation ###
@@ -33,11 +38,28 @@ class BaseCreateSchema(BaseInputSchema):
 
 
 class BaseReadSchema(BaseModel):
-    """Base schema for all read operations."""
+    """Base schema for all read operations.
+
+    Subclasses MUST narrow the ``id`` type to either ``PositiveInt`` or
+    ``UUID4`` so the OpenAPI spec emits the correct JSON-Schema type
+    (``integer`` vs ``string``).  The union kept here is only a fallback.
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
     id: PositiveInt | UUID4
+
+
+class IntIdReadSchema(BaseReadSchema):
+    """Read schema for models with integer primary keys."""
+
+    id: PositiveInt  # type: ignore[assignment]
+
+
+class UUIDIdReadSchema(BaseReadSchema):
+    """Read schema for models with UUID primary keys."""
+
+    id: UUID4  # type: ignore[assignment]
 
 
 class TimestampReadSchemaMixin(BaseModel):
@@ -58,6 +80,14 @@ class BaseReadSchemaWithTimeStamp(BaseReadSchema, TimestampReadSchemaMixin):
     """Base schema for all read operations, including timestamps."""
 
 
+class IntIdReadSchemaWithTimeStamp(IntIdReadSchema, TimestampReadSchemaMixin):
+    """Read schema for integer-PK models with timestamps."""
+
+
+class UUIDIdReadSchemaWithTimeStamp(UUIDIdReadSchema, TimestampReadSchemaMixin):
+    """Read schema for UUID-PK models with timestamps."""
+
+
 class AssociationModelReadSchemaWithTimeStamp(TimestampReadSchemaMixin):
     """Base schema for all read operations on association models, including timestamps.
 
@@ -74,12 +104,12 @@ class BaseUpdateSchema(BaseInputSchema):
 
 
 ## Material Schemas ##
-class MaterialRead(BaseReadSchema, MaterialFields):
+class MaterialRead(IntIdReadSchema, MaterialFields):
     """Schema for reading material information."""
 
 
 ## Product Schemas ##
-class ProductRead(BaseReadSchemaWithTimeStamp, ProductFields):
+class ProductRead(IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, CircularityPropertiesFields):
     """Base schema for reading product information."""
 
     product_type_id: PositiveInt | None = None

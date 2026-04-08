@@ -62,7 +62,7 @@ async def init_redis() -> Redis | None:
         )
 
         # Verify connection on startup
-        await redis_client.pubsub().ping()
+        await redis_client.ping()
         logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
@@ -98,7 +98,7 @@ async def ping_redis(redis_client: Redis) -> bool:
 
     This is useful for health check endpoints.
     """
-    return await _execute_redis_operation("ping", redis_client.pubsub().ping, failure_result=False)
+    return await _execute_redis_operation("ping", redis_client.ping, failure_result=False)
 
 
 async def get_redis_value(redis_client: Redis, key: str) -> str | None:

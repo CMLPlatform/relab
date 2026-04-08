@@ -1,4 +1,5 @@
 """Disposable-email validation service for auth flows."""
+# spell-checker: ignore hget, hset
 
 from __future__ import annotations
 

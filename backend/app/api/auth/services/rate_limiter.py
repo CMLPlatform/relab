@@ -1,17 +1,17 @@
 """Rate limiting configuration using SlowAPI for authentication endpoints."""
 
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.api.auth.config import settings as auth_settings
 from app.core.config import settings as core_settings
+from app.core.middleware.client_ip import get_client_ip
 
 # Create limiter instance
 # Rate limit is expressed as "max_attempts/window_seconds"
 # Example: "5/900second" = 5 attempts per 15 minutes
 
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=get_client_ip,  # Resolves real IP via CF-Connecting-IP (Cloudflare Tunnel)
     default_limits=[],  # No default limits, set per route
     storage_uri=core_settings.cache_url,
     strategy="fixed-window",

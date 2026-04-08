@@ -3,6 +3,7 @@
 This keeps RELab independent from the archived ``fastapi-users-db-sqlmodel``
 package while preserving the small API surface we actually use.
 """
+# spell-checker: ignore UOAP
 
 import uuid
 from typing import TYPE_CHECKING, Any, cast

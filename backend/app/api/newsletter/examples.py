@@ -1,4 +1,5 @@
 """Centralized OpenAPI examples for newsletter schemas and routers."""
+# spell-checker: ignore eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
 
 from __future__ import annotations
 
