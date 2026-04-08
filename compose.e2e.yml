@@ -35,7 +35,7 @@ services:
       # To ensure that the backend has access to user uploads (for testing upload functionality with real files)
       - user_uploads:/opt/relab/backend/data/uploads
     healthcheck:
-      test: [ "CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=5).status == 200 else 1)" ]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/live', timeout=5)" ]
       interval: 10s
       timeout: 5s
       start_period: 30s
