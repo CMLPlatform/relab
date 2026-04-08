@@ -35,8 +35,12 @@ class TestOpenAPIEndpoints:
         assert "/admin/newsletter/subscribers" not in payload["paths"]
         assert "/newsletter/subscribe" not in payload["paths"]
 
-        categories_include_param = payload["paths"]["/categories"]["get"]["parameters"][0]
-        assert categories_include_param["examples"]["all"]["value"] == ["materials", "product_types", "subcategories"]
+        categories_name_filter_param = next(
+            parameter
+            for parameter in payload["paths"]["/categories"]["get"]["parameters"]
+            if parameter["name"] == "name__ilike"
+        )
+        assert categories_name_filter_param["schema"]["anyOf"][0]["type"] == "string"
 
         category_schema_examples = payload["components"]["schemas"]["CategoryRead"]["examples"]
         assert category_schema_examples[0]["taxonomy_id"] == 1
@@ -67,9 +71,9 @@ class TestOpenAPIEndpoints:
         refresh_response_examples = payload["components"]["schemas"]["RefreshTokenResponse"]["examples"]
         assert refresh_response_examples[0]["token_type"] == "bearer"
 
-    async def test_full_openapi_json_can_be_generated(self, superuser_client: AsyncClient) -> None:
-        """The full OpenAPI schema endpoint should render successfully for a superuser."""
-        response = await superuser_client.get("/openapi_full.json")
+    async def test_full_openapi_json_can_be_generated(self, async_client: AsyncClient) -> None:
+        """The full OpenAPI schema endpoint should render successfully in dev/test."""
+        response = await async_client.get("/openapi_full.json")
 
         assert response.status_code == status.HTTP_200_OK
         payload = response.json()
@@ -94,12 +98,12 @@ class TestOpenAPIEndpoints:
         newsletter_preference_examples = payload["components"]["schemas"]["NewsletterPreferenceRead"]["examples"]
         assert newsletter_preference_examples[0]["subscribed"] is True
 
-        admin_users_include_param = next(
+        admin_users_email_filter_param = next(
             parameter
             for parameter in payload["paths"]["/admin/users"]["get"]["parameters"]
-            if parameter["name"] == "include"
+            if parameter["name"] == "email__ilike"
         )
-        assert admin_users_include_param["examples"]["all"]["value"] == ["products", "organization"]
+        assert admin_users_email_filter_param["schema"]["anyOf"][0]["type"] == "string"
 
         admin_users_response_examples = payload["paths"]["/admin/users"]["get"]["responses"]["200"]["content"][
             "application/json"
