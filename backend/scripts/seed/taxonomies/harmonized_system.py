@@ -100,7 +100,9 @@ def seed_taxonomy() -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.exec(select(func.count(Category.id)).where(Category.taxonomy_id == taxonomy.id)).one()
+        existing_count = session.exec(
+            select(func.count()).select_from(Category).where(Category.taxonomy_id == taxonomy.id)
+        ).one()
 
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
