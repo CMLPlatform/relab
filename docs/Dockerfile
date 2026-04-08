@@ -17,6 +17,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy source files
 COPY zensical.toml ./
 COPY docs ./docs
+COPY overrides ./overrides
 
 # Inject the current year into the copyright string.
 # zensical.toml uses <year> as a placeholder since zensical does not yet
