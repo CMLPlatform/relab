@@ -57,14 +57,3 @@ class OrganizationFilter(Filter):
         ]
 
 
-class UserFilterWithRelationships(UserFilter):
-    """FastAPI-filter class for User filtering with relationships."""
-
-    organization: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
-
-
-class OrganizationFilterWithRelationships(OrganizationFilter):
-    """FastAPI-filter class for Organization filtering with relationships."""
-
-    owner: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
-    members: UserFilter | None = FilterDepends(with_prefix("users", UserFilter))

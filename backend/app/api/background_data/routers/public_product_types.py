@@ -4,17 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Path, Query
+from fastapi import Path
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from pydantic import UUID4, PositiveInt
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, ProductTypeFilterWithRelationshipsDep
-from app.api.background_data.examples import (
-    BACKGROUND_DATA_RESOURCE_INCLUDE_OPENAPI_EXAMPLES,
-    TAXONOMY_CATEGORY_INCLUDE_OPENAPI_EXAMPLES,
-)
 from app.api.background_data.models import Category, CategoryProductTypeLink, ProductType
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, ProductTypeReadWithRelationships
@@ -33,24 +29,17 @@ router = BackgroundDataAPIRouter(prefix="/product-types", tags=["product-types"]
 @router.get(
     "",
     response_model=Page[ProductTypeReadWithRelationships],
-    summary="Get all product types",
+    summary="Get all product types with all relationships",
 )
 async def get_product_types(
     session: AsyncSessionDep,
     product_type_filter: ProductTypeFilterWithRelationshipsDep,
-    include: Annotated[
-        set[str] | None,
-        Query(
-            description="Relationships to include",
-            openapi_examples=BACKGROUND_DATA_RESOURCE_INCLUDE_OPENAPI_EXAMPLES,
-        ),
-    ] = None,
 ) -> Page[ProductType]:
-    """Get a list of all product types."""
+    """Get a list of all product types with all relationships loaded."""
     return await get_paginated_models(
         session,
         ProductType,
-        include_relationships=include,
+        include_relationships={"categories", "images", "files"},
         model_filter=product_type_filter,
         read_schema=ProductTypeReadWithRelationships,
     )
@@ -59,25 +48,18 @@ async def get_product_types(
 @router.get(
     "/{product_type_id}",
     response_model=ProductTypeReadWithRelationships,
-    summary="Get product type by ID",
+    summary="Get product type by ID with all relationships",
 )
 async def get_product_type(
     session: AsyncSessionDep,
     product_type_id: PositiveInt,
-    include: Annotated[
-        set[str] | None,
-        Query(
-            description="Relationships to include",
-            openapi_examples=BACKGROUND_DATA_RESOURCE_INCLUDE_OPENAPI_EXAMPLES,
-        ),
-    ] = None,
 ) -> ProductType:
-    """Get a single product type by ID with its categories and products."""
+    """Get a single product type by ID with all relationships loaded."""
     return await get_model_by_id(
         session,
         ProductType,
         product_type_id,
-        include_relationships=include,
+        include_relationships={"categories", "images", "files"},
         read_schema=ProductTypeReadWithRelationships,
     )
 
@@ -91,10 +73,6 @@ async def get_product_type_categories(
     product_type_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=TAXONOMY_CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Sequence[Category]:
     """Get categories linked to a product type."""
     return await get_linked_models(
@@ -104,7 +82,6 @@ async def get_product_type_categories(
         Category,
         CategoryProductTypeLink,
         "product_type_id",
-        include_relationships=include,
         model_filter=category_filter,
         read_schema=CategoryRead,
     )
@@ -119,10 +96,6 @@ async def get_product_type_category(
     product_type_id: PositiveInt,
     category_id: PositiveInt,
     session: AsyncSessionDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=TAXONOMY_CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Category:
     """Get a product type category by ID."""
     return await get_linked_model_by_id(
@@ -134,7 +107,6 @@ async def get_product_type_category(
         CategoryProductTypeLink,
         "product_type_id",
         "category_id",
-        include=include,
         read_schema=CategoryRead,
     )
 

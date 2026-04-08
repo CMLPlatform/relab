@@ -66,7 +66,7 @@ class CategoryFilterWithRelationships(CategoryFilter):
     """FastAPI-filter class for Category filtering, with linked relationships."""
 
     # Linked relationships
-    taxonomy: CategoryFilter | None = FilterDepends(with_prefix("taxonomy", CategoryFilter))
+    taxonomy: TaxonomyFilter | None = FilterDepends(with_prefix("taxonomy", TaxonomyFilter))
 
 
 class MaterialFilter(TSVectorSearchMixin, Filter):

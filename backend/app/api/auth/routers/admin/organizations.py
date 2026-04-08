@@ -2,14 +2,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Security
+from fastapi import APIRouter, Security
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from pydantic import UUID4
 
 from app.api.auth import crud
 from app.api.auth.dependencies import current_active_superuser
-from app.api.auth.examples import ORGANIZATION_INCLUDE_OPENAPI_EXAMPLES
 from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization
 from app.api.auth.schemas import OrganizationReadWithRelationships
@@ -19,45 +18,31 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
 
-@router.get("", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations")
+@router.get("", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations with all relationships")
 async def get_all_organizations(
     session: AsyncSessionDep,
     org_filter: Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)],
-    include: Annotated[
-        set[str] | None,
-        Query(
-            description="Relationships to include",
-            openapi_examples=ORGANIZATION_INCLUDE_OPENAPI_EXAMPLES,
-        ),
-    ] = None,
 ) -> Page[Organization]:
-    """Get all organizations with optional relationships. Only superusers can access this route."""
+    """Get all organizations with all relationships loaded. Only superusers can access this route."""
     return await crud.get_organizations(
         session,
-        include_relationships=include,
+        include_relationships={"members"},
         model_filter=org_filter,
         read_schema=OrganizationReadWithRelationships,
     )
 
 
-@router.get("/{organization_id}", response_model=OrganizationReadWithRelationships, summary="Get organization by ID")
+@router.get("/{organization_id}", response_model=OrganizationReadWithRelationships, summary="Get organization by ID with all relationships")
 async def get_organization_with_relationships(
     organization_id: UUID4,
     session: AsyncSessionDep,
-    include: Annotated[
-        set[str] | None,
-        Query(
-            description="Relationships to include",
-            openapi_examples=ORGANIZATION_INCLUDE_OPENAPI_EXAMPLES,
-        ),
-    ] = None,
 ) -> Organization:
-    """Get organization by ID with optional relationships. Only superusers can access this route."""
+    """Get organization by ID with all relationships loaded. Only superusers can access this route."""
     return await get_model_by_id(
         session,
         Organization,
         organization_id,
-        include_relationships=include,
+        include_relationships={"members"},
         read_schema=OrganizationReadWithRelationships,
     )
 

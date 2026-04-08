@@ -146,18 +146,14 @@ async def get_category_subtree(
 @router.get(
     "/{category_id}/subcategories/{subcategory_id}",
     response_model=CategoryReadWithRelationshipsAndFlatSubCategories,
-    summary="Get subcategory by ID",
+    summary="Get subcategory by ID with all relationships",
 )
 async def get_subcategory(
     category_id: PositiveInt,
     subcategory_id: PositiveInt,
     session: AsyncSessionDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Category:
-    """Get subcategory by ID with specified relationships."""
+    """Get subcategory by ID with all relationships loaded."""
     return await get_nested_model_by_id(
         session,
         Category,
@@ -165,6 +161,6 @@ async def get_subcategory(
         Category,
         subcategory_id,
         "supercategory_id",
-        include_relationships=include,
+        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )

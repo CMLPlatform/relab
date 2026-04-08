@@ -131,6 +131,3 @@ class ProductRead(IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertie
 
 class ComponentRead(ProductRead):
     """Base schema for reading component information."""
-
-    parent_id: PositiveInt | None = None
-    amount_in_parent: int | None = Field(default=None, description="Quantity within parent product")

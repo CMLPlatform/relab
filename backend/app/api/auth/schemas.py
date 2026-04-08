@@ -132,12 +132,6 @@ class UserReadWithOrganization(UserRead):
     organization: OrganizationRead | None = Field(default=None, description="Organization the user belongs to.")
 
 
-class UserReadWithRelationships(UserReadWithOrganization):
-    """Read schema for users, including relationships."""
-
-    products: list[ProductRead] = Field(default_factory=list, description="List of products owned by the user.")
-
-
 class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 

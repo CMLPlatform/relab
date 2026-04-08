@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, cast
 
-from fastapi import Depends, Query
+from fastapi import Depends
 from fastapi_pagination import Page, Params, create_page
 from pydantic import PositiveInt
 from sqlmodel import select
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, TaxonomyFilterDep
-from app.api.background_data.examples import CATEGORY_INCLUDE_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category, Taxonomy
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
@@ -86,10 +85,6 @@ async def get_taxonomy_categories(
     taxonomy_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Page[Category]:
     """Get taxonomy categories with optional filtering."""
     await get_model_by_id(session, Taxonomy, taxonomy_id)
@@ -97,7 +92,6 @@ async def get_taxonomy_categories(
     return await get_paginated_models(
         session,
         Category,
-        include_relationships=include,
         model_filter=category_filter,
         statement=statement,
         read_schema=CategoryRead,
@@ -113,10 +107,6 @@ async def get_taxonomy_category_by_id(
     taxonomy_id: PositiveInt,
     category_id: PositiveInt,
     session: AsyncSessionDep,
-    include: Annotated[
-        set[str] | None,
-        Query(description="Relationships to include", openapi_examples=CATEGORY_INCLUDE_OPENAPI_EXAMPLES),
-    ] = None,
 ) -> Category:
     """Get a taxonomy category by ID."""
     return await get_nested_model_by_id(
@@ -126,6 +116,5 @@ async def get_taxonomy_category_by_id(
         Category,
         category_id,
         "taxonomy_id",
-        include_relationships=include,
         read_schema=CategoryRead,
     )

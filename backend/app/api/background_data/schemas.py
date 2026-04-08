@@ -242,7 +242,6 @@ class ProductTypeRead(IntIdReadSchema, ProductTypeFields):
 class ProductTypeReadWithRelationships(ProductTypeRead):
     """Schema for reading product type information with all relationships."""
 
-    products: list[ProductRead] = Field(default_factory=list)
     categories: list[CategoryRead] = Field(default_factory=list)
     images: list[ImageRead] = Field(default_factory=list)
     files: list[FileRead] = Field(default_factory=list)
