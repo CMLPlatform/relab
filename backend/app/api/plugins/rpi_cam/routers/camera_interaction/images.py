@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from fastapi import Body
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 from pydantic import UUID4, PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -19,7 +19,6 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
     build_camera_request,
     get_user_owned_camera,
-    stream_from_camera_url,
 )
 from app.api.plugins.rpi_cam.services import capture_and_store_image
 
@@ -54,31 +53,6 @@ async def get_camera_snapshot(
         content=response.content,
         media_type="image/jpeg",
         headers={"Cache-Control": "no-store"},
-    )
-
-
-### MJPEG stream (web viewfinder) ###
-@router.get(
-    "/{camera_id}/stream/mjpeg",
-    summary="Proxy MJPEG stream from RPi camera (HTTP cameras only)",
-    description="Streams continuous MJPEG frames for live viewfinder preview. "
-    "WebSocket-relay cameras are not supported (returns 501).",
-    responses={200: {"content": {"multipart/x-mixed-replace; boundary=frame": {}}}},
-)
-async def stream_camera_mjpeg(
-    camera_id: UUID4,
-    session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
-    current_user: CurrentActiveUserDep,
-) -> StreamingResponse:
-    """Proxy MJPEG stream from an HTTP-mode RPi camera."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    return await stream_from_camera_url(
-        camera=camera,
-        endpoint="/images/mjpeg",
-        method=HttpMethod.GET,
-        http_client=http_client,
-        error_msg="Failed to start MJPEG stream",
     )
 
 

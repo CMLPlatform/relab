@@ -3,10 +3,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import Body, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from httpx import QueryParams
+from fastapi import Body, HTTPException
 from pydantic import UUID4, PositiveInt, ValidationError
 from relab_rpi_cam_models.stream import StreamMode, StreamView
 from sqlmodel import select
@@ -36,7 +33,6 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
     build_camera_request,
     get_user_owned_camera,
-    stream_from_camera_url,
 )
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import (
@@ -49,20 +45,12 @@ from app.api.plugins.rpi_cam.services import (
     serialize_stream_metadata,
     store_recording_session,
 )
-from app.core.config import settings
 from app.core.logging import sanitize_log_value
 from app.core.redis import OptionalRedisDep, require_redis
-
-# Initialize templates
-templates = Jinja2Templates(directory=settings.templates_path)
 
 # Initialize router
 router = PublicAPIRouter()
 logger = logging.getLogger(__name__)
-
-### Constants ###
-HLS_MANIFEST_FILENAME = "master.m3u8"
-MAX_PREVIEW_STREAM_LENGTH_SECONDS = 7200  # 2 hours
 
 
 ### Common endpoints ###
@@ -184,7 +172,6 @@ async def start_recording(
         endpoint="/stream/start",
         method=HttpMethod.POST,
         error_msg="Failed to start stream",
-        query_params=QueryParams({"mode": StreamMode.YOUTUBE.value}),
         body=youtube_config.model_dump(exclude={"stream_id"}),
     )
     try:
@@ -214,7 +201,6 @@ async def start_recording(
                 endpoint="/stream/stop",
                 method=HttpMethod.DELETE,
                 error_msg="Failed to roll back stream after recording session storage failure",
-                query_params=QueryParams({"mode": StreamMode.YOUTUBE.value}),
             )
         except HTTPException as cleanup_error:
             logger.warning(
@@ -268,7 +254,6 @@ async def stop_recording(
         endpoint="/stream/stop",
         method=HttpMethod.DELETE,
         error_msg="Failed to stop stream",
-        query_params=QueryParams({"mode": StreamMode.YOUTUBE.value}),
     )
 
     await youtube_service.end_livestream(recording_session.broadcast_key)
@@ -324,105 +309,3 @@ async def get_recording_monitor_stream(
 
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
     return await youtube_service.get_broadcast_monitor_stream(stream_info.youtube_config.broadcast_key)
-
-
-### Local stream preview ###
-@router.post(
-    "/{camera_id}/stream/preview/start", response_model=StreamView, status_code=201, summary="Start preview stream"
-)
-async def start_preview(
-    camera_id: UUID4,
-    session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
-    current_user: CurrentActiveUserDep,
-) -> StreamView:
-    """Start local HLS preview stream. Stream will not be recorded."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
-    response = await camera_request(
-        endpoint="/stream/start",
-        method=HttpMethod.POST,
-        error_msg="Failed to start stream",
-        query_params=QueryParams({"mode": StreamMode.LOCAL.value}),
-    )
-    try:
-        return StreamView.model_validate(response.json())
-    except ValidationError as e:
-        raise InvalidCameraResponseError(e.json()) from e
-
-
-@router.delete("/{camera_id}/stream/preview/stop", status_code=204, summary="Stop preview stream")
-async def stop_preview(
-    camera_id: UUID4,
-    session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
-    current_user: CurrentActiveUserDep,
-) -> None:
-    """Stop recording and save video to database."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
-
-    await camera_request(
-        endpoint="/stream/stop",
-        method=HttpMethod.DELETE,
-        error_msg="Failed to stop stream",
-        query_params=QueryParams({"mode": StreamMode.LOCAL.value}),
-    )
-
-
-@router.get(
-    "/{camera_id}/stream/preview/hls/{file_path:path}",
-    summary="Access HLS stream files from camera",
-    description="Fetches and serves HLS stream files (.m3u8, .ts) from the camera",
-)
-async def hls_file_proxy(
-    camera_id: UUID4,
-    file_path: str,
-    session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
-    current_user: CurrentActiveUserDep,
-) -> Response:
-    """Proxy HLS files from camera to client."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    response = await stream_from_camera_url(
-        camera=camera,
-        endpoint=f"/stream/hls/{file_path}",
-        method=HttpMethod.GET,
-        http_client=http_client,
-        error_msg=f"Failed to get HLS file {file_path}",
-    )
-
-    response.headers.update(
-        {
-            "Cache-Control": "no-cache, no-store, must-revalidate"
-            if file_path.endswith(".m3u8")  # Cache .ts segments but not playlists
-            else f"max-age={MAX_PREVIEW_STREAM_LENGTH_SECONDS}",
-        }
-    )
-    return response
-
-
-@router.get(
-    "/{camera_id}/stream/preview/watch",
-    response_class=HTMLResponse,
-    summary="Watch preview stream",
-    description="Returns HTML viewer for remote HLS stream.",
-)
-async def watch_preview(
-    request: Request,
-    camera_id: UUID4,
-    session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
-    current_user: CurrentActiveUserDep,
-) -> HTMLResponse:
-    """Serve HLS stream viewer from camera.
-
-    Note: HTML viewer makes authenticated requests directly to camera's stream endpoint.
-    """
-    # Validate camera ownership
-    await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-
-    return templates.TemplateResponse(
-        "plugins/rpi_cam/remote_stream_viewer.html",
-        {"request": request, "camera_id": camera_id, "hls_manifest_file": HLS_MANIFEST_FILENAME},
-    )

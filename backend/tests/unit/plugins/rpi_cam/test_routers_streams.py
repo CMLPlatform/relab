@@ -19,13 +19,9 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
     YouTubePrivacyStatus,
     get_camera_stream_status,
     get_recording_monitor_stream,
-    hls_file_proxy,
-    start_preview,
     start_recording,
     stop_all_streams,
-    stop_preview,
     stop_recording,
-    watch_preview,
 )
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import YoutubeStreamConfigWithID
@@ -375,89 +371,3 @@ class TestCameraStreamRouters:
         assert result == monitor_stream
         mock_yt_service.get_broadcast_monitor_stream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
 
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
-    async def test_start_preview(
-        self, mock_build_camera_request: MagicMock, mock_get_cam: MagicMock, mock_camera: Camera
-    ) -> None:
-        """Test starting a local preview stream."""
-        mock_get_cam.return_value = mock_camera
-
-        session_mock = AsyncMock()
-        http_client = AsyncMock()
-        user_mock = build_user()
-        camera_id = require_uuid(mock_camera.id)
-
-        mock_camera_request = AsyncMock(
-            return_value=Response(
-                HTTP_OK,
-                json={
-                    "url": PREVIEW_STREAM_URL,
-                    "mode": "local",
-                    "started_at": "2026-02-26T10:00:00Z",
-                    "metadata": {"camera_properties": {}, "capture_metadata": {}},
-                },
-            )
-        )
-        mock_build_camera_request.return_value = mock_camera_request
-
-        result = await start_preview(camera_id, session_mock, http_client, user_mock)
-        assert str(result.url) == f"{PREVIEW_STREAM_URL}/"
-
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
-    async def test_stop_preview(
-        self, mock_build_camera_request: MagicMock, mock_get_cam: MagicMock, mock_camera: Camera
-    ) -> None:
-        """Test stopping the local preview stream."""
-        mock_get_cam.return_value = mock_camera
-
-        session_mock = AsyncMock()
-        http_client = AsyncMock()
-        user_mock = build_user()
-        camera_id = require_uuid(mock_camera.id)
-
-        mock_camera_request = AsyncMock(return_value=Response(HTTP_NO_CONTENT))
-        mock_build_camera_request.return_value = mock_camera_request
-
-        await stop_preview(camera_id, session_mock, http_client, user_mock)
-        mock_camera_request.assert_awaited_once()
-
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.stream_from_camera_url")
-    async def test_hls_file_proxy(
-        self, mock_stream_from_camera_url: MagicMock, mock_get_cam: MagicMock, mock_camera: Camera
-    ) -> None:
-        """Test proxying HLS files from the camera to the client."""
-        mock_get_cam.return_value = mock_camera
-        mock_stream_from_camera_url.return_value = Response(
-            HTTP_OK,
-            content=HLS_DATA_CONTENT,
-            headers={"content-type": "application/vnd.apple.mpegurl"},  # spell-checker: ignore mpegurl
-        )
-
-        session_mock = AsyncMock()
-        http_client = AsyncMock()
-        user_mock = build_user()
-        camera_id = require_uuid(mock_camera.id)
-
-        result = await hls_file_proxy(camera_id, TEST_PLAYLIST_FILE, session_mock, http_client, user_mock)
-        assert result.status_code == HTTP_OK
-        assert isinstance(result, Response)
-        assert result.content == HLS_DATA_CONTENT
-
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.templates")
-    async def test_watch_preview(self, mock_templates: MagicMock, mock_get_cam: MagicMock, mock_camera: Camera) -> None:
-        """Test rendering the preview watch page."""
-        mock_get_cam.return_value = mock_camera
-        mock_templates.TemplateResponse.return_value = TEMPLATE_HTML_CONTENT
-
-        session_mock = AsyncMock()
-        user_mock = build_user()
-        http_client_mock = AsyncMock()
-        request_mock = AsyncMock(spec=Request)
-        camera_id = require_uuid(mock_camera.id)
-
-        result = await watch_preview(request_mock, camera_id, session_mock, http_client_mock, user_mock)
-        assert result == TEMPLATE_HTML_CONTENT

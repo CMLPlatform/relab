@@ -9,10 +9,8 @@ from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 from fastapi import HTTPException
-from fastapi.responses import StreamingResponse
 from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, RequestError
 from httpx import Response as HTTPXResponse
-from starlette.background import BackgroundTask
 
 from app.api.common.ownership import get_user_owned_object
 from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
@@ -149,101 +147,6 @@ async def _fetch_from_camera_via_http(
         raise CameraProxyRequestError(endpoint, str(e)) from e
     else:
         return response
-
-
-async def stream_from_camera_url(
-    camera: Camera,
-    endpoint: str,
-    method: HttpMethod,
-    http_client: AsyncClient,
-    headers: Headers | None = None,
-    error_msg: str | None = None,
-    query_params: QueryParams | None = None,
-    body: dict | None = None,
-    *,
-    follow_redirects: bool = True,
-) -> StreamingResponse:
-    """Stream camera bytes without buffering the full payload in memory.
-
-    Note: streaming is not supported for WebSocket-mode cameras (HLS/YouTube
-    streaming requires the camera to be reachable over HTTP).
-    """
-    if camera.connection_mode == ConnectionMode.WEBSOCKET:
-        raise HTTPException(
-            status_code=501,
-            detail="Streaming is not supported for WebSocket-relay cameras.",
-        )
-
-    if headers is None:
-        headers = Headers()
-    headers.update({key: value.get_secret_value() for key, value in camera.auth_headers.items()})
-
-    return await _stream_from_camera_via_http(
-        http_client,
-        camera,
-        endpoint,
-        method,
-        headers,
-        error_msg,
-        query_params,
-        body,
-        follow_redirects=follow_redirects,
-    )
-
-
-async def _stream_from_camera_via_http(
-    client: AsyncClient,
-    camera: Camera,
-    endpoint: str,
-    method: HttpMethod,
-    headers: Headers,
-    error_msg: str | None,
-    query_params: QueryParams | None,
-    body: dict | None,
-    *,
-    follow_redirects: bool,
-) -> StreamingResponse:
-    """Create a streaming response for an HTTP camera request."""
-    try:
-        url = urljoin(str(camera.url), endpoint)
-        request_headers = Headers(client.headers)
-        request_headers.update(headers)
-        request = client.build_request(
-            method.value,
-            url,
-            params=query_params,
-            json=body,
-            headers=request_headers,
-        )
-        response = await client.send(request, stream=True, follow_redirects=follow_redirects)
-        response.raise_for_status()
-    except HTTPStatusError as e:
-        if error_msg is None:
-            error_msg = f"Failed to {method.value} {endpoint}"
-        raise HTTPException(
-            status_code=e.response.status_code,
-            detail={"main API": error_msg, "Camera API": _extract_camera_error_detail(e.response)},
-        ) from e
-    except RequestError as e:
-        logger = logging.getLogger(__name__)
-        logger.warning(
-            "Network error contacting camera %s%s: %s",
-            sanitize_log_value(camera.url),
-            sanitize_log_value(endpoint),
-            sanitize_log_value(e),
-        )
-        raise CameraProxyRequestError(endpoint, str(e)) from e
-    else:
-        # Forward only content-related headers; skip hop-by-hop and server
-        # metadata headers that would duplicate the backend's own values.
-        skip = {"server", "date", "transfer-encoding", "connection", "keep-alive"}
-        proxy_headers = {k: v for k, v in response.headers.items() if k.lower() not in skip}
-        return StreamingResponse(
-            response.aiter_bytes(),
-            status_code=response.status_code,
-            headers=proxy_headers,
-            background=BackgroundTask(response.aclose),
-        )
 
 
 def _extract_camera_error_detail(response: HTTPXResponse) -> str | dict | list | None:

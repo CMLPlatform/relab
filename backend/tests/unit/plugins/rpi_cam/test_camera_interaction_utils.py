@@ -6,14 +6,11 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
-from httpx import AsyncClient, ConnectError, MockTransport, Request, Response
-
-from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
+from httpx import AsyncClient, MockTransport, Request, Response
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
     fetch_from_camera_url,
-    stream_from_camera_url,
 )
 from app.api.plugins.rpi_cam.utils.encryption import encrypt_str
 
@@ -61,37 +58,6 @@ async def test_fetch_from_camera_url_uses_http_transport() -> None:
 
 
 @pytest.mark.asyncio
-async def test_stream_from_camera_url_streams_http_response() -> None:
-    """Streaming requests should proxy bytes without buffering the full body."""
-    request_log: list[Request] = []
-    async with AsyncClient(
-        transport=build_transport(
-            Response(200, content=b"hls data", headers={"content-type": "video/mp2t"}), request_log
-        )
-    ) as client:
-        camera = build_camera()
-
-        response = await stream_from_camera_url(
-            camera,
-            endpoint="/stream/hls/master.m3u8",
-            method=HttpMethod.GET,
-            http_client=client,
-        )
-
-        content = bytearray()
-        async for chunk in response.body_iterator:
-            if isinstance(chunk, (bytes, bytearray, memoryview)):
-                content.extend(chunk)
-            else:
-                content.extend(chunk.encode())
-
-    assert response.status_code == 200
-    assert bytes(content) == b"hls data"
-    assert len(request_log) == 1
-    assert str(request_log[0].url) == "http://example.com/stream/hls/master.m3u8"
-
-
-@pytest.mark.asyncio
 async def test_fetch_from_camera_url_handles_non_json_error_body() -> None:
     """Non-JSON camera errors should still produce a clean HTTPException."""
     request_log: list[Request] = []
@@ -114,22 +80,3 @@ async def test_fetch_from_camera_url_handles_non_json_error_body() -> None:
     assert detail["Camera API"] == "camera upstream failed"
 
 
-@pytest.mark.asyncio
-async def test_stream_from_camera_url_handles_non_json_error_body() -> None:
-    """Streaming camera errors should not crash when the upstream body is not JSON."""
-    transport = MockTransport(lambda request: (_ for _ in ()).throw(ConnectError("temporary outage", request=request)))
-
-    async with AsyncClient(transport=transport) as client:
-        camera = build_camera()
-
-        with pytest.raises(CameraProxyRequestError) as exc_info:
-            await stream_from_camera_url(
-                camera,
-                endpoint="/stream/hls/master.m3u8",
-                method=HttpMethod.GET,
-                http_client=client,
-            )
-
-    assert exc_info.value.http_status_code == 503
-    assert exc_info.value.message == "Network error contacting camera: /stream/hls/master.m3u8"
-    assert exc_info.value.details == "temporary outage"
