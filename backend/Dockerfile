@@ -1,7 +1,7 @@
 # --- Builder stage ---
 FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
 
-# Install git for custom dependencies (fastapi-users-db-sqlmodel)
+# Install git for custom dependencies (slowapi fork)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -42,8 +42,8 @@ WORKDIR $WORKDIR
 RUN mkdir -p logs data/uploads/files data/uploads/images \
     && chown -R $APP_USER:$APP_USER logs data
 
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
+COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
+COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
 
 # spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \

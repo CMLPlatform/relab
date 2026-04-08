@@ -42,8 +42,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # --- Final runtime ---
 FROM caddy:2-alpine
 
-COPY --from=builder /opt/relab/docs/site /srv
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY --link --from=builder /opt/relab/docs/site /srv
+COPY --link Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8000
 
