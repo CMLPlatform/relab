@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 from httpx import AsyncClient, MockTransport, Request, Response
+
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
     HttpMethod,
@@ -78,5 +79,3 @@ async def test_fetch_from_camera_url_handles_non_json_error_body() -> None:
     detail = exc_info.value.detail
     assert isinstance(detail, dict)
     assert detail["Camera API"] == "camera upstream failed"
-
-

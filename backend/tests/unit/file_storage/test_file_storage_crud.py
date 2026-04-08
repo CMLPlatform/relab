@@ -14,7 +14,6 @@ from pydantic import HttpUrl
 from app.api.data_collection.models.product import Product
 from app.api.file_storage import crud
 from app.api.file_storage.crud import (
-    ParentFileCrud,
     ParentImageCrud,
     create_file,
     delete_file,

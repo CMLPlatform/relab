@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import Request
 from httpx import Response
 
 from app.api.auth.models import OAuthAccount, User
@@ -370,4 +369,3 @@ class TestCameraStreamRouters:
         result = await get_recording_monitor_stream(camera_id, session_mock, http_client, user_mock)
         assert result == monitor_stream
         mock_yt_service.get_broadcast_monitor_stream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
-
