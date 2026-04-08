@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi_filter.contrib.sqlalchemy import Filter
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.background_data.models import Material
 from app.api.common.crud.base import (

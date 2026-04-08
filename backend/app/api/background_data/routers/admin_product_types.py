@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
 router = APIRouter(prefix="/product-types", tags=["product-types"])
 
+
 @router.post(
     "",
     response_model=ProductTypeRead,
@@ -144,6 +145,7 @@ async def remove_category_from_product_type(
 ) -> None:
     """Remove a single category from a product type."""
     await crud.remove_categories_from_product_type(session, product_type_id, category_id)
+
 
 @router.post(
     "/{product_type_id}/files",

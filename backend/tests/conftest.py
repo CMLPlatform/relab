@@ -40,9 +40,9 @@ from alembic import command
 from alembic.config import Config
 from loguru import logger as loguru_logger
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession as SQLModelAsyncSession
 from testcontainers.postgres import PostgresContainer
 
 from app.core.logging import LOG_FORMAT, setup_logging
@@ -246,7 +246,7 @@ async def session(_setup_test_database: None, async_engine: AsyncEngine) -> Asyn
 
         session_factory = async_sessionmaker(
             bind=connection,
-            class_=AsyncSession,
+            class_=SQLModelAsyncSession,  # Bridge: rpi_cam still uses .exec()
             autocommit=False,
             autoflush=False,
             expire_on_commit=False,

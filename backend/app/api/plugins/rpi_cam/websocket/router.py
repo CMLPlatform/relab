@@ -34,8 +34,8 @@ _WS_TEXT = "text"
 _WS_BYTES = "bytes"
 
 # ── Heartbeat (M2) ────────────────────────────────────────────────────────────
-_HEARTBEAT_INTERVAL = 30.0   # seconds between backend→camera pings
-_HEARTBEAT_TIMEOUT = 90.0    # seconds without a pong before disconnecting
+_HEARTBEAT_INTERVAL = 30.0  # seconds between backend→camera pings
+_HEARTBEAT_TIMEOUT = 90.0  # seconds without a pong before disconnecting
 
 # ── Auth rate limiting (L1) ───────────────────────────────────────────────────
 # In-memory; resets on restart. Sufficient for the expected connection pattern

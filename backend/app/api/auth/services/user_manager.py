@@ -11,7 +11,7 @@ from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, s
 from fastapi_users.manager import BaseUserManager
 from httpx import AsyncClient, HTTPError
 from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.crud.users import update_user_override
@@ -113,8 +113,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 
         if not is_email:
             statement = select(User).where(User.username == credentials.username)
-            result = await self.user_db.session.exec(statement)
-            db_user = result.unique().one_or_none()
+            result = await self.user_db.session.execute(statement)
+            db_user = result.scalars().unique().one_or_none()
             if db_user:
                 credentials.username = db_user.email
         return await super().authenticate(credentials)

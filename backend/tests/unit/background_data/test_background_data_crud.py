@@ -112,17 +112,15 @@ class TestTaxonomyDomainValidation:
             taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS, TaxonomyDomain.MATERIALS}),
         )
 
-        # Use MagicMock for result so .all() is synchronous (but returns value)
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [cat1, cat2]
         mock_result = MagicMock()
-        mock_result.all.return_value = [cat1, cat2]
-        mock_session.exec.return_value = mock_result
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
 
         await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
-        # await db.exec(...) -> returns mock_result
-        # mock_result.all() -> returns [cat1, cat2]
-        # len() works on list
-        mock_session.exec.assert_called_once()
+        mock_session.execute.assert_called_once()
 
     async def test_validate_domains_missing_category(self, mock_session: AsyncMock) -> None:
         """Test validation fails when category is missing."""
@@ -132,9 +130,11 @@ class TestTaxonomyDomainValidation:
         # Only return one category
         cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS}))
 
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [cat1]
         mock_result = MagicMock()
-        mock_result.all.return_value = [cat1]
-        mock_session.exec.return_value = mock_result
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
 
         with pytest.raises(BadRequestError, match="not found") as exc:
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
@@ -149,9 +149,11 @@ class TestTaxonomyDomainValidation:
         # Category has wrong domain
         cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.MATERIALS}))
 
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [cat1]
         mock_result = MagicMock()
-        mock_result.all.return_value = [cat1]
-        mock_session.exec.return_value = mock_result
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
 
         with pytest.raises(BadRequestError, match="belong to taxonomies outside of domains"):
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
@@ -164,7 +166,7 @@ def _make_session() -> AsyncMock:
     session.commit = AsyncMock()
     session.refresh = AsyncMock()
     session.delete = AsyncMock()
-    session.exec = AsyncMock()
+    session.execute = AsyncMock()
     return session
 
 
@@ -307,9 +309,6 @@ class TestGetCategoryTrees:
     async def test_raises_when_both_ids_provided(self) -> None:
         """Test error when both supercategory_id and taxonomy_id are given."""
         session = _make_session()
-        mock_result = MagicMock()
-        mock_result.all.return_value = []
-        session.exec.return_value = mock_result
 
         with pytest.raises(BadRequestError, match="not both"):
             await get_category_trees(session, supercategory_id=1, taxonomy_id=2)
@@ -318,9 +317,11 @@ class TestGetCategoryTrees:
         """Test fetching top-level categories (no supercategory or taxonomy filter)."""
         session = _make_session()
         cat = CategoryFactory.build(id=1)
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [cat]
         mock_result = MagicMock()
-        mock_result.all.return_value = [cat]
-        session.exec.return_value = mock_result
+        mock_result.scalars.return_value = mock_scalars
+        session.execute.return_value = mock_result
 
         result = await get_category_trees(session)
 
@@ -330,9 +331,11 @@ class TestGetCategoryTrees:
         """Test that taxonomy_id narrows results."""
         session = _make_session()
         cat = CategoryFactory.build(id=1, taxonomy_id=10)
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [cat]
         mock_result = MagicMock()
-        mock_result.all.return_value = [cat]
-        session.exec.return_value = mock_result
+        mock_result.scalars.return_value = mock_scalars
+        session.execute.return_value = mock_result
 
         with patch("app.api.background_data.crud.categories.get_model_or_404"):
             result = await get_category_trees(session, taxonomy_id=10)
@@ -343,9 +346,11 @@ class TestGetCategoryTrees:
         """Test that supercategory_id narrows results to children."""
         session = _make_session()
         child_cat = CategoryFactory.build(id=2, supercategory_id=1)
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [child_cat]
         mock_result = MagicMock()
-        mock_result.all.return_value = [child_cat]
-        session.exec.return_value = mock_result
+        mock_result.scalars.return_value = mock_scalars
+        session.execute.return_value = mock_result
 
         with patch("app.api.background_data.crud.categories.get_model_or_404"):
             result = await get_category_trees(session, supercategory_id=1)

@@ -6,8 +6,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, overload
 
 from pydantic import BaseModel
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.base import get_model_by_id, get_models
 from app.api.common.exceptions import BadRequestError
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from fastapi_filter.contrib.sqlalchemy import Filter
-    from sqlmodel.sql._expression_select_cls import SelectOfScalar
+    from sqlalchemy import Select
 
 
 ### Association Utilities ###
@@ -42,10 +42,10 @@ async def get_linking_model_with_ids_if_it_exists(
     Raises:
         ValueError: If linking model instance is None
     """
-    statement: SelectOfScalar[LMT] = select(model_type).where(
+    statement: Select[LMT] = select(model_type).where(
         getattr(model_type, id1_field) == id1, getattr(model_type, id2_field) == id2
     )
-    result: LMT | None = (await db.exec(statement)).one_or_none()
+    result: LMT | None = (await db.execute(statement)).scalar_one_or_none()
     if not result:
         model_name = get_model_label(model_type)
         err_msg: str = f"{model_name} with {id1_field} {id1} and {id2_field} {id2} not found"
@@ -164,7 +164,7 @@ async def get_linked_models(
     await get_model_by_id(db, parent_model, parent_id)
 
     # Build base query
-    statement: SelectOfScalar[DT] = (
+    statement: Select[DT] = (
         select(dependent_model).join(link_model).where(getattr(link_model, parent_link_field) == parent_id)
     )
 

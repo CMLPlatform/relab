@@ -11,9 +11,8 @@ from fastapi import UploadFile
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import UUID4
 from slugify import slugify
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel.sql.expression import SelectOfScalar
+from sqlalchemy import Select, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.base import get_models
 from app.api.common.crud.exceptions import ModelNotFoundError
@@ -400,7 +399,7 @@ class ParentFileCrud:
             err_msg = f"Parent type mismatch: expected {self.parent_type}, got {item_data.parent_type}"
             raise ValueError(err_msg)
 
-    def _build_parent_statement(self) -> SelectOfScalar[File]:
+    def _build_parent_statement(self) -> Select:
         """Build the base query for storage items owned by this parent type."""
         return select(File).where(File.parent_type == self.parent_type)
 
@@ -441,7 +440,7 @@ class ParentFileCrud:
         if filter_params:
             statement = filter_params.filter(statement)
 
-        items: list[File] = list((await db.exec(statement)).all())
+        items: list[File] = list((await db.execute(statement)).scalars().all())
         valid_items = [item for item in items if storage_item_exists(item)]
         if len(valid_items) < len(items):
             missing = len(items) - len(valid_items)
@@ -514,7 +513,7 @@ class ParentImageCrud:
             err_msg = f"Parent type mismatch: expected {self.parent_type}, got {item_data.parent_type}"
             raise ValueError(err_msg)
 
-    def _build_parent_statement(self) -> SelectOfScalar[Image]:
+    def _build_parent_statement(self) -> Select:
         """Build the base query for storage items owned by this parent type."""
         return select(Image).where(Image.parent_type == self.parent_type)
 
@@ -555,7 +554,7 @@ class ParentImageCrud:
         if filter_params:
             statement = filter_params.filter(statement)
 
-        items: list[Image] = list((await db.exec(statement)).all())
+        items: list[Image] = list((await db.execute(statement)).scalars().all())
         valid_items = [item for item in items if storage_item_exists(item)]
         if len(valid_items) < len(items):
             missing = len(items) - len(valid_items)

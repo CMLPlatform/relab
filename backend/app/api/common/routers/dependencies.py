@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from httpx import AsyncClient
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.exceptions import ServiceUnavailableError
 from app.core.database import get_async_session

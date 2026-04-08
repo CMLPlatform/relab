@@ -261,6 +261,7 @@ class TestHTMLCoder:
 
         assert result == data
 
+
 class TestInitFastapiCache:
     """Tests for init_fastapi_cache."""
 

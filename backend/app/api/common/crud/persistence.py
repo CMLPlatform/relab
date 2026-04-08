@@ -1,12 +1,12 @@
-"""Shared persistence helpers for SQLModel CRUD operations."""
+"""Shared persistence helpers for CRUD operations."""
 
 from typing import Protocol
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SupportsModelDump(Protocol):
-    """Schema protocol for SQLModel update payloads."""
+    """Schema protocol for update payloads."""
 
     def model_dump(
         self,
@@ -15,14 +15,6 @@ class SupportsModelDump(Protocol):
         exclude: set[str] | None = None,
     ) -> dict[str, object]:
         """Return payload values for persistence."""
-        ...
-
-
-class SupportsSQLModelUpdate(Protocol):
-    """Model protocol for SQLModel update operations."""
-
-    def sqlmodel_update(self, obj: dict[str, object]) -> None:
-        """Apply a partial update to a SQLModel instance."""
         ...
 
 
@@ -40,13 +32,14 @@ async def commit_and_refresh[ModelT](
     return db_model
 
 
-async def update_and_commit[ModelT: SupportsSQLModelUpdate](
+async def update_and_commit[ModelT](
     db: AsyncSession,
     db_model: ModelT,
     payload: SupportsModelDump,
 ) -> ModelT:
     """Apply a partial update and persist the result."""
-    db_model.sqlmodel_update(payload.model_dump(exclude_unset=True))
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(db_model, key, value)
     return await commit_and_refresh(db, db_model)
 
 

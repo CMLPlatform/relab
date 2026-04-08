@@ -12,7 +12,7 @@ from app.api.auth.models import OrganizationRole, User
 from tests.factories.models import OrganizationFactory, UserFactory
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 TEST_EMAIL = "test@example.com"
 TEST_USERNAME = "testuser"

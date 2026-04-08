@@ -20,7 +20,6 @@ Requirements:
 """
 # spell-checker: ignore imencode, IMWRITE
 
-
 from __future__ import annotations
 
 import argparse
@@ -237,9 +236,7 @@ async def _ws_loop(ws: websockets.ClientConnection) -> None:
             )
 
 
-async def _handle_command(
-    ws: websockets.ClientConnection, msg_id: str, method: str, path: str
-) -> None:
+async def _handle_command(ws: websockets.ClientConnection, msg_id: str, method: str, path: str) -> None:
     """Dispatch a relay command and send the response back over WebSocket."""
     loop = asyncio.get_running_loop()
 

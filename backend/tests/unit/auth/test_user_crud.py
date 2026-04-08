@@ -19,7 +19,7 @@ from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsy
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _make_user_db(session: AsyncSession) -> SQLModelUserDatabaseAsync:

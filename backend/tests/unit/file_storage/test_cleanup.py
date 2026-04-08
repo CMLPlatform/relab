@@ -24,9 +24,11 @@ from app.core.config import settings
 async def test_get_referenced_files_empty() -> None:
     """Returns empty set when no files or images exist in DB."""
     session = AsyncMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = []
     mock_result = MagicMock()
-    mock_result.all.return_value = []
-    session.exec.return_value = mock_result
+    mock_result.scalars.return_value = mock_scalars
+    session.execute.return_value = mock_result
 
     result = await get_referenced_files(session)
 
@@ -43,11 +45,15 @@ async def test_get_referenced_files_with_paths(tmp_path: Path) -> None:
     fake_image = MagicMock()
     fake_image.file.path = str(tmp_path / "image.jpg")
 
-    mock_files = MagicMock()
-    mock_files.all.return_value = [fake_file]
-    mock_images = MagicMock()
-    mock_images.all.return_value = [fake_image]
-    session.exec.side_effect = [mock_files, mock_images]
+    mock_files_scalars = MagicMock()
+    mock_files_scalars.all.return_value = [fake_file]
+    mock_files_result = MagicMock()
+    mock_files_result.scalars.return_value = mock_files_scalars
+    mock_images_scalars = MagicMock()
+    mock_images_scalars.all.return_value = [fake_image]
+    mock_images_result = MagicMock()
+    mock_images_result.scalars.return_value = mock_images_scalars
+    session.execute.side_effect = [mock_files_result, mock_images_result]
 
     result = await get_referenced_files(session)
 
@@ -65,11 +71,15 @@ async def test_get_referenced_files_accepts_string_paths(tmp_path: Path) -> None
     fake_image = MagicMock()
     fake_image.file = str(tmp_path / "image.jpg")
 
-    mock_files = MagicMock()
-    mock_files.all.return_value = [fake_file]
-    mock_images = MagicMock()
-    mock_images.all.return_value = [fake_image]
-    session.exec.side_effect = [mock_files, mock_images]
+    mock_files_scalars = MagicMock()
+    mock_files_scalars.all.return_value = [fake_file]
+    mock_files_result = MagicMock()
+    mock_files_result.scalars.return_value = mock_files_scalars
+    mock_images_scalars = MagicMock()
+    mock_images_scalars.all.return_value = [fake_image]
+    mock_images_result = MagicMock()
+    mock_images_result.scalars.return_value = mock_images_scalars
+    session.execute.side_effect = [mock_files_result, mock_images_result]
 
     result = await get_referenced_files(session)
 
@@ -81,9 +91,11 @@ async def test_get_referenced_files_accepts_string_paths(tmp_path: Path) -> None
 async def test_get_referenced_files_skips_none_entries() -> None:
     """None entries (no file attached) are silently skipped."""
     session = AsyncMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = [None]
     mock_result = MagicMock()
-    mock_result.all.return_value = [None]
-    session.exec.return_value = mock_result
+    mock_result.scalars.return_value = mock_scalars
+    session.execute.return_value = mock_result
 
     result = await get_referenced_files(session)
 

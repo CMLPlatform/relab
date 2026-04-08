@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
     from fastapi import FastAPI
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 

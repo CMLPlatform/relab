@@ -19,8 +19,7 @@ class ModelFileNotFoundError(NotFoundError):
         self, model_type: type[MT] | None = None, model_id: IDT | None = None, details: str | None = None
     ) -> None:
         super().__init__(
-            message=f"File for {get_model_label(model_type)}"
-            f"{f'with id {model_id}'} not found.",
+            message=f"File for {get_model_label(model_type)}{f'with id {model_id}'} not found.",
             details=details,
         )
 

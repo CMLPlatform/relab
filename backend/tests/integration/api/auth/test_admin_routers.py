@@ -1,6 +1,5 @@
 """Admin router integration tests for user and organization management."""
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -12,7 +11,7 @@ from tests.factories.models import OrganizationFactory, UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
@@ -60,9 +59,7 @@ class TestAdminUserRouters:
         assert "total" in data
 
     @pytest.mark.asyncio
-    async def test_get_user_by_id_as_superuser(
-        self, superuser_client: AsyncClient, session: AsyncSession
-    ) -> None:
+    async def test_get_user_by_id_as_superuser(self, superuser_client: AsyncClient, session: AsyncSession) -> None:
         """Superuser can retrieve a user by ID."""
         user = await UserFactory.create_async(session, email="getbyid@example.com", username="getbyid_user")
 
@@ -77,9 +74,7 @@ class TestAdminUserRouters:
         assert "is_verified" in data
 
     @pytest.mark.asyncio
-    async def test_get_all_users_by_email(
-        self, superuser_client: AsyncClient, session: AsyncSession
-    ) -> None:
+    async def test_get_all_users_by_email(self, superuser_client: AsyncClient, session: AsyncSession) -> None:
         """Can retrieve user by email via admin endpoint."""
         user = await UserFactory.create_async(session, email="byemail@example.com", username="byemail_user")
 
@@ -90,9 +85,7 @@ class TestAdminUserRouters:
         assert data["email"] == "byemail@example.com"
 
     @pytest.mark.asyncio
-    async def test_get_all_users_by_username(
-        self, superuser_client: AsyncClient, session: AsyncSession
-    ) -> None:
+    async def test_get_all_users_by_username(self, superuser_client: AsyncClient, session: AsyncSession) -> None:
         """Can retrieve user by username via admin endpoint."""
         user = await UserFactory.create_async(session, email="byuser@example.com", username="byuser_unique")
 
@@ -100,7 +93,6 @@ class TestAdminUserRouters:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["username"] == "byuser_unique"
-
 
     @pytest.mark.asyncio
     async def test_admin_users_requires_superuser(self, async_client: AsyncClient, session: AsyncSession) -> None:
@@ -187,7 +179,6 @@ class TestAdminOrganizationRouters:
         member_emails = [m["email"] for m in data["members"]]
         assert member.email in member_emails
         assert "orgmember@example.com" in member_emails
-
 
     @pytest.mark.asyncio
     async def test_admin_organizations_requires_superuser(self, async_client: AsyncClient) -> None:

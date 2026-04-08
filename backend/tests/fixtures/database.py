@@ -3,8 +3,8 @@
 from typing import Any, TypeVar
 
 import pytest
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 T = TypeVar("T")
 
@@ -24,14 +24,14 @@ class DBOperations:
     async def get_by_filter(self, model: type[T], **filters: Any) -> T | None:  # noqa: ANN401 # Any-typed filter kwargs are expected by SQLModel
         """Get single model instance by filters."""
         stmt = select(model).filter_by(**filters)
-        result = await self.session.exec(stmt)
-        return result.one_or_none()
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
 
-    async def get_all(self, model: type[T], **filters: Any) -> list[T]:  # noqa: ANN401 # Any-typed filter kwargs are expected by SQLModel
+    async def get_all(self, model: type[T], **filters: Any) -> list[T]:  # noqa: ANN401 # Any-typed filter kwargs are expected
         """Get all model instances matching filters."""
         stmt = select(model).filter_by(**filters)
-        result = await self.session.exec(stmt)
-        return list(result.all())
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
 
     async def create(self, instance: T) -> T:
         """Create instance and return it with ID."""

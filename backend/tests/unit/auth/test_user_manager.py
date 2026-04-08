@@ -19,11 +19,14 @@ def _make_credentials(username: str, password: str = "testpassword") -> OAuth2Pa
 
 def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, AsyncMock]:
     """Return a UserManager with a mocked user_db.session."""
+    mock_scalars = MagicMock()
+    mock_scalars.unique.return_value.one_or_none.return_value = mock_user
+
     mock_result = MagicMock()
-    mock_result.unique.return_value.one_or_none.return_value = mock_user
+    mock_result.scalars.return_value = mock_scalars
 
     mock_session = MagicMock()
-    mock_session.exec = AsyncMock(return_value=mock_result)
+    mock_session.execute = AsyncMock(return_value=mock_result)
 
     mock_user_db = MagicMock()
     mock_user_db.session = mock_session
@@ -46,7 +49,7 @@ class TestAuthenticateUsernameResolution:
             mock_super.return_value = None
             await manager.authenticate(credentials)
 
-        mock_session.exec.assert_not_called()
+        mock_session.execute.assert_not_called()
         mock_super.assert_called_once_with(credentials)
         assert credentials.username == "user@example.com"
 
@@ -62,7 +65,7 @@ class TestAuthenticateUsernameResolution:
             mock_super.return_value = mock_user
             await manager.authenticate(credentials)
 
-        mock_session.exec.assert_called_once()
+        mock_session.execute.assert_called_once()
         assert credentials.username == "resolved@example.com"
         mock_super.assert_called_once_with(credentials)
 
@@ -75,7 +78,7 @@ class TestAuthenticateUsernameResolution:
             mock_super.return_value = None
             await manager.authenticate(credentials)
 
-        mock_session.exec.assert_called_once()
+        mock_session.execute.assert_called_once()
         assert credentials.username == "nonexistent_user"
         mock_super.assert_called_once_with(credentials)
 

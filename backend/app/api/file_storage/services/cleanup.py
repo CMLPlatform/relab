@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import cast
 
 from anyio import Path as AnyIOPath
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.file_storage.models import File, Image
 from app.core.config import settings
@@ -55,14 +55,14 @@ async def get_referenced_files(session: AsyncSession) -> set[AnyIOPath]:
     referenced_paths: set[AnyIOPath] = set()
 
     file_stmt = select(File)
-    files = (await session.exec(file_stmt)).all()
+    files = (await session.execute(file_stmt)).scalars().all()
     for f in files:
         resolved_path = await _resolve_storage_path(getattr(f, "file", None), storage_dir=settings.file_storage_path)
         if resolved_path is not None:
             referenced_paths.add(resolved_path)
 
     image_stmt = select(Image)
-    images = (await session.exec(image_stmt)).all()
+    images = (await session.execute(image_stmt)).scalars().all()
     for img in images:
         resolved_path = await _resolve_storage_path(getattr(img, "file", None), storage_dir=settings.image_storage_path)
         if resolved_path is not None:

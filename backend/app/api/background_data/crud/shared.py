@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from sqlmodel import col, select
+from sqlalchemy import select
 
 from app.api.background_data.models import (
     Category,
@@ -27,7 +27,7 @@ from app.api.common.crud.utils import (
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Sequence
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.background_data.models import TaxonomyDomain
 
@@ -141,9 +141,9 @@ async def remove_categories_from_parent_model[ParentT: Material | ProductType](
 
     statement = (
         select(link_model)
-        .where(col(getattr(link_model, link_parent_id_field)) == parent_id)
-        .where(col(link_model.category_id).in_(normalized_category_ids))
+        .where(getattr(link_model, link_parent_id_field) == parent_id)
+        .where(link_model.category_id.in_(normalized_category_ids))
     )
-    results = await db.exec(statement)
-    for category_link in results.all():
+    results = await db.execute(statement)
+    for category_link in results.scalars().all():
         await db.delete(category_link)

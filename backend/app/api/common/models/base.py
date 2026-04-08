@@ -1,4 +1,4 @@
-"""Base model helpers and generic mixins for SQLModel models."""
+"""Base model helpers and generic mixins for ORM models."""
 
 import re
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
@@ -9,7 +9,20 @@ import inflect
 from pydantic import ConfigDict, model_validator
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase
 from sqlmodel import Column, Field, SQLModel
+
+
+class Base(DeclarativeBase):
+    """SQLAlchemy 2.0 declarative base for all ORM models.
+
+    Uses SQLModel.metadata as a bridge so that rpi_cam plugin models
+    (still on SQLModel) share the same registry. Remove this bridge
+    when rpi_cam is migrated.
+    """
+
+    metadata = SQLModel.metadata  # type: ignore[assignment]
+
 
 _INFLECT_ENGINE = inflect.engine()
 
@@ -48,6 +61,7 @@ def get_model_label_plural(model_type: type[object], *, default: str = "Models")
 
     model_name = getattr(model_type, "__name__", default.removesuffix("s"))
     return camel_to_capital(pluralize_camel_name(model_name))
+
 
 ### Mixins ###
 ## Timestamps ##

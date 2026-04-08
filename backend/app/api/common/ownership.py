@@ -1,7 +1,7 @@
 """Ownership validation helpers shared across API modules."""
 
 from pydantic import UUID4
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import User

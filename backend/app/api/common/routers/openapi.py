@@ -34,6 +34,8 @@ class PublicAPIRouter(APIRouter):
         existing_extra = kwargs.get("openapi_extra") or {}
         kwargs["openapi_extra"] = {**existing_extra, OPENAPI_PUBLIC_INCLUSION_EXTENSION: True}
         return super().api_route(path, *args, **kwargs)
+
+
 def mark_router_routes_public(router: APIRouter) -> None:
     """Mark all routes in a router as public."""
     for route in router.routes:
@@ -102,9 +104,7 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:
 
     # Full documentation — requires superuser in staging/prod, open in dev/testing
     full_docs_deps = (
-        []
-        if settings.environment in (Environment.DEV, Environment.TESTING)
-        else [Security(current_active_superuser)]
+        [] if settings.environment in (Environment.DEV, Environment.TESTING) else [Security(current_active_superuser)]
     )
     full_docs_router = APIRouter(prefix="", dependencies=full_docs_deps, include_in_schema=False)
 

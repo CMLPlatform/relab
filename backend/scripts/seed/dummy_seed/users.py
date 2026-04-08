@@ -37,9 +37,7 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
             is_verified=True,
         )
         try:
-            user = await create_user(
-                session, user_create, send_registration_email=False, skip_breach_check=True
-            )
+            user = await create_user(session, user_create, send_registration_email=False, skip_breach_check=True)
             user_map[user.email] = user
         except ValueError as err:
             logger.warning("Failed to create user %s: %s", user_dict["email"], err)

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import (
@@ -57,7 +57,7 @@ def mock_session() -> AsyncMock:
     mock_result.scalars.return_value.all.return_value = [BRAND_BOSCH, BRAND_MAKITA]
     mock_result.all.return_value = [BRAND_BOSCH, BRAND_MAKITA]
     session.execute.return_value = mock_result
-    session.exec = AsyncMock(return_value=mock_result)
+    # session.execute already set above with mock_result
 
     return session
 
@@ -90,9 +90,11 @@ class TestProductCrud:
         """Test retrieving product trees."""
         with patch("app.api.data_collection.crud.products.get_model_by_id"):
             # Setup mock_session to return results for exec().all()
+            mock_scalars = MagicMock()
+            mock_scalars.all.return_value = ["Product 1"]
             mock_result = MagicMock()
-            mock_result.all.return_value = ["Product 1"]
-            mock_session.exec = AsyncMock(return_value=mock_result)
+            mock_result.scalars.return_value = mock_scalars
+            mock_session.execute = AsyncMock(return_value=mock_result)
 
             res = await get_product_trees(mock_session, parent_id=1, product_filter=MagicMock())
             assert res == ["Product 1"]
@@ -223,7 +225,6 @@ class TestBillOfMaterialsCrud:
             mock_link.return_value = mock_link_obj
 
             await update_material_within_product(mock_session, 1, 1, MaterialProductLinkUpdate(quantity=2))
-            mock_link_obj.sqlmodel_update.assert_called_once()
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
@@ -237,18 +238,18 @@ class TestBillOfMaterialsCrud:
         link2 = MagicMock(material_id=20, id=20)
         db_product.bill_of_materials = [link1, link2]
 
-        # Mock exec to return a result with material links
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [link1, link2]
         mock_result = MagicMock()
-        mock_result.all.return_value = [link1, link2]
-        mock_session.exec = AsyncMock(return_value=mock_result)
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
 
         with (
             patch("app.api.data_collection.crud.shared.get_model_by_id", return_value=db_product),
             patch("app.api.data_collection.crud.shared.get_models_by_ids_or_404"),
         ):
             await remove_materials_from_product(mock_session, product_id, material_ids)
-            # Should have executed a select statement with exec()
-            mock_session.exec.assert_called_once()
+            mock_session.execute.assert_called_once()
             # Should have deleted each material link
             assert mock_session.delete.call_count == 2
             mock_session.commit.assert_called_once()

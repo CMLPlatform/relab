@@ -26,6 +26,7 @@ CurrentActiveVerifiedUserDep = Annotated[User, Security(current_active_verified_
 CurrentActiveSuperUserDep = Annotated[User, Security(current_active_superuser)]
 OptionalCurrentActiveUserDep = Annotated[User | None, Security(optional_current_active_user)]
 
+
 async def get_current_user_organization(current_user: CurrentActiveVerifiedUserDep) -> Organization:
     """Return the current user's organization or raise a stable not-found error."""
     if current_user.organization is None:
@@ -50,5 +51,7 @@ async def get_current_user_owned_organization(
         current_user.organization_id,
         include_relationships={"members", "owner"},
     )
+
+
 CurrentUserOrgDep = Annotated[Organization, Depends(get_current_user_organization)]
 CurrentUserOwnedOrgDep = Annotated[Organization, Depends(get_current_user_owned_organization)]

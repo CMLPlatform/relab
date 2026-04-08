@@ -3,10 +3,9 @@
 from typing import TYPE_CHECKING, cast
 
 from pydantic import UUID4, BaseModel
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import col, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import (
     AlreadyMemberError,
@@ -99,7 +98,8 @@ async def update_user_organization(
             )
 
     # Update organization data without clobbering ownership transfer logic.
-    db_organization.sqlmodel_update(organization_in.model_dump(exclude_unset=True, exclude={"owner_id"}))
+    for key, value in organization_in.model_dump(exclude_unset=True, exclude={"owner_id"}).items():
+        setattr(db_organization, key, value)
 
     if transfer_owner_id is not None and transfer_owner_id != db_organization.owner_id:
         current_owner = db_organization.owner
@@ -174,7 +174,7 @@ async def user_join_organization(
             user.organization = None
             db.add(user)
             await db.flush()
-            await db.exec(delete(Organization).where(col(Organization.id) == db_organization.id))
+            await db.execute(delete(Organization).where(Organization.id == db_organization.id))
         else:
             raise AlreadyMemberError(details="Leave your current organization before joining a new one.")
 

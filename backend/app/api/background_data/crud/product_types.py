@@ -24,7 +24,7 @@ from .shared import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def create_product_type(

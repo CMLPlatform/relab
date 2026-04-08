@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi import status
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.newsletter.models import NewsletterSubscriber
 from app.api.newsletter.utils.tokens import JWTType, create_jwt_token
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # Constants for test values
 FLOW_EMAIL = "integration_flow@example.com"
@@ -63,8 +63,8 @@ async def test_newsletter_subscription_lifecycle(
 
     # Verify DB state
     stmt = select(NewsletterSubscriber).where(NewsletterSubscriber.email == FLOW_EMAIL)
-    result = await session.exec(stmt)
-    subscriber = result.one_or_none()
+    result = await session.execute(stmt)
+    subscriber = result.scalar_one_or_none()
     assert subscriber is not None
     assert subscriber.is_confirmed is False
 
@@ -95,6 +95,6 @@ async def test_newsletter_subscription_lifecycle(
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
     # Verify DB state
-    result = await session.exec(stmt)
-    subscriber = result.one_or_none()
+    result = await session.execute(stmt)
+    subscriber = result.scalar_one_or_none()
     assert subscriber is None

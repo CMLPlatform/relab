@@ -8,7 +8,7 @@ from fastapi import HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
-from sqlmodel import col, select
+from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.background_data.routers.public import RecursionDepthQueryParam
@@ -28,7 +28,7 @@ from app.api.data_collection.schemas import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlmodel.sql._expression_select_cls import SelectOfScalar
+    from sqlalchemy import Select
 
 user_product_redirect_router = PublicAPIRouter(prefix="/users/me/products", tags=["products"])
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
@@ -103,7 +103,7 @@ async def get_user_products(
 
     statement = select(Product).where(Product.owner_id == user_id)
     if not include_components_as_base_products:
-        statement = statement.where(col(Product.parent_id).is_(None))
+        statement = statement.where(Product.parent_id.is_(None))
 
     return await get_paginated_models(
         session,
@@ -129,9 +129,9 @@ async def get_products(
 ) -> Page[Product]:
     """Get all products with specified relationships."""
     if include_components_as_base_products:
-        statement: SelectOfScalar[Product] = select(Product)
+        statement: Select[Product] = select(Product)
     else:
-        statement = select(Product).where(col(Product.parent_id).is_(None))
+        statement = select(Product).where(Product.parent_id.is_(None))
 
     return await get_paginated_models(
         session,

@@ -170,7 +170,7 @@ class TestLoginEndpoint:
                 try:
                     data = response.json()
                     assert "access_token" in data or len(data) > 0
-                except (ValueError, json.JSONDecodeError):
+                except ValueError, json.JSONDecodeError:
                     pass
             assert "refresh_token" in response.cookies or "set-cookie" in response.headers
 

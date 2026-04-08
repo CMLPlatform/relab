@@ -46,9 +46,7 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
 
     try:
         trace = import_module("opentelemetry.trace")
-        otlp_span_exporter = import_module(
-            "opentelemetry.exporter.otlp.proto.http.trace_exporter"
-        ).OTLPSpanExporter
+        otlp_span_exporter = import_module("opentelemetry.exporter.otlp.proto.http.trace_exporter").OTLPSpanExporter
         fastapi_instrumentor_cls = import_module("opentelemetry.instrumentation.fastapi").FastAPIInstrumentor
         httpx_instrumentor_cls = import_module("opentelemetry.instrumentation.httpx").HTTPXClientInstrumentor
         sqlalchemy_instrumentor_cls = import_module("opentelemetry.instrumentation.sqlalchemy").SQLAlchemyInstrumentor

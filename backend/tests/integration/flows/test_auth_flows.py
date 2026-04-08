@@ -12,7 +12,7 @@ from uuid import UUID
 
 import pytest
 from fastapi import status
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
@@ -21,7 +21,7 @@ from app.api.auth.services import refresh_token_service
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from redis.asyncio import Redis
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # Constants for test values
 FLOW_TEST_EMAIL = "flowtest@example.com"
@@ -45,8 +45,8 @@ UA_DESKTOP = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"
 async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
     """Get a user from the database by email."""
     statement = select(User).where(User.email == email)
-    result = await session.exec(statement)
-    return result.first()
+    result = await session.execute(statement)
+    return result.scalars().first()
 
 
 @pytest.mark.asyncio

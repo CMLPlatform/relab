@@ -19,7 +19,7 @@ from app.api.data_collection.routers.product_related_routers import product_rela
 from app.core.cache import cache
 
 if TYPE_CHECKING:
-    from sqlmodel.sql._expression_select_cls import SelectOfScalar
+    from sqlalchemy import Select
 
 # Initialize API router
 router = APIRouter()
@@ -43,7 +43,7 @@ async def get_brands(
 ) -> Page[str]:
     """Get a paginated, searchable and orderable list of unique product brands."""
     statement = get_brand_search_statement(search=search, order=order)
-    page = await paginate_with_exec(session, cast("SelectOfScalar[str]", statement))
+    page = await paginate_with_exec(session, cast("Select[str]", statement))
     page.items = [brand.title() for brand in page.items if brand]
     return cast("Page[str]", page)
 

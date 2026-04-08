@@ -25,8 +25,8 @@ class TestGetLinkingModelWithIdsIfItExists:
         """Test that the link is returned when found."""
         mock_link = MagicMock()
         mock_result = MagicMock()
-        mock_result.one_or_none.return_value = mock_link
-        mock_session.exec = AsyncMock(return_value=mock_result)
+        mock_result.scalar_one_or_none.return_value = mock_link
+        mock_session.execute = AsyncMock(return_value=mock_result)
 
         result = await get_linking_model_with_ids_if_it_exists(
             mock_session, CategoryMaterialLink, 1, 2, "material_id", "category_id"
@@ -37,8 +37,8 @@ class TestGetLinkingModelWithIdsIfItExists:
     async def test_raises_bad_request_error_when_not_found(self, mock_session: AsyncMock) -> None:
         """Test that BadRequestError is raised when link is not found."""
         mock_result = MagicMock()
-        mock_result.one_or_none.return_value = None
-        mock_session.exec = AsyncMock(return_value=mock_result)
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
 
         with pytest.raises(BadRequestError, match="not found"):
             await get_linking_model_with_ids_if_it_exists(

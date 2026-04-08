@@ -1,6 +1,6 @@
 """Taxonomy CRUD operations."""
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.background_data.models import Taxonomy
 from app.api.background_data.schemas import TaxonomyCreate, TaxonomyCreateWithCategories, TaxonomyUpdate

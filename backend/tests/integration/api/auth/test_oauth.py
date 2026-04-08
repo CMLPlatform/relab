@@ -354,9 +354,11 @@ class TestOAuthAssociateFlow:
 
         request, access_token_state = self._make_associate_request_with_valid_state(str(current_user.id))
         mock_session = MagicMock()
+        mock_scalars_result = MagicMock()
+        mock_scalars_result.first.return_value = None
         mock_exec_result = MagicMock()
-        mock_exec_result.first.return_value = None
-        mock_session.exec = AsyncMock(return_value=mock_exec_result)
+        mock_exec_result.scalars.return_value = mock_scalars_result
+        mock_session.execute = AsyncMock(return_value=mock_exec_result)
 
         user_manager = MagicMock()
         user_manager.user_db.session = mock_session
@@ -382,9 +384,11 @@ class TestOAuthAssociateFlow:
         existing_account.user_id = USER2_EMAIL
 
         mock_session = MagicMock()
+        mock_scalars_result = MagicMock()
+        mock_scalars_result.first.return_value = existing_account
         mock_exec_result = MagicMock()
-        mock_exec_result.first.return_value = existing_account
-        mock_session.exec = AsyncMock(return_value=mock_exec_result)
+        mock_exec_result.scalars.return_value = mock_scalars_result
+        mock_session.execute = AsyncMock(return_value=mock_exec_result)
 
         user_manager = MagicMock()
         user_manager.user_db.session = mock_session

@@ -93,6 +93,7 @@ class TestGetOrganizations:
             read_schema=OrganizationReadPublic,
         )
 
+
 @pytest.mark.unit
 class TestUpdateUserOrganization:
     """Tests for update_user_organization."""
@@ -256,7 +257,7 @@ class TestUserJoinOrganization:
 
         assert result.organization_id == target_org.id
         assert result.organization_role == OrganizationRole.MEMBER
-        mock_session.exec.assert_awaited_once()
+        mock_session.execute.assert_awaited_once()
         mock_session.flush.assert_awaited_once()
         mock_session.commit.assert_awaited_once()
 

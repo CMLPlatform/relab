@@ -7,10 +7,8 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_pagination import create_page
 from fastapi_pagination.api import resolve_params
 from pydantic import BaseModel
-from sqlalchemy import func
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel.sql._expression_select_cls import SelectOfScalar
+from sqlalchemy import Select, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.exceptions import CRUDConfigurationError, DependentModelOwnershipError
 from app.api.common.crud.utils import add_relationship_options, ensure_model_exists
@@ -34,11 +32,11 @@ def should_apply_filter(filter_obj: Filter) -> bool:
 
 
 def add_filter_joins(
-    statement: SelectOfScalar[MT],
+    statement: Select[MT],
     model: type[MT],
     filter_obj: Filter,
     path: list[str] | None = None,
-) -> SelectOfScalar[MT]:
+) -> Select[MT]:
     """Recursively add joins for filter relationships."""
     path = path or []
 
@@ -82,9 +80,9 @@ def get_models_query(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
-    statement: SelectOfScalar[MT] | None = None,
+    statement: Select[MT] | None = None,
     read_schema: type[BaseModel] | None = None,
-) -> SelectOfScalar[MT]:
+) -> Select[MT]:
     """Build a query for fetching models with optional filtering and relationships.
 
     Relationship inclusion and suppression now happens entirely at query time,
@@ -113,7 +111,7 @@ async def get_models(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
-    statement: SelectOfScalar[MT] | None = None,
+    statement: Select[MT] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> list[MT]:
     """Get models with optional filtering and relationships.
@@ -136,7 +134,7 @@ async def get_models(
         statement=statement,
         read_schema=read_schema,
     )
-    return list((await db.exec(statement)).unique().all())
+    return list((await db.execute(statement)).scalars().unique().all())
 
 
 async def get_paginated_models(
@@ -145,7 +143,7 @@ async def get_paginated_models(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
-    statement: SelectOfScalar[MT] | None = None,
+    statement: Select[MT] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> Page[Any]:
     """Get paginated models with optional filtering and relationships.
@@ -174,17 +172,17 @@ async def get_paginated_models(
 
 async def paginate_with_exec(
     db: AsyncSession,
-    statement: SelectOfScalar[Any],
+    statement: Select[Any],
     params: AbstractParams | None = None,
 ) -> Page[Any]:
-    """Paginate a SQLModel select statement using `session.exec()` instead of `session.execute()`."""
+    """Paginate a select statement with count + offset/limit."""
     resolved_params = resolve_params(params)
     raw_params = resolved_params.to_raw_params()
 
     total = None
     if raw_params.include_total:
         count_query = select(func.count()).select_from(statement.order_by(None).subquery())
-        total = (await db.exec(count_query)).one()
+        total = (await db.execute(count_query)).scalar_one()
 
     limit = getattr(raw_params, "limit", None)
     offset = getattr(raw_params, "offset", None)
@@ -193,7 +191,7 @@ async def paginate_with_exec(
         paginated_statement = paginated_statement.limit(limit)
     if offset is not None:
         paginated_statement = paginated_statement.offset(offset)
-    items = list((await db.exec(paginated_statement)).unique().all())
+    items = list((await db.execute(paginated_statement)).scalars().unique().all())
 
     return cast("Page[Any]", create_page(items, total=total, params=resolved_params))
 
@@ -226,11 +224,11 @@ async def get_model_by_id(
         err_msg: str = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
 
-    statement: SelectOfScalar[MT] = select(model).where(model.id == model_id)
+    statement: Select[MT] = select(model).where(model.id == model_id)
 
     statement = add_relationship_options(statement, model, include_relationships, read_schema=read_schema)
 
-    result: MT | None = (await db.exec(statement)).unique().one_or_none()
+    result: MT | None = (await db.execute(statement)).scalars().unique().one_or_none()
 
     return ensure_model_exists(result, model, model_id)
 

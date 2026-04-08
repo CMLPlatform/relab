@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import Path
 from fastapi_pagination import Page
 from pydantic import PositiveInt
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.background_data import crud
 from app.api.background_data.dependencies import CategoryFilterDep, CategoryFilterWithRelationshipsDep

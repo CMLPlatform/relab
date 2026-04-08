@@ -19,7 +19,7 @@ from tests.factories.models import ProductFactory, ProductTypeFactory
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
@@ -64,7 +64,7 @@ class TestFileCleanupManager:
             product_type_id=product_type.id,
         )
 
-        await session.exec(
+        await session.execute(
             cast(
                 "Any",
                 text(

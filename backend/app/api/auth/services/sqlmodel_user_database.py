@@ -11,9 +11,10 @@ from typing import TYPE_CHECKING, Any, cast
 from fastapi_users.db.base import BaseUserDatabase
 from fastapi_users.models import ID, OAP, UOAP, UP
 from pydantic import UUID4, ConfigDict, EmailStr
+from sqlalchemy import String, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import QueryableAttribute, selectinload
-from sqlmodel import AutoString, Field, SQLModel, func, select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlmodel import Field, SQLModel
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -31,7 +32,7 @@ class SQLModelBaseUserDB(SQLModel):
         email: EmailStr = Field(
             sa_column_kwargs={"unique": True, "index": True},
             nullable=False,
-            sa_type=AutoString,
+            sa_type=String,
         )
     hashed_password: str
 
@@ -89,8 +90,8 @@ class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
     async def get_by_email(self, email: str) -> UP | None:
         """Get a single user by email."""
         statement = select(self.user_model).where(func.lower(self.user_model.email) == func.lower(email))
-        results = await self.session.exec(statement)
-        return results.unique().one_or_none()
+        results = await self.session.execute(statement)
+        return results.scalars().unique().one_or_none()
 
     async def get_by_oauth_account(self, oauth: str, account_id: str) -> UP | None:
         """Get a single user by OAuth account ID."""
@@ -104,8 +105,8 @@ class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
             .where(oauth_account_model.account_id == account_id)
             .options(selectinload(cast("QueryableAttribute[Any]", oauth_account_model.user)))
         )
-        results = await self.session.exec(statement)
-        oauth_account = results.unique().one_or_none()
+        results = await self.session.execute(statement)
+        oauth_account = results.scalars().unique().one_or_none()
         if oauth_account:
             return cast("UP", oauth_account.user)
         return None

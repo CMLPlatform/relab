@@ -30,9 +30,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security
         200: {
             "description": "List of users",
             "content": {
-                "application/json": {
-                    "examples": ADMIN_USERS_RESPONSE_EXAMPLES
-                },
+                "application/json": {"examples": ADMIN_USERS_RESPONSE_EXAMPLES},
             },
         },
     },
@@ -44,9 +42,7 @@ async def get_users(
     """Get a list of all users with optional filtering."""
     return cast(
         "Page[UserRead]",
-        await get_paginated_models(
-            session, User, model_filter=user_filter, read_schema=UserRead
-        ),
+        await get_paginated_models(session, User, model_filter=user_filter, read_schema=UserRead),
     )
 
 

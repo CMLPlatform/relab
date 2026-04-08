@@ -10,15 +10,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
-from sqlmodel import select
 
 from app.api.background_data.models import Taxonomy
 from tests.factories.models import CategoryFactory, MaterialFactory
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from tests.fixtures.database import DBOperations
 
@@ -66,8 +66,8 @@ class TestDatabaseRelationships:
             .where(Taxonomy.id == db_taxonomy.id)
             .options(selectinload(cast("QueryableAttribute[Any]", Taxonomy.categories)))
         )
-        result = await db_ops.session.exec(stmt)
-        taxonomy = result.one()
+        result = await db_ops.session.execute(stmt)
+        taxonomy = result.scalar_one()
 
         names = {c.name for c in taxonomy.categories}
         assert "Cat A" in names

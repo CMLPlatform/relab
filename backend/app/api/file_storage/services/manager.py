@@ -10,7 +10,7 @@ from app.core.config import settings
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

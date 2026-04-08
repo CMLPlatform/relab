@@ -8,7 +8,7 @@ from fastapi_users import schemas
 from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # noqa: TC002
 from pydantic import UUID4
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.exceptions import (
     OAuthAccountAlreadyLinkedError,
@@ -145,13 +145,17 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
 
         session = user_manager.user_db.session
         existing_account = (
-            await session.exec(
-                select(OAuthAccount).where(
-                    OAuthAccount.oauth_name == self.oauth_client.name,
-                    OAuthAccount.account_id == account_id,
+            (
+                await session.execute(
+                    select(OAuthAccount).where(
+                        OAuthAccount.oauth_name == self.oauth_client.name,
+                        OAuthAccount.account_id == account_id,
+                    )
                 )
             )
-        ).first()
+            .scalars()
+            .first()
+        )
 
         if existing_account and existing_account.user_id != user.id:
             raise OAuthAccountAlreadyLinkedError

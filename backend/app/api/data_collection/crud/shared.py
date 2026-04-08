@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlmodel import col, select
+from sqlalchemy import select
 
 from app.api.background_data.models import Material
 from app.api.common.crud.base import get_model_by_id
@@ -17,7 +17,7 @@ from app.api.data_collection.models.product import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def normalize_material_ids(material_ids: int | set[int]) -> set[int]:
@@ -50,8 +50,8 @@ async def get_material_links_for_product(
     """Fetch material-product links for a product and a set of material IDs."""
     statement = (
         select(MaterialProductLink)
-        .where(col(MaterialProductLink.product_id) == product_id)
-        .where(col(MaterialProductLink.material_id).in_(material_ids))
+        .where(MaterialProductLink.product_id == product_id)
+        .where(MaterialProductLink.material_id.in_(material_ids))
     )
-    results = await db.exec(statement)
-    return results.all()
+    results = await db.execute(statement)
+    return results.scalars().all()

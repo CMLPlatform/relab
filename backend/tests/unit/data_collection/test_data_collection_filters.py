@@ -9,8 +9,8 @@ import pytest
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
 
+from sqlalchemy import select
 from sqlalchemy.dialects import postgresql
-from sqlmodel import select
 
 from app.api.data_collection.filters import ProductFilter, get_brand_search_statement
 from app.api.data_collection.models.product import Product

@@ -96,9 +96,7 @@ async def test_send_registration_email(email_data: dict[str, str], mock_email_se
 
 
 @pytest.mark.asyncio
-async def test_send_registration_email_sets_reply_to(
-    email_data: dict[str, str], mock_email_sending: AsyncMock
-) -> None:
+async def test_send_registration_email_sets_reply_to(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration emails include the configured reply-to address."""
     await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Security
 from fastapi.params import Body
 from fastapi_pagination import Page
 from pydantic import EmailStr
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep, current_active_superuser, current_active_user
 from app.api.common.crud.base import get_paginated_models
@@ -38,7 +38,7 @@ backend_router = APIRouter(prefix="/newsletter")
 
 async def _get_subscriber_by_email(db: AsyncSessionDep, email: str) -> NewsletterSubscriber | None:
     statement = select(NewsletterSubscriber).where(NewsletterSubscriber.email == email)
-    return (await db.exec(statement)).unique().one_or_none()
+    return (await db.execute(statement)).scalars().unique().one_or_none()
 
 
 def _newsletter_preference_read(

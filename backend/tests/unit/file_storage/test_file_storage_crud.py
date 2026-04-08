@@ -48,7 +48,6 @@ MY_DOC_RAW = "my document.pdf"
 MB = 1024 * 1024
 
 
-
 class TestFileStorageCrudUtils:
     """Test utility functions for file storage."""
 
@@ -209,7 +208,6 @@ class TestFileStorageCrud:
         with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_file):
             result = await crud.update_file(mock_session, file_id, file_update)
             assert result == mock_db_file
-            mock_db_file.sqlmodel_update.assert_called_once()
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 

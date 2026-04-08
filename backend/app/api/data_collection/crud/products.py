@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import UUID4
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
-from sqlmodel import select
 
 from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.base import get_model_by_id
@@ -31,8 +31,8 @@ from .storage import product_files_crud, product_images_crud
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
-    from sqlmodel.sql._expression_select_cls import SelectOfScalar
+    from sqlalchemy import Select
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_product_trees(
@@ -46,7 +46,7 @@ async def get_product_trees(
     if parent_id:
         await get_model_by_id(db, Product, parent_id)
 
-    statement: SelectOfScalar[Product] = (
+    statement: Select[Product] = (
         select(Product)
         .where(Product.parent_id == parent_id)
         .options(
@@ -61,7 +61,7 @@ async def get_product_trees(
     if product_filter:
         statement = product_filter.filter(statement)
 
-    return list((await db.exec(statement)).all())
+    return list((await db.execute(statement)).scalars().all())
 
 
 def product_payload(
@@ -199,9 +199,7 @@ async def create_product(
     return await create_and_persist_product_tree(db, product, owner_id=owner_id)
 
 
-async def update_product(
-    db: AsyncSession, product_id: int, product: ProductUpdate
-) -> Product:
+async def update_product(db: AsyncSession, product_id: int, product: ProductUpdate) -> Product:
     """Update an existing product in the database."""
     db_product = await get_model_by_id(db, Product, product_id)
 
@@ -209,7 +207,8 @@ async def update_product(
         await get_model_by_id(db, ProductType, product.product_type_id)
 
     product_data: dict[str, Any] = product.model_dump(exclude_unset=True)
-    db_product.sqlmodel_update(product_data)
+    for key, value in product_data.items():
+        setattr(db_product, key, value)
 
     return await commit_and_refresh(db, db_product)
 

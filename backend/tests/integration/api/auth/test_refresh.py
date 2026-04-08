@@ -18,7 +18,7 @@ from .shared import INVALID_REFRESH_TOKEN
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from redis.asyncio import Redis
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio

@@ -5,12 +5,10 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
-from sqlalchemy import inspect
+from sqlalchemy import Select, inspect, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, noload, selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
-from sqlmodel import SQLModel, col, select
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.exceptions import (
@@ -60,13 +58,13 @@ def _get_model_relationships(model: type[MT]) -> dict[str, tuple[QueryableAttrib
 
 
 def add_relationship_options(
-    statement: SelectOfScalar,
+    statement: Select,
     model: type[MT],
     include: set[str] | None = None,
     *,
     read_schema: type[BaseModel] | None = None,
     load_strategy: RelationshipLoadStrategy = RelationshipLoadStrategy.SELECTIN,
-) -> SelectOfScalar:
+) -> Select:
     """Add eager loading options for relationships.
 
     Args:
@@ -155,8 +153,8 @@ async def get_models_by_ids_or_404(db: AsyncSession, model_type: type[MT], model
         err_msg = f"{model_type} does not have an 'id' attribute"
         raise CRUDConfigurationError(err_msg)
 
-    statement = select(model_type).where(col(model_type.id).in_(model_ids))
-    found_models: list[MT] = list((await db.exec(statement)).all())
+    statement = select(model_type).where(model_type.id.in_(model_ids))
+    found_models: list[MT] = list((await db.execute(statement)).scalars().all())
 
     if len(found_models) != len(model_ids):
         found_ids: set[int | UUID] = {cast("int | UUID", model.__dict__["id"]) for model in found_models}
@@ -219,7 +217,7 @@ def enum_format_id_set(enum_set: set[ET]) -> str:
 
 
 ### Parent Type Utilities ###
-def get_file_parent_type_model(parent_type: MediaParentType) -> type[SQLModel]:
+def get_file_parent_type_model(parent_type: MediaParentType) -> type:
     """Return the model for the given parent type. Utility function to avoid circular imports."""
     if parent_type == parent_type.PRODUCT:
         return Product

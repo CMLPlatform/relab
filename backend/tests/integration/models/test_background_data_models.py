@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
-from sqlmodel import select
 
 from app.api.background_data.models import (
     Category,
@@ -27,7 +27,7 @@ from tests.factories.models import (
 )
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from tests.fixtures.database import DBOperations
 
@@ -259,16 +259,16 @@ class TestRelationships:
             .where(Category.id == db_category.id)
             .options(selectinload(cast("QueryableAttribute[Any]", Category.materials)))
         )
-        result = await session.exec(stmt)
-        category = result.one()
+        result = await session.execute(stmt)
+        category = result.scalar_one()
 
         stmt = (
             select(Material)
             .where(Material.id == db_material.id)
             .options(selectinload(cast("QueryableAttribute[Any]", Material.categories)))
         )
-        result = await session.exec(stmt)
-        material = result.one()
+        result = await session.execute(stmt)
+        material = result.scalar_one()
 
         assert category.materials is not None
         assert len(category.materials) == 1
@@ -293,8 +293,8 @@ class TestRelationships:
             .where(Category.id == db_category.id)
             .options(selectinload(cast("QueryableAttribute[Any]", Category.product_types)))
         )
-        result = await session.exec(stmt)
-        category = result.one()
+        result = await session.execute(stmt)
+        category = result.scalar_one()
 
         assert category.product_types is not None
         assert len(category.product_types) == 1
@@ -318,7 +318,7 @@ class TestRelationships:
             .where(Taxonomy.id == db_taxonomy.id)
             .options(selectinload(cast("QueryableAttribute[Any]", Taxonomy.categories)))
         )
-        result = await session.exec(stmt)
-        taxonomy = result.one()
+        result = await session.execute(stmt)
+        taxonomy = result.scalar_one()
 
         assert len(taxonomy.categories) == 3  # 3 new categories created in this test

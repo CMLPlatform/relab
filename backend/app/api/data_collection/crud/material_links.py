@@ -19,7 +19,7 @@ from app.api.data_collection.models.product import MaterialProductLink
 from .shared import get_material_links_for_product, get_product_with_bill_of_materials, validate_product_material_links
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def add_materials_to_product(

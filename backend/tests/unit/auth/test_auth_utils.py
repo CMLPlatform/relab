@@ -17,7 +17,7 @@ from app.api.auth.services.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # Constants for test values
 PW_TOO_SHORT = "Too short"

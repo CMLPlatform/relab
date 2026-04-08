@@ -89,10 +89,12 @@ async def register_pairing_code(
     if existing is not None:
         raise PairingCodeCollisionError
 
-    payload = json.dumps({
-        "rpi_fingerprint": body.rpi_fingerprint,
-        "status": _STATUS_WAITING,
-    })
+    payload = json.dumps(
+        {
+            "rpi_fingerprint": body.rpi_fingerprint,
+            "status": _STATUS_WAITING,
+        }
+    )
     stored = await set_redis_value(redis, key, payload, ex=PAIRING_TTL_SECONDS)
     if not stored:
         msg = "Failed to store pairing code in Redis."
@@ -135,12 +137,14 @@ async def claim_pairing_code(
     ws_url = _build_ws_url()
 
     # Store credentials for the RPi to pick up
-    paired_payload = json.dumps({
-        "status": _STATUS_PAIRED,
-        "camera_id": str(db_camera.id),
-        "api_key": api_key,
-        "ws_url": ws_url,
-    })
+    paired_payload = json.dumps(
+        {
+            "status": _STATUS_PAIRED,
+            "camera_id": str(db_camera.id),
+            "api_key": api_key,
+            "ws_url": ws_url,
+        }
+    )
     await set_redis_value(redis, key, paired_payload, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
 
     logger.info(

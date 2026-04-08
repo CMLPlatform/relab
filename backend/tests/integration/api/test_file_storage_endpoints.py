@@ -12,7 +12,7 @@ from tests.factories.models import ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
     from app.api.data_collection.models.product import Product

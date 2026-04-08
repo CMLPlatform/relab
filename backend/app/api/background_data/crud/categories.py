@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
-from sqlmodel import col, select
 
 from app.api.background_data.filters import CategoryFilter, CategoryFilterWithRelationships
 from app.api.background_data.models import Category, Taxonomy, TaxonomyDomain
@@ -22,8 +22,8 @@ from app.api.common.exceptions import BadRequestError
 from .shared import delete_background_model, update_background_model
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
-    from sqlmodel.sql._expression_select_cls import SelectOfScalar
+    from sqlalchemy import Select
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def validate_category_creation(
@@ -59,13 +59,13 @@ async def validate_category_taxonomy_domains(
     db: AsyncSession, category_ids: set[int], expected_domains: TaxonomyDomain | set[TaxonomyDomain]
 ) -> None:
     """Validate that categories belong to taxonomies with expected domains."""
-    categories_statement: SelectOfScalar[Category] = (
+    categories_statement: Select[Category] = (
         select(Category)
         .join(Taxonomy)
-        .where(col(Category.id).in_(category_ids))
+        .where(Category.id.in_(category_ids))
         .options(selectinload(cast("QueryableAttribute[Any]", Category.taxonomy)))
     )
-    categories = list((await db.exec(categories_statement)).all())
+    categories = list((await db.execute(categories_statement)).scalars().all())
 
     if len(categories) != len(category_ids):
         missing = set(category_ids) - {c.id for c in categories}
@@ -103,10 +103,8 @@ async def get_category_trees(
     if taxonomy_id:
         await get_model_or_404(db, Taxonomy, taxonomy_id)
 
-    statement: SelectOfScalar[Category] = (
-        select(Category)
-        .where(Category.supercategory_id == supercategory_id)
-        .execution_options(populate_existing=True)
+    statement: Select[Category] = (
+        select(Category).where(Category.supercategory_id == supercategory_id).execution_options(populate_existing=True)
     )
 
     if taxonomy_id:
@@ -119,7 +117,7 @@ async def get_category_trees(
         selectinload(cast("QueryableAttribute[Any]", Category.subcategories), recursion_depth=recursion_depth)
     )
 
-    return list((await db.exec(statement)).all())
+    return list((await db.execute(statement)).scalars().all())
 
 
 async def create_category(

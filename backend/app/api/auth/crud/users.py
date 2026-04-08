@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import Request
 from pydantic import EmailStr, ValidationError
-from sqlalchemy import exists
-from sqlmodel import col, select
+from sqlalchemy import exists, select
 
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import Organization, OrganizationRole, User
@@ -20,7 +19,7 @@ from app.api.auth.schemas import (
 from app.api.common.crud.utils import get_model_or_404
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.services.email_checker import EmailChecker
     from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
@@ -40,8 +39,8 @@ async def validate_user_create(
         raise DisposableEmailError(email=user_create.email)
 
     if user_create.username is not None:
-        query = select(exists().where(col(User.username) == user_create.username))
-        if (await user_db.session.exec(query)).one():
+        query = select(exists().where(User.username == user_create.username))
+        if (await user_db.session.execute(query)).scalar_one():
             raise UserNameAlreadyExistsError(user_create.username)
 
     if isinstance(user_create, UserCreateWithOrganization):
@@ -101,7 +100,7 @@ async def get_user_by_username(session: AsyncSession, username: str) -> User:
     """Get a user by their username."""
     statement = select(User).where(User.username == username)
 
-    if not (user := (await session.exec(statement)).unique().one_or_none()):
+    if not (user := (await session.execute(statement)).scalars().unique().one_or_none()):
         err_msg: EmailStr = f"User not found with username: {username}"
 
         raise ValueError(err_msg)
@@ -113,8 +112,8 @@ async def update_user_override(user_db: SQLModelUserDatabaseAsync, user: User, u
     """Override base user update with organization validation."""
     if user_update.username is not None:
         # Check username uniqueness
-        query = select(exists().where((col(User.username) == user_update.username) & (col(User.id) != user.id)))
-        if (await user_db.session.exec(query)).one():
+        query = select(exists().where((User.username == user_update.username) & (User.id != user.id)))
+        if (await user_db.session.execute(query)).scalar_one():
             raise UserNameAlreadyExistsError(user_update.username)
 
     if user_update.organization_id is not None:

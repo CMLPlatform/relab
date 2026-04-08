@@ -1,6 +1,6 @@
 """CRUD operations for video models."""
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.persistence import commit_and_refresh, delete_and_commit, update_and_commit
 from app.api.common.crud.utils import get_model_or_404

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 EXIT_EMPTY = 0
 EXIT_NOT_EMPTY = 10
 
+
 def database_is_empty(ignore_tables: set[str] | None = None) -> bool:
     """Check if the database is empty by inspecting all tables, ignoring the alembic_version table."""
     # Ignore the alembic_version table by default

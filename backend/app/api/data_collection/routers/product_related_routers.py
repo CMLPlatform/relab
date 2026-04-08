@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated, cast
 from fastapi import Body, Path
 from fastapi_filter import FilterDepends
 from pydantic import PositiveInt
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.background_data.models import Material
 from app.api.common.crud.associations import get_linking_model_with_ids_if_it_exists
@@ -41,7 +41,7 @@ from app.api.file_storage.schemas import VideoCreateWithinProduct, VideoReadWith
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sqlmodel.sql._expression_select_cls import SelectOfScalar
+    from sqlalchemy import Select
 
 product_related_router = PublicAPIRouter(prefix="/products", tags=["products"])
 
@@ -57,7 +57,7 @@ async def get_product_videos(
     video_filter: VideoFilter = FilterDepends(VideoFilter),
 ) -> Sequence[Video]:
     """Get all videos associated with a specific product."""
-    statement: SelectOfScalar[Video] = select(Video).where(Video.product_id == cast("int", product.id))
+    statement: Select[Video] = select(Video).where(Video.product_id == cast("int", product.id))
     return await get_models(
         session,
         Video,
@@ -134,7 +134,7 @@ async def get_product_bill_of_materials(
 ) -> Sequence[MaterialProductLink]:
     """Get bill of materials for a product."""
     await get_model_or_404(session, Product, product_id)
-    statement: SelectOfScalar[MaterialProductLink] = (
+    statement: Select[MaterialProductLink] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
     )
     return await get_models(

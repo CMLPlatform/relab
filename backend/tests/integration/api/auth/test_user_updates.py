@@ -19,7 +19,7 @@ from .shared import NEW_USERNAME, TAKEN_USERNAME, USER1_EMAIL, USER1_USERNAME, U
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.integration

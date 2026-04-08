@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from uuid import UUID
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
@@ -48,7 +48,6 @@ def require_uuid(value: UUID | None) -> UUID:
 def build_camera(*, owner_id: UUID, name: str, encrypted_api_key: str, url: str) -> Camera:
     """Build a camera for CRUD tests."""
     return Camera(name=name, owner_id=owner_id, encrypted_api_key=encrypted_api_key, url=url)
-
 
 
 @pytest.fixture

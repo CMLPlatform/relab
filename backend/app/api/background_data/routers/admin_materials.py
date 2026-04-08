@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
+
 @router.post(
     "",
     response_model=MaterialRead,
@@ -139,6 +140,7 @@ async def remove_category_from_material(
 ) -> None:
     """Remove a single category from a material."""
     await crud.remove_categories_from_material(session, material_id, category_id)
+
 
 @router.post(
     "/{material_id}/files",

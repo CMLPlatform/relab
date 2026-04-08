@@ -12,7 +12,7 @@ from app.api.data_collection.models.product import Product
 from tests.factories.models import MaterialFactory, ProductFactory
 
 if TYPE_CHECKING:
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
@@ -43,7 +43,7 @@ class TestProductModelPersistence:
         """Verify owner_id is required via FK constraint."""
         # Try to create product without owner
         with pytest.raises(IntegrityError):
-            await session.exec(insert(Product).values(name="Orphan Product", owner_id=None))
+            await session.execute(insert(Product).values(name="Orphan Product", owner_id=None))
 
 
 @pytest.mark.integration

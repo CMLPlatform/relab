@@ -3,7 +3,7 @@
 from urllib.parse import urljoin
 
 from fastapi import APIRouter, status
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.config import settings
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -82,8 +82,8 @@ async def remove_oauth_association(
         OAuthAccount.user_id == current_user.id,
         OAuthAccount.oauth_name == provider,
     )
-    result = await session.exec(query)
-    oauth_account = result.first()
+    result = await session.execute(query)
+    oauth_account = result.scalars().first()
 
     if not oauth_account:
         raise OAuthAccountNotLinkedError(provider)

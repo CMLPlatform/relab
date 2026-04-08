@@ -13,7 +13,7 @@ from app.core.database import async_session_context
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
     from app.api.auth.schemas import UserCreate

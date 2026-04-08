@@ -74,9 +74,7 @@ class TestGoogleCookieTokenEndpoint:
             response = await async_client.post(_COOKIE_ENDPOINT, json={"id_token": "mock-id-token"})
 
         set_cookie_headers = response.headers.get_list("set-cookie")
-        assert any("auth=" in header for header in set_cookie_headers), (
-            "Expected an 'auth' session cookie to be set"
-        )
+        assert any("auth=" in header for header in set_cookie_headers), "Expected an 'auth' session cookie to be set"
 
     async def test_accepts_optional_access_token(self, async_client: AsyncClient) -> None:
         """Providing access_token alongside id_token should succeed."""

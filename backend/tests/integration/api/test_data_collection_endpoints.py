@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.data_collection.models.product import Product
 from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
@@ -89,8 +89,8 @@ class TestDataCollectionEndpoints:
 
         # Verify product was created in session
         stmt = select(Product).where(Product.id == product.id)
-        result = await session.exec(stmt)
-        assert result.first() is not None
+        result = await session.execute(stmt)
+        assert result.scalars().first() is not None
 
         response = await async_client.get("/products")
         assert response.status_code == status.HTTP_200_OK
@@ -106,8 +106,8 @@ class TestDataCollectionEndpoints:
         # Verify product exists in session
 
         stmt = select(Product).where(Product.id == setup_product.id)
-        result = await session.exec(stmt)
-        assert result.first() is not None
+        result = await session.execute(stmt)
+        assert result.scalars().first() is not None
 
         response = await async_client.get("/products/tree?recursion_depth=1")
         assert response.status_code == status.HTTP_200_OK
@@ -222,6 +222,7 @@ class TestDataCollectionEndpoints:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert BRAND_X in data["items"]
+
 
 class TestBrandsEndpoint:
     """Tests for GET /brands."""

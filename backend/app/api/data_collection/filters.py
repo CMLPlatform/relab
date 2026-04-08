@@ -8,8 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import model_validator
-from sqlalchemy import ColumnElement, Select, asc, desc, func
-from sqlmodel import select
+from sqlalchemy import ColumnElement, Select, asc, desc, func, select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
 from app.api.common.search_utils import TSVectorSearchMixin, build_text_search_clause, ts_rank_expr

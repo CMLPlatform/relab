@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.auth.dependencies import current_active_user
 from app.api.auth.models import User
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from httpx import AsyncClient
-    from sqlmodel.ext.asyncio.session import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 # Constants for test values
 EMAIL_NEW = "new@example.com"
@@ -256,8 +256,8 @@ async def test_enable_newsletter_preference_without_email_verification(
     assert response.json()["subscribed"] is True
     assert response.json()["is_confirmed"] is True
 
-    stored = await session.exec(select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email))
-    subscriber = stored.one_or_none()
+    stored = await session.execute(select(NewsletterSubscriber).where(NewsletterSubscriber.email == user.email))
+    subscriber = stored.scalar_one_or_none()
     assert subscriber is not None
     assert subscriber.is_confirmed is True
 
