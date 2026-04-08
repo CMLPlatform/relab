@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import { getToken } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
@@ -162,30 +161,6 @@ export async function fetchCameraSnapshot(cameraId: string): Promise<string> {
   if (!resp.ok) throw new Error(`Failed to fetch snapshot (${resp.status})`);
   const blob = await resp.blob();
   return URL.createObjectURL(blob);
-}
-
-/**
- * Opens an MJPEG stream for live viewfinder preview (HTTP cameras, web only).
- * Uses raw fetch (not apiFetch) to avoid any buffering or timeout wrappers.
- * The caller is responsible for consuming and closing response.body.
- */
-export async function fetchCameraMjpegStream(
-  cameraId: string,
-  signal?: AbortSignal,
-): Promise<Response> {
-  const token = await getToken();
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const resp = await fetch(`${BASE}/${cameraId}/stream/mjpeg`, {
-    method: 'GET',
-    headers,
-    signal,
-    // On web, auth uses httpOnly cookies — must include credentials.
-    // Raw fetch is used instead of apiFetch to avoid buffering/timeout wrappers.
-    credentials: Platform.OS === 'web' ? 'include' : undefined,
-  });
-  if (!resp.ok) throw new Error(`MJPEG stream failed (${resp.status})`);
-  return resp;
 }
 
 // ─── Pairing ─────────────────────────────────────────────────────────────────
