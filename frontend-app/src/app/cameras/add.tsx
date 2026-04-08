@@ -180,8 +180,8 @@ export default function AddCameraScreen() {
         />
         <ModeCard
           icon="lan-connect"
-          title="Direct HTTP"
-          subtitle="Backend sends HTTP requests to the camera URL. Camera must be reachable."
+          title="Direct HTTP (legacy)"
+          subtitle="Backend sends HTTP requests to the camera URL. Camera must be network-reachable. Use WebSocket instead for new setups."
           selected={!isWebSocket}
           onPress={() => setConnectionMode('http')}
           theme={theme}

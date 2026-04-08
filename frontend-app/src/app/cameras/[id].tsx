@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -354,9 +354,7 @@ export default function CameraDetailScreen() {
                 </View>
               )}
               <Text variant="bodySmall" style={{ color: '#999' }}>
-                {Platform.OS === 'web' && camera.connection_mode === 'http'
-                  ? 'Live preview · MJPEG'
-                  : 'Live preview · polling'}
+                Live preview · snapshot polling
               </Text>
             </Card.Content>
           </Card>

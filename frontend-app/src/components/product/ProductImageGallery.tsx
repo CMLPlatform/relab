@@ -687,9 +687,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
               </View>
             )}
             <PaperText variant="bodySmall" style={{ color: '#999' }}>
-              {Platform.OS === 'web' && previewCamera?.connection_mode === 'http'
-                ? 'Live preview · MJPEG ~20fps'
-                : 'Live preview · ~1.5 fps'}
+              Live preview · snapshot polling
             </PaperText>
           </Dialog.Content>
           <Dialog.Actions>
