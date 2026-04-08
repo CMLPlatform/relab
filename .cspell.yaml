@@ -15,6 +15,7 @@ dictionaries:
 enabled: true
 enabledFileTypes:
   "*": true
+useGitignore: true
 ignorePaths:
   - .devcontainer
   - .dockerignore
@@ -83,6 +84,7 @@ words:
 
 ignoreWords:
   - ellipsize
+  - hibp
   - htmlcov
   - nosniff
   - otelcol
