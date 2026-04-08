@@ -9,39 +9,71 @@ This page covers the platform side only. For device installation and plugin depl
 - remote triggering is more convenient than manual photo transfer
 - a live preview while documenting is useful
 
+## Connection Modes
+
+There are two ways to connect a camera to the platform:
+
+### WebSocket Relay (recommended)
+
+The camera opens an outbound WebSocket connection to the backend. The backend relays commands through this tunnel, so the camera does not need a public IP, port forwarding, or a reverse proxy. This is the default for new cameras.
+
+### Direct HTTP
+
+The backend makes outbound HTTP requests to the camera's URL. This requires the camera to be reachable from the backend over the network (public IP, VPN, Cloudflare Tunnel, etc.).
+
 ## Platform Setup
 
-### Step 1: Register Your Camera
+### Option A: Automatic Pairing (WebSocket)
 
-Register the camera through the `rpi-cam` plugin endpoints, typically `/plugins/rpi-cam/cameras`.
+This is the quickest way to add a camera. No manual credential exchange is needed.
 
-You will need to provide:
+1. **Start the RPi in pairing mode.** When the RPi plugin boots without relay credentials but has `PAIRING_BACKEND_URL` set, it enters pairing mode and displays a 6-character code on its setup page (`/setup`).
 
-- camera name
-- description
-- camera API URL
-- optional authentication headers for the device endpoint
+1. **Add a camera in the app.** Go to Cameras > Add Camera. Select WebSocket mode (the default), then enter the pairing code shown on the RPi or scan the QR code.
 
-See the [API documentation](https://api.cml-relab.org/docs#/rpi-cam-management/register_user_camera_plugins_rpi_cam_cameras_post) for required fields. Save the generated API key when it is issued, it is only shown once.
+1. **Wait for the connection.** The platform claims the code, creates the camera record, and sends credentials back to the RPi automatically. The camera should come online within seconds.
 
-### Step 2: Configure the Raspberry Pi
+### Option B: Manual Registration
 
-Configure the Raspberry Pi plugin with the API key from the platform. If you self-host, make sure the backend can reach the device over the network.
+Use this when automatic pairing is not available.
 
-### Step 3: Verify the Registration
+1. **Add a camera in the app.** Go to Cameras > Add Camera. Choose the connection mode (WebSocket or HTTP).
 
-- Query the camera list and status endpoints.
-- Confirm the device appears with the expected URL and status.
+   - **WebSocket:** The platform generates relay credentials. Copy the displayed `relay_credentials.json` content and save it on the RPi.
+   - **HTTP:** Provide the camera's API URL (e.g., `http://your-pi-ip:8018`). Save the generated API key.
+
+1. **Configure the Raspberry Pi.** Add the credentials to the RPi plugin:
+
+   - **WebSocket:** Save the JSON to `relay_credentials.json` in the plugin directory, or set the individual `RELAY_*` environment variables.
+   - **HTTP:** Add the API key to `AUTHORIZED_API_KEYS` in `.env`.
+
+1. **Restart the RPi plugin** if it is already running.
+
+### Verify the Registration
+
+- Open the camera detail screen in the app and check the connection status.
+- The status indicator should show "Online".
 - Run a test capture before relying on the setup for real product documentation.
 
 ## Using Cameras During Documentation
 
 1. Start from a known product or component record.
 1. Trigger image capture or preview through the platform.
-1. The backend proxies the request to the device API.
+1. The backend proxies the request to the device (via WebSocket relay or HTTP).
 1. The returned image or stream metadata is stored in RELab and linked to the record.
 
-Camera management (inspecting, updating, removing registered cameras) is available through the plugin management endpoints.
+Camera management (inspecting, updating, removing registered cameras) is available through the app's Cameras section.
+
+## Managing Cameras
+
+From the camera detail screen you can:
+
+- View the live preview and connection status.
+- Edit the camera name and description.
+- Regenerate the API key (the old key is invalidated immediately; you will need to update the RPi with the new credentials).
+- Delete the camera.
+
+The connection mode cannot be changed after registration. To switch modes, delete the camera and add it again.
 
 ## Practical Advice
 
@@ -52,17 +84,20 @@ Camera management (inspecting, updating, removing registered cameras) is availab
 
 ## Troubleshooting (Platform Side)
 
-### Camera shows as disconnected
+### Camera shows as offline (WebSocket)
+
+- Verify the Raspberry Pi is powered on and has internet access.
+- Check that the RPi plugin is running and relay credentials are configured.
+- Look at the RPi plugin logs for WebSocket connection errors.
+- Confirm the API key on the RPi matches the one stored in the platform (regenerate if unsure).
+
+### Camera shows as offline (HTTP)
 
 - Verify the Raspberry Pi is powered on and reachable on the network.
 - Check that the stored camera API URL is still correct.
 - Confirm the platform and device are using matching API credentials.
-
-### Platform cannot connect to the camera
-
 - Test direct access to the device API from the network where the backend runs.
 - Verify firewall or reverse-proxy rules allow backend-to-device traffic.
-- Check the device-side plugin configuration as well as the RELab registration.
 
 ## Device Setup
 

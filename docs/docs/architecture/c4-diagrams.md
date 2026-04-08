@@ -21,7 +21,7 @@ C4Context
     System_Ext(oauth, "OAuth Providers", "Google and GitHub social login")
     System_Ext(smtp, "SMTP Server", "Transactional email delivery")
     System_Ext(youtube, "YouTube API", "Live stream management for camera feeds")
-    System_Ext(hibp, "Have I Been Pwned", "Password breach checking (k-anonymity)")
+    System_Ext(have-i-been-pwnd, "Have I Been Pwned", "Password breach checking (k-anonymity)")
     System_Ext(rpi, "Raspberry Pi Cameras", "Remote camera hardware for image capture")
 
     Rel(researcher, relab, "Collects data, uploads media")
@@ -30,7 +30,7 @@ C4Context
     Rel(relab, oauth, "Authenticates users", "HTTPS")
     Rel(relab, smtp, "Sends verification and notification emails", "SMTP")
     Rel(relab, youtube, "Creates and monitors live streams", "HTTPS")
-    Rel(relab, hibp, "Validates password safety", "HTTPS")
+    Rel(relab, have-i-been-pwnd, "Validates password safety", "HTTPS")
     Rel(relab, rpi, "Captures images, manages streams", "HTTP")
 
     UpdateRelStyle(researcher, relab, $offsetY="-30")
@@ -99,7 +99,7 @@ C4Component
         Component(backgrounddata, "Background Data", "SQLModel / FastAPI", "Taxonomies, categories, materials, product types — cached reference data")
         Component(filestorage, "File Storage", "FastAPI", "File and image upload, on-the-fly resizing, WebP conversion, periodic orphan cleanup")
         Component(newsletter, "Newsletter", "FastAPI", "Subscription management, double opt-in confirmation, broadcast emails")
-        Component(rpicam, "RPI Camera Plugin", "FastAPI", "Camera CRUD, remote capture, YouTube live stream integration, recording sessions")
+        Component(rpi-cam, "RPI Camera Plugin", "FastAPI", "Camera CRUD, remote capture, YouTube live stream integration, recording sessions")
         Component(common, "Common Infrastructure", "FastAPI", "Shared CRUD utilities, health checks, error handling, OpenAPI helpers, file serving")
         Component(core, "Core", "Python", "Config, database engine, Redis client, cache, HTTP client, telemetry, background task runner")
     }
@@ -116,9 +116,9 @@ C4Component
     Rel(auth, core, "Sessions, config, email")
     Rel(datacollection, backgrounddata, "References categories, materials, types")
     Rel(datacollection, filestorage, "Product images")
-    Rel(rpicam, filestorage, "Stores captured images")
-    Rel(rpicam, datacollection, "Links cameras to products")
-    Rel(rpicam, auth, "YouTube OAuth tokens")
+    Rel(rpi-cam, filestorage, "Stores captured images")
+    Rel(rpi-cam, datacollection, "Links cameras to products")
+    Rel(rpi-cam, auth, "YouTube OAuth tokens")
     Rel(newsletter, auth, "Email sending infrastructure")
 
     Rel(core, postgres, "Async connection pool", "asyncpg")
@@ -127,6 +127,6 @@ C4Component
     Rel(auth, oauth, "Social login", "HTTPS")
     Rel(auth, smtp, "Verification and reset emails", "SMTP")
     Rel(newsletter, smtp, "Subscription and broadcast emails", "SMTP")
-    Rel(rpicam, youtube, "Stream management", "HTTPS")
-    Rel(rpicam, rpi, "Image capture and control", "HTTP")
+    Rel(rpi-cam, youtube, "Stream management", "HTTPS")
+    Rel(rpi-cam, rpi, "Image capture and control", "HTTP")
 ```

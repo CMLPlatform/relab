@@ -36,54 +36,56 @@ graph TD
 
 ??? info "Styled diagram (ELK layout)"
 
-    ```mermaid
-    ---
-    config:
-        layout: elk
-        elk:
-            nodePlacementStrategy: LINEAR_SEGMENTS
-    ---
-    graph TD
-        Researcher["fa:fa-flask Researcher"] -->|Capture workflow| FrontendApp["fa:fa-mobile-screen Expo App"]
-        FrontendApp -->|API requests| MainAPI["fa:fa-bolt FastAPI Backend"]
+````
+```mermaid
+---
+config:
+    layout: elk
+    elk:
+        nodePlacementStrategy: LINEAR_SEGMENTS
+---
+graph TD
+    Researcher["fa:fa-flask Researcher"] -->|Capture workflow| FrontendApp["fa:fa-mobile-screen Expo App"]
+    FrontendApp -->|API requests| MainAPI["fa:fa-bolt FastAPI Backend"]
 
-        MainAPI -->|Proxied requests + API key| RpiCamAPI["fa:fa-microchip RPI Camera API"]
-        RpiCamAPI -->|Controls| Camera["fa:fa-camera Camera Hardware"]
+    MainAPI -->|Proxied requests + API key| RpiCamAPI["fa:fa-microchip RPI Camera API"]
+    RpiCamAPI -->|Controls| Camera["fa:fa-camera Camera Hardware"]
 
-        RpiCamAPI -->|HLS preview stream| Researcher
-        RpiCamAPI -->|Direct stream| YouTube["fa:fa-video YouTube API"]
-        RpiCamAPI -->|Captured image + metadata| MainAPI
+    RpiCamAPI -->|HLS preview stream| Researcher
+    RpiCamAPI -->|Direct stream| YouTube["fa:fa-video YouTube API"]
+    RpiCamAPI -->|Captured image + metadata| MainAPI
 
-        GoogleOAuth["fa:fa-right-to-bracket Google OAuth"] -->|User tokens| MainAPI
-        MainAPI -->|Livestream management| YouTube
+    GoogleOAuth["fa:fa-right-to-bracket Google OAuth"] -->|User tokens| MainAPI
+    MainAPI -->|Livestream management| YouTube
 
-        subgraph DataStores ["Data Stores"]
-            Database[("fa:fa-database PostgreSQL")]
-            FileStorage[("fa:fa-hard-drive File Storage")]
-            Redis[("fa:fa-gauge-high Redis")]
-        end
+    subgraph DataStores ["Data Stores"]
+        Database[("fa:fa-database PostgreSQL")]
+        FileStorage[("fa:fa-hard-drive File Storage")]
+        Redis[("fa:fa-gauge-high Redis")]
+    end
 
-        MainAPI -->|Store file metadata| Database
-        MainAPI -->|Store captured images| FileStorage
-        MainAPI -->|Recording session state| Redis
+    MainAPI -->|Store file metadata| Database
+    MainAPI -->|Store captured images| FileStorage
+    MainAPI -->|Recording session state| Redis
 
-        classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
-        classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
-        classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
-        classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
-        classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
-        classDef hardware fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#1a202c
+    classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
+    classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
+    classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
+    classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
+    classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
+    classDef hardware fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#1a202c
 
-        class Researcher actor
-        class FrontendApp frontend
-        class MainAPI backend
-        class Database,FileStorage,Redis datastore
-        classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
+    class Researcher actor
+    class FrontendApp frontend
+    class MainAPI backend
+    class Database,FileStorage,Redis datastore
+    classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
 
-        class YouTube external
-        class GoogleOAuth auth
-        class RpiCamAPI,Camera hardware
-    ```
+    class YouTube external
+    class GoogleOAuth auth
+    class RpiCamAPI,Camera hardware
+```
+````
 
 ## Interaction Flow
 

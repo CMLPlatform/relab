@@ -38,71 +38,73 @@ graph TD
 
 ??? info "Styled architecture overview (ELK layout)"
 
-    ```mermaid
-    ---
-    config:
-        layout: elk
-        elk:
-            nodePlacementStrategy: LINEAR_SEGMENTS
-    ---
-    graph TD
-        Researcher["fa:fa-flask Researcher"] -->|Data entry| FrontendApp
-        PublicUser["fa:fa-globe Public Visitor"] -->|Browses products| FrontendApp
-        PublicUser -->|Reads landing page| FrontendWeb
-        PublicUser -->|Reads docs| Docs
-        Admin["fa:fa-shield-halved Admin"] -->|Admin API calls| Backend
+````
+```mermaid
+---
+config:
+    layout: elk
+    elk:
+        nodePlacementStrategy: LINEAR_SEGMENTS
+---
+graph TD
+    Researcher["fa:fa-flask Researcher"] -->|Data entry| FrontendApp
+    PublicUser["fa:fa-globe Public Visitor"] -->|Browses products| FrontendApp
+    PublicUser -->|Reads landing page| FrontendWeb
+    PublicUser -->|Reads docs| Docs
+    Admin["fa:fa-shield-halved Admin"] -->|Admin API calls| Backend
 
-        subgraph Frontends [" "]
-            FrontendApp["fa:fa-mobile-screen Expo App"]
-            FrontendWeb["fa:fa-window-maximize Astro Landing Page"]
-            Docs["fa:fa-book Zensical Docs"]
-        end
+    subgraph Frontends [" "]
+        FrontendApp["fa:fa-mobile-screen Expo App"]
+        FrontendWeb["fa:fa-window-maximize Astro Landing Page"]
+        Docs["fa:fa-book Zensical Docs"]
+    end
 
-        FrontendApp -->|API requests| Backend
-        FrontendWeb -->|Selected API usage| Backend
+    FrontendApp -->|API requests| Backend
+    FrontendWeb -->|Selected API usage| Backend
 
-        Backend["fa:fa-bolt FastAPI Backend"]
+    Backend["fa:fa-bolt FastAPI Backend"]
 
-        subgraph DataStores ["Data Stores"]
-            Redis[("fa:fa-gauge-high Redis")]
-            PostgreSQL[("fa:fa-database PostgreSQL")]
-            FileStorage[("fa:fa-hard-drive File Storage")]
-        end
+    subgraph DataStores ["Data Stores"]
+        Redis[("fa:fa-gauge-high Redis")]
+        PostgreSQL[("fa:fa-database PostgreSQL")]
+        FileStorage[("fa:fa-hard-drive File Storage")]
+    end
 
-        Backend -->|Cache + refresh tokens| Redis
-        Backend -->|Queries| PostgreSQL
-        Backend -->|Upload / process / delete| FileStorage
+    Backend -->|Cache + refresh tokens| Redis
+    Backend -->|Queries| PostgreSQL
+    Backend -->|Upload / process / delete| FileStorage
 
-        subgraph Auth ["Authentication Layer"]
-            OAuthProviders["fa:fa-right-to-bracket OAuth: GitHub, Google"]
-            AuthSystem["fa:fa-key Bearer / cookie auth"]
-        end
+    subgraph Auth ["Authentication Layer"]
+        OAuthProviders["fa:fa-right-to-bracket OAuth: GitHub, Google"]
+        AuthSystem["fa:fa-key Bearer / cookie auth"]
+    end
 
-        Researcher -->|Authenticates| Auth
-        Admin -->|Authenticates| Auth
+    Researcher -->|Authenticates| Auth
+    Admin -->|Authenticates| Auth
 
-        subgraph External ["External Services"]
-            RaspberryPi["fa:fa-camera RPI Camera API"]
-            YouTube["fa:fa-video YouTube API"]
-        end
+    subgraph External ["External Services"]
+        RaspberryPi["fa:fa-camera RPI Camera API"]
+        YouTube["fa:fa-video YouTube API"]
+    end
 
-        Backend -->|Camera integration| RaspberryPi
-        Backend -->|Optional streaming| YouTube
+    Backend -->|Camera integration| RaspberryPi
+    Backend -->|Optional streaming| YouTube
 
-        classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
-        classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
-        classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
-        classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
-        classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
-        classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
+    classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
+    classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
+    classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
+    classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
+    classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
+    classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
 
-        class Researcher,PublicUser,Admin actor
-        class FrontendApp,FrontendWeb,Docs frontend
-        class Backend backend
-        class Redis,PostgreSQL,FileStorage datastore
-        class OAuthProviders,AuthSystem,HIBP auth
-        class SMTP,RaspberryPi,YouTube external
-    ```
+    class Researcher,PublicUser,Admin actor
+    class FrontendApp,FrontendWeb,Docs frontend
+    class Backend backend
+    class Redis,PostgreSQL,FileStorage datastore
+    class OAuthProviders,AuthSystem,HIBP auth
+    class SMTP,RaspberryPi,YouTube external
+```
+````
 
 For formal C4 architecture views (Context, Container, Component), see [C4 Architecture Diagrams](c4-diagrams.md).
 
