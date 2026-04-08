@@ -204,24 +204,43 @@ dev-reset confirm='':
 
 prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml"
 
-# Start production stack in the background
-prod-up confirm='':
-    @just _require-confirm "start the production stack" "just prod-up YES" "FORCE=1 just prod-up" "{{ confirm }}"
-    {{ prod_compose }} up -d
+# Start production stack (optional profiles: telemetry, backups, migrations)
+prod-up *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false; flags=""
+    for p in {{ PROFILES }}; do
+        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to start the production stack without explicit confirmation."
+        echo "Use 'just prod-up YES [profiles...]' or 'FORCE=1 just prod-up [profiles...]'."
+        exit 1
+    fi
+    {{ prod_compose }} $flags up -d
 
-# Start production telemetry collector
-prod-telemetry-up confirm='':
-    @just _require-confirm "start the production telemetry collector" "just prod-telemetry-up YES" "FORCE=1 just prod-telemetry-up" "{{ confirm }}"
-    {{ prod_compose }} --profile telemetry up -d otel-collector
+# Build (or rebuild) prod images (optional profiles: telemetry, backups, migrations)
+prod-build *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="--profile migrations --profile backups"
+    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
+    {{ prod_compose }} $flags build
 
-# Build (or rebuild) prod images
-prod-build:
-    {{ prod_compose }} --profile migrations --profile backups build
-
-# Stop production stack
-prod-down confirm='':
-    @just _require-confirm "stop the production stack" "just prod-down YES" "FORCE=1 just prod-down" "{{ confirm }}"
-    {{ prod_compose }} down
+# Stop production stack (optional profiles: telemetry, backups)
+prod-down *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false; flags=""
+    for p in {{ PROFILES }}; do
+        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to stop the production stack without explicit confirmation."
+        echo "Use 'just prod-down YES [profiles...]' or 'FORCE=1 just prod-down [profiles...]'."
+        exit 1
+    fi
+    {{ prod_compose }} $flags down
 
 # Tail production logs
 prod-logs:
@@ -243,24 +262,43 @@ prod-backups-up confirm='':
 
 staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.staging.yml"
 
-# Start staging stack in the background
-staging-up confirm='':
-    @just _require-confirm "start the staging stack" "just staging-up YES" "FORCE=1 just staging-up" "{{ confirm }}"
-    {{ staging_compose }} up -d
+# Start staging stack (optional profiles: telemetry, migrations)
+staging-up *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false; flags=""
+    for p in {{ PROFILES }}; do
+        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to start the staging stack without explicit confirmation."
+        echo "Use 'just staging-up YES [profiles...]' or 'FORCE=1 just staging-up [profiles...]'."
+        exit 1
+    fi
+    {{ staging_compose }} $flags up -d
 
-# Start staging telemetry collector
-staging-telemetry-up confirm='':
-    @just _require-confirm "start the staging telemetry collector" "just staging-telemetry-up YES" "FORCE=1 just staging-telemetry-up" "{{ confirm }}"
-    {{ staging_compose }} --profile telemetry up -d otel-collector
+# Build (or rebuild) staging images (optional profiles: telemetry, migrations)
+staging-build *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="--profile migrations"
+    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
+    {{ staging_compose }} $flags build
 
-# Build (or rebuild) staging images
-staging-build:
-    {{ staging_compose }} --profile migrations build
-
-# Stop staging stack
-staging-down confirm='':
-    @just _require-confirm "stop the staging stack" "just staging-down YES" "FORCE=1 just staging-down" "{{ confirm }}"
-    {{ staging_compose }} down
+# Stop staging stack (optional profiles: telemetry)
+staging-down *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false; flags=""
+    for p in {{ PROFILES }}; do
+        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to stop the staging stack without explicit confirmation."
+        echo "Use 'just staging-down YES [profiles...]' or 'FORCE=1 just staging-down [profiles...]'."
+        exit 1
+    fi
+    {{ staging_compose }} $flags down
 
 # Tail staging logs
 staging-logs:
