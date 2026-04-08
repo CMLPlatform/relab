@@ -3,6 +3,7 @@
 Covers custom validators, computed properties, and business-rule constraints.
 Pydantic built-in behavior (required fields, optional defaults, roundtrip) is not tested.
 """
+# spell-checker: ignore KALLAX
 
 from __future__ import annotations
 
@@ -13,7 +14,6 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from app.api.data_collection.schemas import (
-    CircularityPropertiesCreate,
     ProductCreateBaseProduct,
     ProductReadWithRelationships,
     ValidDateTime,
@@ -80,14 +80,14 @@ class TestValidatorsCommon:
         (ProductCreateBaseProduct, "brand", 100),
         (ProductCreateBaseProduct, "model", 100),
         (ProductCreateBaseProduct, "dismantling_notes", 500),
-        (CircularityPropertiesCreate, "recyclability_observation", 500),
-        (CircularityPropertiesCreate, "recyclability_comment", 100),
+        (ProductCreateBaseProduct, "recyclability_observation", 500),
+        (ProductCreateBaseProduct, "recyclability_comment", 100),
     ],
     ids=lambda v: v if isinstance(v, str) else "",
 )
 def test_field_max_length_enforced(schema_cls: type[BaseModel], field: str, max_len: int) -> None:
     """Business-rule max-length constraints reject inputs that are too long."""
-    base = {"name": "Bosch IXO 7 Screwdriver"} if schema_cls is ProductCreateBaseProduct else {}
+    base = {"name": "Bosch IXO 7 Screwdriver"}
     # Exactly at limit should pass
     data_ok = {**base, field: "a" * max_len}
     result = _validate_model(schema_cls, data_ok)

@@ -142,53 +142,25 @@ describe('Saving API Service', () => {
   describe('saveProduct (existing product)', () => {
     const existingProduct = { ...baseProduct, id: 42 as number | 'new' };
 
-    it('PATCHes product, physical_properties and circularity_properties', async () => {
+    it('PATCHes product with properties in a single request', async () => {
       mockApiFetchOk({ id: 42 }); // PATCH /products/42
-      mockApiFetchOk({}); // PATCH /products/42/physical_properties
-      mockApiFetchOk({ id: 42 }); // PATCH /products/42/circularity_properties
 
       await saveProduct(existingProduct);
 
       const calls = mockApiFetch.mock.calls;
-      expect(
-        calls.some((c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH'),
-      ).toBe(true);
-      expect(calls.some((c) => (c[0] as URL).href.includes('physical_properties'))).toBe(true);
-      expect(calls.some((c) => (c[0] as URL).href.includes('circularity_properties'))).toBe(true);
-    });
-
-    it('tolerates 404 on physical_properties PATCH', async () => {
-      mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchError(404); // PATCH physical_properties → 404 is ok
-      mockApiFetchOk({ id: 42 }); // PATCH circularity_properties
-
-      await expect(saveProduct(existingProduct)).resolves.not.toThrow();
-    });
-
-    it('tolerates 404 on circularity_properties PATCH', async () => {
-      mockApiFetchOk({ id: 42 });
-      mockApiFetchOk({});
-      mockApiFetchError(404); // circularity 404 is ok
-
-      await expect(saveProduct(existingProduct)).resolves.not.toThrow();
+      const patchCall = calls.find(
+        (c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH',
+      );
+      expect(patchCall).toBeDefined();
+      const body = JSON.parse(patchCall?.[1]?.body as string);
+      expect(body.weight_g).toBe(500);
+      expect(body.recyclability_observation).toBe('low');
     });
 
     it('throws when product PATCH fails', async () => {
       mockApiFetchError(400, { detail: 'Validation failed' });
-      mockApiFetchOk({}); // physical_properties (parallel)
-      mockApiFetchOk({}); // circularity_properties (parallel)
 
       await expect(saveProduct(existingProduct)).rejects.toThrow('Validation failed');
-    });
-
-    it('throws when physical_properties PATCH fails with non-404', async () => {
-      mockApiFetchOk({ id: 42 }); // product
-      mockApiFetchError(500, { detail: 'Server error' }); // physical_properties
-      mockApiFetchOk({ id: 42 }); // circularity_properties
-
-      await expect(saveProduct(existingProduct)).rejects.toThrow(
-        'Failed to update physical properties',
-      );
     });
   });
 
@@ -196,15 +168,13 @@ describe('Saving API Service', () => {
 
   describe('image management during save', () => {
     it("deletes images that are not in the new product's image list", async () => {
-      const originalImages = [{ id: 10, url: 'http://example.com/img.jpg', description: 'old' }];
+      const originalImages = [{ id: '10', url: 'http://example.com/img.jpg', description: 'old' }];
       const productWithExistingImage = {
         ...baseProduct,
         id: 42 as number | 'new',
         images: [], // no images in new version
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // PATCH physical
-      mockApiFetchOk({ id: 42 }); // PATCH circularity
       mockApiFetchOk({}); // DELETE image/10
 
       await saveProduct(productWithExistingImage, originalImages);
@@ -234,8 +204,6 @@ describe('Saving API Service', () => {
         videos: [],
       });
       mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // PATCH physical
-      mockApiFetchOk({ id: 42 }); // PATCH circularity
       mockApiFetchOk({}); // POST image
 
       await saveProduct(productWithNewImage);
@@ -269,8 +237,6 @@ describe('Saving API Service', () => {
       });
 
       mockApiFetchOk({ id: 42 }); // product PATCH
-      mockApiFetchOk({}); // physical PATCH
-      mockApiFetchOk({ id: 42 }); // circularity PATCH
       mockApiFetchOk({}); // POST video
 
       await saveProduct(product);
@@ -286,8 +252,6 @@ describe('Saving API Service', () => {
       const product = { ...baseProduct, id: 42 as number | 'new', videos: [] };
 
       mockApiFetchOk({ id: 42 }); // product PATCH
-      mockApiFetchOk({}); // physical PATCH
-      mockApiFetchOk({ id: 42 }); // circularity PATCH
       mockApiFetchOk({}); // DELETE video
 
       await saveProduct(product, [], originalVideos);
@@ -315,8 +279,6 @@ describe('Saving API Service', () => {
       };
 
       mockApiFetchOk({ id: 42 }); // product PATCH
-      mockApiFetchOk({}); // physical PATCH
-      mockApiFetchOk({ id: 42 }); // circularity PATCH
       mockApiFetchOk({}); // PATCH video
 
       await saveProduct(product, [], originalVideos);
@@ -343,8 +305,6 @@ describe('Saving API Service', () => {
         images: [{ url: 'https://example.com/new.jpg', description: 'test' }],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // PATCH physical
-      mockApiFetchOk({ id: 42 }); // PATCH circularity
       mockApiFetch.mockResolvedValueOnce({
         ok: false,
         status: 422,
@@ -361,7 +321,7 @@ describe('Saving API Service', () => {
       } as Response);
       global.fetch = mockFetch;
 
-      const image: { url: string; description: string; id?: number } = {
+      const image: { url: string; description: string; id?: string } = {
         url: 'https://example.com/new.jpg',
         description: 'test',
       };
@@ -371,13 +331,11 @@ describe('Saving API Service', () => {
         images: [image],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // PATCH physical
-      mockApiFetchOk({ id: 42 }); // PATCH circularity
-      mockApiFetchOk({ id: 55, url: 'http://cdn.example.com/stored.jpg' }); // POST image
+      mockApiFetchOk({ id: 'abc-123', url: 'http://cdn.example.com/stored.jpg' }); // POST image
 
       await saveProduct(product, [], []);
 
-      expect(image.id).toBe(55);
+      expect(image.id).toBe('abc-123');
       expect(image.url).toBe('http://cdn.example.com/stored.jpg');
     });
 
@@ -392,8 +350,6 @@ describe('Saving API Service', () => {
         images: [{ url: dataUri, description: 'tiny png' }],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
-      mockApiFetchOk({}); // PATCH physical
-      mockApiFetchOk({ id: 42 }); // PATCH circularity
       mockApiFetchOk({ id: 77 }); // POST image
 
       await saveProduct(product, [], []);

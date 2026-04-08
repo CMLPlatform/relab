@@ -14,6 +14,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.api.auth.routers.oauth_token import logger
 from app.api.background_data.schemas import ProductTypeRead
 from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProduct,
@@ -21,27 +22,12 @@ from app.api.common.schemas.associations import (
 )
 from app.api.common.schemas.base import (
     BaseCreateSchema,
-    BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
     ComponentRead,
     ProductRead,
 )
-from app.api.common.schemas.field_mixins import (
-    CircularityPropertiesFields,
-    PhysicalPropertiesFields,
-)
-from app.api.data_collection.examples import (
-    CIRCULARITY_PROPERTIES_CREATE_EXAMPLES,
-    CIRCULARITY_PROPERTIES_READ_EXAMPLES,
-    CIRCULARITY_PROPERTIES_UPDATE_EXAMPLES,
-    PHYSICAL_PROPERTIES_CREATE_EXAMPLES,
-    PHYSICAL_PROPERTIES_READ_EXAMPLES,
-    PHYSICAL_PROPERTIES_UPDATE_EXAMPLES,
-    PRODUCT_CREATE_EXAMPLES,
-)
+from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
 from app.api.data_collection.models.base import (
-    CircularityPropertiesBase,
-    PhysicalPropertiesBase,
     ProductBase,
     validate_start_and_end_time,
 )
@@ -92,50 +78,6 @@ ValidDateTime = Annotated[
 ]
 
 
-### Properties Schemas ###
-
-
-class PhysicalPropertiesCreate(BaseCreateSchema, PhysicalPropertiesBase):
-    """Schema for creating physical properties."""
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PHYSICAL_PROPERTIES_CREATE_EXAMPLES})
-
-
-class PhysicalPropertiesRead(BaseReadSchemaWithTimeStamp, PhysicalPropertiesFields):
-    """Schema for reading physical properties."""
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PHYSICAL_PROPERTIES_READ_EXAMPLES})
-
-
-class PhysicalPropertiesUpdate(BaseUpdateSchema, PhysicalPropertiesBase):
-    """Schema for updating physical properties."""
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PHYSICAL_PROPERTIES_UPDATE_EXAMPLES})
-
-
-class CircularityPropertiesCreate(BaseCreateSchema, CircularityPropertiesBase):
-    """Schema for creating circularity properties."""
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CIRCULARITY_PROPERTIES_CREATE_EXAMPLES})
-
-
-class CircularityPropertiesRead(BaseReadSchemaWithTimeStamp, CircularityPropertiesFields):
-    """Schema for reading circularity properties."""
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CIRCULARITY_PROPERTIES_READ_EXAMPLES})
-
-
-class CircularityPropertiesUpdate(BaseUpdateSchema, CircularityPropertiesBase):
-    """Schema for updating circularity properties."""
-
-    # Make all fields optional for updates
-    recyclability_observation: str | None = Field(default=None, max_length=500)
-    repairability_observation: str | None = Field(default=None, max_length=500)
-    remanufacturability_observation: str | None = Field(default=None, max_length=500)
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CIRCULARITY_PROPERTIES_UPDATE_EXAMPLES})
-
-
 ### Product Schemas ###
 
 
@@ -144,12 +86,13 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
     """Validation logic to ensure either materials or components are provided."""
     if len(bill_of_materials) == 0 and len(components) == 0:
         err_msg = "Product must have at least one material or component"
-        raise ValueError(err_msg)
+        # TODO: raise error again once we implement mBill of materials UI
+        # that allows users to add materials at product creation instead of only components
+        # raise ValueError(err_msg) #noqa: ERA001
+        logger.warning("Validation warning: %s. This will become an error in the future.", err_msg)
 
 
 ## Create Schemas ##
-
-
 class ProductCreateBase(BaseCreateSchema, ProductBase):
     """Base schema for product and component creation."""
 
@@ -175,13 +118,6 @@ class ProductCreateWithRelationships(ProductCreateBase):
     """Schema for creating a product or component with relationships to other models."""
 
     product_type_id: PositiveInt | None = None
-
-    physical_properties: PhysicalPropertiesCreate | None = Field(
-        default=None, description="Physical properties of the product"
-    )
-    circularity_properties: CircularityPropertiesCreate | None = Field(
-        default=None, description="Circularity properties of the product"
-    )
 
     videos: list[VideoCreateWithinProduct] = Field(default_factory=list, description="Disassembly videos")
     bill_of_materials: list[MaterialProductLinkCreateWithinProduct] = Field(
@@ -247,14 +183,7 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 # Note that the base ProductRead schema is imported from app.api.common.schemas.base to avoid circular dependencies
 
 
-class ProductReadWithProperties(ProductRead):
-    """Schema for reading product information with all properties."""
-
-    physical_properties: PhysicalPropertiesRead | None = None
-    circularity_properties: CircularityPropertiesRead | None = None
-
-
-class ProductReadWithRelationships(ProductReadWithProperties):
+class ProductReadWithRelationships(ProductRead):
     """Schema for reading product information with all relationships."""
 
     product_type: ProductTypeRead | None = None
@@ -301,7 +230,7 @@ class ProductReadWithRecursiveComponents(ProductReadWithRelationships):
 
 ### Update Schemas ###
 class ProductUpdate(BaseUpdateSchema):
-    """Schema for updating basic product information."""
+    """Schema for updating product information including physical and circularity properties."""
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
@@ -322,15 +251,25 @@ class ProductUpdate(BaseUpdateSchema):
         default=None, gt=0, description="Quantity within parent product. Required for component products."
     )
 
+    # Physical properties
+    weight_g: float | None = Field(default=None, gt=0)
+    height_cm: float | None = Field(default=None, gt=0)
+    width_cm: float | None = Field(default=None, gt=0)
+    depth_cm: float | None = Field(default=None, gt=0)
+
+    # Circularity properties
+    recyclability_observation: str | None = Field(default=None, max_length=500)
+    recyclability_comment: str | None = Field(default=None, max_length=100)
+    recyclability_reference: str | None = Field(default=None, max_length=100)
+    repairability_observation: str | None = Field(default=None, max_length=500)
+    repairability_comment: str | None = Field(default=None, max_length=100)
+    repairability_reference: str | None = Field(default=None, max_length=100)
+    remanufacturability_observation: str | None = Field(default=None, max_length=500)
+    remanufacturability_comment: str | None = Field(default=None, max_length=100)
+    remanufacturability_reference: str | None = Field(default=None, max_length=100)
+
     @model_validator(mode="after")
     def validate_times(self) -> Self:
         """Ensure end time is after start time if both are set."""
         validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
         return self
-
-
-class ProductUpdateWithProperties(ProductUpdate):
-    """Schema for a partial update of a product with properties."""
-
-    physical_properties: PhysicalPropertiesUpdate | None = None
-    circularity_properties: CircularityPropertiesUpdate | None = None

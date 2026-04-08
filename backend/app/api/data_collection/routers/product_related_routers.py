@@ -30,18 +30,8 @@ from app.api.data_collection.examples import (
     PRODUCT_SINGLE_MATERIAL_LINK_OPENAPI_EXAMPLES,
 )
 from app.api.data_collection.models.product import (
-    CircularityProperties,
     MaterialProductLink,
-    PhysicalProperties,
     Product,
-)
-from app.api.data_collection.schemas import (
-    CircularityPropertiesCreate,
-    CircularityPropertiesRead,
-    CircularityPropertiesUpdate,
-    PhysicalPropertiesCreate,
-    PhysicalPropertiesRead,
-    PhysicalPropertiesUpdate,
 )
 from app.api.file_storage.crud.video import create_video, delete_video, update_video
 from app.api.file_storage.filters import VideoFilter
@@ -54,116 +44,6 @@ if TYPE_CHECKING:
     from sqlmodel.sql._expression_select_cls import SelectOfScalar
 
 product_related_router = PublicAPIRouter(prefix="/products", tags=["products"])
-
-
-@product_related_router.get(
-    "/{product_id}/physical_properties",
-    response_model=PhysicalPropertiesRead,
-    summary="Get product physical properties",
-)
-async def get_product_physical_properties(
-    product_id: PositiveInt,
-    session: AsyncSessionDep,
-) -> PhysicalProperties:
-    """Get physical properties for a product."""
-    return await crud.get_physical_properties(session, product_id)
-
-
-@product_related_router.post(
-    "/{product_id}/physical_properties",
-    response_model=PhysicalPropertiesRead,
-    status_code=201,
-    summary="Create product physical properties",
-)
-async def create_product_physical_properties(
-    product: UserOwnedProductDep,
-    session: AsyncSessionDep,
-    properties: PhysicalPropertiesCreate,
-) -> PhysicalProperties:
-    """Create physical properties for a product."""
-    return await crud.create_physical_properties(session, properties, cast("int", product.id))
-
-
-@product_related_router.patch(
-    "/{product_id}/physical_properties",
-    response_model=PhysicalPropertiesRead,
-    summary="Update product physical properties",
-)
-async def update_product_physical_properties(
-    product: UserOwnedProductDep,
-    session: AsyncSessionDep,
-    properties: PhysicalPropertiesUpdate,
-) -> PhysicalProperties:
-    """Update physical properties for a product."""
-    return await crud.update_physical_properties(session, cast("int", product.id), properties)
-
-
-@product_related_router.delete(
-    "/{product_id}/physical_properties",
-    status_code=204,
-    summary="Delete product physical properties",
-)
-async def delete_product_physical_properties(
-    product: UserOwnedProductDep,
-    session: AsyncSessionDep,
-) -> None:
-    """Delete physical properties for a product."""
-    await crud.delete_physical_properties(session, product)
-
-
-@product_related_router.get(
-    "/{product_id}/circularity_properties",
-    response_model=CircularityPropertiesRead,
-    summary="Get product circularity properties",
-)
-async def get_product_circularity_properties(
-    product_id: PositiveInt,
-    session: AsyncSessionDep,
-) -> CircularityProperties:
-    """Get circularity properties for a product."""
-    return await crud.get_circularity_properties(session, product_id)
-
-
-@product_related_router.post(
-    "/{product_id}/circularity_properties",
-    response_model=CircularityPropertiesRead,
-    status_code=201,
-    summary="Create product circularity properties",
-)
-async def create_product_circularity_properties(
-    product: UserOwnedProductDep,
-    session: AsyncSessionDep,
-    properties: CircularityPropertiesCreate,
-) -> CircularityProperties:
-    """Create circularity properties for a product."""
-    return await crud.create_circularity_properties(session, properties, cast("int", product.id))
-
-
-@product_related_router.patch(
-    "/{product_id}/circularity_properties",
-    response_model=CircularityPropertiesRead,
-    summary="Update product circularity properties",
-)
-async def update_product_circularity_properties(
-    product: UserOwnedProductDep,
-    session: AsyncSessionDep,
-    properties: CircularityPropertiesUpdate,
-) -> CircularityProperties:
-    """Update circularity properties for a product."""
-    return await crud.update_circularity_properties(session, cast("int", product.id), properties)
-
-
-@product_related_router.delete(
-    "/{product_id}/circularity_properties",
-    status_code=204,
-    summary="Delete product circularity properties",
-)
-async def delete_product_circularity_properties(
-    product: UserOwnedProductDep,
-    session: AsyncSessionDep,
-) -> None:
-    """Delete circularity properties for a product."""
-    await crud.delete_circularity_properties(session, product)
 
 
 @product_related_router.get(

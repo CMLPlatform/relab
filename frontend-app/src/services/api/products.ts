@@ -21,7 +21,7 @@ export interface PaginatedResponse<T> {
 
 async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> {
   return {
-    id: data.id as number,
+    id: Number(data.id),
     parentID: data.parent_id ?? undefined,
     name: data.name,
     brand: data.brand ?? undefined,
@@ -39,35 +39,24 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
       width: data.physical_properties?.width_cm ?? NaN,
       depth: data.physical_properties?.depth_cm ?? NaN,
     },
-    circularityProperties: data.circularity_properties
-      ? {
-          recyclabilityComment: data.circularity_properties.recyclability_comment,
-          recyclabilityObservation: data.circularity_properties.recyclability_observation ?? '',
-          recyclabilityReference: data.circularity_properties.recyclability_reference,
-          remanufacturabilityComment: data.circularity_properties.remanufacturability_comment,
-          remanufacturabilityObservation:
-            data.circularity_properties.remanufacturability_observation ?? '',
-          remanufacturabilityReference: data.circularity_properties.remanufacturability_reference,
-          repairabilityComment: data.circularity_properties.repairability_comment,
-          repairabilityObservation: data.circularity_properties.repairability_observation ?? '',
-          repairabilityReference: data.circularity_properties.repairability_reference,
-        }
-      : {
-          recyclabilityComment: null,
-          recyclabilityObservation: '',
-          recyclabilityReference: null,
-          remanufacturabilityComment: null,
-          remanufacturabilityObservation: '',
-          remanufacturabilityReference: null,
-          repairabilityComment: null,
-          repairabilityObservation: '',
-          repairabilityReference: null,
-        },
+    circularityProperties: {
+      recyclabilityComment: data.circularity_properties?.recyclability_comment ?? null,
+      recyclabilityObservation: data.circularity_properties?.recyclability_observation ?? '',
+      recyclabilityReference: data.circularity_properties?.recyclability_reference ?? null,
+      remanufacturabilityComment: data.circularity_properties?.remanufacturability_comment ?? null,
+      remanufacturabilityObservation:
+        data.circularity_properties?.remanufacturability_observation ?? '',
+      remanufacturabilityReference:
+        data.circularity_properties?.remanufacturability_reference ?? null,
+      repairabilityComment: data.circularity_properties?.repairability_comment ?? null,
+      repairabilityObservation: data.circularity_properties?.repairability_observation ?? '',
+      repairabilityReference: data.circularity_properties?.repairability_reference ?? null,
+    },
     ownerUsername: data.owner_username ?? undefined,
-    componentIDs: data.components?.map(({ id }) => id as number) ?? [],
+    componentIDs: data.components?.map(({ id }) => Number(id)) ?? [],
     images:
       data.images?.map((img: ApiImageRead) => ({
-        id: img.id as number,
+        id: String(img.id),
         url: resolveApiMediaUrl(img.image_url) ?? img.image_url ?? '',
         thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
         description: img.description ?? '',
@@ -75,7 +64,7 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     videos:
       data.videos?.map((vid: ApiVideoRead) => ({
-        id: vid.id as number,
+        id: Number(vid.id),
         url: vid.url,
         description: vid.description ?? '',
         title: vid.title ?? '',
@@ -83,14 +72,7 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
   };
 }
 
-export const FULL_PRODUCT_INCLUDES = [
-  'physical_properties',
-  'circularity_properties',
-  'images',
-  'product_type',
-  'components',
-  'videos',
-];
+export const FULL_PRODUCT_INCLUDES = ['images', 'product_type', 'components', 'videos'];
 
 export async function getProduct(
   id: number | 'new',

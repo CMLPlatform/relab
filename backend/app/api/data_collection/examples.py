@@ -10,40 +10,6 @@ if TYPE_CHECKING:
     from fastapi.openapi.models import Example
 
 
-PHYSICAL_PROPERTIES_CREATE_EXAMPLES = [{"weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]
-
-PHYSICAL_PROPERTIES_READ_EXAMPLES = [{"id": 1, "weight_g": 20000, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]
-
-PHYSICAL_PROPERTIES_UPDATE_EXAMPLES = [{"weight_g": 15000, "height_cm": 120}]
-
-CIRCULARITY_PROPERTIES_EXAMPLE = {
-    "recyclability_observation": "The product can be easily disassembled and materials separated",
-    "recyclability_comment": "High recyclability rating",
-    "recyclability_reference": "ISO 14021:2016",
-    "repairability_observation": "Components are modular and can be replaced individually",
-    "repairability_comment": "Good repairability score",
-    "repairability_reference": "EN 45554:2020",
-    "remanufacturability_observation": "Core components can be refurbished and reused",
-    "remanufacturability_comment": "Suitable for remanufacturing",
-    "remanufacturability_reference": "BS 8887-2:2009",
-}
-
-CIRCULARITY_PROPERTIES_CREATE_EXAMPLES = [CIRCULARITY_PROPERTIES_EXAMPLE]
-
-CIRCULARITY_PROPERTIES_READ_EXAMPLES = [
-    {
-        "id": 1,
-        **CIRCULARITY_PROPERTIES_EXAMPLE,
-    }
-]
-
-CIRCULARITY_PROPERTIES_UPDATE_EXAMPLES = [
-    {
-        "recyclability_observation": "Updated observation on recyclability",
-        "recyclability_comment": "Updated comment",
-    }
-]
-
 PRODUCT_CREATE_BASE_EXAMPLE = {
     "name": "Office Chair",
     "description": "Complete chair assembly",
@@ -52,12 +18,10 @@ PRODUCT_CREATE_BASE_EXAMPLE = {
     "dismantling_time_start": "2025-09-22T14:30:45Z",
     "dismantling_time_end": "2025-09-22T16:30:45Z",
     "product_type_id": 1,
-    "physical_properties": {
-        "weight_g": 20000,
-        "height_cm": 150,
-        "width_cm": 70,
-        "depth_cm": 50,
-    },
+    "weight_g": 20000,
+    "height_cm": 150,
+    "width_cm": 70,
+    "depth_cm": 50,
     "videos": [{"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}],
     "bill_of_materials": [
         {"quantity": 0.3, "unit": "g", "material_id": 1},
@@ -77,23 +41,19 @@ PRODUCT_CREATE_WITH_COMPONENTS_EXAMPLE = {
             "dismantling_time_end": "2025-09-22T16:30:45Z",
             "amount_in_parent": 1,
             "product_type_id": 2,
-            "physical_properties": {
-                "weight_g": 5000,
-                "height_cm": 50,
-                "width_cm": 40,
-                "depth_cm": 30,
-            },
+            "weight_g": 5000,
+            "height_cm": 50,
+            "width_cm": 40,
+            "depth_cm": 30,
             "components": [
                 {
                     "name": "Seat Cushion",
                     "description": "Seat cushion assembly",
                     "amount_in_parent": 1,
-                    "physical_properties": {
-                        "weight_g": 2000,
-                        "height_cm": 10,
-                        "width_cm": 40,
-                        "depth_cm": 30,
-                    },
+                    "weight_g": 2000,
+                    "height_cm": 10,
+                    "width_cm": 40,
+                    "depth_cm": 30,
                     "product_type_id": 3,
                     "bill_of_materials": [
                         {"quantity": 1.5, "unit": "g", "material_id": 1},
@@ -148,14 +108,11 @@ COMPONENT_CREATE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
 
 PRODUCT_INCLUDE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
     none=openapi_example([]),
-    properties=openapi_example(["physical_properties", "circularity_properties"]),
     materials=openapi_example(["bill_of_materials"]),
     media=openapi_example(["images", "videos", "files"]),
     components=openapi_example(["components"]),
     all=openapi_example(
         [
-            "physical_properties",
-            "circularity_properties",
             "images",
             "videos",
             "files",

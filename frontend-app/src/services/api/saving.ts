@@ -1,53 +1,26 @@
 import { API_URL } from '@/config';
 import { getToken } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
-import type {
-  ApiCircularityPropertiesUpdate,
-  ApiPhysicalPropertiesUpdate,
-  ApiProductUpdate,
-} from '@/types/api';
+import type { ApiProductUpdateWithProperties } from '@/types/api';
 import type { Product } from '@/types/Product';
 
 const baseUrl = API_URL;
 
 // ─── API payload types (derived from generated OpenAPI types) ─────────────────
 
-type ProductBasePayload = ApiProductUpdate;
-type PhysicalPropertiesPayload = ApiPhysicalPropertiesUpdate;
-type CircularityPropertiesPayload = ApiCircularityPropertiesUpdate | null;
+type ProductPayload = ApiProductUpdateWithProperties;
 
-type NewProductPayload = ProductBasePayload & {
-  physical_properties: PhysicalPropertiesPayload;
-  circularity_properties: CircularityPropertiesPayload;
+type NewProductPayload = ProductPayload & {
   videos: Product['videos'];
 };
 
 // ─── Serialization helpers ────────────────────────────────────────────────────
 
-function toBaseProductPayload(product: Product): ProductBasePayload {
+function toProductPayload(product: Product): ProductPayload {
   const isComponent = typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
 
-  return {
-    name: product.name,
-    brand: product.brand,
-    model: product.model,
-    description: product.description,
-    product_type_id: product.productTypeID ? product.productTypeID : null,
-    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
-  };
-}
-
-function toPhysicalPropertiesPayload(product: Product): PhysicalPropertiesPayload {
-  return {
-    weight_g: product.physicalProperties.weight || null,
-    height_cm: product.physicalProperties.height || null,
-    width_cm: product.physicalProperties.width || null,
-    depth_cm: product.physicalProperties.depth || null,
-  };
-}
-
-function toCircularityPropertiesPayload(product: Product): CircularityPropertiesPayload {
-  const out = {
+  // Circularity properties: only include if any field has content
+  const circularityOut = {
     recyclability_comment: product.circularityProperties.recyclabilityComment ?? null,
     recyclability_observation: product.circularityProperties.recyclabilityObservation,
     recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
@@ -60,15 +33,30 @@ function toCircularityPropertiesPayload(product: Product): CircularityProperties
     repairability_reference: product.circularityProperties.repairabilityReference ?? null,
   };
 
-  const hasAny = Object.values(out).some((v) => v !== null);
-  return hasAny ? out : null;
+  const hasCircularity = Object.values(circularityOut).some((v) => v !== null);
+
+  return {
+    name: product.name,
+    brand: product.brand,
+    model: product.model,
+    description: product.description,
+    product_type_id: product.productTypeID ? product.productTypeID : null,
+    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
+    // Physical properties
+    physical_properties: {
+      weight_g: product.physicalProperties.weight || null,
+      height_cm: product.physicalProperties.height || null,
+      width_cm: product.physicalProperties.width || null,
+      depth_cm: product.physicalProperties.depth || null,
+    },
+    // Circularity properties (only if any data exists)
+    ...(hasCircularity ? { circularity_properties: circularityOut } : {}),
+  };
 }
 
 function toNewProductPayload(product: Product): NewProductPayload {
   return {
-    ...toBaseProductPayload(product),
-    physical_properties: toPhysicalPropertiesPayload(product),
-    circularity_properties: toCircularityPropertiesPayload(product),
+    ...toProductPayload(product),
     videos: product.videos,
   };
 }
@@ -141,30 +129,16 @@ async function updateProduct(
 ): Promise<number> {
   const headers = authHeaders(token);
 
-  // Run all three PATCH requests in parallel — they target independent sub-resources
-  const [productRes, physicalRes, circularityRes] = await Promise.all([
-    apiFetch(new URL(`${baseUrl}/products/${product.id}`), {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(toBaseProductPayload(product)),
-    }),
-    apiFetch(new URL(`${baseUrl}/products/${product.id}/physical_properties`), {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(toPhysicalPropertiesPayload(product)),
-    }),
-    apiFetch(new URL(`${baseUrl}/products/${product.id}/circularity_properties`), {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(toCircularityPropertiesPayload(product)),
-    }),
-  ]);
+  // Single PATCH request — properties are now flat on the product
+  const productRes = await apiFetch(new URL(`${baseUrl}/products/${product.id}`), {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(toProductPayload(product)),
+  });
 
   await throwOnError(productRes, 'update product');
-  await throwOnError(physicalRes, 'update physical properties');
-  await throwOnError(circularityRes, 'update circularity properties');
 
-  // Image and video updates can also run in parallel
+  // Image and video updates can run in parallel
   await Promise.all([
     updateProductImages(product, originalImages, token),
     updateProductVideos(product, originalVideos, token),
@@ -188,7 +162,7 @@ async function updateProductImages(
   await Promise.all(
     imagesToDelete
       .filter((img) => img.id !== undefined)
-      .map((img) => deleteImage(product, img as { id: number }, token)),
+      .map((img) => deleteImage(product, img as { id: string }, token)),
   );
 
   // Uploads run sequentially to avoid overwhelming the server with large payloads
@@ -197,7 +171,7 @@ async function updateProductImages(
   }
 }
 
-async function deleteImage(product: Product, image: { id: number }, token: string | undefined) {
+async function deleteImage(product: Product, image: { id: string }, token: string | undefined) {
   const url = new URL(`${baseUrl}/products/${product.id}/images/${image.id}`);
   return await apiFetch(url, {
     method: 'DELETE',
@@ -209,7 +183,7 @@ const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 async function addImage(
   product: Product,
-  image: { url: string; description: string; id?: number },
+  image: { url: string; description: string; id?: string },
   token: string | undefined,
 ) {
   const url = new URL(`${baseUrl}/products/${product.id}/images`);

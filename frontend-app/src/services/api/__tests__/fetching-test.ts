@@ -39,23 +39,19 @@ const rawProductData = {
   owner_id: 'me-user-id',
   parent_id: undefined,
   amount_in_parent: undefined,
-  physical_properties: {
-    weight_g: 100,
-    height_cm: 10,
-    width_cm: 5,
-    depth_cm: 3,
-  },
-  circularity_properties: {
-    recyclability_comment: null,
-    recyclability_observation: 'low',
-    recyclability_reference: null,
-    remanufacturability_comment: null,
-    remanufacturability_observation: 'medium',
-    remanufacturability_reference: null,
-    repairability_comment: null,
-    repairability_observation: 'high',
-    repairability_reference: null,
-  },
+  weight_g: 100,
+  height_cm: 10,
+  width_cm: 5,
+  depth_cm: 3,
+  recyclability_comment: null,
+  recyclability_observation: 'low',
+  recyclability_reference: null,
+  remanufacturability_comment: null,
+  remanufacturability_observation: 'medium',
+  remanufacturability_reference: null,
+  repairability_comment: null,
+  repairability_observation: 'high',
+  repairability_reference: null,
   components: [{ id: 1, name: 'Part A', description: '' }],
   images: [{ id: 10, image_url: '/media/img.jpg', description: 'Main image' }],
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
@@ -189,8 +185,19 @@ describe('Fetching API Service logic', () => {
       expect(p.ownedBy).toBe('other-user-id');
     });
 
-    it('uses empty circularity defaults when circularity_properties is null', async () => {
-      const noCircularity = { ...rawProductData, circularity_properties: null };
+    it('uses empty circularity defaults when circularity fields are null', async () => {
+      const noCircularity = {
+        ...rawProductData,
+        recyclability_observation: null,
+        recyclability_comment: null,
+        recyclability_reference: null,
+        remanufacturability_observation: null,
+        remanufacturability_comment: null,
+        remanufacturability_reference: null,
+        repairability_observation: null,
+        repairability_comment: null,
+        repairability_reference: null,
+      };
       server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(noCircularity)));
 
       const p = await getProduct(42);

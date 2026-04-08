@@ -13,23 +13,19 @@ from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.utils import get_models_by_ids_or_404
-from app.api.data_collection.exceptions import ProductOwnerRequiredError, ProductTreeMissingContentError
+from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import (
-    CircularityProperties,
     MaterialProductLink,
-    PhysicalProperties,
     Product,
 )
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
     ProductCreateWithComponents,
     ProductUpdate,
-    ProductUpdateWithProperties,
 )
 from app.api.file_storage.models import Video
 
-from .properties import update_circularity_properties, update_physical_properties
 from .storage import product_files_crud, product_images_crud
 
 if TYPE_CHECKING:
@@ -76,8 +72,6 @@ def product_payload(
         exclude={
             "components",
             "owner_id",
-            "physical_properties",
-            "circularity_properties",
             "videos",
             "bill_of_materials",
         }
@@ -100,23 +94,6 @@ async def create_product_record(
     db.add(db_product)
     await db.flush()
     return db_product
-
-
-def create_product_properties(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    db_product: Product,
-) -> None:
-    """Create one-to-one product property rows when present."""
-    if product_data.physical_properties:
-        db_physical_property = PhysicalProperties(**product_data.physical_properties.model_dump())
-        db_physical_property.product = db_product
-        db.add(db_physical_property)
-
-    if product_data.circularity_properties:
-        db_circularity_property = CircularityProperties(**product_data.circularity_properties.model_dump())
-        db_circularity_property.product = db_product
-        db.add(db_circularity_property)
 
 
 def create_product_videos(
@@ -174,14 +151,10 @@ async def create_product_tree(
     parent_product: Product | None = None,
 ) -> Product:
     """Create an in-memory product tree and flush rows for persistence."""
-    if not product_data.bill_of_materials and not product_data.components:
-        raise ProductTreeMissingContentError
-
     if owner_id is None:
         raise ProductOwnerRequiredError
 
     db_product = await create_product_record(db, product_data, owner_id=owner_id, parent_product=parent_product)
-    create_product_properties(db, product_data, db_product)
     create_product_videos(db, product_data, db_product)
     await create_product_bill_of_materials(db, product_data, db_product)
     await create_product_components(db, product_data, owner_id=owner_id, db_product=db_product)
@@ -227,7 +200,7 @@ async def create_product(
 
 
 async def update_product(
-    db: AsyncSession, product_id: int, product: ProductUpdate | ProductUpdateWithProperties
+    db: AsyncSession, product_id: int, product: ProductUpdate
 ) -> Product:
     """Update an existing product in the database."""
     db_product = await get_model_by_id(db, Product, product_id)
@@ -235,16 +208,8 @@ async def update_product(
     if product.product_type_id:
         await get_model_by_id(db, ProductType, product.product_type_id)
 
-    product_data: dict[str, Any] = product.model_dump(
-        exclude_unset=True, exclude={"physical_properties", "circularity_properties"}
-    )
+    product_data: dict[str, Any] = product.model_dump(exclude_unset=True)
     db_product.sqlmodel_update(product_data)
-
-    if isinstance(product, ProductUpdateWithProperties):
-        if product.physical_properties:
-            await update_physical_properties(db, product_id, product.physical_properties)
-        if product.circularity_properties:
-            await update_circularity_properties(db, product_id, product.circularity_properties)
 
     return await commit_and_refresh(db, db_product)
 

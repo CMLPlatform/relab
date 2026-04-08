@@ -15,7 +15,7 @@ from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import MaterialProductLinkCreateWithinProduct
 from app.api.data_collection.crud import create_product
 from app.api.data_collection.models.product import Product
-from app.api.data_collection.schemas import PhysicalPropertiesCreate, ProductCreateWithComponents
+from app.api.data_collection.schemas import ProductCreateWithComponents
 
 from .data import product_data
 
@@ -74,13 +74,17 @@ def build_product_create_from_data(
     data: dict[str, Any], product_type_id: int, bill_of_materials: list[MaterialProductLinkCreateWithinProduct]
 ) -> ProductCreateWithComponents:
     """Build ProductCreateWithComponents from seed data dict."""
+    physical_props = data.get("physical_properties", {})
     return ProductCreateWithComponents(
         name=data["name"],
         description=data["description"],
         brand=data["brand"],
         model=data["model"],
         product_type_id=product_type_id,
-        physical_properties=PhysicalPropertiesCreate(**data.get("physical_properties", {})),
+        weight_g=physical_props.get("weight_g"),
+        height_cm=physical_props.get("height_cm"),
+        width_cm=physical_props.get("width_cm"),
+        depth_cm=physical_props.get("depth_cm"),
         bill_of_materials=bill_of_materials,
     )
 

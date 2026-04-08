@@ -63,7 +63,7 @@ class CircularityPropertiesBase(SQLModel):
 
 
 ### Product Base Model ###
-class ProductBase(SQLModel):
+class ProductBase(PhysicalPropertiesBase, CircularityPropertiesBase, SQLModel):
     """Basic model to store product information."""
 
     name: str = Field(index=True, min_length=2, max_length=100)

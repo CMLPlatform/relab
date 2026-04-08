@@ -13,7 +13,7 @@ from sqlmodel import select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
 from app.api.common.search_utils import TSVectorSearchMixin, build_text_search_clause, ts_rank_expr
-from app.api.data_collection.models.product import MaterialProductLink, PhysicalProperties, Product
+from app.api.data_collection.models.product import MaterialProductLink, Product
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
@@ -34,25 +34,6 @@ class MaterialProductLinkFilter(Filter):
         """FilterAPI class configuration."""
 
         model = MaterialProductLink
-
-
-## Physical Properties Filters ##
-class PhysicalPropertiesFilter(Filter):
-    """FastAPI-filter class for Physical Properties filtering."""
-
-    weight_g__gte: float | None = None
-    weight_g__lte: float | None = None
-    height_cm__gte: float | None = None
-    height_cm__lte: float | None = None
-    width_cm__gte: float | None = None
-    width_cm__lte: float | None = None
-    depth_cm__gte: float | None = None
-    depth_cm__lte: float | None = None
-
-    class Constants(Filter.Constants):
-        """FilterAPI class configuration."""
-
-        model = PhysicalProperties
 
 
 ### Brand search helpers (kept here as they are product/brand-specific) ###
@@ -174,7 +155,13 @@ class ProductFilter(TSVectorSearchMixin, Filter):
 class ProductFilterWithRelationships(ProductFilter):
     """FastAPI-filter class for Product filtering with relationships."""
 
-    physical_properties: PhysicalPropertiesFilter | None = FilterDepends(
-        with_prefix("physical_properties", PhysicalPropertiesFilter)
-    )
+    weight_g__gte: float | None = None
+    weight_g__lte: float | None = None
+    height_cm__gte: float | None = None
+    height_cm__lte: float | None = None
+    width_cm__gte: float | None = None
+    width_cm__lte: float | None = None
+    depth_cm__gte: float | None = None
+    depth_cm__lte: float | None = None
+
     product_type: ProductTypeFilter | None = FilterDepends(with_prefix("product_type", ProductTypeFilter))

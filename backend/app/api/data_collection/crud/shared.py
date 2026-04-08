@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from sqlmodel import col, select
 
 from app.api.background_data.models import Material
 from app.api.common.crud.base import get_model_by_id
-from app.api.common.crud.persistence import SupportsModelDump, commit_and_refresh, delete_and_commit, update_and_commit
 from app.api.common.crud.utils import get_models_by_ids_or_404
-from app.api.data_collection.exceptions import ProductPropertyAlreadyExistsError, ProductPropertyNotFoundError
 from app.api.data_collection.models.product import (
-    CircularityProperties,
     MaterialProductLink,
-    PhysicalProperties,
     Product,
 )
 
@@ -22,87 +18,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sqlmodel.ext.asyncio.session import AsyncSession
-
-
-async def get_product_with_relationship(
-    db: AsyncSession,
-    product_id: int,
-    relationship_name: str,
-) -> Product:
-    """Fetch a product with one explicit relationship loaded."""
-    return await get_model_by_id(db, Product, product_id, include_relationships={relationship_name})
-
-
-def require_product_relationship[PropertyT: PhysicalProperties | CircularityProperties](
-    product: Product,
-    *,
-    relationship_name: str,
-    not_found_label: str,
-) -> PropertyT:
-    """Return a loaded one-to-one product relation or raise a consistent error."""
-    db_property = cast("PropertyT | None", getattr(product, relationship_name))
-    if db_property is None:
-        raise ProductPropertyNotFoundError(not_found_label, product.id)
-    return db_property
-
-
-async def create_product_property[
-    PropertyT: PhysicalProperties | CircularityProperties,
-    CreateSchemaT: SupportsModelDump,
-](
-    db: AsyncSession,
-    *,
-    product_id: int,
-    payload: CreateSchemaT,
-    property_model: type[PropertyT],
-    relationship_name: str,
-    already_exists_label: str,
-) -> PropertyT:
-    """Create a one-to-one product property row if it does not already exist."""
-    product = await get_product_with_relationship(db, product_id, relationship_name)
-    if getattr(product, relationship_name):
-        raise ProductPropertyAlreadyExistsError(product_id, already_exists_label)
-
-    db_property = property_model(**payload.model_dump(), product_id=product_id)
-    setattr(product, relationship_name, db_property)
-    return await commit_and_refresh(db, db_property)
-
-
-async def update_product_property[
-    PropertyT: PhysicalProperties | CircularityProperties,
-    UpdateSchemaT: SupportsModelDump,
-](
-    db: AsyncSession,
-    *,
-    product_id: int,
-    payload: UpdateSchemaT,
-    relationship_name: str,
-    not_found_label: str,
-) -> PropertyT:
-    """Update a one-to-one product property row."""
-    product = await get_product_with_relationship(db, product_id, relationship_name)
-    db_property = require_product_relationship(
-        product,
-        relationship_name=relationship_name,
-        not_found_label=not_found_label,
-    )
-    return await update_and_commit(db, db_property, payload)
-
-
-async def delete_product_property(
-    db: AsyncSession,
-    *,
-    product: Product,
-    relationship_name: str,
-    not_found_label: str,
-) -> None:
-    """Delete a one-to-one product property row."""
-    db_property = require_product_relationship(
-        product,
-        relationship_name=relationship_name,
-        not_found_label=not_found_label,
-    )
-    await delete_and_commit(db, db_property)
 
 
 def normalize_material_ids(material_ids: int | set[int]) -> set[int]:

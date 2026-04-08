@@ -18,36 +18,8 @@ from app.api.auth.models import User
 from app.api.background_data.models import Material, ProductType
 from app.api.common.models.associations import MaterialProductLinkBase
 from app.api.common.models.base import TimeStampMixinBare
-from app.api.data_collection.models.base import (
-    CircularityPropertiesBase,
-    PhysicalPropertiesBase,
-    ProductBase,
-)
+from app.api.data_collection.models.base import ProductBase
 from app.api.file_storage.models import File, Image, MediaParentType, Video
-
-
-### Properties Models ###
-class PhysicalProperties(PhysicalPropertiesBase, TimeStampMixinBare, table=True):
-    """Model to store physical properties of a product."""
-
-    id: int | None = Field(default=None, primary_key=True)
-
-    # One-to-one relationships
-    product_id: int = Field(foreign_key="product.id")
-    product: Product = Relationship(back_populates="physical_properties")
-
-
-class CircularityProperties(CircularityPropertiesBase, TimeStampMixinBare, table=True):
-    """Model to store circularity properties of a product."""
-
-    id: int | None = Field(default=None, primary_key=True)
-
-    # One-to-one relationships
-    product_id: int = Field(foreign_key="product.id")
-    product: Product = Relationship(back_populates="circularity_properties")
-
-
-### Product Model ###
 
 
 class Product(ProductBase, TimeStampMixinBare, table=True):
@@ -94,14 +66,6 @@ class Product(ProductBase, TimeStampMixinBare, table=True):
         back_populates="parent",
         cascade_delete=True,
         sa_relationship_kwargs={"lazy": "selectin", "join_depth": 1},  # Eagerly load linked parent product
-    )
-
-    # One-to-one relationships
-    physical_properties: PhysicalProperties | None = Relationship(
-        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
-    )
-    circularity_properties: CircularityProperties | None = Relationship(
-        back_populates="product", cascade_delete=True, sa_relationship_kwargs={"uselist": False, "lazy": "selectin"}
     )
 
     # Many-to-one relationships

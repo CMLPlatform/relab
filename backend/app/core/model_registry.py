@@ -14,7 +14,7 @@ def load_sqlmodel_models() -> None:
     """
     # data_collection is the hub: importing it pulls in auth, background_data,
     # and file_storage transitively, registering all cross-module models.
-    from app.api.data_collection import models as _data_collection_models
+    from app.api.data_collection.models import product as _data_collection_models
 
     # rpi_cam and newsletter are self-contained; they only import auth and
     # common.models which are already loaded via data_collection above.

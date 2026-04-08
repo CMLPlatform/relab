@@ -10,16 +10,7 @@ import type { components } from './api.generated';
 export type ApiProductRead = components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
 export type ApiProductCreate = components['schemas']['ProductCreateWithComponents'];
 export type ApiProductUpdate = components['schemas']['ProductUpdate'];
-
-// ─── Physical Properties ─────────────────────────────────────────────────────
-export type ApiPhysicalPropertiesRead = components['schemas']['PhysicalPropertiesRead'];
-export type ApiPhysicalPropertiesCreate = components['schemas']['PhysicalPropertiesCreate'];
-export type ApiPhysicalPropertiesUpdate = components['schemas']['PhysicalPropertiesUpdate'];
-
-// ─── Circularity Properties ──────────────────────────────────────────────────
-export type ApiCircularityPropertiesRead = components['schemas']['CircularityPropertiesRead'];
-export type ApiCircularityPropertiesCreate = components['schemas']['CircularityPropertiesCreate'];
-export type ApiCircularityPropertiesUpdate = components['schemas']['CircularityPropertiesUpdate'];
+export type ApiProductUpdateWithProperties = components['schemas']['ProductUpdateWithProperties'];
 
 // ─── Media ───────────────────────────────────────────────────────────────────
 export type ApiImageRead = components['schemas']['ImageRead'];

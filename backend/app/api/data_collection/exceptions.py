@@ -1,20 +1,6 @@
 """Custom exceptions for data collection CRUD and router flows."""
 
-from app.api.common.exceptions import BadRequestError, ConflictError, NotFoundError
-
-
-class ProductPropertyNotFoundError(NotFoundError):
-    """Raised when a product is missing a requested one-to-one property object."""
-
-    def __init__(self, property_label: str, product_id: int | None) -> None:
-        super().__init__(f"{property_label} for product with id {product_id} not found")
-
-
-class ProductPropertyAlreadyExistsError(ConflictError):
-    """Raised when attempting to create a one-to-one property that already exists."""
-
-    def __init__(self, product_id: int, property_label: str) -> None:
-        super().__init__(f"Product with id {product_id} already has {property_label}")
+from app.api.common.exceptions import BadRequestError
 
 
 class InvalidProductTreeError(BadRequestError):

@@ -27,9 +27,7 @@ from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
     ComponentReadWithRecursiveComponents,
     ProductCreateWithComponents,
-    ProductReadWithProperties,
     ProductUpdate,
-    ProductUpdateWithProperties,
 )
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models import MediaParentType
@@ -65,9 +63,9 @@ async def create_product(
     return await crud.create_product(session, product, current_user.id)
 
 
-@product_mutation_router.patch("/{product_id}", response_model=ProductReadWithProperties, summary="Update product")
+@product_mutation_router.patch("/{product_id}", response_model=ProductRead, summary="Update product")
 async def update_product(
-    product_update: ProductUpdate | ProductUpdateWithProperties,
+    product_update: ProductUpdate,
     db_product: UserOwnedProductDep,
     session: AsyncSessionDep,
 ) -> Product:
