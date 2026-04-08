@@ -29,7 +29,7 @@ export function getPlaceholderImageUrl(): string {
 
 export function getResizedImageUrl(
   imageUrl: string,
-  imageId: number | undefined,
+  imageId: string | undefined,
   width: number,
 ): string {
   if (!imageId || /^(file:|blob:|data:)/.test(imageUrl)) {

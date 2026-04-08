@@ -309,6 +309,8 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
           isVerified: data.is_verified,
           username: data.username || 'Username not defined',
           oauth_accounts: data.oauth_accounts || [],
+          preferences:
+            (data as ApiUserRead & { preferences?: Record<string, unknown> }).preferences || {},
         };
 
         // successful user fetch; mark web session flag

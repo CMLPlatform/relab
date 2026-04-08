@@ -37,6 +37,7 @@ export function mockUser(overrides: Partial<User> = {}): User {
     isVerified: true,
     isSuperuser: false,
     oauth_accounts: [],
+    preferences: {},
     ...overrides,
   };
 }

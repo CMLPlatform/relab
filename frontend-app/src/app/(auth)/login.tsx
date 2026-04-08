@@ -6,11 +6,12 @@ import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, useColorScheme, View } from 'react-native';
+import { Keyboard, Platform, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import { useDialog } from '@/components/common/DialogProvider';
 import { API_URL, GOOGLE_WEB_CLIENT_ID } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import {
   getUser,
   login,
@@ -157,7 +158,7 @@ export default function Login() {
   }>();
   const dialog = useDialog();
   const { user, isLoading: authLoading, refetch } = useAuth();
-  const colorScheme = useColorScheme();
+  const colorScheme = useEffectiveColorScheme();
   const theme = useTheme();
   const postLoginRedirect = getSafeRedirectTarget(redirectTo);
 

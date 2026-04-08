@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Linking, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { Linking, Text, TouchableOpacity, View } from 'react-native';
 import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/DialogProvider';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { isValidUrl } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 
@@ -23,7 +24,7 @@ interface Props {
 export default function ProductVideo({ product, editMode, onVideoChange }: Props) {
   const [videos, setVideos] = useState<Video[]>(product.videos || []);
   const dialog = useDialog();
-  const darkMode = useColorScheme() === 'dark';
+  const darkMode = useEffectiveColorScheme() === 'dark';
 
   const handleVideoChange = (
     idx: number,

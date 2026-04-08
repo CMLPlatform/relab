@@ -323,7 +323,25 @@ export default function ProductPage(): JSX.Element {
         </DetailCard>
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
       </KeyboardAwareScrollView>
-      <Tooltip title={validationResult.error || ''} enterTouchDelay={0} leaveTouchDelay={1500}>
+      {editMode && validationResult.error ? (
+        <Tooltip title={validationResult.error} enterTouchDelay={0} leaveTouchDelay={1500}>
+          <AnimatedFAB
+            icon={FABicon}
+            onPress={toggleEditMode}
+            style={{
+              position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+              right: 0,
+              bottom: 0,
+              overflow: 'hidden',
+              margin: 19,
+            }}
+            disabled={!validationResult.isValid || isSaving}
+            extended={fabExtended}
+            label="Save Product"
+            visible={product.ownedBy === 'me'}
+          />
+        </Tooltip>
+      ) : (
         <AnimatedFAB
           icon={FABicon}
           onPress={toggleEditMode}
@@ -334,12 +352,12 @@ export default function ProductPage(): JSX.Element {
             overflow: 'hidden',
             margin: 19,
           }}
-          disabled={!validationResult.isValid || isSaving}
+          disabled={(editMode && !validationResult.isValid) || isSaving}
           extended={fabExtended}
           label={editMode ? 'Save Product' : 'Edit Product'}
           visible={product.ownedBy === 'me'}
         />
-      </Tooltip>
+      )}
     </>
   );
 }

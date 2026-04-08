@@ -3,15 +3,18 @@ import { Link, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
-import { Button, Dialog, Divider, IconButton, Portal, Switch, TextInput } from 'react-native-paper';
+import { Button, Dialog, Divider, Icon, Portal, Switch, TextInput } from 'react-native-paper';
 import { Chip } from '@/components/base/Chip';
 import { Text } from '@/components/base/Text';
 import LogoutConfirm from '@/components/common/LogoutConfirm';
-import { API_URL } from '@/config';
+import { API_URL, DOCS_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
+import { useThemeMode } from '@/context/ThemeModeProvider';
+import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
+import type { ThemeMode } from '@/types/User';
 
 WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });
 
@@ -30,6 +33,12 @@ export default function ProfileTab() {
   const [newUsername, setNewUsername] = useState('');
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
+  const {
+    enabled: rpiEnabled,
+    loading: rpiLoading,
+    setEnabled: setRpiEnabled,
+  } = useRpiIntegration();
+  const { themeMode, setThemeMode } = useThemeMode();
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(true);
   const [newsletterSaving, setNewsletterSaving] = useState(false);
@@ -191,6 +200,67 @@ export default function ProfileTab() {
           ) : (
             <Chip style={styles.greyChip}>Unverified</Chip>
           )}
+        </View>
+      </View>
+
+      {/* ── Integrations section ── */}
+      <SectionHeader title="Integrations" />
+      <View style={styles.section}>
+        {/* RPi camera toggle */}
+        <View style={styles.rpiRow}>
+          <View style={styles.rpiIcon}>
+            <Icon source="camera-wireless" size={22} color="#555" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.actionTitle}>RPi Camera</Text>
+            <Text style={styles.actionSubtitle}>
+              Capture images with a Raspberry Pi camera during disassembly.{' '}
+              <Text
+                style={styles.docsLink}
+                onPress={() => Linking.openURL(`${DOCS_URL}/user-guides/rpi-cam`)}
+              >
+                Learn more
+              </Text>
+            </Text>
+          </View>
+          <Switch
+            value={rpiEnabled}
+            onValueChange={(v) => void setRpiEnabled(v)}
+            disabled={rpiLoading}
+          />
+        </View>
+        {rpiEnabled && (
+          <ProfileAction
+            title="Manage Cameras"
+            subtitle="Add, edit, or remove connected cameras"
+            onPress={() => router.push('/cameras')}
+          />
+        )}
+      </View>
+
+      {/* ── Appearance section ── */}
+      <SectionHeader title="Appearance" />
+      <View style={styles.section}>
+        <View style={styles.themeModeRow}>
+          {(
+            [
+              { mode: 'auto', icon: 'theme-light-dark', label: 'Auto' },
+              { mode: 'light', icon: 'white-balance-sunny', label: 'Light' },
+              { mode: 'dark', icon: 'moon-waning-crescent', label: 'Dark' },
+            ] as const
+          ).map(({ mode, icon, label }) => (
+            <Pressable
+              key={mode}
+              style={[styles.themeModeOption, themeMode === mode && styles.themeModeOptionActive]}
+              onPress={() => void setThemeMode(mode as ThemeMode)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: themeMode === mode }}
+              accessibilityLabel={`${label} theme`}
+            >
+              <Icon source={icon} size={22} />
+              <Text style={styles.themeModeLabel}>{label}</Text>
+            </Pressable>
+          ))}
         </View>
       </View>
 
@@ -396,7 +466,7 @@ function ProfileAction({
         <Text style={[styles.actionTitle, titleStyle]}>{title}</Text>
         {subtitle && <Text style={styles.actionSubtitle}>{subtitle}</Text>}
       </View>
-      {!hideChevron && <IconButton icon="chevron-right" size={26} onPress={onPress} />}
+      {!hideChevron && <Icon source="chevron-right" size={26} />}
     </Pressable>
   );
 }
@@ -454,6 +524,21 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 4,
   },
+  rpiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  rpiIcon: {
+    width: 32,
+    alignItems: 'center',
+  },
+  docsLink: {
+    color: '#1565C0',
+    textDecorationLine: 'underline',
+  },
   newsletterRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -494,6 +579,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.55,
     marginTop: 1,
+  },
+  themeModeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  themeModeOption: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(128,128,128,0.2)',
+  },
+  themeModeOptionActive: {
+    borderColor: 'rgba(128,128,128,0.5)',
+    backgroundColor: 'rgba(128,128,128,0.1)',
+  },
+  themeModeLabel: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   danger: {
     color: '#d32f2f',

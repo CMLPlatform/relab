@@ -99,7 +99,7 @@ export default function ProductTags({
         isLoading={brandsLoading}
         selectedValues={product.brand ? [product.brand] : []}
         onSelectionChange={(vals) => {
-          if (vals.length > 0) onBrandChange?.(vals[0]);
+          onBrandChange?.(vals.length > 0 ? vals[0] : '');
         }}
         searchQuery={brandSearch}
         onSearchChange={setBrandSearch}

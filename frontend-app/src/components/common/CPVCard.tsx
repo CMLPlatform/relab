@@ -17,24 +17,22 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
   const textColor = error ? colors.onErrorContainer : colors.onPrimaryContainer;
 
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={CPV.description}
-      style={({ pressed }) => [
-        styles.container,
-        { backgroundColor: bgColor },
-        pressed && onPress && { opacity: 0.5 },
-      ]}
-    >
-      <Text style={[styles.text, { color: textColor }]} numberOfLines={3} ellipsizeMode="tail">
-        {CPV.description}
-      </Text>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={CPV.description}
+        style={({ pressed }) => [styles.pressableContent, pressed && onPress && { opacity: 0.5 }]}
+      >
+        <Text style={[styles.text, { color: textColor }]} numberOfLines={3} ellipsizeMode="tail">
+          {CPV.description}
+        </Text>
+      </Pressable>
       {actionElement || <Text style={[styles.subText, { color: textColor }]}>{CPV.name}</Text>}
       <View style={styles.shapes}>
         <Icon source="shape" size={150} />
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -44,6 +42,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 100,
     justifyContent: 'space-between',
+  },
+  pressableContent: {
+    flex: 1,
   },
   text: {
     padding: 12,

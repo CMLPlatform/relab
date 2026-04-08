@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { type ComponentType, type ReactNode, useEffect, useState } from 'react';
-import { Animated, Platform, Pressable, useColorScheme, View } from 'react-native';
+import { Animated, Platform, Pressable, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {
@@ -24,6 +24,7 @@ import lightTheme from '@/assets/themes/light';
 import { Text } from '@/components/base/Text';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider, useAuth } from '@/context/AuthProvider';
+import { ThemeModeProvider, useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 
 // Monkey-patch Animated to always use useNativeDriver: false on web.
 // This silences warnings from third-party libraries (like react-native-paper)
@@ -133,7 +134,15 @@ export function HeaderRight() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  return (
+    <Providers>
+      <AppShell />
+    </Providers>
+  );
+}
+
+function AppShell() {
+  const colorScheme = useEffectiveColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
   const pathname = usePathname();
@@ -164,75 +173,95 @@ export default function RootLayout() {
   }, [BackgroundComponent]);
 
   return (
-    <Providers>
-      <View style={{ flex: 1 }}>
-        {showBackground && BackgroundComponent ? <BackgroundComponent /> : null}
-        {showOverlay && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: bgOverlay,
-              pointerEvents: 'none',
-            }}
-          />
-        )}
-        <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="products/index"
-            options={{
-              title: 'RELab',
-              headerTitleStyle: {
-                fontWeight: 'bold',
-                fontSize: 34,
-                color: isDark ? darkTheme.colors.onBackground : lightTheme.colors.onBackground,
-              },
-              headerStyle: {
-                backgroundColor: isDark
-                  ? darkTheme.colors.elevation.level2
-                  : lightTheme.colors.elevation.level2,
-              },
-              headerRight: () => <HeaderRight />,
-              headerLeft: () => null,
-            }}
-          />
+    <View style={{ flex: 1 }}>
+      {showBackground && BackgroundComponent ? <BackgroundComponent /> : null}
+      {showOverlay && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: bgOverlay,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="products/index"
+          options={{
+            title: 'RELab',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+              fontSize: 34,
+              color: isDark ? darkTheme.colors.onBackground : lightTheme.colors.onBackground,
+            },
+            headerStyle: {
+              backgroundColor: isDark
+                ? darkTheme.colors.elevation.level2
+                : lightTheme.colors.elevation.level2,
+            },
+            headerRight: () => <HeaderRight />,
+            headerLeft: () => null,
+          }}
+        />
 
-          <Stack.Screen
-            name="profile"
-            options={{
-              title: 'Profile',
-              headerLeft: (props) => (
-                <HeaderBackButton
-                  {...props}
-                  onPress={() => {
-                    router.replace('/products');
-                  }}
-                />
-              ),
-            }}
-          />
-          <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            headerLeft: (props) => (
+              <HeaderBackButton
+                {...props}
+                onPress={() => {
+                  router.replace('/products');
+                }}
+              />
+            ),
+          }}
+        />
+        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
 
-          <Stack.Screen
-            name="products/[id]/category_selection"
-            options={{ title: 'Select Category' }}
-          />
-        </Stack>
-      </View>
-    </Providers>
+        <Stack.Screen
+          name="products/[id]/category_selection"
+          options={{ title: 'Select Category' }}
+        />
+
+        <Stack.Screen
+          name="cameras/index"
+          options={{
+            title: 'My Cameras',
+          }}
+        />
+        <Stack.Screen name="cameras/add" options={{ title: 'Add Camera' }} />
+        <Stack.Screen name="cameras/[id]" options={{ title: 'Camera' }} />
+      </Stack>
+    </View>
   );
 }
 
 export function Providers({ children }: { children: ReactNode }) {
-  const colorScheme = useColorScheme();
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeModeProvider>
+          <ThemedProviders>{children}</ThemedProviders>
+        </ThemeModeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
+
+/** Inner providers that depend on the resolved theme mode. */
+function ThemedProviders({ children }: { children: ReactNode }) {
+  const colorScheme = useEffectiveColorScheme();
 
   const theme =
     colorScheme === 'light'
@@ -249,18 +278,14 @@ export function Providers({ children }: { children: ReactNode }) {
   DarkTheme.colors.background = 'transparent';
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <PaperProvider theme={theme}>
-          <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
-            <KeyboardProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <DialogProvider>{children}</DialogProvider>
-              </GestureHandlerRootView>
-            </KeyboardProvider>
-          </ThemeProvider>
-        </PaperProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <PaperProvider theme={theme}>
+      <ThemeProvider value={colorScheme === 'light' ? LightTheme : DarkTheme}>
+        <KeyboardProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <DialogProvider>{children}</DialogProvider>
+          </GestureHandlerRootView>
+        </KeyboardProvider>
+      </ThemeProvider>
+    </PaperProvider>
   );
 }

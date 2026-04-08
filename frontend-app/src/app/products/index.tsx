@@ -14,7 +14,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  useColorScheme,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -36,6 +35,7 @@ import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import ProductCard from '@/components/common/ProductCard';
 import ProductCardSkeleton from '@/components/common/ProductCardSkeleton';
 import { useAuth } from '@/context/AuthProvider';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import {
   DEFAULT_PRODUCT_SORT,
   PRODUCT_SORT_OPTIONS,
@@ -43,6 +43,7 @@ import {
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
 } from '@/hooks/useProductQueries';
+import { updateUser } from '@/services/api/authentication';
 import { setNewProductIntent } from '@/services/newProductStore';
 import type { Product } from '@/types/Product';
 
@@ -51,7 +52,6 @@ type RouterSetParams = Parameters<ReturnType<typeof useRouter>['setParams']>[0];
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 
 const GUEST_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_guest';
-const AUTH_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_authenticated';
 const PAGE_SIZE = 24;
 
 const DATE_PRESETS = [
@@ -260,10 +260,10 @@ export default function Products() {
   // Hooks
   const dialog = useDialog();
   const theme = useTheme();
-  const colorScheme = useColorScheme();
+  const colorScheme = useEffectiveColorScheme();
   const bgOverlay = colorScheme === 'light' ? 'rgba(242, 242, 242, 0.95)' : 'rgba(10,10,10,0.90)';
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refetch: refetchUser } = useAuth();
   const { width } = useWindowDimensions();
   const numColumns = width < 600 ? 1 : width < 1000 ? 2 : 3;
 
@@ -406,22 +406,24 @@ export default function Products() {
   const totalPages = data?.pages ?? 0;
   const total = data?.total ?? 0;
   const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
-  const infoCardStorageKey = isAuthenticated
-    ? AUTH_INFO_CARD_STORAGE_KEY
-    : GUEST_INFO_CARD_STORAGE_KEY;
-
-  // Load info card preference once
+  // For authenticated users, read from server-side preferences; for guests, use local storage.
   useEffect(() => {
-    let cancelled = false;
+    if (isAuthenticated) {
+      setShowInfoCard(currentUser?.preferences?.products_welcome_dismissed !== true);
+      return;
+    }
 
+    let cancelled = false;
     const load = async () => {
       try {
         if (Platform.OS === 'web') {
           const dismissed =
-            typeof window !== 'undefined' ? window.localStorage.getItem(infoCardStorageKey) : null;
+            typeof window !== 'undefined'
+              ? window.localStorage.getItem(GUEST_INFO_CARD_STORAGE_KEY)
+              : null;
           if (!cancelled) setShowInfoCard(dismissed !== 'true');
         } else {
-          const dismissed = await AsyncStorage.getItem(infoCardStorageKey);
+          const dismissed = await AsyncStorage.getItem(GUEST_INFO_CARD_STORAGE_KEY);
           if (!cancelled) setShowInfoCard(dismissed !== 'true');
         }
       } catch {
@@ -432,18 +434,28 @@ export default function Products() {
     return () => {
       cancelled = true;
     };
-  }, [infoCardStorageKey]);
+  }, [isAuthenticated, currentUser?.preferences?.products_welcome_dismissed]);
 
   const dismissInfoCard = async () => {
     setShowInfoCard(false);
-    try {
-      if (Platform.OS === 'web') {
-        if (typeof window !== 'undefined') window.localStorage.setItem(infoCardStorageKey, 'true');
-      } else {
-        await AsyncStorage.setItem(infoCardStorageKey, 'true');
+    if (isAuthenticated) {
+      try {
+        await updateUser({ preferences: { products_welcome_dismissed: true } });
+        await refetchUser(false);
+      } catch (err) {
+        console.error('Failed to save info card preference:', err);
       }
-    } catch (err) {
-      console.error('Failed to save info card preference:', err);
+    } else {
+      try {
+        if (Platform.OS === 'web') {
+          if (typeof window !== 'undefined')
+            window.localStorage.setItem(GUEST_INFO_CARD_STORAGE_KEY, 'true');
+        } else {
+          await AsyncStorage.setItem(GUEST_INFO_CARD_STORAGE_KEY, 'true');
+        }
+      } catch (err) {
+        console.error('Failed to save info card preference:', err);
+      }
     }
   };
 

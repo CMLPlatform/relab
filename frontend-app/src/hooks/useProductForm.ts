@@ -1,7 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { type FieldPath, type FieldPathValue, useForm } from 'react-hook-form';
+import { type FieldErrors, type FieldPath, type FieldPathValue, useForm } from 'react-hook-form';
+
+/** Recursively extract the first error message from possibly nested FieldErrors. */
+function getFirstFormError(errors: FieldErrors): string | undefined {
+  for (const value of Object.values(errors)) {
+    if (!value) continue;
+    if (typeof value.message === 'string' && value.message) return value.message;
+    // Nested object errors (e.g. physicalProperties.weight)
+    if (typeof value === 'object') {
+      const nested = getFirstFormError(value as FieldErrors);
+      if (nested) return nested;
+    }
+  }
+  return undefined;
+}
+
 import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
 import {
@@ -53,7 +68,7 @@ export function useProductForm(id: string) {
   // Derive validation result from RHF's Zod resolver which validates on every change
   const validationResult = {
     isValid: form.formState.isValid,
-    error: Object.values(form.formState.errors).flatMap((e) => (e?.message ? [e.message] : []))[0],
+    error: getFirstFormError(form.formState.errors),
   };
 
   // Seed form state when server data arrives or when creating a new product

@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { Keyboard, Platform, useColorScheme, View } from 'react-native';
+import { Keyboard, Platform, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { updateUser } from '@/services/api/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
 
@@ -18,7 +19,7 @@ export default function Onboarding() {
   const router = useRouter();
   const dialog = useDialog();
   const { refetch } = useAuth();
-  const colorScheme = useColorScheme();
+  const colorScheme = useEffectiveColorScheme();
 
   const {
     control,

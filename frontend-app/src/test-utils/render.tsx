@@ -5,6 +5,7 @@ import type React from 'react';
 import { PaperProvider } from 'react-native-paper';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
+import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   withDialog?: boolean;
@@ -14,6 +15,8 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
    * await `waitFor(...)` before asserting on auth-gated content.
    */
   withAuth?: boolean;
+  /** Wrap in ThemeModeProvider. Requires withAuth since ThemeModeProvider uses useAuth(). */
+  withThemeMode?: boolean;
 }
 
 /**
@@ -25,7 +28,12 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
  */
 export function renderWithProviders(
   ui: React.ReactElement,
-  { withDialog = false, withAuth = false, ...options }: RenderWithProvidersOptions = {},
+  {
+    withDialog = false,
+    withAuth = false,
+    withThemeMode = false,
+    ...options
+  }: RenderWithProvidersOptions = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -34,11 +42,15 @@ export function renderWithProviders(
     },
   });
 
+  // withThemeMode requires auth since ThemeModeProvider calls useAuth()
+  const needsAuth = withAuth || withThemeMode;
+
   function Wrapper({ children }: { children: React.ReactNode }) {
-    const content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
+    let content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
+    if (withThemeMode) content = <ThemeModeProvider>{content}</ThemeModeProvider>;
     const withPaper = <PaperProvider>{content}</PaperProvider>;
     const withQuery = <QueryClientProvider client={queryClient}>{withPaper}</QueryClientProvider>;
-    return withAuth ? <AuthProvider>{withQuery}</AuthProvider> : withQuery;
+    return needsAuth ? <AuthProvider>{withQuery}</AuthProvider> : withQuery;
   }
 
   return render(ui, { wrapper: Wrapper, ...options });

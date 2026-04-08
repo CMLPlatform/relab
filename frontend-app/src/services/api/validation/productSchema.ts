@@ -69,7 +69,7 @@ const videoSchema = z.object({
 });
 
 const imageSchema = z.object({
-  id: z.number().optional(),
+  id: z.string().optional(),
   url: z.string(),
   thumbnailUrl: z.string().optional(),
   description: z.string(),

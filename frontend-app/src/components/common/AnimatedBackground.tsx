@@ -1,15 +1,16 @@
 import { ImageBackground } from 'expo-image';
-import { Platform, StyleSheet, useColorScheme } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import Animated, {
   SensorType,
   useAnimatedSensor,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 
 export function AnimatedBackground() {
   const rotation = useAnimatedSensor(SensorType.ROTATION, { interval: 20 });
-  const colorScheme = useColorScheme();
+  const colorScheme = useEffectiveColorScheme();
 
   const backgroundStyle = useAnimatedStyle(() => {
     const { pitch, roll } = rotation.sensor.value;

@@ -2,20 +2,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import {
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 
 import { useDialog } from '@/components/common/DialogProvider';
 import { WEBSITE_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { login, register } from '@/services/api/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
 
@@ -106,7 +99,7 @@ const styles = StyleSheet.create({
 });
 
 const PrivacyPolicy = () => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useEffectiveColorScheme();
   const url = WEBSITE_URL ? `${WEBSITE_URL}/privacy` : '/privacy';
   const textColor = colorScheme === 'dark' ? '#F5F5F5' : '#111111';
 
@@ -131,7 +124,7 @@ export default function NewAccount() {
   const router = useRouter();
   const { refetch, user, isLoading: authLoading } = useAuth();
   const dialog = useDialog();
-  const colorScheme = useColorScheme();
+  const colorScheme = useEffectiveColorScheme();
 
   const overlayColor = colorScheme === 'light' ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.78)';
   const headlineColor = colorScheme === 'light' ? '#111111' : '#F5F5F5';
