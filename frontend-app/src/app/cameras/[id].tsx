@@ -56,27 +56,48 @@ function ApiKeyDialog({
   const wsBackendUrl = `${API_URL.replace(/^http/, 'ws')}/plugins/rpi-cam/ws/connect`;
   const isWebSocket = camera.connection_mode === 'websocket';
 
+  const credentialsJson = JSON.stringify(
+    {
+      relay_backend_url: wsBackendUrl,
+      relay_camera_id: camera.id,
+      relay_api_key: camera.api_key,
+    },
+    null,
+    2,
+  );
+
   return (
     <Dialog visible onDismiss={onDismiss}>
       <Dialog.Title>New API key</Dialog.Title>
-      <Dialog.ScrollArea style={{ maxHeight: 380 }}>
+      <Dialog.ScrollArea style={{ maxHeight: 420 }}>
         <ScrollView>
-          <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
-            Update your Raspberry Pi .env with the new credentials:
-          </Text>
-
-          <View style={styles.codeBlock}>
-            <Text style={styles.codeText}>
-              {isWebSocket
-                ? [
-                    `RELAY_ENABLED=true`,
-                    `RELAY_BACKEND_URL=${wsBackendUrl}`,
-                    `RELAY_CAMERA_ID=${camera.id}`,
-                    `RELAY_API_KEY=${camera.api_key}`,
-                  ].join('\n')
-                : `AUTHORIZED_API_KEYS=${camera.api_key}`}
-            </Text>
-          </View>
+          {isWebSocket ? (
+            <>
+              <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
+                Save this as{' '}
+                <Text style={{ fontFamily: 'monospace', fontWeight: '700' }}>
+                  relay_credentials.json
+                </Text>{' '}
+                in your Raspberry Pi camera plugin directory, then restart the service:
+              </Text>
+              <View style={styles.codeBlock}>
+                <Text style={styles.codeText} selectable>
+                  {credentialsJson}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
+                Update your Raspberry Pi .env with the new API key:
+              </Text>
+              <View style={styles.codeBlock}>
+                <Text style={styles.codeText} selectable>
+                  AUTHORIZED_API_KEYS=["{camera.api_key}"]
+                </Text>
+              </View>
+            </>
+          )}
 
           <Text variant="bodySmall" style={{ marginTop: 12, opacity: 0.55 }}>
             Store the key safely — it will not be shown again.

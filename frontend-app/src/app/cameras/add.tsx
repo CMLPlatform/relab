@@ -33,7 +33,6 @@ function CredentialsDialog({
 
   const credentialsJson = JSON.stringify(
     {
-      relay_enabled: true,
       relay_backend_url: wsBackendUrl,
       relay_camera_id: camera.id,
       relay_api_key: camera.api_key,
@@ -65,11 +64,11 @@ function CredentialsDialog({
           ) : (
             <>
               <Text variant="bodyMedium" style={{ marginBottom: 12 }}>
-                Add this API key to your Raspberry Pi camera config:
+                Add this API key to your Raspberry Pi .env file:
               </Text>
               <View style={styles.codeBlock}>
                 <Text style={styles.codeText} selectable>
-                  AUTHORIZED_API_KEYS={camera.api_key}
+                  AUTHORIZED_API_KEYS=["{camera.api_key}"]
                 </Text>
               </View>
             </>
