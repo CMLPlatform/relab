@@ -7,7 +7,7 @@ services:
       ENVIRONMENT: staging
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT_STAGING:-http://otel-collector:4318/v1/traces}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT_STAGING:-http://otel-collector:4318}
       # ── Resource knobs (see compose.prod.yml for details) ────────────────────────
       WEB_CONCURRENCY: "2"
       IMAGE_RESIZE_WORKERS: "5"
@@ -19,6 +19,18 @@ services:
     command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on:
+      - jaeger
+    profiles:
+      - telemetry
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/jaeger:2.6.0@sha256:5765e3da84e6e0dce8c1f39d33044f98f2519db15fbce0d7befc04df9e498f10
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # Jaeger UI
     profiles:
       - telemetry
     restart: unless-stopped
