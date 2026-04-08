@@ -85,7 +85,7 @@ async def get_taxonomy_categories(
     taxonomy_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-) -> Page[Category]:
+) -> Page[CategoryRead]:
     """Get taxonomy categories with optional filtering."""
     await get_model_by_id(session, Taxonomy, taxonomy_id)
     statement = select(Category).where(Category.taxonomy_id == taxonomy_id)

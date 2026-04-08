@@ -2,7 +2,6 @@
 
 import logging
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
@@ -579,7 +578,9 @@ class ParentImageCrud:
 
         return db_item
 
-    async def create(self, db: AsyncSession, parent_id: int, item_data: ImageCreateFromForm | ImageCreateInternal) -> Image:
+    async def create(
+        self, db: AsyncSession, parent_id: int, item_data: ImageCreateFromForm | ImageCreateInternal
+    ) -> Image:
         """Create a new storage item for a parent."""
         self._validate_parent_scope(parent_id, item_data)
         return await self.storage_service.create(db, item_data)

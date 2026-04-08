@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import Body, HTTPException
 from pydantic import UUID4, PositiveInt, ValidationError
-from relab_rpi_cam_models.stream import StreamMode, StreamView
+from relab_rpi_cam_models.stream import StreamView
 from sqlmodel import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep

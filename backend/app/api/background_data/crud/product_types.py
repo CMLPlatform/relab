@@ -10,9 +10,7 @@ from app.api.common.crud.associations import create_model_links
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.exceptions import InternalServerError
 from app.api.file_storage.crud import ParentFileCrud, ParentImageCrud
-from app.api.file_storage.filters import FileFilter, ImageFilter
-from app.api.file_storage.models import File, Image, MediaParentType
-from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
+from app.api.file_storage.models import MediaParentType
 
 from .categories import validate_category_taxonomy_domains
 from .shared import (

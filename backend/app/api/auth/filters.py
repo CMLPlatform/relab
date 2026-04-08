@@ -2,7 +2,6 @@
 
 from typing import TYPE_CHECKING
 
-from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
 
 from app.api.auth.models import Organization, User
@@ -55,5 +54,3 @@ class OrganizationFilter(Filter):
             "location",
             "description",
         ]
-
-

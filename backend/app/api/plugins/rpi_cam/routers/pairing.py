@@ -35,6 +35,7 @@ from app.api.plugins.rpi_cam.schemas.pairing import (
 )
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_str
 from app.core.config import settings as core_settings
+from app.core.logging import sanitize_log_value
 from app.core.redis import RedisDep, delete_redis_key, get_redis_value, set_redis_value
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ async def register_pairing_code(
         msg = "Failed to store pairing code in Redis."
         raise RuntimeError(msg)
 
-    logger.info("Pairing code %s registered.", body.code)
+    logger.info("Pairing code %s registered.", sanitize_log_value(body.code))
     return PairingRegisterResponse(code=body.code, expires_in=PAIRING_TTL_SECONDS)
 
 
@@ -142,7 +143,12 @@ async def claim_pairing_code(
     })
     await set_redis_value(redis, key, paired_payload, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
 
-    logger.info("Pairing code %s claimed by user %s, camera %s.", body.code, current_user.id, db_camera.id)
+    logger.info(
+        "Pairing code %s claimed by user %s, camera %s.",
+        sanitize_log_value(body.code),
+        sanitize_log_value(current_user.id),
+        sanitize_log_value(db_camera.id),
+    )
     return CameraReadWithCredentials.from_db_model_with_credentials(db_camera)
 
 
@@ -176,7 +182,7 @@ async def poll_pairing_status(
 
     if data.get("status") == _STATUS_PAIRED:
         await delete_redis_key(redis, key)
-        logger.info("Pairing credentials retrieved for code %s.", code)
+        logger.info("Pairing credentials retrieved for code %s.", sanitize_log_value(code))
         return PairingPollResponse(
             status=_STATUS_PAIRED,
             camera_id=data["camera_id"],

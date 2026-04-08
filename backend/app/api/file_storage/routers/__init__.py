@@ -19,7 +19,7 @@ from app.api.file_storage.examples import (
     IMAGE_RESIZE_WIDTH_OPENAPI_EXAMPLES,
 )
 from app.core.constants import HOUR
-from app.core.images import resize_image, thumbnail_path_for
+from app.core.images import THUMBNAIL_WIDTHS, resize_image, thumbnail_path_for
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ async def get_resized_image(
             _raise_not_found("Image file not found on disk")
 
         # Serve pre-computed thumbnail when the request matches a standard width
-        if width and not height:
+        if width in THUMBNAIL_WIDTHS and not height:
             thumb = AsyncPath(thumbnail_path_for(Path(image_path), width))
             if await thumb.exists():
                 content = await thumb.read_bytes()

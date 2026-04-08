@@ -5,14 +5,11 @@ other model imports) and can therefore be imported by common/schemas/base.py
 without triggering the full data_collection/models.py import chain.
 """
 
-import logging
 from datetime import UTC, datetime
 
 from pydantic import computed_field
 from sqlalchemy import TIMESTAMP
 from sqlmodel import Column, Field, SQLModel
-
-logger = logging.getLogger(__name__)
 
 
 ### Validation Utilities ###
@@ -38,7 +35,6 @@ class PhysicalPropertiesBase(SQLModel):
     def volume_cm3(self) -> float | None:
         """Calculate the volume of the product."""
         if self.height_cm is None or self.width_cm is None or self.depth_cm is None:
-            logger.warning("All dimensions must be set to calculate the volume.")
             return None
         return self.height_cm * self.width_cm * self.depth_cm
 

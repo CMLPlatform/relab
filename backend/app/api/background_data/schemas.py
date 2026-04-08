@@ -24,7 +24,6 @@ from app.api.common.schemas.base import (
     IntIdReadSchema,
     IntIdReadSchemaWithTimeStamp,
     MaterialRead,
-    ProductRead,
 )
 from app.api.common.schemas.field_mixins import CategoryFields, ProductTypeFields, TaxonomyFields
 from app.api.file_storage.schemas import FileRead, ImageRead

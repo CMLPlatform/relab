@@ -18,6 +18,7 @@ from app.api.plugins.rpi_cam.utils.encryption import decrypt_str
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.protocol import MSG_PING, MSG_PONG, MSG_RESPONSE
 from app.core.database import get_async_session
+from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
 
 if TYPE_CHECKING:
@@ -82,7 +83,10 @@ async def camera_websocket_connect(
     except WebSocketDisconnect:
         pass
     except Exception:
-        logger.exception("Unexpected error in WebSocket receive loop for camera %s", camera_id)
+        logger.exception(
+            "Unexpected error in WebSocket receive loop for camera %s",
+            sanitize_log_value(camera_id),
+        )
     finally:
         heartbeat.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -108,7 +112,7 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
     if loop.time() - last_fail_at > _AUTH_LOCKOUT_SECONDS:
         fail_count = 0  # Lockout period has passed; reset
     if fail_count >= _MAX_AUTH_FAILURES:
-        logger.warning("Auth from %s blocked — too many failures.", client_ip)
+        logger.warning("Auth from %s blocked — too many failures.", sanitize_log_value(client_ip))
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Too many failed attempts.")
         return False
 
@@ -140,14 +144,23 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
 
     # ── Success ───────────────────────────────────────────────────────────────
     _auth_failures.pop(client_ip, None)
-    logger.info("Camera %s authenticated from %s.", camera_id, client_ip)
+    logger.info(
+        "Camera %s authenticated from %s.",
+        sanitize_log_value(camera_id),
+        sanitize_log_value(client_ip),
+    )
     return True
 
 
 def _record_auth_failure(ip: str, current_count: int, now: float) -> None:
     new_count = current_count + 1
     _auth_failures[ip] = (new_count, now)
-    logger.warning("Auth failure from %s (%d/%d before lockout).", ip, new_count, _MAX_AUTH_FAILURES)
+    logger.warning(
+        "Auth failure from %s (%d/%d before lockout).",
+        sanitize_log_value(ip),
+        new_count,
+        _MAX_AUTH_FAILURES,
+    )
 
 
 async def _heartbeat_loop(
@@ -163,7 +176,7 @@ async def _heartbeat_loop(
         if elapsed > _HEARTBEAT_TIMEOUT:
             logger.warning(
                 "Camera %s heartbeat timeout (%.0fs since last pong); closing.",
-                camera_id,
+                sanitize_log_value(camera_id),
                 elapsed,
             )
             with contextlib.suppress(Exception):
@@ -211,7 +224,7 @@ async def _handle_text_frame(
     try:
         msg = json.loads(raw[_WS_TEXT])
     except json.JSONDecodeError:
-        logger.warning("Camera %s sent invalid JSON, ignoring.", camera_id)
+        logger.warning("Camera %s sent invalid JSON, ignoring.", sanitize_log_value(camera_id))
         return pending_id, pending_json
 
     msg_type = msg.get("type")
@@ -258,5 +271,5 @@ def _handle_binary_frame(
         manager.resolve_json(pending_id, pending_json, binary_data)
         return None, None
 
-    logger.warning("Camera %s sent unexpected binary frame, ignoring.", camera_id)
+    logger.warning("Camera %s sent unexpected binary frame, ignoring.", sanitize_log_value(camera_id))
     return pending_id, pending_json

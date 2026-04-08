@@ -18,7 +18,9 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
 
 
-@router.get("", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations with all relationships")
+@router.get(
+    "", response_model=Page[OrganizationReadWithRelationships], summary="Get all organizations with all relationships"
+)
 async def get_all_organizations(
     session: AsyncSessionDep,
     org_filter: Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)],
@@ -32,7 +34,11 @@ async def get_all_organizations(
     )
 
 
-@router.get("/{organization_id}", response_model=OrganizationReadWithRelationships, summary="Get organization by ID with all relationships")
+@router.get(
+    "/{organization_id}",
+    response_model=OrganizationReadWithRelationships,
+    summary="Get organization by ID with all relationships",
+)
 async def get_organization_with_relationships(
     organization_id: UUID4,
     session: AsyncSessionDep,

@@ -39,7 +39,8 @@ async def add_materials_to_product(
     ]
     db.add_all(db_material_product_links)
     await db.commit()
-    await db.refresh(db_material_product_links)
+    for link in db_material_product_links:
+        await db.refresh(link)
 
     return db_material_product_links
 

@@ -18,7 +18,7 @@ from app.api.auth.examples import (
     USER_UPDATE_EXAMPLES,
 )
 from app.api.auth.models import OrganizationBase, UserBase
-from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, ProductRead, UUIDIdReadSchemaWithTimeStamp
+from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
 
