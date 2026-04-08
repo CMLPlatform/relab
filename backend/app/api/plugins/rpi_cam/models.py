@@ -6,15 +6,26 @@ from urllib.parse import urljoin
 
 from cachetools import TTLCache
 from httpx import AsyncClient, RequestError
-from pydantic import UUID4, AnyUrl, BaseModel, SecretStr, computed_field
+from pydantic import UUID4, AnyUrl, BaseModel, ConfigDict, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
-from sqlmodel import AutoString, Field, Relationship, SQLModel
+from sqlalchemy import Enum as SAEnum
+from sqlmodel import AutoString, Column, Field, Relationship, SQLModel
 
 from app.api.auth.models import User
 from app.api.common.models.base import TimeStampMixinBare
 from app.api.plugins.rpi_cam.config import settings
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
+from app.api.plugins.rpi_cam.websocket.connection_manager import get_connection_manager
 from app.core.cache import async_ttl_cache
+
+
+class ConnectionMode(StrEnum):
+    """How the backend communicates with the RPi camera."""
+
+    HTTP = "http"
+    """Backend makes outbound HTTP requests to the camera's public/tunnelled URL (legacy)."""
+    WEBSOCKET = "websocket"
+    """Camera connects to the backend via an outbound WebSocket tunnel (recommended)."""
 
 
 ### Utility models ###
@@ -58,11 +69,24 @@ class CameraBase(SQLModel):
 
     name: str = Field(index=True, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
+    connection_mode: ConnectionMode = Field(
+        default=ConnectionMode.HTTP,
+        description="How the backend communicates with this camera.",
+        sa_column=Column(SAEnum(ConnectionMode), nullable=False, server_default=ConnectionMode.HTTP.name),
+    )
 
     # NOTE: Camera URLs are validated in the Pydantic create/update schemas.
     # The database stores the URL as a plain string so the API can make normal
     # HTTP requests to locally hosted camera APIs or tunnel endpoints.
-    url: str = Field(description="HTTP(S) URL where the camera API is hosted", sa_type=AutoString)
+    # Nullable: WebSocket-mode cameras do not need a public URL.
+    url: str | None = Field(
+        default=None,
+        description="HTTP(S) URL where the camera API is hosted (required for HTTP mode).",
+        sa_type=AutoString,
+        nullable=True,
+    )
+
+    model_config: ConfigDict = ConfigDict(use_enum_values=True)
 
 
 class Camera(CameraBase, TimeStampMixinBare, table=True):
@@ -104,6 +128,8 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
     @property
     def verify_ssl(self) -> bool:
         """Whether to verify SSL certificates based on URL scheme."""
+        if not self.url:
+            return True
         return AnyUrl(self.url).scheme in {"https", "wss"}
 
     def __hash__(self) -> int:
@@ -126,6 +152,22 @@ class Camera(CameraBase, TimeStampMixinBare, table=True):
         return await self._fetch_status(http_client)
 
     async def _fetch_status(self, http_client: AsyncClient) -> CameraStatus:
+        if self.connection_mode == ConnectionMode.WEBSOCKET:
+            return self._fetch_websocket_status()
+        return await self._fetch_http_status(http_client)
+
+    def _fetch_websocket_status(self) -> CameraStatus:
+        try:
+            manager = get_connection_manager()
+        except RuntimeError:
+            return CameraStatus(connection=CameraConnectionStatus.OFFLINE, details=None)
+        conn = CameraConnectionStatus.ONLINE if manager.is_connected(self.id) else CameraConnectionStatus.OFFLINE
+        return CameraStatus(connection=conn, details=None)
+
+    async def _fetch_http_status(self, http_client: AsyncClient) -> CameraStatus:
+        if not self.url:
+            return CameraStatus(connection=CameraConnectionStatus.OFFLINE, details=None)
+
         status_url = urljoin(str(self.url), "/camera/status")
         try:
             headers = {k: v.get_secret_value() for k, v in self.auth_headers.items()}

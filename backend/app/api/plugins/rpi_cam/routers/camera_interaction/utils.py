@@ -12,13 +12,13 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, RequestError
 from httpx import Response as HTTPXResponse
-from pydantic import UUID4
-from sqlmodel.ext.asyncio.session import AsyncSession
 from starlette.background import BackgroundTask
 
 from app.api.common.ownership import get_user_owned_object
 from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
-from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
+from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, ConnectionMode
+from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
@@ -66,8 +66,26 @@ async def fetch_from_camera_url(
     body: dict | None = None,
     *,
     follow_redirects: bool = True,
-) -> HTTPXResponse:
-    """Utility function to send HTTP requests to the camera API."""
+    expect_binary: bool = False,
+) -> HTTPXResponse | RelayResponse:
+    """Utility function to send a request to the camera API.
+
+    For WebSocket-mode cameras the request is relayed through the active
+    WebSocket tunnel. For HTTP-mode cameras the existing outbound HTTP logic
+    is used.
+    """
+    if camera.connection_mode == ConnectionMode.WEBSOCKET:
+        params_dict = dict(query_params) if query_params else None
+        return await relay_via_websocket(
+            camera.id,
+            method.value,
+            endpoint,
+            params=params_dict,
+            body=body,
+            error_msg=error_msg,
+            expect_binary=expect_binary,
+        )
+
     # Add camera auth header to request
     if headers is None:
         headers = Headers()
@@ -145,7 +163,17 @@ async def stream_from_camera_url(
     *,
     follow_redirects: bool = True,
 ) -> StreamingResponse:
-    """Stream camera bytes without buffering the full payload in memory."""
+    """Stream camera bytes without buffering the full payload in memory.
+
+    Note: streaming is not supported for WebSocket-mode cameras (HLS/YouTube
+    streaming requires the camera to be reachable over HTTP).
+    """
+    if camera.connection_mode == ConnectionMode.WEBSOCKET:
+        raise HTTPException(
+            status_code=501,
+            detail="Streaming is not supported for WebSocket-relay cameras.",
+        )
+
     if headers is None:
         headers = Headers()
     headers.update({key: value.get_secret_value() for key, value in camera.auth_headers.items()})
@@ -206,10 +234,14 @@ async def _stream_from_camera_via_http(
         )
         raise CameraProxyRequestError(endpoint, str(e)) from e
     else:
+        # Forward only content-related headers; skip hop-by-hop and server
+        # metadata headers that would duplicate the backend's own values.
+        skip = {"server", "date", "transfer-encoding", "connection", "keep-alive"}
+        proxy_headers = {k: v for k, v in response.headers.items() if k.lower() not in skip}
         return StreamingResponse(
             response.aiter_bytes(),
             status_code=response.status_code,
-            headers=dict(response.headers),
+            headers=proxy_headers,
             background=BackgroundTask(response.aclose),
         )
 
@@ -230,7 +262,7 @@ def _extract_camera_error_detail(response: HTTPXResponse) -> str | dict | list |
 def build_camera_request(
     camera: Camera,
     http_client: AsyncClient,
-) -> Callable[..., Awaitable[HTTPXResponse]]:
+) -> Callable[..., Awaitable[HTTPXResponse | RelayResponse]]:
     """Build a reusable request callable bound to one camera and shared client."""
 
     async def request(
@@ -242,7 +274,8 @@ def build_camera_request(
         body: dict | None = None,
         *,
         follow_redirects: bool = True,
-    ) -> HTTPXResponse:
+        expect_binary: bool = False,
+    ) -> HTTPXResponse | RelayResponse:
         return await fetch_from_camera_url(
             camera=camera,
             endpoint=endpoint,
@@ -253,6 +286,7 @@ def build_camera_request(
             query_params=query_params,
             body=body,
             follow_redirects=follow_redirects,
+            expect_binary=expect_binary,
         )
 
     return request

@@ -1,7 +1,9 @@
 """Camera interaction services."""
 
+from __future__ import annotations
+
+import json
 import logging
-from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from enum import StrEnum
 from io import BytesIO
@@ -24,6 +26,7 @@ from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
 from app.api.plugins.rpi_cam.exceptions import (
     GoogleOAuthAssociationRequiredError,
+    InvalidCameraResponseError,
     InvalidRecordingSessionDataError,
     RecordingSessionNotFoundError,
     RecordingSessionStoreError,
@@ -44,6 +47,7 @@ from app.api.plugins.rpi_cam.schemas.youtube import (
     YouTubeStreamListResponse,
     YouTubeStreamResponse,
 )
+from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 from app.core.logging import sanitize_log_value
 from app.core.redis import delete_redis_key, get_redis_value, set_redis_value
 
@@ -140,7 +144,7 @@ async def capture_and_store_image(
     session: AsyncSession,
     camera: Camera,
     *,
-    camera_request: Callable[..., Awaitable[Response]],
+    camera_request: Callable[..., Awaitable[Response | RelayResponse]],
     product_id: PositiveInt,
     filename: str | None = None,
     description: str | None = None,
@@ -156,13 +160,25 @@ async def capture_and_store_image(
         method=HttpMethod.POST,
         error_msg="Failed to capture image",
     )
-    capture_data = capture_response.json()
+    try:
+        capture_data = cast("dict[str, Any]", capture_response.json())
+    except json.JSONDecodeError as e:
+        body_preview = getattr(capture_response, "content", b"")[:200]
+        logger.exception(
+            "Camera returned non-JSON response for POST /images (%d bytes): %r",
+            len(getattr(capture_response, "content", b"")),
+            body_preview,
+        )
+        raise InvalidCameraResponseError(
+            details=f"Expected JSON, got {len(body_preview)} bytes: {body_preview!r}",
+        ) from e
 
     # Download image
     image_response = await camera_request(
         endpoint=capture_data["image_url"],
         method=HttpMethod.GET,
         error_msg="Failed to download image",
+        expect_binary=True,
     )
 
     # Create image data and store in database

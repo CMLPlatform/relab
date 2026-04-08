@@ -82,7 +82,7 @@ async def get_camera_stream_status(
         error_msg="Failed to get stream status",
     )
     try:
-        return StreamView(**response.json())
+        return StreamView.model_validate(response.json())
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
 
@@ -188,7 +188,7 @@ async def start_recording(
         body=youtube_config.model_dump(exclude={"stream_id"}),
     )
     try:
-        stream_info = StreamView(**response.json())
+        stream_info = StreamView.model_validate(response.json())
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
 
@@ -307,7 +307,7 @@ async def get_recording_monitor_stream(
         error_msg="Failed to get stream status",
     )
     try:
-        stream_info = StreamView(**stream_status_response.json())
+        stream_info = StreamView.model_validate(stream_status_response.json())
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
 
@@ -346,7 +346,7 @@ async def start_preview(
         query_params=QueryParams({"mode": StreamMode.LOCAL.value}),
     )
     try:
-        return StreamView(**response.json())
+        return StreamView.model_validate(response.json())
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
 

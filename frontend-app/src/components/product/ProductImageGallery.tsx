@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
@@ -16,11 +16,21 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView, FlatList as GHFlatList } from 'react-native-gesture-handler';
-import { Icon } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Button,
+  Dialog,
+  Icon,
+  Text as PaperText,
+  Portal,
+} from 'react-native-paper';
 
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
 import ZoomableImage from '@/components/common/ZoomableImage';
+import { useCameraPreview, useCamerasQuery, useCaptureImageMutation } from '@/hooks/useRpiCameras';
+import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { getResizedImageUrl, resolveApiMediaUrl } from '@/services/api/media';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { processImage } from '@/services/media/imageProcessing';
 import type { Product } from '@/types/Product';
 
@@ -52,7 +62,7 @@ function getTouchPointX(event: GestureResponderEvent, type: 'start' | 'end'): nu
 interface Props {
   product: Product;
   editMode: boolean;
-  onImagesChange?: (images: { url: string; description: string; id?: number }[]) => void;
+  onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
 }
 
 export default function ProductImageGallery({ product, editMode, onImagesChange }: Props) {
@@ -62,6 +72,72 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     Platform.OS !== 'web' ||
     (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const images = useMemo(() => product.images ?? [], [product.images]);
+  const router = useRouter();
+
+  // ─── RPi camera capture ───────────────────────────────────────────────────
+  const productId = typeof product.id === 'number' ? product.id : null;
+  const { enabled: rpiEnabled } = useRpiIntegration();
+  const { data: rpiCameras, isLoading: rpiCamerasLoading } = useCamerasQuery(true, {
+    enabled: rpiEnabled && editMode,
+  });
+  const captureMutation = useCaptureImageMutation();
+  const [previewCamera, setPreviewCamera] = useState<CameraReadWithStatus | null>(null);
+  const [cameraPickerVisible, setCameraPickerVisible] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  // Show the RPi button whenever the integration is enabled (even with 0 cameras
+  // or unsaved products), so users are guided to set up or save first.
+  const showRpiButton = rpiEnabled;
+  const hasCamerasConfigured = (rpiCameras?.length ?? 0) > 0;
+  const isNewProduct = productId === null;
+
+  const { snapshotUrl, error: previewError } = useCameraPreview(previewCamera, {
+    enabled: previewCamera !== null,
+  });
+
+  const captureFromCamera = useCallback(
+    (camera: CameraReadWithStatus) => {
+      if (!productId) return;
+      setPreviewCamera(null);
+      setCameraPickerVisible(false);
+      setIsCapturing(true);
+      captureMutation.mutate(
+        { cameraId: camera.id, productId },
+        {
+          onSuccess: (captured) => {
+            onImagesChange?.([
+              ...images,
+              {
+                id: captured.id,
+                url: resolveApiMediaUrl(captured.url) ?? captured.url,
+                thumbnailUrl: captured.thumbnailUrl
+                  ? (resolveApiMediaUrl(captured.thumbnailUrl) ?? captured.thumbnailUrl)
+                  : undefined,
+                description: captured.description,
+              },
+            ]);
+          },
+          onError: (err) => alert(`Capture failed: ${String(err)}`),
+          onSettled: () => setIsCapturing(false),
+        },
+      );
+    },
+    [productId, captureMutation, images, onImagesChange],
+  );
+
+  const handleRpiCapture = useCallback(() => {
+    if (isNewProduct) {
+      alert('Save this product first before capturing from an RPi camera.');
+      return;
+    }
+    if (rpiCamerasLoading) return;
+    if (!hasCamerasConfigured) {
+      router.push('/cameras');
+      return;
+    }
+    // Always show the picker dialog — it has a Manage button for camera setup
+    setCameraPickerVisible(true);
+  }, [isNewProduct, rpiCamerasLoading, hasCamerasConfigured, router]);
 
   const galleryRef = useRef<ScrollableListHandle | null>(null);
   const thumbsRef = useRef<ScrollableListHandle | null>(null);
@@ -120,7 +196,6 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     }
   }, [mediumUrls]);
 
-  const { id: productId } = useLocalSearchParams();
   useEffect(() => {
     const loadLastIndex = async () => {
       try {
@@ -381,6 +456,30 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
                 >
                   <Icon source="image-plus" size={20} color="white" />
                 </Pressable>
+                {showRpiButton && (
+                  <Pressable
+                    onPress={handleRpiCapture}
+                    disabled={isCapturing || rpiCamerasLoading}
+                    accessibilityLabel={
+                      hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
+                    }
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1,
+                    }}
+                  >
+                    {isCapturing || rpiCamerasLoading ? (
+                      <ActivityIndicator size={18} color="white" />
+                    ) : (
+                      <Icon source="camera-wireless" size={20} color="white" />
+                    )}
+                  </Pressable>
+                )}
               </View>
 
               <Pressable
@@ -444,9 +543,168 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
               <Icon source="image-plus" size={48} color="#999" />
               <Text style={{ color: '#999', marginTop: 8 }}>Add Photos</Text>
             </Pressable>
+            {showRpiButton && (
+              <Pressable
+                onPress={handleRpiCapture}
+                disabled={isCapturing || rpiCamerasLoading}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
+                }
+                style={{
+                  flex: 1,
+                  backgroundColor: '#eee',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderRadius: 8,
+                  borderWidth: 2,
+                  borderColor: '#ccc',
+                  borderStyle: 'dashed',
+                  opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1,
+                }}
+              >
+                {isCapturing || rpiCamerasLoading ? (
+                  <ActivityIndicator size={32} />
+                ) : (
+                  <Icon source="camera-wireless" size={48} color="#999" />
+                )}
+                <Text style={{ color: '#999', marginTop: 8 }}>
+                  {hasCamerasConfigured ? 'RPi Camera' : 'Connect Camera'}
+                </Text>
+              </Pressable>
+            )}
           </View>
         )
       )}
+
+      <Portal>
+        {/* Camera picker — shown when user has multiple cameras */}
+        <Dialog visible={cameraPickerVisible} onDismiss={() => setCameraPickerVisible(false)}>
+          <Dialog.Title>Select camera</Dialog.Title>
+          <Dialog.Content style={{ gap: 8 }}>
+            {(() => {
+              const sorted = [...(rpiCameras ?? [])].sort((a, b) => {
+                const aOnline = a.status?.connection === 'online' ? 0 : 1;
+                const bOnline = b.status?.connection === 'online' ? 0 : 1;
+                return aOnline - bOnline;
+              });
+              if (sorted.length === 0) {
+                return (
+                  <View style={{ padding: 16, alignItems: 'center', gap: 8 }}>
+                    <Icon source="camera-off" size={32} color="#999" />
+                    <PaperText style={{ color: '#999', textAlign: 'center' }}>
+                      No cameras registered
+                    </PaperText>
+                  </View>
+                );
+              }
+              return sorted.map((cam) => {
+                const isOnline = cam.status?.connection === 'online';
+                return (
+                  <Pressable
+                    key={cam.id}
+                    onPress={() => {
+                      if (!isOnline) return;
+                      setCameraPickerVisible(false);
+                      setPreviewCamera(cam);
+                    }}
+                    accessibilityRole="button"
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: 12,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: '#e0e0e0',
+                      opacity: isOnline ? 1 : 0.4,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: isOnline ? '#2e7d32' : '#999',
+                      }}
+                    />
+                    <Icon
+                      source={cam.connection_mode === 'websocket' ? 'access-point' : 'lan-connect'}
+                      size={20}
+                    />
+                    <PaperText style={{ flex: 1 }}>{cam.name}</PaperText>
+                    {!isOnline && (
+                      <PaperText variant="labelSmall" style={{ color: '#999' }}>
+                        Offline
+                      </PaperText>
+                    )}
+                  </Pressable>
+                );
+              });
+            })()}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setCameraPickerVisible(false);
+                router.push('/cameras');
+              }}
+              icon="cog"
+              compact
+            >
+              Manage
+            </Button>
+            <View style={{ flex: 1 }} />
+            <Button onPress={() => setCameraPickerVisible(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Preview modal — shown after a camera is selected */}
+        <Dialog
+          visible={previewCamera !== null}
+          onDismiss={() => setPreviewCamera(null)}
+          style={{ maxWidth: 600, alignSelf: 'center', width: '100%' }}
+        >
+          <Dialog.Title>{previewCamera?.name ?? 'Camera preview'}</Dialog.Title>
+          <Dialog.Content style={{ alignItems: 'center', gap: 12 }}>
+            {previewError ? (
+              <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
+                <Icon source="camera-off" size={48} color="#999" />
+                <PaperText style={{ color: '#999', textAlign: 'center' }}>
+                  Camera unavailable
+                </PaperText>
+              </View>
+            ) : snapshotUrl ? (
+              <Image
+                source={{ uri: snapshotUrl }}
+                style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 8 }}
+                contentFit="contain"
+              />
+            ) : (
+              <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size={32} />
+                <PaperText style={{ color: '#999' }}>Connecting…</PaperText>
+              </View>
+            )}
+            <PaperText variant="bodySmall" style={{ color: '#999' }}>
+              {Platform.OS === 'web' && previewCamera?.connection_mode === 'http'
+                ? 'Live preview · MJPEG ~20fps'
+                : 'Live preview · ~1.5 fps'}
+            </PaperText>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPreviewCamera(null)}>Cancel</Button>
+            <Button
+              mode="contained"
+              disabled={!snapshotUrl || isCapturing}
+              loading={isCapturing}
+              onPress={() => previewCamera && captureFromCamera(previewCamera)}
+            >
+              Capture
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       {imageCount > 1 && (
         <View style={{ marginTop: 12, paddingHorizontal: 16 }}>

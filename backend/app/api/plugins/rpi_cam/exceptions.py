@@ -5,6 +5,7 @@ from app.api.common.exceptions import (
     ConflictError,
     FailedDependencyError,
     ForbiddenError,
+    NotFoundError,
     ServiceUnavailableError,
 )
 
@@ -68,3 +69,34 @@ class InvalidCameraOwnershipTransferError(BadRequestError):
 
     def __init__(self) -> None:
         super().__init__("owner_id must reference an existing user in the same organization.")
+
+
+# ── Pairing exceptions ───────────────────────────────────────────────────────
+
+
+class PairingCodeCollisionError(ConflictError):
+    """Raised when a pairing code is already registered."""
+
+    def __init__(self) -> None:
+        super().__init__("Pairing code already in use. Generate a new one.")
+
+
+class PairingCodeNotFoundError(NotFoundError):
+    """Raised when a pairing code does not exist or has expired."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid or expired pairing code.")
+
+
+class PairingCodeAlreadyClaimedError(ConflictError):
+    """Raised when a pairing code has already been claimed by a user."""
+
+    def __init__(self) -> None:
+        super().__init__("This pairing code has already been claimed.")
+
+
+class PairingFingerprintMismatchError(ForbiddenError):
+    """Raised when the fingerprint does not match the registered pairing code."""
+
+    def __init__(self) -> None:
+        super().__init__("Fingerprint mismatch.")

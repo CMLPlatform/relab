@@ -13,13 +13,14 @@ from pydantic import (
     Field,
     PlainSerializer,
     SecretStr,
+    model_validator,
 )
 
 from app.api.auth.filters import UserFilter
 from app.api.common.schemas.base import (
     BaseCreateSchema,
-    BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
+    UUIDIdReadSchemaWithTimeStamp,
 )
 from app.api.common.schemas.custom_fields import AnyUrlToDB
 from app.api.plugins.rpi_cam.config import settings
@@ -29,7 +30,7 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_READ_WITH_CREDENTIALS_EXAMPLES,
     CAMERA_UPDATE_EXAMPLES,
 )
-from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus
+from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus, ConnectionMode
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str
 
 if TYPE_CHECKING:
@@ -136,21 +137,30 @@ class CameraCreate(BaseCreateSchema, CameraBase):
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_CREATE_EXAMPLES})
 
-    # Override url field to add validation
+    # Override url to make it optional — required only for HTTP-mode cameras.
     url: Annotated[
-        AnyUrlToDB,
-        AfterValidator(validate_camera_url_scheme),
-    ] = Field(description="HTTP(S) URL where the camera API is hosted")
+        AnyUrlToDB | None,
+        AfterValidator(validate_optional_camera_url_scheme),
+    ] = Field(default=None, description="HTTP(S) URL where the camera API is hosted (required for HTTP mode).")
     auth_headers: OptionalAuthHeaderCreateList
+
+    @model_validator(mode="after")
+    def require_url_for_http_mode(self) -> CameraCreate:
+        """URL is mandatory when connection_mode is HTTP."""
+        if self.connection_mode == ConnectionMode.HTTP and not self.url:
+            msg = "url is required when connection_mode is 'http'."
+            raise ValueError(msg)
+        return self
 
 
 ## Read schemas
-class CameraRead(BaseReadSchemaWithTimeStamp, CameraBase):
+class CameraRead(UUIDIdReadSchemaWithTimeStamp, CameraBase):
     """Basic Camera Read schema."""
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_EXAMPLES})
 
     owner_id: UUID4
+    # connection_mode is inherited from CameraBase
 
 
 class CameraReadWithStatus(CameraRead):
@@ -172,7 +182,9 @@ class CameraReadWithCredentials(CameraRead):
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_WITH_CREDENTIALS_EXAMPLES})
 
-    api_key: SecretStr
+    # NOTE: We are not wrapping the api key in SecretStr here because the user needs to see it
+    # to enable the connection from their Raspberry Pi camera to the main backend.
+    api_key: str
     auth_headers: dict[str, SecretStr] | None
 
     @classmethod
@@ -183,7 +195,7 @@ class CameraReadWithCredentials(CameraRead):
 
         return cls(
             **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
-            api_key=SecretStr(decrypt_str(db_model.encrypted_api_key)),
+            api_key=decrypt_str(db_model.encrypted_api_key),
             auth_headers=auth_headers,
         )
 
@@ -205,4 +217,9 @@ class CameraUpdate(BaseUpdateSchema):
     owner_id: UUID4 | None = Field(
         default=None,
         description="Transfer ownership to an existing user in the same organization as the current owner.",
+    )
+
+    connection_mode: ConnectionMode | None = Field(
+        default=None,
+        description="Change the connection mode for this camera.",
     )

@@ -43,7 +43,9 @@ async def init_camera(
         query_params=QueryParams({"mode": mode.value}),
     )
     try:
-        return CameraStatus(connection=CameraConnectionStatus.ONLINE, details=CameraStatusDetails(**response.json()))
+        return CameraStatus(
+            connection=CameraConnectionStatus.ONLINE, details=CameraStatusDetails.model_validate(response.json())
+        )
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
 
@@ -64,6 +66,8 @@ async def close_camera(
         error_msg="Failed to close camera",
     )
     try:
-        return CameraStatus(connection=CameraConnectionStatus.ONLINE, details=CameraStatusDetails(**response.json()))
+        return CameraStatus(
+            connection=CameraConnectionStatus.ONLINE, details=CameraStatusDetails.model_validate(response.json())
+        )
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
