@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.13-trixie-slim@sha256:1b168dc71312b0ef3e3c11cdc512f9710f73f89d23b737baa4e0f0dc9b5a1ade AS builder
+FROM ghcr.io/astral-sh/uv:0.11-python3.13-trixie-slim@sha256:58f82df75c88dd53d3ddc0f50ea5cb18086724bc9b60852310cead94e41e46f9 AS builder
 
 # Install git for custom dependencies (fastapi-users-db-sqlmodel)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -34,7 +34,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups --group=api
 
 # --- Final runtime stage ---
-FROM python:3.14-slim@sha256:fb83750094b46fd6b8adaa80f66e2302ecbe45d513f6cece637a841e1025b4ca
+FROM python:3.14-slim@sha256:5e59aae31ff0e87511226be8e2b94d78c58f05216efda3b07dbbed938ec8583b
 
 # Build arguments
 ARG WORKDIR=/opt/relab/backend
