@@ -121,4 +121,9 @@ async def update_user_override(user_db: SQLModelUserDatabaseAsync, user: User, u
         # Validate organization exists
         await get_model_or_404(user_db.session, Organization, user_update.organization_id)
 
+    # Merge preferences (shallow) instead of replacing the whole dict
+    if user_update.preferences is not None:
+        merged = {**(user.preferences or {}), **user_update.preferences}
+        user_update.preferences = merged
+
     return user_update

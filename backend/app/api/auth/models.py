@@ -3,11 +3,12 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import UUID4, BaseModel, ConfigDict
 from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship, SQLModel
 
 from app.api.auth.services.sqlmodel_user_database import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
@@ -44,6 +45,12 @@ class User(SQLModelBaseUserDB, UserBase, TimeStampMixinBare, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
     last_login_ip: str | None = Field(default=None, max_length=45, nullable=True)  # Max 45 for IPv6
+
+    # Flexible user preferences (UI settings, feature toggles, etc.)
+    preferences: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSONB, nullable=False, server_default="{}"),
+    )
 
     # One-to-many relationship with OAuthAccount
     oauth_accounts: list["OAuthAccount"] = Relationship(

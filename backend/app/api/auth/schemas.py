@@ -18,7 +18,7 @@ from app.api.auth.examples import (
     USER_UPDATE_EXAMPLES,
 )
 from app.api.auth.models import OrganizationBase, UserBase
-from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema, ProductRead
+from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, ProductRead, UUIDIdReadSchemaWithTimeStamp
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
 
@@ -30,7 +30,7 @@ class OrganizationCreate(BaseCreateSchema, OrganizationBase):
     model_config = ConfigDict(json_schema_extra={"examples": ORGANIZATION_CREATE_EXAMPLES})
 
 
-class OrganizationReadPublic(BaseReadSchemaWithTimeStamp, OrganizationBase):
+class OrganizationReadPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations."""
 
 
@@ -40,13 +40,13 @@ class OrganizationRead(OrganizationBase):
     owner_id: UUID4 = Field(description="ID of the organization owner.")
 
 
-class OrganizationReadWithRelationshipsPublic(BaseReadSchemaWithTimeStamp, OrganizationBase):
+class OrganizationReadWithRelationshipsPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations, including relationships."""
 
     members: list[UserReadPublic] = Field(default_factory=list, description="List of users in the organization.")
 
 
-class OrganizationReadWithRelationships(BaseReadSchemaWithTimeStamp, OrganizationBase):
+class OrganizationReadWithRelationships(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations, including relationships."""
 
     members: list[UserRead] = Field(default_factory=list, description="List of users in the organization.")
@@ -118,6 +118,10 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
     oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
+    preferences: dict[str, object] = Field(
+        default_factory=dict,
+        description="User preferences.",
+    )
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
@@ -144,6 +148,8 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
 
     # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
+
+    preferences: dict[str, object] | None = Field(default=None, description="User preferences (partial merge).")
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
 
