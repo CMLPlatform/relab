@@ -98,15 +98,15 @@ export async function openProductByNameFromProductsPage(page: Page, name: string
   await expect(product).toBeVisible({ timeout: 15_000 });
   await product.click();
   await expect(page).toHaveURL(/products\/\d+/, { timeout: 15_000 });
-  await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
+  // Wait for the product detail page to fully load
+  await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible({
     timeout: 15_000,
   });
 }
 
 export async function openGalleryLightbox(page: Page) {
-  const productImage = page
-    .getByPlaceholder('Add a product description')
-    .locator('xpath=preceding::img[1]');
+  // Find the first product image on the detail page (appears above the description)
+  const productImage = page.locator('img').first();
   await expect(productImage).toBeVisible({ timeout: 10_000 });
   await productImage.click({ force: true });
   await expect(page.getByLabel('Close lightbox')).toBeVisible({

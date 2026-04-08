@@ -207,6 +207,7 @@ describe('ProductImages', () => {
   it('renders placeholder image when no images present', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
@@ -219,6 +220,7 @@ describe('ProductImages', () => {
       />,
       {
         withDialog: true,
+        withAuth: true,
       },
     );
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
@@ -227,10 +229,11 @@ describe('ProductImages', () => {
   it('renders product images when present', () => {
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: 'A photo' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: 'A photo' }],
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.getByText('img:file://photo1.jpg')).toBeOnTheScreen();
   });
@@ -238,10 +241,11 @@ describe('ProductImages', () => {
   it('does not show image counter text for a single image', () => {
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.queryByText('1 / 1')).toBeNull();
   });
@@ -249,6 +253,7 @@ describe('ProductImages', () => {
   it('does not show image counter in editMode with no images', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.queryByText(/\/ /)).toBeNull();
   });
@@ -257,13 +262,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
 
     expect(screen.getByLabelText('Previous image')).toBeOnTheScreen();
@@ -288,6 +294,7 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
+        withAuth: true,
       },
     );
 
@@ -309,6 +316,7 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
+        withAuth: true,
       },
     );
 
@@ -323,13 +331,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
 
     const imgs = screen.getAllByText('img:file://photo1.jpg');
@@ -343,11 +352,12 @@ describe('ProductImages', () => {
   it('closes lightbox when close button is pressed', async () => {
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     } as Product;
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
 
     fireEvent.press(screen.getByText('img:file://photo1.jpg'));
@@ -367,14 +377,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     const { UNSAFE_getAllByProps } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
-      { withDialog: true },
+      { withDialog: true, withAuth: true },
     );
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -433,14 +443,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     const { UNSAFE_getAllByType } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
-      { withDialog: true },
+      { withDialog: true, withAuth: true },
     );
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -481,13 +491,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -531,14 +542,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     const { UNSAFE_getAllByType } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
-      { withDialog: true },
+      { withDialog: true, withAuth: true },
     );
 
     const mainGalleryListProps = mockFlatListCalls.find(
@@ -574,13 +585,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -620,6 +632,7 @@ describe('ProductImages', () => {
   it('shows Camera and Add Photos tiles on native when no images in edit mode', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
     expect(screen.getByText('Add Photos')).toBeOnTheScreen();
@@ -632,6 +645,7 @@ describe('ProductImages', () => {
     setWindowEventListeners();
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.queryByText('Camera')).toBeNull();
     expect(screen.getByText('Add Photos')).toBeOnTheScreen();
@@ -644,6 +658,7 @@ describe('ProductImages', () => {
     setWindowEventListeners();
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
     expect(screen.getByText('Add Photos')).toBeOnTheScreen();
@@ -662,6 +677,7 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
+        withAuth: true,
       },
     );
 
@@ -685,6 +701,7 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
+        withAuth: true,
       },
     );
 
@@ -700,10 +717,11 @@ describe('ProductImages', () => {
   it('shows Take photo and Add photo from gallery overlay icons on native with images in edit mode', () => {
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
@@ -716,10 +734,11 @@ describe('ProductImages', () => {
     setWindowEventListeners();
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.queryByLabelText('Take photo')).toBeNull();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
@@ -732,10 +751,11 @@ describe('ProductImages', () => {
     setWindowEventListeners();
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
+      withAuth: true,
     });
     expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
@@ -755,12 +775,13 @@ describe('ProductImages', () => {
 
     const productWithImages = {
       ...baseProduct,
-      images: [{ id: 1, url: 'file://photo1.jpg', description: '' }],
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
     renderWithProviders(
       <ProductImages product={productWithImages} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
+        withAuth: true,
       },
     );
 
@@ -777,13 +798,14 @@ describe('ProductImages', () => {
     const productWithImages = {
       ...baseProduct,
       images: [
-        { id: 1, url: 'file://photo1.jpg', description: '' },
-        { id: 2, url: 'file://photo2.jpg', description: '' },
+        { id: '1', url: 'file://photo1.jpg', description: '' },
+        { id: '2', url: 'file://photo2.jpg', description: '' },
       ],
     } as Product;
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
+      withAuth: true,
     });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);

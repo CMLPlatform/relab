@@ -1,13 +1,13 @@
-import * as auth from '@/services/api/authentication';
-import * as client from '@/services/api/client';
-import { mockUser, renderWithProviders, server } from '@/test-utils';
-import type { User } from '@/types/User';
 import { describe, expect, it } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
+import * as auth from '@/services/api/authentication';
+import * as client from '@/services/api/client';
+import { mockUser, renderWithProviders, server } from '@/test-utils';
+import type { User } from '@/types/User';
 import Profile from '../profile';
 
 jest.mock('@/services/api/authentication', () => ({
@@ -73,7 +73,7 @@ describe('Profile screen newsletter preference', () => {
       ),
     );
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     expect(
       await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
@@ -99,7 +99,7 @@ describe('Profile screen newsletter preference', () => {
       }),
     );
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     await waitFor(() => {
       expect(screen.getByText('You are not subscribed.')).toBeOnTheScreen();
@@ -126,7 +126,7 @@ describe('Profile screen newsletter preference', () => {
       ),
     );
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     await waitFor(() => {
       expect(screen.getByText('You are not subscribed.')).toBeOnTheScreen();
@@ -146,7 +146,7 @@ describe('Profile screen newsletter preference', () => {
       ),
     );
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     expect(
       await screen.findByText('Could not load right now.', {}, { timeout: 10000 }),
@@ -161,7 +161,7 @@ describe('Profile screen newsletter preference', () => {
       ),
     );
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     expect(await screen.findByText('Temporary failure', {}, { timeout: 10000 })).toBeOnTheScreen();
 
@@ -205,7 +205,7 @@ describe('Profile screen actions', () => {
     const mockedUpdateUser = jest.mocked(auth.updateUser);
     mockedUpdateUser.mockResolvedValue(undefined);
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     // Press the username to open the dialog
     const usernameText = await screen.findByText('testuser.');
@@ -229,7 +229,7 @@ describe('Profile screen actions', () => {
     mockedVerify.mockResolvedValue(true);
     global.alert = jest.fn();
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const verifyBtn = await screen.findByText('Verify email address');
     fireEvent.press(verifyBtn);
@@ -244,7 +244,7 @@ describe('Profile screen actions', () => {
     const mockedUnlink = jest.mocked(auth.unlinkOAuth);
     mockedUnlink.mockResolvedValue(true);
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const unlinkBtn = await screen.findByText('Unlink Google');
     fireEvent.press(unlinkBtn);
@@ -259,7 +259,7 @@ describe('Profile screen actions', () => {
   });
 
   it('triggers logout check', async () => {
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const logoutBtn = await screen.findByText('Logout');
     fireEvent.press(logoutBtn);
@@ -281,7 +281,7 @@ describe('Profile screen actions', () => {
       oauth_accounts: [],
     });
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const linkGoogleBtn = await screen.findByText('Link Google Account');
     const initialGetUserCalls = mockedGetUser.mock.calls.length;
@@ -304,7 +304,7 @@ describe('Profile screen actions', () => {
   });
 
   it('opens the delete-account dialog', async () => {
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const deleteBtn = await screen.findByText('Delete Account?');
     fireEvent.press(deleteBtn);
@@ -320,7 +320,7 @@ describe('Profile screen actions', () => {
   it('alerts when username is too short', async () => {
     global.alert = jest.fn();
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const usernameText = await screen.findByText('testuser.');
     fireEvent.press(usernameText);
@@ -340,7 +340,7 @@ describe('Profile screen actions', () => {
     mockedUpdateUser.mockRejectedValueOnce(new Error('Server error'));
     global.alert = jest.fn();
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const usernameText = await screen.findByText('testuser.');
     fireEvent.press(usernameText);
@@ -362,7 +362,7 @@ describe('Profile screen actions', () => {
     mockedVerify.mockRejectedValueOnce(new Error('Failed'));
     global.alert = jest.fn();
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const verifyBtn = await screen.findByText('Verify email address');
     fireEvent.press(verifyBtn);
@@ -379,7 +379,7 @@ describe('Profile screen actions', () => {
     mockedUnlink.mockRejectedValueOnce(new Error('Cannot disconnect'));
     global.alert = jest.fn();
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const unlinkBtn = await screen.findByText('Unlink Google');
     fireEvent.press(unlinkBtn);
@@ -407,7 +407,7 @@ describe('Profile screen actions', () => {
       oauth_accounts: [],
     });
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const linkBtn = await screen.findByText('Link Google Account');
     fireEvent.press(linkBtn);
@@ -431,7 +431,7 @@ describe('Profile screen actions', () => {
     const mockedUnlink = jest.mocked(auth.unlinkOAuth);
     mockedUnlink.mockResolvedValueOnce(true);
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const unlinkBtn = await screen.findByText('Unlink GitHub');
     fireEvent.press(unlinkBtn);
@@ -458,7 +458,7 @@ describe('Profile screen actions', () => {
       oauth_accounts: [],
     });
 
-    renderWithProviders(<Profile />, { withAuth: true });
+    renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
     const linkGithubBtn = await screen.findByText('Link GitHub Account');
     const initialGetUserCalls = mockedGetUser.mock.calls.length;

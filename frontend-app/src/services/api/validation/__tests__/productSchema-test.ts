@@ -22,7 +22,7 @@ const validBase = {
     repairabilityComment: null as string | null | undefined,
     repairabilityReference: null as string | null | undefined,
   },
-  images: [] as { id?: number; url: string; description: string }[],
+  images: [] as { id?: string; url: string; description: string }[],
   videos: [] as { id?: number; url: string; title: string; description: string }[],
   ownedBy: 'me',
 };
@@ -137,7 +137,7 @@ describe('productSchema', () => {
       ...validBase,
       images: [
         {
-          id: 1,
+          id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
           url: 'https://example.com/img.jpg',
           thumbnailUrl: 'https://example.com/thumb.jpg',
           description: 'Cover',

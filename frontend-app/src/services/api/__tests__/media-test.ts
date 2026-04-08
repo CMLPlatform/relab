@@ -78,7 +78,7 @@ describe('getResizedImageUrl', () => {
   });
 
   it('returns a resized URL when imageId is provided', () => {
-    const result = getResizedImageUrl('/uploads/img.jpg', 7, 400);
+    const result = getResizedImageUrl('/uploads/img.jpg', '7', 400);
     expect(result).toBe('http://localhost:8000/api/images/7/resized?width=400');
   });
 
@@ -88,18 +88,18 @@ describe('getResizedImageUrl', () => {
   });
 
   it('returns resolved original URL for blob: URI (no resize)', () => {
-    const result = getResizedImageUrl('blob:http://localhost/abc', 5, 400);
+    const result = getResizedImageUrl('blob:http://localhost/abc', '5', 400);
     expect(result).toBe('blob:http://localhost/abc');
   });
 
   it('returns resolved original URL for file: URI (no resize)', () => {
-    const result = getResizedImageUrl('file:///data/image.jpg', 5, 400);
+    const result = getResizedImageUrl('file:///data/image.jpg', '5', 400);
     expect(result).toBe('file:///data/image.jpg');
   });
 
   it('returns resolved original URL for data: URI (no resize)', () => {
     const dataUri = 'data:image/png;base64,abc';
-    const result = getResizedImageUrl(dataUri, 5, 400);
+    const result = getResizedImageUrl(dataUri, '5', 400);
     expect(result).toBe(dataUri);
   });
 

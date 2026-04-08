@@ -84,10 +84,12 @@ test.describe('Date filter chips', () => {
     await page.getByText('Date', { exact: true }).click();
     await selectMenuItem(page, 'Last 30d');
     await expect(page).toHaveURL(/days=30/, { timeout: 3_000 });
-    // Toggle off — chip now shows "Last 30d"; click it to reopen menu and select again
-    await page.getByText('Last 30d', { exact: true }).click();
-    await selectMenuItem(page, 'Last 30d');
-    await expect(page).not.toHaveURL(/days=/, { timeout: 3_000 });
+    // Toggle off — click the chip to reopen the date menu, then click the menu item
+    await page.getByRole('button', { name: 'Last 30d' }).click();
+    const menuItem = page.getByTestId('menu-surface').getByText('Last 30d');
+    await expect(menuItem).toBeVisible({ timeout: 3_000 });
+    await menuItem.click({ force: true });
+    await expect(page).not.toHaveURL(/days=/, { timeout: 5_000 });
   });
 
   test('only one date preset can be active at a time', async ({ page }) => {

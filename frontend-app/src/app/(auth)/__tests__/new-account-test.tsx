@@ -218,6 +218,7 @@ describe('NewAccount – authenticated redirect', () => {
         isVerified: true,
         isSuperuser: false,
         oauth_accounts: [],
+        preferences: {},
       },
       isLoading: false,
       refetch: mockRefetch,
