@@ -53,7 +53,7 @@ function CredentialsDialog({
                 <Text style={{ fontFamily: 'monospace', fontWeight: '700' }}>
                   relay_credentials.json
                 </Text>{' '}
-                in your Raspberry Pi camera plugin directory, then restart the service:
+                on your Raspberry Pi (default: ~/.config/relab/), then restart the service:
               </Text>
               <View style={styles.codeBlock}>
                 <Text style={styles.codeText} selectable>
