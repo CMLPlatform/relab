@@ -1,12 +1,6 @@
 # --- Builder stage ---
 FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
 
-# Install git for custom dependencies (slowapi fork)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    git
-
 # Set the working directory inside the container
 WORKDIR /opt/relab/backend
 
@@ -20,30 +14,31 @@ COPY .python-version pyproject.toml uv.lock ./
 
 # Install dependencies (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-editable --no-default-groups --group=api
+    uv sync --locked --no-install-project --no-editable --no-default-groups
 
 # Copy application directory
 COPY app/ app/
 
 # Final sync with project code (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable --no-default-groups --group=api
+    uv sync --locked --no-editable --no-default-groups
 
 # --- Final runtime stage ---
 FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9
 
 ARG WORKDIR=/opt/relab/backend
 ARG APP_USER=appuser
+ARG APP_UID=1001
 
-RUN useradd -m $APP_USER
+RUN useradd -u $APP_UID -m $APP_USER
 
 WORKDIR $WORKDIR
 
 RUN mkdir -p logs data/uploads/files data/uploads/images \
     && chown -R $APP_USER:$APP_USER logs data
 
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/.venv $WORKDIR/.venv
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/app $WORKDIR/app
 
 # spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \

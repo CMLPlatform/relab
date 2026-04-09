@@ -2,12 +2,6 @@
 FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
 WORKDIR /opt/relab/backend-migrations
 
-# Install git for custom dependencies (slowapi fork)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
-    git
-
 # Create needed directories data uploads for seeding example images and files
 RUN mkdir -p data/uploads/files data/uploads/images
 
@@ -41,20 +35,21 @@ FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e
 
 ARG WORKDIR=/opt/relab/backend-migrations
 ARG APP_USER=appuser
+ARG APP_UID=1001
 
-RUN useradd $APP_USER
+RUN useradd -u $APP_UID -m $APP_USER
 
 WORKDIR $WORKDIR
 
 RUN mkdir -p data/uploads/files data/uploads/images \
     && chown -R $APP_USER:$APP_USER data
 
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/.venv $WORKDIR/.venv
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/alembic $WORKDIR/alembic
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/app $WORKDIR/app
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/data/seed $WORKDIR/data/seed
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/pyproject.toml $WORKDIR/pyproject.toml
-COPY --link --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/scripts $WORKDIR/scripts
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/.venv $WORKDIR/.venv
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/alembic $WORKDIR/alembic
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/app $WORKDIR/app
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/data/seed $WORKDIR/data/seed
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/pyproject.toml $WORKDIR/pyproject.toml
+COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/scripts $WORKDIR/scripts
 
 # spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \
