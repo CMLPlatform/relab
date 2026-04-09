@@ -261,8 +261,8 @@ class TestYouTubeService:
 
         result = await youtube_service.setup_livestream(TEST_STREAM_TITLE)
 
-        assert result.stream_key == FAKE_STREAM_NAME
-        assert result.broadcast_key == FAKE_BROADCAST_ID
+        assert result.stream_key.get_secret_value() == FAKE_STREAM_NAME
+        assert result.broadcast_key.get_secret_value() == FAKE_BROADCAST_ID
         assert result.stream_id == FAKE_STREAM_ID
 
     @patch.object(YouTubeService, "request_youtube_api", new_callable=AsyncMock)

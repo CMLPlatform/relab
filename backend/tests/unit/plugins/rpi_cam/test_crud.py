@@ -40,7 +40,7 @@ TEST_ENC_HEADERS = "encrypted_headers"
 
 
 def require_uuid(value: UUID | None) -> UUID:
-    """Narrow optional UUID values produced by SQLModel/Pydantic models."""
+    """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
 

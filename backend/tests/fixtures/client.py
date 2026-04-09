@@ -68,7 +68,6 @@ async def async_client(
 
     test_app.dependency_overrides[get_async_session] = override_get_session
 
-    # Disable rate limiting in tests
     limiter.enabled = False
 
     # Set up redis for on_after_login hooks
@@ -89,7 +88,6 @@ async def async_client(
     # Cleanup
     test_app.state.redis = None
     await close_fastapi_cache()
-    # Re-enable rate limiting after tests
     limiter.enabled = True
     test_app.dependency_overrides.clear()
 

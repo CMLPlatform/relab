@@ -8,14 +8,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
-from slowapi.errors import RateLimitExceeded
 
+from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.exceptions import (
     APIError,
     InternalServerError,
     ServiceUnavailableError,
 )
-from app.api.common.routers.exceptions import create_exception_handler, rate_limit_handler
+from app.api.common.routers.exceptions import create_exception_handler
 
 
 @pytest.mark.unit
@@ -99,28 +99,29 @@ class TestCreateExceptionHandler:
 
 
 @pytest.mark.unit
-class TestRateLimitHandler:
-    """Tests for rate_limit_handler."""
+class TestRateLimitExceededHandler:
+    """Tests for rate_limit_exceeded_handler."""
 
-    def test_raises_type_error_for_non_rate_limit_exception(self) -> None:
-        """Test TypeError raised when wrong exception type is passed (lines 50-52)."""
+    def test_returns_429_with_detail(self) -> None:
+        """Test that handler returns a 429 JSON response."""
         mock_request = MagicMock()
-        exc = RuntimeError("not a rate limit")
+        exc = RateLimitExceededError()
 
-        with pytest.raises(TypeError, match="Rate limit handler called with wrong exception type"):
-            rate_limit_handler(mock_request, exc)
+        response = rate_limit_exceeded_handler(mock_request, exc)
 
-    def test_delegates_to_slowapi_handler_for_rate_limit_exceeded(self) -> None:
-        """Test that RateLimitExceeded is passed to _rate_limit_exceeded_handler (line 53)."""
+        assert response.status_code == 429
+        body = json.loads(cast("bytes", response.body))
+        assert body["detail"] == "Rate limit exceeded"
+
+    def test_custom_detail_message(self) -> None:
+        """Test that a custom detail message is forwarded."""
         mock_request = MagicMock()
-        exc = MagicMock(spec=RateLimitExceeded)
+        exc = RateLimitExceededError("Too many login attempts")
 
-        with patch(
-            "app.api.common.routers.exceptions._rate_limit_exceeded_handler", return_value=MagicMock()
-        ) as mock_handler:
-            rate_limit_handler(mock_request, exc)
+        response = rate_limit_exceeded_handler(mock_request, exc)
 
-        mock_handler.assert_called_once_with(mock_request, exc)
+        body = json.loads(cast("bytes", response.body))
+        assert body["detail"] == "Too many login attempts"
 
 
 @pytest.mark.unit

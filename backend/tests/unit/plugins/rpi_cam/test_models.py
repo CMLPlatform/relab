@@ -128,6 +128,8 @@ class TestCameraModel:
         status = await camera._fetch_status(mock_client)
         assert status.connection == CameraConnectionStatus.ONLINE
         assert status.details is not None
+        mock_client.get.assert_awaited_once()
+        assert mock_client.get.await_args.args[0] == "http://localhost:8000/camera"
 
     async def test_fetch_status_unauthorized(self, camera: Camera) -> None:
         """Test status fetching when access is unauthorized."""

@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 from fakeredis.aioredis import FakeRedis
 from starlette.requests import Request
 
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.rpi_cam.models import Camera, ConnectionMode
 from app.api.plugins.rpi_cam.routers.pairing import claim_pairing_code, poll_pairing_status, register_pairing_code
-from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest
+from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingRegisterRequest
 from app.api.plugins.rpi_cam.utils.encryption import encrypt_str
 from tests.factories.models import UserFactory
 
@@ -23,6 +22,7 @@ def build_camera() -> Camera:
         id=uuid4(),
         name="Test Camera",
         url="http://example.com",
+        connection_mode=ConnectionMode.HTTP,
         encrypted_api_key=encrypt_str("secret"),
         owner_id=uuid4(),
     )
@@ -35,7 +35,7 @@ def build_request() -> Request:
 
 async def test_register_pairing_code_sanitizes_code_in_log() -> None:
     """Register logging should neutralize line breaks in the pairing code."""
-    body = SimpleNamespace(code="ABCD\n12", rpi_fingerprint="fingerprint")
+    body = PairingRegisterRequest.model_construct(code="ABCD\n12", rpi_fingerprint="fingerprint")
     redis_client = await _make_fake_redis()
 
     with (

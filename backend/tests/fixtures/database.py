@@ -21,7 +21,7 @@ class DBOperations:
         """Get model instance by ID."""
         return await self.session.get(model, obj_id)
 
-    async def get_by_filter(self, model: type[T], **filters: Any) -> T | None:  # noqa: ANN401 # Any-typed filter kwargs are expected by SQLModel
+    async def get_by_filter(self, model: type[T], **filters: Any) -> T | None:  # noqa: ANN401 # Any-typed filter kwargs are expected
         """Get single model instance by filters."""
         stmt = select(model).filter_by(**filters)
         result = await self.session.execute(stmt)

@@ -8,8 +8,8 @@ import pytest
 
 from app.api.auth.models import OrganizationRole, User
 from app.api.common.models.enums import Unit
-from tests.factories.models import ProductFactory
 from app.api.data_collection.models.product import MaterialProductLink, Product
+from tests.factories.models import ProductFactory
 
 
 @pytest.mark.unit

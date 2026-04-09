@@ -15,16 +15,16 @@ from app.api.auth.crud.users import get_user_by_username, validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import OrganizationCreate, UserCreate, UserCreateWithOrganization
-from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
+from app.api.auth.services.user_database import UserDatabaseAsync
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def _make_user_db(session: AsyncSession) -> SQLModelUserDatabaseAsync:
-    """Build a SQLModelUserDatabaseAsync wired to the test session."""
-    return SQLModelUserDatabaseAsync(session, User, OAuthAccount)
+def _make_user_db(session: AsyncSession) -> UserDatabaseAsync:
+    """Build a UserDatabaseAsync wired to the test session."""
+    return UserDatabaseAsync(session, User, OAuthAccount)
 
 
 @pytest.mark.integration

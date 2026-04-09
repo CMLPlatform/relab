@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def _table(model: type) -> Table:
-    """Return the SQLAlchemy Table for a SQLModel table model."""
+    """Return the SQLAlchemy Table for a table model."""
     return cast("Table", vars(model)["__table__"])
 
 

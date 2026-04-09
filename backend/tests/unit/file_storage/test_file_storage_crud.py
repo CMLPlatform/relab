@@ -330,12 +330,11 @@ class TestParentStorageCrud:
         operations = ParentImageCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
-            parent_field="product_id",
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
         )
 
         image_create = ImageCreateInternal(
-            file=MagicMock(spec=UploadFile, filename=TEST_FILENAME, size=1024),
+            file=MagicMock(spec=UploadFile, filename=TEST_FILENAME, size=1024, content_type=CONTENT_TYPE_PNG),
             description=TEST_FILE_DESC,
             parent_id=2,
             parent_type=MediaParentType.MATERIAL,
@@ -351,13 +350,12 @@ class TestParentStorageCrud:
         operations = ParentImageCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
-            parent_field="product_id",
             storage_service=storage_service,
         )
 
         item_id = uuid4()
         db_item = MagicMock(spec=Image)
-        db_item.product_id = 1
+        db_item.parent_id = 1
         mock_session.get.return_value = db_item
 
         with patch("app.api.file_storage.crud.get_model_or_404"):
@@ -370,13 +368,12 @@ class TestParentStorageCrud:
         operations = ParentImageCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
-            parent_field="product_id",
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
         )
 
         item_id = uuid4()
         db_item = MagicMock(spec=Image)
-        db_item.product_id = 2
+        db_item.parent_id = 2
         db_item.file_exists = True
         mock_session.get.return_value = db_item
 

@@ -69,8 +69,8 @@ class TestFileCleanupManager:
                 "Any",
                 text(
                     """
-                    INSERT INTO image (id, filename, file, parent_type, product_id)
-                    VALUES (:id, :filename, :file, :parent_type, :product_id)
+                    INSERT INTO image (id, filename, file, parent_type, parent_id)
+                    VALUES (:id, :filename, :file, :parent_type, :parent_id)
                     """
                 ),
             ),
@@ -79,7 +79,7 @@ class TestFileCleanupManager:
                 "filename": "kept.jpg",
                 "file": "kept.jpg",
                 "parent_type": MediaParentType.PRODUCT.name,
-                "product_id": product.id,
+                "parent_id": product.id,
             },
         )
         await session.commit()

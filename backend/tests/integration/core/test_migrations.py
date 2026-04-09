@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # All tables expected to exist after upgrade head.
-# Table names are the lowercase class names SQLModel generates automatically.
+# Table names are the lowercase class names defined on each model.
 EXPECTED_TABLES = {
     # Auth
     "user",

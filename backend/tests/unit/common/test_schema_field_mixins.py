@@ -15,7 +15,7 @@ from app.api.data_collection.schemas import ProductCreateBaseProduct
 
 
 @pytest.mark.unit
-def test_read_schemas_validate_from_attribute_objects_without_sqlmodel_bases() -> None:
+def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> None:
     """Read schemas should validate ORM-like attribute objects via pure Pydantic field mixins."""
 
     class MaterialRow:

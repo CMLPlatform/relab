@@ -46,7 +46,7 @@ async def test_fetch_from_camera_url_uses_http_transport() -> None:
 
         response = await fetch_from_camera_url(
             camera,
-            endpoint="/camera/status",
+            endpoint="/camera",
             method=HttpMethod.GET,
             http_client=client,
         )
@@ -54,7 +54,7 @@ async def test_fetch_from_camera_url_uses_http_transport() -> None:
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     assert len(request_log) == 1
-    assert str(request_log[0].url) == "http://example.com/camera/status"
+    assert str(request_log[0].url) == "http://example.com/camera"
     assert request_log[0].headers["x-api-key"] == "secret"
 
 
@@ -70,7 +70,7 @@ async def test_fetch_from_camera_url_handles_non_json_error_body() -> None:
         with pytest.raises(HTTPException) as exc_info:
             await fetch_from_camera_url(
                 camera,
-                endpoint="/camera/status",
+                endpoint="/camera",
                 method=HttpMethod.GET,
                 http_client=client,
             )

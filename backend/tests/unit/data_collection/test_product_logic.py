@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.api.data_collection.models.product import Product
 from app.api.data_collection.validators import validate_product
 from tests.factories.models import MaterialProductLinkFactory, ProductFactory
 

@@ -34,7 +34,7 @@ def test_file_read_within_parent_model_validate_returns_public_url(
         filename="example.txt",
         file=cast("FileType", SimpleNamespace(path=str(stored_file))),
         parent_type=MediaParentType.PRODUCT,
-        product_id=1,
+        parent_id=1,
     )
 
     read_model = FileReadWithinParent.model_validate(file)
@@ -58,7 +58,7 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
         filename="example.png",
         file=cast("ImageType", SimpleNamespace(path=str(stored_file))),
         parent_type=MediaParentType.PRODUCT,
-        product_id=1,
+        parent_id=1,
     )
 
     read_model = ImageReadWithinParent.model_validate(image)
@@ -82,7 +82,7 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
         filename="example.png",
         file=cast("ImageType", SimpleNamespace(path=str(stored_file))),
         parent_type=MediaParentType.PRODUCT,
-        product_id=1,
+        parent_id=1,
     )
 
     read_model = ImageRead.model_validate(image)
@@ -103,7 +103,7 @@ def test_missing_storage_file_returns_no_urls(tmp_path: Path, monkeypatch: pytes
         filename="ghost.txt",
         file=cast("FileType", SimpleNamespace(path=str(missing_path))),
         parent_type=MediaParentType.PRODUCT,
-        product_id=1,
+        parent_id=1,
     )
 
     assert storage_item_exists(file) is False

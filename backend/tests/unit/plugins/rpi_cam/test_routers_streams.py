@@ -9,10 +9,12 @@ from uuid import uuid4
 
 import pytest
 from httpx import Response
+from pydantic import SecretStr
 
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.oauth_clients import google_youtube_oauth_client
 from app.api.file_storage.models import Video
+from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
     YouTubePrivacyStatus,
@@ -48,7 +50,7 @@ VIDEO_CREATED_MSG = "Video Created"
 
 
 def require_uuid(value: UUID | None) -> UUID:
-    """Narrow optional UUID values produced by SQLModel/Pydantic models."""
+    """Narrow optional UUID values produced by Pydantic models."""
     assert value is not None
     return value
 
@@ -115,6 +117,7 @@ class TestCameraStreamRouters:
                 json={
                     "url": TEST_STREAM_URL,
                     "mode": "youtube",
+                    "provider": "youtube",
                     "started_at": "2026-02-26T10:00:00Z",
                     "metadata": {"camera_properties": {}, "capture_metadata": {}},
                 },
@@ -124,6 +127,10 @@ class TestCameraStreamRouters:
 
         result = await get_camera_stream_status(camera_id, session_mock, http_client, user_mock)
         assert str(result.url) == f"{TEST_STREAM_URL}/"
+        mock_camera_request.assert_awaited_once()
+        await_args = mock_camera_request.await_args
+        assert await_args is not None
+        assert await_args.kwargs["endpoint"] == PLUGIN_STREAM_ENDPOINT
 
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
@@ -143,6 +150,9 @@ class TestCameraStreamRouters:
 
         await stop_all_streams(camera_id, session_mock, http_client, user_mock)
         mock_camera_request.assert_awaited_once()
+        await_args = mock_camera_request.await_args
+        assert await_args is not None
+        assert await_args.kwargs["endpoint"] == PLUGIN_STREAM_ENDPOINT
 
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
@@ -177,7 +187,7 @@ class TestCameraStreamRouters:
         # Mock Youtube service
         mock_yt_service = AsyncMock()
         mock_yt_config = YoutubeStreamConfigWithID(
-            stream_key=FAKE_STREAM_KEY, broadcast_key=FAKE_BROADCAST_KEY, stream_id=FAKE_STREAM_ID
+            stream_key=SecretStr(FAKE_STREAM_KEY), broadcast_key=SecretStr(FAKE_BROADCAST_KEY), stream_id=FAKE_STREAM_ID
         )
         mock_yt_service.setup_livestream.return_value = mock_yt_config
         mock_yt_service.validate_stream_status.return_value = True
@@ -188,6 +198,7 @@ class TestCameraStreamRouters:
                 json={
                     "url": YOUTUBE_STREAM_URL,
                     "mode": "youtube",
+                    "provider": "youtube",
                     "started_at": "2026-02-26T10:00:00Z",
                     "metadata": {"camera_properties": {}, "capture_metadata": {}},
                 },
@@ -213,6 +224,7 @@ class TestCameraStreamRouters:
             privacy_status=YouTubePrivacyStatus.PRIVATE,
         )
         assert str(result.url) == f"{YOUTUBE_STREAM_URL}/"
+        assert mock_camera_request.await_args_list[0].kwargs["endpoint"] == PLUGIN_STREAM_ENDPOINT
         mock_yt_service_class.assert_called_once_with(
             oauth_account,
             google_youtube_oauth_client,
@@ -348,20 +360,37 @@ class TestCameraStreamRouters:
                     "url": YOUTUBE_STREAM_URL,
                     "mode": "youtube",
                     "started_at": "2026-02-26T10:00:00Z",
-                    "youtube_config": {
-                        "stream_key": FAKE_STREAM_KEY,
-                        "broadcast_key": FAKE_BROADCAST_KEY,
-                    },
+                    "provider": "youtube",
                     "metadata": {"camera_properties": {}, "capture_metadata": {}},
                 },
             )
         )
         mock_build_camera_request.return_value = mock_camera_request
+        redis_mock = AsyncMock()
+        redis_mock.get.return_value = json.dumps(
+            {
+                "product_id": 1,
+                "title": "Test",
+                "description": "Test Desc",
+                "stream_url": f"{YOUTUBE_STREAM_URL}/",
+                "broadcast_key": FAKE_BROADCAST_KEY,
+                "video_metadata": {"camera_properties": {}, "capture_metadata": {}},
+            }
+        )
 
         user_mock = build_user()
         http_client = AsyncMock()
         camera_id = require_uuid(mock_camera.id)
 
-        result = await get_recording_monitor_stream(camera_id, session_mock, http_client, user_mock)
+        result = await get_recording_monitor_stream(
+            camera_id,
+            session_mock,
+            http_client,
+            redis_mock,
+            user_mock,
+        )
         assert result == monitor_stream
         mock_yt_service.get_broadcast_monitor_stream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
+        await_args = mock_camera_request.await_args
+        assert await_args is not None
+        assert await_args.kwargs["endpoint"] == PLUGIN_STREAM_ENDPOINT

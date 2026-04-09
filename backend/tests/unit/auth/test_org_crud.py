@@ -165,7 +165,7 @@ class TestDeleteOrganizationAsOwner:
     async def test_delete_not_owner_raises(self, mock_session: AsyncMock) -> None:
         """Test that a non-owner cannot delete the org."""
         org = OrganizationFactory.build()
-        org.members = [MagicMock()]
+        object.__setattr__(org, "members", [MagicMock()])
         user = _make_user(organization_role=OrganizationRole.MEMBER)
         user.organization = org
 
@@ -175,7 +175,7 @@ class TestDeleteOrganizationAsOwner:
     async def test_delete_with_multiple_members_raises(self, mock_session: AsyncMock) -> None:
         """Test that deleting org with multiple members raises OrganizationHasMembersError."""
         org = OrganizationFactory.build()
-        org.members = [MagicMock(), MagicMock()]
+        object.__setattr__(org, "members", [MagicMock(), MagicMock()])
         user = _make_user(organization_role=OrganizationRole.OWNER)
         user.organization = org
 
