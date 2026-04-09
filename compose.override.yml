@@ -7,14 +7,14 @@ services:
     build:
       dockerfile: Dockerfile.dev
     restart: "no"
-    env_file: ./backend/.env.dev
+    ports:
+      - "8011:8000"
     environment:
       ENVIRONMENT: dev
       BACKEND_API_URL: "http://localhost:8011"
       FRONTEND_APP_URL: "http://localhost:8013"
       FRONTEND_WEB_URL: "http://localhost:8010"
-    ports:
-      - "8011:8000"
+    env_file: ./backend/.env.dev
     develop:
       watch:
         - action: sync
@@ -32,14 +32,14 @@ services:
           path: ./backend/pyproject.toml
 
   cache:
-    env_file: ./backend/.env.dev
     ports:
       - "6379:6379"
+    env_file: ./backend/.env.dev
 
   database:
-    env_file: ./backend/.env.dev
     ports:
       - "5432:5432"
+    env_file: ./backend/.env.dev
 
   backend-migrations:
     env_file: ./backend/.env.dev
@@ -69,6 +69,9 @@ services:
   frontend-app:
     build:
       dockerfile: Dockerfile.dev
+    restart: "no"
+    ports:
+      - "8013:8081"
     # Enable polling for file watchers (helps Docker/VM mounts on macOS)
     environment:
       EXPO_PUBLIC_API_URL: "http://localhost:8011"
@@ -76,9 +79,6 @@ services:
       CHOKIDAR_USEPOLLING: "true" # spell-checker: ignore USEPOLLING
       CHOKIDAR_INTERVAL: "100"
       WATCHPACK_POLLING: "true"
-    restart: "no"
-    ports:
-      - "8013:8081"
     develop:
       watch:
         - action: sync
@@ -101,13 +101,13 @@ services:
   frontend-web:
     build:
       dockerfile: Dockerfile.dev
+    restart: "no"
+    ports:
+      - "8010:8081"
     environment:
       PUBLIC_API_URL: "http://localhost:8011"
       PUBLIC_DOCS_URL: "http://localhost:8012"
       PUBLIC_APP_URL: "http://localhost:8013"
-    restart: "no"
-    ports:
-      - "8010:8081"
     develop:
       watch:
         - action: sync

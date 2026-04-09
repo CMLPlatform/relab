@@ -14,6 +14,45 @@ services:
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
 
+  backend-migrations:
+    env_file: ./backend/.env.staging
+    environment:
+      SEED_DUMMY_DATA: True
+
+  cache:
+    env_file: ./backend/.env.staging
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
+    command: tunnel --no-autoupdate run
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN_STAGING}
+    restart: unless-stopped
+
+  database:
+    env_file: ./backend/.env.staging
+
+  docs:
+    build:
+      args:
+        BUILD_MODE: staging
+
+  frontend-web:
+    build:
+      args:
+        BUILD_MODE: staging
+
+  frontend-app:
+    build:
+      args:
+        BUILD_MODE: staging
+    environment:
+      # Needed by Caddyfile to determine the API origin for the staging environment.
+      CSP_API_ORIGIN: https://api-test.cml-relab.org
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.123.0@sha256:611f7b58a12086c8ff8c752f5cb1cce3c88eec52d7374d8f273a609fdb9c0f63
     command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
@@ -34,42 +73,3 @@ services:
     profiles:
       - telemetry
     restart: unless-stopped
-
-  backend-migrations:
-    env_file: ./backend/.env.staging
-    environment:
-      SEED_DUMMY_DATA: True
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
-    command: tunnel --no-autoupdate run
-    depends_on:
-      backend:
-        condition: service_healthy
-    environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN_STAGING}
-    restart: unless-stopped
-
-  docs:
-    build:
-      args:
-        BUILD_MODE: staging
-
-  frontend-web:
-    build:
-      args:
-        BUILD_MODE: staging
-
-  frontend-app:
-    build:
-      args:
-        BUILD_MODE: staging
-    environment:
-      # Needed by Caddyfile to determine the API origin for the staging environment.
-      CSP_API_ORIGIN: https://api-test.cml-relab.org
-
-  cache:
-    env_file: ./backend/.env.staging
-
-  database:
-    env_file: ./backend/.env.staging

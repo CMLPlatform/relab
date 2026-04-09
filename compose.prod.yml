@@ -3,7 +3,6 @@ name: relab_prod # Separate prod containers, networks, and volumes from dev
 
 services:
   backend:
-    env_file: ./backend/.env.prod
     environment:
       ENVIRONMENT: prod
       # Trust forwarded headers only from Docker-internal proxy addresses.
@@ -22,29 +21,10 @@ services:
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
+    env_file: ./backend/.env.prod
 
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.123.0@sha256:611f7b58a12086c8ff8c752f5cb1cce3c88eec52d7374d8f273a609fdb9c0f63
-    command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    depends_on:
-      - jaeger
-    profiles:
-      - telemetry
-    restart: unless-stopped
-
-  jaeger:
-    image: jaegertracing/jaeger:2.6.0@sha256:5765e3da84e6e0dce8c1f39d33044f98f2519db15fbce0d7befc04df9e498f10
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    ports:
-      - "16686:16686"   # Jaeger UI
-    volumes:
-      - jaeger_data:/badger
-    profiles:
-      - telemetry
-    restart: unless-stopped
+  backend-migrations:
+    env_file: ./backend/.env.prod
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   backend-user-upload-backups:
@@ -52,9 +32,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.user-upload-backups
+    restart: unless-stopped
     depends_on:
       backend:
         condition: service_started
+    volumes:
+      - user_uploads:/data/uploads:ro
+      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
     environment:
       SCHEDULE: 0 2 * * * # Daily at 2am
       UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
@@ -63,38 +47,39 @@ services:
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
       MAX_TOTAL_GB: 100
-    volumes:
-      - user_uploads:/data/uploads:ro
-      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
     profiles:
       - backups
-    restart: unless-stopped
 
   cache:
-    env_file: ./backend/.env.prod
     volumes:
       # Persist cache data in production
       - cache_data:/data
+    env_file: ./backend/.env.prod
 
   cloudflared:
     # Cloudflared tunnel service
     image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
-    command: tunnel --no-autoupdate run
+    restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN_PROD}
+    command: tunnel --no-autoupdate run
     pull_policy: always
-    restart: unless-stopped
+
+  database:
+    env_file: ./backend/.env.prod
 
   database-backups:
     # Automated database backups to local file system
     image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f # spell-checker: ignore prodrigestivill
+    restart: unless-stopped
     depends_on:
       database:
         condition: service_started
-    env_file: ./backend/.env.prod # Load database connection settings
+    volumes:
+      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
     environment:
       SCHEDULE: 0 2 * * * # Daily at 2am
       POSTGRES_HOST: database
@@ -102,18 +87,35 @@ services:
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
-    volumes:
-      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
+    env_file: ./backend/.env.prod # Load database connection settings
     profiles:
       - backups
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0@sha256:611f7b58a12086c8ff8c752f5cb1cce3c88eec52d7374d8f273a609fdb9c0f63
     restart: unless-stopped
+    depends_on:
+      - jaeger
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
+    profiles:
+      - telemetry
 
-  backend-migrations:
-    env_file: ./backend/.env.prod
-
-  database:
-    env_file: ./backend/.env.prod
+  jaeger:
+    image: jaegertracing/jaeger:2.6.0@sha256:5765e3da84e6e0dce8c1f39d33044f98f2519db15fbce0d7befc04df9e498f10
+    restart: unless-stopped
+    ports:
+      - "16686:16686" # Jaeger UI
+    volumes:
+      - jaeger_data:/badger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    profiles:
+      - telemetry
 
 volumes:
   cache_data:
   jaeger_data:
+
+

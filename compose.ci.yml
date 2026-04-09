@@ -4,9 +4,9 @@ name: relab_ci
 
 services:
   backend:
-    env_file: ./backend/.env.test
     environment:
       ENVIRONMENT: testing
+    env_file: ./backend/.env.test
 
   backend-migrations:
     env_file: ./backend/.env.test
