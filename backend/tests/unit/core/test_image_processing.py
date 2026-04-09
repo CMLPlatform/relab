@@ -27,6 +27,7 @@ from app.core.images import (
     validate_image_file,
     validate_image_mime_type,
 )
+from app.core.images.exif import _clean_exif_bytes
 
 
 @pytest.fixture
@@ -246,6 +247,23 @@ def test_strip_sensitive_exif_removes_orientation(tmp_path: Path) -> None:
         assert img.getexif().get(0x0112) is not None
         strip_sensitive_exif(img)
         assert img.getexif().get(0x0112) is None
+
+
+def test_clean_exif_bytes_returns_none_for_piexif_dump_bug(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Malformed EXIF values from camera firmware should not crash image processing."""
+
+    def _fake_load(_: bytes) -> dict[str, object]:
+        return {
+            "0th": {33434: 0.041551},
+            "Exif": {},
+            "GPS": {},
+            "1st": {},
+            "thumbnail": None,
+        }
+
+    monkeypatch.setattr(piexif, "load", _fake_load)
+
+    assert _clean_exif_bytes(b"broken-exif") is None
 
 
 # ---------------------------------------------------------------------------

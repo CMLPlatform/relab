@@ -110,7 +110,7 @@ export function useClaimPairingMutation() {
  */
 export function useCameraPreview(
   camera: Pick<CameraRead, 'id'> | null,
-  { enabled = false, intervalMs = 500 }: { enabled?: boolean; intervalMs?: number } = {},
+  { enabled = false, intervalMs = 1000 }: { enabled?: boolean; intervalMs?: number } = {},
 ) {
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);

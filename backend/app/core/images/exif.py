@@ -16,7 +16,7 @@ def _clean_exif_bytes(exif_bytes: bytes) -> bytes | None:
     """Return cleaned EXIF bytes with sensitive tags removed, or None on failure."""
     try:
         exif_dict = piexif.load(exif_bytes)
-    except ValueError, OSError, TypeError:
+    except ValueError, OSError, TypeError, UnboundLocalError:
         return None
 
     for tag_id in _SENSITIVE_EXIF_TAGS | {_EXIF_ORIENTATION_TAG}:
@@ -27,7 +27,7 @@ def _clean_exif_bytes(exif_bytes: bytes) -> bytes | None:
 
     try:
         return piexif.dump(exif_dict)
-    except ValueError, OSError:
+    except ValueError, OSError, TypeError, UnboundLocalError:
         return None
 
 
