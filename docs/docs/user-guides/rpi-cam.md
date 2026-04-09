@@ -19,9 +19,9 @@ The camera connects to the platform via **WebSocket relay**. The Raspberry Pi op
 
 This is the quickest way to add a camera. No manual credential exchange is needed.
 
-1. **Start the RPi in pairing mode.** When the RPi plugin boots without relay credentials but has `PAIRING_BACKEND_URL` set, it enters pairing mode and displays a 6-character code on its setup page (`/setup`). For headless setups, the same code is also printed in a `PAIRING READY` log line, so you can read it over SSH, `docker compose logs`, or `journalctl`.
+1. **Start the RPi in pairing mode.** When the RPi plugin boots without relay credentials but has `PAIRING_BACKEND_URL` set, it enters pairing mode and displays a 6-character code on its setup page (`/setup`). For headless setups, the same code is also printed in a boxed `PAIRING READY` banner, so you can read it over SSH, `docker compose logs`, or `journalctl`.
 
-1. **Add a camera in the app.** Go to Cameras > Add Camera. Enter the pairing code shown on the RPi or scan the QR code.
+1. **Add a camera in the app.** Go to Cameras > Add Camera. Enter the pairing code shown on the RPi.
 
 1. **Wait for the connection.** The platform claims the code, creates the camera record, and sends credentials back to the RPi automatically. The camera should come online within seconds.
 

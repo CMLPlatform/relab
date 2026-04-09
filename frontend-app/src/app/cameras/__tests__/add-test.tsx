@@ -7,8 +7,6 @@ import AddCameraScreen from '../add';
 const mockUseAuth = jest.fn();
 const mockUseCreateCameraMutation = jest.fn();
 const mockUseClaimPairingMutation = jest.fn();
-const mockRequestCameraAccess = jest.fn();
-const mockQrScanner = jest.fn();
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
@@ -18,22 +16,6 @@ jest.mock('@/hooks/useRpiCameras', () => ({
   useCreateCameraMutation: () => mockUseCreateCameraMutation(),
   useClaimPairingMutation: () => mockUseClaimPairingMutation(),
 }));
-
-jest.mock('@/components/cameras/QrScanner', () => {
-  const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-
-  const MockQrScanner = (props: unknown) => {
-    mockQrScanner(props);
-    return React.createElement(Text, null, 'QR Scanner');
-  };
-
-  return {
-    __esModule: true,
-    default: MockQrScanner,
-    requestCameraAccess: () => mockRequestCameraAccess(),
-  };
-});
 
 describe('AddCameraScreen', () => {
   const mockPush = jest.fn();
@@ -66,7 +48,6 @@ describe('AddCameraScreen', () => {
       mutate: claimMutate,
       isPending: false,
     });
-    mockRequestCameraAccess.mockResolvedValue(false);
   });
 
   function getOutlinedInputs() {
@@ -153,19 +134,6 @@ describe('AddCameraScreen', () => {
     );
   });
 
-  it('shows a helpful alert when camera access for QR scanning is denied', async () => {
-    renderWithProviders(<AddCameraScreen />);
-
-    fireEvent.press(screen.getByText('Scan'));
-
-    await waitFor(() => {
-      expect(mockRequestCameraAccess).toHaveBeenCalled();
-    });
-    expect(alertSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Camera access denied. Make sure you are on HTTPS or localhost'),
-    );
-  });
-
   it('alerts on pairing error and alerts on manual create error', async () => {
     renderWithProviders(<AddCameraScreen />);
 
@@ -237,19 +205,6 @@ describe('AddCameraScreen', () => {
     fireEvent.press(screen.getByText('WebSocket'));
     expect(screen.getByText('Pair camera')).toBeOnTheScreen();
     expect(screen.queryByText('Camera URL *')).toBeNull();
-  });
-
-  it('opens the QR scanner when camera access is granted', async () => {
-    mockRequestCameraAccess.mockResolvedValue(true);
-
-    renderWithProviders(<AddCameraScreen />);
-
-    fireEvent.press(screen.getByText('Scan'));
-
-    await waitFor(() => {
-      const qrProps = mockQrScanner.mock.calls.at(-1)?.[0] as { visible: boolean } | undefined;
-      expect(qrProps?.visible).toBe(true);
-    });
   });
 
   it('redirects unauthenticated users to login', async () => {

@@ -43,11 +43,11 @@ logger = logging.getLogger(__name__)
 router = PublicAPIRouter(prefix="/plugins/rpi-cam/pairing", tags=["RPi Camera Pairing"])
 
 PAIRING_KEY_PREFIX = "rpi_cam:pairing"
-PAIRING_TTL_SECONDS = 600  # 10 minutes for initial registration
+PAIRING_TTL_SECONDS = 10 * 60  # 10 minutes for initial registration
 PAIRING_CREDENTIAL_TTL_SECONDS = 300  # 5 minutes for RPi to pick up credentials
 
-REGISTER_RATE_LIMIT = "10/minute"
-POLL_RATE_LIMIT = "20/minute"
+REGISTER_RATE_LIMIT = "20/minute"
+POLL_RATE_LIMIT = "60/minute"
 
 # Redis status values
 _STATUS_WAITING = "waiting"

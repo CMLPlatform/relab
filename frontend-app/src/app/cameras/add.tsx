@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
 import {
   Button,
@@ -13,7 +13,6 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import QrScanner, { requestCameraAccess } from '@/components/cameras/QrScanner';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { useClaimPairingMutation, useCreateCameraMutation } from '@/hooks/useRpiCameras';
@@ -107,7 +106,6 @@ export default function AddCameraScreen() {
   const [url, setUrl] = useState('');
   const [pairingCode, setPairingCode] = useState('');
   const [manualSetup, setManualSetup] = useState(false);
-  const [scannerVisible, setScannerVisible] = useState(false);
   const [createdCamera, setCreatedCamera] = useState<CameraReadWithCredentials | null>(null);
   const [pairingSuccess, setPairingSuccess] = useState(false);
 
@@ -197,56 +195,26 @@ export default function AddCameraScreen() {
             PAIRING CODE
           </Text>
           <Text variant="bodySmall" style={{ opacity: 0.6, marginBottom: 8 }}>
-            Enter the 6-character code shown on your Raspberry Pi setup page, or read the
-            `PAIRING READY` log line over SSH if the device is headless.
+            Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed
+            `PAIRING READY` banner over SSH if the device is headless.
           </Text>
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
-            <TextInput
-              mode="outlined"
-              label="Pairing code"
-              value={pairingCode}
-              onChangeText={(v) =>
-                setPairingCode(
-                  v
-                    .toUpperCase()
-                    .replace(/[^A-Z0-9]/g, '')
-                    .slice(0, 6),
-                )
-              }
-              maxLength={6}
-              autoCapitalize="characters"
-              style={[
-                styles.input,
-                { flex: 1, fontFamily: 'monospace', letterSpacing: 4, fontSize: 20 },
-              ]}
-              contentStyle={{ textAlign: 'center' }}
-            />
-            {/* Show scan button on native + mobile web (touch devices), not desktop web */}
-            {(Platform.OS !== 'web' ||
-              (typeof window !== 'undefined' &&
-                window.matchMedia('(pointer: coarse)').matches)) && (
-              <Button
-                mode="outlined"
-                icon="qrcode-scan"
-                onPress={async () => {
-                  const granted = await requestCameraAccess();
-                  if (granted) {
-                    setScannerVisible(true);
-                  } else {
-                    alert(
-                      'Camera access denied. Make sure you are on HTTPS or localhost, ' +
-                        'and allow camera access when prompted. ' +
-                        'You can also type the 6-character code manually.',
-                    );
-                  }
-                }}
-                style={{ marginTop: 6 }}
-                contentStyle={{ paddingVertical: 8 }}
-              >
-                Scan
-              </Button>
-            )}
-          </View>
+          <TextInput
+            mode="outlined"
+            label="Pairing code"
+            value={pairingCode}
+            onChangeText={(v) =>
+              setPairingCode(
+                v
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, '')
+                  .slice(0, 6),
+              )
+            }
+            maxLength={6}
+            autoCapitalize="characters"
+            style={[styles.input, { fontFamily: 'monospace', letterSpacing: 4, fontSize: 20 }]}
+            contentStyle={{ textAlign: 'center' }}
+          />
 
           <Divider style={styles.divider} />
         </>
@@ -324,7 +292,8 @@ export default function AddCameraScreen() {
           <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
             Make sure your Raspberry Pi is powered on and has{' '}
             <Text style={{ fontFamily: 'monospace', fontSize: 11 }}>PAIRING_BACKEND_URL</Text> set
-            in its .env file. The pairing code appears on the RPi setup page.
+            in its .env file. The pairing code appears on the RPi setup page and in the startup
+            logs.
           </Text>
         </View>
       )}
@@ -389,11 +358,6 @@ export default function AddCameraScreen() {
         </Dialog>
       </Portal>
 
-      <QrScanner
-        visible={scannerVisible}
-        onScanned={(code) => setPairingCode(code)}
-        onClose={() => setScannerVisible(false)}
-      />
     </ScrollView>
   );
 }
