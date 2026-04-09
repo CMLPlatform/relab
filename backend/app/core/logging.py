@@ -98,63 +98,17 @@ def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None
         enqueue=is_enqueued,
         serialize=use_json_logs,
     )
-
-    def add_file_sink(path: Path, *, level: str, rotation: str, retention: str) -> None:
-        """Attach a file sink, but keep the app running if the path is unavailable."""
-        try:
-            loguru.logger.add(
-                path,
-                level=level,
-                rotation=rotation,
-                retention=retention,
-                format=LOG_FORMAT,
-                backtrace=True,
-                diagnose=True,
-                enqueue=is_enqueued,
-                encoding="utf-8",
-                serialize=use_json_logs,
-            )
-        except OSError as exc:
-            loguru.logger.warning("Skipping log file sink {path}: {exc}", path=path, exc=exc)
-
-    if log_dir is None:
-        return
-
-    # Debug file sync - keep 3 days
-    add_file_sink(
-        log_dir / "debug.log",
-        level="DEBUG",
-        rotation="00:00",
-        retention="3 days",
-    )
-
-    # Info file sync - keep 14 days
-    add_file_sink(
-        log_dir / "info.log",
-        level="INFO",
-        rotation="00:00",
-        retention="14 days",
-    )
-
-    # Error file sync - keep 12 weeks
-    add_file_sink(
-        log_dir / "error.log",
-        level="ERROR",
-        rotation="1 week",
-        retention="12 weeks",
-    )
+    del log_dir
 
 
 def setup_logging(
     log_dir: Path | None = LOG_DIR,
     base_log_level: str = BASE_LOG_LEVEL,
     *,
-    stdout_only: bool = settings.environment not in (Environment.PROD, Environment.STAGING),
+    stdout_only: bool = True,
 ) -> None:
     """Setup loguru logging configuration and intercept standard logging."""
-    if not stdout_only and log_dir is not None:
-        log_dir.mkdir(parents=True, exist_ok=True)
-    else:
+    if stdout_only:
         log_dir = None
 
     # Remove standard loguru stdout handler to avoid duplicates

@@ -34,8 +34,8 @@ RUN useradd -u $APP_UID -m $APP_USER
 
 WORKDIR $WORKDIR
 
-RUN mkdir -p logs data/uploads/files data/uploads/images \
-    && chown -R $APP_USER:$APP_USER logs data
+RUN mkdir -p data/uploads/files data/uploads/images \
+    && chown -R $APP_USER:$APP_USER data
 
 COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/.venv $WORKDIR/.venv
 COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/app $WORKDIR/app
@@ -47,9 +47,10 @@ ENV PYTHONPATH=$WORKDIR \
 
 EXPOSE 8000
 
+USER $APP_USER
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/live',timeout=5).status==200 else 1)"
 
 # Run the FastAPI application. Trust forwarded headers only from explicitly allowed proxy IPs.
-ENTRYPOINT ["sh", "-c", "chown -R appuser:appuser /opt/relab/backend/logs && exec su -p -s /bin/sh appuser -c \"$*\"", "--"]
-CMD [".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --workers ${WEB_CONCURRENCY:-1}"]
+CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --workers ${WEB_CONCURRENCY:-1}"]

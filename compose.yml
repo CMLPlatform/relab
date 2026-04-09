@@ -18,7 +18,6 @@ services:
       REDIS_HOST: cache # Point to the cache service
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
-      - backend_logs:/opt/relab/backend/logs
     restart: unless-stopped
 
   backend-migrations:
@@ -103,6 +102,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  backend_logs:
   database_data:
   user_uploads:

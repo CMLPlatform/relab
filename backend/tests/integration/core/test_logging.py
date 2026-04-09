@@ -25,59 +25,39 @@ def test_noisy_loggers_configured() -> None:
 
 
 def test_configure_loguru_handlers_dev_environment(mocker: MockerFixture, tmp_path: Path) -> None:
-    """Verify that DEV keeps synchronous, human-readable sinks."""
+    """Verify that DEV keeps a synchronous, human-readable console sink."""
     mock_add = mocker.patch("loguru.logger.add")
     mocker.patch("app.core.logging.settings.environment", new=Environment.DEV)
 
     configure_loguru_handlers(tmp_path, "DEBUG")
 
-    assert mock_add.call_count > 0
+    assert mock_add.call_count == 1
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is False
         assert call.kwargs.get("serialize") is False
 
 
 def test_configure_loguru_handlers_prod_environment(mocker: MockerFixture, tmp_path: Path) -> None:
-    """Verify that PROD enables queued JSON sinks."""
+    """Verify that PROD enables a queued JSON console sink."""
     mock_add = mocker.patch("loguru.logger.add")
     mocker.patch("app.core.logging.settings.environment", new=Environment.PROD)
 
     configure_loguru_handlers(tmp_path, "INFO")
 
-    assert mock_add.call_count > 0
+    assert mock_add.call_count == 1
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is True
         assert call.kwargs.get("serialize") is True
 
 
 def test_configure_loguru_handlers_staging_environment(mocker: MockerFixture, tmp_path: Path) -> None:
-    """Verify that STAGING matches PROD logging behavior."""
+    """Verify that STAGING matches PROD console logging behavior."""
     mock_add = mocker.patch("loguru.logger.add")
     mocker.patch("app.core.logging.settings.environment", new=Environment.STAGING)
 
     configure_loguru_handlers(tmp_path, "INFO")
 
-    assert mock_add.call_count > 0
+    assert mock_add.call_count == 1
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is True
         assert call.kwargs.get("serialize") is True
-
-
-def test_configure_loguru_handlers_skips_unwritable_file_sinks(
-    mocker: MockerFixture, tmp_path: Path
-) -> None:
-    """Verify that a missing log volume does not crash production/staging startup."""
-
-    def fake_add(sink, *args, **kwargs):
-        if sink == tmp_path / "debug.log":
-            raise OSError("permission denied")
-        return object()
-
-    mock_add = mocker.patch("loguru.logger.add", side_effect=fake_add)
-    mock_warning = mocker.patch("loguru.logger.warning")
-    mocker.patch("app.core.logging.settings.environment", new=Environment.STAGING)
-
-    configure_loguru_handlers(tmp_path, "INFO")
-
-    assert mock_add.call_count == 4
-    assert mock_warning.call_count == 3
