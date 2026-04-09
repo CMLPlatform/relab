@@ -20,12 +20,13 @@
 		# Restrict referrer information
 		Referrer-Policy "strict-origin-when-cross-origin"
 		# Content Security Policy
-		# - script-src 'self': Metro static export uses external JS files only
+		# - script-src 'unsafe-inline': Expo static export injects small inline
+		#   bootstrap scripts needed to load the generated module graph.
 		# - style-src 'unsafe-inline': React Native Web requires inline styles
 		# - img-src data: blob:: used for image previews before upload
 		# - connect-src: API endpoint for data fetching
 		# - CSP_API_ORIGIN: injected by the container environment per deployment
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {env.CSP_API_ORIGIN}; connect-src 'self' {env.CSP_API_ORIGIN}; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {env.CSP_API_ORIGIN}; connect-src 'self' {env.CSP_API_ORIGIN}; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 	}
 
 	try_files {path} /index.html
