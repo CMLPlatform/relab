@@ -142,6 +142,20 @@ const mockedLaunchImageLibraryAsync = jest.mocked(ImagePicker.launchImageLibrary
 const mockedLaunchCameraAsync = jest.mocked(ImagePicker.launchCameraAsync);
 const mockedRequestCameraPermissionsAsync = jest.mocked(ImagePicker.requestCameraPermissionsAsync);
 const mockedProcessImage = jest.mocked(imageProcessing.processImage);
+const mockUseRpiIntegration = jest.fn();
+const mockUseCamerasQuery = jest.fn();
+const mockUseCaptureImageMutation = jest.fn();
+const mockUseCameraPreview = jest.fn();
+
+jest.mock('@/hooks/useRpiIntegration', () => ({
+  useRpiIntegration: () => mockUseRpiIntegration(),
+}));
+
+jest.mock('@/hooks/useRpiCameras', () => ({
+  useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
+  useCaptureImageMutation: () => mockUseCaptureImageMutation(),
+  useCameraPreview: (...args: unknown[]) => mockUseCameraPreview(...args),
+}));
 
 function setMatchMedia(matches: boolean) {
   Object.defineProperty(window, 'matchMedia', {
@@ -199,6 +213,27 @@ describe('ProductImages', () => {
     mockedLaunchCameraAsync.mockReset();
     mockedRequestCameraPermissionsAsync.mockReset();
     mockedProcessImage.mockReset();
+    mockUseRpiIntegration.mockReset();
+    mockUseCamerasQuery.mockReset();
+    mockUseCaptureImageMutation.mockReset();
+    mockUseCameraPreview.mockReset();
+    mockUseRpiIntegration.mockReturnValue({
+      enabled: false,
+      loading: false,
+      setEnabled: jest.fn(),
+    });
+    mockUseCamerasQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+    });
+    mockUseCaptureImageMutation.mockReturnValue({
+      mutate: jest.fn(),
+      isPending: false,
+    });
+    mockUseCameraPreview.mockReturnValue({
+      snapshotUrl: null,
+      error: null,
+    });
     mockFlatListCalls.length = 0;
     mockZoomableImageCalls.length = 0;
     keydownHandler = null;
@@ -207,7 +242,6 @@ describe('ProductImages', () => {
   it('renders placeholder image when no images present', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
@@ -220,7 +254,6 @@ describe('ProductImages', () => {
       />,
       {
         withDialog: true,
-        withAuth: true,
       },
     );
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
@@ -233,9 +266,48 @@ describe('ProductImages', () => {
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.getByText('img:file://photo1.jpg')).toBeOnTheScreen();
+  });
+
+  it('shows snapshot polling copy and streaming-unavailable message in the RPi preview dialog', async () => {
+    mockUseRpiIntegration.mockReturnValue({
+      enabled: true,
+      loading: false,
+      setEnabled: jest.fn(),
+    });
+    mockUseCamerasQuery.mockReturnValue({
+      data: [
+        {
+          id: 'cam-1',
+          name: 'Workbench Camera',
+          connection_mode: 'websocket',
+          status: { connection: 'online' },
+        },
+      ],
+      isLoading: false,
+    });
+    mockUseCameraPreview.mockReturnValue({
+      snapshotUrl: null,
+      error: new Error('Snapshot preview unavailable while the camera is streaming.'),
+    });
+
+    renderWithProviders(
+      <ProductImages product={{ ...baseProduct, id: 42 } as Product} editMode={true} />,
+      {
+        withDialog: true,
+      },
+    );
+
+    fireEvent.press(await screen.findByText('RPi Camera'));
+    fireEvent.press(await screen.findByText('Workbench Camera'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Snapshot preview unavailable while the camera is streaming.'),
+      ).toBeOnTheScreen();
+    });
+    expect(screen.getByText('Snapshot preview · polling')).toBeOnTheScreen();
   });
 
   it('does not show image counter text for a single image', () => {
@@ -245,7 +317,6 @@ describe('ProductImages', () => {
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.queryByText('1 / 1')).toBeNull();
   });
@@ -253,7 +324,6 @@ describe('ProductImages', () => {
   it('does not show image counter in editMode with no images', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.queryByText(/\/ /)).toBeNull();
   });
@@ -269,7 +339,6 @@ describe('ProductImages', () => {
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
 
     expect(screen.getByLabelText('Previous image')).toBeOnTheScreen();
@@ -294,7 +363,6 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
-        withAuth: true,
       },
     );
 
@@ -316,7 +384,6 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
-        withAuth: true,
       },
     );
 
@@ -338,7 +405,6 @@ describe('ProductImages', () => {
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
 
     const imgs = screen.getAllByText('img:file://photo1.jpg');
@@ -357,7 +423,6 @@ describe('ProductImages', () => {
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
 
     fireEvent.press(screen.getByText('img:file://photo1.jpg'));
@@ -384,7 +449,7 @@ describe('ProductImages', () => {
 
     const { UNSAFE_getAllByProps } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
-      { withDialog: true, withAuth: true },
+      { withDialog: true },
     );
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -450,7 +515,7 @@ describe('ProductImages', () => {
 
     const { UNSAFE_getAllByType } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
-      { withDialog: true, withAuth: true },
+      { withDialog: true },
     );
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -498,7 +563,6 @@ describe('ProductImages', () => {
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -549,7 +613,7 @@ describe('ProductImages', () => {
 
     const { UNSAFE_getAllByType } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
-      { withDialog: true, withAuth: true },
+      { withDialog: true },
     );
 
     const mainGalleryListProps = mockFlatListCalls.find(
@@ -592,7 +656,6 @@ describe('ProductImages', () => {
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
@@ -632,7 +695,6 @@ describe('ProductImages', () => {
   it('shows Camera and Add Photos tiles on native when no images in edit mode', () => {
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
     expect(screen.getByText('Add Photos')).toBeOnTheScreen();
@@ -645,7 +707,6 @@ describe('ProductImages', () => {
     setWindowEventListeners();
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.queryByText('Camera')).toBeNull();
     expect(screen.getByText('Add Photos')).toBeOnTheScreen();
@@ -658,7 +719,6 @@ describe('ProductImages', () => {
     setWindowEventListeners();
     renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
     expect(screen.getByText('Add Photos')).toBeOnTheScreen();
@@ -677,7 +737,6 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
-        withAuth: true,
       },
     );
 
@@ -701,7 +760,6 @@ describe('ProductImages', () => {
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
-        withAuth: true,
       },
     );
 
@@ -721,7 +779,6 @@ describe('ProductImages', () => {
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
@@ -738,7 +795,6 @@ describe('ProductImages', () => {
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.queryByLabelText('Take photo')).toBeNull();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
@@ -755,7 +811,6 @@ describe('ProductImages', () => {
     };
     renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
-      withAuth: true,
     });
     expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
@@ -781,7 +836,6 @@ describe('ProductImages', () => {
       <ProductImages product={productWithImages} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
-        withAuth: true,
       },
     );
 
@@ -805,7 +859,6 @@ describe('ProductImages', () => {
 
     renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
-      withAuth: true,
     });
 
     fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);

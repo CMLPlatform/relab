@@ -59,6 +59,16 @@ export interface PairingClaimRequest {
   description?: string | null;
 }
 
+export class CameraSnapshotError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'CameraSnapshotError';
+    this.status = status;
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const BASE = `${API_URL}/plugins/rpi-cam/cameras`;
@@ -158,7 +168,15 @@ export async function fetchCameraSnapshot(cameraId: string): Promise<string> {
     method: 'GET',
     headers: await authHeaders(),
   });
-  if (!resp.ok) throw new Error(`Failed to fetch snapshot (${resp.status})`);
+  if (!resp.ok) {
+    if (resp.status === 409) {
+      throw new CameraSnapshotError(
+        409,
+        'Snapshot preview unavailable while the camera is streaming.',
+      );
+    }
+    throw new CameraSnapshotError(resp.status, `Failed to fetch snapshot (${resp.status})`);
+  }
   const blob = await resp.blob();
   return URL.createObjectURL(blob);
 }

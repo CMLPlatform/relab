@@ -4,10 +4,13 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
 import { useProductForm } from '@/hooks/useProductForm';
+import { useProductQuery } from '@/hooks/useProductQueries';
 import { baseProduct, renderWithProviders } from '@/test-utils';
 import ProductPage from '../index';
+import type { HeaderBackButtonProps } from '@react-navigation/elements';
 
 const mockUseProductForm = jest.mocked(useProductForm);
+const mockUseProductQuery = jest.mocked(useProductQuery);
 const mockUseAuth = jest.fn();
 const mockSetOptions = jest.fn();
 const mockReplace = jest.fn();
@@ -47,6 +50,28 @@ jest.mock('@/hooks/useProductForm', () => ({
   useProductForm: jest.fn(),
 }));
 
+jest.mock('@/hooks/useProductQueries', () => ({
+  useProductQuery: jest.fn(),
+}));
+
+jest.mock('@react-navigation/elements', () => {
+  const mockReact = jest.requireActual<typeof import('react')>('react');
+  const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    HeaderBackButton: ({
+      onPress,
+    }: {
+      onPress?: () => void;
+    }) =>
+      mockReact.createElement(
+        Pressable,
+        { onPress, accessibilityLabel: 'header-back' },
+        mockReact.createElement(Text, null, 'Back'),
+      ),
+  };
+});
+
 jest.mock('react-native-keyboard-controller', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -58,7 +83,7 @@ jest.mock('react-native-keyboard-controller', () => {
     }: {
       children?: ReactNode;
       [key: string]: unknown;
-    }) => mockReact.createElement(ScrollView, props, children),
+    }) => mockReact.createElement(ScrollView, { ...props, testID: 'product-scroll' }, children),
   };
 });
 
@@ -161,6 +186,12 @@ describe('ProductPage state handling', () => {
     });
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
+    } as never);
+    mockUseProductQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
     } as never);
   });
 
@@ -277,5 +308,150 @@ describe('ProductPage state handling', () => {
     fireEvent.press(screen.getByText('OK'));
 
     expect(onProductNameChange).toHaveBeenCalledWith('Updated Name');
+  });
+
+  it('truncates long header labels, renders the component header, and uses the fallback back action', async () => {
+    const longProductName =
+      'A very long product name that absolutely needs truncation for the navigation bar';
+    const longParentName = 'A parent product name that also needs truncation';
+
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: {
+        ...baseProduct,
+        id: 99,
+        name: longProductName,
+        parentID: 17,
+      },
+      editMode: true,
+      isProductComponent: true,
+    } as never);
+    mockUseProductQuery.mockReturnValue({
+      data: { ...baseProduct, id: 17, name: longParentName },
+      isLoading: false,
+      isError: false,
+      error: null,
+    } as never);
+
+    (useNavigation as jest.Mock).mockReturnValue({
+      setOptions: mockSetOptions,
+      canGoBack: jest.fn().mockReturnValue(false),
+      goBack: jest.fn(),
+      addListener: jest.fn(() => jest.fn()),
+      dispatch: jest.fn(),
+    });
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(mockSetOptions).toHaveBeenCalled();
+    });
+
+    const setOptionsArg = mockSetOptions.mock.calls.at(-1)?.[0] as {
+      title?: string;
+      headerLeft?: () => ReactElement;
+      headerTitle?: () => ReactElement;
+    };
+
+    expect(setOptionsArg.title).toBeUndefined();
+    expect(setOptionsArg.headerTitle).toBeInstanceOf(Function);
+    expect(setOptionsArg.headerLeft).toBeInstanceOf(Function);
+
+    renderWithProviders(setOptionsArg.headerTitle?.() as ReactElement, { withDialog: true });
+
+    expect(screen.getByText(/A parent product/)).toBeOnTheScreen();
+    expect(screen.getByText(/A very long product name/)).toBeOnTheScreen();
+
+    renderWithProviders(setOptionsArg.headerLeft?.({} as HeaderBackButtonProps) as ReactElement, {
+      withDialog: true,
+    });
+
+    fireEvent.press(screen.getByLabelText('header-back'));
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/products/[id]',
+      params: { id: '17' },
+    });
+  });
+
+  it('truncates the navigation title for regular products', async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: {
+        ...baseProduct,
+        id: 100,
+        name: 'A very long product name that absolutely needs truncation for the navigation bar',
+      },
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(mockSetOptions).toHaveBeenCalled();
+    });
+
+    const setOptionsArg = mockSetOptions.mock.calls.at(-1)?.[0] as {
+      title?: string;
+      headerLeft?: () => ReactElement;
+    };
+
+    expect(setOptionsArg.title).toMatch(/^A very long product name/);
+
+    renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, { withDialog: true });
+    fireEvent.press(screen.getByLabelText('header-back'));
+    expect(mockReplace).toHaveBeenCalledWith('/products');
+  });
+
+  it('warns before leaving when there are unsaved edits', async () => {
+    let beforeRemoveHandler: ((event: {
+      preventDefault: () => void;
+      data: { action: unknown };
+    }) => void) | undefined;
+
+    (useNavigation as jest.Mock).mockReturnValue({
+      setOptions: mockSetOptions,
+      canGoBack: jest.fn().mockReturnValue(false),
+      goBack: jest.fn(),
+      addListener: jest.fn((event: string, handler: typeof beforeRemoveHandler) => {
+        if (event === 'beforeRemove') beforeRemoveHandler = handler;
+        return jest.fn();
+      }),
+      dispatch: jest.fn(),
+    });
+
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      editMode: true,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(beforeRemoveHandler).toBeDefined();
+    });
+
+    const preventDefault = jest.fn();
+    await act(async () => {
+      beforeRemoveHandler?.({
+        preventDefault,
+        data: { action: { type: 'GO_BACK' } },
+      });
+    });
+
+    expect(preventDefault).toHaveBeenCalled();
+    expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
+  });
+
+  it('collapses the FAB when the product list is scrolled', async () => {
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+    });
+
+    fireEvent.scroll(screen.getByTestId('product-scroll'), {
+      nativeEvent: { contentOffset: { y: 120 } },
+    });
+
+    expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
   });
 });

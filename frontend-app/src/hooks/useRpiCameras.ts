@@ -7,6 +7,7 @@ import type {
   PairingClaimRequest,
 } from '@/services/api/rpiCamera';
 import {
+  CameraSnapshotError,
   captureImageFromCamera,
   claimPairingCode,
   createCamera,
@@ -102,7 +103,7 @@ export function useClaimPairingMutation() {
 // ─── Preview hook ──────────────────────────────────────────────────────────────
 
 /**
- * Live viewfinder preview for an RPi camera via snapshot polling.
+ * Snapshot-based preview for an RPi camera via repeated JPEG polling.
  *
  * Returns a blob URL safe to use as an <Image> source, and an error when the
  * camera is unreachable. Blob URLs are revoked automatically to avoid memory leaks.
@@ -145,6 +146,10 @@ export function useCameraPreview(
       try {
         setFrame(await fetchCameraSnapshot(cameraId));
       } catch (err) {
+        if (err instanceof CameraSnapshotError) {
+          setError(err);
+          return;
+        }
         setError(err instanceof Error ? err : new Error(String(err)));
       }
     };

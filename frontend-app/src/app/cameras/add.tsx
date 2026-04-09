@@ -197,7 +197,8 @@ export default function AddCameraScreen() {
             PAIRING CODE
           </Text>
           <Text variant="bodySmall" style={{ opacity: 0.6, marginBottom: 8 }}>
-            Enter the 6-character code shown on your Raspberry Pi setup page.
+            Enter the 6-character code shown on your Raspberry Pi setup page, or read the
+            `PAIRING READY` log line over SSH if the device is headless.
           </Text>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
             <TextInput

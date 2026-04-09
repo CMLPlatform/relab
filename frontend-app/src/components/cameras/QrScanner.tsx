@@ -1,4 +1,4 @@
-import { CameraView } from 'expo-camera';
+import { Camera, CameraView } from 'expo-camera';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
@@ -90,7 +90,6 @@ export async function requestCameraAccess(): Promise<boolean> {
       return false;
     }
   }
-  const { Camera } = await import('expo-camera');
   const { granted } = await Camera.requestCameraPermissionsAsync();
   return granted;
 }

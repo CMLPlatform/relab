@@ -105,10 +105,9 @@ export async function openProductByNameFromProductsPage(page: Page, name: string
 }
 
 export async function openGalleryLightbox(page: Page) {
-  // Find the first product image on the detail page (appears above the description)
-  const productImage = page.locator('img').first();
-  await expect(productImage).toBeVisible({ timeout: 10_000 });
-  await productImage.click({ force: true });
+  const productImageTrigger = page.getByLabel(/^View image \d+$/).first();
+  await expect(productImageTrigger).toBeVisible({ timeout: 10_000 });
+  await productImageTrigger.click({ force: true });
   await expect(page.getByLabel('Close lightbox')).toBeVisible({
     timeout: 10_000,
   });

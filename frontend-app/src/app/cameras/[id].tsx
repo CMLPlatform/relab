@@ -228,6 +228,8 @@ export default function CameraDetailScreen() {
     isOnline && camera ? camera : null,
     { enabled: !!isOnline },
   );
+  const previewErrorMessage =
+    previewError?.message ?? 'Snapshot preview unavailable. The camera may be offline.';
 
   useEffect(() => {
     if (!user) {
@@ -332,14 +334,14 @@ export default function CameraDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Live preview — only for online cameras */}
+        {/* Snapshot preview — only for online cameras */}
         {isOnline && (
           <Card style={styles.card}>
             <Card.Content style={{ alignItems: 'center', gap: 8 }}>
               {previewError ? (
                 <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
                   <MaterialCommunityIcons name="camera-off" size={32} color="#999" />
-                  <Text style={{ color: '#999' }}>Preview unavailable</Text>
+                  <Text style={{ color: '#999', textAlign: 'center' }}>{previewErrorMessage}</Text>
                 </View>
               ) : snapshotUrl ? (
                 <Image
@@ -354,7 +356,7 @@ export default function CameraDetailScreen() {
                 </View>
               )}
               <Text variant="bodySmall" style={{ color: '#999' }}>
-                Live preview · snapshot polling
+                Snapshot preview · polling
               </Text>
             </Card.Content>
           </Card>

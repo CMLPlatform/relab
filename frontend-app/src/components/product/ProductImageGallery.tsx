@@ -94,6 +94,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   const { snapshotUrl, error: previewError } = useCameraPreview(previewCamera, {
     enabled: previewCamera !== null,
   });
+  const previewErrorMessage =
+    previewError?.message ?? 'Snapshot preview unavailable. The camera may be offline.';
 
   const captureFromCamera = useCallback(
     (camera: CameraReadWithStatus) => {
@@ -671,7 +673,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
               <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
                 <Icon source="camera-off" size={48} color="#999" />
                 <PaperText style={{ color: '#999', textAlign: 'center' }}>
-                  Camera unavailable
+                  {previewErrorMessage}
                 </PaperText>
               </View>
             ) : snapshotUrl ? (
@@ -687,7 +689,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
               </View>
             )}
             <PaperText variant="bodySmall" style={{ color: '#999' }}>
-              Live preview · snapshot polling
+              Snapshot preview · polling
             </PaperText>
           </Dialog.Content>
           <Dialog.Actions>

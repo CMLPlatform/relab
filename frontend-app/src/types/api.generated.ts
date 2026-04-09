@@ -2717,7 +2717,7 @@ export interface paths {
     post?: never;
     /**
      * Stop the active stream
-     * @description Stop the active stream (either youtube recording or preview stream).
+     * @description Stop the active remote camera stream.
      */
     delete: operations['stop_all_streams_plugins_rpi_cam_cameras__camera_id__stream_stop_delete'];
     options?: never;
@@ -2779,126 +2779,6 @@ export interface paths {
     get: operations['get_recording_monitor_stream_plugins_rpi_cam_cameras__camera_id__stream_record_monitor_get'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/preview/start': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Start preview stream
-     * @description Start local HLS preview stream. Stream will not be recorded.
-     */
-    post: operations['start_preview_plugins_rpi_cam_cameras__camera_id__stream_preview_start_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/preview/stop': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Stop preview stream
-     * @description Stop recording and save video to database.
-     */
-    delete: operations['stop_preview_plugins_rpi_cam_cameras__camera_id__stream_preview_stop_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/preview/hls/{file_path}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Access HLS stream files from camera
-     * @description Fetches and serves HLS stream files (.m3u8, .ts) from the camera
-     */
-    get: operations['hls_file_proxy_plugins_rpi_cam_cameras__camera_id__stream_preview_hls__file_path__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/preview/watch': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Watch preview stream
-     * @description Returns HTML viewer for remote HLS stream.
-     */
-    get: operations['watch_preview_plugins_rpi_cam_cameras__camera_id__stream_preview_watch_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/open': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Initialize camera
-     * @description Initialize camera for a given use mode (photo or video).
-     */
-    post: operations['init_camera_plugins_rpi_cam_cameras__camera_id__open_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/close': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Close camera
-     * @description Close camera and free resources.
-     */
-    post: operations['close_camera_plugins_rpi_cam_cameras__camera_id__close_post'];
     delete?: never;
     options?: never;
     head?: never;

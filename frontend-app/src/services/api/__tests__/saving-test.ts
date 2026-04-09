@@ -153,8 +153,8 @@ describe('Saving API Service', () => {
       );
       expect(patchCall).toBeDefined();
       const body = JSON.parse(patchCall?.[1]?.body as string);
-      expect(body.weight_g).toBe(500);
-      expect(body.recyclability_observation).toBe('low');
+      expect(body.physical_properties.weight_g).toBe(500);
+      expect(body.circularity_properties.recyclability_observation).toBe('low');
     });
 
     it('throws when product PATCH fails', async () => {
