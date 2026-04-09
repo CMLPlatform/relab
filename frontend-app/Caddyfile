@@ -31,7 +31,9 @@
 		# - media-src blob:: covers blob-backed previews/snapshots without
 		#   opening media loading to arbitrary origins.
 		# - CSP_API_ORIGIN: injected by the container environment per deployment
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {env.CSP_API_ORIGIN}; connect-src 'self' blob: {env.CSP_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {env.CSP_API_ORIGIN}; font-src 'self'; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		-Content-Security-Policy
+		-Content-Security-Policy-Report-Only
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CSP_API_ORIGIN}; connect-src 'self' blob: {$CSP_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CSP_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 	}
 
 	try_files {path} /index.html
