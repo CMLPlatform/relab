@@ -20,6 +20,9 @@ export interface PaginatedResponse<T> {
 }
 
 async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> {
+  const legacyPhysical = data.physical_properties;
+  const legacyCircularity = data.circularity_properties;
+
   return {
     id: Number(data.id),
     parentID: data.parent_id ?? undefined,
@@ -34,23 +37,34 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
     ownedBy: data.owner_id === meId ? 'me' : data.owner_id,
     amountInParent: data.amount_in_parent ?? undefined,
     physicalProperties: {
-      weight: data.physical_properties?.weight_g ?? NaN,
-      height: data.physical_properties?.height_cm ?? NaN,
-      width: data.physical_properties?.width_cm ?? NaN,
-      depth: data.physical_properties?.depth_cm ?? NaN,
+      weight: data.weight_g ?? legacyPhysical?.weight_g ?? NaN,
+      height: data.height_cm ?? legacyPhysical?.height_cm ?? NaN,
+      width: data.width_cm ?? legacyPhysical?.width_cm ?? NaN,
+      depth: data.depth_cm ?? legacyPhysical?.depth_cm ?? NaN,
     },
     circularityProperties: {
-      recyclabilityComment: data.circularity_properties?.recyclability_comment ?? null,
-      recyclabilityObservation: data.circularity_properties?.recyclability_observation ?? '',
-      recyclabilityReference: data.circularity_properties?.recyclability_reference ?? null,
-      remanufacturabilityComment: data.circularity_properties?.remanufacturability_comment ?? null,
+      recyclabilityComment: data.recyclability_comment ?? legacyCircularity?.recyclability_comment ?? null,
+      recyclabilityObservation:
+        data.recyclability_observation ?? legacyCircularity?.recyclability_observation ?? '',
+      recyclabilityReference:
+        data.recyclability_reference ?? legacyCircularity?.recyclability_reference ?? null,
+      remanufacturabilityComment:
+        data.remanufacturability_comment ??
+        legacyCircularity?.remanufacturability_comment ??
+        null,
       remanufacturabilityObservation:
-        data.circularity_properties?.remanufacturability_observation ?? '',
+        data.remanufacturability_observation ??
+        legacyCircularity?.remanufacturability_observation ??
+        '',
       remanufacturabilityReference:
-        data.circularity_properties?.remanufacturability_reference ?? null,
-      repairabilityComment: data.circularity_properties?.repairability_comment ?? null,
-      repairabilityObservation: data.circularity_properties?.repairability_observation ?? '',
-      repairabilityReference: data.circularity_properties?.repairability_reference ?? null,
+        data.remanufacturability_reference ??
+        legacyCircularity?.remanufacturability_reference ??
+        null,
+      repairabilityComment: data.repairability_comment ?? legacyCircularity?.repairability_comment ?? null,
+      repairabilityObservation:
+        data.repairability_observation ?? legacyCircularity?.repairability_observation ?? '',
+      repairabilityReference:
+        data.repairability_reference ?? legacyCircularity?.repairability_reference ?? null,
     },
     ownerUsername: data.owner_username ?? undefined,
     componentIDs: data.components?.map(({ id }) => Number(id)) ?? [],

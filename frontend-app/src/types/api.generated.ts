@@ -4,12836 +4,12347 @@
  */
 
 export interface paths {
-  '/admin/cache/clear/{namespace}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Clear cache by namespace
-     * @description Clear cached responses for a specific namespace.
-     */
-    post: operations['clear_cache_by_namespace_admin_cache_clear__namespace__post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create a new category
-     * @description Create a new category, optionally with subcategories.
-     */
-    post: operations['create_category_admin_categories_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete category
-     * @description Delete a category by ID, including its subcategories.
-     */
-    delete: operations['delete_category_admin_categories__category_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update category
-     * @description Update an existing category.
-     */
-    patch: operations['update_category_admin_categories__category_id__patch'];
-    trace?: never;
-  };
-  '/admin/categories/{category_id}/subcategories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create Subcategory
-     * @description Create a new subcategory under an existing category.
-     */
-    post: operations['create_subcategory_admin_categories__category_id__subcategories_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/categories/{category_id}/subcategories/{subcategory_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete category
-     * @description Delete a subcategory by ID, including its subcategories.
-     */
-    delete: operations['delete_subcategory_admin_categories__category_id__subcategories__subcategory_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/taxonomies': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create a new taxonomy
-     * @description Create a new taxonomy, optionally with categories.
-     */
-    post: operations['create_taxonomy_admin_taxonomies_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/taxonomies/{taxonomy_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete taxonomy, including categories
-     * @description Delete a taxonomy by ID, including its categories.
-     */
-    delete: operations['delete_taxonomy_admin_taxonomies__taxonomy_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update taxonomy
-     * @description Update an existing taxonomy.
-     */
-    patch: operations['update_taxonomy_admin_taxonomies__taxonomy_id__patch'];
-    trace?: never;
-  };
-  '/admin/taxonomies/{taxonomy_id}/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create a new category in a taxonomy
-     * @description Create a new category in a taxonomy, optionally with subcategories.
-     */
-    post: operations['create_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/taxonomies/{taxonomy_id}/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete category in a taxonomy
-     * @description Delete a category by ID, including its subcategories.
-     */
-    delete: operations['delete_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories__category_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create material
-     * @description Create a material.
-     */
-    post: operations['create_material_admin_materials_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials/{material_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete material
-     * @description Delete a material.
-     */
-    delete: operations['delete_material_admin_materials__material_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update material
-     * @description Update a material.
-     */
-    patch: operations['update_material_admin_materials__material_id__patch'];
-    trace?: never;
-  };
-  '/admin/materials/{material_id}/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add multiple categories to the material
-     * @description Add multiple categories to a material.
-     */
-    post: operations['add_categories_to_material_admin_materials__material_id__categories_post'];
-    /**
-     * Remove multiple categories from the material
-     * @description Remove multiple categories from a material.
-     */
-    delete: operations['remove_categories_from_material_admin_materials__material_id__categories_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials/{material_id}/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add a category to the material
-     * @description Add a single category to a material.
-     */
-    post: operations['add_category_to_material_admin_materials__material_id__categories__category_id__post'];
-    /**
-     * Remove a category from the material
-     * @description Remove a single category from a material.
-     */
-    delete: operations['remove_category_from_material_admin_materials__material_id__categories__category_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials/{material_id}/files': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add File to Material
-     * @description Upload a new file for the material.
-     */
-    post: operations['upload_material_file_admin_materials__material_id__files_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials/{material_id}/files/{file_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Remove File from Material
-     * @description Remove a file from the material.
-     */
-    delete: operations['delete_material_file_admin_materials__material_id__files__file_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials/{material_id}/images': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add Image to Material
-     * @description Upload a new image for the material.
-     */
-    post: operations['upload_material_image_admin_materials__material_id__images_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/materials/{material_id}/images/{image_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Remove Image from Material
-     * @description Remove an image from the material.
-     */
-    delete: operations['delete_material_image_admin_materials__material_id__images__image_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create product type
-     * @description Create a product type.
-     */
-    post: operations['create_product_type_admin_product_types_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete product type
-     * @description Delete a product type.
-     */
-    delete: operations['delete_product_type_admin_product_types__product_type_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update product type
-     * @description Update a product type.
-     */
-    patch: operations['update_product_type_admin_product_types__product_type_id__patch'];
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add multiple categories to the product type
-     * @description Add multiple categories to a product type.
-     */
-    post: operations['add_categories_to_product_type_admin_product_types__product_type_id__categories_post'];
-    /**
-     * Remove multiple categories from the product type
-     * @description Remove multiple categories from a product type.
-     */
-    delete: operations['remove_categories_from_product_type_admin_product_types__product_type_id__categories_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add a category to the product type
-     * @description Add a single category to a product type.
-     */
-    post: operations['add_category_to_product_type_admin_product_types__product_type_id__categories__category_id__post'];
-    /**
-     * Remove a category from the product type
-     * @description Remove a single category from a product type.
-     */
-    delete: operations['remove_category_from_product_type_admin_product_types__product_type_id__categories__category_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}/files': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add File to Product Type
-     * @description Upload a new file for the product type.
-     */
-    post: operations['upload_product_type_file_admin_product_types__product_type_id__files_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}/files/{file_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Remove File from Product Type
-     * @description Remove a file from the product type.
-     */
-    delete: operations['delete_product_type_file_admin_product_types__product_type_id__files__file_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}/images': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Add Image to Product Type
-     * @description Upload a new image for the product type.
-     */
-    post: operations['upload_product_type_image_admin_product_types__product_type_id__images_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/product-types/{product_type_id}/images/{image_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Remove Image from Product Type
-     * @description Remove an image from the product type.
-     */
-    delete: operations['delete_product_type_image_admin_product_types__product_type_id__images__image_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all categories with optional filtering and relationships
-     * @description Get all categories with specified relationships.
-     */
-    get: operations['get_categories_categories_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/categories/tree': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get categories tree
-     * @description Get all base categories and their subcategories in a tree structure.
-     */
-    get: operations['get_categories_tree_categories_tree_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Category
-     * @description Get category by ID with specified relationships.
-     */
-    get: operations['get_category_categories__category_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/categories{category_id}/subcategories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get category subcategories with optional filtering and relationships
-     * @description Get paginated subcategories of a category with specified relationships.
-     */
-    get: operations['get_subcategories_categories_category_id__subcategories_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/categories/{category_id}/subcategories/tree': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get category subtree
-     * @description Get a category subcategories in a tree structure, up to a specified depth.
-     */
-    get: operations['get_category_subtree_categories__category_id__subcategories_tree_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/categories/{category_id}/subcategories/{subcategory_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get subcategory by ID
-     * @description Get subcategory by ID with specified relationships.
-     */
-    get: operations['get_subcategory_categories__category_id__subcategories__subcategory_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/taxonomies': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Taxonomies
-     * @description Get all taxonomies with optional filtering.
-     */
-    get: operations['get_taxonomies_taxonomies_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/taxonomies/{taxonomy_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Taxonomy
-     * @description Get taxonomy by ID.
-     */
-    get: operations['get_taxonomy_taxonomies__taxonomy_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/taxonomies/{taxonomy_id}/categories/tree': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the category tree of a taxonomy
-     * @description Get paginated top-level categories of a taxonomy with their recursive subcategory trees.
-     */
-    get: operations['get_taxonomy_category_tree_taxonomies__taxonomy_id__categories_tree_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/taxonomies/{taxonomy_id}/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View categories of taxonomy
-     * @description Get taxonomy categories with optional filtering.
-     */
-    get: operations['get_taxonomy_categories_taxonomies__taxonomy_id__categories_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/taxonomies/{taxonomy_id}/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get category by ID
-     * @description Get a taxonomy category by ID.
-     */
-    get: operations['get_taxonomy_category_by_id_taxonomies__taxonomy_id__categories__category_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all materials with optional relationships
-     * @description Get all materials with specified relationships.
-     */
-    get: operations['get_materials_materials_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Material
-     * @description Get material by ID with specified relationships.
-     */
-    get: operations['get_material_materials__material_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View categories of material
-     * @description Get categories linked to a material.
-     */
-    get: operations['get_material_categories_materials__material_id__categories_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get category by ID
-     * @description Get a material category by ID.
-     */
-    get: operations['get_material_category_materials__material_id__categories__category_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}/files': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Material Files
-     * @description Get all files associated with a material.
-     */
-    get: operations['get_material_files_materials__material_id__files_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}/files/{file_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get specific Material File
-     * @description Get a specific file associated with a material.
-     */
-    get: operations['get_material_file_materials__material_id__files__file_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}/images': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Material Images
-     * @description Get all images associated with a material.
-     */
-    get: operations['get_material_images_materials__material_id__images_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/materials/{material_id}/images/{image_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get specific Material Image
-     * @description Get a specific image associated with a material.
-     */
-    get: operations['get_material_image_materials__material_id__images__image_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all product types
-     * @description Get a list of all product types.
-     */
-    get: operations['get_product_types_product_types_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product type by ID
-     * @description Get a single product type by ID with its categories and products.
-     */
-    get: operations['get_product_type_product_types__product_type_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}/categories': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View categories of product type
-     * @description Get categories linked to a product type.
-     */
-    get: operations['get_product_type_categories_product_types__product_type_id__categories_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}/categories/{category_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get category by ID
-     * @description Get a product type category by ID.
-     */
-    get: operations['get_product_type_category_product_types__product_type_id__categories__category_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}/files': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Product Type Files
-     * @description Get all files associated with a product type.
-     */
-    get: operations['get_product_type_files_product_types__product_type_id__files_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}/files/{file_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get specific Product Type File
-     * @description Get a specific file associated with a product type.
-     */
-    get: operations['get_product_type_file_product_types__product_type_id__files__file_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}/images': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Product Type Images
-     * @description Get all images associated with a product type.
-     */
-    get: operations['get_product_type_images_product_types__product_type_id__images_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/product-types/{product_type_id}/images/{image_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get specific Product Type Image
-     * @description Get a specific image associated with a product type.
-     */
-    get: operations['get_product_type_image_product_types__product_type_id__images__image_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/units': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Units
-     * @description Get a list of available units.
-     */
-    get: operations['get_units_units_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/me/products': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Redirect to user's products
-     * @description Redirect /users/me/products to /users/{id}/products for better caching.
-     */
-    get: operations['redirect_to_current_user_products_users_me_products_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/{user_id}/products': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get products collected by a user
-     * @description Get products collected by a specific user.
-     */
-    get: operations['get_user_products_users__user_id__products_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all products with optional relationships
-     * @description Get all products with specified relationships.
-     */
-    get: operations['get_products_products_get'];
-    put?: never;
-    /**
-     * Create a new product, optionally with components
-     * @description Create a new product.
-     */
-    post: operations['create_product_products_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/tree': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get products tree
-     * @description Get all base products and their components in a tree structure.
-     */
-    get: operations['get_products_tree_products_tree_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product by ID
-     * @description Get product by ID with specified relationships.
-     */
-    get: operations['get_product_products__product_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete product
-     * @description Delete a product, including components.
-     */
-    delete: operations['delete_product_products__product_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update product
-     * @description Update an existing product.
-     */
-    patch: operations['update_product_products__product_id__patch'];
-    trace?: never;
-  };
-  '/products/{product_id}/components/tree': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product component subtree
-     * @description Get a product's components in a tree structure, up to a specified depth.
-     */
-    get: operations['get_product_subtree_products__product_id__components_tree_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/components': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product components
-     * @description Get all components of a product.
-     */
-    get: operations['get_product_components_products__product_id__components_get'];
-    put?: never;
-    /**
-     * Create a new component in a product
-     * @description Create a new component in an existing product.
-     */
-    post: operations['add_component_to_product_products__product_id__components_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/components/{component_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product component by ID
-     * @description Get component by ID with specified relationships.
-     */
-    get: operations['get_product_component_products__product_id__components__component_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete product component
-     * @description Delete a component in a product, including subcomponents.
-     */
-    delete: operations['delete_product_component_products__product_id__components__component_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/files': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Product Files
-     * @description Get all files associated with a product.
-     */
-    get: operations['get_product_files_products__product_id__files_get'];
-    put?: never;
-    /**
-     * Add File to Product
-     * @description Upload a new file for the product.
-     */
-    post: operations['upload_product_file_products__product_id__files_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/files/{file_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get specific Product File
-     * @description Get a specific file associated with a product.
-     */
-    get: operations['get_product_file_products__product_id__files__file_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Remove File from Product
-     * @description Remove a file from the product.
-     */
-    delete: operations['delete_product_file_products__product_id__files__file_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/images': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Product Images
-     * @description Get all images associated with a product.
-     */
-    get: operations['get_product_images_products__product_id__images_get'];
-    put?: never;
-    /**
-     * Add Image to Product
-     * @description Upload a new image for the product.
-     */
-    post: operations['upload_product_image_products__product_id__images_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/images/{image_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get specific Product Image
-     * @description Get a specific image associated with a product.
-     */
-    get: operations['get_product_image_products__product_id__images__image_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Remove Image from Product
-     * @description Remove an image from the product.
-     */
-    delete: operations['delete_product_image_products__product_id__images__image_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/physical_properties': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product physical properties
-     * @description Get physical properties for a product.
-     */
-    get: operations['get_product_physical_properties_products__product_id__physical_properties_get'];
-    put?: never;
-    /**
-     * Create product physical properties
-     * @description Create physical properties for a product.
-     */
-    post: operations['create_product_physical_properties_products__product_id__physical_properties_post'];
-    /**
-     * Delete product physical properties
-     * @description Delete physical properties for a product.
-     */
-    delete: operations['delete_product_physical_properties_products__product_id__physical_properties_delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update product physical properties
-     * @description Update physical properties for a product.
-     */
-    patch: operations['update_product_physical_properties_products__product_id__physical_properties_patch'];
-    trace?: never;
-  };
-  '/products/{product_id}/circularity_properties': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product circularity properties
-     * @description Get circularity properties for a product.
-     */
-    get: operations['get_product_circularity_properties_products__product_id__circularity_properties_get'];
-    put?: never;
-    /**
-     * Create product circularity properties
-     * @description Create circularity properties for a product.
-     */
-    post: operations['create_product_circularity_properties_products__product_id__circularity_properties_post'];
-    /**
-     * Delete product circularity properties
-     * @description Delete circularity properties for a product.
-     */
-    delete: operations['delete_product_circularity_properties_products__product_id__circularity_properties_delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update product circularity properties
-     * @description Update circularity properties for a product.
-     */
-    patch: operations['update_product_circularity_properties_products__product_id__circularity_properties_patch'];
-    trace?: never;
-  };
-  '/products/{product_id}/videos': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all videos for a product
-     * @description Get all videos associated with a specific product.
-     */
-    get: operations['get_product_videos_products__product_id__videos_get'];
-    put?: never;
-    /**
-     * Create a new video for a product
-     * @description Create a new video associated with a specific product.
-     */
-    post: operations['create_product_video_products__product_id__videos_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/videos/{video_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get video by ID
-     * @description Get a video associated with a specific product.
-     */
-    get: operations['get_product_video_products__product_id__videos__video_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete video by ID
-     * @description Delete a video associated with a specific product.
-     */
-    delete: operations['delete_product_video_products__product_id__videos__video_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update video by ID
-     * @description Update a video associated with a specific product.
-     */
-    patch: operations['update_product_video_products__product_id__videos__video_id__patch'];
-    trace?: never;
-  };
-  '/products/{product_id}/materials': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get product bill of materials
-     * @description Get bill of materials for a product.
-     */
-    get: operations['get_product_bill_of_materials_products__product_id__materials_get'];
-    put?: never;
-    /**
-     * Add multiple materials to product bill of materials
-     * @description Add multiple materials to a product's bill of materials.
-     */
-    post: operations['add_materials_to_product_products__product_id__materials_post'];
-    /**
-     * Remove multiple materials from product bill of materials
-     * @description Remove multiple materials from a product's bill of materials.
-     */
-    delete: operations['remove_materials_from_product_bulk_products__product_id__materials_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/products/{product_id}/materials/{material_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get material in product bill of materials
-     * @description Get a material in a product's bill of materials.
-     */
-    get: operations['get_material_in_product_bill_of_materials_products__product_id__materials__material_id__get'];
-    put?: never;
-    /**
-     * Add single material to product bill of materials
-     * @description Add a single material to a product's bill of materials.
-     */
-    post: operations['add_material_to_product_products__product_id__materials__material_id__post'];
-    /**
-     * Remove single material from product bill of materials
-     * @description Remove a single material from a product's bill of materials.
-     */
-    delete: operations['remove_material_from_product_products__product_id__materials__material_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update material in product bill of materials
-     * @description Update material in bill of materials for a product.
-     */
-    patch: operations['update_product_bill_of_materials_products__product_id__materials__material_id__patch'];
-    trace?: never;
-  };
-  '/brands': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get paginated list of unique product brands
-     * @description Get a paginated, searchable and orderable list of unique product brands.
-     */
-    get: operations['get_brands_brands_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/images/{image_id}/resized': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get a resized version of an image
-     * @description Get a resized version of an image as WebP.
-     *
-     *     The image is resized while maintaining its aspect ratio.
-     *     Resizing is performed in a background thread to avoid blocking the event loop.
-     *     Results are cached via HTTP Cache-Control headers for 1 hour.
-     */
-    get: operations['get_resized_image_images__image_id__resized_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/bearer/login': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Auth:Bearer.Login */
-    post: operations['auth_bearer_login_auth_bearer_login_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/bearer/logout': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Auth:Bearer.Logout */
-    post: operations['auth_bearer_logout_auth_bearer_logout_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/cookie/login': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Auth:Cookie.Login */
-    post: operations['auth_cookie_login_auth_cookie_login_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/cookie/logout': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Auth:Cookie.Logout */
-    post: operations['auth_cookie_logout_auth_cookie_logout_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/register': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Register a new user
-     * @description Register a new user with optional organization creation or joining.
-     *
-     *     Supports two registration modes:
-     *     - With organization creation: User creates and owns a new organization
-     *     - With organization joining: User joins an existing organization as a member
-     *     - No organization: User registers without an organization
-     */
-    post: operations['register_auth_register_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/refresh': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Auth:Bearer.Refresh
-     * @description Refresh access token using refresh token for bearer auth.
-     *
-     *     Validates refresh token and issues new access token.
-     *     Updates session activity timestamp.
-     */
-    post: operations['auth_bearer_refresh_auth_refresh_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/cookie/refresh': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Auth:Cookie.Refresh
-     * @description Refresh access token using refresh token from cookie.
-     *
-     *     Validates refresh token cookie and issues new access token cookie.
-     *     Updates session activity timestamp.
-     */
-    post: operations['auth_cookie_refresh_auth_cookie_refresh_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/logout': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Auth:Logout
-     * @description Logout the current user.
-     *
-     *     Destroys the current access token in Redis and blacklists the refresh token.
-     *     Clears cookies on the client side.
-     */
-    post: operations['auth_logout_auth_logout_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/request-verify-token': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Verify:Request-Token */
-    post: operations['verify_request_token_auth_request_verify_token_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/verify': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Verify:Verify */
-    post: operations['verify_verify_auth_verify_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/forgot-password': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Reset:Forgot Password */
-    post: operations['reset_forgot_password_auth_forgot_password_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/reset-password': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Reset:Reset Password */
-    post: operations['reset_reset_password_auth_reset_password_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/validate-email': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Validate Email
-     * @description Validate email address for registration.
-     */
-    get: operations['validate_email_auth_validate_email_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View all organizations
-     * @description Get a list of all organizations with optional filtering.
-     */
-    get: operations['get_organizations_organizations_get'];
-    put?: never;
-    /**
-     * Create new organization
-     * @description Create new organization with current user as owner.
-     */
-    post: operations['create_organization_organizations_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{organization_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View a single organization
-     * @description Get an organization by ID.
-     */
-    get: operations['get_organization_organizations__organization_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{organization_id}/members': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the members of an organization
-     * @description Get the members of an organization.
-     */
-    get: operations['get_organization_members_organizations__organization_id__members_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{organization_id}/members/me': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Join organization
-     * @description Join an organization as a member.
-     */
-    post: operations['join_organization_organizations__organization_id__members_me_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/github/token/authorize': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Oauth:Github.Bearer.Authorize */
-    get: operations['oauth_github_bearer_authorize_auth_oauth_github_token_authorize_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/github/token/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Oauth:Github.Bearer.Callback
-     * @description The response varies based on the authentication backend used.
-     */
-    get: operations['oauth_github_bearer_callback_auth_oauth_github_token_callback_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/github/session/authorize': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Oauth:Github.Cookie.Authorize */
-    get: operations['oauth_github_cookie_authorize_auth_oauth_github_session_authorize_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/github/session/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Oauth:Github.Cookie.Callback
-     * @description The response varies based on the authentication backend used.
-     */
-    get: operations['oauth_github_cookie_callback_auth_oauth_github_session_callback_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/github/associate/authorize': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Oauth-Associate:Github.Authorize */
-    get: operations['oauth_associate_github_authorize_auth_oauth_github_associate_authorize_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/github/associate/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Oauth-Associate:Github.Callback
-     * @description The response varies based on the authentication backend used.
-     */
-    get: operations['oauth_associate_github_callback_auth_oauth_github_associate_callback_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/token/authorize': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Oauth:Google.Bearer.Authorize */
-    get: operations['oauth_google_bearer_authorize_auth_oauth_google_token_authorize_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/token/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Oauth:Google.Bearer.Callback
-     * @description The response varies based on the authentication backend used.
-     */
-    get: operations['oauth_google_bearer_callback_auth_oauth_google_token_callback_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/session/authorize': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Oauth:Google.Cookie.Authorize */
-    get: operations['oauth_google_cookie_authorize_auth_oauth_google_session_authorize_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/session/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Oauth:Google.Cookie.Callback
-     * @description The response varies based on the authentication backend used.
-     */
-    get: operations['oauth_google_cookie_callback_auth_oauth_google_session_callback_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/associate/authorize': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Oauth-Associate:Google.Authorize */
-    get: operations['oauth_associate_google_authorize_auth_oauth_google_associate_authorize_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/associate/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Oauth-Associate:Google.Callback
-     * @description The response varies based on the authentication backend used.
-     */
-    get: operations['oauth_associate_google_callback_auth_oauth_google_associate_callback_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/{provider}/associate': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Remove Oauth Association
-     * @description Remove a linked OAuth account.
-     */
-    delete: operations['remove_oauth_association_auth_oauth__provider__associate_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/bearer/token': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Exchange Google ID token for bearer + refresh tokens (PKCE flow)
-     * @description Receive a Google ID token obtained client-side via PKCE and issue app tokens.
-     */
-    post: operations['google_bearer_token_auth_oauth_google_bearer_token_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/cookie/token': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Exchange Google ID token for session cookies (PKCE flow)
-     * @description Receive a Google ID token obtained client-side via PKCE and set session cookies.
-     */
-    post: operations['google_cookie_token_auth_oauth_google_cookie_token_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/me': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Users:Current User */
-    get: operations['users_current_user_users_me_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Users:Patch Current User */
-    patch: operations['users_patch_current_user_users_me_patch'];
-    trace?: never;
-  };
-  '/users/{id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Users:User */
-    get: operations['users_user_users__id__get'];
-    put?: never;
-    post?: never;
-    /** Users:Delete User */
-    delete: operations['users_delete_user_users__id__delete'];
-    options?: never;
-    head?: never;
-    /** Users:Patch User */
-    patch: operations['users_patch_user_users__id__patch'];
-    trace?: never;
-  };
-  '/users/me/organization': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the organization of the current user
-     * @description Get the organization of the current user.
-     */
-    get: operations['get_user_organization_users_me_organization_get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete your organization as owner
-     * @description Delete organization as owner. Fails if organization has members.
-     */
-    delete: operations['delete_my_organization_users_me_organization_delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update your organization
-     * @description Update organization as owner.
-     */
-    patch: operations['update_organization_users_me_organization_patch'];
-    trace?: never;
-  };
-  '/users/me/organization/members': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get the members of the organization of the current user
-     * @description Get the members of the organization of the current user.
-     */
-    get: operations['get_user_organization_members_users_me_organization_members_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/me/organization/membership': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Leave current organization
-     * @description Leave current organization. Cannot be used by organization owner.
-     */
-    delete: operations['leave_organization_users_me_organization_membership_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/organizations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all organizations
-     * @description Get all organizations with optional relationships. Only superusers can access this route.
-     */
-    get: operations['get_all_organizations_admin_organizations_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/organizations/{organization_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get organization by ID
-     * @description Get organization by ID with optional relationships. Only superusers can access this route.
-     */
-    get: operations['get_organization_with_relationships_admin_organizations__organization_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete organization by ID
-     * @description Delete organization by ID. Only superusers can access this route.
-     */
-    delete: operations['delete_organization_admin_organizations__organization_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/users': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View all users
-     * @description Get a list of all users with optional filtering and relationships.
-     */
-    get: operations['get_users_admin_users_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/users/{user_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View a single user by ID
-     * @description Get a user by ID.
-     */
-    get: operations['get_user_admin_users__user_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete a user by ID
-     * @description Delete a user by ID.
-     */
-    delete: operations['delete_user_admin_users__user_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/users/by-email/{email}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View a single user by email
-     * @description Get a user by email and redirect to their profile page.
-     */
-    get: operations['get_by_email_admin_users_by_email__email__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/users/by-username/{username}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * View a single user by username
-     * @description Get a user by username and redirect to their profile page.
-     */
-    get: operations['get_by_username_admin_users_by_username__username__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi cameras of the current user
-     * @description Get all Raspberry Pi cameras of the current user.
-     */
-    get: operations['get_user_cameras_plugins_rpi_cam_cameras_get'];
-    put?: never;
-    /**
-     * Register new Raspberry Pi camera
-     * @description Register a new Raspberry Pi camera.
-     */
-    post: operations['register_user_camera_plugins_rpi_cam_cameras_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi camera by ID
-     * @description Get single Raspberry Pi camera by ID, if owned by the current user.
-     */
-    get: operations['get_user_camera_plugins_rpi_cam_cameras__camera_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete Raspberry Pi camera
-     * @description Delete Raspberry Pi camera.
-     */
-    delete: operations['delete_user_camera_plugins_rpi_cam_cameras__camera_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update Raspberry Pi camera
-     * @description Update Raspberry Pi camera.
-     */
-    patch: operations['update_user_camera_plugins_rpi_cam_cameras__camera_id__patch'];
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi camera online status
-     * @description Get Raspberry Pi camera online status.
-     */
-    get: operations['get_user_camera_status_plugins_rpi_cam_cameras__camera_id__status_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/regenerate-api-key': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Regenerate API key for the Raspberry Pi camera
-     * @description Regenerate API key for Raspberry Pi camera.
-     */
-    post: operations['regenerate_api_key_plugins_rpi_cam_cameras__camera_id__regenerate_api_key_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/me/cameras': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi cameras of the current user
-     * @description Get all Raspberry Pi cameras of the current user.
-     */
-    get: operations['get_user_cameras_users_me_cameras_get'];
-    put?: never;
-    /**
-     * Register new Raspberry Pi camera
-     * @description Register a new Raspberry Pi camera.
-     */
-    post: operations['register_user_camera_users_me_cameras_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/me/cameras/{camera_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi camera by ID
-     * @description Get single Raspberry Pi camera by ID, if owned by the current user.
-     */
-    get: operations['get_user_camera_users_me_cameras__camera_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete Raspberry Pi camera
-     * @description Delete Raspberry Pi camera.
-     */
-    delete: operations['delete_user_camera_users_me_cameras__camera_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update Raspberry Pi camera
-     * @description Update Raspberry Pi camera.
-     */
-    patch: operations['update_user_camera_users_me_cameras__camera_id__patch'];
-    trace?: never;
-  };
-  '/users/me/cameras/{camera_id}/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi camera online status
-     * @description Get Raspberry Pi camera online status.
-     */
-    get: operations['get_user_camera_status_users_me_cameras__camera_id__status_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/users/me/cameras/{camera_id}/regenerate-api-key': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Regenerate API key for the Raspberry Pi camera
-     * @description Regenerate API key for Raspberry Pi camera.
-     */
-    post: operations['regenerate_api_key_users_me_cameras__camera_id__regenerate_api_key_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/snapshot': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get a low-res JPEG snapshot for viewfinder preview
-     * @description Fetches a single low-resolution frame from the camera without saving it. Poll this endpoint at 1–2 fps to build a live viewfinder preview.
-     */
-    get: operations['get_camera_snapshot_plugins_rpi_cam_cameras__camera_id__snapshot_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/mjpeg': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Proxy MJPEG stream from RPi camera (HTTP cameras only)
-     * @description Streams continuous MJPEG frames for live viewfinder preview. WebSocket-relay cameras are not supported (returns 501).
-     */
-    get: operations['stream_camera_mjpeg_plugins_rpi_cam_cameras__camera_id__stream_mjpeg_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/image': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Capture a still image with a remote Raspberry Pi Camera
-     * @description Capture a still image with a remote Raspberry Pi Camera and store it in the file storage. Send optional parent type and ID in the request body to associate the image with another object.
-     */
-    post: operations['capture_image_plugins_rpi_cam_cameras__camera_id__image_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Camera Stream Status
-     * @description Get current stream status.
-     */
-    get: operations['get_camera_stream_status_plugins_rpi_cam_cameras__camera_id__stream_status_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/stop': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Stop the active stream
-     * @description Stop the active remote camera stream.
-     */
-    delete: operations['stop_all_streams_plugins_rpi_cam_cameras__camera_id__stream_stop_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/record/start': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Start recording to YouTube
-     * @description Start recording to YouTube and cache the recording session in Redis.
-     */
-    post: operations['start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/record/stop': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Stop recording to YouTube
-     * @description Stop recording, end the livestream, and create the video record.
-     */
-    delete: operations['stop_recording_plugins_rpi_cam_cameras__camera_id__stream_record_stop_delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/plugins/rpi-cam/cameras/{camera_id}/stream/record/monitor': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get YouTube livestream monitor stream
-     * @description Get the YouTube monitor stream configuration for the active recording.
-     */
-    get: operations['get_recording_monitor_stream_plugins_rpi_cam_cameras__camera_id__stream_record_monitor_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/plugins/rpi-cam/cameras': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get all Raspberry Pi cameras
-     * @description Get all Raspberry Pi cameras.
-     */
-    get: operations['get_all_cameras_admin_plugins_rpi_cam_cameras_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/plugins/rpi-cam/cameras/{camera_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi camera by ID
-     * @description Get single Raspberry Pi camera by ID.
-     */
-    get: operations['get_camera_admin_plugins_rpi_cam_cameras__camera_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete Raspberry Pi camera
-     * @description Delete Raspberry Pi camera.
-     */
-    delete: operations['delete_camera_admin_plugins_rpi_cam_cameras__camera_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/plugins/rpi-cam/cameras/{camera_id}/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Raspberry Pi camera online status
-     * @description Get Raspberry Pi camera online status.
-     */
-    get: operations['get_camera_status_admin_plugins_rpi_cam_cameras__camera_id__status_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/newsletter/subscribe': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Subscribe To Newsletter
-     * @description Subscribe to the newsletter to receive updates about the app launch.
-     */
-    post: operations['subscribe_to_newsletter_newsletter_subscribe_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/newsletter/confirm': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Confirm Newsletter Subscription
-     * @description Confirm the newsletter subscription.
-     */
-    post: operations['confirm_newsletter_subscription_newsletter_confirm_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/newsletter/request-unsubscribe': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Request Unsubscribe
-     * @description Request to unsubscribe by sending an email with unsubscribe link.
-     */
-    post: operations['request_unsubscribe_newsletter_request_unsubscribe_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/newsletter/unsubscribe': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Unsubscribe With Token
-     * @description One-click unsubscribe from newsletter using a token.
-     */
-    post: operations['unsubscribe_with_token_newsletter_unsubscribe_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/newsletter/me': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Newsletter Preference
-     * @description Return the logged-in user's newsletter preference.
-     */
-    get: operations['get_newsletter_preference_newsletter_me_get'];
-    /**
-     * Update Newsletter Preference
-     * @description Update the logged-in user's newsletter preference without email verification.
-     */
-    put: operations['update_newsletter_preference_newsletter_me_put'];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/admin/newsletter/subscribers': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Subscribers
-     * @description Get all newsletter subscribers. Only accessible by superusers.
-     */
-    get: operations['get_subscribers_admin_newsletter_subscribers_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
+    "/admin/cache/clear/{namespace}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear cache by namespace
+         * @description Clear cached responses for a specific namespace.
+         */
+        post: operations["clear_cache_by_namespace_admin_cache_clear__namespace__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new category
+         * @description Create a new category, optionally with subcategories.
+         */
+        post: operations["create_category_admin_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete category
+         * @description Delete a category by ID, including its subcategories.
+         */
+        delete: operations["delete_category_admin_categories__category_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update category
+         * @description Update an existing category.
+         */
+        patch: operations["update_category_admin_categories__category_id__patch"];
+        trace?: never;
+    };
+    "/admin/categories/{category_id}/subcategories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Subcategory
+         * @description Create a new subcategory under an existing category.
+         */
+        post: operations["create_subcategory_admin_categories__category_id__subcategories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/categories/{category_id}/subcategories/{subcategory_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete category
+         * @description Delete a subcategory by ID, including its subcategories.
+         */
+        delete: operations["delete_subcategory_admin_categories__category_id__subcategories__subcategory_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/taxonomies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new taxonomy
+         * @description Create a new taxonomy, optionally with categories.
+         */
+        post: operations["create_taxonomy_admin_taxonomies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/taxonomies/{taxonomy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete taxonomy, including categories
+         * @description Delete a taxonomy by ID, including its categories.
+         */
+        delete: operations["delete_taxonomy_admin_taxonomies__taxonomy_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update taxonomy
+         * @description Update an existing taxonomy.
+         */
+        patch: operations["update_taxonomy_admin_taxonomies__taxonomy_id__patch"];
+        trace?: never;
+    };
+    "/admin/taxonomies/{taxonomy_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a new category in a taxonomy
+         * @description Create a new category in a taxonomy, optionally with subcategories.
+         */
+        post: operations["create_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/taxonomies/{taxonomy_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete category in a taxonomy
+         * @description Delete a category by ID, including its subcategories.
+         */
+        delete: operations["delete_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories__category_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create material
+         * @description Create a material.
+         */
+        post: operations["create_material_admin_materials_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials/{material_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete material
+         * @description Delete a material.
+         */
+        delete: operations["delete_material_admin_materials__material_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update material
+         * @description Update a material.
+         */
+        patch: operations["update_material_admin_materials__material_id__patch"];
+        trace?: never;
+    };
+    "/admin/materials/{material_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add multiple categories to the material
+         * @description Add multiple categories to a material.
+         */
+        post: operations["add_categories_to_material_admin_materials__material_id__categories_post"];
+        /**
+         * Remove multiple categories from the material
+         * @description Remove multiple categories from a material.
+         */
+        delete: operations["remove_categories_from_material_admin_materials__material_id__categories_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials/{material_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a category to the material
+         * @description Add a single category to a material.
+         */
+        post: operations["add_category_to_material_admin_materials__material_id__categories__category_id__post"];
+        /**
+         * Remove a category from the material
+         * @description Remove a single category from a material.
+         */
+        delete: operations["remove_category_from_material_admin_materials__material_id__categories__category_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials/{material_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add File to Material
+         * @description Upload a new file for the material.
+         */
+        post: operations["upload_material_file_admin_materials__material_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials/{material_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove File from Material
+         * @description Remove a file from the material.
+         */
+        delete: operations["delete_material_file_admin_materials__material_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials/{material_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Image to Material
+         * @description Upload a new image for the material.
+         */
+        post: operations["upload_material_image_admin_materials__material_id__images_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/materials/{material_id}/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Image from Material
+         * @description Remove an image from the material.
+         */
+        delete: operations["delete_material_image_admin_materials__material_id__images__image_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create product type
+         * @description Create a product type.
+         */
+        post: operations["create_product_type_admin_product_types_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete product type
+         * @description Delete a product type.
+         */
+        delete: operations["delete_product_type_admin_product_types__product_type_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update product type
+         * @description Update a product type.
+         */
+        patch: operations["update_product_type_admin_product_types__product_type_id__patch"];
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add multiple categories to the product type
+         * @description Add multiple categories to a product type.
+         */
+        post: operations["add_categories_to_product_type_admin_product_types__product_type_id__categories_post"];
+        /**
+         * Remove multiple categories from the product type
+         * @description Remove multiple categories from a product type.
+         */
+        delete: operations["remove_categories_from_product_type_admin_product_types__product_type_id__categories_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a category to the product type
+         * @description Add a single category to a product type.
+         */
+        post: operations["add_category_to_product_type_admin_product_types__product_type_id__categories__category_id__post"];
+        /**
+         * Remove a category from the product type
+         * @description Remove a single category from a product type.
+         */
+        delete: operations["remove_category_from_product_type_admin_product_types__product_type_id__categories__category_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add File to Product Type
+         * @description Upload a new file for the product type.
+         */
+        post: operations["upload_product_type_file_admin_product_types__product_type_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove File from Product Type
+         * @description Remove a file from the product type.
+         */
+        delete: operations["delete_product_type_file_admin_product_types__product_type_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Image to Product Type
+         * @description Upload a new image for the product type.
+         */
+        post: operations["upload_product_type_image_admin_product_types__product_type_id__images_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/product-types/{product_type_id}/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Image from Product Type
+         * @description Remove an image from the product type.
+         */
+        delete: operations["delete_product_type_image_admin_product_types__product_type_id__images__image_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all categories with optional filtering and all relationships
+         * @description Get all categories with all relationships loaded.
+         */
+        get: operations["get_categories_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get categories tree
+         * @description Get all base categories and their subcategories in a tree structure.
+         */
+        get: operations["get_categories_tree_categories_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Category
+         * @description Get category by ID with all relationships.
+         */
+        get: operations["get_category_categories__category_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories{category_id}/subcategories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get category subcategories with optional filtering and all relationships
+         * @description Get paginated subcategories of a category with all relationships loaded.
+         */
+        get: operations["get_subcategories_categories_category_id__subcategories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{category_id}/subcategories/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get category subtree
+         * @description Get a category subcategories in a tree structure, up to a specified depth.
+         */
+        get: operations["get_category_subtree_categories__category_id__subcategories_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{category_id}/subcategories/{subcategory_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get subcategory by ID with all relationships
+         * @description Get subcategory by ID with all relationships loaded.
+         */
+        get: operations["get_subcategory_categories__category_id__subcategories__subcategory_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/taxonomies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Taxonomies
+         * @description Get all taxonomies with optional filtering.
+         */
+        get: operations["get_taxonomies_taxonomies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/taxonomies/{taxonomy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Taxonomy
+         * @description Get taxonomy by ID.
+         */
+        get: operations["get_taxonomy_taxonomies__taxonomy_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/taxonomies/{taxonomy_id}/categories/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the category tree of a taxonomy
+         * @description Get paginated top-level categories of a taxonomy with their recursive subcategory trees.
+         */
+        get: operations["get_taxonomy_category_tree_taxonomies__taxonomy_id__categories_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/taxonomies/{taxonomy_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View categories of taxonomy
+         * @description Get taxonomy categories with optional filtering.
+         */
+        get: operations["get_taxonomy_categories_taxonomies__taxonomy_id__categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/taxonomies/{taxonomy_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get category by ID
+         * @description Get a taxonomy category by ID.
+         */
+        get: operations["get_taxonomy_category_by_id_taxonomies__taxonomy_id__categories__category_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all materials with all relationships
+         * @description Get all materials with all relationships loaded.
+         */
+        get: operations["get_materials_materials_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Material
+         * @description Get material by ID with all relationships loaded.
+         */
+        get: operations["get_material_materials__material_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View categories of material
+         * @description Get categories linked to a material.
+         */
+        get: operations["get_material_categories_materials__material_id__categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get category by ID
+         * @description Get a material category by ID.
+         */
+        get: operations["get_material_category_materials__material_id__categories__category_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Material Files
+         * @description Get all files associated with a material.
+         */
+        get: operations["get_material_files_materials__material_id__files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get specific Material File
+         * @description Get a specific file associated with a material.
+         */
+        get: operations["get_material_file_materials__material_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Material Images
+         * @description Get all images associated with a material.
+         */
+        get: operations["get_material_images_materials__material_id__images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/materials/{material_id}/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get specific Material Image
+         * @description Get a specific image associated with a material.
+         */
+        get: operations["get_material_image_materials__material_id__images__image_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all product types with all relationships
+         * @description Get a list of all product types with all relationships loaded.
+         */
+        get: operations["get_product_types_product_types_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get product type by ID with all relationships
+         * @description Get a single product type by ID with all relationships loaded.
+         */
+        get: operations["get_product_type_product_types__product_type_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View categories of product type
+         * @description Get categories linked to a product type.
+         */
+        get: operations["get_product_type_categories_product_types__product_type_id__categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get category by ID
+         * @description Get a product type category by ID.
+         */
+        get: operations["get_product_type_category_product_types__product_type_id__categories__category_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Product Type Files
+         * @description Get all files associated with a product type.
+         */
+        get: operations["get_product_type_files_product_types__product_type_id__files_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get specific Product Type File
+         * @description Get a specific file associated with a product type.
+         */
+        get: operations["get_product_type_file_product_types__product_type_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Product Type Images
+         * @description Get all images associated with a product type.
+         */
+        get: operations["get_product_type_images_product_types__product_type_id__images_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/product-types/{product_type_id}/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get specific Product Type Image
+         * @description Get a specific image associated with a product type.
+         */
+        get: operations["get_product_type_image_product_types__product_type_id__images__image_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Units
+         * @description Get a list of available units.
+         */
+        get: operations["get_units_units_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redirect to user's products
+         * @description Redirect /users/me/products to /users/{id}/products for better caching.
+         */
+        get: operations["redirect_to_current_user_products_users_me_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{user_id}/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get products collected by a user
+         * @description Get products collected by a specific user.
+         */
+        get: operations["get_user_products_users__user_id__products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all products with optional relationships
+         * @description Get all products with specified relationships.
+         */
+        get: operations["get_products_products_get"];
+        put?: never;
+        /**
+         * Create a new product, optionally with components
+         * @description Create a new product.
+         */
+        post: operations["create_product_products_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get products tree
+         * @description Get all base products and their components in a tree structure.
+         */
+        get: operations["get_products_tree_products_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get product by ID
+         * @description Get product by ID with specified relationships.
+         */
+        get: operations["get_product_products__product_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete product
+         * @description Delete a product, including components.
+         */
+        delete: operations["delete_product_products__product_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update product
+         * @description Update an existing product.
+         */
+        patch: operations["update_product_products__product_id__patch"];
+        trace?: never;
+    };
+    "/products/{product_id}/components/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get product component subtree
+         * @description Get a product's components in a tree structure, up to a specified depth.
+         */
+        get: operations["get_product_subtree_products__product_id__components_tree_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/components": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get product components
+         * @description Get all components of a product.
+         */
+        get: operations["get_product_components_products__product_id__components_get"];
+        put?: never;
+        /**
+         * Create a new component in a product
+         * @description Create a new component in an existing product.
+         */
+        post: operations["add_component_to_product_products__product_id__components_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/components/{component_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get product component by ID
+         * @description Get component by ID with specified relationships.
+         */
+        get: operations["get_product_component_products__product_id__components__component_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete product component
+         * @description Delete a component in a product, including subcomponents.
+         */
+        delete: operations["delete_product_component_products__product_id__components__component_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate product tree
+         * @description Validate the product hierarchy and bill-of-materials constraints.
+         *
+         *     Returns ``{"valid": true, "errors": []}`` when the tree passes all checks,
+         *     or ``{"valid": false, "errors": [...]}`` with human-readable messages otherwise.
+         */
+        post: operations["validate_product_tree_products__product_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Product Files
+         * @description Get all files associated with a product.
+         */
+        get: operations["get_product_files_products__product_id__files_get"];
+        put?: never;
+        /**
+         * Add File to Product
+         * @description Upload a new file for the product.
+         */
+        post: operations["upload_product_file_products__product_id__files_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/files/{file_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get specific Product File
+         * @description Get a specific file associated with a product.
+         */
+        get: operations["get_product_file_products__product_id__files__file_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove File from Product
+         * @description Remove a file from the product.
+         */
+        delete: operations["delete_product_file_products__product_id__files__file_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Product Images
+         * @description Get all images associated with a product.
+         */
+        get: operations["get_product_images_products__product_id__images_get"];
+        put?: never;
+        /**
+         * Add Image to Product
+         * @description Upload a new image for the product.
+         */
+        post: operations["upload_product_image_products__product_id__images_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/images/{image_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get specific Product Image
+         * @description Get a specific image associated with a product.
+         */
+        get: operations["get_product_image_products__product_id__images__image_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Remove Image from Product
+         * @description Remove an image from the product.
+         */
+        delete: operations["delete_product_image_products__product_id__images__image_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/videos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all videos for a product
+         * @description Get all videos associated with a specific product.
+         */
+        get: operations["get_product_videos_products__product_id__videos_get"];
+        put?: never;
+        /**
+         * Create a new video for a product
+         * @description Create a new video associated with a specific product.
+         */
+        post: operations["create_product_video_products__product_id__videos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/videos/{video_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get video by ID
+         * @description Get a video associated with a specific product.
+         */
+        get: operations["get_product_video_products__product_id__videos__video_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete video by ID
+         * @description Delete a video associated with a specific product.
+         */
+        delete: operations["delete_product_video_products__product_id__videos__video_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update video by ID
+         * @description Update a video associated with a specific product.
+         */
+        patch: operations["update_product_video_products__product_id__videos__video_id__patch"];
+        trace?: never;
+    };
+    "/products/{product_id}/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get product bill of materials
+         * @description Get bill of materials for a product.
+         */
+        get: operations["get_product_bill_of_materials_products__product_id__materials_get"];
+        put?: never;
+        /**
+         * Add multiple materials to product bill of materials
+         * @description Add multiple materials to a product's bill of materials.
+         */
+        post: operations["add_materials_to_product_products__product_id__materials_post"];
+        /**
+         * Remove multiple materials from product bill of materials
+         * @description Remove multiple materials from a product's bill of materials.
+         */
+        delete: operations["remove_materials_from_product_bulk_products__product_id__materials_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{product_id}/materials/{material_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get material in product bill of materials
+         * @description Get a material in a product's bill of materials.
+         */
+        get: operations["get_material_in_product_bill_of_materials_products__product_id__materials__material_id__get"];
+        put?: never;
+        /**
+         * Add single material to product bill of materials
+         * @description Add a single material to a product's bill of materials.
+         */
+        post: operations["add_material_to_product_products__product_id__materials__material_id__post"];
+        /**
+         * Remove single material from product bill of materials
+         * @description Remove a single material from a product's bill of materials.
+         */
+        delete: operations["remove_material_from_product_products__product_id__materials__material_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update material in product bill of materials
+         * @description Update material in bill of materials for a product.
+         */
+        patch: operations["update_product_bill_of_materials_products__product_id__materials__material_id__patch"];
+        trace?: never;
+    };
+    "/brands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get paginated list of unique product brands
+         * @description Get a paginated, searchable and orderable list of unique product brands.
+         */
+        get: operations["get_brands_brands_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/images/{image_id}/resized": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a resized version of an image
+         * @description Get a resized version of an image as WebP.
+         *
+         *     The image is resized while maintaining its aspect ratio.
+         *     Resizing is performed in a background thread to avoid blocking the event loop.
+         *     Results are cached via HTTP Cache-Control headers for 1 hour.
+         */
+        get: operations["get_resized_image_images__image_id__resized_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/bearer/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Auth:Bearer.Login */
+        post: operations["auth_bearer_login_auth_bearer_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/bearer/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Auth:Bearer.Logout */
+        post: operations["auth_bearer_logout_auth_bearer_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cookie/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Auth:Cookie.Login */
+        post: operations["auth_cookie_login_auth_cookie_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cookie/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Auth:Cookie.Logout */
+        post: operations["auth_cookie_logout_auth_cookie_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a new user
+         * @description Register a new user with optional organization creation or joining.
+         *
+         *     Supports two registration modes:
+         *     - With organization creation: User creates and owns a new organization
+         *     - With organization joining: User joins an existing organization as a member
+         *     - No organization: User registers without an organization
+         */
+        post: operations["register_auth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auth:Bearer.Refresh
+         * @description Refresh access token using refresh token for bearer auth.
+         *
+         *     Validates refresh token and issues new access token.
+         *     Updates session activity timestamp.
+         */
+        post: operations["auth_bearer_refresh_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cookie/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auth:Cookie.Refresh
+         * @description Refresh access token using refresh token from cookie.
+         *
+         *     Validates refresh token cookie and issues new access token cookie.
+         *     Updates session activity timestamp.
+         */
+        post: operations["auth_cookie_refresh_auth_cookie_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Auth:Logout
+         * @description Logout the current user.
+         *
+         *     Destroys the current access token in Redis and blacklists the refresh token.
+         *     Clears cookies on the client side.
+         */
+        post: operations["auth_logout_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/request-verify-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify:Request-Token */
+        post: operations["verify_request_token_auth_request_verify_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify:Verify */
+        post: operations["verify_verify_auth_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset:Forgot Password */
+        post: operations["reset_forgot_password_auth_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset:Reset Password */
+        post: operations["reset_reset_password_auth_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/validate-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Validate Email
+         * @description Validate email address for registration.
+         */
+        get: operations["validate_email_auth_validate_email_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View all organizations
+         * @description Get a list of all organizations with optional filtering.
+         */
+        get: operations["get_organizations_organizations_get"];
+        put?: never;
+        /**
+         * Create new organization
+         * @description Create new organization with current user as owner.
+         */
+        post: operations["create_organization_organizations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organization_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View a single organization
+         * @description Get an organization by ID.
+         */
+        get: operations["get_organization_organizations__organization_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organization_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the members of an organization
+         * @description Get the members of an organization.
+         */
+        get: operations["get_organization_members_organizations__organization_id__members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organization_id}/members/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join organization
+         * @description Join an organization as a member.
+         */
+        post: operations["join_organization_organizations__organization_id__members_me_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/github/token/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth:Github.Bearer.Authorize */
+        get: operations["oauth_github_bearer_authorize_auth_oauth_github_token_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/github/token/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth:Github.Bearer.Callback
+         * @description The response varies based on the authentication backend used.
+         */
+        get: operations["oauth_github_bearer_callback_auth_oauth_github_token_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/github/session/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth:Github.Cookie.Authorize */
+        get: operations["oauth_github_cookie_authorize_auth_oauth_github_session_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/github/session/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth:Github.Cookie.Callback
+         * @description The response varies based on the authentication backend used.
+         */
+        get: operations["oauth_github_cookie_callback_auth_oauth_github_session_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/github/associate/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth-Associate:Github.Authorize */
+        get: operations["oauth_associate_github_authorize_auth_oauth_github_associate_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/github/associate/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth-Associate:Github.Callback
+         * @description The response varies based on the authentication backend used.
+         */
+        get: operations["oauth_associate_github_callback_auth_oauth_github_associate_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/token/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth:Google.Bearer.Authorize */
+        get: operations["oauth_google_bearer_authorize_auth_oauth_google_token_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/token/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth:Google.Bearer.Callback
+         * @description The response varies based on the authentication backend used.
+         */
+        get: operations["oauth_google_bearer_callback_auth_oauth_google_token_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/session/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth:Google.Cookie.Authorize */
+        get: operations["oauth_google_cookie_authorize_auth_oauth_google_session_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/session/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth:Google.Cookie.Callback
+         * @description The response varies based on the authentication backend used.
+         */
+        get: operations["oauth_google_cookie_callback_auth_oauth_google_session_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/associate/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth-Associate:Google.Authorize */
+        get: operations["oauth_associate_google_authorize_auth_oauth_google_associate_authorize_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/associate/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oauth-Associate:Google.Callback
+         * @description The response varies based on the authentication backend used.
+         */
+        get: operations["oauth_associate_google_callback_auth_oauth_google_associate_callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/{provider}/associate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Oauth Association
+         * @description Remove a linked OAuth account.
+         */
+        delete: operations["remove_oauth_association_auth_oauth__provider__associate_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/bearer/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange Google ID token for bearer + refresh tokens (PKCE flow)
+         * @description Receive a Google ID token obtained client-side via PKCE and issue app tokens.
+         */
+        post: operations["google_bearer_token_auth_oauth_google_bearer_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/google/cookie/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange Google ID token for session cookies (PKCE flow)
+         * @description Receive a Google ID token obtained client-side via PKCE and set session cookies.
+         */
+        post: operations["google_cookie_token_auth_oauth_google_cookie_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users:Current User */
+        get: operations["users_current_user_users_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Users:Patch Current User */
+        patch: operations["users_patch_current_user_users_me_patch"];
+        trace?: never;
+    };
+    "/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users:User */
+        get: operations["users_user_users__id__get"];
+        put?: never;
+        post?: never;
+        /** Users:Delete User */
+        delete: operations["users_delete_user_users__id__delete"];
+        options?: never;
+        head?: never;
+        /** Users:Patch User */
+        patch: operations["users_patch_user_users__id__patch"];
+        trace?: never;
+    };
+    "/users/me/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the organization of the current user
+         * @description Get the organization of the current user.
+         */
+        get: operations["get_user_organization_users_me_organization_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete your organization as owner
+         * @description Delete organization as owner. Fails if organization has members.
+         */
+        delete: operations["delete_my_organization_users_me_organization_delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update your organization
+         * @description Update organization as owner.
+         */
+        patch: operations["update_organization_users_me_organization_patch"];
+        trace?: never;
+    };
+    "/users/me/organization/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the members of the organization of the current user
+         * @description Get the members of the organization of the current user.
+         */
+        get: operations["get_user_organization_members_users_me_organization_members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/organization/membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Leave current organization
+         * @description Leave current organization. Cannot be used by organization owner.
+         */
+        delete: operations["leave_organization_users_me_organization_membership_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all organizations with all relationships
+         * @description Get all organizations with all relationships loaded. Only superusers can access this route.
+         */
+        get: operations["get_all_organizations_admin_organizations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/organizations/{organization_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get organization by ID with all relationships
+         * @description Get organization by ID with all relationships loaded. Only superusers can access this route.
+         */
+        get: operations["get_organization_with_relationships_admin_organizations__organization_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete organization by ID
+         * @description Delete organization by ID. Only superusers can access this route.
+         */
+        delete: operations["delete_organization_admin_organizations__organization_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View all users
+         * @description Get a list of all users with optional filtering.
+         */
+        get: operations["get_users_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View a single user by ID
+         * @description Get a user by ID.
+         */
+        get: operations["get_user_admin_users__user_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a user by ID
+         * @description Delete a user by ID.
+         */
+        delete: operations["delete_user_admin_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/by-email/{email}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View a single user by email
+         * @description Get a user by email and redirect to their profile page.
+         */
+        get: operations["get_by_email_admin_users_by_email__email__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/by-username/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * View a single user by username
+         * @description Get a user by username and redirect to their profile page.
+         */
+        get: operations["get_by_username_admin_users_by_username__username__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi cameras of the current user
+         * @description Get all Raspberry Pi cameras of the current user.
+         */
+        get: operations["get_user_cameras_plugins_rpi_cam_cameras_get"];
+        put?: never;
+        /**
+         * Register new Raspberry Pi camera
+         * @description Register a new Raspberry Pi camera.
+         */
+        post: operations["register_user_camera_plugins_rpi_cam_cameras_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi camera by ID
+         * @description Get single Raspberry Pi camera by ID, if owned by the current user.
+         */
+        get: operations["get_user_camera_plugins_rpi_cam_cameras__camera_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Raspberry Pi camera
+         * @description Delete Raspberry Pi camera.
+         */
+        delete: operations["delete_user_camera_plugins_rpi_cam_cameras__camera_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Raspberry Pi camera
+         * @description Update Raspberry Pi camera.
+         */
+        patch: operations["update_user_camera_plugins_rpi_cam_cameras__camera_id__patch"];
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi camera online status
+         * @description Get Raspberry Pi camera online status.
+         */
+        get: operations["get_user_camera_status_plugins_rpi_cam_cameras__camera_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/regenerate-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate API key for the Raspberry Pi camera
+         * @description Regenerate API key for Raspberry Pi camera.
+         */
+        post: operations["regenerate_api_key_plugins_rpi_cam_cameras__camera_id__regenerate_api_key_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/cameras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi cameras of the current user
+         * @description Get all Raspberry Pi cameras of the current user.
+         */
+        get: operations["get_user_cameras_users_me_cameras_get"];
+        put?: never;
+        /**
+         * Register new Raspberry Pi camera
+         * @description Register a new Raspberry Pi camera.
+         */
+        post: operations["register_user_camera_users_me_cameras_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/cameras/{camera_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi camera by ID
+         * @description Get single Raspberry Pi camera by ID, if owned by the current user.
+         */
+        get: operations["get_user_camera_users_me_cameras__camera_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Raspberry Pi camera
+         * @description Delete Raspberry Pi camera.
+         */
+        delete: operations["delete_user_camera_users_me_cameras__camera_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Raspberry Pi camera
+         * @description Update Raspberry Pi camera.
+         */
+        patch: operations["update_user_camera_users_me_cameras__camera_id__patch"];
+        trace?: never;
+    };
+    "/users/me/cameras/{camera_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi camera online status
+         * @description Get Raspberry Pi camera online status.
+         */
+        get: operations["get_user_camera_status_users_me_cameras__camera_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/cameras/{camera_id}/regenerate-api-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate API key for the Raspberry Pi camera
+         * @description Regenerate API key for Raspberry Pi camera.
+         */
+        post: operations["regenerate_api_key_users_me_cameras__camera_id__regenerate_api_key_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a low-res JPEG snapshot for viewfinder preview
+         * @description Fetches a single low-resolution frame from the camera without saving it. Poll this endpoint at 1-2 fps to build a snapshot-based viewfinder preview. Returns a conflict when the camera is already streaming to YouTube.
+         */
+        get: operations["get_camera_snapshot_plugins_rpi_cam_cameras__camera_id__snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Capture a still image with a remote Raspberry Pi Camera
+         * @description Capture a still image with a remote Raspberry Pi Camera and store it in the file storage. Send optional parent type and ID in the request body to associate the image with another object.
+         */
+        post: operations["capture_image_plugins_rpi_cam_cameras__camera_id__image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/stream/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the active YouTube recording stream status
+         * @description Fetch the current remote camera stream status from the Raspberry Pi camera plugin.
+         */
+        get: operations["get_camera_stream_status_plugins_rpi_cam_cameras__camera_id__stream_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/stream/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Stop the active YouTube recording stream
+         * @description Stop the currently active remote camera stream.
+         */
+        delete: operations["stop_all_streams_plugins_rpi_cam_cameras__camera_id__stream_stop_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/stream/record/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start recording to YouTube
+         * @description Start a YouTube recording stream and cache the backend-owned session in Redis.
+         */
+        post: operations["start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/stream/record/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Stop recording to YouTube
+         * @description Stop the active YouTube recording, end the livestream, and create the video record.
+         */
+        delete: operations["stop_recording_plugins_rpi_cam_cameras__camera_id__stream_record_stop_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/cameras/{camera_id}/stream/record/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get YouTube livestream monitor stream
+         * @description Get the YouTube monitor stream for the active backend-owned recording session.
+         */
+        get: operations["get_recording_monitor_stream_plugins_rpi_cam_cameras__camera_id__stream_record_monitor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/pairing/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a pairing code (called by RPi)
+         * @description Register a short-lived pairing code generated by an RPi camera.
+         *
+         *     This endpoint is unauthenticated — the RPi has no credentials yet.
+         *     Rate-limited to prevent abuse.
+         */
+        post: operations["register_pairing_code_plugins_rpi_cam_pairing_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/pairing/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim a pairing code and create a camera (called by user)
+         * @description Claim a pairing code: creates the camera and stores credentials for the RPi to retrieve.
+         */
+        post: operations["claim_pairing_code_plugins_rpi_cam_pairing_claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/rpi-cam/pairing/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poll pairing status (called by RPi)
+         * @description Poll for pairing completion. Returns credentials once the user claims the code.
+         *
+         *     Unauthenticated but requires the fingerprint nonce to prevent code-guessing attacks.
+         */
+        get: operations["poll_pairing_status_plugins_rpi_cam_pairing_poll_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/plugins/rpi-cam/cameras": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get all Raspberry Pi cameras
+         * @description Get all Raspberry Pi cameras.
+         */
+        get: operations["get_all_cameras_admin_plugins_rpi_cam_cameras_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/plugins/rpi-cam/cameras/{camera_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi camera by ID
+         * @description Get single Raspberry Pi camera by ID.
+         */
+        get: operations["get_camera_admin_plugins_rpi_cam_cameras__camera_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Raspberry Pi camera
+         * @description Delete Raspberry Pi camera.
+         */
+        delete: operations["delete_camera_admin_plugins_rpi_cam_cameras__camera_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/plugins/rpi-cam/cameras/{camera_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Raspberry Pi camera online status
+         * @description Get Raspberry Pi camera online status.
+         */
+        get: operations["get_camera_status_admin_plugins_rpi_cam_cameras__camera_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/newsletter/subscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Subscribe To Newsletter
+         * @description Subscribe to the newsletter to receive updates about the app launch.
+         */
+        post: operations["subscribe_to_newsletter_newsletter_subscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/newsletter/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Newsletter Subscription
+         * @description Confirm the newsletter subscription.
+         */
+        post: operations["confirm_newsletter_subscription_newsletter_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/newsletter/request-unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Unsubscribe
+         * @description Request to unsubscribe by sending an email with unsubscribe link.
+         */
+        post: operations["request_unsubscribe_newsletter_request_unsubscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/newsletter/unsubscribe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Unsubscribe With Token
+         * @description One-click unsubscribe from newsletter using a token.
+         */
+        post: operations["unsubscribe_with_token_newsletter_unsubscribe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/newsletter/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Newsletter Preference
+         * @description Return the logged-in user's newsletter preference.
+         */
+        get: operations["get_newsletter_preference_newsletter_me_get"];
+        /**
+         * Update Newsletter Preference
+         * @description Update the logged-in user's newsletter preference without email verification.
+         */
+        put: operations["update_newsletter_preference_newsletter_me_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/newsletter/subscribers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Subscribers
+         * @description Get all newsletter subscribers. Only accessible by superusers.
+         */
+        get: operations["get_subscribers_admin_newsletter_subscribers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** Format: uri */
-    AnyUrlToDB: string;
-    /** BearerResponse */
-    BearerResponse: {
-      /** Access Token */
-      access_token: string;
-      /** Token Type */
-      token_type: string;
-    };
-    /** Body_auth_bearer_login_auth_bearer_login_post */
-    Body_auth_bearer_login_auth_bearer_login_post: {
-      /** Grant Type */
-      grant_type?: string | null;
-      /** Username */
-      username: string;
-      /**
-       * Password
-       * Format: password
-       */
-      password: string;
-      /**
-       * Scope
-       * @default
-       */
-      scope: string;
-      /** Client Id */
-      client_id?: string | null;
-      /**
-       * Client Secret
-       * Format: password
-       */
-      client_secret?: string | null;
-    };
-    /** Body_auth_cookie_login_auth_cookie_login_post */
-    Body_auth_cookie_login_auth_cookie_login_post: {
-      /** Grant Type */
-      grant_type?: string | null;
-      /** Username */
-      username: string;
-      /**
-       * Password
-       * Format: password
-       */
-      password: string;
-      /**
-       * Scope
-       * @default
-       */
-      scope: string;
-      /** Client Id */
-      client_id?: string | null;
-      /**
-       * Client Secret
-       * Format: password
-       */
-      client_secret?: string | null;
-    };
-    /** Body_capture_image_plugins_rpi_cam_cameras__camera_id__image_post */
-    Body_capture_image_plugins_rpi_cam_cameras__camera_id__image_post: {
-      /**
-       * Product Id
-       * @description ID of product to associate the image with
-       */
-      product_id: number;
-      /**
-       * Description
-       * @description Custom description for the image
-       */
-      description?: string | null;
-    };
-    /** Body_reset_forgot_password_auth_forgot_password_post */
-    Body_reset_forgot_password_auth_forgot_password_post: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-    };
-    /** Body_reset_reset_password_auth_reset_password_post */
-    Body_reset_reset_password_auth_reset_password_post: {
-      /** Token */
-      token: string;
-      /** Password */
-      password: string;
-    };
-    /** Body_start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post */
-    Body_start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post: {
-      /**
-       * Product Id
-       * @description ID of product to associate the video with
-       */
-      product_id: number;
-      /**
-       * Title
-       * @description Custom video title
-       */
-      title?: string | null;
-      /**
-       * Description
-       * @description Custom description for the video
-       */
-      description?: string | null;
-      /**
-       * @description Privacy status for the YouTube video
-       * @default private
-       */
-      privacy_status: components['schemas']['YouTubePrivacyStatus'];
-    };
-    /** Body_upload_material_file_admin_materials__material_id__files_post */
-    Body_upload_material_file_admin_materials__material_id__files_post: {
-      /**
-       * File
-       * @description A file to upload
-       */
-      file: string;
-      /** Description */
-      description?: string | null;
-    };
-    /** Body_upload_material_image_admin_materials__material_id__images_post */
-    Body_upload_material_image_admin_materials__material_id__images_post: {
-      /**
-       * File
-       * @description An image to upload
-       */
-      file: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * Image Metadata
-       * @description Image metadata in JSON string format
-       */
-      image_metadata?: string | null;
-    };
-    /** Body_upload_product_file_products__product_id__files_post */
-    Body_upload_product_file_products__product_id__files_post: {
-      /**
-       * File
-       * @description A file to upload
-       */
-      file: string;
-      /** Description */
-      description?: string | null;
-    };
-    /** Body_upload_product_image_products__product_id__images_post */
-    Body_upload_product_image_products__product_id__images_post: {
-      /**
-       * File
-       * @description An image to upload
-       */
-      file: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * Image Metadata
-       * @description Image metadata in JSON string format
-       */
-      image_metadata?: string | null;
-    };
-    /** Body_upload_product_type_file_admin_product_types__product_type_id__files_post */
-    Body_upload_product_type_file_admin_product_types__product_type_id__files_post: {
-      /**
-       * File
-       * @description A file to upload
-       */
-      file: string;
-      /** Description */
-      description?: string | null;
-    };
-    /** Body_upload_product_type_image_admin_product_types__product_type_id__images_post */
-    Body_upload_product_type_image_admin_product_types__product_type_id__images_post: {
-      /**
-       * File
-       * @description An image to upload
-       */
-      file: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * Image Metadata
-       * @description Image metadata in JSON string format
-       */
-      image_metadata?: string | null;
-    };
-    /** Body_verify_request_token_auth_request_verify_token_post */
-    Body_verify_request_token_auth_request_verify_token_post: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-    };
-    /** Body_verify_verify_auth_verify_post */
-    Body_verify_verify_auth_verify_post: {
-      /** Token */
-      token: string;
-    };
-    /**
-     * CacheNamespace
-     * @description Cache namespace identifiers for different application areas.
-     * @enum {string}
-     */
-    CacheNamespace: 'background-data' | 'docs';
-    /**
-     * CameraConnectionStatus
-     * @description Camera connection status.
-     * @enum {string}
-     */
-    CameraConnectionStatus: 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error';
-    /**
-     * CameraCreate
-     * @description Schema for creating a camera.
-     * @example {
-     *       "auth_headers": [
-     *         {
-     *           "key": "Authorization",
-     *           "value": "Bearer local-camera-token"
-     *         },
-     *         {
-     *           "key": "X-Site",
-     *           "value": "lab-a"
-     *         }
-     *       ],
-     *       "description": "Ceiling-mounted camera above the teardown bench",
-     *       "name": "Workbench Camera",
-     *       "url": "http://192.168.1.20:8000"
-     *     }
-     */
-    CameraCreate: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * @description How the backend communicates with this camera.
-       * @default http
-       */
-      connection_mode: components['schemas']['ConnectionMode'];
-      /** @description HTTP(S) URL where the camera API is hosted (required for HTTP mode). */
-      url?: components['schemas']['AnyUrlToDB'] | null;
-      /**
-       * Auth Headers
-       * @description List of additional authentication headers for the camera API
-       */
-      auth_headers?: components['schemas']['HeaderCreate'][] | null;
-    };
-    /**
-     * CameraMode
-     * @description Camera use mode. Contains camera configuration for each mode.
-     * @enum {string}
-     */
-    CameraMode: 'photo' | 'video';
-    /**
-     * CameraProperties
-     * @description Static camera properties from libcamera.
-     *
-     *     For more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.
-     */
-    CameraProperties: {
-      /** Model */
-      Model?: string | null;
-      /**
-       * Unit Cell Size
-       * @description Sensor unit cell size in nanometers
-       */
-      unit_cell_size?: [number, number] | null;
-      /** Pixel Array Size */
-      pixel_array_size?: [number, number] | null;
-      /** Sensor Sensitivity */
-      sensor_sensitivity?: number | null;
-    };
-    /**
-     * CameraRead
-     * @description Basic Camera Read schema.
-     * @example {
-     *       "description": "Ceiling-mounted camera above the teardown bench",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
-     *       "name": "Workbench Camera",
-     *       "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
-     *       "url": "http://192.168.1.20:8000"
-     *     }
-     */
-    CameraRead: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * @description How the backend communicates with this camera.
-       * @default http
-       */
-      connection_mode: components['schemas']['ConnectionMode'];
-      /**
-       * Url
-       * @description HTTP(S) URL where the camera API is hosted (required for HTTP mode).
-       */
-      url?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-    };
-    /**
-     * CameraReadWithCredentials
-     * @description Schema for camera read with credentials.
-     * @example {
-     *       "api_key": "generated-camera-api-key",
-     *       "auth_headers": {
-     *         "Authorization": "Bearer local-camera-token",
-     *         "X-Site": "lab-a"
-     *       },
-     *       "description": "Ceiling-mounted camera above the teardown bench",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
-     *       "name": "Workbench Camera",
-     *       "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
-     *       "url": "http://192.168.1.20:8000"
-     *     }
-     */
-    CameraReadWithCredentials: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * @description How the backend communicates with this camera.
-       * @default http
-       */
-      connection_mode: components['schemas']['ConnectionMode'];
-      /**
-       * Url
-       * @description HTTP(S) URL where the camera API is hosted (required for HTTP mode).
-       */
-      url?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Api Key */
-      api_key: string;
-      /** Auth Headers */
-      auth_headers: {
-        [key: string]: string;
-      } | null;
-    };
-    /**
-     * CameraReadWithStatus
-     * @description Schema for camera read with online status.
-     * @example {
-     *       "description": "Ceiling-mounted camera above the teardown bench",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
-     *       "name": "Workbench Camera",
-     *       "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
-     *       "url": "http://192.168.1.20:8000"
-     *     }
-     */
-    CameraReadWithStatus: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /**
-       * @description How the backend communicates with this camera.
-       * @default http
-       */
-      connection_mode: components['schemas']['ConnectionMode'];
-      /**
-       * Url
-       * @description HTTP(S) URL where the camera API is hosted (required for HTTP mode).
-       */
-      url?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      status: components['schemas']['CameraStatus'];
-    };
-    /**
-     * CameraStatus
-     * @description Camera connection status and details.
-     */
-    CameraStatus: {
-      /** @description Connection status of the camera */
-      connection: components['schemas']['CameraConnectionStatus'];
-      /** @description Additional status details from the Raspberry Pi camera API */
-      details?: components['schemas']['CameraStatusView'] | null;
-    };
-    /**
-     * CameraStatusView
-     * @description API response model for camera status.
-     */
-    CameraStatusView: {
-      current_mode?: components['schemas']['CameraMode'] | null;
-      stream?: components['schemas']['StreamView'] | null;
-    };
-    /**
-     * CameraUpdate
-     * @description Schema for updating a camera.
-     * @example {
-     *       "description": "Camera assigned to the repairability bench",
-     *       "url": "https://camera-lab.example.org"
-     *     }
-     */
-    CameraUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Description */
-      description?: string | null;
-      /** @description HTTP(S) URL where the camera API is hosted */
-      url?: components['schemas']['AnyUrlToDB'] | null;
-      /**
-       * Auth Headers
-       * @description List of additional authentication headers for the camera API
-       */
-      auth_headers?: components['schemas']['HeaderCreate'][] | null;
-      /**
-       * Owner Id
-       * @description Transfer ownership to an existing user in the same organization as the current owner.
-       */
-      owner_id?: string | null;
-      /** @description Change the connection mode for this camera. */
-      connection_mode?: components['schemas']['ConnectionMode'] | null;
-    };
-    /**
-     * CaptureMetadata
-     * @description Dynamic capture metadata from libcamera.
-     *
-     *     For more info, see  https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.
-     */
-    CaptureMetadata: {
-      /**
-       * Exposure Time
-       * @description Exposure time in microseconds
-       */
-      exposure_time?: number | null;
-      /**
-       * Frame Duration
-       * @description Frame duration in microseconds
-       */
-      frame_duration?: number | null;
-      /**
-       * Color Temperature
-       * @description Color temperature in K
-       */
-      color_temperature?: number | null;
-      /** Analogue Gain */
-      analogue_gain?: number | null;
-      /** Digital Gain */
-      digital_gain?: number | null;
-      /**
-       * Lux
-       * @description Illuminance in lux
-       */
-      lux?: number | null;
-      /**
-       * Sensor Temperature
-       * @description Sensor temperature in °C
-       */
-      sensor_temperature?: number | null;
-    };
-    /**
-     * CategoryCreateWithSubCategories
-     * @description Schema for creating a new category, with optional subcategories.
-     */
-    CategoryCreateWithSubCategories: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /**
-       * Subcategories
-       * @description List of subcategories
-       */
-      subcategories?: components['schemas']['CategoryCreateWithinCategoryWithSubCategories'][];
-      /** Supercategory Id */
-      supercategory_id?: number | null;
-      /** Taxonomy Id */
-      taxonomy_id?: number | null;
-    };
-    /**
-     * CategoryCreateWithinCategoryWithSubCategories
-     * @description Schema for creating a new category within a category, with optional subcategories.
-     */
-    CategoryCreateWithinCategoryWithSubCategories: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /**
-       * Subcategories
-       * @description List of subcategories
-       */
-      subcategories?: components['schemas']['CategoryCreateWithinCategoryWithSubCategories'][];
-    };
-    /**
-     * CategoryCreateWithinTaxonomyWithSubCategories
-     * @description Schema for creating a new category within a taxonomy, with optional subcategories.
-     */
-    CategoryCreateWithinTaxonomyWithSubCategories: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /**
-       * Subcategories
-       * @description List of subcategories
-       */
-      subcategories?: components['schemas']['CategoryCreateWithinCategoryWithSubCategories'][];
-      /** Supercategory Id */
-      supercategory_id?: number | null;
-    };
-    /**
-     * CategoryRead
-     * @description Schema for reading flat category information.
-     * @example {
-     *       "description": "Iron and its alloys",
-     *       "id": 2,
-     *       "name": "Ferrous metals",
-     *       "supercategory_id": 1,
-     *       "taxonomy_id": 1
-     *     }
-     */
-    CategoryRead: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /** Id */
-      id: number;
-      /**
-       * Taxonomy Id
-       * @description ID of the taxonomy
-       */
-      taxonomy_id: number;
-      /** Supercategory Id */
-      supercategory_id?: number | null;
-    };
-    /**
-     * CategoryReadAsSubCategory
-     * @description Schema for reading subcategory information.
-     * @example {
-     *       "description": "Iron and its alloys",
-     *       "id": 2,
-     *       "name": "Ferrous metals"
-     *     }
-     */
-    CategoryReadAsSubCategory: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /** Id */
-      id: number;
-    };
-    /**
-     * CategoryReadAsSubCategoryWithRecursiveSubCategories
-     * @description Schema for reading category information with recursive subcategories.
-     * @example {
-     *       "description": "All kinds of metals",
-     *       "id": 1,
-     *       "name": "Metals",
-     *       "subcategories": [
-     *         {
-     *           "description": "Iron and its alloys",
-     *           "id": 2,
-     *           "name": "Ferrous metals",
-     *           "subcategories": [
-     *             {
-     *               "description": "Steel alloys",
-     *               "id": 3,
-     *               "name": "Steel"
-     *             }
-     *           ]
-     *         }
-     *       ]
-     *     }
-     */
-    CategoryReadAsSubCategoryWithRecursiveSubCategories: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /** Id */
-      id: number;
-      /**
-       * Subcategories
-       * @description List of subcategories
-       */
-      subcategories?: components['schemas']['CategoryReadAsSubCategoryWithRecursiveSubCategories'][];
-    };
-    /**
-     * CategoryReadWithRecursiveSubCategories
-     * @description Schema for reading base category information with recursive subcategories.
-     * @example {
-     *       "description": "Iron and its alloys",
-     *       "id": 2,
-     *       "name": "Ferrous metals",
-     *       "supercategory_id": 1,
-     *       "taxonomy_id": 1
-     *     }
-     */
-    CategoryReadWithRecursiveSubCategories: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /** Id */
-      id: number;
-      /**
-       * Taxonomy Id
-       * @description ID of the taxonomy
-       */
-      taxonomy_id: number;
-      /** Supercategory Id */
-      supercategory_id?: number | null;
-      /**
-       * Subcategories
-       * @description List of subcategories
-       */
-      subcategories?: components['schemas']['CategoryReadAsSubCategoryWithRecursiveSubCategories'][];
-    };
-    /**
-     * CategoryReadWithRelationshipsAndFlatSubCategories
-     * @description Schema for reading category information with flat (one level deep) subcategories.
-     * @example {
-     *       "description": "Iron and its alloys",
-     *       "id": 2,
-     *       "name": "Ferrous metals",
-     *       "supercategory_id": 1,
-     *       "taxonomy_id": 1
-     *     }
-     */
-    CategoryReadWithRelationshipsAndFlatSubCategories: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-      /**
-       * External Id
-       * @description ID of the category in the external taxonomy
-       */
-      external_id?: string | null;
-      /** Id */
-      id: number;
-      /**
-       * Taxonomy Id
-       * @description ID of the taxonomy
-       */
-      taxonomy_id: number;
-      /** Supercategory Id */
-      supercategory_id?: number | null;
-      /**
-       * Materials
-       * @description List of materials linked to the category
-       */
-      materials?: components['schemas']['MaterialRead'][];
-      /**
-       * Product Types
-       * @description List of product types linked to the category
-       */
-      product_types?: components['schemas']['ProductTypeRead'][];
-      /**
-       * Subcategories
-       * @description List of subcategories
-       */
-      subcategories?: components['schemas']['CategoryReadAsSubCategory'][];
-    };
-    /**
-     * CategoryUpdate
-     * @description Schema for the partial update of a category.
-     *
-     *     Updating the parent_id or taxonomy_id is not allowed, as it greatly increases the risk
-     *     for self-referential loops and other inconsistencies.
-     * @example {
-     *       "description": "All kinds of metals",
-     *       "name": "Metals"
-     *     }
-     */
-    CategoryUpdate: {
-      /**
-       * Name
-       * @description Name of the category
-       */
-      name?: string | null;
-      /**
-       * Description
-       * @description Description of the category
-       */
-      description?: string | null;
-    };
-    /**
-     * CircularityPropertiesCreate
-     * @description Schema for creating circularity properties.
-     * @example {
-     *       "recyclability_comment": "High recyclability rating",
-     *       "recyclability_observation": "The product can be easily disassembled and materials separated",
-     *       "recyclability_reference": "ISO 14021:2016",
-     *       "remanufacturability_comment": "Suitable for remanufacturing",
-     *       "remanufacturability_observation": "Core components can be refurbished and reused",
-     *       "remanufacturability_reference": "BS 8887-2:2009",
-     *       "repairability_comment": "Good repairability score",
-     *       "repairability_observation": "Components are modular and can be replaced individually",
-     *       "repairability_reference": "EN 45554:2020"
-     *     }
-     */
-    CircularityPropertiesCreate: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
-    };
-    /**
-     * CircularityPropertiesRead
-     * @description Schema for reading circularity properties.
-     * @example {
-     *       "id": 1,
-     *       "recyclability_comment": "High recyclability rating",
-     *       "recyclability_observation": "The product can be easily disassembled and materials separated",
-     *       "recyclability_reference": "ISO 14021:2016",
-     *       "remanufacturability_comment": "Suitable for remanufacturing",
-     *       "remanufacturability_observation": "Core components can be refurbished and reused",
-     *       "remanufacturability_reference": "BS 8887-2:2009",
-     *       "repairability_comment": "Good repairability score",
-     *       "repairability_observation": "Components are modular and can be replaced individually",
-     *       "repairability_reference": "EN 45554:2020"
-     *     }
-     */
-    CircularityPropertiesRead: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Id */
-      id: number;
-    };
-    /**
-     * CircularityPropertiesUpdate
-     * @description Schema for updating circularity properties.
-     * @example {
-     *       "recyclability_comment": "Updated comment",
-     *       "recyclability_observation": "Updated observation on recyclability"
-     *     }
-     */
-    CircularityPropertiesUpdate: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
-    };
-    /**
-     * ComponentCreateWithComponents
-     * @description Schema for creating a component with optional sub-components.
-     *
-     *     This schema is used for recursive creation of components with sub-components.
-     *
-     *     Owner ID and parent ID are inferred from the parent product within the CRUD layer.
-     */
-    ComponentCreateWithComponents: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
-      /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /** @description Physical properties of the product */
-      physical_properties?: components['schemas']['PhysicalPropertiesCreate'] | null;
-      /** @description Circularity properties of the product */
-      circularity_properties?: components['schemas']['CircularityPropertiesCreate'] | null;
-      /**
-       * Videos
-       * @description Disassembly videos
-       */
-      videos?: components['schemas']['VideoCreateWithinProduct'][];
-      /**
-       * Bill Of Materials
-       * @description Bill of materials with quantities and units
-       */
-      bill_of_materials?: components['schemas']['MaterialProductLinkCreateWithinProduct'][];
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product. Required for component products.
-       */
-      amount_in_parent: number;
-      /**
-       * Components
-       * @description Set of component products
-       */
-      components?: components['schemas']['ComponentCreateWithComponents'][];
-    };
-    /**
-     * ComponentRead
-     * @description Base schema for reading component information.
-     */
-    ComponentRead: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Id */
-      id: number;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Owner Username */
-      owner_username?: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product
-       */
-      amount_in_parent?: number | null;
-    };
-    /**
-     * ComponentReadWithRecursiveComponents
-     * @description Schema for reading product information with recursive components.
-     */
-    ComponentReadWithRecursiveComponents: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Id */
-      id: number;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Owner Username */
-      owner_username?: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product
-       */
-      amount_in_parent?: number | null;
-      /**
-       * Components
-       * @description List of component products
-       */
-      components?: components['schemas']['ComponentReadWithRecursiveComponents'][];
-    };
-    /**
-     * ConnectionMode
-     * @description How the backend communicates with the RPi camera.
-     * @enum {string}
-     */
-    ConnectionMode: 'http' | 'websocket';
-    /** ErrorModel */
-    ErrorModel: {
-      /** Detail */
-      detail:
-        | string
-        | {
-            [key: string]: string;
-          };
-    };
-    /**
-     * FileRead
-     * @description Schema for reading file information.
-     * @example {
-     *       "description": "Assembly manual PDF",
-     *       "file_url": "/uploads/files/manuals/manual.pdf",
-     *       "filename": "manual.pdf",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1"
-     *     }
-     */
-    FileRead: {
-      /**
-       * Description
-       * @description Description of the file
-       */
-      description?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /** Filename */
-      filename: string;
-      /** File Url */
-      file_url: string | null;
-      /**
-       * Parent Id
-       * @description ID of the parent object
-       */
-      parent_id: number;
-      /** @description Type of the parent object, e.g. product, product_type, material */
-      parent_type: components['schemas']['MediaParentType'];
-    };
-    /**
-     * FileReadWithinParent
-     * @description Schema for reading file information within a parent object.
-     * @example {
-     *       "description": "Assembly manual PDF",
-     *       "file_url": "/uploads/files/manuals/manual.pdf",
-     *       "filename": "manual.pdf",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1"
-     *     }
-     */
-    FileReadWithinParent: {
-      /**
-       * Description
-       * @description Description of the file
-       */
-      description?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /** Filename */
-      filename: string;
-      /** File Url */
-      file_url: string | null;
-    };
-    /**
-     * GoogleTokenRequest
-     * @description Body for Google PKCE token exchange.
-     */
-    GoogleTokenRequest: {
-      /** Id Token */
-      id_token: string;
-      /** Access Token */
-      access_token?: string | null;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
-    };
-    /**
-     * HeaderCreate
-     * @description HTTP header key-value pair with validation.
-     */
-    HeaderCreate: {
-      /**
-       * Key
-       * @description Header key
-       */
-      key: string;
-      /**
-       * Value
-       * Format: password
-       * @description Header value
-       */
-      value: string;
-    };
-    /**
-     * ImageRead
-     * @description Schema for reading image information.
-     * @example {
-     *       "description": "Front view of the product",
-     *       "filename": "front-view.webp",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
-     *       "image_metadata": {
-     *         "camera_make": "Raspberry Pi",
-     *         "orientation": "landscape"
-     *       },
-     *       "image_url": "/uploads/images/products/front-view.webp",
-     *       "thumbnail_url": "/images/12345678-cc4e-405c-8553-7806424de2a1/resized?width=200"
-     *     }
-     */
-    ImageRead: {
-      /**
-       * Description
-       * @description Description of the image
-       */
-      description?: string | null;
-      /**
-       * Image Metadata
-       * @description Image metadata as a JSON dict
-       */
-      image_metadata?: {
-        [key: string]: unknown;
-      } | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /** Filename */
-      filename: string;
-      /** Image Url */
-      image_url: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id: number;
-      /** @description Type of the parent object, e.g. product, product_type, material */
-      parent_type: components['schemas']['MediaParentType'];
-    };
-    /**
-     * ImageReadWithinParent
-     * @description Schema for reading image information within a parent object.
-     * @example {
-     *       "description": "Front view of the product",
-     *       "filename": "front-view.webp",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
-     *       "image_metadata": {
-     *         "camera_make": "Raspberry Pi",
-     *         "orientation": "landscape"
-     *       },
-     *       "image_url": "/uploads/images/products/front-view.webp",
-     *       "thumbnail_url": "/images/12345678-cc4e-405c-8553-7806424de2a1/resized?width=200"
-     *     }
-     */
-    ImageReadWithinParent: {
-      /**
-       * Description
-       * @description Description of the image
-       */
-      description?: string | null;
-      /**
-       * Image Metadata
-       * @description Image metadata as a JSON dict
-       */
-      image_metadata?: {
-        [key: string]: unknown;
-      } | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /** Filename */
-      filename: string;
-      /** Image Url */
-      image_url: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-    };
-    /** Links */
-    Links: {
-      /**
-       * First
-       * @example /api/v1/users?limit=1&offset1
-       */
-      first?: string | null;
-      /**
-       * Last
-       * @example /api/v1/users?limit=1&offset1
-       */
-      last?: string | null;
-      /**
-       * Self
-       * @example /api/v1/users?limit=1&offset1
-       */
-      self?: string | null;
-      /**
-       * Next
-       * @example /api/v1/users?limit=1&offset1
-       */
-      next?: string | null;
-      /**
-       * Prev
-       * @example /api/v1/users?limit=1&offset1
-       */
-      prev?: string | null;
-    };
-    /**
-     * MaterialCreateWithCategories
-     * @description Schema for creating a material with links to existing categories.
-     */
-    MaterialCreateWithCategories: {
-      /**
-       * Name
-       * @description Name of the Material
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the Material
-       */
-      description?: string | null;
-      /**
-       * Source
-       * @description Source of the material data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-      /**
-       * Density Kg M3
-       * @description Volumetric density (kg/m³)
-       */
-      density_kg_m3?: number | null;
-      /**
-       * Is Crm
-       * @description Is this material a Critical Raw Material (CRM)?
-       */
-      is_crm?: boolean | null;
-      /**
-       * Category Ids
-       * @description List of category IDs
-       */
-      category_ids?: number[];
-    };
-    /**
-     * MaterialProductLinkCreateWithinProduct
-     * @description Schema for creating material-product links from the product side.
-     */
-    MaterialProductLinkCreateWithinProduct: {
-      /**
-       * Quantity
-       * @description Quantity of the material in the product
-       */
-      quantity: number;
-      /**
-       * @description Unit of the quantity, e.g. kg, g, m
-       * @default kg
-       */
-      unit: components['schemas']['Unit'];
-      /**
-       * Material Id
-       * @description ID of the material in the product
-       */
-      material_id: number;
-    };
-    /**
-     * MaterialProductLinkCreateWithinProductAndMaterial
-     * @description Schema for creating material-product links from the product side, with an external material ID.
-     */
-    MaterialProductLinkCreateWithinProductAndMaterial: {
-      /**
-       * Quantity
-       * @description Quantity of the material in the product
-       */
-      quantity: number;
-      /**
-       * @description Unit of the quantity, e.g. kg, g, m
-       * @default kg
-       */
-      unit: components['schemas']['Unit'];
-    };
-    /**
-     * MaterialProductLinkReadWithinMaterial
-     * @description Schema for reading material-product links from the material side.
-     */
-    MaterialProductLinkReadWithinMaterial: {
-      /**
-       * Quantity
-       * @description Quantity of the material in the product
-       */
-      quantity: number;
-      /**
-       * @description Unit of the quantity, e.g. kg, g, m
-       * @default kg
-       */
-      unit: components['schemas']['Unit'];
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Product Id */
-      product_id: number;
-      product: components['schemas']['ProductRead'];
-    };
-    /**
-     * MaterialProductLinkReadWithinProduct
-     * @description Schema for reading material-product links from the product side.
-     */
-    MaterialProductLinkReadWithinProduct: {
-      /**
-       * Quantity
-       * @description Quantity of the material in the product
-       */
-      quantity: number;
-      /**
-       * @description Unit of the quantity, e.g. kg, g, m
-       * @default kg
-       */
-      unit: components['schemas']['Unit'];
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Material Id */
-      material_id: number;
-      material: components['schemas']['MaterialRead'];
-    };
-    /**
-     * MaterialProductLinkUpdate
-     * @description Schema for updating material-product links.
-     */
-    MaterialProductLinkUpdate: {
-      /** Quantity */
-      quantity: number | null;
-      /** @default kg */
-      unit: components['schemas']['Unit'] | null;
-    };
-    /**
-     * MaterialRead
-     * @description Schema for reading material information.
-     */
-    MaterialRead: {
-      /**
-       * Name
-       * @description Name of the Material
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the Material
-       */
-      description?: string | null;
-      /**
-       * Source
-       * @description Source of the material data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-      /**
-       * Density Kg M3
-       * @description Volumetric density (kg/m^3)
-       */
-      density_kg_m3?: number | null;
-      /**
-       * Is Crm
-       * @description Is this material a Critical Raw Material (CRM)?
-       */
-      is_crm?: boolean | null;
-      /** Id */
-      id: number;
-    };
-    /**
-     * MaterialReadWithRelationships
-     * @description Schema for reading material information with all relationships.
-     */
-    MaterialReadWithRelationships: {
-      /**
-       * Name
-       * @description Name of the Material
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the Material
-       */
-      description?: string | null;
-      /**
-       * Source
-       * @description Source of the material data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-      /**
-       * Density Kg M3
-       * @description Volumetric density (kg/m^3)
-       */
-      density_kg_m3?: number | null;
-      /**
-       * Is Crm
-       * @description Is this material a Critical Raw Material (CRM)?
-       */
-      is_crm?: boolean | null;
-      /** Id */
-      id: number;
-      /**
-       * Categories
-       * @description List of categories linked to the material
-       */
-      categories?: components['schemas']['CategoryRead'][];
-      /**
-       * Product Links
-       * @description List of products that have this material
-       */
-      product_links?: components['schemas']['MaterialProductLinkReadWithinMaterial'][];
-      /**
-       * Images
-       * @description List of images for the material
-       */
-      images?: components['schemas']['ImageRead'][];
-      /**
-       * Files
-       * @description List of files for the material
-       */
-      files?: components['schemas']['FileRead'][];
-    };
-    /**
-     * MaterialUpdate
-     * @description Schema for a partial update of a material.
-     */
-    MaterialUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Source
-       * @description Source of the material data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-      /**
-       * Density Kg M3
-       * @description Volumetric density (kg/m³)
-       */
-      density_kg_m3?: number | null;
-      /**
-       * Is Crm
-       * @description Is this material a Critical Raw Material (CRM)?
-       */
-      is_crm?: boolean | null;
-    };
-    /**
-     * MediaParentType
-     * @description Parent entity types that can own files and images.
-     * @enum {string}
-     */
-    MediaParentType: 'product' | 'product_type' | 'material';
-    /**
-     * NewsletterPreferenceRead
-     * @description Read schema for a logged-in user's newsletter preference.
-     * @example {
-     *       "email": "subscriber@example.com",
-     *       "is_confirmed": true,
-     *       "subscribed": true
-     *     }
-     */
-    NewsletterPreferenceRead: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /** Subscribed */
-      subscribed: boolean;
-      /** Is Confirmed */
-      is_confirmed: boolean;
-    };
-    /**
-     * NewsletterPreferenceUpdate
-     * @description Update schema for a logged-in user's newsletter preference.
-     * @example {
-     *       "subscribed": true
-     *     }
-     */
-    NewsletterPreferenceUpdate: {
-      /** Subscribed */
-      subscribed: boolean;
-    };
-    /**
-     * NewsletterSubscriberRead
-     * @description Read schema for newsletter subscribers.
-     * @example {
-     *       "email": "subscriber@example.com",
-     *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
-     *       "is_confirmed": true
-     *     }
-     */
-    NewsletterSubscriberRead: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /** Is Confirmed */
-      is_confirmed: boolean;
-    };
-    /**
-     * OAuth2AuthorizeResponse
-     * @description Response model for OAuth2 authorization endpoint.
-     */
-    OAuth2AuthorizeResponse: {
-      /** Authorization Url */
-      authorization_url: string;
-    };
-    /**
-     * OAuthAccountRead
-     * @description Read schema for OAuth accounts.
-     */
-    OAuthAccountRead: {
-      /** Oauth Name */
-      oauth_name: string;
-      /** Account Id */
-      account_id: string;
-      /** Account Email */
-      account_email: string;
-    };
-    /**
-     * OAuthBearerResponse
-     * @description Response for the bearer transport exchange.
-     */
-    OAuthBearerResponse: {
-      /** Access Token */
-      access_token: string;
-      /** Refresh Token */
-      refresh_token: string;
-      /**
-       * Token Type
-       * @default bearer
-       */
-      token_type: string;
-      /** Expires In */
-      expires_in: number;
-    };
-    /**
-     * OrganizationCreate
-     * @description Create schema for organizations.
-     * @example {
-     *       "description": "Research group for product teardown and circularity analysis",
-     *       "location": "Leiden",
-     *       "name": "Reverse Engineering Lab"
-     *     }
-     */
-    OrganizationCreate: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-    };
-    /**
-     * OrganizationRead
-     * @description Public read schema for organizations.
-     */
-    OrganizationRead: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       * @description ID of the organization owner.
-       */
-      owner_id: string;
-    };
-    /**
-     * OrganizationReadPublic
-     * @description Read schema for organizations.
-     */
-    OrganizationReadPublic: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-    };
-    /**
-     * OrganizationReadWithRelationships
-     * @description Read schema for organizations, including relationships.
-     */
-    OrganizationReadWithRelationships: {
-      /** Name */
-      name: string;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /**
-       * Id
-       * Format: uuid4
-       */
-      id: string;
-      /**
-       * Members
-       * @description List of users in the organization.
-       */
-      members?: components['schemas']['UserRead'][];
-    };
-    /**
-     * OrganizationUpdate
-     * @description Update schema for organizations.
-     */
-    OrganizationUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Location */
-      location?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Owner Id
-       * @description ID of the member who should become the new owner.
-       */
-      owner_id?: string | null;
-    };
-    /** Page[CameraRead] */
-    Page_CameraRead_: {
-      /** Items */
-      items: components['schemas']['CameraRead'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[CategoryReadWithRecursiveSubCategories] */
-    Page_CategoryReadWithRecursiveSubCategories_: {
-      /** Items */
-      items: components['schemas']['CategoryReadWithRecursiveSubCategories'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[CategoryReadWithRelationshipsAndFlatSubCategories] */
-    Page_CategoryReadWithRelationshipsAndFlatSubCategories_: {
-      /** Items */
-      items: components['schemas']['CategoryReadWithRelationshipsAndFlatSubCategories'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[CategoryRead] */
-    Page_CategoryRead_: {
-      /** Items */
-      items: components['schemas']['CategoryRead'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[MaterialReadWithRelationships] */
-    Page_MaterialReadWithRelationships_: {
-      /** Items */
-      items: components['schemas']['MaterialReadWithRelationships'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[NewsletterSubscriberRead] */
-    Page_NewsletterSubscriberRead_: {
-      /** Items */
-      items: components['schemas']['NewsletterSubscriberRead'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[OrganizationReadPublic] */
-    Page_OrganizationReadPublic_: {
-      /** Items */
-      items: components['schemas']['OrganizationReadPublic'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[OrganizationReadWithRelationships] */
-    Page_OrganizationReadWithRelationships_: {
-      /** Items */
-      items: components['schemas']['OrganizationReadWithRelationships'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[ProductTypeReadWithRelationships] */
-    Page_ProductTypeReadWithRelationships_: {
-      /** Items */
-      items: components['schemas']['ProductTypeReadWithRelationships'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[TaxonomyRead] */
-    Page_TaxonomyRead_: {
-      /** Items */
-      items: components['schemas']['TaxonomyRead'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[TypeVar]Customized[ProductReadWithRelationshipsAndFlatComponents] */
-    Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_: {
-      /** Items */
-      items: components['schemas']['ProductReadWithRelationshipsAndFlatComponents'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-      readonly links: components['schemas']['Links'];
-    };
-    /** Page[TypeVar]Customized[str] */
-    Page_TypeVar_Customized_str_: {
-      /** Items */
-      items: string[];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-      readonly links: components['schemas']['Links'];
-    };
-    /** Page[UserReadPublic] */
-    Page_UserReadPublic_: {
-      /** Items */
-      items: components['schemas']['UserReadPublic'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /** Page[UserRead] */
-    Page_UserRead_: {
-      /** Items */
-      items: components['schemas']['UserRead'][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
-    /**
-     * PhysicalPropertiesCreate
-     * @description Schema for creating physical properties.
-     * @example {
-     *       "depth_cm": 50,
-     *       "height_cm": 150,
-     *       "weight_g": 20000,
-     *       "width_cm": 70
-     *     }
-     */
-    PhysicalPropertiesCreate: {
-      /** Weight G */
-      weight_g?: number | null;
-      /** Height Cm */
-      height_cm?: number | null;
-      /** Width Cm */
-      width_cm?: number | null;
-      /** Depth Cm */
-      depth_cm?: number | null;
-    };
-    /**
-     * PhysicalPropertiesRead
-     * @description Schema for reading physical properties.
-     * @example {
-     *       "depth_cm": 50,
-     *       "height_cm": 150,
-     *       "id": 1,
-     *       "weight_g": 20000,
-     *       "width_cm": 70
-     *     }
-     */
-    PhysicalPropertiesRead: {
-      /** Weight G */
-      weight_g?: number | null;
-      /** Height Cm */
-      height_cm?: number | null;
-      /** Width Cm */
-      width_cm?: number | null;
-      /** Depth Cm */
-      depth_cm?: number | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Id */
-      id: number;
-    };
-    /**
-     * PhysicalPropertiesUpdate
-     * @description Schema for updating physical properties.
-     * @example {
-     *       "height_cm": 120,
-     *       "weight_g": 15000
-     *     }
-     */
-    PhysicalPropertiesUpdate: {
-      /** Weight G */
-      weight_g?: number | null;
-      /** Height Cm */
-      height_cm?: number | null;
-      /** Width Cm */
-      width_cm?: number | null;
-      /** Depth Cm */
-      depth_cm?: number | null;
-    };
-    /**
-     * ProductCreateWithComponents
-     * @description Schema for creating a base product with optional components.
-     * @example {
-     *       "bill_of_materials": [
-     *         {
-     *           "material_id": 1,
-     *           "quantity": 0.3,
-     *           "unit": "g"
-     *         },
-     *         {
-     *           "material_id": 2,
-     *           "quantity": 0.1,
-     *           "unit": "g"
-     *         }
-     *       ],
-     *       "brand": "Brand 1",
-     *       "description": "Complete chair assembly",
-     *       "dismantling_time_end": "2025-09-22T16:30:45Z",
-     *       "dismantling_time_start": "2025-09-22T14:30:45Z",
-     *       "model": "Model 1",
-     *       "name": "Office Chair",
-     *       "physical_properties": {
-     *         "depth_cm": 50,
-     *         "height_cm": 150,
-     *         "weight_g": 20000,
-     *         "width_cm": 70
-     *       },
-     *       "product_type_id": 1,
-     *       "videos": [
-     *         {
-     *           "description": "Disassembly video",
-     *           "url": "https://www.youtube.com/watch?v=123456789"
-     *         }
-     *       ]
-     *     }
-     */
-    ProductCreateWithComponents: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
-      /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /** @description Physical properties of the product */
-      physical_properties?: components['schemas']['PhysicalPropertiesCreate'] | null;
-      /** @description Circularity properties of the product */
-      circularity_properties?: components['schemas']['CircularityPropertiesCreate'] | null;
-      /**
-       * Videos
-       * @description Disassembly videos
-       */
-      videos?: components['schemas']['VideoCreateWithinProduct'][];
-      /**
-       * Bill Of Materials
-       * @description Bill of materials with quantities and units
-       */
-      bill_of_materials?: components['schemas']['MaterialProductLinkCreateWithinProduct'][];
-      /**
-       * Components
-       * @description Set of component products
-       */
-      components?: components['schemas']['ComponentCreateWithComponents'][];
-    };
-    /**
-     * ProductRead
-     * @description Base schema for reading product information.
-     */
-    ProductRead: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Id */
-      id: number;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Owner Username */
-      owner_username?: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product
-       */
-      amount_in_parent?: number | null;
-    };
-    /**
-     * ProductReadWithProperties
-     * @description Schema for reading product information with all properties.
-     */
-    ProductReadWithProperties: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Id */
-      id: number;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Owner Username */
-      owner_username?: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product
-       */
-      amount_in_parent?: number | null;
-      physical_properties?: components['schemas']['PhysicalPropertiesRead'] | null;
-      circularity_properties?: components['schemas']['CircularityPropertiesRead'] | null;
-    };
-    /**
-     * ProductReadWithRecursiveComponents
-     * @description Schema for reading product information with recursive components.
-     */
-    ProductReadWithRecursiveComponents: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Id */
-      id: number;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Owner Username */
-      owner_username?: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product
-       */
-      amount_in_parent?: number | null;
-      physical_properties?: components['schemas']['PhysicalPropertiesRead'] | null;
-      circularity_properties?: components['schemas']['CircularityPropertiesRead'] | null;
-      product_type?: components['schemas']['ProductTypeRead'] | null;
-      /**
-       * Images
-       * @description Product images
-       */
-      images?: components['schemas']['ImageRead'][];
-      /**
-       * Videos
-       * @description Disassembly videos
-       */
-      videos?: components['schemas']['VideoReadWithinProduct'][];
-      /**
-       * Files
-       * @description Product files
-       */
-      files?: components['schemas']['FileRead'][];
-      /**
-       * Bill Of Materials
-       * @description Bill of materials with quantities and units
-       */
-      bill_of_materials?: components['schemas']['MaterialProductLinkReadWithinProduct'][];
-      /**
-       * Components
-       * @description List of component products
-       */
-      components?: components['schemas']['ComponentReadWithRecursiveComponents'][];
-    };
-    /**
-     * ProductReadWithRelationshipsAndFlatComponents
-     * @description Schema for reading product information with one level of components.
-     */
-    ProductReadWithRelationshipsAndFlatComponents: {
-      /** Name */
-      name: string;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process of the product.
-       */
-      dismantling_notes?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
-      /** Created At */
-      created_at?: string | null;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Id */
-      id: number;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Owner Id
-       * Format: uuid4
-       */
-      owner_id: string;
-      /** Owner Username */
-      owner_username?: string | null;
-      /** Thumbnail Url */
-      thumbnail_url?: string | null;
-      /** Parent Id */
-      parent_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product
-       */
-      amount_in_parent?: number | null;
-      physical_properties?: components['schemas']['PhysicalPropertiesRead'] | null;
-      circularity_properties?: components['schemas']['CircularityPropertiesRead'] | null;
-      product_type?: components['schemas']['ProductTypeRead'] | null;
-      /**
-       * Images
-       * @description Product images
-       */
-      images?: components['schemas']['ImageRead'][];
-      /**
-       * Videos
-       * @description Disassembly videos
-       */
-      videos?: components['schemas']['VideoReadWithinProduct'][];
-      /**
-       * Files
-       * @description Product files
-       */
-      files?: components['schemas']['FileRead'][];
-      /**
-       * Bill Of Materials
-       * @description Bill of materials with quantities and units
-       */
-      bill_of_materials?: components['schemas']['MaterialProductLinkReadWithinProduct'][];
-      /**
-       * Components
-       * @description List of component products
-       */
-      components?: components['schemas']['ComponentRead'][];
-    };
-    /**
-     * ProductTypeCreateWithCategories
-     * @description Schema for creating a product type with links to existing categories.
-     */
-    ProductTypeCreateWithCategories: {
-      /**
-       * Name
-       * @description Name of the Product Type.
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the Product Type.
-       */
-      description?: string | null;
-      /** Category Ids */
-      category_ids?: number[];
-    };
-    /**
-     * ProductTypeRead
-     * @description Schema for reading flat product type information.
-     */
-    ProductTypeRead: {
-      /**
-       * Name
-       * @description Name of the Product Type.
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the Product Type.
-       */
-      description?: string | null;
-      /** Id */
-      id: number;
-    };
-    /**
-     * ProductTypeReadWithRelationships
-     * @description Schema for reading product type information with all relationships.
-     */
-    ProductTypeReadWithRelationships: {
-      /**
-       * Name
-       * @description Name of the Product Type.
-       */
-      name: string;
-      /**
-       * Description
-       * @description Description of the Product Type.
-       */
-      description?: string | null;
-      /** Id */
-      id: number;
-      /** Products */
-      products?: components['schemas']['ProductRead'][];
-      /** Categories */
-      categories?: components['schemas']['CategoryRead'][];
-      /** Images */
-      images?: components['schemas']['ImageRead'][];
-      /** Files */
-      files?: components['schemas']['FileRead'][];
-    };
-    /**
-     * ProductTypeUpdate
-     * @description Schema for a partial update of a product type.
-     */
-    ProductTypeUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Description */
-      description?: string | null;
-    };
-    /**
-     * ProductUpdate
-     * @description Schema for updating basic product information.
-     */
-    ProductUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process
-       */
-      dismantling_notes?: string | null;
-      /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
-      /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product. Required for component products.
-       */
-      amount_in_parent?: number | null;
-    };
-    /**
-     * ProductUpdateWithProperties
-     * @description Schema for a partial update of a product with properties.
-     */
-    ProductUpdateWithProperties: {
-      /** Name */
-      name?: string | null;
-      /** Description */
-      description?: string | null;
-      /** Brand */
-      brand?: string | null;
-      /** Model */
-      model?: string | null;
-      /**
-       * Dismantling Notes
-       * @description Notes on the dismantling process
-       */
-      dismantling_notes?: string | null;
-      /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
-      /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
-      /** Product Type Id */
-      product_type_id?: number | null;
-      /**
-       * Amount In Parent
-       * @description Quantity within parent product. Required for component products.
-       */
-      amount_in_parent?: number | null;
-      physical_properties?: components['schemas']['PhysicalPropertiesUpdate'] | null;
-      circularity_properties?: components['schemas']['CircularityPropertiesUpdate'] | null;
-    };
-    /**
-     * RefreshTokenRequest
-     * @description Request schema for refreshing access token.
-     * @example {
-     *       "refresh_token": "refresh-token-from-login"
-     *     }
-     */
-    RefreshTokenRequest: {
-      /**
-       * Refresh Token
-       * Format: password
-       * @description Refresh token obtained from login
-       */
-      refresh_token: string;
-    };
-    /**
-     * RefreshTokenResponse
-     * @description Response for token refresh.
-     * @example {
-     *       "access_token": "new-jwt-access-token",
-     *       "expires_in": 3600,
-     *       "refresh_token": "rotated-refresh-token",
-     *       "token_type": "bearer"
-     *     }
-     */
-    RefreshTokenResponse: {
-      /**
-       * Access Token
-       * @description New JWT access token
-       */
-      access_token: string;
-      /**
-       * Refresh Token
-       * @description Rotated refresh token
-       */
-      refresh_token: string;
-      /**
-       * Token Type
-       * @description Token type (always 'bearer')
-       * @default bearer
-       */
-      token_type: string;
-      /**
-       * Expires In
-       * @description Access token expiration time in seconds
-       */
-      expires_in: number;
-    };
-    /**
-     * StreamMetadata
-     * @description Metadata specific to video streams.
-     */
-    StreamMetadata: {
-      camera_properties: components['schemas']['CameraProperties'];
-      capture_metadata: components['schemas']['CaptureMetadata'];
-    };
-    /**
-     * StreamMode
-     * @description Stream mode. Contains ffmpeg stream and URL construction logic for each mode.
-     * @enum {string}
-     */
-    StreamMode: 'youtube' | 'local';
-    /**
-     * StreamView
-     * @description Pydantic model for active stream information.
-     */
-    StreamView: {
-      mode: components['schemas']['StreamMode'];
-      /**
-       * Url
-       * Format: uri
-       */
-      url: string;
-      /**
-       * Started At
-       * Format: date-time
-       */
-      started_at: string;
-      youtube_config?: components['schemas']['YoutubeStreamConfig'] | null;
-      metadata: components['schemas']['StreamMetadata'];
-    };
-    /**
-     * TaxonomyCreate
-     * @description Schema for creating a new taxonomy without categories.
-     */
-    TaxonomyCreate: {
-      /** Name */
-      name: string;
-      /** Version */
-      version: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Domains
-       * @description Domains of the taxonomy, e.g. {materials, products, other}
-       */
-      domains: components['schemas']['TaxonomyDomain'][];
-      /**
-       * Source
-       * @description Source of the taxonomy data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-    };
-    /**
-     * TaxonomyCreateWithCategories
-     * @description Schema for creating a new taxonomy, optionally with new categories.
-     */
-    TaxonomyCreateWithCategories: {
-      /** Name */
-      name: string;
-      /** Version */
-      version: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Domains
-       * @description Domains of the taxonomy, e.g. {materials, products, other}
-       */
-      domains: components['schemas']['TaxonomyDomain'][];
-      /**
-       * Source
-       * @description Source of the taxonomy data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-      /**
-       * Categories
-       * @description Set of subcategories
-       */
-      categories?: components['schemas']['CategoryCreateWithinTaxonomyWithSubCategories'][];
-    };
-    /**
-     * TaxonomyDomain
-     * @description Enumeration of taxonomy domains.
-     * @enum {string}
-     */
-    TaxonomyDomain: 'materials' | 'products' | 'other';
-    /**
-     * TaxonomyRead
-     * @description Schema for reading minimal taxonomy information.
-     * @example {
-     *       "description": "Taxonomy for materials",
-     *       "domains": [
-     *         "materials"
-     *       ],
-     *       "name": "Materials Taxonomy",
-     *       "source": "DOI:10.2345/12345"
-     *     }
-     */
-    TaxonomyRead: {
-      /** Name */
-      name: string;
-      /** Version */
-      version: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Domains
-       * @description Domains of the taxonomy, e.g. {materials, products, other}
-       */
-      domains: components['schemas']['TaxonomyDomain'][];
-      /**
-       * Source
-       * @description Source of the taxonomy data, e.g. URL, IRI or citation key
-       */
-      source?: string | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Id */
-      id: number;
-    };
-    /**
-     * TaxonomyUpdate
-     * @description Schema for the partial update of a taxonomy.
-     */
-    TaxonomyUpdate: {
-      /** Name */
-      name?: string | null;
-      /** Version */
-      version?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Domains
-       * @description Domains of the taxonomy, e.g. {materials, products, other}
-       */
-      domains?: components['schemas']['TaxonomyDomain'][] | null;
-      /**
-       * Source
-       * @description Source of the taxonomy data
-       */
-      source?: string | null;
-    };
-    /**
-     * Unit
-     * @description Allowed units in the data collection.
-     * @enum {string}
-     */
-    Unit: 'kg' | 'g' | 'm' | 'cm';
-    /**
-     * UserCreate
-     * @description Create schema for users, optionally with organization to join.
-     * @example {
-     *       "email": "user@example.com",
-     *       "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-     *       "password": "fake_password",
-     *       "username": "username"
-     *     }
-     */
-    UserCreate: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Password
-       * Format: password
-       */
-      password: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean | null;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean | null;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean | null;
-      /** Username */
-      username?: string | null;
-      /** Organization Id */
-      organization_id?: string | null;
-    };
-    /**
-     * UserCreateWithOrganization
-     * @description Create schema for users with organization to create and own.
-     * @example {
-     *       "email": "user@example.com",
-     *       "organization": {
-     *         "description": "description",
-     *         "location": "location",
-     *         "name": "organization"
-     *       },
-     *       "password": "fake_password",
-     *       "username": "username"
-     *     }
-     */
-    UserCreateWithOrganization: {
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Password
-       * Format: password
-       */
-      password: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean | null;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean | null;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean | null;
-      /** Username */
-      username?: string | null;
-      organization: components['schemas']['OrganizationCreate'];
-    };
-    /**
-     * UserRead
-     * @description Read schema for users.
-     * @example {
-     *       "email": "user@example.com",
-     *       "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-     *       "is_active": true,
-     *       "is_superuser": false,
-     *       "is_verified": true,
-     *       "username": "username"
-     *     }
-     */
-    UserRead: {
-      /**
-       * Id
-       * Format: uuid
-       */
-      id: string;
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean;
-      /** Username */
-      username?: string | null;
-      /**
-       * Oauth Accounts
-       * @description List of linked OAuth accounts.
-       */
-      oauth_accounts?: components['schemas']['OAuthAccountRead'][];
-    };
-    /**
-     * UserReadPublic
-     * @description Public read schema for users.
-     */
-    UserReadPublic: {
-      /** Username */
-      username?: string | null;
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-    };
-    /**
-     * UserReadWithOrganization
-     * @description Read schema for users with organization.
-     * @example {
-     *       "email": "user@example.com",
-     *       "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-     *       "is_active": true,
-     *       "is_superuser": false,
-     *       "is_verified": true,
-     *       "username": "username"
-     *     }
-     */
-    UserReadWithOrganization: {
-      /**
-       * Id
-       * Format: uuid
-       */
-      id: string;
-      /**
-       * Email
-       * Format: email
-       */
-      email: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean;
-      /**
-       * Is Superuser
-       * @default false
-       */
-      is_superuser: boolean;
-      /**
-       * Is Verified
-       * @default false
-       */
-      is_verified: boolean;
-      /** Username */
-      username?: string | null;
-      /**
-       * Oauth Accounts
-       * @description List of linked OAuth accounts.
-       */
-      oauth_accounts?: components['schemas']['OAuthAccountRead'][];
-      /** @description Organization the user belongs to. */
-      organization?: components['schemas']['OrganizationRead'] | null;
-    };
-    /**
-     * UserUpdate
-     * @description Update schema for users.
-     * @example {
-     *       "email": "user@example.com",
-     *       "is_active": true,
-     *       "is_superuser": true,
-     *       "is_verified": true,
-     *       "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-     *       "password": "newpassword",
-     *       "username": "username"
-     *     }
-     */
-    UserUpdate: {
-      /**
-       * Password
-       * Format: password
-       */
-      password?: string | null;
-      /** Email */
-      email?: string | null;
-      /** Is Active */
-      is_active?: boolean | null;
-      /** Is Superuser */
-      is_superuser?: boolean | null;
-      /** Is Verified */
-      is_verified?: boolean | null;
-      /** Username */
-      username?: string | null;
-      /** Organization Id */
-      organization_id?: string | null;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-      /** Input */
-      input?: unknown;
-      /** Context */
-      ctx?: Record<string, never>;
-    };
-    /**
-     * VideoCreateWithinProduct
-     * @description Schema for creating a video.
-     * @example {
-     *       "description": "Recorded teardown of the product",
-     *       "title": "Full disassembly",
-     *       "url": "https://www.youtube.com/watch?v=abcdefghijk",
-     *       "video_metadata": {
-     *         "duration_seconds": 420,
-     *         "source": "youtube"
-     *       }
-     *     }
-     */
-    VideoCreateWithinProduct: {
-      url: components['schemas']['AnyUrlToDB'];
-      /**
-       * Title
-       * @description Title of the video
-       */
-      title?: string | null;
-      /**
-       * Description
-       * @description Description of the video
-       */
-      description?: string | null;
-      /**
-       * Video Metadata
-       * @description Video metadata as a JSON dict
-       */
-      video_metadata?: {
-        [key: string]: unknown;
-      } | null;
-    };
-    /**
-     * VideoRead
-     * @description Schema for reading video information.
-     */
-    VideoRead: {
-      /**
-       * Url
-       * @description URL linking to the video
-       */
-      url: string;
-      /**
-       * Title
-       * @description Title of the video
-       */
-      title?: string | null;
-      /**
-       * Description
-       * @description Description of the video
-       */
-      description?: string | null;
-      /**
-       * Video Metadata
-       * @description Video metadata as a JSON dict
-       */
-      video_metadata?: {
-        [key: string]: unknown;
-      } | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Id */
-      id: number;
-      /** Product Id */
-      product_id: number;
-    };
-    /**
-     * VideoReadWithinProduct
-     * @description Schema for reading video information within a product.
-     * @example {
-     *       "description": "Recorded teardown of the product",
-     *       "id": 1,
-     *       "title": "Full disassembly",
-     *       "url": "https://www.youtube.com/watch?v=abcdefghijk",
-     *       "video_metadata": {
-     *         "duration_seconds": 420,
-     *         "source": "youtube"
-     *       }
-     *     }
-     */
-    VideoReadWithinProduct: {
-      /**
-       * Url
-       * @description URL linking to the video
-       */
-      url: string;
-      /**
-       * Title
-       * @description Title of the video
-       */
-      title?: string | null;
-      /**
-       * Description
-       * @description Description of the video
-       */
-      description?: string | null;
-      /**
-       * Video Metadata
-       * @description Video metadata as a JSON dict
-       */
-      video_metadata?: {
-        [key: string]: unknown;
-      } | null;
-      /** Created At */
-      created_at?: string;
-      /** Updated At */
-      updated_at?: string;
-      /** Id */
-      id: number;
-    };
-    /**
-     * VideoUpdateWithinProduct
-     * @description Schema for updating a video within a product.
-     * @example {
-     *       "description": "Shortened version for publication",
-     *       "title": "Updated disassembly title",
-     *       "video_metadata": {
-     *         "edited": true
-     *       }
-     *     }
-     */
-    VideoUpdateWithinProduct: {
-      /** @description URL linking to the video */
-      url?: components['schemas']['AnyUrlToDB'] | null;
-      /**
-       * Title
-       * @description Title of the video
-       */
-      title?: string | null;
-      /**
-       * Description
-       * @description Description of the video
-       */
-      description?: string | null;
-      /**
-       * Video Metadata
-       * @description Video metadata as a JSON dict
-       */
-      video_metadata?: {
-        [key: string]: unknown;
-      } | null;
-    };
-    /**
-     * YouTubeMonitorStreamResponse
-     * @description Subset of monitor stream fields used by the app.
-     */
-    YouTubeMonitorStreamResponse: {
-      /** Enablemonitorstream */
-      enableMonitorStream: boolean;
-      /** Broadcaststreamdelayms */
-      broadcastStreamDelayMs?: number | null;
-      /** Embedhtml */
-      embedHtml?: string | null;
-    };
-    /**
-     * YouTubePrivacyStatus
-     * @description Enumeration of YouTube privacy statuses.
-     * @enum {string}
-     */
-    YouTubePrivacyStatus: 'public' | 'private' | 'unlisted';
-    /**
-     * YoutubeStreamConfig
-     * @description YouTube stream configuration.
-     */
-    YoutubeStreamConfig: {
-      /**
-       * Stream Key
-       * @description Stream key for YouTube streaming
-       */
-      stream_key: string;
-      /**
-       * Broadcast Key
-       * @description Broadcast key for YouTube streaming
-       */
-      broadcast_key: string;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    schemas: {
+        /** Format: uri */
+        AnyUrlToDB: string;
+        /** BearerResponse */
+        BearerResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Token Type */
+            token_type: string;
+        };
+        /** Body_auth_bearer_login_auth_bearer_login_post */
+        Body_auth_bearer_login_auth_bearer_login_post: {
+            /** Grant Type */
+            grant_type?: string | null;
+            /** Username */
+            username: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+            /** Client Id */
+            client_id?: string | null;
+            /**
+             * Client Secret
+             * Format: password
+             */
+            client_secret?: string | null;
+        };
+        /** Body_auth_cookie_login_auth_cookie_login_post */
+        Body_auth_cookie_login_auth_cookie_login_post: {
+            /** Grant Type */
+            grant_type?: string | null;
+            /** Username */
+            username: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+            /** Client Id */
+            client_id?: string | null;
+            /**
+             * Client Secret
+             * Format: password
+             */
+            client_secret?: string | null;
+        };
+        /** Body_capture_image_plugins_rpi_cam_cameras__camera_id__image_post */
+        Body_capture_image_plugins_rpi_cam_cameras__camera_id__image_post: {
+            /**
+             * Product Id
+             * @description ID of product to associate the image with
+             */
+            product_id: number;
+            /**
+             * Description
+             * @description Custom description for the image
+             */
+            description?: string | null;
+        };
+        /** Body_reset_forgot_password_auth_forgot_password_post */
+        Body_reset_forgot_password_auth_forgot_password_post: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /** Body_reset_reset_password_auth_reset_password_post */
+        Body_reset_reset_password_auth_reset_password_post: {
+            /** Token */
+            token: string;
+            /** Password */
+            password: string;
+        };
+        /** Body_start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post */
+        Body_start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post: {
+            /**
+             * Product Id
+             * @description ID of product to associate the video with
+             */
+            product_id: number;
+            /**
+             * Title
+             * @description Custom video title
+             */
+            title?: string | null;
+            /**
+             * Description
+             * @description Custom description for the video
+             */
+            description?: string | null;
+            /**
+             * @description Privacy status for the YouTube video
+             * @default private
+             */
+            privacy_status: components["schemas"]["YouTubePrivacyStatus"];
+        };
+        /** Body_upload_material_file_admin_materials__material_id__files_post */
+        Body_upload_material_file_admin_materials__material_id__files_post: {
+            /**
+             * File
+             * @description A file to upload
+             */
+            file: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** Body_upload_material_image_admin_materials__material_id__images_post */
+        Body_upload_material_image_admin_materials__material_id__images_post: {
+            /**
+             * File
+             * @description An image to upload
+             */
+            file: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Image Metadata
+             * @description Image metadata in JSON string format
+             */
+            image_metadata?: string | null;
+        };
+        /** Body_upload_product_file_products__product_id__files_post */
+        Body_upload_product_file_products__product_id__files_post: {
+            /**
+             * File
+             * @description A file to upload
+             */
+            file: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** Body_upload_product_image_products__product_id__images_post */
+        Body_upload_product_image_products__product_id__images_post: {
+            /**
+             * File
+             * @description An image to upload
+             */
+            file: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Image Metadata
+             * @description Image metadata in JSON string format
+             */
+            image_metadata?: string | null;
+        };
+        /** Body_upload_product_type_file_admin_product_types__product_type_id__files_post */
+        Body_upload_product_type_file_admin_product_types__product_type_id__files_post: {
+            /**
+             * File
+             * @description A file to upload
+             */
+            file: string;
+            /** Description */
+            description?: string | null;
+        };
+        /** Body_upload_product_type_image_admin_product_types__product_type_id__images_post */
+        Body_upload_product_type_image_admin_product_types__product_type_id__images_post: {
+            /**
+             * File
+             * @description An image to upload
+             */
+            file: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Image Metadata
+             * @description Image metadata in JSON string format
+             */
+            image_metadata?: string | null;
+        };
+        /** Body_verify_request_token_auth_request_verify_token_post */
+        Body_verify_request_token_auth_request_verify_token_post: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /** Body_verify_verify_auth_verify_post */
+        Body_verify_verify_auth_verify_post: {
+            /** Token */
+            token: string;
+        };
+        /**
+         * CacheNamespace
+         * @description Cache namespace identifiers for different application areas.
+         * @enum {string}
+         */
+        CacheNamespace: "background-data" | "docs";
+        /**
+         * CameraConnectionStatus
+         * @description Camera connection status.
+         * @enum {string}
+         */
+        CameraConnectionStatus: "online" | "offline" | "unauthorized" | "forbidden" | "error";
+        /**
+         * CameraCreate
+         * @description Schema for creating a camera.
+         * @example {
+         *       "auth_headers": [
+         *         {
+         *           "key": "Authorization",
+         *           "value": "Bearer local-camera-token"
+         *         },
+         *         {
+         *           "key": "X-Site",
+         *           "value": "lab-a"
+         *         }
+         *       ],
+         *       "description": "Ceiling-mounted camera above the teardown bench",
+         *       "name": "Workbench Camera",
+         *       "url": "http://192.168.1.20:8000"
+         *     }
+         */
+        CameraCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** @default http */
+            connection_mode: components["schemas"]["ConnectionMode"];
+            /** @description HTTP(S) URL where the camera API is hosted (required for HTTP mode). */
+            url?: components["schemas"]["AnyUrlToDB"] | null;
+            /**
+             * Auth Headers
+             * @description List of additional authentication headers for the camera API
+             */
+            auth_headers?: components["schemas"]["HeaderCreate"][] | null;
+        };
+        /**
+         * CameraMode
+         * @description Camera use mode. Contains camera configuration for each mode.
+         * @enum {string}
+         */
+        CameraMode: "photo" | "video";
+        /**
+         * CameraProperties
+         * @description Static camera properties from libcamera.
+         *
+         *     For more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.
+         */
+        CameraProperties: {
+            /** Model */
+            Model?: string | null;
+            /**
+             * Unit Cell Size
+             * @description Sensor unit cell size in nanometers
+             */
+            unit_cell_size?: [
+                number,
+                number
+            ] | null;
+            /** Pixel Array Size */
+            pixel_array_size?: [
+                number,
+                number
+            ] | null;
+            /** Sensor Sensitivity */
+            sensor_sensitivity?: number | null;
+        };
+        /**
+         * CameraRead
+         * @description Basic Camera Read schema.
+         * @example {
+         *       "description": "Ceiling-mounted camera above the teardown bench",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
+         *       "name": "Workbench Camera",
+         *       "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
+         *       "url": "http://192.168.1.20:8000"
+         *     }
+         */
+        CameraRead: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** @default http */
+            connection_mode: components["schemas"]["ConnectionMode"];
+            /** Url */
+            url?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+        };
+        /**
+         * CameraReadWithCredentials
+         * @description Schema for camera read with credentials.
+         * @example {
+         *       "api_key": "generated-camera-api-key",
+         *       "auth_headers": {
+         *         "Authorization": "Bearer local-camera-token",
+         *         "X-Site": "lab-a"
+         *       },
+         *       "description": "Ceiling-mounted camera above the teardown bench",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
+         *       "name": "Workbench Camera",
+         *       "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
+         *       "url": "http://192.168.1.20:8000"
+         *     }
+         */
+        CameraReadWithCredentials: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** @default http */
+            connection_mode: components["schemas"]["ConnectionMode"];
+            /** Url */
+            url?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            /** Api Key */
+            api_key: string;
+            /** Auth Headers */
+            auth_headers: {
+                [key: string]: string;
+            } | null;
+        };
+        /**
+         * CameraReadWithStatus
+         * @description Schema for camera read with online status.
+         * @example {
+         *       "description": "Ceiling-mounted camera above the teardown bench",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
+         *       "name": "Workbench Camera",
+         *       "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
+         *       "url": "http://192.168.1.20:8000"
+         *     }
+         */
+        CameraReadWithStatus: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** @default http */
+            connection_mode: components["schemas"]["ConnectionMode"];
+            /** Url */
+            url?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            status: components["schemas"]["CameraStatus"];
+        };
+        /**
+         * CameraStatus
+         * @description Camera connection status and details.
+         */
+        CameraStatus: {
+            connection: components["schemas"]["CameraConnectionStatus"];
+            details?: components["schemas"]["CameraStatusView"] | null;
+        };
+        /**
+         * CameraStatusView
+         * @description API response model for camera status.
+         */
+        CameraStatusView: {
+            current_mode?: components["schemas"]["CameraMode"] | null;
+            stream?: components["schemas"]["StreamView"] | null;
+        };
+        /**
+         * CameraUpdate
+         * @description Schema for updating a camera.
+         * @example {
+         *       "description": "Camera assigned to the repairability bench",
+         *       "url": "https://camera-lab.example.org"
+         *     }
+         */
+        CameraUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** @description HTTP(S) URL where the camera API is hosted */
+            url?: components["schemas"]["AnyUrlToDB"] | null;
+            /**
+             * Auth Headers
+             * @description List of additional authentication headers for the camera API
+             */
+            auth_headers?: components["schemas"]["HeaderCreate"][] | null;
+            /**
+             * Owner Id
+             * @description Transfer ownership to an existing user in the same organization as the current owner.
+             */
+            owner_id?: string | null;
+            /** @description Change the connection mode for this camera. */
+            connection_mode?: components["schemas"]["ConnectionMode"] | null;
+        };
+        /**
+         * CaptureMetadata
+         * @description Dynamic capture metadata from libcamera.
+         *
+         *     For more info, see  https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.
+         */
+        CaptureMetadata: {
+            /**
+             * Exposure Time
+             * @description Exposure time in microseconds
+             */
+            exposure_time?: number | null;
+            /**
+             * Frame Duration
+             * @description Frame duration in microseconds
+             */
+            frame_duration?: number | null;
+            /**
+             * Color Temperature
+             * @description Color temperature in K
+             */
+            color_temperature?: number | null;
+            /** Analogue Gain */
+            analogue_gain?: number | null;
+            /** Digital Gain */
+            digital_gain?: number | null;
+            /**
+             * Lux
+             * @description Illuminance in lux
+             */
+            lux?: number | null;
+            /**
+             * Sensor Temperature
+             * @description Sensor temperature in °C
+             */
+            sensor_temperature?: number | null;
+        };
+        /**
+         * CategoryCreateWithSubCategories
+         * @description Schema for creating a new category, with optional subcategories.
+         */
+        CategoryCreateWithSubCategories: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /**
+             * Subcategories
+             * @description List of subcategories
+             */
+            subcategories?: components["schemas"]["CategoryCreateWithinCategoryWithSubCategories"][];
+            /** Supercategory Id */
+            supercategory_id?: number | null;
+            /** Taxonomy Id */
+            taxonomy_id?: number | null;
+        };
+        /**
+         * CategoryCreateWithinCategoryWithSubCategories
+         * @description Schema for creating a new category within a category, with optional subcategories.
+         */
+        CategoryCreateWithinCategoryWithSubCategories: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /**
+             * Subcategories
+             * @description List of subcategories
+             */
+            subcategories?: components["schemas"]["CategoryCreateWithinCategoryWithSubCategories"][];
+        };
+        /**
+         * CategoryCreateWithinTaxonomyWithSubCategories
+         * @description Schema for creating a new category within a taxonomy, with optional subcategories.
+         */
+        CategoryCreateWithinTaxonomyWithSubCategories: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** External Id */
+            external_id?: string | null;
+            /**
+             * Subcategories
+             * @description List of subcategories
+             */
+            subcategories?: components["schemas"]["CategoryCreateWithinCategoryWithSubCategories"][];
+            /** Supercategory Id */
+            supercategory_id?: number | null;
+        };
+        /**
+         * CategoryRead
+         * @description Schema for reading flat category information.
+         * @example {
+         *       "description": "Iron and its alloys",
+         *       "id": 2,
+         *       "name": "Ferrous metals",
+         *       "supercategory_id": 1,
+         *       "taxonomy_id": 1
+         *     }
+         */
+        CategoryRead: {
+            /**
+             * Name
+             * @description Name of the category
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the category
+             */
+            description?: string | null;
+            /**
+             * External Id
+             * @description ID of the category in the external taxonomy
+             */
+            external_id?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Taxonomy Id
+             * @description ID of the taxonomy
+             */
+            taxonomy_id: number;
+            /** Supercategory Id */
+            supercategory_id?: number | null;
+        };
+        /**
+         * CategoryReadAsSubCategory
+         * @description Schema for reading subcategory information.
+         * @example {
+         *       "description": "Iron and its alloys",
+         *       "id": 2,
+         *       "name": "Ferrous metals"
+         *     }
+         */
+        CategoryReadAsSubCategory: {
+            /**
+             * Name
+             * @description Name of the category
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the category
+             */
+            description?: string | null;
+            /**
+             * External Id
+             * @description ID of the category in the external taxonomy
+             */
+            external_id?: string | null;
+            /** Id */
+            id: number;
+        };
+        /**
+         * CategoryReadAsSubCategoryWithRecursiveSubCategories
+         * @description Schema for reading category information with recursive subcategories.
+         * @example {
+         *       "description": "All kinds of metals",
+         *       "id": 1,
+         *       "name": "Metals",
+         *       "subcategories": [
+         *         {
+         *           "description": "Iron and its alloys",
+         *           "id": 2,
+         *           "name": "Ferrous metals",
+         *           "subcategories": [
+         *             {
+         *               "description": "Steel alloys",
+         *               "id": 3,
+         *               "name": "Steel"
+         *             }
+         *           ]
+         *         }
+         *       ]
+         *     }
+         */
+        CategoryReadAsSubCategoryWithRecursiveSubCategories: {
+            /**
+             * Name
+             * @description Name of the category
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the category
+             */
+            description?: string | null;
+            /**
+             * External Id
+             * @description ID of the category in the external taxonomy
+             */
+            external_id?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Subcategories
+             * @description List of subcategories
+             */
+            subcategories?: components["schemas"]["CategoryReadAsSubCategoryWithRecursiveSubCategories"][];
+        };
+        /**
+         * CategoryReadWithRecursiveSubCategories
+         * @description Schema for reading base category information with recursive subcategories.
+         * @example {
+         *       "description": "Iron and its alloys",
+         *       "id": 2,
+         *       "name": "Ferrous metals",
+         *       "supercategory_id": 1,
+         *       "taxonomy_id": 1
+         *     }
+         */
+        CategoryReadWithRecursiveSubCategories: {
+            /**
+             * Name
+             * @description Name of the category
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the category
+             */
+            description?: string | null;
+            /**
+             * External Id
+             * @description ID of the category in the external taxonomy
+             */
+            external_id?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Taxonomy Id
+             * @description ID of the taxonomy
+             */
+            taxonomy_id: number;
+            /** Supercategory Id */
+            supercategory_id?: number | null;
+            /**
+             * Subcategories
+             * @description List of subcategories
+             */
+            subcategories?: components["schemas"]["CategoryReadAsSubCategoryWithRecursiveSubCategories"][];
+        };
+        /**
+         * CategoryReadWithRelationshipsAndFlatSubCategories
+         * @description Schema for reading category information with flat (one level deep) subcategories.
+         * @example {
+         *       "description": "Iron and its alloys",
+         *       "id": 2,
+         *       "name": "Ferrous metals",
+         *       "supercategory_id": 1,
+         *       "taxonomy_id": 1
+         *     }
+         */
+        CategoryReadWithRelationshipsAndFlatSubCategories: {
+            /**
+             * Name
+             * @description Name of the category
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the category
+             */
+            description?: string | null;
+            /**
+             * External Id
+             * @description ID of the category in the external taxonomy
+             */
+            external_id?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Taxonomy Id
+             * @description ID of the taxonomy
+             */
+            taxonomy_id: number;
+            /** Supercategory Id */
+            supercategory_id?: number | null;
+            /**
+             * Materials
+             * @description List of materials linked to the category
+             */
+            materials?: components["schemas"]["MaterialRead"][];
+            /**
+             * Product Types
+             * @description List of product types linked to the category
+             */
+            product_types?: components["schemas"]["ProductTypeRead"][];
+            /**
+             * Subcategories
+             * @description List of subcategories
+             */
+            subcategories?: components["schemas"]["CategoryReadAsSubCategory"][];
+        };
+        /**
+         * CategoryUpdate
+         * @description Schema for the partial update of a category.
+         *
+         *     Updating the parent_id or taxonomy_id is not allowed, as it greatly increases the risk
+         *     for self-referential loops and other inconsistencies.
+         * @example {
+         *       "description": "All kinds of metals",
+         *       "name": "Metals"
+         *     }
+         */
+        CategoryUpdate: {
+            /**
+             * Name
+             * @description Name of the category
+             */
+            name?: string | null;
+            /**
+             * Description
+             * @description Description of the category
+             */
+            description?: string | null;
+        };
+        /**
+         * ComponentCreateWithComponents
+         * @description Schema for creating a component with optional sub-components.
+         *
+         *     This schema is used for recursive creation of components with sub-components.
+         *
+         *     Owner ID and parent ID are inferred from the parent product within the CRUD layer.
+         */
+        ComponentCreateWithComponents: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /** Dismantling Notes */
+            dismantling_notes?: string | null;
+            /**
+             * Dismantling Time Start
+             * Format: date-time
+             * @description Start of the dismantling time, in ISO 8601 format with timezone info
+             */
+            dismantling_time_start?: string;
+            /**
+             * Dismantling Time End
+             * @description End of the dismantling time, in ISO 8601 format with timezone info
+             */
+            dismantling_time_end?: string | null;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Videos
+             * @description Disassembly videos
+             */
+            videos?: components["schemas"]["VideoCreateWithinProduct"][];
+            /**
+             * Bill Of Materials
+             * @description Bill of materials with quantities and units
+             */
+            bill_of_materials?: components["schemas"]["MaterialProductLinkCreateWithinProduct"][];
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product. Required for component products.
+             */
+            amount_in_parent: number;
+            /**
+             * Components
+             * @description Set of component products
+             */
+            components?: components["schemas"]["ComponentCreateWithComponents"][];
+        };
+        /**
+         * ComponentRead
+         * @description Base schema for reading component information.
+         */
+        ComponentRead: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Dismantling Notes
+             * @description Notes on the dismantling process of the product.
+             */
+            dismantling_notes?: string | null;
+            /** Dismantling Time Start */
+            dismantling_time_start?: string;
+            /** Dismantling Time End */
+            dismantling_time_end?: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Id */
+            id: number;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            /** Owner Username */
+            owner_username?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Parent Id */
+            parent_id?: number | null;
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product
+             */
+            amount_in_parent?: number | null;
+        };
+        /**
+         * ComponentReadWithRecursiveComponents
+         * @description Schema for reading product information with recursive components.
+         */
+        ComponentReadWithRecursiveComponents: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Dismantling Notes
+             * @description Notes on the dismantling process of the product.
+             */
+            dismantling_notes?: string | null;
+            /** Dismantling Time Start */
+            dismantling_time_start?: string;
+            /** Dismantling Time End */
+            dismantling_time_end?: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Id */
+            id: number;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            /** Owner Username */
+            owner_username?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Parent Id */
+            parent_id?: number | null;
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product
+             */
+            amount_in_parent?: number | null;
+            /**
+             * Components
+             * @description List of component products
+             */
+            components?: components["schemas"]["ComponentReadWithRecursiveComponents"][];
+        };
+        /**
+         * ConnectionMode
+         * @description How the backend communicates with the RPi camera.
+         * @enum {string}
+         */
+        ConnectionMode: "http" | "websocket";
+        /** ErrorModel */
+        ErrorModel: {
+            /** Detail */
+            detail: string | {
+                [key: string]: string;
+            };
+        };
+        /**
+         * FileRead
+         * @description Schema for reading file information.
+         * @example {
+         *       "description": "Assembly manual PDF",
+         *       "file_url": "/uploads/files/manuals/manual.pdf",
+         *       "filename": "manual.pdf",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1"
+         *     }
+         */
+        FileRead: {
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** File Url */
+            file_url: string | null;
+            /**
+             * Parent Id
+             * @description ID of the parent object
+             */
+            parent_id: number;
+            /** @description Type of the parent object, e.g. product, product_type, material */
+            parent_type: components["schemas"]["MediaParentType"];
+        };
+        /**
+         * FileReadWithinParent
+         * @description Schema for reading file information within a parent object.
+         * @example {
+         *       "description": "Assembly manual PDF",
+         *       "file_url": "/uploads/files/manuals/manual.pdf",
+         *       "filename": "manual.pdf",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1"
+         *     }
+         */
+        FileReadWithinParent: {
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** File Url */
+            file_url: string | null;
+        };
+        /**
+         * GoogleTokenRequest
+         * @description Body for Google PKCE token exchange.
+         */
+        GoogleTokenRequest: {
+            /** Id Token */
+            id_token: string;
+            /** Access Token */
+            access_token?: string | null;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HeaderCreate
+         * @description HTTP header key-value pair with validation.
+         */
+        HeaderCreate: {
+            /**
+             * Key
+             * @description Header key
+             */
+            key: string;
+            /**
+             * Value
+             * Format: password
+             * @description Header value
+             */
+            value: string;
+        };
+        /**
+         * ImageRead
+         * @description Schema for reading image information.
+         * @example {
+         *       "description": "Front view of the product",
+         *       "filename": "front-view.webp",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
+         *       "image_metadata": {
+         *         "camera_make": "Raspberry Pi",
+         *         "orientation": "landscape"
+         *       },
+         *       "image_url": "/uploads/images/products/front-view.webp",
+         *       "thumbnail_url": "/images/12345678-cc4e-405c-8553-7806424de2a1/resized?width=200"
+         *     }
+         */
+        ImageRead: {
+            /** Description */
+            description?: string | null;
+            /** Image Metadata */
+            image_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** Image Url */
+            image_url: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Parent Id */
+            parent_id: number;
+            /** @description Type of the parent object, e.g. product, product_type, material */
+            parent_type: components["schemas"]["MediaParentType"];
+        };
+        /**
+         * ImageReadWithinParent
+         * @description Schema for reading image information within a parent object.
+         * @example {
+         *       "description": "Front view of the product",
+         *       "filename": "front-view.webp",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
+         *       "image_metadata": {
+         *         "camera_make": "Raspberry Pi",
+         *         "orientation": "landscape"
+         *       },
+         *       "image_url": "/uploads/images/products/front-view.webp",
+         *       "thumbnail_url": "/images/12345678-cc4e-405c-8553-7806424de2a1/resized?width=200"
+         *     }
+         */
+        ImageReadWithinParent: {
+            /** Description */
+            description?: string | null;
+            /** Image Metadata */
+            image_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** Image Url */
+            image_url: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+        };
+        /** Links */
+        Links: {
+            /**
+             * First
+             * @example /api/v1/users?limit=1&offset1
+             */
+            first?: string | null;
+            /**
+             * Last
+             * @example /api/v1/users?limit=1&offset1
+             */
+            last?: string | null;
+            /**
+             * Self
+             * @example /api/v1/users?limit=1&offset1
+             */
+            self?: string | null;
+            /**
+             * Next
+             * @example /api/v1/users?limit=1&offset1
+             */
+            next?: string | null;
+            /**
+             * Prev
+             * @example /api/v1/users?limit=1&offset1
+             */
+            prev?: string | null;
+        };
+        /**
+         * MaterialCreateWithCategories
+         * @description Schema for creating a material with links to existing categories.
+         */
+        MaterialCreateWithCategories: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Source */
+            source?: string | null;
+            /** Density Kg M3 */
+            density_kg_m3?: number | null;
+            /** Is Crm */
+            is_crm?: boolean | null;
+            /**
+             * Category Ids
+             * @description List of category IDs
+             */
+            category_ids?: number[];
+        };
+        /**
+         * MaterialProductLinkCreateWithinProduct
+         * @description Schema for creating material-product links from the product side.
+         */
+        MaterialProductLinkCreateWithinProduct: {
+            /**
+             * Quantity
+             * @description Quantity of the material in the product
+             */
+            quantity: number;
+            /**
+             * @description Unit of the quantity, e.g. kg, g, m
+             * @default kg
+             */
+            unit: components["schemas"]["Unit"];
+            /**
+             * Material Id
+             * @description ID of the material in the product
+             */
+            material_id: number;
+        };
+        /**
+         * MaterialProductLinkCreateWithinProductAndMaterial
+         * @description Schema for creating material-product links from the product side, with an external material ID.
+         */
+        MaterialProductLinkCreateWithinProductAndMaterial: {
+            /**
+             * Quantity
+             * @description Quantity of the material in the product
+             */
+            quantity: number;
+            /**
+             * @description Unit of the quantity, e.g. kg, g, m
+             * @default kg
+             */
+            unit: components["schemas"]["Unit"];
+        };
+        /**
+         * MaterialProductLinkReadWithinMaterial
+         * @description Schema for reading material-product links from the material side.
+         */
+        MaterialProductLinkReadWithinMaterial: {
+            /**
+             * Quantity
+             * @description Quantity of the material in the product
+             */
+            quantity: number;
+            /**
+             * @description Unit of the quantity, e.g. kg, g, m
+             * @default kg
+             */
+            unit: components["schemas"]["Unit"];
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /** Product Id */
+            product_id: number;
+            product: components["schemas"]["ProductRead"];
+        };
+        /**
+         * MaterialProductLinkReadWithinProduct
+         * @description Schema for reading material-product links from the product side.
+         */
+        MaterialProductLinkReadWithinProduct: {
+            /**
+             * Quantity
+             * @description Quantity of the material in the product
+             */
+            quantity: number;
+            /**
+             * @description Unit of the quantity, e.g. kg, g, m
+             * @default kg
+             */
+            unit: components["schemas"]["Unit"];
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /** Material Id */
+            material_id: number;
+            material: components["schemas"]["MaterialRead"];
+        };
+        /**
+         * MaterialProductLinkUpdate
+         * @description Schema for updating material-product links.
+         */
+        MaterialProductLinkUpdate: {
+            /** Quantity */
+            quantity: number | null;
+            /** @default kg */
+            unit: components["schemas"]["Unit"] | null;
+        };
+        /**
+         * MaterialRead
+         * @description Schema for reading material information.
+         */
+        MaterialRead: {
+            /**
+             * Name
+             * @description Name of the Material
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the Material
+             */
+            description?: string | null;
+            /**
+             * Source
+             * @description Source of the material data, e.g. URL, IRI or citation key
+             */
+            source?: string | null;
+            /**
+             * Density Kg M3
+             * @description Volumetric density (kg/m^3)
+             */
+            density_kg_m3?: number | null;
+            /**
+             * Is Crm
+             * @description Is this material a Critical Raw Material (CRM)?
+             */
+            is_crm?: boolean | null;
+            /** Id */
+            id: number;
+        };
+        /**
+         * MaterialReadWithRelationships
+         * @description Schema for reading material information with all relationships.
+         */
+        MaterialReadWithRelationships: {
+            /**
+             * Name
+             * @description Name of the Material
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the Material
+             */
+            description?: string | null;
+            /**
+             * Source
+             * @description Source of the material data, e.g. URL, IRI or citation key
+             */
+            source?: string | null;
+            /**
+             * Density Kg M3
+             * @description Volumetric density (kg/m^3)
+             */
+            density_kg_m3?: number | null;
+            /**
+             * Is Crm
+             * @description Is this material a Critical Raw Material (CRM)?
+             */
+            is_crm?: boolean | null;
+            /** Id */
+            id: number;
+            /**
+             * Categories
+             * @description List of categories linked to the material
+             */
+            categories?: components["schemas"]["CategoryRead"][];
+            /**
+             * Product Links
+             * @description List of products that have this material
+             */
+            product_links?: components["schemas"]["MaterialProductLinkReadWithinMaterial"][];
+            /**
+             * Images
+             * @description List of images for the material
+             */
+            images?: components["schemas"]["ImageRead"][];
+            /**
+             * Files
+             * @description List of files for the material
+             */
+            files?: components["schemas"]["FileRead"][];
+        };
+        /**
+         * MaterialUpdate
+         * @description Schema for a partial update of a material.
+         */
+        MaterialUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Source
+             * @description Source of the material data, e.g. URL, IRI or citation key
+             */
+            source?: string | null;
+            /**
+             * Density Kg M3
+             * @description Volumetric density (kg/m³)
+             */
+            density_kg_m3?: number | null;
+            /**
+             * Is Crm
+             * @description Is this material a Critical Raw Material (CRM)?
+             */
+            is_crm?: boolean | null;
+        };
+        /**
+         * MediaParentType
+         * @description Parent entity types that can own files and images.
+         * @enum {string}
+         */
+        MediaParentType: "product" | "product_type" | "material";
+        /**
+         * NewsletterPreferenceRead
+         * @description Read schema for a logged-in user's newsletter preference.
+         * @example {
+         *       "email": "subscriber@example.com",
+         *       "is_confirmed": true,
+         *       "subscribed": true
+         *     }
+         */
+        NewsletterPreferenceRead: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Subscribed */
+            subscribed: boolean;
+            /** Is Confirmed */
+            is_confirmed: boolean;
+        };
+        /**
+         * NewsletterPreferenceUpdate
+         * @description Update schema for a logged-in user's newsletter preference.
+         * @example {
+         *       "subscribed": true
+         *     }
+         */
+        NewsletterPreferenceUpdate: {
+            /** Subscribed */
+            subscribed: boolean;
+        };
+        /**
+         * NewsletterSubscriberRead
+         * @description Read schema for newsletter subscribers.
+         * @example {
+         *       "email": "subscriber@example.com",
+         *       "id": "12345678-cc4e-405c-8553-7806424de2a1",
+         *       "is_confirmed": true
+         *     }
+         */
+        NewsletterSubscriberRead: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Is Confirmed */
+            is_confirmed: boolean;
+        };
+        /**
+         * OAuth2AuthorizeResponse
+         * @description Response model for OAuth2 authorization endpoint.
+         */
+        OAuth2AuthorizeResponse: {
+            /** Authorization Url */
+            authorization_url: string;
+        };
+        /**
+         * OAuthAccountRead
+         * @description Read schema for OAuth accounts.
+         */
+        OAuthAccountRead: {
+            /** Oauth Name */
+            oauth_name: string;
+            /** Account Id */
+            account_id: string;
+            /** Account Email */
+            account_email: string;
+        };
+        /**
+         * OAuthBearerResponse
+         * @description Response for the bearer transport exchange.
+         */
+        OAuthBearerResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /** Expires In */
+            expires_in: number;
+        };
+        /**
+         * OrganizationCreate
+         * @description Create schema for organizations.
+         * @example {
+         *       "description": "Research group for product teardown and circularity analysis",
+         *       "location": "Leiden",
+         *       "name": "Reverse Engineering Lab"
+         *     }
+         */
+        OrganizationCreate: {
+            /** Name */
+            name: string;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /**
+         * OrganizationRead
+         * @description Public read schema for organizations.
+         */
+        OrganizationRead: {
+            /** Name */
+            name: string;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Owner Id
+             * Format: uuid4
+             * @description ID of the organization owner.
+             */
+            owner_id: string;
+        };
+        /**
+         * OrganizationReadPublic
+         * @description Read schema for organizations.
+         */
+        OrganizationReadPublic: {
+            /** Name */
+            name: string;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+        };
+        /**
+         * OrganizationReadWithRelationships
+         * @description Read schema for organizations, including relationships.
+         */
+        OrganizationReadWithRelationships: {
+            /** Name */
+            name: string;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Members
+             * @description List of users in the organization.
+             */
+            members?: components["schemas"]["UserRead"][];
+        };
+        /**
+         * OrganizationUpdate
+         * @description Update schema for organizations.
+         */
+        OrganizationUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Owner Id
+             * @description ID of the member who should become the new owner.
+             */
+            owner_id?: string | null;
+        };
+        /** Page[CameraRead] */
+        Page_CameraRead_: {
+            /** Items */
+            items: components["schemas"]["CameraRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[CategoryReadWithRecursiveSubCategories] */
+        Page_CategoryReadWithRecursiveSubCategories_: {
+            /** Items */
+            items: components["schemas"]["CategoryReadWithRecursiveSubCategories"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[CategoryReadWithRelationshipsAndFlatSubCategories] */
+        Page_CategoryReadWithRelationshipsAndFlatSubCategories_: {
+            /** Items */
+            items: components["schemas"]["CategoryReadWithRelationshipsAndFlatSubCategories"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[CategoryRead] */
+        Page_CategoryRead_: {
+            /** Items */
+            items: components["schemas"]["CategoryRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[MaterialReadWithRelationships] */
+        Page_MaterialReadWithRelationships_: {
+            /** Items */
+            items: components["schemas"]["MaterialReadWithRelationships"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[NewsletterSubscriberRead] */
+        Page_NewsletterSubscriberRead_: {
+            /** Items */
+            items: components["schemas"]["NewsletterSubscriberRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[OrganizationReadPublic] */
+        Page_OrganizationReadPublic_: {
+            /** Items */
+            items: components["schemas"]["OrganizationReadPublic"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[OrganizationReadWithRelationships] */
+        Page_OrganizationReadWithRelationships_: {
+            /** Items */
+            items: components["schemas"]["OrganizationReadWithRelationships"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[ProductTypeReadWithRelationships] */
+        Page_ProductTypeReadWithRelationships_: {
+            /** Items */
+            items: components["schemas"]["ProductTypeReadWithRelationships"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[TaxonomyRead] */
+        Page_TaxonomyRead_: {
+            /** Items */
+            items: components["schemas"]["TaxonomyRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[TypeVar]Customized[ProductReadWithRelationshipsAndFlatComponents] */
+        Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_: {
+            /** Items */
+            items: components["schemas"]["ProductReadWithRelationshipsAndFlatComponents"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+            readonly links: components["schemas"]["Links"];
+        };
+        /** Page[TypeVar]Customized[str] */
+        Page_TypeVar_Customized_str_: {
+            /** Items */
+            items: string[];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+            readonly links: components["schemas"]["Links"];
+        };
+        /** Page[UserReadPublic] */
+        Page_UserReadPublic_: {
+            /** Items */
+            items: components["schemas"]["UserReadPublic"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /** Page[UserRead] */
+        Page_UserRead_: {
+            /** Items */
+            items: components["schemas"]["UserRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Pages */
+            pages: number;
+        };
+        /**
+         * PairingClaimRequest
+         * @description User → backend: claim a pairing code and create a camera.
+         */
+        PairingClaimRequest: {
+            /**
+             * Code
+             * @description Pairing code displayed on the RPi's setup page.
+             */
+            code: string;
+            /**
+             * Camera Name
+             * @description Name for the new camera.
+             */
+            camera_name: string;
+            /** Description */
+            description?: string | null;
+        };
+        /**
+         * PairingPollResponse
+         * @description Backend → RPi: current pairing status.
+         */
+        PairingPollResponse: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "waiting" | "paired";
+            /** Camera Id */
+            camera_id?: string | null;
+            /** Api Key */
+            api_key?: string | null;
+            /** Ws Url */
+            ws_url?: string | null;
+        };
+        /**
+         * PairingRegisterRequest
+         * @description RPi → backend: register a pairing code.
+         */
+        PairingRegisterRequest: {
+            /**
+             * Code
+             * @description 6-character uppercase alphanumeric pairing code generated by the RPi.
+             */
+            code: string;
+            /**
+             * Rpi Fingerprint
+             * @description Random nonce generated by the RPi. Required to retrieve credentials later.
+             */
+            rpi_fingerprint: string;
+        };
+        /**
+         * PairingRegisterResponse
+         * @description Backend → RPi: confirmation of registered pairing code.
+         */
+        PairingRegisterResponse: {
+            /** Code */
+            code: string;
+            /**
+             * Expires In
+             * @description Seconds until the pairing code expires.
+             */
+            expires_in: number;
+        };
+        /**
+         * ProductCreateWithComponents
+         * @description Schema for creating a base product with optional components.
+         * @example {
+         *       "bill_of_materials": [
+         *         {
+         *           "material_id": 1,
+         *           "quantity": 0.3,
+         *           "unit": "g"
+         *         },
+         *         {
+         *           "material_id": 2,
+         *           "quantity": 0.1,
+         *           "unit": "g"
+         *         }
+         *       ],
+         *       "brand": "Brand 1",
+         *       "depth_cm": 50,
+         *       "description": "Complete chair assembly",
+         *       "dismantling_time_end": "2025-09-22T16:30:45Z",
+         *       "dismantling_time_start": "2025-09-22T14:30:45Z",
+         *       "height_cm": 150,
+         *       "model": "Model 1",
+         *       "name": "Office Chair",
+         *       "product_type_id": 1,
+         *       "videos": [
+         *         {
+         *           "description": "Disassembly video",
+         *           "url": "https://www.youtube.com/watch?v=123456789"
+         *         }
+         *       ],
+         *       "weight_g": 20000,
+         *       "width_cm": 70
+         *     }
+         */
+        ProductCreateWithComponents: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /** Dismantling Notes */
+            dismantling_notes?: string | null;
+            /**
+             * Dismantling Time Start
+             * Format: date-time
+             * @description Start of the dismantling time, in ISO 8601 format with timezone info
+             */
+            dismantling_time_start?: string;
+            /**
+             * Dismantling Time End
+             * @description End of the dismantling time, in ISO 8601 format with timezone info
+             */
+            dismantling_time_end?: string | null;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Videos
+             * @description Disassembly videos
+             */
+            videos?: components["schemas"]["VideoCreateWithinProduct"][];
+            /**
+             * Bill Of Materials
+             * @description Bill of materials with quantities and units
+             */
+            bill_of_materials?: components["schemas"]["MaterialProductLinkCreateWithinProduct"][];
+            /**
+             * Components
+             * @description Set of component products
+             */
+            components?: components["schemas"]["ComponentCreateWithComponents"][];
+        };
+        /**
+         * ProductRead
+         * @description Base schema for reading product information.
+         */
+        ProductRead: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Dismantling Notes
+             * @description Notes on the dismantling process of the product.
+             */
+            dismantling_notes?: string | null;
+            /** Dismantling Time Start */
+            dismantling_time_start?: string;
+            /** Dismantling Time End */
+            dismantling_time_end?: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Id */
+            id: number;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            /** Owner Username */
+            owner_username?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Parent Id */
+            parent_id?: number | null;
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product
+             */
+            amount_in_parent?: number | null;
+        };
+        /**
+         * ProductReadWithRecursiveComponents
+         * @description Schema for reading product information with recursive components.
+         */
+        ProductReadWithRecursiveComponents: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Dismantling Notes
+             * @description Notes on the dismantling process of the product.
+             */
+            dismantling_notes?: string | null;
+            /** Dismantling Time Start */
+            dismantling_time_start?: string;
+            /** Dismantling Time End */
+            dismantling_time_end?: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Id */
+            id: number;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            /** Owner Username */
+            owner_username?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Parent Id */
+            parent_id?: number | null;
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product
+             */
+            amount_in_parent?: number | null;
+            product_type?: components["schemas"]["ProductTypeRead"] | null;
+            /**
+             * Images
+             * @description Product images
+             */
+            images?: components["schemas"]["ImageRead"][];
+            /**
+             * Videos
+             * @description Disassembly videos
+             */
+            videos?: components["schemas"]["VideoReadWithinProduct"][];
+            /**
+             * Files
+             * @description Product files
+             */
+            files?: components["schemas"]["FileRead"][];
+            /**
+             * Bill Of Materials
+             * @description Bill of materials with quantities and units
+             */
+            bill_of_materials?: components["schemas"]["MaterialProductLinkReadWithinProduct"][];
+            /**
+             * Components
+             * @description List of component products
+             */
+            components?: components["schemas"]["ComponentReadWithRecursiveComponents"][];
+        };
+        /**
+         * ProductReadWithRelationshipsAndFlatComponents
+         * @description Schema for reading product information with one level of components.
+         */
+        ProductReadWithRelationshipsAndFlatComponents: {
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Volume Cm3 */
+            volume_cm3?: number | null;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Dismantling Notes
+             * @description Notes on the dismantling process of the product.
+             */
+            dismantling_notes?: string | null;
+            /** Dismantling Time Start */
+            dismantling_time_start?: string;
+            /** Dismantling Time End */
+            dismantling_time_end?: string;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Id */
+            id: number;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Owner Id
+             * Format: uuid4
+             */
+            owner_id: string;
+            /** Owner Username */
+            owner_username?: string | null;
+            /** Thumbnail Url */
+            thumbnail_url?: string | null;
+            /** Parent Id */
+            parent_id?: number | null;
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product
+             */
+            amount_in_parent?: number | null;
+            product_type?: components["schemas"]["ProductTypeRead"] | null;
+            /**
+             * Images
+             * @description Product images
+             */
+            images?: components["schemas"]["ImageRead"][];
+            /**
+             * Videos
+             * @description Disassembly videos
+             */
+            videos?: components["schemas"]["VideoReadWithinProduct"][];
+            /**
+             * Files
+             * @description Product files
+             */
+            files?: components["schemas"]["FileRead"][];
+            /**
+             * Bill Of Materials
+             * @description Bill of materials with quantities and units
+             */
+            bill_of_materials?: components["schemas"]["MaterialProductLinkReadWithinProduct"][];
+            /**
+             * Components
+             * @description List of component products
+             */
+            components?: components["schemas"]["ComponentRead"][];
+        };
+        /**
+         * ProductTypeCreateWithCategories
+         * @description Schema for creating a product type with links to existing categories.
+         */
+        ProductTypeCreateWithCategories: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Category Ids */
+            category_ids?: number[];
+        };
+        /**
+         * ProductTypeRead
+         * @description Schema for reading flat product type information.
+         */
+        ProductTypeRead: {
+            /**
+             * Name
+             * @description Name of the Product Type.
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the Product Type.
+             */
+            description?: string | null;
+            /** Id */
+            id: number;
+        };
+        /**
+         * ProductTypeReadWithRelationships
+         * @description Schema for reading product type information with all relationships.
+         */
+        ProductTypeReadWithRelationships: {
+            /**
+             * Name
+             * @description Name of the Product Type.
+             */
+            name: string;
+            /**
+             * Description
+             * @description Description of the Product Type.
+             */
+            description?: string | null;
+            /** Id */
+            id: number;
+            /** Categories */
+            categories?: components["schemas"]["CategoryRead"][];
+            /** Images */
+            images?: components["schemas"]["ImageRead"][];
+            /** Files */
+            files?: components["schemas"]["FileRead"][];
+        };
+        /**
+         * ProductTypeUpdate
+         * @description Schema for a partial update of a product type.
+         */
+        ProductTypeUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /**
+         * ProductUpdate
+         * @description Schema for updating product information including physical and circularity properties.
+         */
+        ProductUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Brand */
+            brand?: string | null;
+            /** Model */
+            model?: string | null;
+            /**
+             * Dismantling Notes
+             * @description Notes on the dismantling process
+             */
+            dismantling_notes?: string | null;
+            /**
+             * Dismantling Time Start
+             * Format: date-time
+             * @description Start of the dismantling time, in ISO 8601 format with timezone info
+             */
+            dismantling_time_start?: string;
+            /**
+             * Dismantling Time End
+             * @description End of the dismantling time, in ISO 8601 format with timezone info
+             */
+            dismantling_time_end?: string | null;
+            /** Product Type Id */
+            product_type_id?: number | null;
+            /**
+             * Amount In Parent
+             * @description Quantity within parent product. Required for component products.
+             */
+            amount_in_parent?: number | null;
+            /** Weight G */
+            weight_g?: number | null;
+            /** Height Cm */
+            height_cm?: number | null;
+            /** Width Cm */
+            width_cm?: number | null;
+            /** Depth Cm */
+            depth_cm?: number | null;
+            /** Recyclability Observation */
+            recyclability_observation?: string | null;
+            /** Recyclability Comment */
+            recyclability_comment?: string | null;
+            /** Recyclability Reference */
+            recyclability_reference?: string | null;
+            /** Repairability Observation */
+            repairability_observation?: string | null;
+            /** Repairability Comment */
+            repairability_comment?: string | null;
+            /** Repairability Reference */
+            repairability_reference?: string | null;
+            /** Remanufacturability Observation */
+            remanufacturability_observation?: string | null;
+            /** Remanufacturability Comment */
+            remanufacturability_comment?: string | null;
+            /** Remanufacturability Reference */
+            remanufacturability_reference?: string | null;
+        };
+        /**
+         * RefreshTokenRequest
+         * @description Request schema for refreshing access token.
+         * @example {
+         *       "refresh_token": "refresh-token-from-login"
+         *     }
+         */
+        RefreshTokenRequest: {
+            /**
+             * Refresh Token
+             * Format: password
+             * @description Refresh token obtained from login
+             */
+            refresh_token: string;
+        };
+        /**
+         * RefreshTokenResponse
+         * @description Response for token refresh.
+         * @example {
+         *       "access_token": "<REDACTED_JWT>",
+         *       "expires_in": 3600,
+         *       "refresh_token": "rotated-refresh-token",
+         *       "token_type": "bearer"
+         *     }
+         */
+        RefreshTokenResponse: {
+            /**
+             * Access Token
+             * @description New JWT access token
+             */
+            access_token: string;
+            /**
+             * Refresh Token
+             * @description Rotated refresh token
+             */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @description Token type (always 'bearer')
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Expires In
+             * @description Access token expiration time in seconds
+             */
+            expires_in: number;
+        };
+        /**
+         * StreamMetadata
+         * @description Metadata specific to video streams.
+         */
+        StreamMetadata: {
+            camera_properties: components["schemas"]["CameraProperties"];
+            capture_metadata: components["schemas"]["CaptureMetadata"];
+        };
+        /**
+         * StreamMode
+         * @description Stream mode. Contains ffmpeg stream and URL construction logic for each mode.
+         * @enum {string}
+         */
+        StreamMode: "youtube" | "local";
+        /**
+         * StreamView
+         * @description Pydantic model for active stream information.
+         */
+        StreamView: {
+            mode: components["schemas"]["StreamMode"];
+            /**
+             * Url
+             * Format: uri
+             */
+            url: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            youtube_config?: components["schemas"]["YoutubeStreamConfig"] | null;
+            metadata: components["schemas"]["StreamMetadata"];
+        };
+        /**
+         * TaxonomyCreate
+         * @description Schema for creating a new taxonomy without categories.
+         */
+        TaxonomyCreate: {
+            /** Name */
+            name: string;
+            /** Version */
+            version?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Domains
+             * @default []
+             */
+            domains: components["schemas"]["TaxonomyDomain"][];
+            /** Source */
+            source?: string | null;
+        };
+        /**
+         * TaxonomyCreateWithCategories
+         * @description Schema for creating a new taxonomy, optionally with new categories.
+         */
+        TaxonomyCreateWithCategories: {
+            /** Name */
+            name: string;
+            /** Version */
+            version?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Domains
+             * @default []
+             */
+            domains: components["schemas"]["TaxonomyDomain"][];
+            /** Source */
+            source?: string | null;
+            /**
+             * Categories
+             * @description Set of subcategories
+             */
+            categories?: components["schemas"]["CategoryCreateWithinTaxonomyWithSubCategories"][];
+        };
+        /**
+         * TaxonomyDomain
+         * @description Enumeration of taxonomy domains.
+         * @enum {string}
+         */
+        TaxonomyDomain: "materials" | "products" | "other";
+        /**
+         * TaxonomyRead
+         * @description Schema for reading minimal taxonomy information.
+         * @example {
+         *       "description": "Taxonomy for materials",
+         *       "domains": [
+         *         "materials"
+         *       ],
+         *       "name": "Materials Taxonomy",
+         *       "source": "DOI:10.2345/12345"
+         *     }
+         */
+        TaxonomyRead: {
+            /** Name */
+            name: string;
+            /** Version */
+            version: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Domains
+             * @description Domains of the taxonomy, e.g. {materials, products, other}
+             */
+            domains: components["schemas"]["TaxonomyDomain"][];
+            /**
+             * Source
+             * @description Source of the taxonomy data, e.g. URL, IRI or citation key
+             */
+            source?: string | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /** Id */
+            id: number;
+        };
+        /**
+         * TaxonomyUpdate
+         * @description Schema for the partial update of a taxonomy.
+         */
+        TaxonomyUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Version */
+            version?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Domains
+             * @description Domains of the taxonomy, e.g. {materials, products, other}
+             */
+            domains?: components["schemas"]["TaxonomyDomain"][] | null;
+            /**
+             * Source
+             * @description Source of the taxonomy data
+             */
+            source?: string | null;
+        };
+        /**
+         * Unit
+         * @description Allowed units in the data collection.
+         * @enum {string}
+         */
+        Unit: "kg" | "g" | "m" | "cm";
+        /**
+         * UserCreate
+         * @description Create schema for users, optionally with organization to join.
+         * @example {
+         *       "email": "user@example.com",
+         *       "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+         *       "password": "fake_password",
+         *       "username": "username"
+         *     }
+         */
+        UserCreate: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean | null;
+            /**
+             * Is Superuser
+             * @default false
+             */
+            is_superuser: boolean | null;
+            /**
+             * Is Verified
+             * @default false
+             */
+            is_verified: boolean | null;
+            /** Username */
+            username?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+        };
+        /**
+         * UserCreateWithOrganization
+         * @description Create schema for users with organization to create and own.
+         * @example {
+         *       "email": "user@example.com",
+         *       "organization": {
+         *         "description": "description",
+         *         "location": "location",
+         *         "name": "organization"
+         *       },
+         *       "password": "fake_password",
+         *       "username": "username"
+         *     }
+         */
+        UserCreateWithOrganization: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean | null;
+            /**
+             * Is Superuser
+             * @default false
+             */
+            is_superuser: boolean | null;
+            /**
+             * Is Verified
+             * @default false
+             */
+            is_verified: boolean | null;
+            /** Username */
+            username?: string | null;
+            organization: components["schemas"]["OrganizationCreate"];
+        };
+        /**
+         * UserRead
+         * @description Read schema for users.
+         * @example {
+         *       "email": "user@example.com",
+         *       "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+         *       "is_active": true,
+         *       "is_superuser": false,
+         *       "is_verified": true,
+         *       "username": "username"
+         *     }
+         */
+        UserRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Superuser
+             * @default false
+             */
+            is_superuser: boolean;
+            /**
+             * Is Verified
+             * @default false
+             */
+            is_verified: boolean;
+            /** Username */
+            username?: string | null;
+            /**
+             * Oauth Accounts
+             * @description List of linked OAuth accounts.
+             */
+            oauth_accounts?: components["schemas"]["OAuthAccountRead"][];
+            /**
+             * Preferences
+             * @description User preferences.
+             */
+            preferences?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * UserReadPublic
+         * @description Public read schema for users.
+         */
+        UserReadPublic: {
+            /** Username */
+            username?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /**
+         * UserReadWithOrganization
+         * @description Read schema for users with organization.
+         * @example {
+         *       "email": "user@example.com",
+         *       "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+         *       "is_active": true,
+         *       "is_superuser": false,
+         *       "is_verified": true,
+         *       "username": "username"
+         *     }
+         */
+        UserReadWithOrganization: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Superuser
+             * @default false
+             */
+            is_superuser: boolean;
+            /**
+             * Is Verified
+             * @default false
+             */
+            is_verified: boolean;
+            /** Username */
+            username?: string | null;
+            /**
+             * Oauth Accounts
+             * @description List of linked OAuth accounts.
+             */
+            oauth_accounts?: components["schemas"]["OAuthAccountRead"][];
+            /**
+             * Preferences
+             * @description User preferences.
+             */
+            preferences?: {
+                [key: string]: unknown;
+            };
+            /** @description Organization the user belongs to. */
+            organization?: components["schemas"]["OrganizationRead"] | null;
+        };
+        /**
+         * UserUpdate
+         * @description Update schema for users.
+         * @example {
+         *       "email": "user@example.com",
+         *       "is_active": true,
+         *       "is_superuser": true,
+         *       "is_verified": true,
+         *       "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+         *       "password": "newpassword",
+         *       "username": "username"
+         *     }
+         */
+        UserUpdate: {
+            /**
+             * Password
+             * Format: password
+             */
+            password?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Is Superuser */
+            is_superuser?: boolean | null;
+            /** Is Verified */
+            is_verified?: boolean | null;
+            /** Username */
+            username?: string | null;
+            /** Organization Id */
+            organization_id?: string | null;
+            /**
+             * Preferences
+             * @description User preferences (partial merge).
+             */
+            preferences?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
+        };
+        /**
+         * VideoCreateWithinProduct
+         * @description Schema for creating a video.
+         * @example {
+         *       "description": "Recorded teardown of the product",
+         *       "title": "Full disassembly",
+         *       "url": "https://www.youtube.com/watch?v=abcdefghijk",
+         *       "video_metadata": {
+         *         "duration_seconds": 420,
+         *         "source": "youtube"
+         *       }
+         *     }
+         */
+        VideoCreateWithinProduct: {
+            url: components["schemas"]["AnyUrlToDB"];
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Video Metadata */
+            video_metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * VideoRead
+         * @description Schema for reading video information.
+         */
+        VideoRead: {
+            /** Url */
+            url: string;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Video Metadata */
+            video_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /** Id */
+            id: number;
+            /** Product Id */
+            product_id: number;
+        };
+        /**
+         * VideoReadWithinProduct
+         * @description Schema for reading video information within a product.
+         * @example {
+         *       "description": "Recorded teardown of the product",
+         *       "id": 1,
+         *       "title": "Full disassembly",
+         *       "url": "https://www.youtube.com/watch?v=abcdefghijk",
+         *       "video_metadata": {
+         *         "duration_seconds": 420,
+         *         "source": "youtube"
+         *       }
+         *     }
+         */
+        VideoReadWithinProduct: {
+            /** Url */
+            url: string;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Video Metadata */
+            video_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created At */
+            created_at?: string;
+            /** Updated At */
+            updated_at?: string;
+            /** Id */
+            id: number;
+        };
+        /**
+         * VideoUpdateWithinProduct
+         * @description Schema for updating a video within a product.
+         * @example {
+         *       "description": "Shortened version for publication",
+         *       "title": "Updated disassembly title",
+         *       "video_metadata": {
+         *         "edited": true
+         *       }
+         *     }
+         */
+        VideoUpdateWithinProduct: {
+            /** @description URL linking to the video */
+            url?: components["schemas"]["AnyUrlToDB"] | null;
+            /**
+             * Title
+             * @description Title of the video
+             */
+            title?: string | null;
+            /**
+             * Description
+             * @description Description of the video
+             */
+            description?: string | null;
+            /**
+             * Video Metadata
+             * @description Video metadata as a JSON dict
+             */
+            video_metadata?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * YouTubeMonitorStreamResponse
+         * @description Subset of monitor stream fields used by the app.
+         */
+        YouTubeMonitorStreamResponse: {
+            /** Enablemonitorstream */
+            enableMonitorStream: boolean;
+            /** Broadcaststreamdelayms */
+            broadcastStreamDelayMs?: number | null;
+            /** Embedhtml */
+            embedHtml?: string | null;
+        };
+        /**
+         * YouTubePrivacyStatus
+         * @description Enumeration of YouTube privacy statuses.
+         * @enum {string}
+         */
+        YouTubePrivacyStatus: "public" | "private" | "unlisted";
+        /**
+         * YoutubeStreamConfig
+         * @description YouTube stream configuration.
+         */
+        YoutubeStreamConfig: {
+            /**
+             * Stream Key
+             * @description Stream key for YouTube streaming
+             */
+            stream_key: string;
+            /**
+             * Broadcast Key
+             * @description Broadcast key for YouTube streaming
+             */
+            broadcast_key: string;
+        };
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  clear_cache_by_namespace_admin_cache_clear__namespace__post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Cache namespace to clear */
-        namespace: components['schemas']['CacheNamespace'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: string;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_category_admin_categories_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CategoryCreateWithSubCategories'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_category_admin_categories__category_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_category_admin_categories__category_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CategoryUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_subcategory_admin_categories__category_id__subcategories_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CategoryCreateWithinCategoryWithSubCategories'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_subcategory_admin_categories__category_id__subcategories__subcategory_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        category_id: number;
-        subcategory_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_taxonomy_admin_taxonomies_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json':
-          | components['schemas']['TaxonomyCreate']
-          | components['schemas']['TaxonomyCreateWithCategories'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TaxonomyRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_taxonomy_admin_taxonomies__taxonomy_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taxonomy_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_taxonomy_admin_taxonomies__taxonomy_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taxonomy_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['TaxonomyUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TaxonomyRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taxonomy_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CategoryCreateWithinTaxonomyWithSubCategories'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories__category_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taxonomy_id: number;
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_material_admin_materials_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MaterialCreateWithCategories'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_material_admin_materials__material_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Material ID */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_material_admin_materials__material_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Material ID */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MaterialUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_categories_to_material_admin_materials__material_id__categories_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Material ID */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': number[];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_categories_from_material_admin_materials__material_id__categories_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Material ID */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': number[];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_category_to_material_admin_materials__material_id__categories__category_id__post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Material ID */
-        material_id: number;
-        /** @description ID of category to add to the material */
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_category_from_material_admin_materials__material_id__categories__category_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Material ID */
-        material_id: number;
-        /** @description ID of category to remove from the material */
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  upload_material_file_admin_materials__material_id__files_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_material_file_admin_materials__material_id__files_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_material_file_admin_materials__material_id__files__file_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-        /** @description ID of the file */
-        file_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  upload_material_image_admin_materials__material_id__images_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_material_image_admin_materials__material_id__images_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_material_image_admin_materials__material_id__images__image_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-        /** @description ID of the image */
-        image_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_product_type_admin_product_types_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProductTypeCreateWithCategories'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductTypeRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_type_admin_product_types__product_type_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Product Type ID */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_product_type_admin_product_types__product_type_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Product Type ID */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProductTypeUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductTypeRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_categories_to_product_type_admin_product_types__product_type_id__categories_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Product Type ID */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': number[];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_categories_from_product_type_admin_product_types__product_type_id__categories_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Product Type ID */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': number[];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_category_to_product_type_admin_product_types__product_type_id__categories__category_id__post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Product Type ID */
-        product_type_id: number;
-        /** @description ID of category to add to the product type */
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_category_from_product_type_admin_product_types__product_type_id__categories__category_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Product Type ID */
-        product_type_id: number;
-        /** @description ID of category to remove from the product type */
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  upload_product_type_file_admin_product_types__product_type_id__files_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_product_type_file_admin_product_types__product_type_id__files_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_type_file_admin_product_types__product_type_id__files__file_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-        /** @description ID of the file */
-        file_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  upload_product_type_image_admin_product_types__product_type_id__images_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_product_type_image_admin_product_types__product_type_id__images_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_type_image_admin_product_types__product_type_id__images__image_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-        /** @description ID of the image */
-        image_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_categories_categories_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        taxonomy__name__ilike?: string | null;
-        taxonomy__description__ilike?: string | null;
-        taxonomy__external_id__ilike?: string | null;
-        taxonomy__search?: string | null;
-        taxonomy__order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_CategoryReadWithRelationshipsAndFlatSubCategories_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_categories_tree_categories_tree_get: {
-    parameters: {
-      query?: {
-        /** @description Maximum recursion depth */
-        recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        taxonomy__name__ilike?: string | null;
-        taxonomy__description__ilike?: string | null;
-        taxonomy__external_id__ilike?: string | null;
-        taxonomy__search?: string | null;
-        taxonomy__order_by?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryReadWithRecursiveSubCategories'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_category_categories__category_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryReadWithRelationshipsAndFlatSubCategories'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_subcategories_categories_category_id__subcategories_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path: {
-        /** @description Category ID */
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_CategoryReadWithRelationshipsAndFlatSubCategories_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_category_subtree_categories__category_id__subcategories_tree_get: {
-    parameters: {
-      query?: {
-        /** @description Maximum recursion depth */
-        recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-      };
-      header?: never;
-      path: {
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryReadWithRecursiveSubCategories'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_subcategory_categories__category_id__subcategories__subcategory_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        category_id: number;
-        subcategory_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryReadWithRelationshipsAndFlatSubCategories'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_taxonomies_taxonomies_get: {
-    parameters: {
-      query?: {
-        name__ilike?: string | null;
-        version__ilike?: string | null;
-        description__ilike?: string | null;
-        source__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_TaxonomyRead_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_taxonomy_taxonomies__taxonomy_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        taxonomy_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TaxonomyRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_taxonomy_category_tree_taxonomies__taxonomy_id__categories_tree_get: {
-    parameters: {
-      query?: {
-        /** @description Maximum recursion depth */
-        recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path: {
-        taxonomy_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_CategoryReadWithRecursiveSubCategories_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_taxonomy_categories_taxonomies__taxonomy_id__categories_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path: {
-        taxonomy_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_CategoryRead_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_taxonomy_category_by_id_taxonomies__taxonomy_id__categories__category_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        taxonomy_id: number;
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_materials_materials_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        density_kg_m3__gte?: number | null;
-        density_kg_m3__lte?: number | null;
-        is_crm?: boolean | null;
-        source__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        categories__name__ilike?: string | null;
-        categories__description__ilike?: string | null;
-        categories__external_id__ilike?: string | null;
-        categories__search?: string | null;
-        categories__order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_MaterialReadWithRelationships_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_materials__material_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialReadWithRelationships'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_categories_materials__material_id__categories_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-      };
-      header?: never;
-      path: {
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_category_materials__material_id__categories__category_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        material_id: number;
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_files_materials__material_id__files_get: {
-    parameters: {
-      query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_file_materials__material_id__files__file_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-        /** @description ID of the file */
-        file_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_images_materials__material_id__images_get: {
-    parameters: {
-      query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_image_materials__material_id__images__image_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Material */
-        material_id: number;
-        /** @description ID of the image */
-        image_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_types_product_types_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        name__in?: string | null;
-        description__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        categories__name__ilike?: string | null;
-        categories__description__ilike?: string | null;
-        categories__external_id__ilike?: string | null;
-        categories__search?: string | null;
-        categories__order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_ProductTypeReadWithRelationships_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_product_types__product_type_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductTypeReadWithRelationships'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_categories_product_types__product_type_id__categories_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        external_id__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-      };
-      header?: never;
-      path: {
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_category_product_types__product_type_id__categories__category_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        product_type_id: number;
-        category_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CategoryRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_files_product_types__product_type_id__files_get: {
-    parameters: {
-      query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_file_product_types__product_type_id__files__file_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-        /** @description ID of the file */
-        file_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_images_product_types__product_type_id__images_get: {
-    parameters: {
-      query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_type_image_product_types__product_type_id__images__image_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product Type */
-        product_type_id: number;
-        /** @description ID of the image */
-        image_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_units_units_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': string[];
-        };
-      };
-    };
-  };
-  redirect_to_current_user_products_users_me_products_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      307: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  get_user_products_users__user_id__products_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        /** @description Whether to include components as base products in the response */
-        include_components_as_base_products?: boolean | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        physical_properties__weight_g__gte?: number | null;
-        physical_properties__weight_g__lte?: number | null;
-        physical_properties__height_cm__gte?: number | null;
-        physical_properties__height_cm__lte?: number | null;
-        physical_properties__width_cm__gte?: number | null;
-        physical_properties__width_cm__lte?: number | null;
-        physical_properties__depth_cm__gte?: number | null;
-        physical_properties__depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path: {
-        user_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_products_products_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        /** @description Whether to include components as base products in the response */
-        include_components_as_base_products?: boolean | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        physical_properties__weight_g__gte?: number | null;
-        physical_properties__weight_g__lte?: number | null;
-        physical_properties__height_cm__gte?: number | null;
-        physical_properties__height_cm__lte?: number | null;
-        physical_properties__width_cm__gte?: number | null;
-        physical_properties__width_cm__lte?: number | null;
-        physical_properties__depth_cm__gte?: number | null;
-        physical_properties__depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_product_products_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProductCreateWithComponents'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_products_tree_products_tree_get: {
-    parameters: {
-      query?: {
-        /** @description Maximum recursion depth */
-        recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        physical_properties__weight_g__gte?: number | null;
-        physical_properties__weight_g__lte?: number | null;
-        physical_properties__height_cm__gte?: number | null;
-        physical_properties__height_cm__lte?: number | null;
-        physical_properties__width_cm__gte?: number | null;
-        physical_properties__width_cm__lte?: number | null;
-        physical_properties__depth_cm__gte?: number | null;
-        physical_properties__depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductReadWithRecursiveComponents'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_products__product_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_products__product_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_product_products__product_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json':
-          | components['schemas']['ProductUpdate']
-          | components['schemas']['ProductUpdateWithProperties'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductReadWithProperties'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_subtree_products__product_id__components_tree_get: {
-    parameters: {
-      query?: {
-        /** @description Maximum recursion depth */
-        recursion_depth?: number;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        physical_properties__weight_g__gte?: number | null;
-        physical_properties__weight_g__lte?: number | null;
-        physical_properties__height_cm__gte?: number | null;
-        physical_properties__height_cm__lte?: number | null;
-        physical_properties__width_cm__gte?: number | null;
-        physical_properties__width_cm__lte?: number | null;
-        physical_properties__depth_cm__gte?: number | null;
-        physical_properties__depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
-      };
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentReadWithRecursiveComponents'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_components_products__product_id__components_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        brand__ilike?: string | null;
-        brand__in?: string | null;
-        model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
-        created_at__gte?: string | null;
-        created_at__lte?: string | null;
-        updated_at__gte?: string | null;
-        updated_at__lte?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        physical_properties__weight_g__gte?: number | null;
-        physical_properties__weight_g__lte?: number | null;
-        physical_properties__height_cm__gte?: number | null;
-        physical_properties__height_cm__lte?: number | null;
-        physical_properties__width_cm__gte?: number | null;
-        physical_properties__width_cm__lte?: number | null;
-        physical_properties__depth_cm__gte?: number | null;
-        physical_properties__depth_cm__lte?: number | null;
-        product_type__name__ilike?: string | null;
-        product_type__name__in?: string | null;
-        product_type__description__ilike?: string | null;
-        product_type__search?: string | null;
-        product_type__order_by?: string | null;
-      };
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductReadWithRelationshipsAndFlatComponents'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_component_to_product_products__product_id__components_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ComponentCreateWithComponents'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentReadWithRecursiveComponents'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_component_products__product_id__components__component_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        product_id: number;
-        component_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_component_products__product_id__components__component_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        component_id: number;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_files_products__product_id__files_get: {
-    parameters: {
-      query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        /** @description ID of the Product */
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  upload_product_file_products__product_id__files_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_product_file_products__product_id__files_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_file_products__product_id__files__file_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product */
-        product_id: number;
-        /** @description ID of the file */
-        file_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['FileReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_file_products__product_id__files__file_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the file */
-        file_id: string;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_images_products__product_id__images_get: {
-    parameters: {
-      query?: {
-        filename__ilike?: string | null;
-        description__ilike?: string | null;
-        parent_type?: components['schemas']['MediaParentType'] | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        /** @description ID of the Product */
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  upload_product_image_products__product_id__images_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_upload_product_image_products__product_id__images_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_image_products__product_id__images__image_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the Product */
-        product_id: number;
-        /** @description ID of the image */
-        image_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageReadWithinParent'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_image_products__product_id__images__image_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the image */
-        image_id: string;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_physical_properties_products__product_id__physical_properties_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PhysicalPropertiesRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_product_physical_properties_products__product_id__physical_properties_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PhysicalPropertiesCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PhysicalPropertiesRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_physical_properties_products__product_id__physical_properties_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_product_physical_properties_products__product_id__physical_properties_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PhysicalPropertiesUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PhysicalPropertiesRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_circularity_properties_products__product_id__circularity_properties_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CircularityPropertiesRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_product_circularity_properties_products__product_id__circularity_properties_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CircularityPropertiesCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CircularityPropertiesRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_circularity_properties_products__product_id__circularity_properties_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_product_circularity_properties_products__product_id__circularity_properties_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CircularityPropertiesUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CircularityPropertiesRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_videos_products__product_id__videos_get: {
-    parameters: {
-      query?: {
-        url__ilike?: string | null;
-        description__ilike?: string | null;
-        search?: string | null;
-      };
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VideoReadWithinProduct'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_product_video_products__product_id__videos_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['VideoCreateWithinProduct'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VideoReadWithinProduct'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_video_products__product_id__videos__video_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-        video_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VideoReadWithinProduct'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_product_video_products__product_id__videos__video_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        video_id: number;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_product_video_products__product_id__videos__video_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        video_id: number;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['VideoUpdateWithinProduct'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VideoReadWithinProduct'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_product_bill_of_materials_products__product_id__materials_get: {
-    parameters: {
-      query?: {
-        quantity__gte?: number | null;
-        quantity__lte?: number | null;
-        unit_ilike?: string | null;
-        material__name__ilike?: string | null;
-        material__description__ilike?: string | null;
-        material__density_kg_m3__gte?: number | null;
-        material__density_kg_m3__lte?: number | null;
-        material__is_crm?: boolean | null;
-        material__source__ilike?: string | null;
-        material__search?: string | null;
-        material__order_by?: string | null;
-      };
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialProductLinkReadWithinProduct'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_materials_to_product_products__product_id__materials_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MaterialProductLinkCreateWithinProduct'][];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialProductLinkReadWithinProduct'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_materials_from_product_bulk_products__product_id__materials_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': number[];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_material_in_product_bill_of_materials_products__product_id__materials__material_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-        material_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialProductLinkReadWithinProduct'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  add_material_to_product_products__product_id__materials__material_id__post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of material to add to the product */
-        material_id: number;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MaterialProductLinkCreateWithinProductAndMaterial'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialProductLinkReadWithinProduct'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_material_from_product_products__product_id__materials__material_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of material to remove from the product */
-        material_id: number;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_product_bill_of_materials_products__product_id__materials__material_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        material_id: number;
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MaterialProductLinkUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MaterialProductLinkReadWithinProduct'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_brands_brands_get: {
-    parameters: {
-      query?: {
-        /** @description Search brand (case-insensitive) */
-        search?: string | null;
-        /** @description Sort order: 'asc' or 'desc' */
-        order?: 'asc' | 'desc';
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_TypeVar_Customized_str_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_resized_image_images__image_id__resized_get: {
-    parameters: {
-      query?: {
-        width?: number | null;
-        height?: number | null;
-      };
-      header?: never;
-      path: {
-        image_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_bearer_login_auth_bearer_login_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/x-www-form-urlencoded': components['schemas']['Body_auth_bearer_login_auth_bearer_login_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiOTIyMWZmYzktNjQwZi00MzcyLTg2ZDMtY2U2NDJjYmE1NjAzIiwiYXVkIjoiZmFzdGFwaS11c2VyczphdXRoIiwiZXhwIjoxNTcxNTA0MTkzfQ.M10bjOe45I5Ncu_uXvOmVV8QxnL-nZfcH96U90JaocI",
-           *       "token_type": "bearer"
-           *     }
-           */
-          'application/json': components['schemas']['BearerResponse'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_bearer_logout_auth_bearer_logout_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  auth_cookie_login_auth_cookie_login_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/x-www-form-urlencoded': components['schemas']['Body_auth_cookie_login_auth_cookie_login_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_cookie_logout_auth_cookie_logout_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  register_auth_register_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json':
-          | components['schemas']['UserCreate']
-          | components['schemas']['UserCreateWithOrganization'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserReadPublic'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_bearer_refresh_auth_refresh_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        refresh_token?: string | null;
-      };
-    };
-    requestBody?: {
-      content: {
-        'application/json': components['schemas']['RefreshTokenRequest'] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['RefreshTokenResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_cookie_refresh_auth_cookie_refresh_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        refresh_token?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  auth_logout_auth_logout_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        refresh_token?: string | null;
-        auth?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  verify_request_token_auth_request_verify_token_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Body_verify_request_token_auth_request_verify_token_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  verify_verify_auth_verify_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Body_verify_verify_auth_verify_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  reset_forgot_password_auth_forgot_password_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Body_reset_forgot_password_auth_forgot_password_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  reset_reset_password_auth_reset_password_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Body_reset_reset_password_auth_reset_password_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  validate_email_auth_validate_email_get: {
-    parameters: {
-      query: {
-        email: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organizations_organizations_get: {
-    parameters: {
-      query?: {
-        name__ilike?: string | null;
-        location__ilike?: string | null;
-        description__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_OrganizationReadPublic_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_organization_organizations_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OrganizationCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organization_organizations__organization_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationReadPublic'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organization_members_organizations__organization_id__members_get: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_UserReadPublic_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  join_organization_organizations__organization_id__members_me_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserReadWithOrganization'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_github_bearer_authorize_auth_oauth_github_token_authorize_get: {
-    parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_github_bearer_callback_auth_oauth_github_token_callback_get: {
-    parameters: {
-      query?: {
-        code?: string | null;
-        code_verifier?: string | null;
-        state?: string | null;
-        error?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_github_cookie_authorize_auth_oauth_github_session_authorize_get: {
-    parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_github_cookie_callback_auth_oauth_github_session_callback_get: {
-    parameters: {
-      query?: {
-        code?: string | null;
-        code_verifier?: string | null;
-        state?: string | null;
-        error?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_associate_github_authorize_auth_oauth_github_associate_authorize_get: {
-    parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_associate_github_callback_auth_oauth_github_associate_callback_get: {
-    parameters: {
-      query?: {
-        code?: string | null;
-        code_verifier?: string | null;
-        state?: string | null;
-        error?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_google_bearer_authorize_auth_oauth_google_token_authorize_get: {
-    parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_google_bearer_callback_auth_oauth_google_token_callback_get: {
-    parameters: {
-      query?: {
-        code?: string | null;
-        code_verifier?: string | null;
-        state?: string | null;
-        error?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_google_cookie_authorize_auth_oauth_google_session_authorize_get: {
-    parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_google_cookie_callback_auth_oauth_google_session_callback_get: {
-    parameters: {
-      query?: {
-        code?: string | null;
-        code_verifier?: string | null;
-        state?: string | null;
-        error?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_associate_google_authorize_auth_oauth_google_associate_authorize_get: {
-    parameters: {
-      query?: {
-        scopes?: string[] | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuth2AuthorizeResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  oauth_associate_google_callback_auth_oauth_google_associate_callback_get: {
-    parameters: {
-      query?: {
-        code?: string | null;
-        code_verifier?: string | null;
-        state?: string | null;
-        error?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  remove_oauth_association_auth_oauth__provider__associate_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        provider: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  google_bearer_token_auth_oauth_google_bearer_token_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GoogleTokenRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OAuthBearerResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  google_cookie_token_auth_oauth_google_cookie_token_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GoogleTokenRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  users_current_user_users_me_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  users_patch_current_user_users_me_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UserUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  users_user_users__id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not a superuser. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description The user does not exist. */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  users_delete_user_users__id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not a superuser. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description The user does not exist. */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  users_patch_user_users__id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UserUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Bad Request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorModel'];
-        };
-      };
-      /** @description Missing token or inactive user. */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not a superuser. */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description The user does not exist. */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_organization_users_me_organization_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationReadPublic'];
-        };
-      };
-    };
-  };
-  delete_my_organization_users_me_organization_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  update_organization_users_me_organization_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OrganizationUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_organization_members_users_me_organization_members_get: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_UserReadPublic_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  leave_organization_users_me_organization_membership_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  get_all_organizations_admin_organizations_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        name__ilike?: string | null;
-        location__ilike?: string | null;
-        description__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_OrganizationReadWithRelationships_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_organization_with_relationships_admin_organizations__organization_id__get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-      };
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationReadWithRelationships'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_organization_admin_organizations__organization_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organization_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_users_admin_users_get: {
-    parameters: {
-      query?: {
-        /** @description Relationships to include */
-        include?: string[] | null;
-        email__ilike?: string | null;
-        username__ilike?: string | null;
-        organization__ilike?: string | null;
-        is_active?: boolean | null;
-        is_superuser?: boolean | null;
-        is_verified?: boolean | null;
-        search?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description List of users */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_UserRead_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_admin_users__user_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The user's ID */
-        user_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UserRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_user_admin_users__user_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The user's ID */
-        user_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_by_email_admin_users_by_email__email__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        email: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      307: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_by_username_admin_users_by_username__username__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        username: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      307: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_cameras_plugins_rpi_cam_cameras_get: {
-    parameters: {
-      query?: {
-        /** @description Include camera online status */
-        include_status?: boolean;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        url__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json':
-            | components['schemas']['CameraRead'][]
-            | components['schemas']['CameraReadWithStatus'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  register_user_camera_plugins_rpi_cam_cameras_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CameraCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraReadWithCredentials'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_camera_plugins_rpi_cam_cameras__camera_id__get: {
-    parameters: {
-      query?: {
-        /** @description Include camera online status */
-        include_status?: boolean;
-      };
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json':
-            | components['schemas']['CameraRead']
-            | components['schemas']['CameraReadWithStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_user_camera_plugins_rpi_cam_cameras__camera_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_user_camera_plugins_rpi_cam_cameras__camera_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CameraUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_camera_status_plugins_rpi_cam_cameras__camera_id__status_get: {
-    parameters: {
-      query?: {
-        /** @description Force a refresh of the status by bypassing the cache */
-        force_refresh?: boolean;
-      };
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  regenerate_api_key_plugins_rpi_cam_cameras__camera_id__regenerate_api_key_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraReadWithCredentials'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_cameras_users_me_cameras_get: {
-    parameters: {
-      query?: {
-        /** @description Include camera online status */
-        include_status?: boolean;
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        url__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json':
-            | components['schemas']['CameraRead'][]
-            | components['schemas']['CameraReadWithStatus'][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  register_user_camera_users_me_cameras_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CameraCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraReadWithCredentials'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_camera_users_me_cameras__camera_id__get: {
-    parameters: {
-      query?: {
-        /** @description Include camera online status */
-        include_status?: boolean;
-      };
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json':
-            | components['schemas']['CameraRead']
-            | components['schemas']['CameraReadWithStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_user_camera_users_me_cameras__camera_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_user_camera_users_me_cameras__camera_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CameraUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_user_camera_status_users_me_cameras__camera_id__status_get: {
-    parameters: {
-      query?: {
-        /** @description Force a refresh of the status by bypassing the cache */
-        force_refresh?: boolean;
-      };
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  regenerate_api_key_users_me_cameras__camera_id__regenerate_api_key_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraReadWithCredentials'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_camera_snapshot_plugins_rpi_cam_cameras__camera_id__snapshot_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description JPEG snapshot */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'image/jpeg': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  stream_camera_mjpeg_plugins_rpi_cam_cameras__camera_id__stream_mjpeg_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-          'multipart/x-mixed-replace; boundary=frame': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  capture_image_plugins_rpi_cam_cameras__camera_id__image_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Body_capture_image_plugins_rpi_cam_cameras__camera_id__image_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ImageRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_camera_stream_status_plugins_rpi_cam_cameras__camera_id__stream_status_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StreamView'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  stop_all_streams_plugins_rpi_cam_cameras__camera_id__stream_stop_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Body_start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StreamView'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  stop_recording_plugins_rpi_cam_cameras__camera_id__stream_record_stop_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['VideoRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_recording_monitor_stream_plugins_rpi_cam_cameras__camera_id__stream_record_monitor_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['YouTubeMonitorStreamResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  start_preview_plugins_rpi_cam_cameras__camera_id__stream_preview_start_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StreamView'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  stop_preview_plugins_rpi_cam_cameras__camera_id__stream_preview_stop_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  hls_file_proxy_plugins_rpi_cam_cameras__camera_id__stream_preview_hls__file_path__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-        file_path: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  watch_preview_plugins_rpi_cam_cameras__camera_id__stream_preview_watch_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'text/html': string;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  init_camera_plugins_rpi_cam_cameras__camera_id__open_post: {
-    parameters: {
-      query?: {
-        /** @description Camera mode (photo or video) */
-        mode?: components['schemas']['CameraMode'];
-      };
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  close_camera_plugins_rpi_cam_cameras__camera_id__close_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_all_cameras_admin_plugins_rpi_cam_cameras_get: {
-    parameters: {
-      query?: {
-        name__ilike?: string | null;
-        description__ilike?: string | null;
-        url__ilike?: string | null;
-        search?: string | null;
-        order_by?: string | null;
-        owner__email__ilike?: string | null;
-        owner__username__ilike?: string | null;
-        owner__organization__ilike?: string | null;
-        owner__is_active?: boolean | null;
-        owner__is_superuser?: boolean | null;
-        owner__is_verified?: boolean | null;
-        owner__search?: string | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_CameraRead_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_camera_admin_plugins_rpi_cam_cameras__camera_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_camera_admin_plugins_rpi_cam_cameras__camera_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_camera_status_admin_plugins_rpi_cam_cameras__camera_id__status_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CameraStatus'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  subscribe_to_newsletter_newsletter_subscribe_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['NewsletterSubscriberRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  confirm_newsletter_subscription_newsletter_confirm_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['NewsletterSubscriberRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  request_unsubscribe_newsletter_request_unsubscribe_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: unknown;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  unsubscribe_with_token_newsletter_unsubscribe_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': string;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_newsletter_preference_newsletter_me_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['NewsletterPreferenceRead'];
-        };
-      };
-    };
-  };
-  update_newsletter_preference_newsletter_me_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NewsletterPreferenceUpdate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['NewsletterPreferenceRead'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_subscribers_admin_newsletter_subscribers_get: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Page_NewsletterSubscriberRead_'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
+    clear_cache_by_namespace_admin_cache_clear__namespace__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Cache namespace to clear */
+                namespace: components["schemas"]["CacheNamespace"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_category_admin_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreateWithSubCategories"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_category_admin_categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_category_admin_categories__category_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subcategory_admin_categories__category_id__subcategories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreateWithinCategoryWithSubCategories"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_subcategory_admin_categories__category_id__subcategories__subcategory_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: number;
+                subcategory_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_taxonomy_admin_taxonomies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxonomyCreate"] | components["schemas"]["TaxonomyCreateWithCategories"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxonomyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_taxonomy_admin_taxonomies__taxonomy_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxonomy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_taxonomy_admin_taxonomies__taxonomy_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxonomy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxonomyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxonomyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxonomy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreateWithinTaxonomyWithSubCategories"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_category_in_taxonomy_admin_taxonomies__taxonomy_id__categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxonomy_id: number;
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_material_admin_materials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialCreateWithCategories"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_material_admin_materials__material_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Material ID */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_material_admin_materials__material_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Material ID */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_categories_to_material_admin_materials__material_id__categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Material ID */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": number[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_categories_from_material_admin_materials__material_id__categories_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Material ID */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": number[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_category_to_material_admin_materials__material_id__categories__category_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Material ID */
+                material_id: number;
+                /** @description ID of category to add to the material */
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_category_from_material_admin_materials__material_id__categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Material ID */
+                material_id: number;
+                /** @description ID of category to remove from the material */
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_material_file_admin_materials__material_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_material_file_admin_materials__material_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_material_file_admin_materials__material_id__files__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+                /** @description ID of the file */
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_material_image_admin_materials__material_id__images_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_material_image_admin_materials__material_id__images_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_material_image_admin_materials__material_id__images__image_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+                /** @description ID of the image */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_product_type_admin_product_types_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductTypeCreateWithCategories"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_type_admin_product_types__product_type_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Product Type ID */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_type_admin_product_types__product_type_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Product Type ID */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductTypeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductTypeRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_categories_to_product_type_admin_product_types__product_type_id__categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Product Type ID */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": number[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_categories_from_product_type_admin_product_types__product_type_id__categories_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Product Type ID */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": number[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_category_to_product_type_admin_product_types__product_type_id__categories__category_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Product Type ID */
+                product_type_id: number;
+                /** @description ID of category to add to the product type */
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_category_from_product_type_admin_product_types__product_type_id__categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Product Type ID */
+                product_type_id: number;
+                /** @description ID of category to remove from the product type */
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_product_type_file_admin_product_types__product_type_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_product_type_file_admin_product_types__product_type_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_type_file_admin_product_types__product_type_id__files__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+                /** @description ID of the file */
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_product_type_image_admin_product_types__product_type_id__images_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_product_type_image_admin_product_types__product_type_id__images_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_type_image_admin_product_types__product_type_id__images__image_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+                /** @description ID of the image */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_categories_categories_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                taxonomy__name__ilike?: string | null;
+                taxonomy__version__ilike?: string | null;
+                taxonomy__description__ilike?: string | null;
+                taxonomy__source__ilike?: string | null;
+                taxonomy__search?: string | null;
+                taxonomy__order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CategoryReadWithRelationshipsAndFlatSubCategories_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_categories_tree_categories_tree_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum recursion depth */
+                recursion_depth?: number;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                taxonomy__name__ilike?: string | null;
+                taxonomy__version__ilike?: string | null;
+                taxonomy__description__ilike?: string | null;
+                taxonomy__source__ilike?: string | null;
+                taxonomy__search?: string | null;
+                taxonomy__order_by?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryReadWithRecursiveSubCategories"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_categories__category_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryReadWithRelationshipsAndFlatSubCategories"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subcategories_categories_category_id__subcategories_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Category ID */
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CategoryReadWithRelationshipsAndFlatSubCategories_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_category_subtree_categories__category_id__subcategories_tree_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum recursion depth */
+                recursion_depth?: number;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+            };
+            header?: never;
+            path: {
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryReadWithRecursiveSubCategories"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subcategory_categories__category_id__subcategories__subcategory_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: number;
+                subcategory_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryReadWithRelationshipsAndFlatSubCategories"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_taxonomies_taxonomies_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                version__ilike?: string | null;
+                description__ilike?: string | null;
+                source__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TaxonomyRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_taxonomy_taxonomies__taxonomy_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxonomy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaxonomyRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_taxonomy_category_tree_taxonomies__taxonomy_id__categories_tree_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum recursion depth */
+                recursion_depth?: number;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                taxonomy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CategoryReadWithRecursiveSubCategories_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_taxonomy_categories_taxonomies__taxonomy_id__categories_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                taxonomy_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CategoryRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_taxonomy_category_by_id_taxonomies__taxonomy_id__categories__category_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taxonomy_id: number;
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_materials_materials_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                density_kg_m3__gte?: number | null;
+                density_kg_m3__lte?: number | null;
+                is_crm?: boolean | null;
+                source__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                categories__name__ilike?: string | null;
+                categories__description__ilike?: string | null;
+                categories__external_id__ilike?: string | null;
+                categories__search?: string | null;
+                categories__order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_MaterialReadWithRelationships_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_materials__material_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialReadWithRelationships"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_categories_materials__material_id__categories_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+            };
+            header?: never;
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_category_materials__material_id__categories__category_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                material_id: number;
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_files_materials__material_id__files_get: {
+        parameters: {
+            query?: {
+                filename__ilike?: string | null;
+                description__ilike?: string | null;
+                parent_type?: components["schemas"]["MediaParentType"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_file_materials__material_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+                /** @description ID of the file */
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_images_materials__material_id__images_get: {
+        parameters: {
+            query?: {
+                filename__ilike?: string | null;
+                description__ilike?: string | null;
+                parent_type?: components["schemas"]["MediaParentType"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_image_materials__material_id__images__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Material */
+                material_id: number;
+                /** @description ID of the image */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_types_product_types_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                name__in?: string | null;
+                description__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                categories__name__ilike?: string | null;
+                categories__description__ilike?: string | null;
+                categories__external_id__ilike?: string | null;
+                categories__search?: string | null;
+                categories__order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_ProductTypeReadWithRelationships_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_product_types__product_type_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductTypeReadWithRelationships"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_categories_product_types__product_type_id__categories_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                external_id__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+            };
+            header?: never;
+            path: {
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_category_product_types__product_type_id__categories__category_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_type_id: number;
+                category_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_files_product_types__product_type_id__files_get: {
+        parameters: {
+            query?: {
+                filename__ilike?: string | null;
+                description__ilike?: string | null;
+                parent_type?: components["schemas"]["MediaParentType"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_file_product_types__product_type_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+                /** @description ID of the file */
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_images_product_types__product_type_id__images_get: {
+        parameters: {
+            query?: {
+                filename__ilike?: string | null;
+                description__ilike?: string | null;
+                parent_type?: components["schemas"]["MediaParentType"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_type_image_product_types__product_type_id__images__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product Type */
+                product_type_id: number;
+                /** @description ID of the image */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_units_units_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    redirect_to_current_user_products_users_me_products_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            307: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_user_products_users__user_id__products_get: {
+        parameters: {
+            query?: {
+                /** @description Relationships to include */
+                include?: string[] | null;
+                /** @description Whether to include components as base products in the response */
+                include_components_as_base_products?: boolean | null;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                brand__ilike?: string | null;
+                brand__in?: string | null;
+                model__ilike?: string | null;
+                dismantling_time_start__gte?: string | null;
+                dismantling_time_start__lte?: string | null;
+                dismantling_time_end__gte?: string | null;
+                dismantling_time_end__lte?: string | null;
+                created_at__gte?: string | null;
+                created_at__lte?: string | null;
+                updated_at__gte?: string | null;
+                updated_at__lte?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                weight_g__gte?: number | null;
+                weight_g__lte?: number | null;
+                height_cm__gte?: number | null;
+                height_cm__lte?: number | null;
+                width_cm__gte?: number | null;
+                width_cm__lte?: number | null;
+                depth_cm__gte?: number | null;
+                depth_cm__lte?: number | null;
+                product_type__name__ilike?: string | null;
+                product_type__name__in?: string | null;
+                product_type__description__ilike?: string | null;
+                product_type__search?: string | null;
+                product_type__order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_products_products_get: {
+        parameters: {
+            query?: {
+                /** @description Relationships to include */
+                include?: string[] | null;
+                /** @description Whether to include components as base products in the response */
+                include_components_as_base_products?: boolean | null;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                brand__ilike?: string | null;
+                brand__in?: string | null;
+                model__ilike?: string | null;
+                dismantling_time_start__gte?: string | null;
+                dismantling_time_start__lte?: string | null;
+                dismantling_time_end__gte?: string | null;
+                dismantling_time_end__lte?: string | null;
+                created_at__gte?: string | null;
+                created_at__lte?: string | null;
+                updated_at__gte?: string | null;
+                updated_at__lte?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                weight_g__gte?: number | null;
+                weight_g__lte?: number | null;
+                height_cm__gte?: number | null;
+                height_cm__lte?: number | null;
+                width_cm__gte?: number | null;
+                width_cm__lte?: number | null;
+                depth_cm__gte?: number | null;
+                depth_cm__lte?: number | null;
+                product_type__name__ilike?: string | null;
+                product_type__name__in?: string | null;
+                product_type__description__ilike?: string | null;
+                product_type__search?: string | null;
+                product_type__order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_product_products_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCreateWithComponents"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_products_tree_products_tree_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum recursion depth */
+                recursion_depth?: number;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                brand__ilike?: string | null;
+                brand__in?: string | null;
+                model__ilike?: string | null;
+                dismantling_time_start__gte?: string | null;
+                dismantling_time_start__lte?: string | null;
+                dismantling_time_end__gte?: string | null;
+                dismantling_time_end__lte?: string | null;
+                created_at__gte?: string | null;
+                created_at__lte?: string | null;
+                updated_at__gte?: string | null;
+                updated_at__lte?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                weight_g__gte?: number | null;
+                weight_g__lte?: number | null;
+                height_cm__gte?: number | null;
+                height_cm__lte?: number | null;
+                width_cm__gte?: number | null;
+                width_cm__lte?: number | null;
+                depth_cm__gte?: number | null;
+                depth_cm__lte?: number | null;
+                product_type__name__ilike?: string | null;
+                product_type__name__in?: string | null;
+                product_type__description__ilike?: string | null;
+                product_type__search?: string | null;
+                product_type__order_by?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReadWithRecursiveComponents"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_products__product_id__get: {
+        parameters: {
+            query?: {
+                /** @description Relationships to include */
+                include?: string[] | null;
+            };
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReadWithRelationshipsAndFlatComponents"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_products__product_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_products__product_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_subtree_products__product_id__components_tree_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum recursion depth */
+                recursion_depth?: number;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                brand__ilike?: string | null;
+                brand__in?: string | null;
+                model__ilike?: string | null;
+                dismantling_time_start__gte?: string | null;
+                dismantling_time_start__lte?: string | null;
+                dismantling_time_end__gte?: string | null;
+                dismantling_time_end__lte?: string | null;
+                created_at__gte?: string | null;
+                created_at__lte?: string | null;
+                updated_at__gte?: string | null;
+                updated_at__lte?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                weight_g__gte?: number | null;
+                weight_g__lte?: number | null;
+                height_cm__gte?: number | null;
+                height_cm__lte?: number | null;
+                width_cm__gte?: number | null;
+                width_cm__lte?: number | null;
+                depth_cm__gte?: number | null;
+                depth_cm__lte?: number | null;
+                product_type__name__ilike?: string | null;
+                product_type__name__in?: string | null;
+                product_type__description__ilike?: string | null;
+                product_type__search?: string | null;
+                product_type__order_by?: string | null;
+            };
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentReadWithRecursiveComponents"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_components_products__product_id__components_get: {
+        parameters: {
+            query?: {
+                /** @description Relationships to include */
+                include?: string[] | null;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                brand__ilike?: string | null;
+                brand__in?: string | null;
+                model__ilike?: string | null;
+                dismantling_time_start__gte?: string | null;
+                dismantling_time_start__lte?: string | null;
+                dismantling_time_end__gte?: string | null;
+                dismantling_time_end__lte?: string | null;
+                created_at__gte?: string | null;
+                created_at__lte?: string | null;
+                updated_at__gte?: string | null;
+                updated_at__lte?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                weight_g__gte?: number | null;
+                weight_g__lte?: number | null;
+                height_cm__gte?: number | null;
+                height_cm__lte?: number | null;
+                width_cm__gte?: number | null;
+                width_cm__lte?: number | null;
+                depth_cm__gte?: number | null;
+                depth_cm__lte?: number | null;
+                product_type__name__ilike?: string | null;
+                product_type__name__in?: string | null;
+                product_type__description__ilike?: string | null;
+                product_type__search?: string | null;
+                product_type__order_by?: string | null;
+            };
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReadWithRelationshipsAndFlatComponents"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_component_to_product_products__product_id__components_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComponentCreateWithComponents"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComponentReadWithRecursiveComponents"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_component_products__product_id__components__component_id__get: {
+        parameters: {
+            query?: {
+                /** @description Relationships to include */
+                include?: string[] | null;
+            };
+            header?: never;
+            path: {
+                product_id: number;
+                component_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductReadWithRelationshipsAndFlatComponents"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_component_products__product_id__components__component_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                component_id: number;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_product_tree_products__product_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean | string[];
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_files_products__product_id__files_get: {
+        parameters: {
+            query?: {
+                filename__ilike?: string | null;
+                description__ilike?: string | null;
+                parent_type?: components["schemas"]["MediaParentType"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the Product */
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_product_file_products__product_id__files_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_product_file_products__product_id__files_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_file_products__product_id__files__file_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product */
+                product_id: number;
+                /** @description ID of the file */
+                file_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_file_products__product_id__files__file_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the file */
+                file_id: string;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_images_products__product_id__images_get: {
+        parameters: {
+            query?: {
+                filename__ilike?: string | null;
+                description__ilike?: string | null;
+                parent_type?: components["schemas"]["MediaParentType"] | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the Product */
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_product_image_products__product_id__images_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_product_image_products__product_id__images_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_image_products__product_id__images__image_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the Product */
+                product_id: number;
+                /** @description ID of the image */
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageReadWithinParent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_image_products__product_id__images__image_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the image */
+                image_id: string;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_videos_products__product_id__videos_get: {
+        parameters: {
+            query?: {
+                url__ilike?: string | null;
+                description__ilike?: string | null;
+                search?: string | null;
+            };
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoReadWithinProduct"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_product_video_products__product_id__videos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VideoCreateWithinProduct"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoReadWithinProduct"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_video_products__product_id__videos__video_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+                video_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoReadWithinProduct"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_product_video_products__product_id__videos__video_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                video_id: number;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_video_products__product_id__videos__video_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                video_id: number;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VideoUpdateWithinProduct"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoReadWithinProduct"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_product_bill_of_materials_products__product_id__materials_get: {
+        parameters: {
+            query?: {
+                quantity__gte?: number | null;
+                quantity__lte?: number | null;
+                unit_ilike?: string | null;
+                material__name__ilike?: string | null;
+                material__description__ilike?: string | null;
+                material__density_kg_m3__gte?: number | null;
+                material__density_kg_m3__lte?: number | null;
+                material__is_crm?: boolean | null;
+                material__source__ilike?: string | null;
+                material__search?: string | null;
+                material__order_by?: string | null;
+            };
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialProductLinkReadWithinProduct"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_materials_to_product_products__product_id__materials_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialProductLinkCreateWithinProduct"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialProductLinkReadWithinProduct"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_materials_from_product_bulk_products__product_id__materials_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": number[];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_in_product_bill_of_materials_products__product_id__materials__material_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialProductLinkReadWithinProduct"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_material_to_product_products__product_id__materials__material_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of material to add to the product */
+                material_id: number;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialProductLinkCreateWithinProductAndMaterial"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialProductLinkReadWithinProduct"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_material_from_product_products__product_id__materials__material_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of material to remove from the product */
+                material_id: number;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_bill_of_materials_products__product_id__materials__material_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                material_id: number;
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialProductLinkUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialProductLinkReadWithinProduct"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_brands_brands_get: {
+        parameters: {
+            query?: {
+                /** @description Search brand (case-insensitive) */
+                search?: string | null;
+                /** @description Sort order: 'asc' or 'desc' */
+                order?: "asc" | "desc";
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TypeVar_Customized_str_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_resized_image_images__image_id__resized_get: {
+        parameters: {
+            query?: {
+                width?: number | null;
+                height?: number | null;
+            };
+            header?: never;
+            path: {
+                image_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_bearer_login_auth_bearer_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_auth_bearer_login_auth_bearer_login_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "access_token": "<REDACTED_JWT>",
+                     *       "token_type": "bearer"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["BearerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_bearer_logout_auth_bearer_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_cookie_login_auth_cookie_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_auth_cookie_login_auth_cookie_login_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_cookie_logout_auth_cookie_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    register_auth_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"] | components["schemas"]["UserCreateWithOrganization"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserReadPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_bearer_refresh_auth_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                refresh_token?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_cookie_refresh_auth_cookie_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                refresh_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    auth_logout_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                refresh_token?: string | null;
+                auth?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_request_token_auth_request_verify_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_verify_request_token_auth_request_verify_token_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_verify_auth_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_verify_verify_auth_verify_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_forgot_password_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_reset_forgot_password_auth_forgot_password_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_reset_password_auth_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_reset_reset_password_auth_reset_password_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_email_auth_validate_email_get: {
+        parameters: {
+            query: {
+                email: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organizations_organizations_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                location__ilike?: string | null;
+                description__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OrganizationReadPublic_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_organization_organizations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_organizations__organization_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationReadPublic"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_members_organizations__organization_id__members_get: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_UserReadPublic_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    join_organization_organizations__organization_id__members_me_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserReadWithOrganization"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_github_bearer_authorize_auth_oauth_github_token_authorize_get: {
+        parameters: {
+            query?: {
+                scopes?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuth2AuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_github_bearer_callback_auth_oauth_github_token_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                code_verifier?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_github_cookie_authorize_auth_oauth_github_session_authorize_get: {
+        parameters: {
+            query?: {
+                scopes?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuth2AuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_github_cookie_callback_auth_oauth_github_session_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                code_verifier?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_associate_github_authorize_auth_oauth_github_associate_authorize_get: {
+        parameters: {
+            query?: {
+                scopes?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuth2AuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_associate_github_callback_auth_oauth_github_associate_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                code_verifier?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_google_bearer_authorize_auth_oauth_google_token_authorize_get: {
+        parameters: {
+            query?: {
+                scopes?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuth2AuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_google_bearer_callback_auth_oauth_google_token_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                code_verifier?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_google_cookie_authorize_auth_oauth_google_session_authorize_get: {
+        parameters: {
+            query?: {
+                scopes?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuth2AuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_google_cookie_callback_auth_oauth_google_session_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                code_verifier?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_associate_google_authorize_auth_oauth_google_associate_authorize_get: {
+        parameters: {
+            query?: {
+                scopes?: string[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuth2AuthorizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_associate_google_callback_auth_oauth_google_associate_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                code_verifier?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_oauth_association_auth_oauth__provider__associate_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    google_bearer_token_auth_oauth_google_bearer_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthBearerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    google_cookie_token_auth_oauth_google_cookie_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_current_user_users_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    users_patch_current_user_users_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_user_users__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a superuser. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The user does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_delete_user_users__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a superuser. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The user does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    users_patch_user_users__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorModel"];
+                };
+            };
+            /** @description Missing token or inactive user. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a superuser. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The user does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_organization_users_me_organization_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationReadPublic"];
+                };
+            };
+        };
+    };
+    delete_my_organization_users_me_organization_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_organization_users_me_organization_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_organization_members_users_me_organization_members_get: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_UserReadPublic_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    leave_organization_users_me_organization_membership_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_all_organizations_admin_organizations_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                location__ilike?: string | null;
+                description__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OrganizationReadWithRelationships_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_organization_with_relationships_admin_organizations__organization_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationReadWithRelationships"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_organization_admin_organizations__organization_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organization_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_users_admin_users_get: {
+        parameters: {
+            query?: {
+                email__ilike?: string | null;
+                username__ilike?: string | null;
+                organization__ilike?: string | null;
+                is_active?: boolean | null;
+                is_superuser?: boolean | null;
+                is_verified?: boolean | null;
+                search?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_UserRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_admin_users__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_admin_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The user's ID */
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_by_email_admin_users_by_email__email__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                email: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            307: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_by_username_admin_users_by_username__username__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            307: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_cameras_plugins_rpi_cam_cameras_get: {
+        parameters: {
+            query?: {
+                /** @description Include camera online status */
+                include_status?: boolean;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                url__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"][] | components["schemas"]["CameraReadWithStatus"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_user_camera_plugins_rpi_cam_cameras_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraReadWithCredentials"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_camera_plugins_rpi_cam_cameras__camera_id__get: {
+        parameters: {
+            query?: {
+                /** @description Include camera online status */
+                include_status?: boolean;
+            };
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"] | components["schemas"]["CameraReadWithStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_camera_plugins_rpi_cam_cameras__camera_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_camera_plugins_rpi_cam_cameras__camera_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_camera_status_plugins_rpi_cam_cameras__camera_id__status_get: {
+        parameters: {
+            query?: {
+                /** @description Force a refresh of the status by bypassing the cache */
+                force_refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_api_key_plugins_rpi_cam_cameras__camera_id__regenerate_api_key_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraReadWithCredentials"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_cameras_users_me_cameras_get: {
+        parameters: {
+            query?: {
+                /** @description Include camera online status */
+                include_status?: boolean;
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                url__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"][] | components["schemas"]["CameraReadWithStatus"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_user_camera_users_me_cameras_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraReadWithCredentials"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_camera_users_me_cameras__camera_id__get: {
+        parameters: {
+            query?: {
+                /** @description Include camera online status */
+                include_status?: boolean;
+            };
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"] | components["schemas"]["CameraReadWithStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_camera_users_me_cameras__camera_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_camera_users_me_cameras__camera_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CameraUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_camera_status_users_me_cameras__camera_id__status_get: {
+        parameters: {
+            query?: {
+                /** @description Force a refresh of the status by bypassing the cache */
+                force_refresh?: boolean;
+            };
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_api_key_users_me_cameras__camera_id__regenerate_api_key_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraReadWithCredentials"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_snapshot_plugins_rpi_cam_cameras__camera_id__snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JPEG snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Preview unavailable while the camera is actively streaming. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capture_image_plugins_rpi_cam_cameras__camera_id__image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_capture_image_plugins_rpi_cam_cameras__camera_id__image_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_stream_status_plugins_rpi_cam_cameras__camera_id__stream_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_all_streams_plugins_rpi_cam_cameras__camera_id__stream_stop_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_start_recording_plugins_rpi_cam_cameras__camera_id__stream_record_start_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_recording_plugins_rpi_cam_cameras__camera_id__stream_record_stop_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VideoRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recording_monitor_stream_plugins_rpi_cam_cameras__camera_id__stream_record_monitor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YouTubeMonitorStreamResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_pairing_code_plugins_rpi_cam_pairing_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingRegisterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingRegisterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_pairing_code_plugins_rpi_cam_pairing_claim_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingClaimRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraReadWithCredentials"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    poll_pairing_status_plugins_rpi_cam_pairing_poll_get: {
+        parameters: {
+            query: {
+                code: string;
+                fingerprint: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingPollResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_all_cameras_admin_plugins_rpi_cam_cameras_get: {
+        parameters: {
+            query?: {
+                name__ilike?: string | null;
+                description__ilike?: string | null;
+                url__ilike?: string | null;
+                search?: string | null;
+                order_by?: string | null;
+                owner__email__ilike?: string | null;
+                owner__username__ilike?: string | null;
+                owner__organization__ilike?: string | null;
+                owner__is_active?: boolean | null;
+                owner__is_superuser?: boolean | null;
+                owner__is_verified?: boolean | null;
+                owner__search?: string | null;
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_CameraRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_admin_plugins_rpi_cam_cameras__camera_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_camera_admin_plugins_rpi_cam_cameras__camera_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_camera_status_admin_plugins_rpi_cam_cameras__camera_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                camera_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CameraStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    subscribe_to_newsletter_newsletter_subscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsletterSubscriberRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_newsletter_subscription_newsletter_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsletterSubscriberRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_unsubscribe_newsletter_request_unsubscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unsubscribe_with_token_newsletter_unsubscribe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_newsletter_preference_newsletter_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsletterPreferenceRead"];
+                };
+            };
+        };
+    };
+    update_newsletter_preference_newsletter_me_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewsletterPreferenceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewsletterPreferenceRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_subscribers_admin_newsletter_subscribers_get: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Page size */
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_NewsletterSubscriberRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
 }

@@ -39,23 +39,19 @@ const rawProductData = {
   owner_id: 'me-user-id',
   parent_id: undefined,
   amount_in_parent: undefined,
-  physical_properties: {
-    weight_g: 100,
-    height_cm: 10,
-    width_cm: 5,
-    depth_cm: 3,
-  },
-  circularity_properties: {
-    recyclability_comment: null,
-    recyclability_observation: 'low',
-    recyclability_reference: null,
-    remanufacturability_comment: null,
-    remanufacturability_observation: 'medium',
-    remanufacturability_reference: null,
-    repairability_comment: null,
-    repairability_observation: 'high',
-    repairability_reference: null,
-  },
+  weight_g: 100,
+  height_cm: 10,
+  width_cm: 5,
+  depth_cm: 3,
+  recyclability_comment: null,
+  recyclability_observation: 'low',
+  recyclability_reference: null,
+  remanufacturability_comment: null,
+  remanufacturability_observation: 'medium',
+  remanufacturability_reference: null,
+  repairability_comment: null,
+  repairability_observation: 'high',
+  repairability_reference: null,
   components: [{ id: 1, name: 'Part A', description: '' }],
   images: [{ id: 10, image_url: '/media/img.jpg', description: 'Main image' }],
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
@@ -192,23 +188,63 @@ describe('Fetching API Service logic', () => {
     it('uses empty circularity defaults when circularity fields are null', async () => {
       const noCircularity = {
         ...rawProductData,
-        circularity_properties: {
-          recyclability_observation: null,
-          recyclability_comment: null,
-          recyclability_reference: null,
-          remanufacturability_observation: null,
-          remanufacturability_comment: null,
-          remanufacturability_reference: null,
-          repairability_observation: null,
-          repairability_comment: null,
-          repairability_reference: null,
-        },
+        recyclability_observation: null,
+        recyclability_comment: null,
+        recyclability_reference: null,
+        remanufacturability_observation: null,
+        remanufacturability_comment: null,
+        remanufacturability_reference: null,
+        repairability_observation: null,
+        repairability_comment: null,
+        repairability_reference: null,
       };
       server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(noCircularity)));
 
       const p = await getProduct(42);
 
       expect(p.circularityProperties.recyclabilityObservation).toBe('');
+    });
+
+    it('still supports the legacy nested property shape while codegen catches up', async () => {
+      const legacyShape = {
+        ...rawProductData,
+        weight_g: undefined,
+        height_cm: undefined,
+        width_cm: undefined,
+        depth_cm: undefined,
+        recyclability_comment: undefined,
+        recyclability_observation: undefined,
+        recyclability_reference: undefined,
+        remanufacturability_comment: undefined,
+        remanufacturability_observation: undefined,
+        remanufacturability_reference: undefined,
+        repairability_comment: undefined,
+        repairability_observation: undefined,
+        repairability_reference: undefined,
+        physical_properties: {
+          weight_g: 100,
+          height_cm: 10,
+          width_cm: 5,
+          depth_cm: 3,
+        },
+        circularity_properties: {
+          recyclability_comment: null,
+          recyclability_observation: 'low',
+          recyclability_reference: null,
+          remanufacturability_comment: null,
+          remanufacturability_observation: 'medium',
+          remanufacturability_reference: null,
+          repairability_comment: null,
+          repairability_observation: 'high',
+          repairability_reference: null,
+        },
+      };
+      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(legacyShape)));
+
+      const p = await getProduct(42);
+
+      expect(p.physicalProperties.weight).toBe(100);
+      expect(p.circularityProperties.recyclabilityObservation).toBe('low');
     });
 
     it('throws on HTTP error', async () => {

@@ -1,14 +1,33 @@
 import { API_URL } from '@/config';
 import { getToken } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
-import type { ApiProductUpdateWithProperties } from '@/types/api';
 import type { Product } from '@/types/Product';
 
 const baseUrl = API_URL;
 
 // ─── API payload types (derived from generated OpenAPI types) ─────────────────
 
-type ProductPayload = ApiProductUpdateWithProperties;
+type ProductPayload = {
+  name: string;
+  brand?: string;
+  model?: string;
+  description?: string;
+  product_type_id: number | null;
+  amount_in_parent?: number;
+  weight_g: number | null;
+  height_cm: number | null;
+  width_cm: number | null;
+  depth_cm: number | null;
+  recyclability_comment?: string | null;
+  recyclability_observation?: string | null;
+  recyclability_reference?: string | null;
+  remanufacturability_comment?: string | null;
+  remanufacturability_observation?: string | null;
+  remanufacturability_reference?: string | null;
+  repairability_comment?: string | null;
+  repairability_observation?: string | null;
+  repairability_reference?: string | null;
+};
 
 type NewProductPayload = ProductPayload & {
   videos: Product['videos'];
@@ -16,21 +35,35 @@ type NewProductPayload = ProductPayload & {
 
 // ─── Serialization helpers ────────────────────────────────────────────────────
 
+function toNullableNumber(value: number | undefined): number | null {
+  if (value === undefined || Number.isNaN(value)) return null;
+  return value;
+}
+
+function toNullableText(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  return value.trim() === '' ? null : value;
+}
+
 function toProductPayload(product: Product): ProductPayload {
   const isComponent = typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
 
-  // Circularity properties: only include if any field has content
   const circularityOut = {
-    recyclability_comment: product.circularityProperties.recyclabilityComment ?? null,
-    recyclability_observation: product.circularityProperties.recyclabilityObservation,
-    recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
-    remanufacturability_comment: product.circularityProperties.remanufacturabilityComment ?? null,
-    remanufacturability_observation: product.circularityProperties.remanufacturabilityObservation,
-    remanufacturability_reference:
-      product.circularityProperties.remanufacturabilityReference ?? null,
-    repairability_comment: product.circularityProperties.repairabilityComment ?? null,
-    repairability_observation: product.circularityProperties.repairabilityObservation,
-    repairability_reference: product.circularityProperties.repairabilityReference ?? null,
+    recyclability_comment: toNullableText(product.circularityProperties.recyclabilityComment),
+    recyclability_observation: toNullableText(product.circularityProperties.recyclabilityObservation),
+    recyclability_reference: toNullableText(product.circularityProperties.recyclabilityReference),
+    remanufacturability_comment: toNullableText(
+      product.circularityProperties.remanufacturabilityComment,
+    ),
+    remanufacturability_observation: toNullableText(
+      product.circularityProperties.remanufacturabilityObservation,
+    ),
+    remanufacturability_reference: toNullableText(
+      product.circularityProperties.remanufacturabilityReference,
+    ),
+    repairability_comment: toNullableText(product.circularityProperties.repairabilityComment),
+    repairability_observation: toNullableText(product.circularityProperties.repairabilityObservation),
+    repairability_reference: toNullableText(product.circularityProperties.repairabilityReference),
   };
 
   const hasCircularity = Object.values(circularityOut).some((v) => v !== null);
@@ -42,15 +75,11 @@ function toProductPayload(product: Product): ProductPayload {
     description: product.description,
     product_type_id: product.productTypeID ? product.productTypeID : null,
     ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
-    // Physical properties
-    physical_properties: {
-      weight_g: product.physicalProperties.weight || null,
-      height_cm: product.physicalProperties.height || null,
-      width_cm: product.physicalProperties.width || null,
-      depth_cm: product.physicalProperties.depth || null,
-    },
-    // Circularity properties (only if any data exists)
-    ...(hasCircularity ? { circularity_properties: circularityOut } : {}),
+    weight_g: toNullableNumber(product.physicalProperties.weight),
+    height_cm: toNullableNumber(product.physicalProperties.height),
+    width_cm: toNullableNumber(product.physicalProperties.width),
+    depth_cm: toNullableNumber(product.physicalProperties.depth),
+    ...(hasCircularity ? circularityOut : {}),
   };
 }
 
