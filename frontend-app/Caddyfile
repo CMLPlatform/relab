@@ -24,7 +24,8 @@
 		# - style-src 'unsafe-inline': React Native Web requires inline styles
 		# - img-src data: blob:: used for image previews before upload
 		# - connect-src: API endpoint for data fetching
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.cml-relab.org; connect-src 'self' https://api.cml-relab.org; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		# - CSP_API_ORIGIN: injected by the container environment per deployment
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {env.CSP_API_ORIGIN}; connect-src 'self' {env.CSP_API_ORIGIN}; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 	}
 
 	try_files {path} /index.html

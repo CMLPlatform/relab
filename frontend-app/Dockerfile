@@ -26,6 +26,9 @@ RUN npx expo export -p web -c
 # --- Production stage ---
 FROM caddy:2-alpine
 
+# Default to the production API origin; staging overrides this at runtime.
+ENV CSP_API_ORIGIN=https://api.cml-relab.org
+
 COPY --from=builder /opt/relab/frontend-app/dist /srv
 COPY Caddyfile /etc/caddy/Caddyfile
 

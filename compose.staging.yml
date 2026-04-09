@@ -30,7 +30,7 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "16686:16686"   # Jaeger UI
+      - "16686:16686" # Jaeger UI
     profiles:
       - telemetry
     restart: unless-stopped
@@ -64,6 +64,9 @@ services:
     build:
       args:
         BUILD_MODE: staging
+    environment:
+      # Needed by Caddyfile to determine the API origin for the staging environment.
+      CSP_API_ORIGIN: https://api-test.cml-relab.org
 
   cache:
     env_file: ./backend/.env.staging
