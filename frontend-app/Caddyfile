@@ -24,9 +24,10 @@
 		#   inline bootstrap code and runtime eval-based module loading.
 		# - style-src 'unsafe-inline': React Native Web requires inline styles
 		# - img-src data: blob:: used for image previews before upload
-		# - connect-src: API endpoint for data fetching
+		# - connect-src blob:: Expo web uses blob-backed worker/runtime URLs
+		#   in addition to the API endpoint for data fetching.
 		# - CSP_API_ORIGIN: injected by the container environment per deployment
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {env.CSP_API_ORIGIN}; connect-src 'self' {env.CSP_API_ORIGIN}; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {env.CSP_API_ORIGIN}; connect-src 'self' blob: {env.CSP_API_ORIGIN}; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 	}
 
 	try_files {path} /index.html
