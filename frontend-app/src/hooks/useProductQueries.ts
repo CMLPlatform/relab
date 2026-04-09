@@ -1,6 +1,11 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { searchBrands } from '@/services/api/brands';
-import { allProducts, getProduct, myProducts } from '@/services/api/products';
+import {
+  allProducts,
+  getProduct,
+  isProductNotFoundError,
+  myProducts,
+} from '@/services/api/products';
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
@@ -66,6 +71,12 @@ export const productQueryOptions = (id: number | 'new') =>
     queryKey: ['product', id] as const,
     queryFn: () => getProduct(id),
     enabled: id !== 'new',
+    retry: (failureCount, error) => {
+      if (isProductNotFoundError(error)) {
+        return false;
+      }
+      return failureCount < 1;
+    },
   });
 
 export const brandsSearchQueryOptions = (search: string) =>

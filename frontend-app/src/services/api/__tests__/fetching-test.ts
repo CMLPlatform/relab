@@ -3,7 +3,15 @@ import { HttpResponse, http } from 'msw';
 import { mockUser, server } from '@/test-utils';
 import * as auth from '../authentication';
 import { allBrands, searchBrands } from '../brands';
-import { allProducts, getProduct, myProducts, newProduct, productComponents } from '../products';
+import {
+  allProducts,
+  getProduct,
+  isProductNotFoundError,
+  myProducts,
+  newProduct,
+  productComponents,
+  ProductNotFoundError,
+} from '../products';
 import { allProductTypes, searchProductTypes } from '../productTypes';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
@@ -247,10 +255,22 @@ describe('Fetching API Service logic', () => {
       expect(p.circularityProperties.recyclabilityObservation).toBe('low');
     });
 
-    it('throws on HTTP error', async () => {
+    it('throws ProductNotFoundError on 404', async () => {
       server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 404 })));
 
-      await expect(getProduct(99)).rejects.toThrow('HTTP error');
+      await expect(getProduct(99)).rejects.toBeInstanceOf(ProductNotFoundError);
+
+      try {
+        await getProduct(99);
+      } catch (error) {
+        expect(isProductNotFoundError(error)).toBe(true);
+      }
+    });
+
+    it('still throws a generic HTTP error for non-404 failures', async () => {
+      server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 500 })));
+
+      await expect(getProduct(99)).rejects.toThrow('HTTP error! Status: 500');
     });
   });
 

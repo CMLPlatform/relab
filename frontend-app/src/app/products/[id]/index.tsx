@@ -27,6 +27,7 @@ import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
+import { isProductNotFoundError } from '@/services/api/products';
 import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
 
 import type { Product } from '@/types/Product';
@@ -223,6 +224,29 @@ export default function ProductPage(): JSX.Element {
 
   // ─── Error state ──────────────────────────────────────────────────────────────
   if (isError) {
+    if (isProductNotFoundError(error)) {
+      return (
+        <View
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 }}
+        >
+          <MaterialCommunityIcons
+            name="package-variant-closed-remove"
+            size={64}
+            color={theme.colors.onSurfaceVariant}
+          />
+          <Text variant="headlineSmall" style={{ textAlign: 'center' }}>
+            Product not found
+          </Text>
+          <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
+            This product may have been removed or the link is no longer valid.
+          </Text>
+          <Button mode="contained" onPress={() => router.replace('/products')} style={{ marginTop: 8 }}>
+            Back to products
+          </Button>
+        </View>
+      );
+    }
+
     return (
       <View
         style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 }}

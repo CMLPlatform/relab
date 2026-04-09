@@ -5,6 +5,7 @@ import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
+import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils';
 import ProductPage from '../index';
 import type { HeaderBackButtonProps } from '@react-navigation/elements';
@@ -227,6 +228,25 @@ describe('ProductPage state handling', () => {
     fireEvent.press(screen.getByText('Try Again'));
 
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it('renders the not-found state for missing products', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      isError: true,
+      error: new ProductNotFoundError(42),
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    expect(screen.getByText('Product not found')).toBeOnTheScreen();
+    expect(
+      screen.getByText('This product may have been removed or the link is no longer valid.'),
+    ).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Back to products'));
+
+    expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
   it('collapses the FAB label on scroll down and restores it on scroll up', async () => {

@@ -19,6 +19,21 @@ export interface PaginatedResponse<T> {
   pages: number;
 }
 
+export class ProductNotFoundError extends Error {
+  readonly productId: number;
+  readonly status = 404;
+
+  constructor(productId: number) {
+    super(`Product ${productId} was not found.`);
+    this.name = 'ProductNotFoundError';
+    this.productId = productId;
+  }
+}
+
+export function isProductNotFoundError(error: unknown): error is ProductNotFoundError {
+  return error instanceof ProductNotFoundError;
+}
+
 async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> {
   const legacyPhysical = data.physical_properties;
   const legacyCircularity = data.circularity_properties;
@@ -101,6 +116,10 @@ export async function getProduct(
   }
 
   const response = await apiFetch(url, { method: 'GET' });
+
+  if (response.status === 404) {
+    throw new ProductNotFoundError(id);
+  }
 
   if (!response.ok) {
     throw new Error(`HTTP error! Status: ${response.status}`);

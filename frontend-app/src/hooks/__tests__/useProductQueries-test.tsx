@@ -16,6 +16,7 @@ import {
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
 } from '../useProductQueries';
+import { ProductNotFoundError } from '@/services/api/products';
 
 jest.mock('@/services/api/brands', () => ({
   allBrands: jest.fn(),
@@ -178,6 +179,15 @@ describe('useProductQueries', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(products.getProduct).toHaveBeenCalledWith(123);
+  });
+
+  it('useProductQuery does not retry when the product is missing', async () => {
+    mockedGetProduct.mockRejectedValue(new ProductNotFoundError(123));
+
+    const { result } = renderHook(() => useProductQuery(123), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(products.getProduct).toHaveBeenCalledTimes(1);
   });
 
   it('useSaveProductMutation calls saveProduct and invalidates queries', async () => {
