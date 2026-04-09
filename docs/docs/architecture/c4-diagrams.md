@@ -95,8 +95,8 @@ C4Component
 
     Container_Boundary(backend, "FastAPI Backend") {
         Component(auth, "Auth Module", "FastAPI-Users", "Login, registration, OAuth, email verification, password reset, user and organisation management")
-        Component(datacollection, "Data Collection", "SQLModel / FastAPI", "Products, components, associations, search, user-scoped CRUD")
-        Component(backgrounddata, "Background Data", "SQLModel / FastAPI", "Taxonomies, categories, materials, product types — cached reference data")
+        Component(datacollection, "Data Collection", "SQLAlchemy / FastAPI", "Products, components, associations, search, user-scoped CRUD")
+        Component(backgrounddata, "Background Data", "SQLAlchemy / FastAPI", "Taxonomies, categories, materials, product types — cached reference data")
         Component(filestorage, "File Storage", "FastAPI", "File and image upload, on-the-fly resizing, WebP conversion, periodic orphan cleanup")
         Component(newsletter, "Newsletter", "FastAPI", "Subscription management, double opt-in confirmation, broadcast emails")
         Component(rpi-cam, "RPI Camera Plugin", "FastAPI", "Camera CRUD, remote capture, YouTube live stream integration, recording sessions")

@@ -119,7 +119,7 @@ For formal C4 architecture views (Context, Container, Component), see [C4 Archit
 ## Technology Choices
 
 - **Backend API**: FastAPI
-- **Persistence layer**: SQLModel and SQLAlchemy
+- **Persistence layer**: SQLAlchemy 2.0 + Pydantic
 - **Database**: PostgreSQL
 - **Migrations**: Alembic
 - **Caching and token infrastructure**: Redis
