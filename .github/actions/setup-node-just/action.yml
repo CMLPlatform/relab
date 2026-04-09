@@ -1,14 +1,18 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: Setup Node + just
-description: Install Node.js with npm caching and just for workflow jobs.
+description: Install Node.js with package-manager caching and just for workflow jobs.
 
 inputs:
   node-version:
     description: Node.js version to install.
     required: true
   cache-dependency-path:
-    description: Lockfile path used for npm cache keys.
+    description: Lockfile path used for package-manager cache keys.
     required: true
+  cache:
+    description: Package manager cache to configure in setup-node (for example npm or pnpm).
+    required: false
+    default: npm
 
 runs:
   using: composite
@@ -17,8 +21,12 @@ runs:
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
-        cache: npm
+        cache: ${{ inputs.cache }}
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Enable Corepack
+      shell: bash
+      run: corepack enable
 
     - name: Install just
       uses: extractions/setup-just@v4

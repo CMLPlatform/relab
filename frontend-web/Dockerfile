@@ -5,13 +5,16 @@ FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224
 WORKDIR /opt/relab/frontend-web
 
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN corepack enable
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Copy config files
 COPY tsconfig.json ./
@@ -25,7 +28,7 @@ ARG BUILD_MODE=prod
 
 COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
 
-RUN npm run build:$BUILD_MODE
+RUN pnpm run build:$BUILD_MODE
 
 # --- Production stage ---
 FROM caddy:2-alpine

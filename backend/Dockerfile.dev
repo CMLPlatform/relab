@@ -22,7 +22,7 @@ COPY .python-version pyproject.toml uv.lock ./
 # Install dependencies (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
 # NOTE: Keep dev image group selection explicit so uv default-group changes do not alter the image unexpectedly.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-default-groups --group=api --group=dev --no-install-project --no-editable
+    uv sync --locked --no-default-groups --group=dev --no-install-project --no-editable
 
 # Copy source files
 COPY . .

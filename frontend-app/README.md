@@ -17,10 +17,10 @@ To regenerate locally (backend must be running and `EXPO_PUBLIC_API_URL` set):
 
 ```bash
 # simple regeneration
-npm run codegen:api
+pnpm run codegen:api
 
 # regenerate and automatically redact any embedded JWT examples
-npm run codegen:api:redact
+pnpm run codegen:api:redact
 ```
 
 The Expo dev server runs on <http://localhost:8081>.

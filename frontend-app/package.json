@@ -2,12 +2,13 @@
   "name": "relab-frontend-app",
   "main": "expo-router/entry",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "npm run typecheck && biome check .",
+    "lint": "pnpm run typecheck && biome check .",
     "typecheck": "tsc --noEmit",
     "format": "biome check --write .",
     "test": "jest",
@@ -19,7 +20,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "codegen:api": "openapi-typescript ${EXPO_PUBLIC_API_URL:-http://localhost:8011}/openapi_full.json -o src/types/api.generated.ts",
-    "codegen:api:redact": "npm run codegen:api && node scripts/redact_api.js"
+    "codegen:api:redact": "pnpm run codegen:api && node scripts/redact_api.js"
   },
   "dependencies": {
     "@biomejs/biome": "^2.4.9",

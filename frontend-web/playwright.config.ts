@@ -37,7 +37,7 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'npm run preview',
+        command: 'pnpm run preview',
         url: 'http://localhost:8081',
         reuseExistingServer: !process.env.CI,
       },

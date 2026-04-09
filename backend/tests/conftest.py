@@ -40,6 +40,7 @@ from alembic import command
 from alembic.config import Config
 from loguru import logger as loguru_logger
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
@@ -149,7 +150,14 @@ def _build_database_url(driver: str, database_name: str) -> str:
     port = os.environ["DATABASE_PORT"]
     user = os.environ["POSTGRES_USER"]
     password = os.environ["POSTGRES_PASSWORD"]
-    return f"postgresql+{driver}://{user}:{password}@{host}:{port}/{database_name}"
+    return URL.create(
+        f"postgresql+{driver}",
+        username=user,
+        password=password,
+        host=host,
+        port=port,
+        database=database_name,
+    ).render_as_string(hide_password=False)
 
 
 def _drop_test_database(test_database_name: str) -> None:

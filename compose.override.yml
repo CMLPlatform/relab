@@ -96,7 +96,7 @@ services:
             - jest.config.ts
             - jest.setup.ts
         - action: rebuild
-          path: ./frontend-app/package-lock.json
+          path: ./frontend-app/pnpm-lock.yaml
 
   frontend-web:
     build:
@@ -118,4 +118,4 @@ services:
             - .astro/
             - dist/
         - action: rebuild
-          path: ./frontend-web/package-lock.json
+          path: ./frontend-web/pnpm-lock.yaml

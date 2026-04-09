@@ -5,13 +5,16 @@ FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224
 WORKDIR /opt/relab/frontend-app
 
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN corepack enable
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Copy source code
 COPY app.json expo-env.d.ts tsconfig.json ./
@@ -21,7 +24,7 @@ COPY src/ ./src/
 ARG BUILD_MODE=production
 COPY ".env.$BUILD_MODE" .env
 
-RUN npx expo export -p web -c
+RUN pnpm exec expo export -p web -c
 
 # --- Production stage ---
 FROM caddy:2-alpine

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 from pydantic import HttpUrl, SecretStr
 from pydantic_core import ValidationError
+from sqlalchemy.engine import make_url
 
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
 from app.core.env import get_env_file
@@ -99,6 +100,52 @@ class TestCoreSettingsCors:
         assert settings.otel_enabled is False
         assert settings.otel_service_name == "relab-backend"
         assert settings.otel_exporter_otlp_endpoint is None
+
+    def test_build_database_url_preserves_reserved_password_characters(self) -> None:
+        """Database URL construction should safely encode reserved password characters."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            database_host="database.internal",
+            database_port=5432,
+            postgres_user="relab_user",
+            postgres_password=SecretStr("p@ss:word/with?chars"),
+        )
+
+        url = settings.build_database_url("asyncpg", "relab_db")
+        parsed = make_url(url)
+
+        assert parsed.drivername == "postgresql+asyncpg"
+        assert parsed.username == "relab_user"
+        assert parsed.password == "p@ss:word/with?chars"
+        assert parsed.host == "database.internal"
+        assert parsed.port == 5432
+        assert parsed.database == "relab_db"
+
+    def test_sync_database_url_disables_ssl_by_default(self) -> None:
+        """Sync DB URLs should explicitly disable SSL for the internal Postgres service."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            postgres_password=SecretStr("test-password"),
+        )
+        parsed = make_url(settings.sync_database_url)
+        assert parsed.query["sslmode"] == "disable"
+
+    def test_async_database_connect_args_disable_ssl_by_default(self) -> None:
+        """Async DB connections should not inherit accidental PGSSL* env vars by default."""
+        settings = CoreSettings(environment=Environment.DEV)
+        assert settings.async_database_connect_args == {"ssl": False}
+
+    def test_async_database_connect_args_enable_ssl_when_configured(self) -> None:
+        """Async DB SSL should remain configurable for deployments that need it."""
+        settings = CoreSettings(
+            environment=Environment.PROD,
+            database_ssl=True,
+            postgres_password=SecretStr("test-password"),
+            redis_password=SecretStr("test-password"),
+            superuser_password=SecretStr("test-password"),
+            superuser_email="test@example.com",
+        )
+        assert settings.async_database_connect_args == {"ssl": True}
 
 
 @pytest.mark.unit

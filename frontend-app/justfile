@@ -6,7 +6,7 @@ default:
 
 # Install dependencies
 install:
-    npm ci
+    pnpm install --frozen-lockfile
 
 # Update Expo-managed dependencies to versions compatible with the current SDK
 update:
@@ -16,11 +16,11 @@ update:
 
 # Run static type checks
 typecheck:
-    npm run typecheck
+    pnpm run typecheck
 
 # Lint the codebase
 lint:
-    npm run lint
+    pnpm run lint
 
 # Run the frontend-app quality gate
 check:
@@ -29,7 +29,7 @@ check:
 
 # Auto-format code
 format:
-    npm run format
+    pnpm run format
 
 # Auto-fix what the formatter can fix
 fix: format
@@ -37,15 +37,15 @@ fix: format
 
 # Run tests
 test:
-    npm run test
+    pnpm run test
 
 # Run tests with coverage (for CI)
 test-cov:
-    npm run test:coverage
+    pnpm run test:coverage
 
 # Run the frontend-app CI test suite
 test-ci:
-    npm run test:ci
+    pnpm run test:ci
     @echo "✓ Frontend-app CI test suite passed"
 
 # Run the full frontend-app CI pipeline locally
@@ -62,7 +62,7 @@ dev-clean PORT="8081":
 
 # Scan dependencies for known vulnerabilities
 audit:
-    npm audit --audit-level=high --omit=dev
+    pnpm audit --audit-level=high --prod
     @echo "✓ Dependency audit complete"
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)
@@ -72,18 +72,18 @@ e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
 # Only the API URL is required for these tests; the public website URL falls back in-app.
 build-web:
     @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
-    EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} npm run build:web
+    EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} pnpm run build:web
 
 # Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
 test-e2e:
-    npm run test:e2e
+    pnpm run test:e2e
 
 # Alias for explicit CI naming
 test-e2e-full-stack: test-e2e
 
 # Open Playwright UI for interactive E2E test development
 test-e2e-ui:
-    npm run test:e2e:ui
+    pnpm run test:e2e:ui
 
 # Clean caches and build artifacts
 clean:
@@ -93,6 +93,6 @@ clean:
 # Generate TypeScript API types from backend OpenAPI and redact sensitive examples
 codegen PORT="8011":
     @echo "Generating TypeScript API types and redacting JWT examples (backend at http://localhost:{{PORT}})..."
-    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} npm run codegen:api:redact
+    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} pnpm run codegen:api:redact
     node scripts/redact_api.js
     @echo "✓ Generated src/types/api.generated.ts (redacted)"

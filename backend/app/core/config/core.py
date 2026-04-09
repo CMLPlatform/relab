@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from pydantic import EmailStr, Field, HttpUrl, PostgresDsn, SecretStr, field_validator, model_validator
+from sqlalchemy.engine import URL
 
 from app.core.config.models import (
     DEFAULT_CORS_ORIGIN_REGEX,
@@ -32,6 +33,7 @@ class CoreSettings(RelabBaseSettings):
     # ── Database ─────────────────────────────────────────────────────────────────
     database_host: str = "localhost"
     database_port: int = Field(default=5432, ge=1, le=65535)
+    database_ssl: bool = False
     postgres_user: str = "postgres"
     postgres_password: SecretStr = SecretStr("")
     postgres_db: str = "relab_db"
@@ -141,12 +143,19 @@ class CoreSettings(RelabBaseSettings):
 
     def build_database_url(self, driver: str, database: str) -> str:
         """Build and validate PostgreSQL database URL."""
-        url = (
-            f"postgresql+{driver}://{self.postgres_user}:{self.postgres_password.get_secret_value()}"
-            f"@{self.database_host}:{self.database_port}/{database}"
+        query = {"sslmode": "require" if self.database_ssl else "disable"} if driver == "psycopg" else None
+        url = URL.create(
+            f"postgresql+{driver}",
+            username=self.postgres_user,
+            password=self.postgres_password.get_secret_value(),
+            host=self.database_host,
+            port=self.database_port,
+            database=database,
+            query=query,
         )
-        PostgresDsn(url)
-        return url
+        rendered = url.render_as_string(hide_password=False)
+        PostgresDsn(rendered)
+        return rendered
 
     @cached_property
     def async_database_url(self) -> str:
@@ -157,6 +166,16 @@ class CoreSettings(RelabBaseSettings):
     def sync_database_url(self) -> str:
         """Get sync database URL."""
         return self.build_database_url("psycopg", self.postgres_db)
+
+    @cached_property
+    def async_database_connect_args(self) -> dict[str, bool]:
+        """Get async engine connect args.
+
+        Be explicit about SSL so asyncpg does not inherit PGSSL* environment
+        variables from the container when talking to the internal Docker
+        Postgres service.
+        """
+        return {"ssl": self.database_ssl}
 
     @cached_property
     def cache_url(self) -> str:

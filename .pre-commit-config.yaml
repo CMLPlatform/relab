@@ -77,15 +77,15 @@ repos:
 
   - repo: local
     hooks:
-      - id: npm-lock-frontend-app
-        name: npm-lock-frontend-app
-        entry: bash -c 'cd frontend-app && npm install --package-lock-only --ignore-scripts'
+      - id: pnpm-lock-frontend-app
+        name: pnpm-lock-frontend-app
+        entry: bash -c 'cd frontend-app && pnpm install --lockfile-only --ignore-scripts'
         language: system
         files: ^frontend-app/package\.json$
         pass_filenames: false
-      - id: npm-lock-frontend-web
-        name: npm-lock-frontend-web
-        entry: bash -c 'cd frontend-web && npm install --package-lock-only --ignore-scripts'
+      - id: pnpm-lock-frontend-web
+        name: pnpm-lock-frontend-web
+        entry: bash -c 'cd frontend-web && pnpm install --lockfile-only --ignore-scripts'
         language: system
         files: ^frontend-web/package\.json$
         pass_filenames: false

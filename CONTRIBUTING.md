@@ -192,7 +192,7 @@ Keep modules small, explicit, and domain-shaped:
 
 ```bash
 cd frontend-app
-npm ci
+pnpm install --frozen-lockfile
 just dev
 ```
 
@@ -211,10 +211,10 @@ When working on backend API changes, regenerate the types:
 ```bash
 # from repo root
 cd frontend-app
-npm run codegen:api
+pnpm run codegen:api
 
 # regenerate and redact embedded JWT examples (recommended)
-npm run codegen:api:redact
+pnpm run codegen:api:redact
 ```
 
 You can also run `just codegen` inside `frontend-app` (after `just install`) which runs the regeneration and redaction steps.
@@ -223,7 +223,7 @@ You can also run `just codegen` inside `frontend-app` (after `just install`) whi
 
 ```bash
 cd frontend-web
-npm ci
+pnpm install --frozen-lockfile
 just dev
 ```
 

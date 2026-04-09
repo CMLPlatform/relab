@@ -8,7 +8,7 @@ default:
 
 # Install dependencies
 install:
-    npm ci
+    pnpm install --frozen-lockfile
 
 # Upgrade Astro and official integrations using Astro's upgrade tool
 update:
@@ -21,7 +21,7 @@ update:
 
 # Start development server
 dev PORT="8081":
-    npm run dev -- --port {{PORT}}
+    pnpm run dev -- --port {{PORT}}
 
 # ============================================================================
 # Building
@@ -29,11 +29,11 @@ dev PORT="8081":
 
 # Build for production
 build:
-    npm run build:prod
+    pnpm run build:prod
 
 # Build for staging (loads .env.staging via --mode staging)
 build-staging:
-    npm run build:staging
+    pnpm run build:staging
 
 # ============================================================================
 # Quality Checks
@@ -45,11 +45,11 @@ typecheck:
 
 # Lint with Biome (read-only)
 lint:
-    npm run lint
+    pnpm run lint
 
 # Auto-format code with Biome
 format:
-    npm run format
+    pnpm run format
 
 # Auto-fix what the formatter can fix
 fix: format
@@ -65,11 +65,11 @@ check: lint typecheck
 
 # Run unit tests
 test:
-    npm run test
+    pnpm run test
 
 # Run tests with coverage report (for CI)
 test-cov:
-    npm run test:coverage
+    pnpm run test:coverage
 
 # Run the frontend-web CI test suite
 test-ci: test-cov
@@ -77,18 +77,18 @@ test-ci: test-cov
 
 # Run browser end-to-end tests for the standalone frontend-web site (requires a prior `just build`)
 test-e2e:
-    npm run test:e2e
+    pnpm run test:e2e
 
 # Alias for explicit CI naming
 test-e2e-browser: test-e2e
 
 # Open Playwright UI for interactive e2e test development
 test-e2e-ui:
-    npm run test:e2e:ui
+    pnpm run test:e2e:ui
 
 # Run all tests (unit + e2e)
 test-all:
-    npm run test:all
+    pnpm run test:all
 
 # Run the full frontend-web CI pipeline locally
 ci: check test-ci
@@ -100,7 +100,7 @@ ci: check test-ci
 
 # Scan dependencies for known vulnerabilities
 audit:
-    npm audit --audit-level=high --omit=dev
+    pnpm audit --audit-level=high --prod
     @echo "✓ Dependency audit complete"
 
 # Clean caches and build artifacts

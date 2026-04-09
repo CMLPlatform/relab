@@ -7,7 +7,7 @@
 	// The local workspace is mounted in /opt/relab for git integration
 	"mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind"],
 	"overrideCommand": true,
-	"postAttachCommand": "echo '🚀 App frontend dev container ready!\\n📦 If node_modules is missing, run: npm ci\\n💡 To start the Expo dev server, run: npx expo start --web\\n🌐 The server will be available at http://localhost:8013 (forwarded port)'",
+	"postAttachCommand": "echo '🚀 App frontend dev container ready!\\n📦 If node_modules is missing, run: pnpm install --frozen-lockfile\\n💡 To start the Expo dev server, run: pnpm exec expo start --web\\n🌐 The server will be available at http://localhost:8013 (forwarded port)'",
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {},
 		"ghcr.io/devcontainers-extra/features/expo-cli:1": {}

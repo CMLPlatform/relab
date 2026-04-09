@@ -169,7 +169,8 @@ jobs:
         uses: ./.github/actions/setup-node-just
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache-dependency-path: frontend-app/package-lock.json
+          cache: pnpm
+          cache-dependency-path: frontend-app/pnpm-lock.yaml
 
       - name: Install dependencies
         run: just frontend-app/install
@@ -191,7 +192,8 @@ jobs:
         uses: ./.github/actions/setup-node-just
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache-dependency-path: frontend-web/package-lock.json
+          cache: pnpm
+          cache-dependency-path: frontend-web/pnpm-lock.yaml
 
       - name: Install dependencies
         run: just frontend-web/install

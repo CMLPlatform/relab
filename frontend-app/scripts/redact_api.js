@@ -19,7 +19,7 @@
 
   Usage:
     # from frontend-app
-    npm run codegen:api:redact
+    pnpm run codegen:api:redact
     # or directly
     node scripts/redact_api.js
 */
