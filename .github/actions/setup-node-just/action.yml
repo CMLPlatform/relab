@@ -21,4 +21,4 @@ runs:
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
 
     - name: Install just
-      uses: extractions/setup-just@v3
+      uses: extractions/setup-just@v4

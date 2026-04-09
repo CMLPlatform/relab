@@ -1,17 +1,16 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# spell-checker: ignore dorny
 
 name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main, develop]
-  merge_group:
+    branches: [ main, develop ]
   workflow_dispatch:
+  # Scheduled runs only exercise docker-smoke (change detection skips all other jobs).
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 3 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,105 +33,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run-policy: ${{ steps.decide.outputs.run-policy }}
-      run-backend: ${{ steps.decide.outputs.run-backend }}
-      run-frontend-web: ${{ steps.decide.outputs.run-frontend-web }}
-      run-frontend-app: ${{ steps.decide.outputs.run-frontend-app }}
-      run-docs: ${{ steps.decide.outputs.run-docs }}
-      run-e2e: ${{ steps.decide.outputs.run-e2e }}
+      run-policy: ${{ steps.detect.outputs.run-policy }}
+      run-backend: ${{ steps.detect.outputs.run-backend }}
+      run-frontend-web: ${{ steps.detect.outputs.run-frontend-web }}
+      run-frontend-app: ${{ steps.detect.outputs.run-frontend-app }}
+      run-docs: ${{ steps.detect.outputs.run-docs }}
+      run-e2e: ${{ steps.detect.outputs.run-e2e }}
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Detect changed paths
-        id: filter
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            shared:
-              - '.github/**'
-              - 'justfile'
-              - 'compose*.yml'
-            policy:
-              - '.github/**'
-              - '.pre-commit-config.yaml'
-              - '.prettierrc*'
-              - '.editorconfig'
-              - 'justfile'
-              - 'pyproject.toml'
-            backend:
-              - 'backend/**'
-              - 'compose*.yml'
-            frontend-web:
-              - 'frontend-web/**'
-              - 'compose*.yml'
-            frontend-app:
-              - 'frontend-app/**'
-              - 'compose*.yml'
-            docs:
-              - 'docs/**'
-              - 'compose*.yml'
-
-      - name: Decide which CI jobs should run
-        id: decide
-        uses: actions/github-script@v8
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          SHARED: ${{ steps.filter.outputs.shared }}
-          POLICY: ${{ steps.filter.outputs.policy }}
-          BACKEND: ${{ steps.filter.outputs.backend }}
-          FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
-          FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
-          DOCS: ${{ steps.filter.outputs.docs }}
-        with:
-          script: |
-            const event = process.env.EVENT_NAME;
-            const isTrue = (value) => value === 'true';
-            const set = (name, value) => core.setOutput(name, String(value));
-
-            if (event === 'schedule') {
-              set('run-policy', false);
-              set('run-backend', false);
-              set('run-frontend-web', false);
-              set('run-frontend-app', false);
-              set('run-docs', false);
-              set('run-e2e', false);
-              return;
-            }
-
-            if (event === 'workflow_dispatch' || event === 'merge_group') {
-              set('run-policy', true);
-              set('run-backend', true);
-              set('run-frontend-web', true);
-              set('run-frontend-app', true);
-              set('run-docs', true);
-              set('run-e2e', true);
-              return;
-            }
-
-            const shared = isTrue(process.env.SHARED);
-            const policy = isTrue(process.env.POLICY);
-            const backend = isTrue(process.env.BACKEND);
-            const frontendWeb = isTrue(process.env.FRONTEND_WEB);
-            const frontendApp = isTrue(process.env.FRONTEND_APP);
-            const docs = isTrue(process.env.DOCS);
-
-            set('run-policy', shared || policy);
-            set('run-backend', shared || backend);
-            set('run-frontend-web', shared || frontendWeb);
-            set('run-frontend-app', shared || frontendApp);
-            set('run-docs', shared || docs);
-            set('run-e2e', shared || backend || frontendApp);
+      - name: Detect changes
+        id: detect
+        uses: ./.github/actions/detect-ci-changes
 
   policy:
     name: Repository Policy
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-policy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Python tooling
@@ -152,12 +74,12 @@ jobs:
 
   backend:
     name: Backend
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-backend == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Python tooling
@@ -196,12 +118,12 @@ jobs:
 
   frontend-web:
     name: Frontend Web
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-frontend-web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Node tooling
@@ -257,12 +179,12 @@ jobs:
 
   frontend-app:
     name: Frontend App
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-frontend-app == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Node tooling
@@ -300,12 +222,12 @@ jobs:
 
   docs:
     name: Docs
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-docs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Python tooling
@@ -322,7 +244,7 @@ jobs:
 
   docker-smoke:
     name: Docker Smoke (${{ matrix.recipe }})
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -336,11 +258,11 @@ jobs:
           - docker-smoke-docs
           - docker-smoke-user-upload-backups
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -350,14 +272,14 @@ jobs:
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
-    needs: [changes]
-    if: needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: [ changes ]
+    if: needs.changes.outputs.run-e2e == 'true' && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
       E2E_BACKEND_PORT: "18432"
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Docker Buildx

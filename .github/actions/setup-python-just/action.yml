@@ -25,4 +25,4 @@ runs:
         python-version: ${{ inputs.python-version }}
 
     - name: Install just
-      uses: extractions/setup-just@v3
+      uses: extractions/setup-just@v4

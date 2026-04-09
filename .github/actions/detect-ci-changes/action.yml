@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+# spell-checker: ignore dorny
+name: Detect CI Changes
+description: Determine which CI jobs should run for this monorepo.
+
+outputs:
+  run-policy:
+    description: Whether the policy job should run.
+    value: ${{ steps.decide.outputs.run-policy }}
+  run-backend:
+    description: Whether the backend job should run.
+    value: ${{ steps.decide.outputs.run-backend }}
+  run-frontend-web:
+    description: Whether the frontend-web job should run.
+    value: ${{ steps.decide.outputs.run-frontend-web }}
+  run-frontend-app:
+    description: Whether the frontend-app job should run.
+    value: ${{ steps.decide.outputs.run-frontend-app }}
+  run-docs:
+    description: Whether the docs job should run.
+    value: ${{ steps.decide.outputs.run-docs }}
+  run-e2e:
+    description: Whether the full-stack E2E job should run.
+    value: ${{ steps.decide.outputs.run-e2e }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect changed paths
+      id: filter
+      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+      uses: dorny/paths-filter@v4
+      with:
+        filters: |
+          shared:
+            - '.github/**'
+            - 'justfile'
+            - 'compose*.yml'
+          policy:
+            - '.github/**'
+            - '.pre-commit-config.yaml'
+            - '.prettierrc*'
+            - '.editorconfig'
+            - 'justfile'
+            - 'pyproject.toml'
+          backend:
+            - 'backend/**'
+            - 'compose*.yml'
+          frontend-web:
+            - 'frontend-web/**'
+            - 'compose*.yml'
+          frontend-app:
+            - 'frontend-app/**'
+            - 'compose*.yml'
+          docs:
+            - 'docs/**'
+            - 'compose*.yml'
+
+    - name: Decide which CI jobs should run
+      id: decide
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        SHARED: ${{ steps.filter.outputs.shared }}
+        POLICY: ${{ steps.filter.outputs.policy }}
+        BACKEND: ${{ steps.filter.outputs.backend }}
+        FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
+        FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
+        DOCS: ${{ steps.filter.outputs.docs }}
+      run: |
+        # Scheduled runs only exercise docker-smoke; skip all other jobs.
+        if [[ "$EVENT_NAME" == "schedule" ]]; then
+          echo "run-policy=false" >> "$GITHUB_OUTPUT"
+          echo "run-backend=false" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-web=false" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-app=false" >> "$GITHUB_OUTPUT"
+          echo "run-docs=false" >> "$GITHUB_OUTPUT"
+          echo "run-e2e=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Manual dispatch runs exercise everything.
+        if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+          echo "run-policy=true" >> "$GITHUB_OUTPUT"
+          echo "run-backend=true" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-web=true" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-app=true" >> "$GITHUB_OUTPUT"
+          echo "run-docs=true" >> "$GITHUB_OUTPUT"
+          echo "run-e2e=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Path-based filtering for push/pull_request events.
+        echo "run-policy=$([[ "$SHARED" == "true" || "$POLICY" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-backend=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-frontend-web=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-frontend-app=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-docs=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"

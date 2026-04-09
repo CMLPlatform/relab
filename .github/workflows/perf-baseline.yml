@@ -4,8 +4,6 @@ name: Performance Baseline
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 4 * * *"
 
 permissions:
   contents: read
@@ -20,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

@@ -1,17 +1,14 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# spell-checker: ignore dorny
 
 name: Security
 
 on:
   schedule:
-    - cron: "0 3 * * 1"
-    - cron: "30 2 * * 0"
+    - cron: "0 2 * * 1"
   pull_request:
-    branches: [main, develop]
+    branches: [ main, develop ]
   push:
-    branches: [main, develop]
-  merge_group:
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:
@@ -36,83 +33,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run-root-python: ${{ steps.decide.outputs.run-root-python }}
-      run-backend-python: ${{ steps.decide.outputs.run-backend-python }}
-      run-docs-python: ${{ steps.decide.outputs.run-docs-python }}
-      run-frontend-app-node: ${{ steps.decide.outputs.run-frontend-app-node }}
-      run-frontend-web-node: ${{ steps.decide.outputs.run-frontend-web-node }}
+      run-root-python: ${{ steps.detect.outputs.run-root-python }}
+      run-backend-python: ${{ steps.detect.outputs.run-backend-python }}
+      run-docs-python: ${{ steps.detect.outputs.run-docs-python }}
+      run-frontend-app-node: ${{ steps.detect.outputs.run-frontend-app-node }}
+      run-frontend-web-node: ${{ steps.detect.outputs.run-frontend-web-node }}
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Detect changed paths
-        id: filter
-        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            shared:
-              - '.github/**'
-              - 'justfile'
-            root-python:
-              - 'pyproject.toml'
-              - 'uv.lock'
-            backend:
-              - 'backend/**'
-            docs:
-              - 'docs/**'
-            frontend-app:
-              - 'frontend-app/**'
-            frontend-web:
-              - 'frontend-web/**'
-
-      - name: Decide which security jobs should run
-        id: decide
-        uses: actions/github-script@v8
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          SHARED: ${{ steps.filter.outputs.shared }}
-          ROOT_PYTHON: ${{ steps.filter.outputs.root-python }}
-          BACKEND: ${{ steps.filter.outputs.backend }}
-          DOCS: ${{ steps.filter.outputs.docs }}
-          FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
-          FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
-        with:
-          script: |
-            const event = process.env.EVENT_NAME;
-            const isTrue = (value) => value === 'true';
-            const set = (name, value) => core.setOutput(name, String(value));
-
-            if (event === 'schedule' || event === 'workflow_dispatch') {
-              set('run-root-python', true);
-              set('run-backend-python', true);
-              set('run-docs-python', true);
-              set('run-frontend-app-node', true);
-              set('run-frontend-web-node', true);
-              return;
-            }
-
-            if (event === 'merge_group') {
-              set('run-root-python', false);
-              set('run-backend-python', false);
-              set('run-docs-python', false);
-              set('run-frontend-app-node', false);
-              set('run-frontend-web-node', false);
-              return;
-            }
-
-            const shared = isTrue(process.env.SHARED);
-            const rootPython = isTrue(process.env.ROOT_PYTHON);
-            const backend = isTrue(process.env.BACKEND);
-            const docs = isTrue(process.env.DOCS);
-            const frontendApp = isTrue(process.env.FRONTEND_APP);
-            const frontendWeb = isTrue(process.env.FRONTEND_WEB);
-
-            set('run-root-python', shared || rootPython);
-            set('run-backend-python', shared || backend);
-            set('run-docs-python', shared || docs);
-            set('run-frontend-app-node', shared || frontendApp);
-            set('run-frontend-web-node', shared || frontendWeb);
+      - name: Detect changes
+        id: detect
+        uses: ./.github/actions/detect-security-changes
 
   secret-scan:
     name: Secret Scan
@@ -120,15 +52,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.28.0"
+          GITLEAKS_SHA256: "a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb"
         run: |
-          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz \
-            | tar -xz gitleaks
+          curl -sSfL -o gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf gitleaks.tar.gz gitleaks
           chmod +x gitleaks
 
       - name: Run gitleaks
@@ -136,12 +73,12 @@ jobs:
 
   python-audit-root:
     name: Python Audit (root)
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-root-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Python tooling
@@ -158,12 +95,12 @@ jobs:
 
   backend-python-audit:
     name: Python Audit (backend)
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-backend-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Python tooling
@@ -180,13 +117,13 @@ jobs:
 
   docs-python-audit:
     name: Python Audit (docs)
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-docs-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     continue-on-error: true
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Python tooling
@@ -220,12 +157,12 @@ jobs:
 
   frontend-app-node-audit:
     name: Node Audit (frontend-app)
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-frontend-app-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Node tooling
@@ -242,12 +179,12 @@ jobs:
 
   frontend-web-node-audit:
     name: Node Audit (frontend-web)
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-frontend-web-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v6
 
       - name: Set up Node tooling

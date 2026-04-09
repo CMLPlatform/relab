@@ -23,22 +23,10 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Mark all projects as changed
-      id: set-all
-      if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group'
-      shell: bash
-      run: |
-        echo "shared=true" >> "$GITHUB_OUTPUT"
-        echo "root-python=true" >> "$GITHUB_OUTPUT"
-        echo "backend=true" >> "$GITHUB_OUTPUT"
-        echo "docs=true" >> "$GITHUB_OUTPUT"
-        echo "frontend-app=true" >> "$GITHUB_OUTPUT"
-        echo "frontend-web=true" >> "$GITHUB_OUTPUT"
-
     - name: Detect changed paths
       id: filter
-      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group'
-      uses: dorny/paths-filter@v3
+      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+      uses: dorny/paths-filter@v4
       with:
         filters: |
           shared:
@@ -61,12 +49,12 @@ runs:
       shell: bash
       env:
         EVENT_NAME: ${{ github.event_name }}
-        SHARED: ${{ steps.set-all.outputs.shared || steps.filter.outputs.shared }}
-        ROOT_PYTHON: ${{ steps.set-all.outputs.root-python || steps.filter.outputs.root-python }}
-        BACKEND: ${{ steps.set-all.outputs.backend || steps.filter.outputs.backend }}
-        DOCS: ${{ steps.set-all.outputs.docs || steps.filter.outputs.docs }}
-        FRONTEND_APP: ${{ steps.set-all.outputs.frontend-app || steps.filter.outputs.frontend-app }}
-        FRONTEND_WEB: ${{ steps.set-all.outputs.frontend-web || steps.filter.outputs.frontend-web }}
+        SHARED: ${{ steps.filter.outputs.shared }}
+        ROOT_PYTHON: ${{ steps.filter.outputs.root-python }}
+        BACKEND: ${{ steps.filter.outputs.backend }}
+        DOCS: ${{ steps.filter.outputs.docs }}
+        FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
+        FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
       run: |
         if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
           echo "run-root-python=true" >> "$GITHUB_OUTPUT"
@@ -74,15 +62,6 @@ runs:
           echo "run-docs-python=true" >> "$GITHUB_OUTPUT"
           echo "run-frontend-app-node=true" >> "$GITHUB_OUTPUT"
           echo "run-frontend-web-node=true" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-
-        if [[ "$EVENT_NAME" == "merge_group" ]]; then
-          echo "run-root-python=false" >> "$GITHUB_OUTPUT"
-          echo "run-backend-python=false" >> "$GITHUB_OUTPUT"
-          echo "run-docs-python=false" >> "$GITHUB_OUTPUT"
-          echo "run-frontend-app-node=false" >> "$GITHUB_OUTPUT"
-          echo "run-frontend-web-node=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
 
