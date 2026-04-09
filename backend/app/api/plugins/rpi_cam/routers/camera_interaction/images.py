@@ -11,15 +11,12 @@ from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPCli
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.file_storage.models import Image
 from app.api.file_storage.schemas import ImageRead
+from app.api.plugins.rpi_cam.constants import PLUGIN_PREVIEW_ENDPOINT, HttpMethod
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES,
     CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES,
 )
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
-    HttpMethod,
-    build_camera_request,
-    get_user_owned_camera,
-)
+from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.services import capture_and_store_image
 
 router = PublicAPIRouter()
@@ -30,9 +27,13 @@ router = PublicAPIRouter()
     "/{camera_id}/snapshot",
     summary="Get a low-res JPEG snapshot for viewfinder preview",
     description="Fetches a single low-resolution frame from the camera without saving it. "
-    "Poll this endpoint at 1-2 fps to build a live viewfinder preview.",
+    "Poll this endpoint at 1-2 fps to build a snapshot-based viewfinder preview. "
+    "Returns a conflict when the camera is already streaming to YouTube.",
     response_class=Response,
-    responses={200: {"content": {"image/jpeg": {}}, "description": "JPEG snapshot"}},
+    responses={
+        200: {"content": {"image/jpeg": {}}, "description": "JPEG snapshot"},
+        409: {"description": "Preview unavailable while the camera is actively streaming."},
+    },
 )
 async def get_camera_snapshot(
     camera_id: UUID4,
@@ -44,7 +45,7 @@ async def get_camera_snapshot(
     camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     response = await camera_request(
-        endpoint="/images/preview",
+        endpoint=PLUGIN_PREVIEW_ENDPOINT,
         method=HttpMethod.GET,
         error_msg="Failed to get preview snapshot",
         expect_binary=True,

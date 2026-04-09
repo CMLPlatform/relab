@@ -53,8 +53,8 @@ async def camera_websocket_connect(
     """Persistent WebSocket connection for an RPi camera relay tunnel.
 
     The Raspberry Pi connects here on startup. The backend then routes camera
-    commands (capture, status, open/close) through this connection instead of
-    making outbound HTTP requests to a public IP.
+    commands such as capture, status, and stream control through this
+    connection instead of making outbound HTTP requests to a public IP.
 
     Query parameters:
         camera_id: UUID of the camera registered in the ReLab backend.

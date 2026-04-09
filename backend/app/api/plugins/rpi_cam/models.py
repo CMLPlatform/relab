@@ -8,13 +8,14 @@ from cachetools import TTLCache
 from httpx import AsyncClient, RequestError
 from pydantic import UUID4, AnyUrl, BaseModel, SecretStr, computed_field
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
-from sqlalchemy import ForeignKey, String
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.auth.models import User
 from app.api.common.models.base import Base, TimeStampMixinBare
 from app.api.plugins.rpi_cam.config import settings
+from app.api.plugins.rpi_cam.constants import PLUGIN_CAMERA_STATUS_ENDPOINT
 from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str, encrypt_dict
 from app.api.plugins.rpi_cam.websocket.connection_manager import get_connection_manager
 from app.core.cache import async_ttl_cache
@@ -155,7 +156,7 @@ class Camera(TimeStampMixinBare, Base):
         if not self.url:
             return CameraStatus(connection=CameraConnectionStatus.OFFLINE, details=None)
 
-        status_url = urljoin(str(self.url), "/camera/status")
+        status_url = urljoin(str(self.url), PLUGIN_CAMERA_STATUS_ENDPOINT)
         try:
             headers = {k: v.get_secret_value() for k, v in self.auth_headers.items()}
             response = await http_client.get(status_url, headers=headers, timeout=2.0)

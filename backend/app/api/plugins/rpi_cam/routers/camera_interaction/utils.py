@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from enum import StrEnum
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -13,6 +12,7 @@ from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, RequestErr
 from httpx import Response as HTTPXResponse
 
 from app.api.common.ownership import get_user_owned_object
+from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import CameraProxyRequestError
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, ConnectionMode
 from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
@@ -24,18 +24,6 @@ if TYPE_CHECKING:
 
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
-
-
-class HttpMethod(StrEnum):
-    """HTTP method type."""
-
-    GET = "GET"
-    OPTIONS = "OPTIONS"
-    HEAD = "HEAD"
-    POST = "POST"
-    PUT = "PUT"
-    PATCH = "PATCH"
-    DELETE = "DELETE"
 
 
 async def get_user_owned_camera(

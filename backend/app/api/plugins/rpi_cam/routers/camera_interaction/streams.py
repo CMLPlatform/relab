@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import Body, HTTPException
 from pydantic import UUID4, PositiveInt, ValidationError
-from relab_rpi_cam_models.stream import StreamView
+from relab_rpi_cam_models.stream import StreamMode, StreamView
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -18,6 +18,7 @@ from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.video import create_video
 from app.api.file_storage.schemas import VideoCreate, VideoRead
+from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT, HttpMethod
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_START_RECORDING_DESCRIPTION_OPENAPI_EXAMPLES,
     CAMERA_START_RECORDING_PRIVACY_OPENAPI_EXAMPLES,
@@ -29,11 +30,7 @@ from app.api.plugins.rpi_cam.exceptions import (
     InvalidCameraResponseError,
     NoActiveYouTubeRecordingError,
 )
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
-    HttpMethod,
-    build_camera_request,
-    get_user_owned_camera,
-)
+from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import (
     YouTubePrivacyStatus,
@@ -41,6 +38,7 @@ from app.api.plugins.rpi_cam.services import (
     YouTubeService,
     build_recording_text,
     clear_recording_session,
+    get_recording_session_cache_key,
     load_recording_session,
     serialize_stream_metadata,
     store_recording_session,
@@ -54,18 +52,22 @@ logger = logging.getLogger(__name__)
 
 
 ### Common endpoints ###
-@router.get("/{camera_id}/stream/status")
+@router.get(
+    "/{camera_id}/stream/status",
+    summary="Get the active YouTube recording stream status",
+    description="Fetch the current remote camera stream status from the Raspberry Pi camera plugin.",
+)
 async def get_camera_stream_status(
     camera_id: UUID4,
     session: AsyncSessionDep,
     http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> StreamView:
-    """Get current stream status."""
+    """Fetch the current remote camera stream status from the device plugin."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     response = await camera_request(
-        endpoint="/stream/status",
+        endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.GET,
         error_msg="Failed to get stream status",
     )
@@ -75,20 +77,25 @@ async def get_camera_stream_status(
         raise InvalidCameraResponseError(e.json()) from e
 
 
-@router.delete("/{camera_id}/stream/stop", status_code=204, summary="Stop the active stream")
+@router.delete(
+    "/{camera_id}/stream/stop",
+    status_code=204,
+    summary="Stop the active YouTube recording stream",
+    description="Stop the currently active remote camera stream.",
+)
 async def stop_all_streams(
     camera_id: UUID4,
     session: AsyncSessionDep,
     http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> None:
-    """Stop the active stream (either youtube recording or preview stream)."""
+    """Stop the currently active remote camera stream."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
     await camera_request(
-        endpoint="/stream/stop",
+        endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.DELETE,
-        error_msg="Failed to stop the active streams",
+        error_msg="Failed to stop the active stream",
     )
 
 
@@ -134,7 +141,7 @@ async def start_recording(
         ),
     ] = YouTubePrivacyStatus.PRIVATE,
 ) -> StreamView:
-    """Start recording to YouTube and cache the recording session in Redis."""
+    """Start a YouTube recording stream and cache the backend-owned session in Redis."""
     # Validate video data before starting stream
     await get_model_or_404(session, Product, product_id)
     redis_client = require_redis(redis)
@@ -169,7 +176,7 @@ async def start_recording(
 
     # Start Youtube stream
     response = await camera_request(
-        endpoint="/stream/start",
+        endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.POST,
         error_msg="Failed to start stream",
         body=youtube_config.model_dump(exclude={"stream_id"}),
@@ -191,14 +198,14 @@ async def start_recording(
                 title=resolved_title,
                 description=resolved_description,
                 stream_url=stream_info.url,
-                broadcast_key=youtube_config.broadcast_key,
+                broadcast_key=youtube_config.broadcast_key.get_secret_value(),
                 video_metadata=serialize_stream_metadata(stream_info.metadata),
             ),
         )
     except HTTPException, APIError:
         try:
             await camera_request(
-                endpoint="/stream/stop",
+                endpoint=PLUGIN_STREAM_ENDPOINT,
                 method=HttpMethod.DELETE,
                 error_msg="Failed to roll back stream after recording session storage failure",
             )
@@ -209,7 +216,7 @@ async def start_recording(
                 sanitize_log_value(cleanup_error),
             )
         try:
-            await youtube_service.end_livestream(youtube_config.broadcast_key)
+            await youtube_service.end_livestream(youtube_config.broadcast_key.get_secret_value())
         except APIError as cleanup_error:
             logger.warning(
                 "Failed to roll back YouTube livestream for camera %s: %s",
@@ -233,7 +240,7 @@ async def stop_recording(
     redis: OptionalRedisDep,
     current_user: CurrentActiveUserDep,
 ) -> VideoRead:
-    """Stop recording, end the livestream, and create the video record."""
+    """Stop the active YouTube recording, end the livestream, and create the video record."""
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
 
@@ -251,7 +258,7 @@ async def stop_recording(
     camera_request = build_camera_request(camera, http_client)
 
     await camera_request(
-        endpoint="/stream/stop",
+        endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.DELETE,
         error_msg="Failed to stop stream",
     )
@@ -280,14 +287,17 @@ async def get_recording_monitor_stream(
     camera_id: UUID4,
     session: AsyncSessionDep,
     http_client: ExternalHTTPClientDep,
+    redis: OptionalRedisDep,
     current_user: CurrentActiveUserDep,
 ) -> YouTubeMonitorStreamResponse:
-    """Get the YouTube monitor stream configuration for the active recording."""
+    """Get the YouTube monitor stream for the active backend-owned recording session."""
+    redis_client = require_redis(redis)
+    recording_session = await load_recording_session(redis_client, camera_id)
     camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
     camera_request = build_camera_request(camera, http_client)
 
     stream_status_response = await camera_request(
-        endpoint="/stream/status",
+        endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.GET,
         error_msg="Failed to get stream status",
     )
@@ -296,7 +306,7 @@ async def get_recording_monitor_stream(
     except ValidationError as e:
         raise InvalidCameraResponseError(e.json()) from e
 
-    if stream_info.youtube_config is None:
+    if stream_info.mode != StreamMode.YOUTUBE:
         raise NoActiveYouTubeRecordingError
 
     oauth_account = await session.scalar(
@@ -308,4 +318,8 @@ async def get_recording_monitor_stream(
         raise GoogleOAuthAssociationRequiredError
 
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
-    return await youtube_service.get_broadcast_monitor_stream(stream_info.youtube_config.broadcast_key)
+    logger.debug(
+        "Using cached recording session for monitor stream lookup: %s",
+        sanitize_log_value(get_recording_session_cache_key(camera_id)),
+    )
+    return await youtube_service.get_broadcast_monitor_stream(recording_session.broadcast_key)

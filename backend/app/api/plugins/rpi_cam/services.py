@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING, Any, cast
 from fastapi import UploadFile
 from fastapi.datastructures import Headers
 from httpx import AsyncClient, HTTPStatusError, RequestError, Response
-from pydantic import UUID4, AnyUrl, BaseModel, Field, PositiveInt, ValidationError
-from relab_rpi_cam_models.stream import YoutubeStreamConfig
+from pydantic import UUID4, AnyUrl, BaseModel, Field, PositiveInt, SecretStr, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import OAuthAccount
@@ -24,6 +23,7 @@ from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
+from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import (
     GoogleOAuthAssociationRequiredError,
     InvalidCameraResponseError,
@@ -32,7 +32,7 @@ from app.api.plugins.rpi_cam.exceptions import (
     RecordingSessionStoreError,
 )
 from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod
+from app.api.plugins.rpi_cam.schemas.streaming import YoutubeStreamConfig
 from app.api.plugins.rpi_cam.schemas.youtube import (
     YouTubeAPIErrorResponse,
     YouTubeBroadcastContentDetailsCreate,
@@ -360,8 +360,8 @@ class YouTubeService:
             raise YouTubeAPIError(details=f"Invalid YouTube bind response: {e}") from e
 
         return YoutubeStreamConfigWithID(
-            stream_key=stream_response.cdn.ingestionInfo.streamName,
-            broadcast_key=bound_broadcast_response.id,
+            stream_key=SecretStr(stream_response.cdn.ingestionInfo.streamName),
+            broadcast_key=SecretStr(bound_broadcast_response.id),
             stream_id=stream_response.id,
         )
 

@@ -73,7 +73,7 @@ def _build_ws_url() -> str:
 )
 @limiter.limit(REGISTER_RATE_LIMIT)
 async def register_pairing_code(
-    request: Request,  # noqa: ARG001 — required by slowapi limiter
+    request: Request,  # noqa: ARG001 — required by rate limiter
     body: PairingRegisterRequest,
     redis: RedisDep,
 ) -> PairingRegisterResponse:
@@ -163,7 +163,7 @@ async def claim_pairing_code(
 )
 @limiter.limit(POLL_RATE_LIMIT)
 async def poll_pairing_status(
-    request: Request,  # noqa: ARG001 — required by slowapi limiter
+    request: Request,  # noqa: ARG001 — required by rate limiter
     redis: RedisDep,
     code: str = Query(min_length=6, max_length=6, pattern=r"^[A-Z0-9]{6}$"),
     fingerprint: str = Query(min_length=8, max_length=64),
