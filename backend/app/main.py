@@ -6,6 +6,7 @@ and mounts static and upload directories.
 
 import asyncio
 import logging
+import tempfile
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -42,9 +43,15 @@ logger = logging.getLogger(__name__)
 
 
 def ensure_storage_directories() -> None:
-    """Create configured storage directories before mounting them."""
+    """Create configured storage directories and verify they are writable."""
     for path in [settings.file_storage_path, settings.image_storage_path]:
         path.mkdir(parents=True, exist_ok=True)
+        try:
+            with tempfile.NamedTemporaryFile(dir=path, prefix=".write-test-", delete=True):
+                pass
+        except OSError as e:
+            msg = f"Storage path is not writable: {path}"
+            raise RuntimeError(msg) from e
 
 
 def log_startup_configuration() -> None:

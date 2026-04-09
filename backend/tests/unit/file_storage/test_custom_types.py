@@ -1,7 +1,10 @@
 """Test custom logic of file storage types."""
 
 import io
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pytest
 
 from app.api.file_storage.models.storage import FileSystemStorage
 from app.main import ensure_storage_directories
@@ -61,8 +64,20 @@ def test_custom_storage_calls_mkdir_on_each_write(tmp_path: Path, mocker: Mocker
 def test_ensure_storage_directories_creates_expected_paths(mocker: MockerFixture) -> None:
     """Test that startup storage directory creation calls mkdir for both paths."""
     mock_mkdir = mocker.patch("pathlib.Path.mkdir")
+    mock_named_tempfile = mocker.patch("tempfile.NamedTemporaryFile")
 
     ensure_storage_directories()
 
     # Should call mkdir for file and image paths
     assert mock_mkdir.call_count == 2
+    assert mock_named_tempfile.call_count == 2
+
+
+def test_ensure_storage_directories_raises_when_storage_path_is_not_writable(mocker: MockerFixture) -> None:
+    """Test that startup fails fast when a storage path exists but is not writable."""
+    mocker.patch("pathlib.Path.mkdir")
+    mock_named_tempfile = mocker.patch("tempfile.NamedTemporaryFile")
+    mock_named_tempfile.side_effect = PermissionError("permission denied")
+
+    with pytest.raises(RuntimeError, match="Storage path is not writable"):
+        ensure_storage_directories()

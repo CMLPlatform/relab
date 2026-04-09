@@ -35,7 +35,8 @@ RUN useradd -u $APP_UID -m $APP_USER
 WORKDIR $WORKDIR
 
 RUN mkdir -p data/uploads/files data/uploads/images \
-    && chown -R $APP_USER:$APP_USER data
+    && chown -R $APP_USER:$APP_USER data \
+    && chmod -R 0777 data/uploads
 
 COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/.venv $WORKDIR/.venv
 COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/app $WORKDIR/app
