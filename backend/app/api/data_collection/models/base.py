@@ -7,11 +7,12 @@ without triggering the full data_collection/models.py import chain.
 
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, Field as PydanticField, computed_field
-
-from app.api.common.schemas.field_mixins import CircularityPropertiesFields, PhysicalPropertiesFields
+from pydantic import BaseModel, computed_field
+from pydantic import Field as PydanticField
 from sqlalchemy import TIMESTAMP, String
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.api.common.schemas.field_mixins import CircularityPropertiesFields, PhysicalPropertiesFields
 
 
 ### Validation Utilities ###

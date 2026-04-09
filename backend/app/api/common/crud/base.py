@@ -32,11 +32,11 @@ def should_apply_filter(filter_obj: Filter) -> bool:
 
 
 def add_filter_joins(
-    statement: Select[MT],
+    statement: Select[tuple[MT]],
     model: type[MT],
     filter_obj: Filter,
     path: list[str] | None = None,
-) -> Select[MT]:
+) -> Select[tuple[MT]]:
     """Recursively add joins for filter relationships."""
     path = path or []
 
@@ -80,9 +80,9 @@ def get_models_query(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
-    statement: Select[MT] | None = None,
+    statement: Select[tuple[MT]] | None = None,
     read_schema: type[BaseModel] | None = None,
-) -> Select[MT]:
+) -> Select[tuple[MT]]:
     """Build a query for fetching models with optional filtering and relationships.
 
     Relationship inclusion and suppression now happens entirely at query time,
@@ -111,7 +111,7 @@ async def get_models(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
-    statement: Select[MT] | None = None,
+    statement: Select[tuple[MT]] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> list[MT]:
     """Get models with optional filtering and relationships.
@@ -143,7 +143,7 @@ async def get_paginated_models(
     *,
     include_relationships: set[str] | None = None,
     model_filter: Filter | None = None,
-    statement: Select[MT] | None = None,
+    statement: Select[tuple[MT]] | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> Page[Any]:
     """Get paginated models with optional filtering and relationships.
@@ -224,7 +224,7 @@ async def get_model_by_id(
         err_msg: str = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
 
-    statement: Select[MT] = select(model).where(model.id == model_id)
+    statement: Select[tuple[MT]] = select(model).filter_by(id=model_id)
 
     statement = add_relationship_options(statement, model, include_relationships, read_schema=read_schema)
 

@@ -10,10 +10,7 @@ from collections.abc import Sequence
 from typing import Union
 
 import sqlalchemy as sa
-import sqlmodel
 from alembic import op
-
-import app.api.common.models.custom_types
 
 # revision identifiers, used by Alembic.
 revision: str = "b43d157d07f1"
@@ -28,15 +25,15 @@ def upgrade() -> None:
         "circularityproperties",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("recyclability_observation", sqlmodel.AutoString(length=500), nullable=False),
-        sa.Column("recyclability_comment", sqlmodel.AutoString(length=100), nullable=True),
-        sa.Column("recyclability_reference", sqlmodel.AutoString(length=100), nullable=True),
-        sa.Column("repairability_observation", sqlmodel.AutoString(length=500), nullable=False),
-        sa.Column("repairability_comment", sqlmodel.AutoString(length=100), nullable=True),
-        sa.Column("repairability_reference", sqlmodel.AutoString(length=100), nullable=True),
-        sa.Column("remanufacturability_observation", sqlmodel.AutoString(length=500), nullable=False),
-        sa.Column("remanufacturability_comment", sqlmodel.AutoString(length=100), nullable=True),
-        sa.Column("remanufacturability_reference", sqlmodel.AutoString(length=100), nullable=True),
+        sa.Column("recyclability_observation", sa.String(500), nullable=False),
+        sa.Column("recyclability_comment", sa.String(100), nullable=True),
+        sa.Column("recyclability_reference", sa.String(100), nullable=True),
+        sa.Column("repairability_observation", sa.String(500), nullable=False),
+        sa.Column("repairability_comment", sa.String(100), nullable=True),
+        sa.Column("repairability_reference", sa.String(100), nullable=True),
+        sa.Column("remanufacturability_observation", sa.String(500), nullable=False),
+        sa.Column("remanufacturability_comment", sa.String(100), nullable=True),
+        sa.Column("remanufacturability_reference", sa.String(100), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("product_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(

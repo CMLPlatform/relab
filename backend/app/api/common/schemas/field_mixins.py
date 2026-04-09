@@ -1,6 +1,6 @@
 """Pure Pydantic field mixins shared by API schemas.
 
-These mixins deliberately avoid SQLModel/ORM field configuration so read and
+These mixins deliberately avoid ORM field configuration so read and
 request schemas can evolve independently from persistence models.
 """
 

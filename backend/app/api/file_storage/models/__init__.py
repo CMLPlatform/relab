@@ -4,14 +4,13 @@ import uuid
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import ForeignKey
+from pydantic import BaseModel
 from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pydantic import BaseModel
-
-from app.api.common.models.base import Base, SingleParentMixin, TimeStampMixinBare
+from app.api.common.models.base import Base, TimeStampMixinBare
 from app.api.file_storage.models.storage import FileType, ImageType
 
 
@@ -46,10 +45,11 @@ class MediaParentType(StrEnum):
     MATERIAL = "material"
 
 
-class File(TimeStampMixinBare, SingleParentMixin[MediaParentType], Base):
+class File(TimeStampMixinBare, Base):
     """Database model for generic files stored in the local file system."""
 
     __tablename__ = "file"
+    __table_args__ = (Index("ix_file_parent_type_parent_id", "parent_type", "parent_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(doc="Original file name of the file.")
@@ -59,16 +59,14 @@ class File(TimeStampMixinBare, SingleParentMixin[MediaParentType], Base):
     parent_type: Mapped[MediaParentType] = mapped_column(
         SAEnum(MediaParentType, name="fileparenttype"), nullable=False
     )
-
-    product_id: Mapped[int | None] = mapped_column(ForeignKey("product.id"), default=None)
-    material_id: Mapped[int | None] = mapped_column(ForeignKey("material.id"), default=None)
-    product_type_id: Mapped[int | None] = mapped_column(ForeignKey("producttype.id"), default=None)
+    parent_id: Mapped[int] = mapped_column(nullable=False)
 
 
-class Image(TimeStampMixinBare, SingleParentMixin[MediaParentType], Base):
+class Image(TimeStampMixinBare, Base):
     """Database model for images stored in the local file system."""
 
     __tablename__ = "image"
+    __table_args__ = (Index("ix_image_parent_type_parent_id", "parent_type", "parent_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(nullable=False, doc="Original file name of the image.")
@@ -79,10 +77,7 @@ class Image(TimeStampMixinBare, SingleParentMixin[MediaParentType], Base):
     parent_type: Mapped[MediaParentType] = mapped_column(
         SAEnum(MediaParentType, name="imageparenttype"), nullable=False
     )
-
-    product_id: Mapped[int | None] = mapped_column(ForeignKey("product.id"), default=None)
-    material_id: Mapped[int | None] = mapped_column(ForeignKey("material.id"), default=None)
-    product_type_id: Mapped[int | None] = mapped_column(ForeignKey("producttype.id"), default=None)
+    parent_id: Mapped[int] = mapped_column(nullable=False)
 
 
 class Video(TimeStampMixinBare, Base):

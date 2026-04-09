@@ -44,6 +44,6 @@ def extract_client_ip(headers: Headers, fallback: str = "unknown") -> str:
 
 
 def get_client_ip(request: Request) -> str:
-    """SlowAPI-compatible key function returning the real client IP."""
+    """Rate-limiter key function returning the real client IP."""
     fallback = request.client.host if request.client else "unknown"
     return extract_client_ip(request.headers, fallback)

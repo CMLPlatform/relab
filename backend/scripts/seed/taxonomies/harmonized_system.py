@@ -3,10 +3,10 @@
 import csv
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-import pandas as pd
-from sqlmodel import func, select
+import pandas as pd  # type: ignore[import-not-found]
+from sqlalchemy import func, select
 
 from app.api.background_data.models import Category, TaxonomyDomain
 from app.core.logging import setup_logging
@@ -100,9 +100,9 @@ def seed_taxonomy() -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.exec(
+        existing_count = session.execute(
             select(func.count()).select_from(Category).where(Category.taxonomy_id == taxonomy.id)
-        ).one()
+        ).scalar_one()
 
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
@@ -112,7 +112,7 @@ def seed_taxonomy() -> None:
         rows = load_hs_rows_from_csv(CSV_PATH)
 
         # Seed categories
-        taxonomy_id = cast("int", taxonomy.id)
+        taxonomy_id = taxonomy.id
         cat_count, rel_count = seed_categories_from_rows(session, taxonomy_id, rows, get_parent_id_fn=get_hs_parent_id)
 
         # Commit

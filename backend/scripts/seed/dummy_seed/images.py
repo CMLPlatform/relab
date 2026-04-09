@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from anyio import Path as AnyIOPath
 from fastapi import UploadFile
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import Headers
 
 from app.api.file_storage.crud import create_image
@@ -45,8 +45,12 @@ async def seed_images(session: AsyncSession, product_id_map: dict[str, int]) -> 
             logger.warning("Skipping image %s: parent not found", path.name)
             continue
 
-        existing_stmt = select(Image.id).where(Image.product_id == parent_id).limit(1)
-        if (await session.exec(existing_stmt)).first():
+        existing_stmt = (
+            select(Image.id)
+            .where(Image.parent_id == parent_id, Image.parent_type == MediaParentType.PRODUCT)
+            .limit(1)
+        )
+        if (await session.execute(existing_stmt)).scalars().first():
             logger.info("Product %s already has images, skipping.", data["parent_product_name"])
             continue
 

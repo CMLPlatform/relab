@@ -3,19 +3,15 @@
 # spell-checker: ignore trgm
 
 from enum import StrEnum
-from typing import TYPE_CHECKING
-
-from sqlalchemy import Computed, ForeignKey, Index, String
-from sqlalchemy import Enum as SAEnum
-from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import Computed, ForeignKey, Index, String, and_
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from app.api.common.models.base import Base, TimeStampMixinBare
-
-if TYPE_CHECKING:
-    from app.api.file_storage.models import File, Image
+from app.api.file_storage.models import File, Image, MediaParentType
 
 
 ### Enums ###
@@ -189,9 +185,23 @@ class Material(TimeStampMixinBare, Base):
         default=None,
     )
 
-    # One-to-many relationships
-    images: Mapped[list[Image] | None] = relationship(cascade="all, delete-orphan")
-    files: Mapped[list[File] | None] = relationship(cascade="all, delete-orphan")
+    # One-to-many relationships (generic FK)
+    images: Mapped[list[Image] | None] = relationship(
+        primaryjoin=lambda: and_(
+            Material.id == foreign(Image.parent_id),
+            Image.parent_type == MediaParentType.MATERIAL,
+        ),
+        cascade="all, delete-orphan",
+        overlaps="files,images",
+    )
+    files: Mapped[list[File] | None] = relationship(
+        primaryjoin=lambda: and_(
+            Material.id == foreign(File.parent_id),
+            File.parent_type == MediaParentType.MATERIAL,
+        ),
+        cascade="all, delete-orphan",
+        overlaps="files,images",
+    )
 
     # Many-to-many relationships
     categories: Mapped[list[Category] | None] = relationship(
@@ -226,9 +236,23 @@ class ProductType(TimeStampMixinBare, Base):
         default=None,
     )
 
-    # One-to-many relationships
-    files: Mapped[list[File] | None] = relationship(cascade="all, delete-orphan")
-    images: Mapped[list[Image] | None] = relationship(cascade="all, delete-orphan")
+    # One-to-many relationships (generic FK)
+    files: Mapped[list[File] | None] = relationship(
+        primaryjoin=lambda: and_(
+            ProductType.id == foreign(File.parent_id),
+            File.parent_type == MediaParentType.PRODUCT_TYPE,
+        ),
+        cascade="all, delete-orphan",
+        overlaps="files,images",
+    )
+    images: Mapped[list[Image] | None] = relationship(
+        primaryjoin=lambda: and_(
+            ProductType.id == foreign(Image.parent_id),
+            Image.parent_type == MediaParentType.PRODUCT_TYPE,
+        ),
+        cascade="all, delete-orphan",
+        overlaps="files,images",
+    )
 
     # Many-to-many relationships
     categories: Mapped[list[Category] | None] = relationship(

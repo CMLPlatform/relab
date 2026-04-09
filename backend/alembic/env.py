@@ -1,12 +1,16 @@
 # noqa: D100 (the alembic folder should not be recognized as a module)
+import contextlib
 import logging
 import sys
 from pathlib import Path
 
-import alembic_postgresql_enum
+with contextlib.suppress(ModuleNotFoundError):
+    import alembic_postgresql_enum  # Registers Alembic plugin for enum migrations; installed via `migrations` extra
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url
+
 from app.api.common.models.base import Base
 from app.core.config import settings
 from app.core.logging import setup_logging

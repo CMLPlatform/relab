@@ -42,7 +42,7 @@ async def get_linking_model_with_ids_if_it_exists(
     Raises:
         ValueError: If linking model instance is None
     """
-    statement: Select[LMT] = select(model_type).where(
+    statement: Select[tuple[LMT]] = select(model_type).where(
         getattr(model_type, id1_field) == id1, getattr(model_type, id2_field) == id2
     )
     result: LMT | None = (await db.execute(statement)).scalar_one_or_none()
@@ -164,7 +164,7 @@ async def get_linked_models(
     await get_model_by_id(db, parent_model, parent_id)
 
     # Build base query
-    statement: Select[DT] = (
+    statement: Select[tuple[DT]] = (
         select(dependent_model).join(link_model).where(getattr(link_model, parent_link_field) == parent_id)
     )
 

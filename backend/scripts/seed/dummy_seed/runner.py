@@ -8,8 +8,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from anyio.to_thread import run_sync
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.database import async_engine, async_session_context, close_async_engine
 

@@ -2,26 +2,32 @@
 
 import re
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
-from enum import Enum
-from typing import Any, Self
+from typing import TYPE_CHECKING
 
 import inflect
 from sqlalchemy import DateTime, func
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class Base(DeclarativeBase):
     """SQLAlchemy 2.0 declarative base for all ORM models."""
 
     def model_dump(self, *, exclude: set[str] | None = None, exclude_unset: bool = False) -> dict[str, Any]:
-        """Serialize ORM instance to a dict (backward compat with SQLModel)."""
+        """Serialize ORM instance to a dict."""
         exclude = exclude or set()
-        return {
-            c.key: getattr(self, c.key)
-            for c in self.__table__.columns
-            if c.key not in exclude
-        }
+        if exclude_unset:
+            unmodified = sa_inspect(self).unmodified
+            return {
+                c.key: getattr(self, c.key)
+                for c in self.__table__.columns
+                if c.key not in exclude and c.key not in unmodified
+            }
+        return {c.key: getattr(self, c.key) for c in self.__table__.columns if c.key not in exclude}
 
 
 _INFLECT_ENGINE = inflect.engine()
@@ -72,61 +78,11 @@ class TimeStampMixinBare:
         DateTime(timezone=True), server_default=func.now(), default=None
     )
     updated_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), default=None  # spell-checker: ignore onupdate
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        default=None,  # spell-checker: ignore onupdate
     )
-
-
-## Quasi-Polymorphic Associations ##
-class SingleParentMixin[ParentTypeEnum: Enum]:
-    """Mixin to ensure an object belongs to exactly one parent.
-
-    ``ParentTypeEnum`` must be a ``StrEnum`` whose values are the snake_case names of the
-    parent model tables (e.g. ``"product"``, ``"material"``).  The mixin derives the
-    corresponding foreign-key field names automatically (e.g. ``product_id``).
-
-    Note: validation that exactly one parent FK is set belongs in the create/update
-    schemas, not in the ORM model (per ADR-013).
-    """
-
-    parent_type: ParentTypeEnum  # Concrete column defined by each subclass
-
-    @classmethod
-    def get_parent_type_description(cls, enum_class: type[Enum]) -> str:
-        """Generate description string for parent_type field using actual enum class."""
-        return f"Type of the parent object, e.g. {', '.join(t.value for t in enum_class)}"
-
-    @property
-    def possible_parent_fields(self) -> list[str]:
-        """Get all possible parent ID field names."""
-        enum_class = type(self.parent_type)
-        return [f"{t.value!s}_id" for t in enum_class]
-
-    @property
-    def set_parent_fields(self) -> list[str]:
-        """Get currently set parent ID field names."""
-        return [field for field in self.possible_parent_fields if getattr(self, field, None) is not None]
-
-    @property
-    def parent_id(self) -> int:
-        """Get the ID of the current parent object."""
-        field = f"{self.parent_type.value!s}_id"
-        return getattr(self, field)
-
-    def set_parent(self, parent_type: ParentTypeEnum, parent_id: int) -> None:
-        """Set the parent type and ID."""
-        self.parent_type = parent_type
-
-        # Clear existing parents
-        for field in self.set_parent_fields:
-            setattr(self, field, None)
-
-        # Set new parent ID
-        field = f"{parent_type.value}_id"
-        if field not in self.possible_parent_fields:
-            err_msg = f"Parent field '{field}' not found. Available fields: {self.possible_parent_fields}"
-            raise AttributeError(err_msg)
-
-        setattr(self, field, parent_id)
 
 
 ## Metadata JSON field ##

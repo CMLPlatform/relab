@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Body, Path
 from fastapi_filter import FilterDepends
@@ -57,7 +57,7 @@ async def get_product_videos(
     video_filter: VideoFilter = FilterDepends(VideoFilter),
 ) -> Sequence[Video]:
     """Get all videos associated with a specific product."""
-    statement: Select[Video] = select(Video).where(Video.product_id == cast("int", product.id))
+    statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product.id)
     return await get_models(
         session,
         Video,
@@ -92,7 +92,7 @@ async def create_product_video(
     session: AsyncSessionDep,
 ) -> Video:
     """Create a new video associated with a specific product."""
-    return await create_video(session, video, product_id=cast("int", product.id))
+    return await create_video(session, video, product_id=product.id)
 
 
 @product_related_router.patch(
@@ -107,7 +107,7 @@ async def update_product_video(
     session: AsyncSessionDep,
 ) -> Video:
     """Update a video associated with a specific product."""
-    await get_nested_model_by_id(session, Product, cast("int", product.id), Video, video_id, "product_id")
+    await get_nested_model_by_id(session, Product, product.id, Video, video_id, "product_id")
     return await update_video(session, video_id, video_update)
 
 
@@ -118,7 +118,7 @@ async def update_product_video(
 )
 async def delete_product_video(product: UserOwnedProductDep, video_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a video associated with a specific product."""
-    await get_nested_model_by_id(session, Product, cast("int", product.id), Video, video_id, "product_id")
+    await get_nested_model_by_id(session, Product, product.id, Video, video_id, "product_id")
     await delete_video(session, video_id)
 
 
@@ -134,7 +134,7 @@ async def get_product_bill_of_materials(
 ) -> Sequence[MaterialProductLink]:
     """Get bill of materials for a product."""
     await get_model_or_404(session, Product, product_id)
-    statement: Select[MaterialProductLink] = (
+    statement: Select[tuple[MaterialProductLink]] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
     )
     return await get_models(
@@ -184,7 +184,7 @@ async def add_materials_to_product(
     session: AsyncSessionDep,
 ) -> list[MaterialProductLink]:
     """Add multiple materials to a product's bill of materials."""
-    return await crud.add_materials_to_product(session, cast("int", product.id), materials)
+    return await crud.add_materials_to_product(session, product.id, materials)
 
 
 @product_related_router.post(
@@ -212,7 +212,7 @@ async def add_material_to_product(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Add a single material to a product's bill of materials."""
-    return await crud.add_material_to_product(session, cast("int", product.id), material_link, material_id=material_id)
+    return await crud.add_material_to_product(session, product.id, material_link, material_id=material_id)
 
 
 @product_related_router.patch(
@@ -227,7 +227,7 @@ async def update_product_bill_of_materials(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Update material in bill of materials for a product."""
-    return await crud.update_material_within_product(session, cast("int", product.id), material_id, material)
+    return await crud.update_material_within_product(session, product.id, material_id, material)
 
 
 @product_related_router.delete(
@@ -244,7 +244,7 @@ async def remove_material_from_product(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a single material from a product's bill of materials."""
-    await crud.remove_materials_from_product(session, cast("int", product.id), {material_id})
+    await crud.remove_materials_from_product(session, product.id, {material_id})
 
 
 @product_related_router.delete(
@@ -265,4 +265,4 @@ async def remove_materials_from_product_bulk(
     session: AsyncSessionDep,
 ) -> None:
     """Remove multiple materials from a product's bill of materials."""
-    await crud.remove_materials_from_product(session, cast("int", product.id), material_ids)
+    await crud.remove_materials_from_product(session, product.id, material_ids)

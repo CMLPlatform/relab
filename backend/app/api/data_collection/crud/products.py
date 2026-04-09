@@ -46,7 +46,7 @@ async def get_product_trees(
     if parent_id:
         await get_model_by_id(db, Product, parent_id)
 
-    statement: Select[Product] = (
+    statement: Select[tuple[Product]] = (
         select(Product)
         .where(Product.parent_id == parent_id)
         .options(
@@ -105,12 +105,11 @@ def create_product_videos(
     if not product_data.videos:
         return
 
-    if db_product.videos is None:
-        db_product.videos = []
-
+    videos: list[Video] = db_product.videos if db_product.videos is not None else []
+    db_product.videos = videos
     for video in product_data.videos:
         db_video = Video(**video.model_dump())
-        db_product.videos.append(db_video)
+        videos.append(db_video)
         db.add(db_video)
 
 

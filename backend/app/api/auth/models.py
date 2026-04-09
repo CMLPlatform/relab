@@ -1,9 +1,9 @@
 """Database models related to platform users."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from enum import StrEnum
-from typing import Any
+from typing import Any  # noqa: TC003
 
 from pydantic import BaseModel
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
@@ -11,7 +11,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.api.auth.services.sqlmodel_user_database import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
+from app.api.auth.services.user_database import BaseOAuthAccountDB, BaseUserDB
 from app.api.common.models.base import Base, TimeStampMixinBare
 
 # Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
@@ -42,7 +42,7 @@ class OrganizationBase(BaseModel):
     description: str | None = None
 
 
-class User(SQLModelBaseUserDB, TimeStampMixinBare):
+class User(BaseUserDB, TimeStampMixinBare):
     """Database model for platform users."""
 
     # Override __tablename__ from base (both set "user", this is explicit)
@@ -58,7 +58,7 @@ class User(SQLModelBaseUserDB, TimeStampMixinBare):
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
 
     # One-to-many relationship with OAuthAccount
-    oauth_accounts: Mapped[list["OAuthAccount"]] = relationship(
+    oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
         back_populates="user",
         lazy="joined",  # Required because of FastAPI-Users OAuth implementation
         foreign_keys="[OAuthAccount.user_id]",
@@ -69,7 +69,7 @@ class User(SQLModelBaseUserDB, TimeStampMixinBare):
         ForeignKey("organization.id", use_alter=True, name="fk_user_organization"),
         default=None,
     )
-    organization: Mapped["Organization | None"] = relationship(
+    organization: Mapped[Organization | None] = relationship(
         back_populates="members",
         lazy="selectin",
         foreign_keys="[User.organization_id]",
@@ -77,7 +77,7 @@ class User(SQLModelBaseUserDB, TimeStampMixinBare):
     organization_role: Mapped[OrganizationRole | None] = mapped_column(SAEnum(OrganizationRole), default=None)
 
     # One-to-one relationship with owned Organization
-    owned_organization: Mapped["Organization | None"] = relationship(
+    owned_organization: Mapped[Organization | None] = relationship(
         back_populates="owner",
         uselist=False,
         foreign_keys="[Organization.owner_id]",
@@ -93,7 +93,7 @@ class User(SQLModelBaseUserDB, TimeStampMixinBare):
 
 
 ### OAuthAccount Model ###
-class OAuthAccount(SQLModelBaseOAuthAccount, TimeStampMixinBare):
+class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
     """Database model for OAuth accounts."""
 
     __tablename__ = "oauthaccount"

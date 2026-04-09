@@ -22,12 +22,12 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.services.email_checker import EmailChecker
-    from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
+    from app.api.auth.services.user_database import UserDatabaseAsync
 
 
 ## Create User ##
 async def validate_user_create(
-    user_db: SQLModelUserDatabaseAsync,
+    user_db: UserDatabaseAsync,
     user_create: UserCreate | UserCreateWithOrganization,
     email_checker: EmailChecker | None = None,
 ) -> UserCreate:
@@ -62,7 +62,7 @@ async def validate_user_create(
 
 
 async def add_user_role_in_organization_after_registration(
-    user_db: SQLModelUserDatabaseAsync, user: User, registration_request: Request
+    user_db: UserDatabaseAsync, user: User, registration_request: Request
 ) -> User:
     """Add user to an organization after registration.
 
@@ -108,7 +108,7 @@ async def get_user_by_username(session: AsyncSession, username: str) -> User:
 
 
 ## Update User ##
-async def update_user_override(user_db: SQLModelUserDatabaseAsync, user: User, user_update: UserUpdate) -> UserUpdate:
+async def update_user_override(user_db: UserDatabaseAsync, user: User, user_update: UserUpdate) -> UserUpdate:
     """Override base user update with organization validation."""
     if user_update.username is not None:
         # Check username uniqueness

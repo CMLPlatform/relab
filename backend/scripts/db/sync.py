@@ -3,7 +3,8 @@
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from sqlmodel import Session, create_engine
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from app.api.background_data.models import Category, CategoryMaterialLink, Material, TaxonomyDomain
 from app.api.background_data.schemas import MaterialCreate, MaterialCreateWithCategories, MaterialUpdate
@@ -38,7 +38,7 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
 
         await create_model_links(
             db,
-            id1=cast("int", db_material.id),
+            id1=db_material.id,
             id1_field="material_id",
             id2_set=material.category_ids,
             id2_field="category_id",
@@ -111,11 +111,9 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
 material_files_crud = ParentFileCrud(
     parent_model=Material,
     parent_type=MediaParentType.MATERIAL,
-    parent_field="material_id",
 )
 
 material_images_crud = ParentImageCrud(
     parent_model=Material,
     parent_type=MediaParentType.MATERIAL,
-    parent_field="material_id",
 )

@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Any
 
-from sqlmodel import select
+from sqlalchemy import select
 
 from app.api.background_data.models import Category, Taxonomy
 

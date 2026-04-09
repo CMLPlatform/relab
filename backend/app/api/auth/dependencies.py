@@ -7,7 +7,7 @@ from pydantic import UUID4
 
 from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserHasNoOrgError
 from app.api.auth.models import Organization, OrganizationRole, User
-from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
+from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_db, get_user_manager
 from app.api.common.crud.base import get_model_by_id
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -19,7 +19,7 @@ current_active_superuser = fastapi_user_manager.current_user(active=True, superu
 optional_current_active_user = fastapi_user_manager.current_user(optional=True)
 
 # Annotated dependency types. For example usage, see the `authenticated_route` function in the auth.routers module.
-UserDBDep = Annotated[SQLModelUserDatabaseAsync[User, UUID4], Depends(get_user_db)]
+UserDBDep = Annotated[UserDatabaseAsync[User, UUID4], Depends(get_user_db)]
 UserManagerDep = Annotated[UserManager, Depends(get_user_manager)]
 CurrentActiveUserDep = Annotated[User, Security(current_active_user)]
 CurrentActiveVerifiedUserDep = Annotated[User, Security(current_active_verified_user)]

@@ -42,7 +42,7 @@ ORDER_DESC: Literal["desc"] = "desc"
 
 
 def get_brand_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select:
-    """Return a SQLModel select statement for normalised, distinct brands with optional search and order."""
+    """Return a select statement for normalised, distinct brands with optional search and order."""
     brand_expr = func.trim(func.lower(Product.brand)).label("brand_norm")
     statement = select(brand_expr).where(cast("ColumnElement[Any]", Product.brand).is_not(None))
     if search:

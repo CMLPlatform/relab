@@ -59,7 +59,7 @@ async def validate_category_taxonomy_domains(
     db: AsyncSession, category_ids: set[int], expected_domains: TaxonomyDomain | set[TaxonomyDomain]
 ) -> None:
     """Validate that categories belong to taxonomies with expected domains."""
-    categories_statement: Select[Category] = (
+    categories_statement: Select[tuple[Category]] = (
         select(Category)
         .join(Taxonomy)
         .where(Category.id.in_(category_ids))
@@ -103,7 +103,7 @@ async def get_category_trees(
     if taxonomy_id:
         await get_model_or_404(db, Taxonomy, taxonomy_id)
 
-    statement: Select[Category] = (
+    statement: Select[tuple[Category]] = (
         select(Category).where(Category.supercategory_id == supercategory_id).execution_options(populate_existing=True)
     )
 

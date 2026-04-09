@@ -43,7 +43,7 @@ async def get_brands(
 ) -> Page[str]:
     """Get a paginated, searchable and orderable list of unique product brands."""
     statement = get_brand_search_statement(search=search, order=order)
-    page = await paginate_with_exec(session, cast("Select[str]", statement))
+    page = await paginate_with_exec(session, cast("Select[tuple[str]]", statement))
     page.items = [brand.title() for brand in page.items if brand]
     return cast("Page[str]", page)
 

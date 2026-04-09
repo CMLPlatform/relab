@@ -20,7 +20,3 @@ def load_models() -> None:
     # common.models which are already loaded via data_collection above.
     from app.api.newsletter import models as _newsletter_models
     from app.api.plugins.rpi_cam import models as _rpi_cam_models
-
-
-# Backward compat alias — remove after all call sites are updated.
-load_sqlmodel_models = load_models

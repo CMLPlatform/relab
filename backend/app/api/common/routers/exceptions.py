@@ -2,13 +2,12 @@
 
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import ValidationError
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 
+from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.exceptions import APIError
 
 if TYPE_CHECKING:
@@ -47,22 +46,14 @@ def create_exception_handler(
     return handler
 
 
-def rate_limit_handler(request: Request, exc: Exception) -> Response:
-    """Wrapper for the SlowAPI rate limit handler to ensure correct exception type is passed."""
-    if not isinstance(exc, RateLimitExceeded):
-        msg = "Rate limit handler called with wrong exception type"
-        raise TypeError(msg)
-    return _rate_limit_exceeded_handler(request, exc)
-
-
 ### Exception handler registration ###
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""
     # Custom API exceptions
     app.add_exception_handler(APIError, create_exception_handler())
 
-    # SlowAPI rate limiting
-    app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+    # Rate limiting
+    app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
 
     # Temporary compatibility handler for legacy domain validation paths.
     # Avoid catching RuntimeError broadly so programmer errors still surface normally.

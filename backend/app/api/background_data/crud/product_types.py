@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from app.api.background_data.models import Category, CategoryProductTypeLink, ProductType, TaxonomyDomain
 from app.api.background_data.schemas import ProductTypeCreate, ProductTypeCreateWithCategories, ProductTypeUpdate
@@ -37,7 +37,7 @@ async def create_product_type(
         await validate_category_taxonomy_domains(db, product_type.category_ids, {TaxonomyDomain.PRODUCTS})
         await create_model_links(
             db,
-            id1=cast("int", db_product_type.id),
+            id1=db_product_type.id,
             id1_field="product_type_id",
             id2_set=product_type.category_ids,
             id2_field="category_id",
@@ -112,11 +112,9 @@ async def remove_categories_from_product_type(
 product_type_files_crud = ParentFileCrud(
     parent_model=ProductType,
     parent_type=MediaParentType.PRODUCT_TYPE,
-    parent_field="product_type_id",
 )
 
 product_type_images_crud = ParentImageCrud(
     parent_model=ProductType,
     parent_type=MediaParentType.PRODUCT_TYPE,
-    parent_field="product_type_id",
 )

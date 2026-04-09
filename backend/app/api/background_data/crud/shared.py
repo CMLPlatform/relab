@@ -108,7 +108,7 @@ async def add_categories_to_parent_model[ParentT: Material | ProductType](
 
     await create_model_links(
         db,
-        id1=cast("int", db_parent.id),
+        id1=db_parent.id,
         id1_field=link_parent_id_field,
         id2_set=normalized_category_ids,
         id2_field="category_id",

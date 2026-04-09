@@ -1,15 +1,12 @@
 """User management service."""
 
-import hashlib
 import logging
 from typing import TYPE_CHECKING, cast
 
-import zxcvbn as zxcvbn_checker
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin, schemas
+from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
-from httpx import AsyncClient, HTTPError
 from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
 from sqlalchemy import select
 
@@ -29,6 +26,7 @@ from app.api.auth.services.login_hooks import (
     maybe_set_refresh_token_cookie,
     update_last_login_metadata,
 )
+from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.user_db import get_user_db
 from app.api.common.routers.dependencies import get_external_http_client
 from app.core.logging import sanitize_log_value
@@ -38,10 +36,11 @@ if TYPE_CHECKING:
 
     from fastapi_users.authentication import AuthenticationBackend
     from fastapi_users.jwt import SecretType
+    from httpx import AsyncClient
     from starlette.requests import Request
     from starlette.responses import Response
 
-    from app.api.auth.services.sqlmodel_user_database import SQLModelUserDatabaseAsync
+    from app.api.auth.services.user_database import UserDatabaseAsync
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -55,42 +54,14 @@ VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
 _AUTH_COOKIE_PREFIX = "auth="
 _SET_COOKIE_HEADER = "set-cookie"
 
-# zxcvbn score threshold: 0=very weak, 1=weak, 2=fair, 3=good, 4=strong
-_MIN_PASSWORD_STRENGTH_SCORE = 1
-
-
-async def _check_pwned_password(password: str, http_client: AsyncClient) -> int:
-    """Return how many times this password appears in HaveIBeenPwned breach data.
-
-    Uses k-anonymity: only the first 5 hex chars of the SHA-1 hash are sent;
-    the plaintext password never leaves this process.
-    Fails open (returns 0) if the Have I Been Pwnd API is unreachable.
-    """
-    sha1 = hashlib.sha1(password.encode(), usedforsecurity=False).hexdigest().upper()
-    prefix, suffix = sha1[:5], sha1[5:]
-    try:
-        response = await http_client.get(
-            f"https://api.pwnedpasswords.com/range/{prefix}",
-            headers={"Add-Padding": "true"},
-            timeout=5.0,
-        )
-        response.raise_for_status()
-        for line in response.text.splitlines():
-            h, _, count = line.partition(":")
-            if h == suffix:
-                return int(count)
-    except HTTPError:
-        logger.warning("Have I Been Pwnd breach check unavailable, skipping for this request")
-    return 0
-
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
     """User manager class for FastAPI-Users."""
 
-    # We will initialize the user manager with a SQLModelUserDatabaseAsync instance in the dependency function below
-    user_db: SQLModelUserDatabaseAsync
+    # We will initialize the user manager with a UserDatabaseAsync instance in the dependency function below
+    user_db: UserDatabaseAsync
 
-    def __init__(self, user_db: SQLModelUserDatabaseAsync, http_client: AsyncClient) -> None:
+    def __init__(self, user_db: UserDatabaseAsync, http_client: AsyncClient) -> None:
         super().__init__(user_db)
         self.http_client = http_client
         self.skip_breach_check = False
@@ -124,32 +95,14 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         password: str | SecretStr,
         user: UserCreate | User,
     ) -> None:
-        """Validate password meets security requirements."""
-        if isinstance(password, SecretStr):
-            password = password.get_secret_value()
-        if len(password) < 8:
-            raise InvalidPasswordException(reason="Password should be at least 8 characters")
-        if user.email in password:
-            raise InvalidPasswordException(reason="Password should not contain e-mail")
-        if user.username and user.username in password:
-            raise InvalidPasswordException(reason="Password should not contain username")
-
-        # Strength check: reject passwords that are too guessable (keyboard walks,
-        # common words, dates, l33t substitutions, etc.)
-        user_inputs = [s for s in [user.email, getattr(user, "username", None)] if s]
-        result = zxcvbn_checker.zxcvbn(password, user_inputs=user_inputs)
-        if result["score"] < _MIN_PASSWORD_STRENGTH_SCORE:
-            feedback = result.get("feedback", {}).get("warning") or "try a longer phrase or mix of characters"
-            raise InvalidPasswordException(reason=f"Password is too weak: {feedback}")
-
-        # Programmatic bootstrap flows can opt out when no app-scoped HTTP client exists.
-        if not self.skip_breach_check:
-            # Breach check: reject passwords found in known data breaches (k-anonymity, fail-open)
-            breach_count = await _check_pwned_password(password, self.http_client)
-            if breach_count > 0:
-                raise InvalidPasswordException(
-                    reason="Password has appeared in a known data breach. Please choose a different password."
-                )
+        """Delegate password validation to the dedicated service."""
+        await _validate_password(
+            password,
+            email=user.email,
+            username=getattr(user, "username", None),
+            http_client=self.http_client,
+            skip_breach_check=self.skip_breach_check,
+        )
 
     async def update(
         self,
@@ -198,7 +151,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 
 
 async def get_user_manager(
-    user_db: SQLModelUserDatabaseAsync[User, UUID4] = Depends(get_user_db),
+    user_db: UserDatabaseAsync[User, UUID4] = Depends(get_user_db),
     http_client: AsyncClient = Depends(get_external_http_client),
 ) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""

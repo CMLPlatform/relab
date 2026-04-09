@@ -17,7 +17,6 @@ from httpx import CloseError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.auth.services.email_checker import init_email_checker
-from app.api.auth.services.rate_limiter import limiter
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
 from app.api.common.routers.health import router as health_router
@@ -157,9 +156,6 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
-
-# Add SlowAPI rate limiter state
-app.state.limiter = limiter
 
 # Add request ID propagation and request access logging
 register_request_id_middleware(app)

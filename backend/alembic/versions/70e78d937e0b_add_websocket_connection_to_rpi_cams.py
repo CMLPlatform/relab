@@ -10,11 +10,8 @@ from collections.abc import Sequence
 from typing import Union
 
 import sqlalchemy as sa
-import sqlmodel
 from alembic import op
 from sqlalchemy.dialects import postgresql
-
-import app.api.common.models.custom_types
 
 # revision identifiers, used by Alembic.
 revision: str = "70e78d937e0b"

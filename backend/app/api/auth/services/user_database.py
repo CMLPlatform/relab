@@ -1,7 +1,7 @@
-"""Local SQLAlchemy adapter for FastAPI Users.
+"""SQLAlchemy adapter for FastAPI Users.
 
-This keeps RELab independent from the archived ``fastapi-users-db-sqlmodel``
-package while preserving the small API surface we actually use.
+Provides the base user/OAuth models and async database interface that
+FastAPI Users requires.
 """
 # spell-checker: ignore UOAP
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-class SQLModelBaseUserDB(Base):
+class BaseUserDB(Base):
     """Base user table fields expected by FastAPI Users."""
 
     __tablename__ = "user"
@@ -35,7 +35,7 @@ class SQLModelBaseUserDB(Base):
     is_verified: Mapped[bool] = mapped_column(default=False)
 
 
-class SQLModelBaseOAuthAccount(Base):
+class BaseOAuthAccountDB(Base):
     """Base OAuth account fields expected by FastAPI Users."""
 
     __tablename__ = "oauthaccount"
@@ -51,25 +51,25 @@ class SQLModelBaseOAuthAccount(Base):
     account_email: Mapped[str] = mapped_column(String)
 
 
-class OAuthAccountWithUser(SQLModelBaseOAuthAccount):
+class OAuthAccountWithUser(BaseOAuthAccountDB):
     """Typing helper for OAuth account models that expose a ``user`` relationship."""
 
     __abstract__ = True
     user: Any
 
 
-class SQLModelUserDatabaseAsync(BaseUserDatabase[UP, ID]):
+class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
     """Async SQLAlchemy user adapter for FastAPI Users."""
 
     session: AsyncSession
     user_model: type[UP]
-    oauth_account_model: type[SQLModelBaseOAuthAccount] | None
+    oauth_account_model: type[BaseOAuthAccountDB] | None
 
     def __init__(
         self,
         session: AsyncSession,
         user_model: type[UP],
-        oauth_account_model: type[SQLModelBaseOAuthAccount] | None = None,
+        oauth_account_model: type[BaseOAuthAccountDB] | None = None,
     ) -> None:
         self.session = session
         self.user_model = user_model

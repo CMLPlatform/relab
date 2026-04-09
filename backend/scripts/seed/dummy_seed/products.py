@@ -6,8 +6,8 @@ import logging
 from itertools import cycle
 from typing import TYPE_CHECKING
 
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
 from app.api.background_data.models import Material, ProductType
@@ -63,7 +63,7 @@ def build_bill_of_materials(
 async def get_existing_product_id(session: AsyncSession, name: str) -> int | None:
     """Return existing product id for a given name, or None."""
     stmt = select(Product.id, Product.name).where(Product.name == name)
-    row = (await session.exec(stmt)).first()
+    row = (await session.execute(stmt)).first()
     if not row:
         return None
     existing_id, _ = row

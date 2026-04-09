@@ -17,7 +17,7 @@ install:
 
 # Start development server
 dev PORT="8000":
-    uv run uvicorn app.main:app --reload --reload-dir app --port {{PORT}}
+    uv run uvicorn app.main:app --reload --reload-dir app --port {{ PORT }}
 
 # Start production server
 serve:
@@ -49,9 +49,9 @@ fix:
     just format
     @echo "✓ Backend code fixed and formatted"
 
-# Run static type checks
+# Run static type checks (all groups synced so optional deps resolve)
 typecheck:
-    uv run ty check
+    uv run --all-groups ty check
     @echo "✓ Backend: Static type checks passed"
 
 # Lint backend shell scripts with ShellCheck
@@ -108,6 +108,7 @@ ci: check test-ci
 # ============================================================================
 # Database & Migrations
 # ============================================================================
+
 # Apply all pending migrations
 migrate:
     uv run alembic upgrade head
@@ -121,6 +122,7 @@ migrate-create MESSAGE:
     uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
 
 # Check if migrations are up to date (requires a running database).
+
 # CI coverage for this behavior lives in the migration test suite.
 migrate-check:
     uv run alembic check
@@ -141,6 +143,7 @@ migrate-reset:
 # ============================================================================
 # Database Management
 # ============================================================================
+
 # Create superuser account
 create-superuser:
     uv run python -m scripts.users.create_superuser
@@ -152,6 +155,7 @@ db-is-empty:
 # Seed database with dummy data
 seed-dummy-data:
     uv run python -m scripts.seed.dummy_data
+
 # Clear Redis cache (specify namespace: background-data, docs)
 clear-cache NAMESPACE="background-data":
     uv run python -m scripts.maintenance.clear_cache {{ NAMESPACE }}
@@ -177,6 +181,7 @@ ci_compose := "docker compose -p relab_ci -f ../compose.yml -f ../compose.ci.yml
 k6_docker_image := "grafana/k6:latest"
 
 # Run the backend k6 baseline suite against the Docker CI stack.
+
 # Assumes the CI backend stack is already up and seeded with dummy data.
 perf-ci IMAGE_ID="" BASE_URL="http://backend:8000":
     #!/usr/bin/env bash
@@ -315,6 +320,7 @@ perf-thresholds-apply HEADROOM="1.15":
 # ============================================================================
 # Maintenance
 # ============================================================================
+
 # Update dependencies
 update:
     uv lock --upgrade
@@ -332,9 +338,10 @@ clean:
 # ============================================================================
 # Scan runtime Python dependencies for known CVEs.
 # NOTE: `uv audit` currently reports `pygments` from excluded groups in this project,
+
 # so this recipe uses an exported runtime requirements set for accurate scoping.
 audit:
-    uv export --frozen --no-default-groups --group api
+    uv export --frozen --no-default-groups
     @echo "✓ Backend: Runtime dependency audit complete"
 
 # Scan runtime + grouped Python dependencies for known CVEs

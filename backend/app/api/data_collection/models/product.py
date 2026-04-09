@@ -1,23 +1,26 @@
 """Database models for data collection on products."""
 # spell-checker: ignore trgm
 
-from typing import TYPE_CHECKING
-
 from pydantic import UUID4, computed_field
-from sqlalchemy import Computed, Enum, ForeignKey, Index, String, asc, select
+from sqlalchemy import Computed, ForeignKey, Index, and_, asc, select
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, MappedSQLExpression, column_property, mapped_column, relationship
+from sqlalchemy.orm import (
+    Mapped,
+    MappedSQLExpression,
+    column_property,
+    declared_attr,
+    foreign,
+    mapped_column,
+    relationship,
+)
 
+from app.api.auth.models import User
+from app.api.background_data.models import Material, ProductType
 from app.api.common.models.associations import MaterialProductLinkBase
 from app.api.common.models.base import Base, TimeStampMixinBare
-from app.api.common.models.enums import Unit
 from app.api.data_collection.models.base import ProductFieldsMixin
-
-if TYPE_CHECKING:
-    from app.api.auth.models import User
-    from app.api.background_data.models import Material, ProductType
-    from app.api.file_storage.models import File, Image, Video
+from app.api.file_storage.models import File, Image, MediaParentType, Video
 
 
 class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
@@ -43,9 +46,18 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         default=None,
     )
 
-    if TYPE_CHECKING:
-        # Populated at runtime via `column_property` below.
-        first_image_id: MappedSQLExpression[UUID4 | None]
+    @declared_attr
+    def first_image_id(cls) -> MappedSQLExpression[UUID4 | None]:  # noqa: N805
+        """Column property that exposes the first image ID for thumbnails."""
+        return column_property(
+            select(Image.id)
+            .where(Image.parent_type == MediaParentType.PRODUCT)
+            .where(Image.parent_id == cls.id)
+            .correlate_except(Image)
+            .order_by(asc(Image.created_at))
+            .limit(1)
+            .scalar_subquery()
+        )
 
     # Self-referential relationship for hierarchy
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("product.id"), default=None)
@@ -64,9 +76,24 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         join_depth=1,
     )
 
-    # One-to-many relationships (file storage)
-    files: Mapped[list[File] | None] = relationship(cascade="all, delete-orphan")
-    images: Mapped[list[Image] | None] = relationship(cascade="all, delete-orphan", lazy="selectin")
+    # One-to-many relationships (file storage) — generic FK, no DB-level constraint
+    files: Mapped[list[File] | None] = relationship(
+        primaryjoin=lambda: and_(
+            Product.id == foreign(File.parent_id),
+            File.parent_type == MediaParentType.PRODUCT,
+        ),
+        cascade="all, delete-orphan",
+        overlaps="files,images",
+    )
+    images: Mapped[list[Image] | None] = relationship(
+        primaryjoin=lambda: and_(
+            Product.id == foreign(Image.parent_id),
+            Image.parent_type == MediaParentType.PRODUCT,
+        ),
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        overlaps="files,images",
+    )
     videos: Mapped[list[Video] | None] = relationship(cascade="all, delete-orphan")
 
     # Many-to-one: owner
@@ -173,21 +200,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"
-
-
-# Column property: first image ID for thumbnail support
-from app.api.file_storage.models import Image, MediaParentType  # noqa: E402
-
-Product.first_image_id = column_property(
-    select(Image.id)
-    .where(Image.parent_type == MediaParentType.PRODUCT)
-    .where(Image.product_id == Product.id)
-    .correlate_except(Image)
-    .order_by(asc(Image.created_at))
-    .limit(1)
-    .scalar_subquery()
-)
-
 
 ### MaterialProductLink; lives here so Product and Material are both in scope ###
 class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):

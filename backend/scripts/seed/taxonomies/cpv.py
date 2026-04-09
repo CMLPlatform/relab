@@ -6,11 +6,11 @@ import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-import pandas as pd
+import pandas as pd  # type: ignore[import-not-found]
 import requests
-from sqlmodel import func, select
+from sqlalchemy import func, select
 
 from app.api.background_data.models import (
     Category,
@@ -159,9 +159,9 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.exec(
+        existing_count = session.execute(
             select(func.count()).select_from(Category).where(Category.taxonomy_id == taxonomy.id)
-        ).one()
+        ).scalar_one()
 
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
@@ -173,7 +173,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
 
         # Seed categories
         available_codes = {row["external_id"] for row in rows}
-        taxonomy_id = cast("int", taxonomy.id)
+        taxonomy_id = taxonomy.id
         cat_count, rel_count = seed_categories_from_rows(
             session, taxonomy_id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
         )
@@ -202,7 +202,7 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
 
     with sync_session_context() as session:
-        existing_cpv = session.exec(select(ProductType).where(ProductType.name.startswith("CPV:"))).first()
+        existing_cpv = session.execute(select(ProductType).where(ProductType.name.startswith("CPV:"))).scalars().first()
         if existing_cpv:
             logger.info("CPV product types already exist, skipping seeding")
             return

@@ -20,6 +20,7 @@ from app.api.common.crud.exceptions import (
     NoLinkedItemsError,
 )
 from app.api.common.exceptions import BadRequestError
+from app.api.common.models.base import Base
 from app.api.common.models.custom_types import ET, IDT, MT
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import MediaParentType
@@ -153,7 +154,7 @@ async def get_models_by_ids_or_404(db: AsyncSession, model_type: type[MT], model
         err_msg = f"{model_type} does not have an 'id' attribute"
         raise CRUDConfigurationError(err_msg)
 
-    statement = select(model_type).where(model_type.id.in_(model_ids))
+    statement = select(model_type).where(cast("Any", model_type).id.in_(model_ids))
     found_models: list[MT] = list((await db.execute(statement)).scalars().all())
 
     if len(found_models) != len(model_ids):
@@ -217,7 +218,7 @@ def enum_format_id_set(enum_set: set[ET]) -> str:
 
 
 ### Parent Type Utilities ###
-def get_file_parent_type_model(parent_type: MediaParentType) -> type:
+def get_file_parent_type_model(parent_type: MediaParentType) -> type[Base]:
     """Return the model for the given parent type. Utility function to avoid circular imports."""
     if parent_type == parent_type.PRODUCT:
         return Product

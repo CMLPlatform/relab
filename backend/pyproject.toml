@@ -32,10 +32,9 @@
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
     "inflect>=7.5.0",
     "redis>=5.2.1",
-    "slowapi>=0.1.9",
+    "limits[redis]>=5.8.0",
     # Database and persistence
     "sqlalchemy >=2.0.41",
-    "sqlmodel >=0.0.27",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
     "relab-rpi-cam-models>=0.1.1",
@@ -73,9 +72,6 @@
   # Developer tooling and local maintenance scripts
   dev = ["mjml>=0.11.1", "paracelsus>=0.9.0", "ruff >=0.12.1", "ty>=0.0.15"]
 
-  # Extra dependencies used by optional API/ops entry points
-  api = ["httpx[http2]>=0.28.1"]
-
   # Schema changes, seeding, and migration-adjacent data-loading scripts
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "psycopg[binary] >=3.2.9"]
 
@@ -84,6 +80,9 @@
 
   # Optional taxonomy-import tooling used by one-off seeding scripts
   seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3", "requests>=2.32.0"]
+
+  # Heavy deps for scripts/plugins/rpi_cam/webcam_fake_camera.py (local dev only)
+  fake-camera = ["opencv-python>=4.0", "websockets>=14.0"]
 
   # Unit and integration test dependencies
   tests = [
@@ -101,7 +100,7 @@
     "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
 
     # Database testing
-    "psycopg[binary] >=3.2.9",
+    { include-group = "migrations" },  # Migrations are run to set up the testcontainers database schema
     "pytest-alembic>=0.12.1",          # Migration testing - verify schema changes
     "testcontainers[postgres]>=4.8.2", # Ephemeral PostgreSQL for integration tests
 
@@ -132,14 +131,14 @@
     type       = "exec"
 
 [tool.paracelsus]
-  base = "app.api.common.models.base:CustomBase"
+  base = "app.api.common.models.base:Base"
   column_sort = "preserve-order"
   imports = [
     "app.api.auth.models",
     "app.api.background_data.models",
     "app.api.common.models.associations",
-    "app.api.data_collection.models",
-    "app.api.file_storage.models.models",
+    "app.api.data_collection.models.product",
+    "app.api.file_storage.models",
     "app.api.plugins.rpi_cam.models",
   ]
 
@@ -219,12 +218,8 @@
 
     [tool.ruff.lint.flake8-type-checking]
       # Allow runtime imports for FastAPI dependency injection and Pydantic validation
-      exempt-modules = ["app", "fastapi", "fastapi_users", "pydantic", "sqlalchemy", "sqlmodel", "typing.Annotated"]
-      runtime-evaluated-base-classes = [
-        "fastapi_filter.contrib.sqlalchemy.FilterSet",
-        "pydantic.BaseModel",
-        "sqlmodel.SQLModel",
-      ]
+      exempt-modules                 = ["app", "fastapi", "fastapi_users", "pydantic", "sqlalchemy", "typing.Annotated"]
+      runtime-evaluated-base-classes = ["fastapi_filter.contrib.sqlalchemy.FilterSet", "pydantic.BaseModel"]
 
     [tool.ruff.lint.per-file-ignores]
       "**/alembic/**/*.py" = [

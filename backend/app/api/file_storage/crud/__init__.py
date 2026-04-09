@@ -153,9 +153,8 @@ def _build_storage_instance[StorageModelT: StorageModel](
     if isinstance(payload, ImageCreateFromForm | ImageCreateInternal):
         item_kwargs["image_metadata"] = payload.image_metadata
 
-    db_item = model(**item_kwargs)
-    db_item.set_parent(payload.parent_type, payload.parent_id)
-    return db_item
+    item_kwargs["parent_id"] = payload.parent_id
+    return model(**item_kwargs)
 
 
 async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
@@ -377,13 +376,11 @@ class ParentFileCrud:
         *,
         parent_model: type[object],
         parent_type: MediaParentType,
-        parent_field: str,
         storage_service: StoredMediaService[File, FileCreate] | None = None,
     ) -> None:
         self.parent_model = parent_model
         self.storage_model = File
         self.parent_type = parent_type
-        self.parent_field = parent_field
         self.storage_service = storage_service or file_storage_service
 
     async def _ensure_parent_exists(self, db: AsyncSession, parent_id: int) -> None:
@@ -413,7 +410,7 @@ class ParentFileCrud:
         if not db_item:
             raise ModelNotFoundError(File, item_id)
 
-        if getattr(db_item, self.parent_field) != parent_id:
+        if db_item.parent_id != parent_id:
             raise ParentStorageOwnershipError(
                 File,
                 item_id,
@@ -433,9 +430,7 @@ class ParentFileCrud:
         """Get all storage items for a parent, excluding items with missing files."""
         await self._ensure_parent_exists(db, parent_id)
 
-        statement = self._build_parent_statement().where(
-            getattr(File, self.parent_field) == parent_id,
-        )
+        statement = self._build_parent_statement().where(File.parent_id == parent_id)
 
         if filter_params:
             statement = filter_params.filter(statement)
@@ -491,13 +486,11 @@ class ParentImageCrud:
         *,
         parent_model: type[object],
         parent_type: MediaParentType,
-        parent_field: str,
         storage_service: StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal] | None = None,
     ) -> None:
         self.parent_model = parent_model
         self.storage_model = Image
         self.parent_type = parent_type
-        self.parent_field = parent_field
         self.storage_service = storage_service or image_storage_service
 
     async def _ensure_parent_exists(self, db: AsyncSession, parent_id: int) -> None:
@@ -527,7 +520,7 @@ class ParentImageCrud:
         if not db_item:
             raise ModelNotFoundError(Image, item_id)
 
-        if getattr(db_item, self.parent_field) != parent_id:
+        if db_item.parent_id != parent_id:
             raise ParentStorageOwnershipError(
                 Image,
                 item_id,
@@ -547,9 +540,7 @@ class ParentImageCrud:
         """Get all storage items for a parent, excluding items with missing files."""
         await self._ensure_parent_exists(db, parent_id)
 
-        statement = self._build_parent_statement().where(
-            getattr(Image, self.parent_field) == parent_id,
-        )
+        statement = self._build_parent_statement().where(Image.parent_id == parent_id)
 
         if filter_params:
             statement = filter_params.filter(statement)

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate
@@ -21,8 +21,8 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
     user_map: dict[str, User] = {}
     for user_dict in user_data:
         stmt = select(User).where(User.email == user_dict["email"])
-        result = await session.exec(stmt)
-        existing_user = result.first()
+        result = await session.execute(stmt)
+        existing_user = result.scalars().first()
 
         if existing_user:
             logger.info("User %s already exists, skipping creation.", user_dict["email"])
@@ -42,8 +42,8 @@ async def seed_users(session: AsyncSession) -> dict[str, User]:
         except ValueError as err:
             logger.warning("Failed to create user %s: %s", user_dict["email"], err)
             stmt = select(User).where(User.email == user_dict["email"])
-            result = await session.exec(stmt)
-            fetched_user = result.first()
+            result = await session.execute(stmt)
+            fetched_user = result.scalars().first()
             if fetched_user is not None:
                 user_map[user_dict["email"]] = fetched_user
 

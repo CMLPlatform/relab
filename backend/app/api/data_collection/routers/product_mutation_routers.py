@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated, cast
+from typing import Annotated
 
 from fastapi import Body, Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
@@ -70,7 +70,7 @@ async def update_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Update an existing product."""
-    return await crud.update_product(session, cast("int", db_product.id), product_update)
+    return await crud.update_product(session, db_product.id, product_update)
 
 
 @product_mutation_router.delete(
@@ -80,7 +80,7 @@ async def update_product(
 )
 async def delete_product(db_product: UserOwnedProductDep, session: AsyncSessionDep) -> None:
     """Delete a product, including components."""
-    await crud.delete_product(session, cast("int", db_product.id))
+    await crud.delete_product(session, db_product.id)
 
 
 @product_mutation_router.post(
@@ -114,7 +114,7 @@ async def delete_product_component(
     db_product: UserOwnedProductDep, component_id: PositiveInt, session: AsyncSessionDep
 ) -> None:
     """Delete a component in a product, including subcomponents."""
-    await get_nested_model_by_id(session, Product, cast("int", db_product.id), Product, component_id, "parent_id")
+    await get_nested_model_by_id(session, Product, db_product.id, Product, component_id, "parent_id")
     await crud.delete_product(session, component_id)
 
 

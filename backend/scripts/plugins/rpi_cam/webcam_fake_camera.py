@@ -16,7 +16,7 @@ Supports both connection modes:
     → Register camera as WebSocket in the UI, then copy the credentials.
 
 Requirements:
-    uv pip install fastapi uvicorn opencv-python websockets
+    uv sync --group fake-camera
 """
 # spell-checker: ignore imencode, IMWRITE
 

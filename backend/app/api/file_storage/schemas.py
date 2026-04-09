@@ -136,9 +136,7 @@ class FileReadWithinParent(UUIDIdReadSchemaWithTimeStamp, FileBase):
             "file_url": _build_storage_url(file_path, settings.file_storage_path, "/uploads/files"),
             "created_at": getattr(data, "created_at", None),
             "updated_at": getattr(data, "updated_at", None),
-            "parent_id": getattr(data, "product_id", None)
-            or getattr(data, "material_id", None)
-            or getattr(data, "product_type_id", None),
+            "parent_id": getattr(data, "parent_id", None),
             "parent_type": getattr(data, "parent_type", None),
         }
 
@@ -204,9 +202,7 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
             "thumbnail_url": thumbnail_url,
             "created_at": getattr(data, "created_at", None),
             "updated_at": getattr(data, "updated_at", None),
-            "parent_id": getattr(data, "product_id", None)
-            or getattr(data, "material_id", None)
-            or getattr(data, "product_type_id", None),
+            "parent_id": getattr(data, "parent_id", None),
             "parent_type": getattr(data, "parent_type", None),
         }
 

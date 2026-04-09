@@ -24,6 +24,7 @@ from app.api.data_collection.schemas import (
     ProductReadWithRecursiveComponents,
     ProductReadWithRelationshipsAndFlatComponents,
 )
+from app.api.data_collection.validators import validate_product
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -129,7 +130,7 @@ async def get_products(
 ) -> Page[Product]:
     """Get all products with specified relationships."""
     if include_components_as_base_products:
-        statement: Select[Product] = select(Product)
+        statement: Select[tuple[Product]] = select(Product)
     else:
         statement = select(Product).where(Product.parent_id.is_(None))
 
@@ -258,3 +259,25 @@ async def get_product_component(
         include_relationships=include,
         read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
+
+
+@product_read_router.post(
+    "/{product_id}/validate",
+    summary="Validate product tree",
+    response_model=dict[str, bool | list[str]],
+)
+async def validate_product_tree(
+    session: AsyncSessionDep,
+    product_id: PositiveInt,
+) -> dict[str, bool | list[str]]:
+    """Validate the product hierarchy and bill-of-materials constraints.
+
+    Returns ``{"valid": true, "errors": []}`` when the tree passes all checks,
+    or ``{"valid": false, "errors": [...]}`` with human-readable messages otherwise.
+    """
+    product = await get_model_by_id(session, Product, product_id)
+    try:
+        validate_product(product)
+    except ValueError as exc:
+        return {"valid": False, "errors": [str(exc)]}
+    return {"valid": True, "errors": []}
