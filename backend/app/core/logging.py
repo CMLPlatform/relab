@@ -99,49 +99,49 @@ def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None
         serialize=use_json_logs,
     )
 
+    def add_file_sink(path: Path, *, level: str, rotation: str, retention: str) -> None:
+        """Attach a file sink, but keep the app running if the path is unavailable."""
+        try:
+            loguru.logger.add(
+                path,
+                level=level,
+                rotation=rotation,
+                retention=retention,
+                format=LOG_FORMAT,
+                backtrace=True,
+                diagnose=True,
+                enqueue=is_enqueued,
+                encoding="utf-8",
+                serialize=use_json_logs,
+            )
+        except OSError as exc:
+            loguru.logger.warning("Skipping log file sink {path}: {exc}", path=path, exc=exc)
+
     if log_dir is None:
         return
 
     # Debug file sync - keep 3 days
-    loguru.logger.add(
+    add_file_sink(
         log_dir / "debug.log",
         level="DEBUG",
         rotation="00:00",
         retention="3 days",
-        format=LOG_FORMAT,
-        backtrace=True,
-        diagnose=True,
-        enqueue=is_enqueued,
-        encoding="utf-8",
-        serialize=use_json_logs,
     )
 
     # Info file sync - keep 14 days
-    loguru.logger.add(
+    add_file_sink(
         log_dir / "info.log",
         level="INFO",
         rotation="00:00",
         retention="14 days",
-        format=LOG_FORMAT,
-        backtrace=True,
-        diagnose=True,
-        enqueue=is_enqueued,
-        encoding="utf-8",
-        serialize=use_json_logs,
     )
 
     # Error file sync - keep 12 weeks
-    loguru.logger.add(
+    add_file_sink(
         log_dir / "error.log",
         level="ERROR",
         rotation="1 week",
         retention="12 weeks",
-        format=LOG_FORMAT,
-        backtrace=True,
-        diagnose=True,
-        enqueue=is_enqueued,
-        encoding="utf-8",
-        serialize=use_json_logs,
     )
 
 
@@ -153,7 +153,7 @@ def setup_logging(
 ) -> None:
     """Setup loguru logging configuration and intercept standard logging."""
     if not stdout_only and log_dir is not None:
-        log_dir.mkdir(exist_ok=True)
+        log_dir.mkdir(parents=True, exist_ok=True)
     else:
         log_dir = None
 

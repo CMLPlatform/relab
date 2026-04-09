@@ -61,3 +61,23 @@ def test_configure_loguru_handlers_staging_environment(mocker: MockerFixture, tm
     for call in mock_add.call_args_list:
         assert call.kwargs.get("enqueue") is True
         assert call.kwargs.get("serialize") is True
+
+
+def test_configure_loguru_handlers_skips_unwritable_file_sinks(
+    mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """Verify that a missing log volume does not crash production/staging startup."""
+
+    def fake_add(sink, *args, **kwargs):
+        if sink == tmp_path / "debug.log":
+            raise OSError("permission denied")
+        return object()
+
+    mock_add = mocker.patch("loguru.logger.add", side_effect=fake_add)
+    mock_warning = mocker.patch("loguru.logger.warning")
+    mocker.patch("app.core.logging.settings.environment", new=Environment.STAGING)
+
+    configure_loguru_handlers(tmp_path, "INFO")
+
+    assert mock_add.call_count == 4
+    assert mock_warning.call_count == 3
