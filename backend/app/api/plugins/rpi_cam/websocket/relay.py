@@ -16,6 +16,7 @@ from app.api.plugins.rpi_cam.websocket.connection_manager import (
 from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 
 logger = logging.getLogger(__name__)
+_RELAY_RETRY_AFTER_SECONDS = "2"
 
 
 async def relay_via_websocket(
@@ -44,9 +45,17 @@ async def relay_via_websocket(
             json_resp, binary = await manager.send_command(camera_id, method, path, params=params, body=body)
     except RuntimeError as exc:
         logger.warning("Camera %s not connected for relay: %s", camera_id, exc)
-        raise HTTPException(status_code=503, detail="Camera is not connected via WebSocket.") from exc
+        raise HTTPException(
+            status_code=503,
+            detail="Camera is not connected via WebSocket.",
+            headers={"Retry-After": _RELAY_RETRY_AFTER_SECONDS},
+        ) from exc
     except TimeoutError as exc:
-        raise HTTPException(status_code=503, detail=f"Camera did not respond in time: {path}") from exc
+        raise HTTPException(
+            status_code=503,
+            detail=f"Camera did not respond in time: {path}",
+            headers={"Retry-After": _RELAY_RETRY_AFTER_SECONDS},
+        ) from exc
 
     response_status = json_resp.get("status", 500)
     response_data = json_resp.get("data")

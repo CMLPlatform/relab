@@ -142,22 +142,77 @@ export function useCameraPreview(
       if (toRevoke) requestAnimationFrame(() => URL.revokeObjectURL(toRevoke));
     };
 
+    let cancelled = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let inFlight = false;
+    let consecutiveFailures = 0;
+
+    const clearTimer = () => {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    };
+
+    const getNextDelayMs = (nextError: Error | null) => {
+      if (!(nextError instanceof CameraSnapshotError)) {
+        return intervalMs;
+      }
+
+      if (nextError.status === 409) {
+        return Math.max(intervalMs, 5_000);
+      }
+
+      if (nextError.status >= 500) {
+        const backoffMultiplier = 2 ** Math.min(consecutiveFailures, 3);
+        return Math.min(intervalMs * backoffMultiplier, 10_000);
+      }
+
+      return intervalMs;
+    };
+
+    const scheduleNextPoll = (delayMs: number) => {
+      clearTimer();
+      if (cancelled) return;
+      timerId = setTimeout(() => {
+        void poll();
+      }, delayMs);
+    };
+
     const poll = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+
       try {
-        setFrame(await fetchCameraSnapshot(cameraId));
-      } catch (err) {
-        if (err instanceof CameraSnapshotError) {
-          setError(err);
+        const nextFrameUrl = await fetchCameraSnapshot(cameraId);
+        if (cancelled) {
+          URL.revokeObjectURL(nextFrameUrl);
           return;
         }
-        setError(err instanceof Error ? err : new Error(String(err)));
+        consecutiveFailures = 0;
+        setFrame(nextFrameUrl);
+        scheduleNextPoll(intervalMs);
+      } catch (err) {
+        const nextError =
+          err instanceof CameraSnapshotError
+            ? err
+            : err instanceof Error
+              ? err
+              : new Error(String(err));
+        consecutiveFailures += 1;
+        if (!cancelled) {
+          setError(nextError);
+          scheduleNextPoll(getNextDelayMs(nextError));
+        }
+      } finally {
+        inFlight = false;
       }
     };
 
     void poll();
-    const timerId = setInterval(() => void poll(), intervalMs);
     return () => {
-      clearInterval(timerId);
+      cancelled = true;
+      clearTimer();
       setSnapshotUrl(null);
       setError(null);
       revokePrev();

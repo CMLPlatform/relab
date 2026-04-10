@@ -32,7 +32,11 @@ async def get_user_owned_camera(
     """Get a camera owned by a user, verifying it is reachable."""
     camera = await get_user_owned_object(session, Camera, camera_id, user_id)
 
-    camera_status = await camera.get_status(http_client)
+    # WebSocket camera status checks are in-process and inexpensive, so use a
+    # live read for action endpoints to avoid stale "online" cache hits during
+    # short reconnect windows. HTTP cameras keep the cached health check.
+    force_refresh = camera.connection_mode == ConnectionMode.WEBSOCKET
+    camera_status = await camera.get_status(http_client, force_refresh=force_refresh)
 
     if (camera_connection := camera_status.connection) != CameraConnectionStatus.ONLINE:
         status_code, msg = camera_connection.to_http_error()

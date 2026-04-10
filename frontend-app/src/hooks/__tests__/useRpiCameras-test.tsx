@@ -111,6 +111,65 @@ describe('useCameraPreview', () => {
     expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:second-frame');
   });
 
+  it('waits for the current snapshot request to finish before scheduling the next poll', async () => {
+    let resolveFirstSnapshot: ((value: string) => void) | null = null;
+    mockedFetchCameraSnapshot.mockImplementationOnce(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveFirstSnapshot = resolve;
+        }),
+    );
+
+    renderHook(() => useCameraPreview({ id: 'cam-10' }, { enabled: true, intervalMs: 100 }), {
+      wrapper,
+    });
+
+    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFirstSnapshot?.('blob:resolved-frame');
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
+    await waitFor(() => expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(2));
+  });
+
+  it('backs off snapshot polling after service-unavailable responses', async () => {
+    mockedFetchCameraSnapshot
+      .mockRejectedValueOnce(new CameraSnapshotError(503, 'Failed to fetch snapshot (503)'))
+      .mockResolvedValueOnce('blob:recovered-frame');
+
+    const { result } = renderHook(
+      () => useCameraPreview({ id: 'cam-11' }, { enabled: true, intervalMs: 100 }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.error?.message).toBe('Failed to fetch snapshot (503)'));
+    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
+    await waitFor(() => expect(result.current.snapshotUrl).toBe('blob:recovered-frame'));
+    expect(result.current.error).toBeNull();
+    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(2);
+  });
+
   it('surfaces CameraSnapshotError instances directly for streaming conflicts', async () => {
     mockedFetchCameraSnapshot.mockRejectedValueOnce(
       new CameraSnapshotError(409, 'Snapshot preview unavailable while the camera is streaming.'),
