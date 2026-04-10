@@ -33,6 +33,7 @@ router = PublicAPIRouter()
     responses={
         200: {"content": {"image/jpeg": {}}, "description": "JPEG snapshot"},
         409: {"description": "Preview unavailable while the camera is actively streaming."},
+        503: {"description": "Camera temporarily unavailable, for example while its relay reconnects."},
     },
 )
 async def get_camera_snapshot(
