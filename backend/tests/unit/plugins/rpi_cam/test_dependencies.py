@@ -21,8 +21,8 @@ def build_camera(*, owner_id: uuid.UUID) -> Camera:
     return Camera(
         name="Camera",
         owner_id=owner_id,
-        encrypted_api_key="encrypted-key",
-        url="http://example.com",
+        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
+        relay_key_id="test-key-id",
     )
 
 
@@ -30,7 +30,7 @@ async def test_get_camera_transfer_owner_id_returns_none_when_owner_unchanged() 
     """No extra lookup is needed if the request does not include owner_id."""
     session = AsyncMock()
     camera = build_camera(owner_id=uuid.uuid4())
-    camera_in = CameraUpdate(name="Updated", auth_headers=None)
+    camera_in = CameraUpdate(name="Updated")
 
     with patch("app.api.plugins.rpi_cam.dependencies.get_model_or_404", new=AsyncMock()) as mock_get_model:
         result = await get_camera_transfer_owner_id(camera_in, camera, session)

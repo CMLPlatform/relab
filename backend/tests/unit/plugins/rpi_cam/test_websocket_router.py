@@ -42,6 +42,7 @@ async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
             pending_id=None,
             pending_json=None,
             last_pong_at=[0.0],
+            redis=None,
         )
 
     assert result == (None, None)
@@ -94,3 +95,190 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
         str(camera_id),
         91.0,
     )
+
+
+# ── Device assertion verification ────────────────────────────────────────────
+
+import secrets  # noqa: E402 — grouped below other block-level imports for clarity
+import time  # noqa: E402
+
+import jwt  # noqa: E402
+import pytest  # noqa: E402
+from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402
+
+from app.api.plugins.rpi_cam.websocket.router import _verify_device_assertion  # noqa: E402
+
+_ALG = "ES256"
+_AUD = "relab-rpi-cam-relay"
+
+
+def _make_key() -> tuple[ec.EllipticCurvePrivateKey, dict]:
+    """Generate an EC P-256 key pair and return (private_key, public_jwk)."""
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    pub = private_key.public_key().public_numbers()
+    import base64  # noqa: PLC0415
+
+    def _b64(n: int) -> str:
+        return base64.urlsafe_b64encode(n.to_bytes(32, "big")).rstrip(b"=").decode()
+
+    jwk = {"kty": "EC", "crv": "P-256", "x": _b64(pub.x), "y": _b64(pub.y)}
+    return private_key, jwk
+
+
+def _make_camera(key_id: str, public_jwk: dict) -> MagicMock:
+    """Build a camera stub with the given credential fields."""
+    camera = MagicMock()
+    camera.id = uuid4()
+    camera.relay_key_id = key_id
+    camera.relay_public_key_jwk = public_jwk
+    camera.credential_is_active = True
+    return camera
+
+
+def _make_assertion(
+    private_key: ec.EllipticCurvePrivateKey,
+    camera_id: str,
+    key_id: str,
+    *,
+    aud: str = _AUD,
+    exp_offset: int = 120,
+    jti: str | None = None,
+) -> str:
+    now = int(time.time())
+    return jwt.encode(
+        {
+            "iss": f"camera:{camera_id}",
+            "sub": f"camera:{camera_id}",
+            "aud": aud,
+            "iat": now,
+            "nbf": now,
+            "exp": now + exp_offset,
+            "jti": jti or secrets.token_urlsafe(24),
+        },
+        private_key,
+        algorithm=_ALG,
+        headers={"kid": key_id},
+    )
+
+
+class TestVerifyDeviceAssertion:
+    """Tests for _verify_device_assertion — all accept/reject cases."""
+
+    @pytest.mark.asyncio
+    async def test_accepts_valid_assertion(self) -> None:
+        """A well-formed signed assertion should be accepted."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+        redis.set = AsyncMock(return_value=True)  # nx=True → not a replay
+
+        assertion = _make_assertion(private_key, str(camera.id), key_id)
+        payload = await _verify_device_assertion(assertion, camera, redis)
+
+        assert payload["sub"] == f"camera:{camera.id}"
+        assert payload["kid"] == key_id
+
+    @pytest.mark.asyncio
+    async def test_rejects_expired_assertion(self) -> None:
+        """An assertion with exp in the past should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+
+        assertion = _make_assertion(private_key, str(camera.id), key_id, exp_offset=-10)
+        with pytest.raises(jwt.InvalidTokenError):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    @pytest.mark.asyncio
+    async def test_rejects_wrong_audience(self) -> None:
+        """An assertion with the wrong audience should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+
+        assertion = _make_assertion(private_key, str(camera.id), key_id, aud="wrong-audience")
+        with pytest.raises(jwt.InvalidTokenError):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    @pytest.mark.asyncio
+    async def test_rejects_wrong_subject(self) -> None:
+        """An assertion whose sub doesn't match the camera id should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+        redis.set = AsyncMock(return_value=True)
+
+        # Sign with a different camera id in the subject
+        other_id = uuid4()
+        assertion = _make_assertion(private_key, str(other_id), key_id)
+        with pytest.raises(jwt.InvalidTokenError, match="subject"):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    @pytest.mark.asyncio
+    async def test_rejects_wrong_kid(self) -> None:
+        """An assertion whose kid doesn't match the stored key_id should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+
+        # Sign with a different kid
+        assertion = _make_assertion(private_key, str(camera.id), "wrong-kid")
+        with pytest.raises(jwt.InvalidTokenError, match="key id"):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_signature(self) -> None:
+        """An assertion signed by a different key should be rejected."""
+        key_id = "key-1"
+        _private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+
+        # Sign with a completely different private key — won't match the stored public jwk
+        wrong_key, _ = _make_key()
+        assertion = _make_assertion(wrong_key, str(camera.id), key_id)
+        with pytest.raises(jwt.InvalidTokenError):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    @pytest.mark.asyncio
+    async def test_rejects_replayed_jti(self) -> None:
+        """A replayed jti (Redis already has it) should be rejected."""
+        key_id = "key-1"
+        private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+        redis.set = AsyncMock(return_value=None)  # nx=True but key exists → None
+
+        assertion = _make_assertion(private_key, str(camera.id), key_id)
+        with pytest.raises(jwt.InvalidTokenError, match="replay"):
+            await _verify_device_assertion(assertion, camera, redis)
+
+    @pytest.mark.asyncio
+    async def test_rejects_unsupported_algorithm(self) -> None:
+        """An assertion signed with HS256 instead of ES256 should be rejected."""
+        key_id = "key-1"
+        _private_key, jwk = _make_key()
+        camera = _make_camera(key_id, jwk)
+        redis = AsyncMock()
+
+        now = int(time.time())
+        hs256_assertion = jwt.encode(
+            {
+                "sub": f"camera:{camera.id}",
+                "aud": _AUD,
+                "iat": now,
+                "nbf": now,
+                "exp": now + 120,
+                "jti": secrets.token_urlsafe(24),
+            },
+            "some-hmac-secret",
+            algorithm="HS256",
+            headers={"kid": key_id},
+        )
+        with pytest.raises(jwt.InvalidTokenError, match="algorithm"):
+            await _verify_device_assertion(hs256_assertion, camera, redis)

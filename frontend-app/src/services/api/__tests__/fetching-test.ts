@@ -9,8 +9,8 @@ import {
   isProductNotFoundError,
   myProducts,
   newProduct,
-  productComponents,
   ProductNotFoundError,
+  productComponents,
 } from '../products';
 import { allProductTypes, searchProductTypes } from '../productTypes';
 

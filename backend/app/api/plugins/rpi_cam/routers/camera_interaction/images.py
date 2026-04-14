@@ -7,7 +7,7 @@ from fastapi.responses import Response
 from pydantic import UUID4, PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
+from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.file_storage.models import Image
 from app.api.file_storage.schemas import ImageRead
@@ -39,12 +39,11 @@ router = PublicAPIRouter()
 async def get_camera_snapshot(
     camera_id: UUID4,
     session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> Response:
     """Return a low-res JPEG snapshot from the camera, without storing it."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera_request = build_camera_request(camera)
     response = await camera_request(
         endpoint=PLUGIN_PREVIEW_ENDPOINT,
         method=HttpMethod.GET,
@@ -72,7 +71,6 @@ async def get_camera_snapshot(
 async def capture_image(
     camera_id: UUID4,
     session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
     *,
     product_id: Annotated[
@@ -92,8 +90,8 @@ async def capture_image(
     ] = None,
 ) -> Image:
     """Capture a still image with a remote Raspberry Pi Camera."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera_request = build_camera_request(camera)
 
     return await capture_and_store_image(
         session,

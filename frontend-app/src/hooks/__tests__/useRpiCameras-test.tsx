@@ -6,12 +6,10 @@ import {
   CameraSnapshotError,
   captureImageFromCamera,
   claimPairingCode,
-  createCamera,
   deleteCamera,
   fetchCamera,
   fetchCameraSnapshot,
   fetchCameras,
-  regenerateCameraApiKey,
   updateCamera,
 } from '@/services/api/rpiCamera';
 import {
@@ -22,9 +20,7 @@ import {
   useCamerasQuery,
   useCaptureImageMutation,
   useClaimPairingMutation,
-  useCreateCameraMutation,
   useDeleteCameraMutation,
-  useRegenerateApiKeyMutation,
   useUpdateCameraMutation,
 } from '../useRpiCameras';
 
@@ -38,13 +34,9 @@ jest.mock('@/services/api/rpiCamera', () => ({
       this.status = status;
     }
   },
-  fetchCameraSnapshot: jest.fn(),
-  fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
-  createCamera: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
-  regenerateCameraApiKey: jest.fn(),
   claimPairingCode: jest.fn(),
   captureImageFromCamera: jest.fn(),
 }));
@@ -52,10 +44,8 @@ jest.mock('@/services/api/rpiCamera', () => ({
 const mockedFetchCameraSnapshot = jest.mocked(fetchCameraSnapshot);
 const mockedFetchCameras = jest.mocked(fetchCameras);
 const mockedFetchCamera = jest.mocked(fetchCamera);
-const mockedCreateCamera = jest.mocked(createCamera);
 const mockedUpdateCamera = jest.mocked(updateCamera);
 const mockedDeleteCamera = jest.mocked(deleteCamera);
-const mockedRegenerateCameraApiKey = jest.mocked(regenerateCameraApiKey);
 const mockedClaimPairingCode = jest.mocked(claimPairingCode);
 const mockedCaptureImageFromCamera = jest.mocked(captureImageFromCamera);
 
@@ -153,7 +143,9 @@ describe('useCameraPreview', () => {
       { wrapper },
     );
 
-    await waitFor(() => expect(result.current.error?.message).toBe('Failed to fetch snapshot (503)'));
+    await waitFor(() =>
+      expect(result.current.error?.message).toBe('Failed to fetch snapshot (503)'),
+    );
     expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -253,16 +245,38 @@ describe('RPi camera query hooks', () => {
   });
 
   it('builds camera query options with the expected query keys and stale times', async () => {
-    mockedFetchCameras.mockResolvedValue([]);
-    mockedFetchCamera.mockResolvedValue({ id: 'cam-1', name: 'Workbench Camera' });
+    mockedFetchCameras.mockResolvedValue([
+      {
+        id: 'cam-1',
+        name: 'Workbench Camera',
+        description: null,
+        owner_id: '1',
+        relay_key_id: 'x',
+        relay_credential_status: 'active',
+        created_at: '',
+        updated_at: '',
+        status: { connection: 'online', details: null, last_seen_at: null },
+      },
+    ]);
+    mockedFetchCamera.mockResolvedValue({
+      id: 'cam-1',
+      name: 'Workbench Camera',
+      description: null,
+      owner_id: '1',
+      relay_key_id: 'x',
+      relay_credential_status: 'active',
+      created_at: '',
+      updated_at: '',
+      status: { connection: 'online', details: null, last_seen_at: null },
+    });
 
     expect(camerasQueryOptions(true).queryKey).toEqual(['rpiCameras', true]);
     expect(camerasQueryOptions(false).staleTime).toBe(60_000);
     expect(cameraQueryOptions('cam-1', true).queryKey).toEqual(['rpiCamera', 'cam-1', true]);
     expect(cameraQueryOptions('cam-1', true).staleTime).toBe(15_000);
 
-    await camerasQueryOptions(true).queryFn();
-    await cameraQueryOptions('cam-1', true).queryFn();
+    await camerasQueryOptions(true).queryFn!({} as any);
+    await cameraQueryOptions('cam-1', true).queryFn!({} as any);
 
     expect(mockedFetchCameras).toHaveBeenCalledWith(true);
     expect(mockedFetchCamera).toHaveBeenCalledWith('cam-1', true);
@@ -270,7 +284,17 @@ describe('RPi camera query hooks', () => {
 
   it('defaults includeStatus to false and uses the longer stale time when the flag is omitted', async () => {
     mockedFetchCameras.mockResolvedValue([]);
-    mockedFetchCamera.mockResolvedValue({ id: 'cam-1', name: 'Workbench Camera' });
+    mockedFetchCamera.mockResolvedValue({
+      id: 'cam-1',
+      name: 'Workbench Camera',
+      description: null,
+      owner_id: '1',
+      relay_key_id: 'x',
+      relay_credential_status: 'active',
+      created_at: '',
+      updated_at: '',
+      status: { connection: 'online', details: null, last_seen_at: null },
+    });
 
     expect(camerasQueryOptions().queryKey).toEqual(['rpiCameras', false]);
     expect(camerasQueryOptions().staleTime).toBe(60_000);
@@ -280,15 +304,27 @@ describe('RPi camera query hooks', () => {
     expect(cameraQueryOptions('cam-1').staleTime).toBe(60_000);
     expect(cameraQueryOptions('cam-1', true).staleTime).toBe(15_000);
 
-    await camerasQueryOptions().queryFn();
-    await cameraQueryOptions('cam-1').queryFn();
+    await camerasQueryOptions().queryFn!({} as any);
+    await cameraQueryOptions('cam-1').queryFn!({} as any);
 
     expect(mockedFetchCameras).toHaveBeenCalledWith(false);
     expect(mockedFetchCamera).toHaveBeenCalledWith('cam-1', false);
   });
 
   it('runs useCamerasQuery when enabled and skips it when disabled', async () => {
-    mockedFetchCameras.mockResolvedValue([{ id: 'cam-1', name: 'Workbench Camera' }]);
+    mockedFetchCameras.mockResolvedValue([
+      {
+        id: 'cam-1',
+        name: 'Workbench Camera',
+        description: null,
+        owner_id: '1',
+        relay_key_id: 'x',
+        relay_credential_status: 'active',
+        created_at: '',
+        updated_at: '',
+        status: { connection: 'online', details: null, last_seen_at: null },
+      },
+    ]);
 
     const { result, rerender, unmount } = renderHook(
       ({ enabled }: { enabled: boolean }) => useCamerasQuery(true, { enabled }),
@@ -310,7 +346,17 @@ describe('RPi camera query hooks', () => {
   });
 
   it('runs useCameraQuery only when a camera id is present', async () => {
-    mockedFetchCamera.mockResolvedValue({ id: 'cam-2', name: 'Close-up Camera' });
+    mockedFetchCamera.mockResolvedValue({
+      id: 'cam-2',
+      name: 'Close-up Camera',
+      description: null,
+      owner_id: '1',
+      relay_key_id: 'x',
+      relay_credential_status: 'active',
+      created_at: '',
+      updated_at: '',
+      status: { connection: 'online', details: null, last_seen_at: null },
+    });
 
     const { result, rerender, unmount } = renderHook(
       ({ id }: { id: string }) => useCameraQuery(id, true),
@@ -338,28 +384,17 @@ describe('RPi camera mutation hooks', () => {
     queryClient.clear();
   });
 
-  it('invalidates the camera list after creating a camera', async () => {
-    mockedCreateCamera.mockResolvedValue({ id: 'cam-1', name: 'Workbench Camera' });
-    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
-
-    const { result } = renderHook(() => useCreateCameraMutation(), { wrapper });
-
-    await act(async () => {
-      await result.current.mutateAsync({
-        name: 'Workbench Camera',
-        connection_mode: 'websocket',
-      });
-    });
-
-    expect(mockedCreateCamera).toHaveBeenCalledWith({
-      name: 'Workbench Camera',
-      connection_mode: 'websocket',
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCameras'] });
-  });
-
   it('invalidates the camera detail and list after updating a camera', async () => {
-    mockedUpdateCamera.mockResolvedValue({ id: 'cam-2', name: 'Updated Camera' });
+    mockedUpdateCamera.mockResolvedValue({
+      id: 'cam-2',
+      name: 'Updated Camera',
+      description: null,
+      owner_id: '1',
+      relay_key_id: 'x',
+      relay_credential_status: 'active',
+      created_at: '',
+      updated_at: '',
+    });
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
     const { result } = renderHook(() => useUpdateCameraMutation('cam-2'), { wrapper });
@@ -375,7 +410,16 @@ describe('RPi camera mutation hooks', () => {
 
   it('invalidates the camera list after deleting a camera or claiming pairing', async () => {
     mockedDeleteCamera.mockResolvedValue(undefined);
-    mockedClaimPairingCode.mockResolvedValue({ id: 'cam-3', api_key: 'secret' });
+    mockedClaimPairingCode.mockResolvedValue({
+      id: 'cam-3',
+      name: 'Camera',
+      description: null,
+      owner_id: '1',
+      relay_key_id: 'x',
+      relay_credential_status: 'active',
+      created_at: '',
+      updated_at: '',
+    });
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
     const { result: deleteResult } = renderHook(() => useDeleteCameraMutation(), { wrapper });
@@ -397,24 +441,11 @@ describe('RPi camera mutation hooks', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCameras'] });
   });
 
-  it('invalidates the camera detail after regenerating the API key', async () => {
-    mockedRegenerateCameraApiKey.mockResolvedValue({ id: 'cam-4', api_key: 'new-secret' });
-    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
-
-    const { result } = renderHook(() => useRegenerateApiKeyMutation('cam-4'), { wrapper });
-
-    await act(async () => {
-      await result.current.mutateAsync();
-    });
-
-    expect(mockedRegenerateCameraApiKey).toHaveBeenCalledWith('cam-4');
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCamera', 'cam-4'] });
-  });
-
   it('invalidates the owning product after capturing a camera image', async () => {
     mockedCaptureImageFromCamera.mockResolvedValue({
       id: 'img-1',
       url: 'https://example.com/capture.jpg',
+      thumbnailUrl: null,
       description: 'Capture',
     });
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');

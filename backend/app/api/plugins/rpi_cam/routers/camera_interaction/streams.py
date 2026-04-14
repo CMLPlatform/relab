@@ -60,12 +60,11 @@ logger = logging.getLogger(__name__)
 async def get_camera_stream_status(
     camera_id: UUID4,
     session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> StreamView:
     """Fetch the current remote camera stream status from the device plugin."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera_request = build_camera_request(camera)
     response = await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.GET,
@@ -86,12 +85,11 @@ async def get_camera_stream_status(
 async def stop_all_streams(
     camera_id: UUID4,
     session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
 ) -> None:
     """Stop the currently active remote camera stream."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera_request = build_camera_request(camera)
     await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.DELETE,
@@ -171,8 +169,8 @@ async def start_recording(
     )
 
     # Fetch user camera
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera_request = build_camera_request(camera)
 
     # Start Youtube stream
     response = await camera_request(
@@ -244,7 +242,7 @@ async def stop_recording(
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
 
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
 
     oauth_account = await session.scalar(
         select(OAuthAccount).where(
@@ -255,7 +253,7 @@ async def stop_recording(
         raise GoogleOAuthAssociationRequiredError
 
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera_request = build_camera_request(camera)
 
     await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
@@ -293,8 +291,8 @@ async def get_recording_monitor_stream(
     """Get the YouTube monitor stream for the active backend-owned recording session."""
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, http_client)
-    camera_request = build_camera_request(camera, http_client)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera_request = build_camera_request(camera)
 
     stream_status_response = await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,

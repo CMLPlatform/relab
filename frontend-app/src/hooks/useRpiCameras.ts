@@ -1,25 +1,16 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import type {
-  CameraCreate,
-  CameraRead,
-  CameraUpdate,
-  PairingClaimRequest,
-} from '@/services/api/rpiCamera';
+import type { CameraRead, CameraUpdate, PairingClaimRequest } from '@/services/api/rpiCamera';
 import {
   CameraSnapshotError,
   captureImageFromCamera,
   claimPairingCode,
-  createCamera,
   deleteCamera,
   fetchCamera,
   fetchCameraSnapshot,
   fetchCameras,
-  regenerateCameraApiKey,
   updateCamera,
 } from '@/services/api/rpiCamera';
-
-// ─── Query options factories ───────────────────────────────────────────────────
 
 export const camerasQueryOptions = (includeStatus = false) =>
   queryOptions({
@@ -36,8 +27,6 @@ export const cameraQueryOptions = (id: string, includeStatus = false) =>
     staleTime: includeStatus ? 15_000 : 60_000,
   });
 
-// ─── Hooks ────────────────────────────────────────────────────────────────────
-
 export function useCamerasQuery(
   includeStatus = false,
   { enabled = true }: { enabled?: boolean } = {},
@@ -47,16 +36,6 @@ export function useCamerasQuery(
 
 export function useCameraQuery(id: string, includeStatus = false) {
   return useQuery(cameraQueryOptions(id, includeStatus));
-}
-
-export function useCreateCameraMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CameraCreate) => createCamera(data),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCameras'] });
-    },
-  });
 }
 
 export function useUpdateCameraMutation(id: string) {
@@ -80,16 +59,6 @@ export function useDeleteCameraMutation() {
   });
 }
 
-export function useRegenerateApiKeyMutation(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => regenerateCameraApiKey(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCamera', id] });
-    },
-  });
-}
-
 export function useClaimPairingMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -100,14 +69,6 @@ export function useClaimPairingMutation() {
   });
 }
 
-// ─── Preview hook ──────────────────────────────────────────────────────────────
-
-/**
- * Snapshot-based preview for an RPi camera via repeated JPEG polling.
- *
- * Returns a blob URL safe to use as an <Image> source, and an error when the
- * camera is unreachable. Blob URLs are revoked automatically to avoid memory leaks.
- */
 export function useCameraPreview(
   camera: Pick<CameraRead, 'id'> | null,
   { enabled = false, intervalMs = 1000 }: { enabled?: boolean; intervalMs?: number } = {},
@@ -133,8 +94,6 @@ export function useCameraPreview(
     };
 
     const setFrame = (url: string) => {
-      // Defer revocation so the browser finishes rendering the old frame
-      // before its blob URL is invalidated — prevents flicker.
       const toRevoke = previousUrlRef.current;
       previousUrlRef.current = url;
       setSnapshotUrl(url);
@@ -155,19 +114,12 @@ export function useCameraPreview(
     };
 
     const getNextDelayMs = (nextError: Error | null) => {
-      if (!(nextError instanceof CameraSnapshotError)) {
-        return intervalMs;
-      }
-
-      if (nextError.status === 409) {
-        return Math.max(intervalMs, 5_000);
-      }
-
+      if (!(nextError instanceof CameraSnapshotError)) return intervalMs;
+      if (nextError.status === 409) return Math.max(intervalMs, 5_000);
       if (nextError.status >= 500) {
         const backoffMultiplier = 2 ** Math.min(consecutiveFailures, 3);
         return Math.min(intervalMs * backoffMultiplier, 10_000);
       }
-
       return intervalMs;
     };
 
@@ -228,7 +180,6 @@ export function useCaptureImageMutation() {
     mutationFn: ({ cameraId, productId }: { cameraId: string; productId: number }) =>
       captureImageFromCamera(cameraId, productId),
     onSuccess: (_data, { productId }) => {
-      // Refetch the product so the new image appears in the gallery
       void queryClient.invalidateQueries({ queryKey: ['product', productId] });
     },
   });

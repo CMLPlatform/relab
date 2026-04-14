@@ -240,7 +240,11 @@ export default function ProductPage(): JSX.Element {
           <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
             This product may have been removed or the link is no longer valid.
           </Text>
-          <Button mode="contained" onPress={() => router.replace('/products')} style={{ marginTop: 8 }}>
+          <Button
+            mode="contained"
+            onPress={() => router.replace('/products')}
+            style={{ marginTop: 8 }}
+          >
             Back to products
           </Button>
         </View>

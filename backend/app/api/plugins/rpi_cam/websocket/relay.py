@@ -17,6 +17,22 @@ from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 
 logger = logging.getLogger(__name__)
 _RELAY_RETRY_AFTER_SECONDS = "2"
+_GET = "GET"
+_ALLOWED_IMAGE_PATH_PREFIX = "/images/"
+_ALLOWED_COMMANDS = {
+    ("GET", "/camera"),
+    ("GET", "/images/preview"),
+    ("POST", "/images"),
+    ("GET", "/stream"),
+    ("POST", "/stream"),
+    ("DELETE", "/stream"),
+}
+
+
+def _relay_command_allowed(method: str, path: str) -> bool:
+    if (method, path) in _ALLOWED_COMMANDS:
+        return True
+    return method == _GET and path.startswith(_ALLOWED_IMAGE_PATH_PREFIX)
 
 
 async def relay_via_websocket(
@@ -29,20 +45,17 @@ async def relay_via_websocket(
     error_msg: str | None = None,
     expect_binary: bool = False,
 ) -> RelayResponse:
-    """Send a command to a camera over its WebSocket connection and return a RelayResponse.
+    """Send an allowlisted command to a camera over its WebSocket connection."""
+    normalized_method = method.upper()
+    if not _relay_command_allowed(normalized_method, path):
+        raise HTTPException(status_code=403, detail=f"Relay command is not allowed: {normalized_method} {path}")
 
-    expect_binary should be True for endpoints that return raw bytes (image download).
-
-    Raises:
-        HTTPException 503: Camera is not connected or timed out.
-        HTTPException <status>: Camera returned a non-2xx status.
-    """
     manager = get_connection_manager()
     timeout = BINARY_COMMAND_TIMEOUT if expect_binary else DEFAULT_COMMAND_TIMEOUT
 
     try:
         async with asyncio.timeout(timeout):
-            json_resp, binary = await manager.send_command(camera_id, method, path, params=params, body=body)
+            json_resp, binary = await manager.send_command(camera_id, normalized_method, path, params=params, body=body)
     except RuntimeError as exc:
         logger.warning("Camera %s not connected for relay: %s", camera_id, exc)
         raise HTTPException(
@@ -61,7 +74,7 @@ async def relay_via_websocket(
     response_data = json_resp.get("data")
 
     if response_status >= 400:
-        _detail = error_msg or f"Camera returned error for {method} {path}"
+        _detail = error_msg or f"Camera returned error for {normalized_method} {path}"
         raise HTTPException(status_code=response_status, detail={"main API": _detail, "Camera API": response_data})
 
     if binary is not None:

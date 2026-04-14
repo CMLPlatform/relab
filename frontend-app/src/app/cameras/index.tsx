@@ -57,7 +57,7 @@ function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
       <Card.Content style={styles.cardContent}>
         <View style={styles.cardLeft}>
           <MaterialCommunityIcons
-            name={camera.connection_mode === 'websocket' ? 'access-point' : 'lan-connect'}
+            name="access-point"
             size={28}
             color={theme.colors.onSurfaceVariant}
           />
@@ -80,9 +80,7 @@ function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
                 paddingVertical: 3,
               }}
             >
-              <Text style={{ fontSize: 11 }}>
-                {camera.connection_mode === 'websocket' ? 'WebSocket' : 'HTTP'}
-              </Text>
+              <Text style={{ fontSize: 11 }}>WebSocket</Text>
             </View>
             {camera.status && <StatusBadge status={camera.status.connection} />}
           </View>

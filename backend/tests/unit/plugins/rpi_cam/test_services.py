@@ -22,7 +22,6 @@ from app.api.plugins.rpi_cam.services import (
     load_recording_session,
     store_recording_session,
 )
-from app.api.plugins.rpi_cam.utils.encryption import encrypt_str
 
 # Constants for magic values
 FAKE_ACCESS_TOKEN = "fake_access_token"
@@ -75,8 +74,8 @@ def build_camera() -> Camera:
     return Camera(
         id=uuid4(),
         name="Test Camera",
-        url="http://192.168.1.100:8080",
-        encrypted_api_key=encrypt_str("secret"),
+        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
+        relay_key_id="test-key-id",
         owner_id=owner_id,
     )
 

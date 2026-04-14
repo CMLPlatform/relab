@@ -50,7 +50,9 @@ function toProductPayload(product: Product): ProductPayload {
 
   const circularityOut = {
     recyclability_comment: toNullableText(product.circularityProperties.recyclabilityComment),
-    recyclability_observation: toNullableText(product.circularityProperties.recyclabilityObservation),
+    recyclability_observation: toNullableText(
+      product.circularityProperties.recyclabilityObservation,
+    ),
     recyclability_reference: toNullableText(product.circularityProperties.recyclabilityReference),
     remanufacturability_comment: toNullableText(
       product.circularityProperties.remanufacturabilityComment,
@@ -62,7 +64,9 @@ function toProductPayload(product: Product): ProductPayload {
       product.circularityProperties.remanufacturabilityReference,
     ),
     repairability_comment: toNullableText(product.circularityProperties.repairabilityComment),
-    repairability_observation: toNullableText(product.circularityProperties.repairabilityObservation),
+    repairability_observation: toNullableText(
+      product.circularityProperties.repairabilityObservation,
+    ),
     repairability_reference: toNullableText(product.circularityProperties.repairabilityReference),
   };
 

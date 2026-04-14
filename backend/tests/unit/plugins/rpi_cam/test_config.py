@@ -14,10 +14,6 @@ class TestRPiCamSettingsDefaults:
         settings = RPiCamSettings(rpi_cam_plugin_secret="")
         assert settings.rpi_cam_plugin_secret == ""
 
-    def test_api_key_header_name_default(self) -> None:
-        """API key header defaults to the expected header name."""
-        settings = RPiCamSettings()
-        assert settings.api_key_header_name == "X-API-Key"
 
 
 @pytest.mark.unit
@@ -31,7 +27,3 @@ class TestRPiCamSettingsOverrides:
         settings = RPiCamSettings(rpi_cam_plugin_secret=fernet_key)
         assert settings.rpi_cam_plugin_secret == fernet_key
 
-    def test_api_key_header_name_can_be_overridden(self) -> None:
-        """A custom header name is accepted."""
-        settings = RPiCamSettings(api_key_header_name="X-Custom-Key")
-        assert settings.api_key_header_name == "X-Custom-Key"

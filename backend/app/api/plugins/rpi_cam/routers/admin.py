@@ -8,10 +8,12 @@ from pydantic import UUID4
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.common.crud.base import get_paginated_models
-from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
+from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
 from app.api.plugins.rpi_cam.schemas import CameraRead
+from app.api.plugins.rpi_cam.services import get_camera_status as fetch_camera_status
+from app.core.redis import OptionalRedisDep
 
 ### Camera admin router ###
 
@@ -47,10 +49,10 @@ async def get_camera(_camera_id: Annotated[UUID4, Path(alias="camera_id")], came
 async def get_camera_status(
     _camera_id: Annotated[UUID4, Path(alias="camera_id")],
     camera: CameraByIDDep,
-    http_client: ExternalHTTPClientDep,
+    redis: OptionalRedisDep,
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
-    return await camera.get_status(http_client)
+    return await fetch_camera_status(redis, camera.id)
 
 
 ## DELETE

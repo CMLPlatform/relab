@@ -281,7 +281,6 @@ describe('ProductImages', () => {
         {
           id: 'cam-1',
           name: 'Workbench Camera',
-          connection_mode: 'websocket',
           status: { connection: 'online' },
         },
       ],

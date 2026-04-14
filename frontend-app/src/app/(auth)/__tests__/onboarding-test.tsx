@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthProvider';
+import { updateUser } from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils';
 import Onboarding from '../onboarding';
-import { updateUser } from '@/services/api/authentication';
 
 jest.mock('@/services/api/authentication', () => ({
   updateUser: jest.fn(),

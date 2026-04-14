@@ -46,7 +46,9 @@ describe('CamerasScreen', () => {
     renderWithProviders(<CamerasScreen />);
 
     expect(screen.getByText('No cameras yet')).toBeOnTheScreen();
-    expect(screen.getByText('Tap the + button to register your first RPi camera.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Tap the + button to register your first RPi camera.'),
+    ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByLabelText('Add camera'));
 
@@ -60,7 +62,6 @@ describe('CamerasScreen', () => {
           id: 'cam-1',
           name: 'Workbench Camera',
           description: 'Bench setup',
-          connection_mode: 'websocket',
           status: { connection: 'online' },
         },
       ],

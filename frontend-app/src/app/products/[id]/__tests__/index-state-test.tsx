@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { HeaderBackButtonProps } from '@react-navigation/elements';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
@@ -8,7 +9,6 @@ import { useProductQuery } from '@/hooks/useProductQueries';
 import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils';
 import ProductPage from '../index';
-import type { HeaderBackButtonProps } from '@react-navigation/elements';
 
 const mockUseProductForm = jest.mocked(useProductForm);
 const mockUseProductQuery = jest.mocked(useProductQuery);
@@ -60,11 +60,7 @@ jest.mock('@react-navigation/elements', () => {
   const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
 
   return {
-    HeaderBackButton: ({
-      onPress,
-    }: {
-      onPress?: () => void;
-    }) =>
+    HeaderBackButton: ({ onPress }: { onPress?: () => void }) =>
       mockReact.createElement(
         Pressable,
         { onPress, accessibilityLabel: 'header-back' },
@@ -382,7 +378,7 @@ describe('ProductPage state handling', () => {
     expect(screen.getByText(/A parent product/)).toBeOnTheScreen();
     expect(screen.getByText(/A very long product name/)).toBeOnTheScreen();
 
-    renderWithProviders(setOptionsArg.headerLeft?.({} as HeaderBackButtonProps) as ReactElement, {
+    renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, {
       withDialog: true,
     });
 
@@ -422,10 +418,9 @@ describe('ProductPage state handling', () => {
   });
 
   it('warns before leaving when there are unsaved edits', async () => {
-    let beforeRemoveHandler: ((event: {
-      preventDefault: () => void;
-      data: { action: unknown };
-    }) => void) | undefined;
+    let beforeRemoveHandler:
+      | ((event: { preventDefault: () => void; data: { action: unknown } }) => void)
+      | undefined;
 
     (useNavigation as jest.Mock).mockReturnValue({
       setOptions: mockSetOptions,

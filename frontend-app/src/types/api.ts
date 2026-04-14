@@ -10,8 +10,6 @@ import type { components } from './api.generated';
 export type ApiProductRead = components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
 export type ApiProductCreate = components['schemas']['ProductCreateWithComponents'];
 export type ApiProductUpdate = components['schemas']['ProductUpdate'];
-export type ApiProductUpdateWithProperties = components['schemas']['ProductUpdateWithProperties'];
-
 // ─── Media ───────────────────────────────────────────────────────────────────
 export type ApiImageRead = components['schemas']['ImageRead'];
 export type ApiVideoRead = components['schemas']['VideoReadWithinProduct'];

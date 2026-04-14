@@ -90,8 +90,8 @@ def mock_camera(mock_user: User) -> Camera:
         id=uuid4(),
         name=TEST_CAMERA_NAME,
         description=TEST_CAMERA_DESC,
-        url="http://localhost:8000",
-        encrypted_api_key="encrypted_key",
+        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
+        relay_key_id="test-key-id",
         owner_id=owner_id,
     )
 
@@ -107,7 +107,7 @@ class TestCameraStreamRouters:
         """Test retrieving the current streaming status of a camera."""
         mock_get_cam.return_value = mock_camera
         session_mock = AsyncMock()
-        http_client = AsyncMock()
+        user_mock = MagicMock()
         user_mock = build_user()
         camera_id = require_uuid(mock_camera.id)
 
@@ -125,7 +125,7 @@ class TestCameraStreamRouters:
         )
         mock_build_camera_request.return_value = mock_camera_request
 
-        result = await get_camera_stream_status(camera_id, session_mock, http_client, user_mock)
+        result = await get_camera_stream_status(camera_id, session_mock, user_mock)
         assert str(result.url) == f"{TEST_STREAM_URL}/"
         mock_camera_request.assert_awaited_once()
         await_args = mock_camera_request.await_args
@@ -141,14 +141,14 @@ class TestCameraStreamRouters:
         mock_get_cam.return_value = mock_camera
 
         session_mock = AsyncMock()
-        http_client = AsyncMock()
+        user_mock = MagicMock()
         user_mock = build_user()
         camera_id = require_uuid(mock_camera.id)
 
         mock_camera_request = AsyncMock(return_value=Response(HTTP_NO_CONTENT))
         mock_build_camera_request.return_value = mock_camera_request
 
-        await stop_all_streams(camera_id, session_mock, http_client, user_mock)
+        await stop_all_streams(camera_id, session_mock, user_mock)
         mock_camera_request.assert_awaited_once()
         await_args = mock_camera_request.await_args
         assert await_args is not None

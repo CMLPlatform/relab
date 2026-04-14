@@ -82,3 +82,6 @@ LOCAL_DIAGRAMS.md
 # LLM config
 .claude
 AGENTS.md
+
+# pnpm store
+.pnpm-store

@@ -7,26 +7,18 @@ from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.base import get_models
-from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
+from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
-from app.api.plugins.rpi_cam.dependencies import (
-    CameraFilterDep,
-    CameraTransferOwnerIDDep,
-    UserOwnedCameraDep,
-)
+from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, CameraTransferOwnerIDDep, UserOwnedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES,
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
-from app.api.plugins.rpi_cam.schemas import (
-    CameraCreate,
-    CameraRead,
-    CameraReadWithCredentials,
-    CameraReadWithStatus,
-    CameraUpdate,
-)
+from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
+from app.api.plugins.rpi_cam.services import get_camera_status as fetch_camera_status
+from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -35,7 +27,6 @@ camera_router = PublicAPIRouter(tags=["rpi-cam-management"])
 router = PublicAPIRouter()
 
 
-## GET ##
 @camera_router.get(
     "",
     response_model=list[CameraRead] | list[CameraReadWithStatus],
@@ -43,9 +34,9 @@ router = PublicAPIRouter()
 )
 async def get_user_cameras(
     session: AsyncSessionDep,
-    http_client: ExternalHTTPClientDep,
     current_user: CurrentActiveUserDep,
     camera_filter: CameraFilterDep,
+    redis: OptionalRedisDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -58,7 +49,7 @@ async def get_user_cameras(
     db_cameras = await get_models(session, Camera, model_filter=camera_filter, statement=statement)
 
     return [
-        await CameraReadWithStatus.from_db_model_with_status(camera, http_client) if include_status else camera
+        await CameraReadWithStatus.from_db_model_with_status(camera, redis) if include_status else camera
         for camera in db_cameras
     ]
 
@@ -70,7 +61,7 @@ async def get_user_cameras(
 )
 async def get_user_camera(
     db_camera: UserOwnedCameraDep,
-    http_client: ExternalHTTPClientDep,
+    redis: OptionalRedisDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -79,7 +70,7 @@ async def get_user_camera(
     ),
 ) -> Camera | CameraReadWithStatus:
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
-    return await CameraReadWithStatus.from_db_model_with_status(db_camera, http_client) if include_status else db_camera
+    return await CameraReadWithStatus.from_db_model_with_status(db_camera, redis) if include_status else db_camera
 
 
 @camera_router.get(
@@ -88,55 +79,30 @@ async def get_user_camera(
 )
 async def get_user_camera_status(
     db_camera: UserOwnedCameraDep,
-    http_client: ExternalHTTPClientDep,
-    *,
-    force_refresh: bool = Query(
-        default=False,
-        description="Force a refresh of the status by bypassing the cache",
-        openapi_examples=CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES,
-    ),
+    redis: OptionalRedisDep,
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
-    return await db_camera.get_status(http_client, force_refresh=force_refresh)
+    return await fetch_camera_status(redis, db_camera.id)
 
 
-## POST
 @camera_router.post(
     "",
-    response_model=CameraReadWithCredentials,
+    response_model=CameraRead,
     summary="Register new Raspberry Pi camera",
     status_code=201,
 )
 async def register_user_camera(
     camera: CameraCreate, session: AsyncSessionDep, current_user: CurrentActiveUserDep
-) -> CameraReadWithCredentials:
-    """Register a new Raspberry Pi camera."""
-    db_camera = await crud.create_camera(
-        session,
-        camera,
-        current_user.id,
-    )
+) -> Camera:
+    """Register a new Raspberry Pi camera.
 
-    return CameraReadWithCredentials.from_db_model_with_credentials(db_camera)
-
-
-@camera_router.post(
-    "/{camera_id}/regenerate-api-key",
-    response_model=CameraReadWithCredentials,
-    summary="Regenerate API key for the Raspberry Pi camera",
-    status_code=201,
-)
-async def regenerate_api_key(
-    session: AsyncSessionDep,
-    db_camera: UserOwnedCameraDep,
-) -> CameraReadWithCredentials:
-    """Regenerate API key for Raspberry Pi camera."""
-    db_camera = await crud.regenerate_camera_api_key(session, db_camera)
-
-    return CameraReadWithCredentials.from_db_model_with_credentials(db_camera)
+    The normal user flow is /plugins/rpi-cam/pairing/claim. This endpoint is
+    kept as a structured API surface for tests/admin automation and still
+    requires a public device key.
+    """
+    return await crud.create_camera(session, camera, current_user.id)
 
 
-## PATCH
 @camera_router.patch("/{camera_id}", response_model=CameraRead, summary="Update Raspberry Pi camera")
 async def update_user_camera(
     *,
@@ -149,7 +115,6 @@ async def update_user_camera(
     return await crud.update_camera(session, db_camera, camera_in, new_owner_id=transfer_owner_id)
 
 
-## DELETE
 @camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
 async def delete_user_camera(db: AsyncSessionDep, camera: UserOwnedCameraDep) -> None:
     """Delete Raspberry Pi camera."""

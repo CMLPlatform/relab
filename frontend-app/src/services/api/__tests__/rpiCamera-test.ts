@@ -5,12 +5,10 @@ import {
   type CameraSnapshotError,
   captureImageFromCamera,
   claimPairingCode,
-  createCamera,
   deleteCamera,
   fetchCamera,
   fetchCameraSnapshot,
   fetchCameras,
-  regenerateCameraApiKey,
   updateCamera,
 } from '../rpiCamera';
 
@@ -73,31 +71,6 @@ describe('rpiCamera API service', () => {
     );
   });
 
-  it('creates a camera with JSON headers', async () => {
-    const payload = {
-      name: 'Lab Cam',
-      connection_mode: 'http' as const,
-      url: 'http://cam.local',
-    };
-    mockJsonResponse({ id: 'cam-2', ...payload, api_key: 'secret', auth_headers: null });
-
-    const result = await createCamera(payload);
-
-    expect(result.id).toBe('cam-2');
-    expect(mockApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras'),
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer camera-token',
-        }),
-        body: JSON.stringify(payload),
-      }),
-    );
-  });
-
   it('updates a camera with a PATCH request', async () => {
     const payload = { name: 'Renamed Cam' };
     mockJsonResponse({ id: 'cam-3', name: 'Renamed Cam' });
@@ -122,18 +95,6 @@ describe('rpiCamera API service', () => {
     expect(mockApiFetch).toHaveBeenCalledWith(
       expect.stringContaining('/plugins/rpi-cam/cameras/cam-4'),
       expect.objectContaining({ method: 'DELETE' }),
-    );
-  });
-
-  it('regenerates a camera API key', async () => {
-    mockJsonResponse({ id: 'cam-5', api_key: 'new-secret' });
-
-    const result = await regenerateCameraApiKey('cam-5');
-
-    expect(result).toEqual({ id: 'cam-5', api_key: 'new-secret' });
-    expect(mockApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-5/regenerate-api-key'),
-      expect.objectContaining({ method: 'POST' }),
     );
   });
 
@@ -184,7 +145,7 @@ describe('rpiCamera API service', () => {
   it('throws a CameraSnapshotError with a clear message when preview conflicts with streaming', async () => {
     mockApiFetch.mockResolvedValueOnce({ ok: false, status: 409 } as Response);
 
-    await expect(fetchCameraSnapshot('cam-8')).rejects.toMatchObject<Partial<CameraSnapshotError>>({
+    await expect(fetchCameraSnapshot('cam-8')).rejects.toMatchObject({
       name: 'CameraSnapshotError',
       status: 409,
       message: 'Snapshot preview unavailable while the camera is streaming.',
@@ -239,22 +200,12 @@ describe('rpiCamera API service', () => {
     await expect(fetchCamera('missing')).rejects.toThrow('Failed to fetch camera (404)');
 
     mockJsonResponse({}, { ok: false, status: 400 });
-    await expect(createCamera({ name: 'Bad', connection_mode: 'http' })).rejects.toThrow(
-      'Failed to create camera (400)',
-    );
-
-    mockJsonResponse({}, { ok: false, status: 400 });
     await expect(updateCamera('cam-9', { name: 'Bad' })).rejects.toThrow(
       'Failed to update camera (400)',
     );
 
     mockApiFetch.mockResolvedValueOnce({ ok: false, status: 401 } as Response);
     await expect(deleteCamera('cam-9')).rejects.toThrow('Failed to delete camera (401)');
-
-    mockJsonResponse({}, { ok: false, status: 500 });
-    await expect(regenerateCameraApiKey('cam-9')).rejects.toThrow(
-      'Failed to regenerate API key (500)',
-    );
 
     mockJsonResponse({}, { ok: false, status: 502 });
     await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow(

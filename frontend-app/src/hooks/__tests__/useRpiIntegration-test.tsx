@@ -28,8 +28,8 @@ describe('useRpiIntegration', () => {
         id: 'user-1',
         username: 'tester',
         preferences: { rpi_camera_enabled: true },
-      },
-      refetch,
+      } as any,
+      refetch: refetch as any,
       isLoading: false,
     });
 
@@ -45,8 +45,8 @@ describe('useRpiIntegration', () => {
         id: 'user-2',
         username: 'tester',
         preferences: { rpi_camera_enabled: false },
-      },
-      refetch,
+      } as any,
+      refetch: refetch as any,
       isLoading: false,
     });
     mockedUpdateUser.mockResolvedValue(undefined);

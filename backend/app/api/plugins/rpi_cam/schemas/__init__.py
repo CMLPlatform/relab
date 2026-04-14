@@ -1,63 +1,37 @@
 """Pydantic models used to validate CRUD operations for the Raspberry Pi Camera plugin."""
 
-from typing import TYPE_CHECKING, Annotated, Self
+from __future__ import annotations
+
+from datetime import datetime  # noqa: TC003 - required at runtime for Pydantic response schema rebuilds
+from typing import TYPE_CHECKING, Any, Self  # noqa: TC003 - Pydantic
+
+from redis.asyncio import Redis  # noqa: TC003 - Pydantic
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from pydantic import (
-    UUID4,
-    AfterValidator,
-    AnyUrl,
-    BaseModel,
-    ConfigDict,
-    Field,
-    PlainSerializer,
-    SecretStr,
-    model_validator,
-)
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 
 from app.api.auth.filters import UserFilter
-from app.api.common.schemas.base import (
-    BaseCreateSchema,
-    BaseUpdateSchema,
-    UUIDIdReadSchemaWithTimeStamp,
-)
-from app.api.common.schemas.custom_fields import AnyUrlToDB
-from app.api.plugins.rpi_cam.config import settings
-from app.api.plugins.rpi_cam.examples import (
-    CAMERA_CREATE_EXAMPLES,
-    CAMERA_READ_EXAMPLES,
-    CAMERA_READ_WITH_CREDENTIALS_EXAMPLES,
-    CAMERA_UPDATE_EXAMPLES,
-)
-from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraStatus, ConnectionMode
-from app.api.plugins.rpi_cam.utils.encryption import decrypt_dict, decrypt_str
-
-if TYPE_CHECKING:
-    from httpx import AsyncClient
+from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
+from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
+from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
 
 
-### Filters ###
+
+
 class CameraFilter(Filter):
     """FastAPI-filter class for Camera filtering."""
 
     name__ilike: str | None = None
     description__ilike: str | None = None
-    url__ilike: str | None = None
-
     search: str | None = None
-
     order_by: list[str] | None = None
 
-    class Constants(Filter.Constants):  # Standard FastAPI-filter class
+    class Constants(Filter.Constants):
         """FilterAPI class configuration."""
 
         model = Camera
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
-            "name",
-            "description",
-            "url",
-        ]
+        search_model_fields: list[str] = ["name", "description"]  # noqa: RUF012
 
 
 class CameraFilterWithOwner(CameraFilter):
@@ -66,101 +40,43 @@ class CameraFilterWithOwner(CameraFilter):
     owner: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
 
 
-### Auth Header Utils ###
-MAX_AUTH_HEADERS_SIZE = 3500  # Max cookie size is 4096 bytes, 3500 allows buffer for server-generated headers
+class RelayPublicKeyJWK(BaseModel):
+    """Public P-256 JWK registered by an RPi camera."""
+
+    kty: str = Field(pattern="^EC$")
+    crv: str = Field(pattern="^P-256$")
+    x: str = Field(min_length=1)
+    y: str = Field(min_length=1)
+    use: str | None = None
+    kid: str | None = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
-def validate_auth_header_key(key: str) -> str:
-    """Validate that the header key is not reserved for the server-generated API key."""
-    if key.lower() == settings.api_key_header_name.lower():
-        err_msg = f"Header key '{key}' is reserved for the server-generated API key."
-        raise ValueError(err_msg)
-    return key
-
-
-class HeaderCreate(BaseModel):
-    """HTTP header key-value pair with validation."""
-
-    key: Annotated[
-        str,
-        Field(description="Header key", min_length=1, max_length=100, pattern=r"^[a-zA-Z][-.a-zA-Z0-9]*$"),
-        AfterValidator(validate_auth_header_key),
-    ]
-    value: SecretStr = Field(description="Header value", min_length=1, max_length=500)
-
-
-def serialize_auth_headers(headers: list[HeaderCreate] | None) -> dict[str, str] | None:
-    """Convert list of HeaderCreate objects to a dictionary of headers."""
-    if not headers:
-        return None
-    return {h.key: h.value.get_secret_value() for h in headers}
-
-
-def validate_auth_headers_size(headers: list[HeaderCreate] | None) -> list[HeaderCreate] | None:
-    """Validate size of HeaderCreate list."""
-    if (
-        headers
-        and (header_size := sum(len(h.key) + len(h.value.get_secret_value()) for h in headers)) > MAX_AUTH_HEADERS_SIZE
-    ):
-        err_msg = f"Total size of headers is {header_size} bytes, exceeding maximum of {MAX_AUTH_HEADERS_SIZE} bytes."
-        raise ValueError(err_msg)
-    return headers
-
-
-def validate_camera_url_scheme(url: AnyUrl) -> AnyUrl:
-    """Validate that camera URLs use plain HTTP(S)."""
-    if url.scheme not in {"http", "https"}:
-        err_msg = "Camera URLs must use HTTP or HTTPS."
-        raise ValueError(err_msg)
-    return url
-
-
-def validate_optional_camera_url_scheme(url: AnyUrl | None) -> AnyUrl | None:
-    """Validate that optional camera URLs use plain HTTP(S)."""
-    if url is None:
-        return None
-    return validate_camera_url_scheme(url)
-
-
-OptionalAuthHeaderCreateList = Annotated[
-    list[HeaderCreate] | None,
-    Field(default=None, description="List of additional authentication headers for the camera API"),
-    PlainSerializer(serialize_auth_headers),
-    AfterValidator(validate_auth_headers_size),
-]
-
-
-### CRUD schemas ###
-## Create schemas
 class CameraCreate(BaseCreateSchema, CameraBase):
-    """Schema for creating a camera."""
+    """Schema for creating a WebSocket-relayed camera."""
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_CREATE_EXAMPLES})
 
-    # Override url to make it optional — required only for HTTP-mode cameras.
-    url: Annotated[
-        AnyUrlToDB | None,
-        AfterValidator(validate_optional_camera_url_scheme),
-    ] = Field(default=None, description="HTTP(S) URL where the camera API is hosted (required for HTTP mode).")
-    auth_headers: OptionalAuthHeaderCreateList
+    relay_public_key_jwk: RelayPublicKeyJWK
+    relay_key_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
 
-    @model_validator(mode="after")
-    def require_url_for_http_mode(self) -> CameraCreate:
-        """URL is mandatory when connection_mode is HTTP."""
-        if self.connection_mode == ConnectionMode.HTTP and not self.url:
-            msg = "url is required when connection_mode is 'http'."
+    @field_validator("relay_public_key_jwk")
+    @classmethod
+    def ensure_public_key_only(cls, value: RelayPublicKeyJWK) -> RelayPublicKeyJWK:
+        """Reject private JWK material if a client accidentally sends it."""
+        if hasattr(value, "d"):
+            msg = "relay_public_key_jwk must not contain private key material."
             raise ValueError(msg)
-        return self
+        return value
 
 
-## Read schemas
 class CameraRead(UUIDIdReadSchemaWithTimeStamp, CameraBase):
     """Basic Camera Read schema."""
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_EXAMPLES})
 
-    owner_id: UUID4
-    # connection_mode is inherited from CameraBase
+    relay_credential_status: CameraCredentialStatus
 
 
 class CameraReadWithStatus(CameraRead):
@@ -169,38 +85,16 @@ class CameraReadWithStatus(CameraRead):
     status: CameraStatus
 
     @classmethod
-    async def from_db_model_with_status(cls, db_model: Camera, http_client: AsyncClient) -> Self:
-        """Create CameraReadWithStatus instance from Camera database model, fetching the online status."""
+    async def from_db_model_with_status(cls, db_model: Camera, redis: Redis | None) -> Self:
+        """Create CameraReadWithStatus instance from Camera database model, fetching online status."""
+        from app.api.plugins.rpi_cam.services import get_camera_status
+
         return cls(
-            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
-            status=await db_model.get_status(http_client),
+            **db_model.model_dump(exclude={"status", "relay_public_key_jwk"}),
+            status=await get_camera_status(redis, db_model.id),
         )
 
 
-class CameraReadWithCredentials(CameraRead):
-    """Schema for camera read with credentials."""
-
-    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_WITH_CREDENTIALS_EXAMPLES})
-
-    # NOTE: We are not wrapping the api key in SecretStr here because the user needs to see it
-    # to enable the connection from their Raspberry Pi camera to the main backend.
-    api_key: str
-    auth_headers: dict[str, SecretStr] | None
-
-    @classmethod
-    def from_db_model_with_credentials(cls, db_model: Camera) -> Self:
-        """Create CameraReadWithCredentials instance from Camera database model, decrypting the auth headers."""
-        decrypted_headers = decrypt_dict(db_model.encrypted_auth_headers) if db_model.encrypted_auth_headers else None
-        auth_headers = {k: SecretStr(v) for k, v in decrypted_headers.items()} if decrypted_headers else None
-
-        return cls(
-            **db_model.model_dump(exclude={"encrypted_api_key", "encrypted_auth_headers", "auth_headers", "status"}),
-            api_key=decrypt_str(db_model.encrypted_api_key),
-            auth_headers=auth_headers,
-        )
-
-
-## Update schemas
 class CameraUpdate(BaseUpdateSchema):
     """Schema for updating a camera."""
 
@@ -208,18 +102,16 @@ class CameraUpdate(BaseUpdateSchema):
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    url: Annotated[
-        AnyUrlToDB | None,
-        AfterValidator(validate_optional_camera_url_scheme),
-    ] = Field(default=None, description="HTTP(S) URL where the camera API is hosted")
-    auth_headers: OptionalAuthHeaderCreateList
-
     owner_id: UUID4 | None = Field(
         default=None,
         description="Transfer ownership to an existing user in the same organization as the current owner.",
     )
+    relay_public_key_jwk: RelayPublicKeyJWK | None = None
+    relay_key_id: str | None = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
+    relay_credential_status: CameraCredentialStatus | None = None
 
-    connection_mode: ConnectionMode | None = Field(
-        default=None,
-        description="Change the connection mode for this camera.",
-    )
+    def credential_updates(self) -> dict[str, Any]:
+        """Return credential fields included in this partial update."""
+        return self.model_dump(
+            include={"relay_public_key_jwk", "relay_key_id", "relay_credential_status"}, exclude_unset=True
+        )

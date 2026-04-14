@@ -20,11 +20,14 @@ CAMERA_CREATE_EXAMPLES = [
     {
         "name": "Workbench Camera",
         "description": "Ceiling-mounted camera above the teardown bench",
-        "url": "http://192.168.1.20:8000",
-        "auth_headers": [
-            {"key": "Authorization", "value": "Bearer local-camera-token"},
-            {"key": "X-Site", "value": "lab-a"},
-        ],
+        "relay_public_key_jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "base64url-x-coordinate",
+            "y": "base64url-y-coordinate",
+            "kid": "cam-key-1",
+        },
+        "relay_key_id": "cam-key-1",
     }
 ]
 
@@ -33,27 +36,16 @@ CAMERA_READ_EXAMPLES = [
         "id": "12345678-cc4e-405c-8553-7806424de2a1",
         "name": "Workbench Camera",
         "description": "Ceiling-mounted camera above the teardown bench",
-        "url": "http://192.168.1.20:8000",
         "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
-    }
-]
-
-CAMERA_READ_WITH_CREDENTIALS_EXAMPLES = [
-    {
-        "id": "12345678-cc4e-405c-8553-7806424de2a1",
-        "name": "Workbench Camera",
-        "description": "Ceiling-mounted camera above the teardown bench",
-        "url": "http://192.168.1.20:8000",
-        "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
-        "api_key": "generated-camera-api-key",
-        "auth_headers": {"Authorization": "Bearer local-camera-token", "X-Site": "lab-a"},
+        "relay_key_id": "cam-key-1",
+        "relay_credential_status": "active",
+        "relay_last_seen_at": None,
     }
 ]
 
 CAMERA_UPDATE_EXAMPLES = [
     {
         "description": "Camera assigned to the repairability bench",
-        "url": "https://camera-lab.example.org",
     }
 ]
 

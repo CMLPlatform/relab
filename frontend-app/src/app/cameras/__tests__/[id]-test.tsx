@@ -17,37 +17,17 @@ const mockUseCameraQuery = jest.fn();
 const mockUseCameraPreview = jest.fn();
 const mockUseUpdateCameraMutation = jest.fn();
 const mockUseDeleteCameraMutation = jest.fn();
-const mockUseRegenerateApiKeyMutation = jest.fn();
 const mockUpdateMutate = jest.fn();
 const mockDeleteMutate = jest.fn();
-const mockRegenerateMutate = jest.fn(
-  (
-    _data: undefined,
-    options?: {
-      onSuccess?: (camera: {
-        id: string;
-        api_key: string;
-        connection_mode: 'websocket' | 'direct';
-      }) => void;
-    },
-  ) =>
-    options?.onSuccess?.({
-      id: 'cam-1',
-      api_key: 'new-secret',
-      connection_mode: 'websocket',
-    }),
-);
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
 jest.mock('@/hooks/useRpiCameras', () => ({
-  useCameraQuery: (...args: unknown[]) => mockUseCameraQuery(...args),
   useCameraPreview: (...args: unknown[]) => mockUseCameraPreview(...args),
   useUpdateCameraMutation: () => mockUseUpdateCameraMutation(),
   useDeleteCameraMutation: () => mockUseDeleteCameraMutation(),
-  useRegenerateApiKeyMutation: (...args: unknown[]) => mockUseRegenerateApiKeyMutation(...args),
 }));
 
 describe('Camera detail screen', () => {
@@ -77,8 +57,6 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'Workbench Camera',
         description: 'Bench setup',
-        connection_mode: 'websocket',
-        url: 'http://camera.local',
         status: { connection: 'online' },
       },
       isLoading: false,
@@ -93,10 +71,6 @@ describe('Camera detail screen', () => {
     });
     mockUseUpdateCameraMutation.mockReturnValue({ mutate: mockUpdateMutate, isPending: false });
     mockUseDeleteCameraMutation.mockReturnValue({ mutate: mockDeleteMutate, isPending: false });
-    mockUseRegenerateApiKeyMutation.mockReturnValue({
-      mutate: mockRegenerateMutate,
-      isPending: false,
-    });
   });
 
   it('shows snapshot preview polling copy and the streaming conflict message', async () => {
@@ -115,8 +89,6 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'Workbench Camera',
         description: null,
-        connection_mode: 'websocket',
-        url: null,
         status: { connection: 'offline' },
       },
       isLoading: false,
@@ -158,20 +130,6 @@ describe('Camera detail screen', () => {
         onSuccess: expect.any(Function),
       }),
     );
-  });
-
-  it('regenerates the API key and shows the new credentials dialog', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
-
-    fireEvent.press(screen.getByText('Regenerate API key'));
-    expect(screen.getByText('Regenerate API key?')).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByText('Regenerate'));
-
-    expect(mockRegenerateMutate).toHaveBeenCalled();
-    expect(await screen.findByText('New API key')).toBeOnTheScreen();
-    expect(screen.getByText(/relay_credentials\.json/)).toBeOnTheScreen();
-    expect(screen.getByText(/new-secret/)).toBeOnTheScreen();
   });
 
   it('shows a loading spinner while the camera query is in progress', () => {
@@ -225,11 +183,10 @@ describe('Camera detail screen', () => {
   });
 
   it('opens the delete confirmation and navigates away after successful deletion', async () => {
-    mockDeleteMutate.mockImplementationOnce(
-      (_id: string, options?: { onSuccess?: () => void }) => {
-        options?.onSuccess?.();
-      },
-    );
+    mockDeleteMutate.mockImplementationOnce((...args: any[]) => {
+      const options = args[1] as { onSuccess?: () => void } | undefined;
+      options?.onSuccess?.();
+    });
 
     renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
@@ -251,8 +208,6 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'Workbench Camera',
         description: null,
-        connection_mode: 'websocket',
-        url: null,
         status: { connection: 'online' },
       },
       isLoading: false,
@@ -274,8 +229,6 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'Workbench Camera',
         description: null,
-        connection_mode: 'websocket',
-        url: null,
         status: { connection: 'online' },
       },
       isLoading: false,
@@ -297,8 +250,6 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'HTTP Camera',
         description: null,
-        connection_mode: 'http',
-        url: 'http://camera.local:8018',
         status: { connection: 'offline' },
       },
       isLoading: false,

@@ -30,6 +30,7 @@
     "email-validator>=2.2.0",
     "cashews>=7.5.0",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
+    "pyjwt[crypto]>=2.12.1",
     "inflect>=7.5.0",
     "redis>=5.2.1",
     "limits[redis]>=5.8.0",
@@ -208,8 +209,9 @@
       "D107", # undocumented-public-init (__init__ methods are often self-explanatory)
 
       # TODO: Re-enable these linting rules when we have more than one developer.
-      "TD002", # Allow todos without authors
-      "TD003", # Allow todos without issue links
+      "FIX002", # Allow todos
+      "TD002",  # Allow todos without authors
+      "TD003",  # Allow todos without issue links
     ]
 
     [tool.ruff.lint.flake8-bugbear]

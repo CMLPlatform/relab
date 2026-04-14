@@ -630,10 +630,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
                         backgroundColor: isOnline ? '#2e7d32' : '#999',
                       }}
                     />
-                    <Icon
-                      source={cam.connection_mode === 'websocket' ? 'access-point' : 'lan-connect'}
-                      size={20}
-                    />
+                    <Icon source="access-point" size={20} />
                     <PaperText style={{ flex: 1 }}>{cam.name}</PaperText>
                     {!isOnline && (
                       <PaperText variant="labelSmall" style={{ color: '#999' }}>
