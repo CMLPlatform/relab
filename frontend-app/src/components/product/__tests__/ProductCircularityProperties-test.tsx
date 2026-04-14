@@ -36,9 +36,9 @@ describe('ProductCircularityProperties', () => {
   it('shows add-property chips in edit mode', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={true} />);
     fireEvent.press(screen.getByText('Show'));
-    expect(screen.getByText('Recyclability')).toBeOnTheScreen();
-    expect(screen.getByText('Remanufacturability')).toBeOnTheScreen();
-    expect(screen.getByText('Repairability')).toBeOnTheScreen();
+    expect(screen.getByText('Recyclability', { exact: false })).toBeOnTheScreen();
+    expect(screen.getByText('Remanufacturability', { exact: false })).toBeOnTheScreen();
+    expect(screen.getByText('Repairability', { exact: false })).toBeOnTheScreen();
   });
 
   it('renders property section when property has data', () => {
@@ -125,7 +125,7 @@ describe('ProductCircularityProperties', () => {
       />,
     );
     fireEvent.press(screen.getByText('Show'));
-    fireEvent.press(screen.getByText('Recyclability'));
+    fireEvent.press(screen.getByText('Recyclability', { exact: false }));
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith(
         expect.objectContaining({

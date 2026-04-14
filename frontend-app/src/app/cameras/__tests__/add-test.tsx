@@ -7,14 +7,19 @@ import AddCameraScreen from '../add';
 const mockUseAuth = jest.fn();
 const mockUseClaimPairingMutation = jest.fn();
 
+jest.mock('@/context/AuthProvider', () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
 jest.mock('@/hooks/useRpiCameras', () => ({
   useClaimPairingMutation: () => mockUseClaimPairingMutation(),
+  useCamerasQuery: jest.fn(),
+  useCaptureAllMutation: jest.fn(),
 }));
 
 describe('AddCameraScreen', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
-  const createMutate = jest.fn();
   const claimMutate = jest.fn();
   const alertSpy = jest.fn();
 
@@ -76,9 +81,9 @@ describe('AddCameraScreen', () => {
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));
 
-    const pairOnError = (claimMutate.mock.calls[0]?.[1] as any)?.onError as
-      | ((err: unknown) => void)
-      | undefined;
+    const pairOnError = (
+      claimMutate.mock.calls[0]?.[1] as { onError?: (err: unknown) => void } | undefined
+    )?.onError;
     pairOnError?.(new Error('pairing failed'));
     expect(alertSpy).toHaveBeenCalledWith('Error: pairing failed');
   });
@@ -91,9 +96,8 @@ describe('AddCameraScreen', () => {
     fireEvent.changeText(cameraNameInput, 'Test Camera');
     fireEvent.press(screen.getByText('Pair camera'));
 
-    const onSuccess = (claimMutate.mock.calls[0]?.[1] as any)?.onSuccess as
-      | (() => void)
-      | undefined;
+    const onSuccess = (claimMutate.mock.calls[0]?.[1] as { onSuccess?: () => void } | undefined)
+      ?.onSuccess;
     await act(async () => {
       onSuccess?.();
     });

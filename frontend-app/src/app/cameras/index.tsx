@@ -1,114 +1,164 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { FlatList, Platform, RefreshControl, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, AnimatedFAB, Button, Card, Text, useTheme } from 'react-native-paper';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  AnimatedFAB,
+  Button,
+  Snackbar,
+  Text,
+  useTheme,
+} from 'react-native-paper';
+import { CameraCard } from '@/components/cameras/CameraCard';
+import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { useAuth } from '@/context/AuthProvider';
-import { useCamerasQuery } from '@/hooks/useRpiCameras';
-import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-const STATUS_COLOR: Record<CameraConnectionStatus, string> = {
-  online: '#2e7d32',
-  offline: '#757575',
-  unauthorized: '#f57c00',
-  forbidden: '#f57c00',
-  error: '#c62828',
-};
-
-const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
-  online: 'Online',
-  offline: 'Offline',
-  unauthorized: 'Unauthorized',
-  forbidden: 'Forbidden',
-  error: 'Error',
-};
-
-function StatusBadge({ status }: { status: CameraConnectionStatus }) {
-  const color = STATUS_COLOR[status];
-  return (
-    <View
-      style={{
-        backgroundColor: `${color}22`,
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-      }}
-    >
-      <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{STATUS_LABEL[status]}</Text>
-    </View>
-  );
-}
-
-// ─── Camera card ──────────────────────────────────────────────────────────────
-
-function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
-  const router = useRouter();
-  const theme = useTheme();
-
-  return (
-    <Card
-      style={[styles.card, { backgroundColor: theme.colors.elevation.level1 }]}
-      onPress={() => router.push({ pathname: '/cameras/[id]', params: { id: camera.id } })}
-      accessibilityRole="button"
-      accessibilityLabel={`Camera: ${camera.name}`}
-    >
-      <Card.Content style={styles.cardContent}>
-        <View style={styles.cardLeft}>
-          <MaterialCommunityIcons
-            name="access-point"
-            size={28}
-            color={theme.colors.onSurfaceVariant}
-          />
-        </View>
-        <View style={styles.cardBody}>
-          <Text variant="titleMedium" numberOfLines={1}>
-            {camera.name}
-          </Text>
-          {camera.description ? (
-            <Text variant="bodySmall" numberOfLines={1} style={{ opacity: 0.65, marginTop: 2 }}>
-              {camera.description}
-            </Text>
-          ) : null}
-          <View style={styles.cardChips}>
-            <View
-              style={{
-                backgroundColor: theme.colors.surfaceVariant,
-                borderRadius: 8,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-              }}
-            >
-              <Text style={{ fontSize: 11 }}>WebSocket</Text>
-            </View>
-            {camera.status && <StatusBadge status={camera.status.connection} />}
-          </View>
-        </View>
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={22}
-          color={theme.colors.onSurfaceVariant}
-        />
-      </Card.Content>
-    </Card>
-  );
-}
-
-// ─── Main screen ──────────────────────────────────────────────────────────────
+const DESKTOP_COLUMNS = 3;
+const MOBILE_COLUMNS = 2;
 
 export default function CamerasScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
+  const isDesktop = useIsDesktop();
 
-  const { data: cameras, isLoading, isFetching, isError, error, refetch } = useCamerasQuery(true);
+  // ``/cameras?product=42`` puts the mosaic into "capture flow" mode — tapping
+  // a single card captures immediately, long-pressing enters multi-select.
+  // Without the param the mosaic is a read-only dashboard (tap navigates to
+  // the detail screen, long-press does nothing).
+  const { product: productParam } = useLocalSearchParams<{ product?: string }>();
+  const captureAllProductId = useMemo(() => {
+    if (!productParam) return null;
+    const id = Number(Array.isArray(productParam) ? productParam[0] : productParam);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }, [productParam]);
+  const captureModeEnabled = captureAllProductId !== null;
+
+  // Telemetry polling is always on when the mosaic is open — the backend
+  // serves from a Redis cache so fan-out is a single query regardless of how
+  // many cameras are paired.
+  const {
+    data: cameras,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useCamerasQuery(true, {
+    includeTelemetry: true,
+  });
+
+  const captureAll = useCaptureAllMutation();
+  const [snackbar, setSnackbar] = useState<string | null>(null);
+
+  // ── Multi-select state ─────────────────────────────────────────────────────
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+
+  const clearSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const enterSelectionMode = useCallback((initialId?: string) => {
+    setSelectionMode(true);
+    if (initialId) {
+      setSelectedIds(new Set([initialId]));
+    }
+  }, []);
+
+  const toggleSelected = useCallback((cameraId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cameraId)) {
+        next.delete(cameraId);
+      } else {
+        next.add(cameraId);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) {
       router.replace({ pathname: '/login', params: { redirectTo: '/cameras' } });
     }
   }, [user, router]);
+
+  const rows = cameras ?? [];
+  const onlineCameras = rows.filter((c) => c.status?.connection === 'online');
+  const onlineCount = onlineCameras.length;
+
+  // ── Capture flows ──────────────────────────────────────────────────────────
+
+  const runCapture = useCallback(
+    (cameraIds: string[]) => {
+      if (captureAllProductId === null || cameraIds.length === 0) return;
+      captureAll.mutate(
+        { cameraIds, productId: captureAllProductId },
+        {
+          onSuccess: ({ total, succeeded, failed }) => {
+            setSnackbar(
+              failed === 0
+                ? `Captured ${succeeded}/${total} cameras`
+                : `Captured ${succeeded}/${total} · ${failed} failed`,
+            );
+            clearSelection();
+          },
+          onError: (err) => setSnackbar(`Capture failed: ${String(err)}`),
+        },
+      );
+    },
+    [captureAll, captureAllProductId, clearSelection],
+  );
+
+  const handleSelectAll = useCallback(() => {
+    const ids = new Set(onlineCameras.map((c) => c.id));
+    setSelectedIds(ids);
+  }, [onlineCameras]);
+
+  const handleCaptureSelected = useCallback(() => {
+    runCapture([...selectedIds]);
+  }, [runCapture, selectedIds]);
+
+  // Single-camera tap handler — when NOT in selection mode.
+  const handleCardTap = useCallback(
+    (camera: CameraReadWithStatus) => {
+      if (selectionMode) {
+        // Tap toggles selection while in selection mode; offline cameras
+        // can't be selected because the capture fan-out would just fail.
+        if (camera.status?.connection === 'online') {
+          toggleSelected(camera.id);
+        } else {
+          setSnackbar(`${camera.name} is offline — can't capture.`);
+        }
+        return;
+      }
+      // Default: navigate to the detail screen.
+      router.push({ pathname: '/cameras/[id]', params: { id: camera.id } });
+    },
+    [router, selectionMode, toggleSelected],
+  );
+
+  const handleCardLongPress = useCallback(
+    (camera: CameraReadWithStatus) => {
+      if (!captureModeEnabled) return;
+      if (camera.status?.connection !== 'online') {
+        setSnackbar(`${camera.name} is offline — can't capture.`);
+        return;
+      }
+      if (!selectionMode) {
+        enterSelectionMode(camera.id);
+      } else {
+        toggleSelected(camera.id);
+      }
+    },
+    [captureModeEnabled, enterSelectionMode, selectionMode, toggleSelected],
+  );
 
   if (!user) return null;
 
@@ -134,14 +184,47 @@ export default function CamerasScreen() {
     );
   }
 
+  const numColumns = isDesktop ? DESKTOP_COLUMNS : MOBILE_COLUMNS;
+
   return (
     <>
+      {selectionMode && (
+        <SelectionBar
+          selectedCount={selectedIds.size}
+          onlineCount={onlineCount}
+          onSelectAll={handleSelectAll}
+          onClear={clearSelection}
+          onCaptureAll={handleCaptureSelected}
+          isCapturing={captureAll.isPending}
+        />
+      )}
+
       <FlatList
-        data={cameras ?? []}
+        data={rows}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <CameraCard camera={item} />}
+        renderItem={({ item }) => (
+          <View style={styles.cell}>
+            <Pressable
+              onPress={() => handleCardTap(item)}
+              onLongPress={() => handleCardLongPress(item)}
+              delayLongPress={350}
+              style={({ pressed }) => [
+                styles.cellPressable,
+                pressed && styles.cellPressed,
+                selectedIds.has(item.id) && styles.cellSelected,
+              ]}
+            >
+              <CameraCard camera={item} />
+            </Pressable>
+          </View>
+        )}
+        numColumns={numColumns}
+        // Changing numColumns at runtime requires a fresh key so RN re-mounts
+        // the list with the new column layout.
+        key={`grid-${numColumns}`}
         refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />}
-        contentContainerStyle={[styles.list, (!cameras || cameras.length === 0) && { flex: 1 }]}
+        contentContainerStyle={[styles.list, rows.length === 0 && { flex: 1 }]}
+        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
         ListEmptyComponent={
           <View style={styles.empty}>
             <MaterialCommunityIcons
@@ -172,6 +255,10 @@ export default function CamerasScreen() {
         }}
         accessibilityLabel="Add camera"
       />
+
+      <Snackbar visible={snackbar !== null} onDismiss={() => setSnackbar(null)} duration={4000}>
+        {snackbar ?? ''}
+      </Snackbar>
     </>
   );
 }
@@ -182,28 +269,23 @@ const styles = StyleSheet.create({
     paddingBottom: 88,
     gap: 10,
   },
-  card: {
-    borderRadius: 12,
+  row: {
+    gap: 10,
   },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  cardLeft: {
-    width: 36,
-    alignItems: 'center',
-  },
-  cardBody: {
+  cell: {
     flex: 1,
-    gap: 4,
   },
-  cardChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 4,
+  cellPressable: {
+    borderRadius: 14,
+  },
+  cellPressed: {
+    opacity: 0.9,
+  },
+  cellSelected: {
+    // 3px inset ring so the selected card is obviously picked without
+    // changing its outer bounding box (which would shift neighbours).
+    borderWidth: 3,
+    borderColor: '#1976d2',
   },
   center: {
     flex: 1,

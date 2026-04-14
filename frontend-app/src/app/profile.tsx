@@ -3,7 +3,16 @@ import { Link, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
-import { Button, Dialog, Divider, Icon, Portal, Switch, TextInput } from 'react-native-paper';
+import {
+  Button,
+  Dialog,
+  Divider,
+  Icon,
+  Portal,
+  Switch,
+  TextInput,
+  useTheme,
+} from 'react-native-paper';
 import { Chip } from '@/components/base/Chip';
 import { Text } from '@/components/base/Text';
 import LogoutConfirm from '@/components/common/LogoutConfirm';
@@ -26,6 +35,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export default function ProfileTab() {
   const router = useRouter();
   const { user: profile, refetch } = useAuth();
+  const theme = useTheme();
 
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
@@ -71,7 +81,13 @@ export default function ProfileTab() {
   const onVerifyAccount = () => {
     if (!profile) return;
     verify(profile.email)
-      .then(() => alert('Verification email sent. Please check your inbox.'))
+      .then((ok) => {
+        if (ok) {
+          alert('Verification email sent. Please check your inbox.');
+        } else {
+          alert('Failed to send verification email. Please try again later.');
+        }
+      })
       .catch(() => alert('Failed to send verification email. Please try again later.'));
   };
 
@@ -367,7 +383,11 @@ export default function ProfileTab() {
               accessibilityState={{ selected: isActive }}
             >
               <View style={styles.visibilityIcon}>
-                <Icon source={option.icon} size={24} color={isActive ? theme.colors.primary : '#666'} />
+                <Icon
+                  source={option.icon}
+                  size={24}
+                  color={isActive ? theme.colors.primary : '#666'}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>

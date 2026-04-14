@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as auth from '../authentication';
 import * as client from '../client';
 import {
-  type CameraSnapshotError,
+  buildCameraHlsUrl,
   captureImageFromCamera,
   claimPairingCode,
   deleteCamera,
   fetchCamera,
-  fetchCameraSnapshot,
   fetchCameras,
+  fetchCameraTelemetry,
   updateCamera,
 } from '../rpiCamera';
 
@@ -123,35 +123,6 @@ describe('rpiCamera API service', () => {
     );
   });
 
-  it('creates an object URL for snapshots', async () => {
-    const blob = new Blob(['snapshot'], { type: 'image/jpeg' });
-    const createObjectUrlSpy = jest
-      .spyOn(URL, 'createObjectURL')
-      .mockReturnValue('blob:camera-snapshot');
-
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      blob: async () => blob,
-    } as Response);
-
-    const result = await fetchCameraSnapshot('cam-7');
-
-    expect(result).toBe('blob:camera-snapshot');
-    expect(createObjectUrlSpy).toHaveBeenCalledWith(blob);
-    createObjectUrlSpy.mockRestore();
-  });
-
-  it('throws a CameraSnapshotError with a clear message when preview conflicts with streaming', async () => {
-    mockApiFetch.mockResolvedValueOnce({ ok: false, status: 409 } as Response);
-
-    await expect(fetchCameraSnapshot('cam-8')).rejects.toMatchObject({
-      name: 'CameraSnapshotError',
-      status: 409,
-      message: 'Snapshot preview unavailable while the camera is streaming.',
-    });
-  });
-
   it('returns claimPairingCode data on success', async () => {
     const payload = { code: 'PAIR123', camera_name: 'Workbench Cam' };
     mockJsonResponse({ id: 'cam-8', api_key: 'pair-secret' });
@@ -211,8 +182,69 @@ describe('rpiCamera API service', () => {
     await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow(
       'Failed to capture image (502)',
     );
+  });
 
-    mockApiFetch.mockResolvedValueOnce({ ok: false, status: 504 } as Response);
-    await expect(fetchCameraSnapshot('cam-9')).rejects.toThrow('Failed to fetch snapshot (504)');
+  it('builds the LL-HLS playlist URL for a camera id', () => {
+    const url = buildCameraHlsUrl('cam-live');
+    expect(url).toContain('/plugins/rpi-cam/cameras/cam-live/hls/cam-preview/index.m3u8');
+  });
+
+  it('sets include_telemetry on the list endpoint when requested', async () => {
+    mockJsonResponse([{ id: 'cam-1', telemetry: null, status: { connection: 'online' } }]);
+
+    await fetchCameras(false, { includeTelemetry: true });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // include_status comes along for free because include_telemetry implies it.
+        href: expect.stringContaining('include_status=true'),
+      }),
+      expect.objectContaining({ method: 'GET' }),
+    );
+    const urlArg = mockApiFetch.mock.calls[0]?.[0] as URL;
+    expect(urlArg.searchParams.get('include_telemetry')).toBe('true');
+  });
+
+  it('omits include_telemetry when the flag is false', async () => {
+    mockJsonResponse([]);
+
+    await fetchCameras(true);
+
+    const urlArg = mockApiFetch.mock.calls[0]?.[0] as URL;
+    expect(urlArg.searchParams.get('include_status')).toBe('true');
+    expect(urlArg.searchParams.get('include_telemetry')).toBeNull();
+  });
+
+  it('fetches a camera telemetry snapshot with an auth header', async () => {
+    const payload = {
+      timestamp: '2026-04-14T12:00:00Z',
+      cpu_temp_c: 55.5,
+      cpu_percent: 12.0,
+      mem_percent: 40.0,
+      disk_percent: 25.0,
+      preview_fps: null,
+      preview_sessions: 1,
+      thermal_state: 'normal' as const,
+      current_preview_size: null,
+    };
+    mockJsonResponse(payload);
+
+    const result = await fetchCameraTelemetry('cam-telemetry');
+
+    expect(result).toEqual(payload);
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/plugins/rpi-cam/cameras/cam-telemetry/telemetry'),
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer camera-token' }),
+      }),
+    );
+  });
+
+  it('throws a descriptive error when telemetry fetch fails', async () => {
+    mockApiFetch.mockResolvedValueOnce({ ok: false, status: 503 } as Response);
+    await expect(fetchCameraTelemetry('cam-broken')).rejects.toThrow(
+      'Failed to fetch camera telemetry (503)',
+    );
   });
 });

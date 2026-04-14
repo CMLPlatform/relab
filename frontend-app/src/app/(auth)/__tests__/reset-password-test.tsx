@@ -24,7 +24,6 @@ describe('ResetPasswordScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
     jest.replaceProperty(Platform, 'OS', 'ios');
     mockedApiFetch.mockResolvedValue(createMockResponse(true));
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'valid-reset-token' });
@@ -34,10 +33,6 @@ describe('ResetPasswordScreen', () => {
       back: jest.fn(),
       setParams: jest.fn(),
     });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('renders the reset password form', () => {

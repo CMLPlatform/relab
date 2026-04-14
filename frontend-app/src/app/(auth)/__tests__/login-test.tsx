@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { WebBrowserResultType } from 'expo-web-browser';
@@ -114,7 +114,9 @@ describe('Login screen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'password123');
-    fireEvent.press(screen.getByText('Login'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Login'));
+    });
 
     await waitFor(() => {
       expect(auth.login).toHaveBeenCalledWith('test@example.com', 'password123');
@@ -132,7 +134,9 @@ describe('Login screen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'password123');
-    fireEvent.press(screen.getByText('Login'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Login'));
+    });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/profile');
@@ -147,7 +151,9 @@ describe('Login screen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'bad@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'wrongpass');
-    fireEvent.press(screen.getByText('Login'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Login'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -162,7 +168,9 @@ describe('Login screen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
-    fireEvent.press(screen.getByText('Login'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Login'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -210,7 +218,9 @@ describe('Login screen', () => {
     try {
       renderWithProviders(<Login />, { withDialog: true, withAuth: true });
       await screen.findByText('Continue with GitHub');
-      fireEvent.press(screen.getByText('Continue with GitHub'));
+      await act(async () => {
+        fireEvent.press(screen.getByText('Continue with GitHub'));
+      });
 
       await waitFor(() => {
         expect(capturedHref).toBe(authUrl);
@@ -263,7 +273,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with GitHub');
-    fireEvent.press(screen.getByText('Continue with GitHub'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with GitHub'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Email Already Registered')).toBeOnTheScreen();
@@ -285,7 +297,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -308,7 +322,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -335,7 +351,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(
       () => {
@@ -362,7 +380,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(
       () => {
@@ -392,7 +412,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Account Suspended')).toBeOnTheScreen();
@@ -423,7 +445,9 @@ describe('Login screen', () => {
     await screen.findByPlaceholderText('Email or username');
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'suspended@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
-    fireEvent.press(screen.getByText('Login'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Login'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Account Suspended')).toBeOnTheScreen();
@@ -439,7 +463,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -460,7 +486,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with Google');
-    fireEvent.press(screen.getByText('Continue with Google'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with Google'));
+    });
 
     await waitFor(() => {
       expect(WebBrowser.openAuthSessionAsync).toHaveBeenCalled();
@@ -478,7 +506,9 @@ describe('Login screen', () => {
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 't@example.com');
     fireEvent.changeText(screen.getByPlaceholderText('Password'), 'pass');
-    fireEvent.press(screen.getByText('Login'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Login'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -496,7 +526,9 @@ describe('Login screen', () => {
 
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with GitHub');
-    fireEvent.press(screen.getByText('Continue with GitHub'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with GitHub'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Login Failed')).toBeOnTheScreen();
@@ -507,7 +539,9 @@ describe('Login screen', () => {
   it('initiates GitHub OAuth login', async () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
     await screen.findByText('Continue with GitHub');
-    fireEvent.press(screen.getByText('Continue with GitHub'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Continue with GitHub'));
+    });
     // MSW will catch the request
     await waitFor(() => {
       expect(screen.queryByText('Login Failed')).toBeNull();

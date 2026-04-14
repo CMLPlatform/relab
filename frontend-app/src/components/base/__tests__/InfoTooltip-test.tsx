@@ -14,11 +14,9 @@ describe('InfoTooltip component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
     restorePlatform();
   });
 

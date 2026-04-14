@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import type { HeaderBackButtonProps } from '@react-navigation/elements';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';

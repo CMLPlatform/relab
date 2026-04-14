@@ -1,41 +1,74 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
 import type { CameraRead, CameraUpdate, PairingClaimRequest } from '@/services/api/rpiCamera';
 import {
-  CameraSnapshotError,
+  buildCameraHlsUrl,
   captureImageFromCamera,
   claimPairingCode,
   deleteCamera,
   fetchCamera,
-  fetchCameraSnapshot,
   fetchCameras,
+  fetchCameraTelemetry,
   updateCamera,
 } from '@/services/api/rpiCamera';
 
-export const camerasQueryOptions = (includeStatus = false) =>
+export const camerasQueryOptions = (
+  includeStatus = false,
+  { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
+) =>
   queryOptions({
-    queryKey: ['rpiCameras', includeStatus] as const,
-    queryFn: () => fetchCameras(includeStatus),
-    staleTime: includeStatus ? 15_000 : 60_000,
+    queryKey: ['rpiCameras', includeStatus, includeTelemetry] as const,
+    queryFn: () => fetchCameras(includeStatus, { includeTelemetry }),
+    // Mosaic polling cadence: 5s when telemetry is on, otherwise the existing
+    // 15s for status-only, 60s for plain camera list.
+    staleTime: includeTelemetry ? 5_000 : includeStatus ? 15_000 : 60_000,
+    refetchInterval: includeTelemetry ? 5_000 : false,
   });
 
-export const cameraQueryOptions = (id: string, includeStatus = false) =>
+export const cameraQueryOptions = (
+  id: string,
+  includeStatus = false,
+  { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
+) =>
   queryOptions({
-    queryKey: ['rpiCamera', id, includeStatus] as const,
-    queryFn: () => fetchCamera(id, includeStatus),
+    queryKey: ['rpiCamera', id, includeStatus, includeTelemetry] as const,
+    queryFn: () => fetchCamera(id, includeStatus, { includeTelemetry }),
     enabled: !!id,
-    staleTime: includeStatus ? 15_000 : 60_000,
+    staleTime: includeTelemetry ? 5_000 : includeStatus ? 15_000 : 60_000,
+    refetchInterval: includeTelemetry ? 5_000 : false,
   });
 
 export function useCamerasQuery(
   includeStatus = false,
-  { enabled = true }: { enabled?: boolean } = {},
+  {
+    enabled = true,
+    includeTelemetry = false,
+  }: { enabled?: boolean; includeTelemetry?: boolean } = {},
 ) {
-  return useQuery({ ...camerasQueryOptions(includeStatus), enabled });
+  return useQuery({ ...camerasQueryOptions(includeStatus, { includeTelemetry }), enabled });
 }
 
-export function useCameraQuery(id: string, includeStatus = false) {
-  return useQuery(cameraQueryOptions(id, includeStatus));
+export function useCameraQuery(
+  id: string,
+  includeStatus = false,
+  { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
+) {
+  return useQuery(cameraQueryOptions(id, includeStatus, { includeTelemetry }));
+}
+
+export function useCameraTelemetryQuery(
+  cameraId: string | null,
+  { enabled = true, refetchInterval = 5_000 }: { enabled?: boolean; refetchInterval?: number } = {},
+) {
+  return useQuery({
+    queryKey: ['rpiCameraTelemetry', cameraId] as const,
+    queryFn: () => {
+      if (!cameraId) throw new Error('cameraId is required');
+      return fetchCameraTelemetry(cameraId);
+    },
+    enabled: enabled && !!cameraId,
+    refetchInterval: enabled ? refetchInterval : false,
+    staleTime: refetchInterval,
+  });
 }
 
 export function useUpdateCameraMutation(id: string) {
@@ -69,109 +102,31 @@ export function useClaimPairingMutation() {
   });
 }
 
-export function useCameraPreview(
+export interface UseCameraLivePreviewResult {
+  hlsUrl: string | null;
+}
+
+/**
+ * Build the LL-HLS playlist URL for a camera's always-on lores preview.
+ *
+ * The URL points at the backend's HLS proxy, which forwards segment fetches
+ * through the WebSocket relay to the Pi's local MediaMTX. Pass this URL to
+ * ``hls.js`` on web or ``expo-video`` on native — both players handle the
+ * playlist walk, segment fetching, and buffering on their own. Typical
+ * glass-to-glass latency is ~1.5-3s on LL-HLS, good enough for "frame a
+ * product in front of the camera" which is the dominant use case.
+ *
+ * Returns ``{ hlsUrl: null }`` when disabled or when there's no camera id, so
+ * consumers can render a spinner / offline badge without guarding every use.
+ */
+export function useCameraLivePreview(
   camera: Pick<CameraRead, 'id'> | null,
-  { enabled = false, intervalMs = 1000 }: { enabled?: boolean; intervalMs?: number } = {},
-) {
-  const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const previousUrlRef = useRef<string | null>(null);
-
-  const cameraId = camera?.id ?? null;
-
-  useEffect(() => {
-    if (!enabled || !cameraId) {
-      setSnapshotUrl(null);
-      setError(null);
-      return;
-    }
-
-    const revokePrev = () => {
-      if (previousUrlRef.current) {
-        URL.revokeObjectURL(previousUrlRef.current);
-        previousUrlRef.current = null;
-      }
-    };
-
-    const setFrame = (url: string) => {
-      const toRevoke = previousUrlRef.current;
-      previousUrlRef.current = url;
-      setSnapshotUrl(url);
-      setError(null);
-      if (toRevoke) requestAnimationFrame(() => URL.revokeObjectURL(toRevoke));
-    };
-
-    let cancelled = false;
-    let timerId: ReturnType<typeof setTimeout> | null = null;
-    let inFlight = false;
-    let consecutiveFailures = 0;
-
-    const clearTimer = () => {
-      if (timerId !== null) {
-        clearTimeout(timerId);
-        timerId = null;
-      }
-    };
-
-    const getNextDelayMs = (nextError: Error | null) => {
-      if (!(nextError instanceof CameraSnapshotError)) return intervalMs;
-      if (nextError.status === 409) return Math.max(intervalMs, 5_000);
-      if (nextError.status >= 500) {
-        const backoffMultiplier = 2 ** Math.min(consecutiveFailures, 3);
-        return Math.min(intervalMs * backoffMultiplier, 10_000);
-      }
-      return intervalMs;
-    };
-
-    const scheduleNextPoll = (delayMs: number) => {
-      clearTimer();
-      if (cancelled) return;
-      timerId = setTimeout(() => {
-        void poll();
-      }, delayMs);
-    };
-
-    const poll = async () => {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-
-      try {
-        const nextFrameUrl = await fetchCameraSnapshot(cameraId);
-        if (cancelled) {
-          URL.revokeObjectURL(nextFrameUrl);
-          return;
-        }
-        consecutiveFailures = 0;
-        setFrame(nextFrameUrl);
-        scheduleNextPoll(intervalMs);
-      } catch (err) {
-        const nextError =
-          err instanceof CameraSnapshotError
-            ? err
-            : err instanceof Error
-              ? err
-              : new Error(String(err));
-        consecutiveFailures += 1;
-        if (!cancelled) {
-          setError(nextError);
-          scheduleNextPoll(getNextDelayMs(nextError));
-        }
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    void poll();
-    return () => {
-      cancelled = true;
-      clearTimer();
-      setSnapshotUrl(null);
-      setError(null);
-      revokePrev();
-    };
-  }, [enabled, cameraId, intervalMs]);
-
-  return { snapshotUrl, error };
+  { enabled = true }: { enabled?: boolean } = {},
+): UseCameraLivePreviewResult {
+  if (!enabled || !camera) {
+    return { hlsUrl: null };
+  }
+  return { hlsUrl: buildCameraHlsUrl(camera.id) };
 }
 
 export function useCaptureImageMutation() {
@@ -179,6 +134,49 @@ export function useCaptureImageMutation() {
   return useMutation({
     mutationFn: ({ cameraId, productId }: { cameraId: string; productId: number }) =>
       captureImageFromCamera(cameraId, productId),
+    onSuccess: (_data, { productId }) => {
+      void queryClient.invalidateQueries({ queryKey: ['product', productId] });
+    },
+  });
+}
+
+export interface CaptureAllResult {
+  total: number;
+  succeeded: number;
+  failed: number;
+  errors: Array<{ cameraId: string; error: Error }>;
+}
+
+export function useCaptureAllMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      cameraIds,
+      productId,
+    }: {
+      cameraIds: string[];
+      productId: number;
+    }): Promise<CaptureAllResult> => {
+      const settled = await Promise.allSettled(
+        cameraIds.map((id) => captureImageFromCamera(id, productId)),
+      );
+      const errors = settled.flatMap((res, i) =>
+        res.status === 'rejected'
+          ? [
+              {
+                cameraId: cameraIds[i],
+                error: res.reason instanceof Error ? res.reason : new Error(String(res.reason)),
+              },
+            ]
+          : [],
+      );
+      return {
+        total: cameraIds.length,
+        succeeded: cameraIds.length - errors.length,
+        failed: errors.length,
+        errors,
+      };
+    },
     onSuccess: (_data, { productId }) => {
       void queryClient.invalidateQueries({ queryKey: ['product', productId] });
     },

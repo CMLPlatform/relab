@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import type React from 'react';
 import * as auth from '@/services/api/authentication';
@@ -38,7 +38,6 @@ const mockDismissTo = jest.fn();
 describe('NewAccount screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
     (useRouter as jest.Mock).mockReturnValue({
       push: jest.fn(),
       replace: mockReplace,
@@ -57,28 +56,38 @@ describe('NewAccount screen', () => {
 
   it('shows validation error for invalid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/at least 2/)).toBeOnTheScreen();
     });
   });
 
-  it('chevron button is disabled for invalid username', () => {
+  it('chevron button is disabled for invalid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
     // With empty username, the chevron-right button should be disabled
     // We check by verifying no navigation happens
     const input = screen.getByPlaceholderText('Username');
-    fireEvent.changeText(input, '');
+    await act(async () => {
+      fireEvent.changeText(input, '');
+    });
     // The forward button exists but is disabled (empty username)
     expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
   });
 
   it('advances to email section with valid username', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/How do we reach you/)).toBeOnTheScreen();
@@ -87,20 +96,32 @@ describe('NewAccount screen', () => {
 
   it('does not advance from username when invalid', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
+    });
 
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
 
     expect(screen.queryByText(/How do we reach you/)).toBeNull();
   });
 
   it('shows email validation error for invalid email', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
     await screen.findByPlaceholderText('Email address');
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'not_an_email');
-    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'not_an_email');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/valid email/)).toBeOnTheScreen();
@@ -114,18 +135,30 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     // Username section
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
 
     // Email section
     await screen.findByPlaceholderText('Email address');
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
-    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'user@example.com');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    });
 
     // Password section
     await screen.findByPlaceholderText('Password');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
-    fireEvent.press(screen.getByText('Create Account'));
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByText('Create Account'));
+    });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/products');
@@ -138,15 +171,27 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     // Navigate to password section
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'newuser');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
     await screen.findByPlaceholderText('Email address');
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'taken@example.com');
-    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'taken@example.com');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    });
     await screen.findByPlaceholderText('Password');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
+    });
 
-    fireEvent.press(screen.getByText('Create Account'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Create Account'));
+    });
 
     await waitFor(() => {
       expect(auth.register).toHaveBeenCalled();
@@ -157,14 +202,24 @@ describe('NewAccount screen', () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
     // Jump to password section manually via sections
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
     await screen.findByPlaceholderText('Email address');
-    fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'valid@example.com');
-    fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Email address'), 'valid@example.com');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Email address'), 'submitEditing');
+    });
 
     await screen.findByPlaceholderText('Password');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), '123'); // too short
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Password'), '123'); // too short
+    });
 
     // RHF shows validation error text immediately on change
     await waitFor(() => {
@@ -175,23 +230,27 @@ describe('NewAccount screen', () => {
   it('navigates back through sections', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByPlaceholderText('Username'), 'testuser');
-    fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    await act(async () => {
+      fireEvent.changeText(screen.getByPlaceholderText('Username'), 'testuser');
+    });
+    await act(async () => {
+      fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
+    });
 
     await screen.findByPlaceholderText('Email address');
-    fireEvent.press(screen.getByText('Edit username'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Edit username'));
+    });
 
     expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
   });
 
-  it('navigates to login via "I already have an account"', () => {
+  it('navigates to login via "I already have an account"', async () => {
     renderWithProviders(<NewAccount />, { withDialog: true });
-    fireEvent.press(screen.getByText('I already have an account'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('I already have an account'));
+    });
     expect(mockDismissTo).toHaveBeenCalledWith('/login');
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 });
 

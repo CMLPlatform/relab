@@ -145,7 +145,6 @@ const mockedProcessImage = jest.mocked(imageProcessing.processImage);
 const mockUseRpiIntegration = jest.fn();
 const mockUseCamerasQuery = jest.fn();
 const mockUseCaptureImageMutation = jest.fn();
-const mockUseCameraPreview = jest.fn();
 
 jest.mock('@/hooks/useRpiIntegration', () => ({
   useRpiIntegration: () => mockUseRpiIntegration(),
@@ -154,7 +153,10 @@ jest.mock('@/hooks/useRpiIntegration', () => ({
 jest.mock('@/hooks/useRpiCameras', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => mockUseCaptureImageMutation(),
-  useCameraPreview: (...args: unknown[]) => mockUseCameraPreview(...args),
+}));
+
+jest.mock('@/components/cameras/LivePreview', () => ({
+  LivePreview: () => null,
 }));
 
 function setMatchMedia(matches: boolean) {
@@ -216,7 +218,6 @@ describe('ProductImages', () => {
     mockUseRpiIntegration.mockReset();
     mockUseCamerasQuery.mockReset();
     mockUseCaptureImageMutation.mockReset();
-    mockUseCameraPreview.mockReset();
     mockUseRpiIntegration.mockReturnValue({
       enabled: false,
       loading: false,
@@ -229,10 +230,6 @@ describe('ProductImages', () => {
     mockUseCaptureImageMutation.mockReturnValue({
       mutate: jest.fn(),
       isPending: false,
-    });
-    mockUseCameraPreview.mockReturnValue({
-      snapshotUrl: null,
-      error: null,
     });
     mockFlatListCalls.length = 0;
     mockZoomableImageCalls.length = 0;
@@ -268,45 +265,6 @@ describe('ProductImages', () => {
       withDialog: true,
     });
     expect(screen.getByText('img:file://photo1.jpg')).toBeOnTheScreen();
-  });
-
-  it('shows snapshot polling copy and streaming-unavailable message in the RPi preview dialog', async () => {
-    mockUseRpiIntegration.mockReturnValue({
-      enabled: true,
-      loading: false,
-      setEnabled: jest.fn(),
-    });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        {
-          id: 'cam-1',
-          name: 'Workbench Camera',
-          status: { connection: 'online' },
-        },
-      ],
-      isLoading: false,
-    });
-    mockUseCameraPreview.mockReturnValue({
-      snapshotUrl: null,
-      error: new Error('Snapshot preview unavailable while the camera is streaming.'),
-    });
-
-    renderWithProviders(
-      <ProductImages product={{ ...baseProduct, id: 42 } as Product} editMode={true} />,
-      {
-        withDialog: true,
-      },
-    );
-
-    fireEvent.press(await screen.findByText('RPi Camera'));
-    fireEvent.press(await screen.findByText('Workbench Camera'));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('Snapshot preview unavailable while the camera is streaming.'),
-      ).toBeOnTheScreen();
-    });
-    expect(screen.getByText('Snapshot preview · polling')).toBeOnTheScreen();
   });
 
   it('does not show image counter text for a single image', () => {

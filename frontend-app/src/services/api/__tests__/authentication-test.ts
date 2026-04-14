@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as SecureStore from 'expo-secure-store';
-import { mockResponse, setupFetchMock } from '@/test-utils';
+import { mockPlatform, mockResponse, restorePlatform, setupFetchMock } from '@/test-utils';
 import * as auth from '../authentication';
 
 setupFetchMock();
@@ -474,6 +474,168 @@ describe('Authentication API Service', () => {
       await expect(auth.oauthLoginWithGoogleToken('token', null)).rejects.toThrow(
         'Google login failed. Please try again.',
       );
+    });
+  });
+
+  // ─── Web platform tests ──────────────────────────────────
+  // These tests need a working sessionStorage (not provided by jest-expo's
+  // lightweight test environment). We install a simple in-memory mock once
+  // and share it across all web-platform describe blocks.
+
+  describe('web platform', () => {
+    const mockStore: Record<string, string> = {};
+    const mockSessionStorage = {
+      getItem: (k: string) => mockStore[k] ?? null,
+      setItem: (k: string, v: string) => {
+        mockStore[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete mockStore[k];
+      },
+      clear: () => {
+        for (const k of Object.keys(mockStore)) delete mockStore[k];
+      },
+    };
+
+    beforeAll(() => {
+      Object.defineProperty(globalThis, 'sessionStorage', {
+        value: mockSessionStorage,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    beforeEach(() => {
+      mockPlatform('web');
+      mockSessionStorage.clear();
+    });
+
+    afterEach(() => {
+      restorePlatform();
+    });
+
+    describe('refreshAuthToken on web', () => {
+      it('returns false immediately when hasWebSessionFlag is false (no fetch called)', async () => {
+        // sessionStorage is empty → hasWebSessionFlag() returns false
+        const result = await auth.refreshAuthToken();
+
+        expect(result).toBe(false);
+        expect(fetchMock()).not.toHaveBeenCalled();
+      });
+
+      it('uses cookie refresh endpoint and returns true on 200', async () => {
+        mockSessionStorage.setItem('web_has_session', '1');
+        fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
+
+        const result = await auth.refreshAuthToken();
+
+        expect(result).toBe(true);
+        expect(fetchMock()).toHaveBeenCalledWith(
+          expect.objectContaining({ href: expect.stringContaining('/auth/cookie/refresh') }),
+          expect.anything(),
+        );
+      });
+
+      it('clears session flag and returns false when cookie refresh returns 401', async () => {
+        mockSessionStorage.setItem('web_has_session', '1');
+        fetchMock().mockResolvedValueOnce(mockResponse(401, {}, false) as Response);
+
+        const result = await auth.refreshAuthToken();
+
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('login on web', () => {
+      const rawUser = {
+        id: 1,
+        email: 'u@e.com',
+        is_active: true,
+        is_superuser: false,
+        is_verified: true,
+        username: 'webuser',
+        oauth_accounts: [],
+      };
+
+      it('returns "success" on non-204 success response (cookie login endpoint)', async () => {
+        fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
+
+        const result = await auth.login('u@e.com', 'pass');
+
+        expect(result).toBe('success');
+        expect(fetchMock()).toHaveBeenCalledWith(
+          expect.objectContaining({ href: expect.stringContaining('/auth/cookie/login') }),
+          expect.anything(),
+        );
+      });
+
+      it('204 login: triggers refresh then getUser and returns "success"', async () => {
+        // Set flag so refreshAuthToken doesn't short-circuit on the flag check
+        mockSessionStorage.setItem('web_has_session', '1');
+        fetchMock()
+          .mockResolvedValueOnce(mockResponse(204, null) as Response) // POST login
+          .mockResolvedValueOnce(mockResponse(200, {}) as Response) // POST cookie/refresh
+          .mockResolvedValueOnce(mockResponse(200, rawUser) as Response); // GET /users/me
+
+        const loginPromise = auth.login('u@e.com', 'pass');
+        await jest.runAllTimersAsync();
+        const result = await loginPromise;
+
+        expect(result).toBe('success');
+        expect(fetchMock()).toHaveBeenCalledTimes(3);
+      });
+
+      it('204 login with failed refresh: falls back to 150ms delay + getUser', async () => {
+        // sessionStorage empty → refresh fails immediately (no flag)
+        fetchMock()
+          .mockResolvedValueOnce(mockResponse(204, null) as Response) // POST login
+          .mockResolvedValueOnce(mockResponse(200, rawUser) as Response); // GET /users/me after delay
+
+        const loginPromise = auth.login('u@e.com', 'pass');
+        await jest.advanceTimersByTimeAsync(200);
+        const result = await loginPromise;
+
+        expect(result).toBe('success');
+      });
+    });
+
+    describe('getUser on web', () => {
+      const rawUser = {
+        id: 1,
+        email: 'u@e.com',
+        is_active: true,
+        is_superuser: false,
+        is_verified: true,
+        username: 'webuser',
+        oauth_accounts: [],
+      };
+
+      it('fetches user and sets session flag on success', async () => {
+        fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
+
+        const user = await auth.getUser(true);
+
+        expect(user?.username).toBe('webuser');
+        expect(mockSessionStorage.getItem('web_has_session')).toBe('1');
+      });
+
+      it('getCachedUser returns the fetched user after successful getUser', async () => {
+        fetchMock().mockResolvedValueOnce(mockResponse(200, rawUser) as Response);
+
+        await auth.getUser(true);
+
+        expect(auth.getCachedUser()).toMatchObject({ username: 'webuser', email: 'u@e.com' });
+      });
+
+      it('returns undefined and clears session flag when response is not ok', async () => {
+        mockSessionStorage.setItem('web_has_session', '1');
+        fetchMock().mockResolvedValueOnce(mockResponse(401, {}, false) as Response);
+
+        const user = await auth.getUser(true);
+
+        expect(user).toBeUndefined();
+        expect(mockSessionStorage.getItem('web_has_session')).toBeNull();
+      });
     });
   });
 

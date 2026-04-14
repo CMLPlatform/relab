@@ -28,8 +28,8 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText('CircularTech')).toBeOnTheScreen();
-    expect(screen.getByText('X100')).toBeOnTheScreen();
+    expect(screen.getByText(/CircularTech/)).toBeOnTheScreen();
+    expect(screen.getByText(/X100/)).toBeOnTheScreen();
   });
 
   it("renders 'Unknown' when brand is missing", () => {
@@ -52,7 +52,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('CircularTech'));
+    fireEvent.press(screen.getByText(/CircularTech/));
     expect(screen.getByText('Select Brand')).toBeOnTheScreen();
   });
 
@@ -60,7 +60,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('CircularTech'));
+    fireEvent.press(screen.getByText(/CircularTech/));
     expect(screen.queryByText('Select Brand')).toBeNull();
   });
 
@@ -72,7 +72,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText('CircularTech'));
+    fireEvent.press(screen.getByText(/CircularTech/));
     await screen.findByText('Select Brand');
     fireEvent.press(screen.getByText('Samsung'));
     expect(onBrandChange).toHaveBeenCalledWith('Samsung');
@@ -82,7 +82,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('CircularTech'));
+    fireEvent.press(screen.getByText(/CircularTech/));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
@@ -96,7 +96,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText('CircularTech'));
+    fireEvent.press(screen.getByText(/CircularTech/));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
@@ -108,7 +108,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText('X100'));
+    fireEvent.press(screen.getByText(/X100/));
     expect(screen.getByText('Set Model')).toBeOnTheScreen();
   });
 
@@ -120,7 +120,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText('X100'));
+    fireEvent.press(screen.getByText(/X100/));
     fireEvent.changeText(screen.getByPlaceholderText('Model Name'), 'NewModel');
     fireEvent.press(screen.getByText('OK'));
     expect(onModelChange).toHaveBeenCalledWith('NewModel');

@@ -1,21 +1,21 @@
-import { describe, expect, it, jest } from '@jest/globals';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react-native';
-import type React from 'react';
 import * as brands from '@/services/api/brands';
 import * as products from '@/services/api/products';
 import { ProductNotFoundError } from '@/services/api/products';
 import * as productTypes from '@/services/api/productTypes';
 import * as saving from '@/services/api/saving';
 import type { Product } from '@/types/Product';
+import { describe, expect, it, jest } from '@jest/globals';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react-native';
+import type React from 'react';
 import {
-  useDeleteProductMutation,
-  useProductQuery,
-  useProductsQuery,
-  useProductTypesQuery,
-  useSaveProductMutation,
-  useSearchBrandsQuery,
-  useSearchProductTypesQuery,
+    useDeleteProductMutation,
+    useProductQuery,
+    useProductsQuery,
+    useProductTypesQuery,
+    useSaveProductMutation,
+    useSearchBrandsQuery,
+    useSearchProductTypesQuery,
 } from '../useProductQueries';
 
 jest.mock('@/services/api/brands', () => ({
@@ -23,11 +23,17 @@ jest.mock('@/services/api/brands', () => ({
   searchBrands: jest.fn(),
 }));
 
-jest.mock('@/services/api/products', () => ({
-  allProducts: jest.fn(),
-  getProduct: jest.fn(),
-  myProducts: jest.fn(),
-}));
+type ProductsModule = typeof import('@/services/api/products');
+
+jest.mock('@/services/api/products', () => {
+  const actual = jest.requireActual('@/services/api/products') as ProductsModule;
+  return {
+    ...actual,
+    allProducts: jest.fn(),
+    getProduct: jest.fn(),
+    myProducts: jest.fn(),
+  };
+});
 
 jest.mock('@/services/api/productTypes', () => ({
   allProductTypes: jest.fn(),

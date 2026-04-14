@@ -1,8 +1,8 @@
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
@@ -14,6 +14,16 @@ let refreshPromise: Promise<boolean> | null = null;
 let getUserPromise: Promise<User | undefined> | null = null;
 // When true, network auth requests should be suppressed (set on explicit logout)
 let explicitlyLoggedOut = false;
+
+// Helper to log errors, but avoid noisy logs during tests. Tests exercise
+// error paths intentionally; skip logging when running under Jest.
+function logError(...args: unknown[]) {
+  try {
+    if (process.env.NODE_ENV === 'test') return;
+  } catch {}
+  // eslint-disable-next-line no-console
+  console.error(...(args as [unknown, ...unknown[]]));
+}
 
 const isWeb = () => Platform.OS === 'web';
 
@@ -80,7 +90,7 @@ export async function getToken(): Promise<string | undefined> {
       return token;
     }
   } catch (err) {
-    console.error('[GetToken Error]:', err);
+    logError('[GetToken Error]:', err);
   }
   return undefined;
 }
@@ -124,7 +134,7 @@ export async function refreshAuthToken(): Promise<boolean> {
       }
       return false;
     } catch (err) {
-      console.error('[Refresh Token Error]:', err);
+      logError('[Refresh Token Error]:', err);
       return false;
     } finally {
       // clear the shared promise so future refreshes can start
@@ -234,7 +244,7 @@ export async function login(username: string, password: string): Promise<string 
 
     return 'success';
   } catch (err) {
-    console.error('[Login Fetch Error]:', err);
+    logError('[Login Fetch Error]:', err);
     throw new Error('Unable to reach server. Please try again later.');
   }
 }
@@ -253,7 +263,7 @@ export async function logout(): Promise<void> {
       credentials: 'include',
     });
   } catch (err) {
-    console.error('[Logout Fetch Error]:', err);
+    logError('[Logout Fetch Error]:', err);
   }
 }
 
@@ -287,7 +297,7 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
         try {
           data = await response.json();
         } catch (jsonErr) {
-          console.error('[GetUser Fetch Error]: Unable to parse server response.', jsonErr);
+          logError('[GetUser Fetch Error]: Unable to parse server response.', jsonErr);
           return undefined;
         }
 
@@ -324,7 +334,7 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
 
     return await getUserPromise;
   } catch (error) {
-    console.error('[GetUser Fetch Error]:', error);
+    logError('[GetUser Fetch Error]:', error);
     return undefined;
   }
 }
@@ -400,7 +410,7 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
 
     return await getUser(true);
   } catch (error) {
-    console.error('[UpdateUser Error]:', error);
+    logError('[UpdateUser Error]:', error);
     throw error;
   }
 }
@@ -444,7 +454,7 @@ export async function unlinkOAuth(provider: string): Promise<boolean> {
     user = undefined;
     return true;
   } catch (error) {
-    console.error('[UnlinkOAuth Error]:', error);
+    logError('[UnlinkOAuth Error]:', error);
     throw error;
   }
 }

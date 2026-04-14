@@ -1,8 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -15,17 +14,14 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import { LiveVideoPreview } from '@/components/cameras/LiveVideoPreview';
+import { LivePreview } from '@/components/cameras/LivePreview';
 import { useAuth } from '@/context/AuthProvider';
 import {
-  useCameraPreview,
   useCameraQuery,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
 } from '@/hooks/useRpiCameras';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
-
-const IS_WEB = Platform.OS === 'web';
 
 // ─── Status ───────────────────────────────────────────────────────────────────
 
@@ -155,15 +151,6 @@ export default function CameraDetailScreen() {
   const [deleteVisible, setDeleteVisible] = useState(false);
 
   const isOnline = camera?.status?.connection === 'online';
-  // On web we prefer the WebRTC WHEP preview (sub-second latency, peer-to-peer
-  // once ICE completes). Native platforms fall back to JPEG polling because
-  // react-native-webrtc is out of scope for this round.
-  const { snapshotUrl, error: previewError } = useCameraPreview(
-    !IS_WEB && isOnline && camera ? camera : null,
-    { enabled: !IS_WEB && !!isOnline },
-  );
-  const previewErrorMessage =
-    previewError?.message ?? 'Snapshot preview unavailable. The camera may be offline.';
 
   useEffect(() => {
     if (!user) {
@@ -260,34 +247,8 @@ export default function CameraDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Preview — WebRTC on web, JPEG polling on native. */}
-        {isOnline && IS_WEB && <LiveVideoPreview camera={camera} />}
-        {isOnline && !IS_WEB && (
-          <Card style={styles.card}>
-            <Card.Content style={{ alignItems: 'center', gap: 8 }}>
-              {previewError ? (
-                <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
-                  <MaterialCommunityIcons name="camera-off" size={32} color="#999" />
-                  <Text style={{ color: '#999', textAlign: 'center' }}>{previewErrorMessage}</Text>
-                </View>
-              ) : snapshotUrl ? (
-                <Image
-                  source={{ uri: snapshotUrl }}
-                  style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 8 }}
-                  contentFit="contain"
-                />
-              ) : (
-                <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
-                  <ActivityIndicator size={24} />
-                  <Text style={{ color: '#999' }}>Loading preview…</Text>
-                </View>
-              )}
-              <Text variant="bodySmall" style={{ color: '#999' }}>
-                Snapshot preview · polling
-              </Text>
-            </Card.Content>
-          </Card>
-        )}
+        {/* Live preview — same LL-HLS stream on web (hls.js) and native (expo-video). */}
+        {isOnline && <LivePreview camera={camera} />}
 
         {/* Details */}
         <Card style={styles.card}>

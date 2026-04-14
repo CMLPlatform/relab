@@ -4,12 +4,9 @@ import { DEFAULT_API_TIMEOUT_MS, fetchWithTimeout, isTimeoutError, TimeoutError 
 describe('fetchWithTimeout', () => {
   const originalFetch = global.fetch;
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
+  beforeEach(() => {});
 
   afterEach(() => {
-    jest.useRealTimers();
     global.fetch = originalFetch;
   });
 

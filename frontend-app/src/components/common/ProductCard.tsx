@@ -113,13 +113,16 @@ export default function ProductCard({ product, enabled = true, showOwner = false
               {ownerLabel && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                   <Icon source="account-outline" size={12} color={theme.colors.outline} />
-                  <Text 
-                    style={{ fontSize: 11, color: theme.colors.primary }} 
+                  <Text
+                    style={{ fontSize: 11, color: theme.colors.primary }}
                     numberOfLines={1}
                     onPress={() => {
-                        if (product.ownerUsername) {
-                            router.push({ pathname: '/users/[username]', params: { username: product.ownerUsername } });
-                        }
+                      if (product.ownerUsername) {
+                        router.push({
+                          pathname: '/users/[username]',
+                          params: { username: product.ownerUsername },
+                        });
+                      }
                     }}
                   >
                     {ownerLabel}

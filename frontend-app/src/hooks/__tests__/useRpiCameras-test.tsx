@@ -1,23 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import {
-  CameraSnapshotError,
   captureImageFromCamera,
   claimPairingCode,
   deleteCamera,
   fetchCamera,
-  fetchCameraSnapshot,
   fetchCameras,
   updateCamera,
 } from '@/services/api/rpiCamera';
 import {
   cameraQueryOptions,
   camerasQueryOptions,
-  useCameraPreview,
+  useCameraLivePreview,
   useCameraQuery,
   useCamerasQuery,
+  useCameraTelemetryQuery,
   useCaptureImageMutation,
   useClaimPairingMutation,
   useDeleteCameraMutation,
@@ -25,23 +24,16 @@ import {
 } from '../useRpiCameras';
 
 jest.mock('@/services/api/rpiCamera', () => ({
-  CameraSnapshotError: class CameraSnapshotError extends Error {
-    status: number;
-
-    constructor(status: number, message: string) {
-      super(message);
-      this.name = 'CameraSnapshotError';
-      this.status = status;
-    }
-  },
+  fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
+  fetchCameraTelemetry: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
   claimPairingCode: jest.fn(),
   captureImageFromCamera: jest.fn(),
+  buildCameraHlsUrl: (id: string) => `/api/rpi-cameras/${id}/hls/cam-preview/index.m3u8`,
 }));
 
-const mockedFetchCameraSnapshot = jest.mocked(fetchCameraSnapshot);
 const mockedFetchCameras = jest.mocked(fetchCameras);
 const mockedFetchCamera = jest.mocked(fetchCamera);
 const mockedUpdateCamera = jest.mocked(updateCamera);
@@ -50,193 +42,15 @@ const mockedClaimPairingCode = jest.mocked(claimPairingCode);
 const mockedCaptureImageFromCamera = jest.mocked(captureImageFromCamera);
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  defaultOptions: {
+    queries: { retry: false, gcTime: 0 },
+    mutations: { retry: false, gcTime: 0 },
+  },
 });
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
-
-describe('useCameraPreview', () => {
-  const createObjectUrlSpy = jest.spyOn(URL, 'createObjectURL');
-  const revokeObjectUrlSpy = jest.spyOn(URL, 'revokeObjectURL');
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-    queryClient.clear();
-    createObjectUrlSpy.mockImplementation((blob: Blob | MediaSource) => `blob:${String(blob)}`);
-    revokeObjectUrlSpy.mockImplementation(() => undefined);
-    global.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
-      callback(0);
-      return 0;
-    });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('polls snapshot previews and revokes the previous blob URL when a new frame arrives', async () => {
-    mockedFetchCameraSnapshot
-      .mockResolvedValueOnce('blob:first-frame')
-      .mockResolvedValueOnce('blob:second-frame');
-
-    const { result, unmount } = renderHook(
-      () => useCameraPreview({ id: 'cam-1' }, { enabled: true, intervalMs: 100 }),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.snapshotUrl).toBe('blob:first-frame'));
-    expect(result.current.error).toBeNull();
-
-    await act(async () => {
-      jest.advanceTimersByTime(100);
-    });
-
-    await waitFor(() => expect(result.current.snapshotUrl).toBe('blob:second-frame'));
-    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:first-frame');
-
-    unmount();
-    expect(revokeObjectUrlSpy).toHaveBeenCalledWith('blob:second-frame');
-  });
-
-  it('waits for the current snapshot request to finish before scheduling the next poll', async () => {
-    let resolveFirstSnapshot: ((value: string) => void) | null = null;
-    mockedFetchCameraSnapshot.mockImplementationOnce(
-      () =>
-        new Promise<string>((resolve) => {
-          resolveFirstSnapshot = resolve;
-        }),
-    );
-
-    renderHook(() => useCameraPreview({ id: 'cam-10' }, { enabled: true, intervalMs: 100 }), {
-      wrapper,
-    });
-
-    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      jest.advanceTimersByTime(500);
-    });
-
-    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      resolveFirstSnapshot?.('blob:resolved-frame');
-    });
-
-    await act(async () => {
-      jest.advanceTimersByTime(100);
-    });
-
-    await waitFor(() => expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(2));
-  });
-
-  it('backs off snapshot polling after service-unavailable responses', async () => {
-    mockedFetchCameraSnapshot
-      .mockRejectedValueOnce(new CameraSnapshotError(503, 'Failed to fetch snapshot (503)'))
-      .mockResolvedValueOnce('blob:recovered-frame');
-
-    const { result } = renderHook(
-      () => useCameraPreview({ id: 'cam-11' }, { enabled: true, intervalMs: 100 }),
-      { wrapper },
-    );
-
-    await waitFor(() =>
-      expect(result.current.error?.message).toBe('Failed to fetch snapshot (503)'),
-    );
-    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      jest.advanceTimersByTime(100);
-    });
-    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      jest.advanceTimersByTime(100);
-    });
-
-    await waitFor(() => expect(result.current.snapshotUrl).toBe('blob:recovered-frame'));
-    expect(result.current.error).toBeNull();
-    expect(mockedFetchCameraSnapshot).toHaveBeenCalledTimes(2);
-  });
-
-  it('surfaces CameraSnapshotError instances directly for streaming conflicts', async () => {
-    mockedFetchCameraSnapshot.mockRejectedValueOnce(
-      new CameraSnapshotError(409, 'Snapshot preview unavailable while the camera is streaming.'),
-    );
-
-    const { result } = renderHook(
-      () => useCameraPreview({ id: 'cam-2' }, { enabled: true, intervalMs: 100 }),
-      { wrapper },
-    );
-
-    await waitFor(() =>
-      expect(result.current.error?.message).toBe(
-        'Snapshot preview unavailable while the camera is streaming.',
-      ),
-    );
-    expect(result.current.snapshotUrl).toBeNull();
-  });
-
-  it('wraps unexpected snapshot errors in a generic Error instance', async () => {
-    mockedFetchCameraSnapshot.mockRejectedValueOnce('unexpected snapshot failure');
-
-    const { result } = renderHook(
-      () => useCameraPreview({ id: 'cam-4' }, { enabled: true, intervalMs: 100 }),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.error?.message).toBe('unexpected snapshot failure'));
-    expect(result.current.snapshotUrl).toBeNull();
-  });
-
-  it('surfaces a native Error instance directly without wrapping', async () => {
-    mockedFetchCameraSnapshot.mockRejectedValueOnce(new Error('network timeout'));
-
-    const { result } = renderHook(
-      () => useCameraPreview({ id: 'cam-5' }, { enabled: true, intervalMs: 100 }),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.error?.message).toBe('network timeout'));
-    expect(result.current.snapshotUrl).toBeNull();
-  });
-
-  it('clears preview state when disabled', async () => {
-    mockedFetchCameraSnapshot.mockResolvedValueOnce('blob:frame');
-
-    const { result, rerender } = renderHook(
-      ({ enabled }: { enabled: boolean }) =>
-        useCameraPreview({ id: 'cam-3' }, { enabled, intervalMs: 100 }),
-      {
-        wrapper,
-        initialProps: { enabled: true },
-      },
-    );
-
-    await waitFor(() => expect(result.current.snapshotUrl).toBe('blob:frame'));
-
-    rerender({ enabled: false });
-
-    await waitFor(() => {
-      expect(result.current.snapshotUrl).toBeNull();
-      expect(result.current.error).toBeNull();
-    });
-  });
-
-  it('does not fetch when no camera id is available', () => {
-    const { result } = renderHook(
-      () => useCameraPreview(null, { enabled: true, intervalMs: 100 }),
-      { wrapper },
-    );
-
-    expect(result.current.snapshotUrl).toBeNull();
-    expect(result.current.error).toBeNull();
-    expect(mockedFetchCameraSnapshot).not.toHaveBeenCalled();
-  });
-});
 
 describe('RPi camera query hooks', () => {
   beforeEach(() => {
@@ -270,16 +84,16 @@ describe('RPi camera query hooks', () => {
       status: { connection: 'online', details: null, last_seen_at: null },
     });
 
-    expect(camerasQueryOptions(true).queryKey).toEqual(['rpiCameras', true]);
+    expect(camerasQueryOptions(true).queryKey).toEqual(['rpiCameras', true, false]);
     expect(camerasQueryOptions(false).staleTime).toBe(60_000);
-    expect(cameraQueryOptions('cam-1', true).queryKey).toEqual(['rpiCamera', 'cam-1', true]);
+    expect(cameraQueryOptions('cam-1', true).queryKey).toEqual(['rpiCamera', 'cam-1', true, false]);
     expect(cameraQueryOptions('cam-1', true).staleTime).toBe(15_000);
 
-    await camerasQueryOptions(true).queryFn!({} as any);
-    await cameraQueryOptions('cam-1', true).queryFn!({} as any);
+    await camerasQueryOptions(true).queryFn?.({} as never);
+    await cameraQueryOptions('cam-1', true).queryFn?.({} as never);
 
-    expect(mockedFetchCameras).toHaveBeenCalledWith(true);
-    expect(mockedFetchCamera).toHaveBeenCalledWith('cam-1', true);
+    expect(mockedFetchCameras).toHaveBeenCalledWith(true, { includeTelemetry: false });
+    expect(mockedFetchCamera).toHaveBeenCalledWith('cam-1', true, { includeTelemetry: false });
   });
 
   it('defaults includeStatus to false and uses the longer stale time when the flag is omitted', async () => {
@@ -296,19 +110,19 @@ describe('RPi camera query hooks', () => {
       status: { connection: 'online', details: null, last_seen_at: null },
     });
 
-    expect(camerasQueryOptions().queryKey).toEqual(['rpiCameras', false]);
+    expect(camerasQueryOptions().queryKey).toEqual(['rpiCameras', false, false]);
     expect(camerasQueryOptions().staleTime).toBe(60_000);
     expect(camerasQueryOptions(true).staleTime).toBe(15_000);
 
-    expect(cameraQueryOptions('cam-1').queryKey).toEqual(['rpiCamera', 'cam-1', false]);
+    expect(cameraQueryOptions('cam-1').queryKey).toEqual(['rpiCamera', 'cam-1', false, false]);
     expect(cameraQueryOptions('cam-1').staleTime).toBe(60_000);
     expect(cameraQueryOptions('cam-1', true).staleTime).toBe(15_000);
 
-    await camerasQueryOptions().queryFn!({} as any);
-    await cameraQueryOptions('cam-1').queryFn!({} as any);
+    await camerasQueryOptions().queryFn?.({} as never);
+    await cameraQueryOptions('cam-1').queryFn?.({} as never);
 
-    expect(mockedFetchCameras).toHaveBeenCalledWith(false);
-    expect(mockedFetchCamera).toHaveBeenCalledWith('cam-1', false);
+    expect(mockedFetchCameras).toHaveBeenCalledWith(false, { includeTelemetry: false });
+    expect(mockedFetchCamera).toHaveBeenCalledWith('cam-1', false, { includeTelemetry: false });
   });
 
   it('runs useCamerasQuery when enabled and skips it when disabled', async () => {
@@ -341,8 +155,12 @@ describe('RPi camera query hooks', () => {
       rerender({ enabled: true });
     });
 
-    await waitFor(() => expect(mockedFetchCameras).toHaveBeenCalledWith(true));
-    unmount();
+    await waitFor(() =>
+      expect(mockedFetchCameras).toHaveBeenCalledWith(true, { includeTelemetry: false }),
+    );
+    act(() => {
+      unmount();
+    });
   });
 
   it('runs useCameraQuery only when a camera id is present', async () => {
@@ -373,8 +191,12 @@ describe('RPi camera query hooks', () => {
       rerender({ id: 'cam-2' });
     });
 
-    await waitFor(() => expect(mockedFetchCamera).toHaveBeenCalledWith('cam-2', true));
-    unmount();
+    await waitFor(() =>
+      expect(mockedFetchCamera).toHaveBeenCalledWith('cam-2', true, { includeTelemetry: false }),
+    );
+    act(() => {
+      unmount();
+    });
   });
 });
 
@@ -441,6 +263,15 @@ describe('RPi camera mutation hooks', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCameras'] });
   });
 
+  it('stays idle and never fetches when cameraId is null', () => {
+    const { result, unmount } = renderHook(() => useCameraTelemetryQuery(null), { wrapper });
+
+    expect(result.current.fetchStatus).toBe('idle');
+    act(() => {
+      unmount();
+    });
+  });
+
   it('invalidates the owning product after capturing a camera image', async () => {
     mockedCaptureImageFromCamera.mockResolvedValue({
       id: 'img-1',
@@ -458,5 +289,37 @@ describe('RPi camera mutation hooks', () => {
 
     expect(mockedCaptureImageFromCamera).toHaveBeenCalledWith('cam-5', 42);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['product', 42] });
+  });
+});
+
+describe('useCameraLivePreview', () => {
+  it('returns hlsUrl null when camera is null', () => {
+    const { result, unmount } = renderHook(() => useCameraLivePreview(null), { wrapper });
+    expect(result.current.hlsUrl).toBeNull();
+    act(() => {
+      unmount();
+    });
+  });
+
+  it('returns hlsUrl null when enabled is false', () => {
+    const { result, unmount } = renderHook(
+      () => useCameraLivePreview({ id: 'cam-99' }, { enabled: false }),
+      { wrapper },
+    );
+    expect(result.current.hlsUrl).toBeNull();
+    act(() => {
+      unmount();
+    });
+  });
+
+  it('returns an hlsUrl containing the camera id when enabled', () => {
+    const { result, unmount } = renderHook(() => useCameraLivePreview({ id: 'cam-99' }), {
+      wrapper,
+    });
+    expect(result.current.hlsUrl).toContain('cam-99');
+    expect(result.current.hlsUrl).toContain('index.m3u8');
+    act(() => {
+      unmount();
+    });
   });
 });

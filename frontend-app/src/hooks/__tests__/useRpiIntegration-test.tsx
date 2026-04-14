@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useAuth } from '@/context/AuthProvider';
 import { updateUser } from '@/services/api/authentication';
+import type { User } from '@/types/User';
 import { useRpiIntegration } from '../useRpiIntegration';
 
 jest.mock('@/context/AuthProvider', () => ({
@@ -28,8 +29,8 @@ describe('useRpiIntegration', () => {
         id: 'user-1',
         username: 'tester',
         preferences: { rpi_camera_enabled: true },
-      } as any,
-      refetch: refetch as any,
+      } as unknown as User,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
       isLoading: false,
     });
 
@@ -45,8 +46,8 @@ describe('useRpiIntegration', () => {
         id: 'user-2',
         username: 'tester',
         preferences: { rpi_camera_enabled: false },
-      } as any,
-      refetch: refetch as any,
+      } as unknown as User,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
       isLoading: false,
     });
     mockedUpdateUser.mockResolvedValue(undefined);

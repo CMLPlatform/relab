@@ -20,7 +20,7 @@ export async function getPublicProfile(username: string): Promise<PublicProfileV
     headers,
   });
 
-  if (!response.ok) {
+  if (!response?.ok) {
     throw new Error('Profile not found');
   }
 

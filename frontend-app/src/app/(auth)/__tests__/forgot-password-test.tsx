@@ -25,7 +25,6 @@ describe('ForgotPasswordScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
     mockedApiFetch.mockResolvedValue(createMockResponse(true));
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
@@ -33,10 +32,6 @@ describe('ForgotPasswordScreen', () => {
       back: mockBack,
       setParams: jest.fn(),
     });
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
   });
 
   it('renders the forgot password form', () => {

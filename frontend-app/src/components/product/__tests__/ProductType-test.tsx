@@ -49,9 +49,9 @@ describe('ProductType', () => {
     });
   });
 
-  it("renders 'Type or Material' heading", () => {
+  it("renders 'Type or Material' heading", async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={false} />);
-    expect(screen.getByText(/Type or Material/)).toBeOnTheScreen();
+    expect(await screen.findByText(/Type or Material/)).toBeOnTheScreen();
   });
 
   it('renders the root category when productTypeID is undefined', async () => {

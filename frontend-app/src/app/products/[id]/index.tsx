@@ -360,7 +360,6 @@ export default function ProductPage(): JSX.Element {
               position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
               right: 0,
               bottom: 0,
-              overflow: 'hidden',
               margin: 19,
             }}
             disabled={!validationResult.isValid || isSaving}
@@ -377,7 +376,6 @@ export default function ProductPage(): JSX.Element {
             position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
             right: 0,
             bottom: 0,
-            overflow: 'hidden',
             margin: 19,
           }}
           disabled={(editMode && !validationResult.isValid) || isSaving}

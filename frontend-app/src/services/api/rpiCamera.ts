@@ -22,8 +22,25 @@ export interface CameraRead {
   updated_at: string;
 }
 
+export type ThermalState = 'normal' | 'warm' | 'throttle' | 'critical';
+
+export interface CameraTelemetry {
+  timestamp: string;
+  cpu_temp_c: number | null;
+  cpu_percent: number;
+  mem_percent: number;
+  disk_percent: number;
+  preview_fps: number | null;
+  preview_sessions: number;
+  thermal_state: ThermalState;
+  current_preview_size: [number, number] | null;
+}
+
 export interface CameraReadWithStatus extends CameraRead {
   status: CameraStatus;
+  telemetry?: CameraTelemetry | null;
+  /** Canonical URL of the most recent capture for this camera, or null if none yet. */
+  last_image_url?: string | null;
 }
 
 export interface CameraUpdate {
@@ -44,16 +61,6 @@ export interface PairingClaimRequest {
   description?: string | null;
 }
 
-export class CameraSnapshotError extends Error {
-  status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = 'CameraSnapshotError';
-    this.status = status;
-  }
-}
-
 const BASE = `${API_URL}/plugins/rpi-cam/cameras`;
 const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
 
@@ -68,9 +75,13 @@ async function jsonHeaders(): Promise<Record<string, string>> {
   return { ...(await authHeaders()), 'Content-Type': 'application/json' };
 }
 
-export async function fetchCameras(includeStatus = false): Promise<CameraReadWithStatus[]> {
+export async function fetchCameras(
+  includeStatus = false,
+  { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
+): Promise<CameraReadWithStatus[]> {
   const url = new URL(BASE);
-  if (includeStatus) url.searchParams.set('include_status', 'true');
+  if (includeStatus || includeTelemetry) url.searchParams.set('include_status', 'true');
+  if (includeTelemetry) url.searchParams.set('include_telemetry', 'true');
   const resp = await apiFetch(url, { method: 'GET', headers: await authHeaders() });
   if (!resp.ok) throw new Error(`Failed to fetch cameras (${resp.status})`);
   return resp.json() as Promise<CameraReadWithStatus[]>;
@@ -79,12 +90,23 @@ export async function fetchCameras(includeStatus = false): Promise<CameraReadWit
 export async function fetchCamera(
   id: string,
   includeStatus = false,
+  { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
 ): Promise<CameraReadWithStatus> {
   const url = new URL(`${BASE}/${id}`);
-  if (includeStatus) url.searchParams.set('include_status', 'true');
+  if (includeStatus || includeTelemetry) url.searchParams.set('include_status', 'true');
+  if (includeTelemetry) url.searchParams.set('include_telemetry', 'true');
   const resp = await apiFetch(url, { method: 'GET', headers: await authHeaders() });
   if (!resp.ok) throw new Error(`Failed to fetch camera (${resp.status})`);
   return resp.json() as Promise<CameraReadWithStatus>;
+}
+
+export async function fetchCameraTelemetry(cameraId: string): Promise<CameraTelemetry> {
+  const resp = await apiFetch(`${BASE}/${cameraId}/telemetry`, {
+    method: 'GET',
+    headers: await authHeaders(),
+  });
+  if (!resp.ok) throw new Error(`Failed to fetch camera telemetry (${resp.status})`);
+  return resp.json() as Promise<CameraTelemetry>;
 }
 
 export async function updateCamera(id: string, data: CameraUpdate): Promise<CameraRead> {
@@ -124,22 +146,13 @@ export async function captureImageFromCamera(
   };
 }
 
-export async function fetchCameraSnapshot(cameraId: string): Promise<string> {
-  const resp = await apiFetch(`${BASE}/${cameraId}/snapshot`, {
-    method: 'GET',
-    headers: await authHeaders(),
-  });
-  if (!resp.ok) {
-    if (resp.status === 409) {
-      throw new CameraSnapshotError(
-        409,
-        'Snapshot preview unavailable while the camera is streaming.',
-      );
-    }
-    throw new CameraSnapshotError(resp.status, `Failed to fetch snapshot (${resp.status})`);
-  }
-  const blob = await resp.blob();
-  return URL.createObjectURL(blob);
+/**
+ * LL-HLS playlist URL served by the backend's HLS proxy. Pass this to
+ * ``hls.js`` (web) or ``expo-video`` (native) — the player walks the manifest
+ * itself and fetches segments via the same proxy.
+ */
+export function buildCameraHlsUrl(cameraId: string): string {
+  return `${BASE}/${cameraId}/hls/cam-preview/index.m3u8`;
 }
 
 export async function claimPairingCode(data: PairingClaimRequest): Promise<CameraRead> {

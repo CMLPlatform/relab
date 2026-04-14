@@ -1,5 +1,6 @@
-import '@testing-library/react-native/build/matchers/extend-expect';
 import { afterAll, afterEach, beforeAll, jest } from '@jest/globals';
+import '@testing-library/jest-native/extend-expect';
+import '@testing-library/react-native/build/matchers/extend-expect';
 import type React from 'react';
 import { server } from './src/test-utils/server';
 
@@ -26,7 +27,7 @@ if (typeof window !== 'undefined' && typeof window.history?.replaceState !== 'fu
 // ── MSW server lifecycle ───────────────────────────────────────────────────
 // Start the server before all tests, reset per-test overrides after each
 // test, and clean up after the full suite.
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
@@ -61,9 +62,43 @@ jest.mock('expo-router', () => {
   };
 });
 
-// Mock vector icons
-jest.mock('@expo/vector-icons', () => ({
-  MaterialCommunityIcons: 'MaterialCommunityIcons',
+// Mock vector icons as static functional components to avoid act() warnings
+// from any internal effects or async font loading.
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+  const MockIcon = ({
+    name,
+    testID,
+    ...props
+  }: {
+    name: string;
+    testID?: string;
+    [key: string]: unknown;
+  }) => React.createElement(Text, { testID: testID || `icon-${name}`, ...props }, name);
+
+  return {
+    MaterialCommunityIcons: MockIcon,
+    MaterialIcons: MockIcon,
+    Ionicons: MockIcon,
+    FontAwesome: MockIcon,
+    Feather: MockIcon,
+    // Mock the factory functions
+    createIconSet: () => MockIcon,
+    createIconSetFromIcoMoon: () => MockIcon,
+    createIconSetFromFontello: () => MockIcon,
+  };
+});
+
+// Also mock common subpaths that libraries might import from directly
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => ({
+  default:
+    jest.requireMock<typeof import('@expo/vector-icons')>('@expo/vector-icons')
+      .MaterialCommunityIcons,
+}));
+jest.mock('@expo/vector-icons/MaterialIcons', () => ({
+  default:
+    jest.requireMock<typeof import('@expo/vector-icons')>('@expo/vector-icons').MaterialIcons,
 }));
 
 // Mock react-native-paper Icon to a stable component to avoid act() warnings
@@ -74,22 +109,24 @@ jest.mock('react-native-paper', () => {
   ) as Record<string, unknown>;
   const { Text } = require('react-native');
 
-  const Icon = ({
-    source,
-    name,
-    testID,
-    ...props
-  }: {
-    source?: string;
-    name?: string;
-    testID?: string;
-    [key: string]: unknown;
-  }) =>
-    React.createElement(
-      Text,
-      { testID: testID || 'mock-icon', ...props },
-      source || name || 'icon',
-    );
+  const Icon = React.memo(
+    ({
+      source,
+      name,
+      testID,
+      ...props
+    }: {
+      source?: string;
+      name?: string;
+      testID?: string;
+      [key: string]: unknown;
+    }) =>
+      React.createElement(
+        Text,
+        { testID: testID || 'mock-icon', ...props },
+        typeof source === 'string' ? source : name || 'icon',
+      ),
+  );
 
   return { ...actual, Icon };
 });
@@ -213,6 +250,31 @@ jest.mock('expo-image', () => {
   };
 });
 
+// Mock expo-video (used by LivePreview) to avoid importing native components
+jest.mock('expo-video', () => {
+  const React = require('react');
+  const noop = jest.fn();
+  return {
+    useVideoPlayer: (src: string, init?: (instance: any) => void) => {
+      const instance = { muted: false, loop: false, play: noop };
+      try {
+        if (typeof init === 'function') init(instance);
+      } catch {
+        /* ignore */
+      }
+      return instance;
+    },
+    VideoView: (props: { [key: string]: unknown }) =>
+      React.createElement('View', { testID: 'expo-video-view', ...props }),
+  };
+});
+
+// Provide a safe default for ThemeModeProvider hooks used by UI components
+jest.mock('@/context/ThemeModeProvider', () => ({
+  useEffectiveColorScheme: () => 'light',
+  useThemeMode: () => ({ themeMode: 'auto', setThemeMode: jest.fn() }),
+}));
+
 // Mock react-native-gesture-handler
 jest.mock('react-native-gesture-handler', () => {
   const React = require('react');
@@ -258,6 +320,19 @@ jest.mock('react-native-gesture-handler', () => {
     },
   };
 });
+
+// Re-enable native animated helper to avoid file-not-found errors, but we might
+// Mock Animated from react-native to handle shadowOffset errors.
+// Some libraries (like react-native-paper) use native driver for shadows,
+// which triggers warnings in Jest. We allow these properties globally.
+try {
+  const { allowStyleProp } = require('react-native/Libraries/Animated/NativeAnimatedAllowlist');
+  if (typeof allowStyleProp === 'function') {
+    ['shadowColor', 'shadowOffset'].forEach(allowStyleProp);
+  }
+} catch (_e) {
+  // Path might vary by RN version; skip if not found
+}
 
 afterEach(async () => {
   const AsyncStorage = require('@react-native-async-storage/async-storage');

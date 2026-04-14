@@ -4,30 +4,32 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { renderWithProviders } from '@/test-utils';
 import CameraDetailScreen from '../[id]';
 
-jest.mock('expo-image', () => ({
-  Image: ({ source }: { source: { uri: string } }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    const React = jest.requireActual<typeof import('react')>('react');
-    return React.createElement(Text, null, `img:${source?.uri}`);
-  },
-}));
-
 const mockUseAuth = jest.fn();
 const mockUseCameraQuery = jest.fn();
-const mockUseCameraPreview = jest.fn();
 const mockUseUpdateCameraMutation = jest.fn();
 const mockUseDeleteCameraMutation = jest.fn();
 const mockUpdateMutate = jest.fn();
-const mockDeleteMutate = jest.fn();
+const mockDeleteMutate = jest.fn<(_id: string, options?: { onSuccess?: () => void }) => void>();
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
 jest.mock('@/hooks/useRpiCameras', () => ({
-  useCameraPreview: (...args: unknown[]) => mockUseCameraPreview(...args),
+  useCameraQuery: (...args: unknown[]) => mockUseCameraQuery(...args),
   useUpdateCameraMutation: () => mockUseUpdateCameraMutation(),
   useDeleteCameraMutation: () => mockUseDeleteCameraMutation(),
+}));
+
+// LivePreview pulls in expo-video / hls.js — both noisy under jest-expo's
+// transform pipeline. Stub the component out to a marker text so the screen
+// renders without spinning up a real HLS player.
+jest.mock('@/components/cameras/LivePreview', () => ({
+  LivePreview: () => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    const React = jest.requireActual<typeof import('react')>('react');
+    return React.createElement(Text, null, 'live-preview-stub');
+  },
 }));
 
 describe('Camera detail screen', () => {
@@ -57,6 +59,8 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'Workbench Camera',
         description: 'Bench setup',
+        relay_type: 'websocket',
+        direct_url: null,
         status: { connection: 'online' },
       },
       isLoading: false,
@@ -65,21 +69,14 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
-    mockUseCameraPreview.mockReturnValue({
-      snapshotUrl: null,
-      error: new Error('Snapshot preview unavailable while the camera is streaming.'),
-    });
     mockUseUpdateCameraMutation.mockReturnValue({ mutate: mockUpdateMutate, isPending: false });
     mockUseDeleteCameraMutation.mockReturnValue({ mutate: mockDeleteMutate, isPending: false });
   });
 
-  it('shows snapshot preview polling copy and the streaming conflict message', async () => {
+  it('renders the live preview component for an online camera and sets the screen title', async () => {
     renderWithProviders(<CameraDetailScreen />);
 
-    expect(
-      await screen.findByText('Snapshot preview unavailable while the camera is streaming.'),
-    ).toBeOnTheScreen();
-    expect(screen.getByText('Snapshot preview · polling')).toBeOnTheScreen();
+    expect(await screen.findByText('live-preview-stub')).toBeOnTheScreen();
     expect(mockNavigationSetOptions).toHaveBeenCalledWith({ title: 'Workbench Camera' });
   });
 
@@ -89,6 +86,8 @@ describe('Camera detail screen', () => {
         id: 'cam-1',
         name: 'Workbench Camera',
         description: null,
+        relay_type: 'websocket',
+        direct_url: null,
         status: { connection: 'offline' },
       },
       isLoading: false,
@@ -97,11 +96,6 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
-    mockUseCameraPreview.mockReturnValue({
-      snapshotUrl: null,
-      error: null,
-    });
-
     renderWithProviders(<CameraDetailScreen />);
 
     expect(
@@ -182,9 +176,82 @@ describe('Camera detail screen', () => {
     );
   });
 
+  it('shows error view with Retry when data is undefined and isError is false', async () => {
+    mockUseCameraQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+      isFetching: false,
+    });
+
+    renderWithProviders(<CameraDetailScreen />);
+
+    // String(null) = 'null' so the fallback text never shows, but the error
+    // view branch (isError || !camera) is still entered — confirm via Retry.
+    expect(await screen.findByText('Retry')).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Retry'));
+    expect(mockRefetch).toHaveBeenCalled();
+  });
+
+  it('shows Offline label when camera status is null', async () => {
+    mockUseCameraQuery.mockReturnValue({
+      data: {
+        id: 'cam-1',
+        name: 'Workbench Camera',
+        description: null,
+        relay_type: 'websocket',
+        direct_url: null,
+        status: null,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+      isFetching: false,
+    });
+
+    renderWithProviders(<CameraDetailScreen />);
+
+    expect(await screen.findByText('Offline')).toBeOnTheScreen();
+  });
+
+  it('dismisses the edit-name dialog when Cancel is pressed', async () => {
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+
+    fireEvent.press(screen.getByLabelText('Edit name'));
+    expect(screen.getByText('Edit name')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Cancel'));
+
+    await waitFor(() => expect(screen.queryByText('Edit name')).toBeNull());
+  });
+
+  it('dismisses the edit-description dialog when Cancel is pressed', async () => {
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+
+    fireEvent.press(screen.getByLabelText('Edit description'));
+    expect(screen.getByText('Edit description')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Cancel'));
+
+    await waitFor(() => expect(screen.queryByText('Edit description')).toBeNull());
+  });
+
+  it('dismisses the delete dialog when Cancel is pressed', async () => {
+    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+
+    fireEvent.press(screen.getByText('Delete camera'));
+    expect(screen.getByText('Delete camera?')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Cancel'));
+
+    await waitFor(() => expect(screen.queryByText('Delete camera?')).toBeNull());
+  });
+
   it('opens the delete confirmation and navigates away after successful deletion', async () => {
-    mockDeleteMutate.mockImplementationOnce((...args: any[]) => {
-      const options = args[1] as { onSuccess?: () => void } | undefined;
+    mockDeleteMutate.mockImplementationOnce((_id: string, options?: { onSuccess?: () => void }) => {
       options?.onSuccess?.();
     });
 
@@ -200,69 +267,5 @@ describe('Camera detail screen', () => {
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/cameras'));
-  });
-
-  it('shows a loading spinner in the snapshot card while waiting for the first frame', async () => {
-    mockUseCameraQuery.mockReturnValue({
-      data: {
-        id: 'cam-1',
-        name: 'Workbench Camera',
-        description: null,
-        status: { connection: 'online' },
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-      isFetching: false,
-    });
-    mockUseCameraPreview.mockReturnValue({ snapshotUrl: null, error: null });
-
-    renderWithProviders(<CameraDetailScreen />);
-
-    expect(await screen.findByText('Loading preview…')).toBeOnTheScreen();
-  });
-
-  it('renders the snapshot image when a frame is available', async () => {
-    mockUseCameraQuery.mockReturnValue({
-      data: {
-        id: 'cam-1',
-        name: 'Workbench Camera',
-        description: null,
-        status: { connection: 'online' },
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-      isFetching: false,
-    });
-    mockUseCameraPreview.mockReturnValue({ snapshotUrl: 'blob:snapshot-frame', error: null });
-
-    renderWithProviders(<CameraDetailScreen />);
-
-    expect(await screen.findByText('img:blob:snapshot-frame')).toBeOnTheScreen();
-  });
-
-  it('shows the camera URL row for direct-http cameras', async () => {
-    mockUseCameraQuery.mockReturnValue({
-      data: {
-        id: 'cam-1',
-        name: 'HTTP Camera',
-        description: null,
-        status: { connection: 'offline' },
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-      isFetching: false,
-    });
-    mockUseCameraPreview.mockReturnValue({ snapshotUrl: null, error: null });
-
-    renderWithProviders(<CameraDetailScreen />);
-
-    expect(await screen.findByText('http://camera.local:8018')).toBeOnTheScreen();
-    expect(screen.getAllByText('Direct HTTP').length).toBeGreaterThan(0);
   });
 });

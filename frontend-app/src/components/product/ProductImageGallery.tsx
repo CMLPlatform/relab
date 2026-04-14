@@ -25,9 +25,10 @@ import {
   Portal,
 } from 'react-native-paper';
 
+import { LivePreview } from '@/components/cameras/LivePreview';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
 import ZoomableImage from '@/components/common/ZoomableImage';
-import { useCameraPreview, useCamerasQuery, useCaptureImageMutation } from '@/hooks/useRpiCameras';
+import { useCamerasQuery, useCaptureImageMutation } from '@/hooks/useRpiCameras';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { getResizedImageUrl, resolveApiMediaUrl } from '@/services/api/media';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
@@ -90,12 +91,6 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   const showRpiButton = rpiEnabled;
   const hasCamerasConfigured = (rpiCameras?.length ?? 0) > 0;
   const isNewProduct = productId === null;
-
-  const { snapshotUrl, error: previewError } = useCameraPreview(previewCamera, {
-    enabled: previewCamera !== null,
-  });
-  const previewErrorMessage =
-    previewError?.message ?? 'Snapshot preview unavailable. The camera may be offline.';
 
   const captureFromCamera = useCallback(
     (camera: CameraReadWithStatus) => {
@@ -666,34 +661,13 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         >
           <Dialog.Title>{previewCamera?.name ?? 'Camera preview'}</Dialog.Title>
           <Dialog.Content style={{ alignItems: 'center', gap: 12 }}>
-            {previewError ? (
-              <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
-                <Icon source="camera-off" size={48} color="#999" />
-                <PaperText style={{ color: '#999', textAlign: 'center' }}>
-                  {previewErrorMessage}
-                </PaperText>
-              </View>
-            ) : snapshotUrl ? (
-              <Image
-                source={{ uri: snapshotUrl }}
-                style={{ width: '100%', aspectRatio: 4 / 3, borderRadius: 8 }}
-                contentFit="contain"
-              />
-            ) : (
-              <View style={{ padding: 24, alignItems: 'center', gap: 8 }}>
-                <ActivityIndicator size={32} />
-                <PaperText style={{ color: '#999' }}>Connecting…</PaperText>
-              </View>
-            )}
-            <PaperText variant="bodySmall" style={{ color: '#999' }}>
-              Snapshot preview · polling
-            </PaperText>
+            <LivePreview camera={previewCamera} enabled={previewCamera !== null} />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPreviewCamera(null)}>Cancel</Button>
             <Button
               mode="contained"
-              disabled={!snapshotUrl || isCapturing}
+              disabled={isCapturing}
               loading={isCapturing}
               onPress={() => previewCamera && captureFromCamera(previewCamera)}
             >

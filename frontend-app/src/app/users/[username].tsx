@@ -21,7 +21,7 @@ export default function UserProfileScreen() {
     try {
       const data = await getPublicProfile(username);
       setProfile(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profile.');
     } finally {
       setLoading(false);
@@ -54,14 +54,24 @@ export default function UserProfileScreen() {
         {!loading && !error && profile && (
           <View style={styles.profileContainer}>
             <View style={styles.heroSection}>
-              <View style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.primaryContainer }]}>
+              <View
+                style={[
+                  styles.avatarPlaceholder,
+                  { backgroundColor: theme.colors.primaryContainer },
+                ]}
+              >
                 <Text style={[styles.avatarText, { color: theme.colors.onPrimaryContainer }]}>
                   {profile.username.substring(0, 2).toUpperCase()}
                 </Text>
               </View>
               <Text style={styles.usernameText}>{profile.username}</Text>
               <Text style={styles.joinedText}>
-                Joined {new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                Joined{' '}
+                {new Date(profile.created_at).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </Text>
             </View>
 
@@ -93,7 +103,9 @@ export default function UserProfileScreen() {
               <Card style={styles.statCard} mode="outlined">
                 <Card.Content style={styles.statContent}>
                   <Icon source="tag-outline" size={32} color="#ff9800" />
-                  <Text style={styles.statValue} numberOfLines={1}>{profile.top_category || 'None'}</Text>
+                  <Text style={styles.statValue} numberOfLines={1}>
+                    {profile.top_category || 'None'}
+                  </Text>
                   <Text style={styles.statLabel}>Top Category</Text>
                 </Card.Content>
               </Card>

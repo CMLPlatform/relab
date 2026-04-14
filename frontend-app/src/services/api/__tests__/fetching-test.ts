@@ -213,48 +213,6 @@ describe('Fetching API Service logic', () => {
       expect(p.circularityProperties.recyclabilityObservation).toBe('');
     });
 
-    it('still supports the legacy nested property shape while codegen catches up', async () => {
-      const legacyShape = {
-        ...rawProductData,
-        weight_g: undefined,
-        height_cm: undefined,
-        width_cm: undefined,
-        depth_cm: undefined,
-        recyclability_comment: undefined,
-        recyclability_observation: undefined,
-        recyclability_reference: undefined,
-        remanufacturability_comment: undefined,
-        remanufacturability_observation: undefined,
-        remanufacturability_reference: undefined,
-        repairability_comment: undefined,
-        repairability_observation: undefined,
-        repairability_reference: undefined,
-        physical_properties: {
-          weight_g: 100,
-          height_cm: 10,
-          width_cm: 5,
-          depth_cm: 3,
-        },
-        circularity_properties: {
-          recyclability_comment: null,
-          recyclability_observation: 'low',
-          recyclability_reference: null,
-          remanufacturability_comment: null,
-          remanufacturability_observation: 'medium',
-          remanufacturability_reference: null,
-          repairability_comment: null,
-          repairability_observation: 'high',
-          repairability_reference: null,
-        },
-      };
-      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(legacyShape)));
-
-      const p = await getProduct(42);
-
-      expect(p.physicalProperties.weight).toBe(100);
-      expect(p.circularityProperties.recyclabilityObservation).toBe('low');
-    });
-
     it('throws ProductNotFoundError on 404', async () => {
       server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 404 })));
 

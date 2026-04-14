@@ -441,7 +441,9 @@ export default function Products() {
     if (isAuthenticated) {
       try {
         await updateUser({ preferences: { products_welcome_dismissed: true } });
-        await refetchUser(false);
+        if (typeof refetchUser === 'function') {
+          await refetchUser(false);
+        }
       } catch (err) {
         console.error('Failed to save info card preference:', err);
       }
@@ -980,7 +982,6 @@ const styles = StyleSheet.create({
   welcomeCard: {
     marginHorizontal: 0,
     borderRadius: 24,
-    overflow: 'hidden',
   },
   welcomeCardContent: {
     gap: 12,
