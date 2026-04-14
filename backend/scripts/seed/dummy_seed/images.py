@@ -46,9 +46,7 @@ async def seed_images(session: AsyncSession, product_id_map: dict[str, int]) -> 
             continue
 
         existing_stmt = (
-            select(Image.id)
-            .where(Image.parent_id == parent_id, Image.parent_type == MediaParentType.PRODUCT)
-            .limit(1)
+            select(Image.id).where(Image.parent_id == parent_id, Image.parent_type == MediaParentType.PRODUCT).limit(1)
         )
         if (await session.execute(existing_stmt)).scalars().first():
             logger.info("Product %s already has images, skipping.", data["parent_product_name"])

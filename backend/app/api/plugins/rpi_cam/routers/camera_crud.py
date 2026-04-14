@@ -6,18 +6,22 @@ from fastapi import Query
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.common.crud.base import get_models
+from app.api.common.crud.query import list_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, CameraTransferOwnerIDDep, UserOwnedCameraDep
 from app.api.plugins.rpi_cam.examples import (
-    CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES,
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
-from app.api.plugins.rpi_cam.services import get_camera_status as fetch_camera_status
+from app.api.plugins.rpi_cam.services import (
+    get_camera_status as fetch_camera_status,
+)
+from app.api.plugins.rpi_cam.services import (
+    get_last_image_url_per_camera,
+)
 from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
@@ -43,13 +47,38 @@ async def get_user_cameras(
         description="Include camera online status",
         openapi_examples=CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
     ),
+    include_telemetry: bool = Query(
+        default=False,
+        description=(
+            "Include the last-known telemetry snapshot from the Redis cache. Implies "
+            "``include_status=true``. No relay round-trips — cameras without cached telemetry "
+            "come back with ``telemetry: null``."
+        ),
+    ),
 ) -> Sequence[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
     statement = select(Camera).where(Camera.owner_id == current_user.id)
-    db_cameras = await get_models(session, Camera, model_filter=camera_filter, statement=statement)
+    db_cameras = await list_models(session, Camera, filters=camera_filter, statement=statement)
+
+    if not (include_status or include_telemetry):
+        return list(db_cameras)
+
+    # Batch-fetch the most recent capture URL per camera in one query so the
+    # mosaic list doesn't fan out N DB round-trips. When telemetry isn't
+    # requested we skip this too — no point paying the query cost for a
+    # caller that just wants online/offline status.
+    last_image_urls: dict = {}
+    if include_telemetry:
+        camera_ids = [camera.id for camera in db_cameras]
+        last_image_urls = await get_last_image_url_per_camera(session, camera_ids)
 
     return [
-        await CameraReadWithStatus.from_db_model_with_status(camera, redis) if include_status else camera
+        await CameraReadWithStatus.from_db_model_with_status(
+            camera,
+            redis,
+            include_telemetry=include_telemetry,
+            last_image_url=last_image_urls.get(camera.id),
+        )
         for camera in db_cameras
     ]
 
@@ -62,15 +91,31 @@ async def get_user_cameras(
 async def get_user_camera(
     db_camera: UserOwnedCameraDep,
     redis: OptionalRedisDep,
+    session: AsyncSessionDep,
     *,
     include_status: bool = Query(
         default=False,
         description="Include camera online status",
         openapi_examples=CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
     ),
+    include_telemetry: bool = Query(
+        default=False,
+        description="Include last-known telemetry from the Redis cache. Implies ``include_status=true``.",
+    ),
 ) -> Camera | CameraReadWithStatus:
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
-    return await CameraReadWithStatus.from_db_model_with_status(db_camera, redis) if include_status else db_camera
+    if not (include_status or include_telemetry):
+        return db_camera
+    last_image_url: str | None = None
+    if include_telemetry:
+        urls = await get_last_image_url_per_camera(session, [db_camera.id])
+        last_image_url = urls.get(db_camera.id)
+    return await CameraReadWithStatus.from_db_model_with_status(
+        db_camera,
+        redis,
+        include_telemetry=include_telemetry,
+        last_image_url=last_image_url,
+    )
 
 
 @camera_router.get(

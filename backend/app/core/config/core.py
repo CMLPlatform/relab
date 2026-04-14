@@ -24,6 +24,11 @@ if TYPE_CHECKING:
     from typing import Self
 
 
+# Constants for database drivers to resolve PLR2004
+DATABASE_DRIVER_PSYCOPG = "psycopg"
+DATABASE_DRIVER_ASYNCPG = "asyncpg"
+
+
 class CoreSettings(RelabBaseSettings):
     """Settings class to store all the configurations for the app."""
 
@@ -143,7 +148,10 @@ class CoreSettings(RelabBaseSettings):
 
     def build_database_url(self, driver: str, database: str) -> str:
         """Build and validate PostgreSQL database URL."""
-        query = {"sslmode": "require" if self.database_ssl else "disable"} if driver == "psycopg" else None
+        query: dict[str, str] = {}
+        if driver == DATABASE_DRIVER_PSYCOPG:
+            query = {"sslmode": "require" if self.database_ssl else "disable"}
+
         url = URL.create(
             f"postgresql+{driver}",
             username=self.postgres_user,
@@ -160,12 +168,12 @@ class CoreSettings(RelabBaseSettings):
     @cached_property
     def async_database_url(self) -> str:
         """Get async database URL."""
-        return self.build_database_url("asyncpg", self.postgres_db)
+        return self.build_database_url(DATABASE_DRIVER_ASYNCPG, self.postgres_db)
 
     @cached_property
     def sync_database_url(self) -> str:
         """Get sync database URL."""
-        return self.build_database_url("psycopg", self.postgres_db)
+        return self.build_database_url(DATABASE_DRIVER_PSYCOPG, self.postgres_db)
 
     @cached_property
     def async_database_connect_args(self) -> dict[str, bool]:

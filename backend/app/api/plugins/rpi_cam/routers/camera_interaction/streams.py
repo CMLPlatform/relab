@@ -11,7 +11,7 @@ from sqlalchemy import select
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.models import OAuthAccount
 from app.api.auth.services.oauth_clients import google_youtube_oauth_client
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.query import require_model
 from app.api.common.exceptions import APIError
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -61,9 +61,10 @@ async def get_camera_stream_status(
     camera_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
+    redis: OptionalRedisDep,
 ) -> StreamView:
     """Fetch the current remote camera stream status from the device plugin."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera)
     response = await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
@@ -86,9 +87,10 @@ async def stop_all_streams(
     camera_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
+    redis: OptionalRedisDep,
 ) -> None:
     """Stop the currently active remote camera stream."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera)
     await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
@@ -141,7 +143,7 @@ async def start_recording(
 ) -> StreamView:
     """Start a YouTube recording stream and cache the backend-owned session in Redis."""
     # Validate video data before starting stream
-    await get_model_or_404(session, Product, product_id)
+    await require_model(session, Product, product_id)
     redis_client = require_redis(redis)
     resolved_title, resolved_description = build_recording_text(
         product_id=product_id,
@@ -169,7 +171,7 @@ async def start_recording(
     )
 
     # Fetch user camera
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera)
 
     # Start Youtube stream
@@ -242,7 +244,7 @@ async def stop_recording(
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
 
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
 
     oauth_account = await session.scalar(
         select(OAuthAccount).where(
@@ -291,7 +293,7 @@ async def get_recording_monitor_stream(
     """Get the YouTube monitor stream for the active backend-owned recording session."""
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera)
 
     stream_status_response = await camera_request(

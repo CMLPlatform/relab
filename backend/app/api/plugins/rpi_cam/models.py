@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any  # noqa: TC003 - SQLAlchemy Mapped needs Any at runtime
+from typing import Any  # noqa: TC003 - SQLAlchemy Mapped needs Any at runtime
 
 from pydantic import UUID4, BaseModel
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
@@ -16,8 +16,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.auth.models import User
 from app.api.common.models.base import Base, TimeStampMixinBare
-
-
 
 
 class CameraCredentialStatus(StrEnum):
@@ -90,7 +88,6 @@ class Camera(TimeStampMixinBare, Base):
         foreign_keys="[Camera.owner_id]",
     )
 
-
     @property
     def credential_is_active(self) -> bool:
         """Return whether this camera can authenticate to the relay."""
@@ -99,7 +96,6 @@ class Camera(TimeStampMixinBare, Base):
     def __hash__(self) -> int:
         """Make Camera instances hashable using their id. Used for caching."""
         return hash(self.id)
-
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"

@@ -6,15 +6,15 @@ import asyncio
 import contextlib
 import json
 import logging
-from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
-import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
-from jwt import InvalidTokenError, PyJWK
+from jwt import InvalidTokenError
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.services import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
@@ -25,6 +25,7 @@ from app.core.middleware.client_ip import extract_client_ip
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from typing import Any
 
     from redis.asyncio import Redis
 
@@ -41,11 +42,6 @@ _HEARTBEAT_TIMEOUT = 90.0
 _MAX_AUTH_FAILURES = 5
 _AUTH_LOCKOUT_SECONDS = 300.0
 _auth_failures: dict[str, tuple[int, float]] = {}
-
-_ASSERTION_AUDIENCE = "relab-rpi-cam-relay"
-_ASSERTION_ALGORITHMS = ["ES256"]
-_REPLAY_KEY_PREFIX = "rpi_cam:relay_assertion_jti:"
-_MAX_ASSERTION_TTL_SECONDS = 5 * 60
 
 
 @router.websocket("/plugins/rpi-cam/ws/connect")
@@ -113,7 +109,7 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
         return False
 
     try:
-        payload = await _verify_device_assertion(assertion, camera, redis)
+        payload = await verify_device_assertion(assertion, camera, redis)
     except InvalidTokenError as exc:
         logger.warning(
             "Camera %s assertion rejected from %s: %s",
@@ -148,50 +144,6 @@ async def _get_camera(camera_id: UUID4) -> Camera | None:
         return await session.get(Camera, camera_id)
     finally:
         await session.close()
-
-
-
-
-
-async def _verify_device_assertion(assertion: str, camera: Camera, redis: Redis) -> dict[str, Any]:
-    header = jwt.get_unverified_header(assertion)
-    if header.get("alg") not in _ASSERTION_ALGORITHMS:
-        msg = "Unsupported assertion algorithm"
-        raise InvalidTokenError(msg)
-    if header.get("kid") != camera.relay_key_id:
-        msg_0 = "Assertion key id does not match camera credential"
-        raise InvalidTokenError(msg_0)
-
-    public_key = PyJWK.from_dict(camera.relay_public_key_jwk).key
-    payload = jwt.decode(
-        assertion,
-        key=public_key,
-        algorithms=_ASSERTION_ALGORITHMS,
-        audience=_ASSERTION_AUDIENCE,
-        options={"require": ["exp", "iat", "nbf", "jti", "sub"]},
-    )
-    expected_subject = f"camera:{camera.id}"
-    if payload.get("sub") != expected_subject:
-        msg_1 = "Assertion subject does not match camera"
-        raise InvalidTokenError(msg_1)
-
-    jti = str(payload.get("jti") or "")
-    if not jti:
-        msg_2 = "Missing assertion id"
-        raise InvalidTokenError(msg_2)
-    ttl = _assertion_replay_ttl(payload)
-    was_set = await redis.set(f"{_REPLAY_KEY_PREFIX}{camera.id}:{jti}", "1", ex=ttl, nx=True)
-    if not was_set:
-        msg_3 = "Assertion replay detected"
-        raise InvalidTokenError(msg_3)
-    payload["kid"] = header.get("kid")
-    return payload
-
-
-def _assertion_replay_ttl(payload: Mapping[str, Any]) -> int:
-    exp = int(payload["exp"])
-    now = int(datetime.now(UTC).timestamp())
-    return max(1, min(exp - now, _MAX_ASSERTION_TTL_SECONDS))
 
 
 def _record_auth_failure(ip: str, current_count: int, now: float) -> None:

@@ -7,7 +7,7 @@ from fastapi_pagination import Page
 from pydantic import UUID4
 
 from app.api.auth.dependencies import current_active_superuser
-from app.api.common.crud.base import get_paginated_models
+from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
@@ -36,7 +36,7 @@ async def get_all_cameras(
     camera_filter: CameraFilterWithOwnerDep,
 ) -> Page[Camera]:
     """Get all Raspberry Pi cameras."""
-    return await get_paginated_models(session, Camera, model_filter=camera_filter, read_schema=CameraRead)
+    return await page_models(session, Camera, filters=camera_filter, read_schema=CameraRead)
 
 
 @router.get("/{camera_id}", summary="Get Raspberry Pi camera by ID", response_model=CameraRead)

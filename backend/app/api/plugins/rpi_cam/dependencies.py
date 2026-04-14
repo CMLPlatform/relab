@@ -9,7 +9,7 @@ from pydantic import UUID4
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.exceptions import UserHasNoOrgError, UserIsNotMemberError
 from app.api.auth.models import User
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.query import require_model
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraOwnershipTransferError
@@ -25,7 +25,7 @@ OWNER_ID_FIELD = "owner_id"
 ### Camera Lookup Dependencies ###
 async def get_camera_by_id(camera_id: UUID4, session: AsyncSessionDep) -> Camera:
     """Retrieve a camera by ID."""
-    return await get_model_or_404(session, Camera, camera_id)
+    return await require_model(session, Camera, camera_id)
 
 
 CameraByIDDep = Annotated[Camera, Depends(get_camera_by_id)]
@@ -57,8 +57,8 @@ async def get_camera_transfer_owner_id(
     if new_owner_id is None:
         raise InvalidCameraOwnershipTransferError
 
-    current_owner = await get_model_or_404(session, User, db_camera.owner_id)
-    new_owner = await get_model_or_404(session, User, new_owner_id)
+    current_owner = await require_model(session, User, db_camera.owner_id)
+    new_owner = await require_model(session, User, new_owner_id)
 
     if current_owner.id != new_owner.id:
         if current_owner.organization_id is None:

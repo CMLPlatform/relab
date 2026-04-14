@@ -17,22 +17,39 @@ from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 
 logger = logging.getLogger(__name__)
 _RELAY_RETRY_AFTER_SECONDS = "2"
-_GET = "GET"
-_ALLOWED_IMAGE_PATH_PREFIX = "/images/"
+
+# Exact (method, path) pairs permitted through the relay. Anything outside this
+# set and _ALLOWED_PATH_PREFIXES is rejected with 403.
+#
+# The relay carries commands only: captured image bytes travel over a direct
+# Pi→backend HTTPS upload (see
+# ``routers/camera_interaction/images.py::receive_camera_upload``), not
+# through this allowlist.
 _ALLOWED_COMMANDS = {
     ("GET", "/camera"),
-    ("GET", "/images/preview"),
     ("POST", "/images"),
     ("GET", "/stream"),
     ("POST", "/stream"),
     ("DELETE", "/stream"),
+    ("GET", "/telemetry"),
 }
+
+# Dynamic prefixes. Requests where `path.startswith(prefix)` are permitted for
+# the matching method. Prefix entries must end in `/` to avoid accidental
+# prefix-of-sibling matches.
+_ALLOWED_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
+    # LL-HLS live preview. The Pi proxies to its local MediaMTX HLS listener
+    # on :8888 and returns playlist + segment bytes. Every segment fetch is
+    # one relay round-trip — at ~500kbps lores / 200ms parts that's ~12.5 KB
+    # per request, which the WebSocket carries fine.
+    ("GET", "/hls/"),
+)
 
 
 def _relay_command_allowed(method: str, path: str) -> bool:
     if (method, path) in _ALLOWED_COMMANDS:
         return True
-    return method == _GET and path.startswith(_ALLOWED_IMAGE_PATH_PREFIX)
+    return any(method == m and path.startswith(p) for m, p in _ALLOWED_PATH_PREFIXES)
 
 
 async def relay_via_websocket(

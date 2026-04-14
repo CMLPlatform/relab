@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime  # noqa: TC003 - required at runtime for Pydantic response schema rebuilds
-from typing import TYPE_CHECKING, Any, Self  # noqa: TC003 - Pydantic
-
-from redis.asyncio import Redis  # noqa: TC003 - Pydantic
+from typing import TYPE_CHECKING, Any, Self
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
@@ -16,7 +13,9 @@ from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUID
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
 
-
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
+    from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 
 class CameraFilter(Filter):
@@ -76,6 +75,8 @@ class CameraRead(UUIDIdReadSchemaWithTimeStamp, CameraBase):
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_EXAMPLES})
 
+    owner_id: UUID4
+    relay_key_id: str
     relay_credential_status: CameraCredentialStatus
 
 
@@ -83,15 +84,31 @@ class CameraReadWithStatus(CameraRead):
     """Schema for camera read with online status."""
 
     status: CameraStatus
+    telemetry: TelemetrySnapshot | None = None
+    last_image_url: str | None = None
 
     @classmethod
-    async def from_db_model_with_status(cls, db_model: Camera, redis: Redis | None) -> Self:
+    async def from_db_model_with_status(
+        cls,
+        db_model: Camera,
+        redis: Redis | None,
+        *,
+        include_telemetry: bool = False,
+        last_image_url: str | None = None,
+    ) -> Self:
         """Create CameraReadWithStatus instance from Camera database model, fetching online status."""
-        from app.api.plugins.rpi_cam.services import get_camera_status
+        # Lazy import to break the services <-> schemas cycle.
+        from app.api.plugins.rpi_cam.services import (  # noqa: PLC0415
+            get_cached_telemetry,
+            get_camera_status,
+        )
 
+        telemetry = await get_cached_telemetry(redis, db_model.id) if include_telemetry else None
         return cls(
             **db_model.model_dump(exclude={"status", "relay_public_key_jwk"}),
             status=await get_camera_status(redis, db_model.id),
+            telemetry=telemetry,
+            last_image_url=last_image_url,
         )
 
 

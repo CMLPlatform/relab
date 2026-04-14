@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from app.api.common.ownership import get_user_owned_object
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
+from app.api.plugins.rpi_cam.services import get_camera_status
 from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 
@@ -16,15 +17,16 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from pydantic import UUID4
+    from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_user_owned_camera(
-    session: AsyncSession, camera_id: UUID4, user_id: UUID4
+    session: AsyncSession, camera_id: UUID4, user_id: UUID4, redis: Redis | None = None
 ) -> Camera:
     """Get a camera owned by a user, verifying it is connected."""
     camera = await get_user_owned_object(session, Camera, camera_id, user_id)
-    camera_status = await camera.get_status(force_refresh=True)
+    camera_status = await get_camera_status(redis, camera.id)
 
     if (camera_connection := camera_status.connection) != CameraConnectionStatus.ONLINE:
         status_code, msg = camera_connection.to_http_error()
