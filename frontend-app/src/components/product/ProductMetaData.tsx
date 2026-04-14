@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
@@ -24,6 +25,19 @@ export default function ProductMetaData({ product }: Props) {
             Last Updated: {new Date(product.updatedAt).toLocaleDateString()}
           </Text>
         )}
+        <Text style={{ opacity: 0.7 }}>
+          Owner:{' '}
+          {product.ownerUsername ? (
+            <Link
+              href={`/users/${product.ownerUsername}`}
+              style={{ color: '#1565C0', textDecorationLine: 'underline' }}
+            >
+              {product.ownerUsername}
+            </Link>
+          ) : (
+            'Anonymous'
+          )}
+        </Text>
         <Text style={{ opacity: 0.7 }}>Product ID: {product.id}</Text>
       </View>
     </View>

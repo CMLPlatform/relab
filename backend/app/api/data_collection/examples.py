@@ -106,23 +106,6 @@ COMPONENT_CREATE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
     ),
 )
 
-PRODUCT_INCLUDE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    none=openapi_example([]),
-    materials=openapi_example(["bill_of_materials"]),
-    media=openapi_example(["images", "videos", "files"]),
-    components=openapi_example(["components"]),
-    all=openapi_example(
-        [
-            "images",
-            "videos",
-            "files",
-            "product_type",
-            "bill_of_materials",
-            "components",
-        ]
-    ),
-)
-
 PRODUCT_MATERIAL_LINKS_BULK_EXAMPLE = [
     {"material_id": 1, "quantity": 5, "unit": "g"},
     {"material_id": 2, "quantity": 10, "unit": "g"},

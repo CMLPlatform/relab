@@ -33,4 +33,18 @@ describe('ProductMetaData', () => {
     renderWithProviders(<ProductMetaData product={baseProduct} />);
     expect(screen.queryByText(/Last Updated:/)).toBeNull();
   });
+
+  it('shows Anonymous when owner_username is null', () => {
+    const product = { ...baseProduct, owner_username: null };
+    renderWithProviders(<ProductMetaData product={product} />);
+    expect(screen.getByText(/Owner:/)).toBeOnTheScreen();
+    expect(screen.getByText(/Anonymous/)).toBeOnTheScreen();
+  });
+
+  it('shows username and link when owner_username is present', () => {
+    const product = { ...baseProduct, owner_username: 'testuser' };
+    renderWithProviders(<ProductMetaData product={product} />);
+    expect(screen.getByText(/Owner:/)).toBeOnTheScreen();
+    expect(screen.getByText(/testuser/)).toBeOnTheScreen();
+  });
 });

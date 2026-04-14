@@ -38,7 +38,7 @@ export default function ProductCard({ product, enabled = true, showOwner = false
   const ownerLabel = showOwner
     ? product.ownedBy === 'me'
       ? 'you'
-      : (product.ownerUsername ?? null)
+      : (product.ownerUsername ?? 'anonymous')
     : null;
 
   const navigateToProduct = () => {
@@ -113,7 +113,15 @@ export default function ProductCard({ product, enabled = true, showOwner = false
               {ownerLabel && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                   <Icon source="account-outline" size={12} color={theme.colors.outline} />
-                  <Text style={{ fontSize: 11, color: theme.colors.outline }} numberOfLines={1}>
+                  <Text 
+                    style={{ fontSize: 11, color: theme.colors.primary }} 
+                    numberOfLines={1}
+                    onPress={() => {
+                        if (product.ownerUsername) {
+                            router.push({ pathname: '/users/[username]', params: { username: product.ownerUsername } });
+                        }
+                    }}
+                  >
                     {ownerLabel}
                   </Text>
                 </View>

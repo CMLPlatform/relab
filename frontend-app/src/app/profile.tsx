@@ -14,6 +14,7 @@ import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
+import { getPublicProfile, type PublicProfileView } from '@/services/api/profiles';
 import type { ThemeMode } from '@/types/User';
 
 WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });
@@ -43,6 +44,9 @@ export default function ProfileTab() {
   const [newsletterLoading, setNewsletterLoading] = useState(true);
   const [newsletterSaving, setNewsletterSaving] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
+  const [ownStats, setOwnStats] = useState<PublicProfileView | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [visibilitySaving, setVisibilitySaving] = useState(false);
 
   // Redirect if not authenticated (but don't redirect while logging out)
   useEffect(() => {
@@ -159,6 +163,40 @@ export default function ProfileTab() {
     void loadNewsletterPreference();
   }, [loadNewsletterPreference]);
 
+  const loadOwnStats = useCallback(async () => {
+    if (!profile?.username) return;
+    setStatsLoading(true);
+    try {
+      const stats = await getPublicProfile(profile.username);
+      setOwnStats(stats);
+    } catch (error) {
+      console.error('Failed to load own stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [profile?.username]);
+
+  useEffect(() => {
+    void loadOwnStats();
+  }, [loadOwnStats]);
+
+  const handleVisibilityChange = async (visibility: 'public' | 'community' | 'private') => {
+    if (!profile || visibilitySaving) return;
+    setVisibilitySaving(true);
+    try {
+      const nextPreferences = {
+        ...(profile.preferences || {}),
+        profile_visibility: visibility,
+      };
+      await updateUser({ preferences: nextPreferences });
+      await refetch(false);
+    } catch (error) {
+      alert(`Failed to update visibility: ${getErrorMessage(error, 'Unknown error')}`);
+    } finally {
+      setVisibilitySaving(false);
+    }
+  };
+
   if (!profile) return null;
 
   const isGoogleLinked = profile.oauth_accounts?.some((a) => a.oauth_name === 'google');
@@ -200,6 +238,35 @@ export default function ProfileTab() {
           ) : (
             <Chip style={styles.greyChip}>Unverified</Chip>
           )}
+        </View>
+      </View>
+
+      {/* ── Stats section ── */}
+      <SectionHeader title="Your Stats" />
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>
+            {statsLoading ? '...' : (ownStats?.product_count ?? 0)}
+          </Text>
+          <Text style={styles.statLabel}>Products</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>
+            {statsLoading ? '...' : (ownStats?.image_count ?? 0)}
+          </Text>
+          <Text style={styles.statLabel}>Photos</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>
+            {statsLoading ? '...' : (ownStats?.total_weight_kg ?? 0)}
+          </Text>
+          <Text style={styles.statLabel}>Weight (kg)</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue} numberOfLines={1}>
+            {statsLoading ? '...' : (ownStats?.top_category ?? 'None')}
+          </Text>
+          <Text style={styles.statLabel}>Top Category</Text>
         </View>
       </View>
 
@@ -262,6 +329,56 @@ export default function ProfileTab() {
             </Pressable>
           ))}
         </View>
+      </View>
+
+      {/* ── Privacy section ── */}
+      <SectionHeader title="Profile Visibility" />
+      <View style={styles.section}>
+        {(
+          [
+            {
+              id: 'public',
+              title: 'Public',
+              subtitle: 'Visible to everyone. Best for sharing your work.',
+              icon: 'earth',
+            },
+            {
+              id: 'community',
+              title: 'Community',
+              subtitle: 'Only logged-in users can see your profile.',
+              icon: 'account-group',
+            },
+            {
+              id: 'private',
+              title: 'Private',
+              subtitle: 'Only you can see your profile. Uploads are anonymous.',
+              icon: 'eye-off',
+            },
+          ] as const
+        ).map((option) => {
+          const isActive = (profile.preferences?.profile_visibility || 'public') === option.id;
+          return (
+            <Pressable
+              key={option.id}
+              style={[styles.visibilityOption, isActive && styles.visibilityOptionActive]}
+              onPress={() => void handleVisibilityChange(option.id)}
+              disabled={visibilitySaving}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isActive }}
+            >
+              <View style={styles.visibilityIcon}>
+                <Icon source={option.icon} size={24} color={isActive ? theme.colors.primary : '#666'} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionTitle, isActive && { color: theme.colors.primary }]}>
+                  {option.title}
+                </Text>
+                <Text style={styles.actionSubtitle}>{option.subtitle}</Text>
+              </View>
+              {isActive && <Icon source="check" size={20} color={theme.colors.primary} />}
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* ── Account section ── */}
@@ -600,10 +717,50 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(128,128,128,0.1)',
   },
   themeModeLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
+  },
+  visibilityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginVertical: 2,
+  },
+  visibilityOptionActive: {
+    backgroundColor: 'rgba(128,128,128,0.05)',
+  },
+  visibilityIcon: {
+    width: 32,
+    alignItems: 'center',
   },
   danger: {
     color: '#d32f2f',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 10,
+    backgroundColor: 'rgba(128,128,128,0.05)',
+    borderRadius: 12,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    opacity: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 2,
   },
 });

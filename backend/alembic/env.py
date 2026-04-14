@@ -25,7 +25,7 @@ sys.path.append(str(project_root))
 config = context.config
 
 # Set the synchronous database URL if not already set in the test environment
-if config.get_alembic_option("is_test") != "true":  # This variable is set in tests/conftest.py to indicate a test environment
+if config.get_alembic_option("is_test") != "true":  # noqa: PLR2004 # This variable is set in tests/conftest.py to indicate a test environment
     setup_logging()
     config.set_main_option("sqlalchemy.url", settings.sync_database_url)
 else:

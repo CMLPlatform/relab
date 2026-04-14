@@ -172,6 +172,10 @@ render-erd:
 refresh-disposable-email-domains:
     uv run python -m scripts.maintenance.refresh_disposable_email_domains
 
+# Backfill user statistics cache for all users
+backfill-stats:
+    uv run python -m scripts.maintenance.backfill_user_stats
+
 # Run the backend k6 baseline performance suite (requires k6 installed)
 perf-baseline:
     mkdir -p reports/performance

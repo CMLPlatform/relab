@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Annotated, cast
+from uuid import UUID
 
-from fastapi import Security
+from fastapi import HTTPException, Security
 from fastapi_pagination import Page
+from sqlalchemy import select
 
 from app.api.auth import crud
 from app.api.auth.dependencies import (
@@ -13,19 +15,28 @@ from app.api.auth.dependencies import (
     CurrentUserOrgDep,
     CurrentUserOwnedOrgDep,
     current_active_user,
+    optional_current_active_user,
 )
-from app.api.auth.models import Organization
+from app.api.auth.models import Organization, User
 from app.api.auth.schemas import (
     OrganizationRead,
     OrganizationReadPublic,
     OrganizationUpdate,
+    PublicProfileView,
     UserRead,
     UserReadPublic,
     UserUpdate,
 )
+from app.api.auth.services.stats import recompute_user_stats
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.auth.services.privacy import (
+    VISIBILITY_COMMUNITY,
+    VISIBILITY_PRIVATE,
+    VISIBILITY_PUBLIC,
+)
+from app.core.cache import cache
 
 ### User self-management routes ###
 
@@ -95,3 +106,69 @@ async def leave_organization(
 ) -> None:
     """Leave current organization. Cannot be used by organization owner."""
     await crud.leave_organization(session, current_user)
+
+
+## Public Profile Routes ##
+
+public_user_router = PublicAPIRouter(prefix="/users", tags=["users"])
+
+
+@public_user_router.get(
+    "/{identifier}/profile",
+    response_model=PublicProfileView,
+    summary="Get public profile of a user",
+)
+@cache(expire=3600, namespace="profiles")
+async def get_public_profile(
+    identifier: str,
+    session: AsyncSessionDep,
+    current_user: Annotated[User | None, Security(optional_current_active_user)],
+) -> PublicProfileView:
+    """Get public profile statistics for a specified user by their username or UUID.
+
+    Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
+    Includes lazy initialization of stats if they are missing.
+    """
+    # 1. Look up user by UUID or Username
+    user = None
+    try:
+        # Check if identifier is a valid UUID
+        user_uuid = UUID(identifier)
+        user = await session.get(User, user_uuid)
+    except (ValueError, AttributeError):
+        # Not a valid UUID, search by username
+        stmt = select(User).where(User.username == identifier)
+        result = await session.execute(stmt)
+        user = result.unique().scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # 2. Check privacy settings
+    profile_visibility = user.preferences.get("profile_visibility", VISIBILITY_PUBLIC)
+
+    if profile_visibility == VISIBILITY_PRIVATE:
+        is_self = current_user and current_user.id == user.id
+        is_admin = current_user and current_user.is_superuser
+        if not (is_self or is_admin):
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+    elif profile_visibility == VISIBILITY_COMMUNITY:
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+    # 3. Lazy initialization of stats if cache is empty
+    stats = user.stats_cache
+    if not stats:
+        # Recompute on the fly and save to user
+        stats = await recompute_user_stats(session, user.id)
+        await session.commit()
+
+    return PublicProfileView(
+        username=user.username,
+        created_at=user.created_at,
+        product_count=stats.get("product_count", 0),
+        total_weight_kg=stats.get("total_weight_kg", 0.0),
+        image_count=stats.get("image_count", 0),
+        top_category=stats.get("top_category", "None"),
+    )

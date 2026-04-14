@@ -9,10 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
 
+from app.api.auth.services.stats import recompute_user_stats
 from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.utils import get_models_by_ids_or_404
+from app.api.data_collection.crud.storage import product_files_crud, product_images_crud
 from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import (
@@ -26,7 +28,10 @@ from app.api.data_collection.schemas import (
 )
 from app.api.file_storage.models import Video
 
-from .storage import product_files_crud, product_images_crud
+PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({"owner"})
+PRODUCT_READ_DETAIL_RELATIONSHIPS: frozenset[str] = frozenset(
+    {"owner", "product_type", "videos", "files", "images", "bill_of_materials", "components"}
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -51,10 +56,12 @@ async def get_product_trees(
         .where(Product.parent_id == parent_id)
         .options(
             selectinload(cast("QueryableAttribute[Any]", Product.components), recursion_depth=recursion_depth),
+            selectinload(cast("QueryableAttribute[Any]", Product.owner)),
             selectinload(cast("QueryableAttribute[Any]", Product.product_type)),
             selectinload(cast("QueryableAttribute[Any]", Product.videos)),
             selectinload(cast("QueryableAttribute[Any]", Product.files)),
             selectinload(cast("QueryableAttribute[Any]", Product.images)),
+            selectinload(cast("QueryableAttribute[Any]", Product.bill_of_materials)),
         )
     )
 
@@ -195,7 +202,11 @@ async def create_product(
     owner_id: UUID4 | None,
 ) -> Product:
     """Create a new product in the database."""
-    return await create_and_persist_product_tree(db, product, owner_id=owner_id)
+    db_product = await create_and_persist_product_tree(db, product, owner_id=owner_id)
+    if owner_id:
+        await recompute_user_stats(db, owner_id)
+        await db.commit()
+    return db_product
 
 
 async def update_product(db: AsyncSession, product_id: int, product: ProductUpdate) -> Product:
@@ -209,7 +220,10 @@ async def update_product(db: AsyncSession, product_id: int, product: ProductUpda
     for key, value in product_data.items():
         setattr(db_product, key, value)
 
-    return await commit_and_refresh(db, db_product)
+    res = await commit_and_refresh(db, db_product)
+    await recompute_user_stats(db, db_product.owner_id)
+    await db.commit()
+    return res
 
 
 async def delete_product(db: AsyncSession, product_id: int) -> None:
@@ -219,5 +233,8 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
     await product_files_crud.delete_all(db, product_id)
     await product_images_crud.delete_all(db, product_id)
 
+    owner_id = db_product.owner_id
     await db.delete(db_product)
+    await db.commit()
+    await recompute_user_stats(db, owner_id)
     await db.commit()

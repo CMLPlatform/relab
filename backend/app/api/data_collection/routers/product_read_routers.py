@@ -10,14 +10,16 @@ from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
 from sqlalchemy import select
 
-from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.auth.services.privacy import redact_product_owner
+from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
+from app.api.auth.models import User
 from app.api.background_data.routers.public import RecursionDepthQueryParam
 from app.api.common.crud.base import get_model_by_id, get_models, get_nested_model_by_id, get_paginated_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.common.schemas.base import ProductRead
 from app.api.data_collection import crud
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
-from app.api.data_collection.examples import PRODUCT_INCLUDE_OPENAPI_EXAMPLES
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.schemas import (
     ComponentReadWithRecursiveComponents,
@@ -35,14 +37,6 @@ user_product_redirect_router = PublicAPIRouter(prefix="/users/me/products", tags
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
 product_read_router = PublicAPIRouter(prefix="/products", tags=["products"])
 
-type ProductIncludeQueryParam = Annotated[
-    set[str] | None,
-    Query(
-        description="Relationships to include",
-        openapi_examples=PRODUCT_INCLUDE_OPENAPI_EXAMPLES,
-    ),
-]
-
 type IncludeComponentsAsBaseProductsQueryParam = Annotated[
     bool | None,
     Query(description="Whether to include components as base products in the response"),
@@ -50,20 +44,61 @@ type IncludeComponentsAsBaseProductsQueryParam = Annotated[
 
 
 def convert_components_to_read_model(
-    components: list[Product], max_depth: int = 1, current_depth: int = 0
+    components: list[Product], owner: User | None, max_depth: int = 1, current_depth: int = 0
 ) -> list[ComponentReadWithRecursiveComponents]:
     """Convert component ORM rows to the recursive read schema."""
     if current_depth >= max_depth:
         return []
 
-    return [
-        ComponentReadWithRecursiveComponents.model_validate(component).model_copy(
-            update={
-                "components": convert_components_to_read_model(component.components or [], max_depth, current_depth + 1)
-            }
+    read_components: list[ComponentReadWithRecursiveComponents] = []
+    for component in components:
+        assign_shared_owner_tree(component, owner)
+        read_components.append(
+            ComponentReadWithRecursiveComponents.model_validate(component).model_copy(
+                update={
+                    "components": convert_components_to_read_model(
+                        component.components or [], owner, max_depth, current_depth + 1
+                    )
+                }
+            )
         )
-        for component in components
-    ]
+    return read_components
+
+
+def assign_shared_owner(product: Product, owner: User | None) -> None:
+    """Assign the same owner to a single product row."""
+    product.owner = owner
+    product.owner_id = owner.id if owner else None
+
+
+def assign_owner_to_components(components: list[Product], owner: User | None) -> None:
+    """Assign the shared owner to direct component rows only."""
+    for component in components:
+        assign_shared_owner(component, owner)
+
+
+def assign_shared_owner_tree(product: Product, owner: User | None) -> None:
+    """Assign the same owner to a product and all loaded descendants."""
+    assign_shared_owner(product, owner)
+    for component in product.components or []:
+        assign_shared_owner_tree(component, owner)
+
+
+async def load_product_tree_for_validation(
+    session: AsyncSessionDep,
+    product: Product,
+    *,
+    visited: set[int] | None = None,
+) -> None:
+    """Explicitly load the product tree needed for validation."""
+    visited = visited or set()
+    if product.id in visited:
+        return
+    visited.add(product.id)
+
+    await session.refresh(product, attribute_names=["components", "bill_of_materials"])
+    for component in product.components or []:
+        await load_product_tree_for_validation(session, component, visited=visited)
 
 
 @user_product_redirect_router.get(
@@ -86,7 +121,7 @@ async def redirect_to_current_user_products(
 
 @user_product_router.get(
     "",
-    response_model=Page[ProductReadWithRelationshipsAndFlatComponents],
+    response_model=Page[ProductRead],
     summary="Get products collected by a user",
 )
 async def get_user_products(
@@ -94,7 +129,6 @@ async def get_user_products(
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    include: ProductIncludeQueryParam = None,
     *,
     include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
 ) -> Page[Product]:
@@ -106,42 +140,48 @@ async def get_user_products(
     if not include_components_as_base_products:
         statement = statement.where(Product.parent_id.is_(None))
 
-    return await get_paginated_models(
+    page: Page[Product] = await get_paginated_models(
         session,
         Product,
-        include_relationships=include,
+        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
         model_filter=product_filter,
         statement=statement,
-        read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
+    for p in page.items:
+        redact_product_owner(p, current_user)
+    page.items = [ProductRead.model_validate(p) for p in page.items]
+    return page
 
 
 @product_read_router.get(
     "",
-    response_model=Page[ProductReadWithRelationshipsAndFlatComponents],
-    summary="Get all products with optional relationships",
+    response_model=Page[ProductRead],
+    summary="Get all products",
 )
 async def get_products(
     session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    include: ProductIncludeQueryParam = None,
     *,
     include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
 ) -> Page[Product]:
-    """Get all products with specified relationships."""
+    """Get all products."""
     if include_components_as_base_products:
         statement: Select[tuple[Product]] = select(Product)
     else:
         statement = select(Product).where(Product.parent_id.is_(None))
 
-    return await get_paginated_models(
+    page: Page[Product] = await get_paginated_models(
         session,
         Product,
-        include_relationships=include,
+        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
         model_filter=product_filter,
         statement=statement,
-        read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
+    for p in page.items:
+        redact_product_owner(p, current_user)
+    page.items = [ProductRead.model_validate(p) for p in page.items]
+    return page
 
 
 @product_read_router.get(
@@ -151,6 +191,7 @@ async def get_products(
 )
 async def get_products_tree(
     session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[ProductReadWithRecursiveComponents]:
@@ -158,10 +199,16 @@ async def get_products_tree(
     products: Sequence[Product] = await crud.get_product_trees(
         session, recursion_depth=recursion_depth, product_filter=product_filter
     )
+    for product in products:
+        redact_product_owner(product, current_user)
+        assign_shared_owner_tree(product, product.owner)
+
     return [
         ProductReadWithRecursiveComponents.model_validate(product).model_copy(
             update={
-                "components": convert_components_to_read_model(product.components or [], max_depth=recursion_depth - 1)
+                "components": convert_components_to_read_model(
+                    product.components or [], product.owner, max_depth=recursion_depth - 1
+                )
             }
         )
         for product in products
@@ -175,17 +222,18 @@ async def get_products_tree(
 )
 async def get_product(
     session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
-    include: ProductIncludeQueryParam = None,
 ) -> Product:
-    """Get product by ID with specified relationships."""
-    return await get_model_by_id(
+    """Get product by ID."""
+    product: Product = await get_model_by_id(
         session,
         Product,
         product_id,
-        include_relationships=include,
-        read_schema=ProductReadWithRelationshipsAndFlatComponents,
+        include_relationships=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
     )
+    redact_product_owner(product, current_user)
+    return ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
 
 
 @product_read_router.get(
@@ -195,18 +243,32 @@ async def get_product(
 )
 async def get_product_subtree(
     session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[ComponentReadWithRecursiveComponents]:
     """Get a product's components in a tree structure, up to a specified depth."""
+    parent_product: Product = await get_model_by_id(
+        session,
+        Product,
+        product_id,
+        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+    )
+    redact_product_owner(parent_product, current_user)
+
     products: Sequence[Product] = await crud.get_product_trees(
         session, recursion_depth=recursion_depth, parent_id=product_id, product_filter=product_filter
     )
+    for product in products:
+        assign_shared_owner_tree(product, parent_product.owner)
+
     return [
         ComponentReadWithRecursiveComponents.model_validate(product).model_copy(
             update={
-                "components": convert_components_to_read_model(product.components or [], max_depth=recursion_depth - 1)
+                "components": convert_components_to_read_model(
+                    product.components or [], parent_product.owner, max_depth=recursion_depth - 1
+                )
             }
         )
         for product in products
@@ -215,25 +277,34 @@ async def get_product_subtree(
 
 @product_read_router.get(
     "/{product_id}/components",
-    response_model=list[ProductReadWithRelationshipsAndFlatComponents],
+    response_model=list[ProductRead],
     summary="Get product components",
 )
 async def get_product_components(
     session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
-    include: ProductIncludeQueryParam = None,
 ) -> Sequence[Product]:
     """Get all components of a product."""
-    await get_model_by_id(session, Product, product_id)
-    return await get_models(
+    parent_product = await get_model_by_id(
         session,
         Product,
-        include_relationships=include,
+        product_id,
+        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+    )
+    products: Sequence[Product] = await get_models(
+        session,
+        Product,
+        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
         model_filter=product_filter,
         statement=select(Product).where(Product.parent_id == product_id),
-        read_schema=ProductReadWithRelationshipsAndFlatComponents,
     )
+    redact_product_owner(parent_product, current_user)
+    for p in products:
+        assign_shared_owner(p, parent_product.owner)
+
+    return [ProductRead.model_validate(p) for p in products]
 
 
 @product_read_router.get(
@@ -245,20 +316,29 @@ async def get_product_component(
     product_id: PositiveInt,
     component_id: PositiveInt,
     *,
-    include: ProductIncludeQueryParam = None,
     session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
 ) -> Product:
-    """Get component by ID with specified relationships."""
-    return await get_nested_model_by_id(
+    """Get component by ID."""
+    product: Product = await get_nested_model_by_id(
         session,
         Product,
         product_id,
         Product,
         component_id,
         "parent_id",
-        include_relationships=include,
-        read_schema=ProductReadWithRelationshipsAndFlatComponents,
+        include_relationships=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
     )
+    parent_product = await get_model_by_id(
+        session,
+        Product,
+        product_id,
+        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+    )
+    redact_product_owner(parent_product, current_user)
+    assign_shared_owner(product, parent_product.owner)
+    assign_owner_to_components(product.components or [], parent_product.owner)
+    return ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
 
 
 @product_read_router.post(
@@ -276,6 +356,7 @@ async def validate_product_tree(
     or ``{"valid": false, "errors": [...]}`` with human-readable messages otherwise.
     """
     product = await get_model_by_id(session, Product, product_id)
+    await load_product_tree_for_validation(session, product)
     try:
         validate_product(product)
     except ValueError as exc:

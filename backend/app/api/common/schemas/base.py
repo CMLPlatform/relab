@@ -113,7 +113,7 @@ class ProductRead(IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertie
     """Base schema for reading product information."""
 
     product_type_id: PositiveInt | None = None
-    owner_id: UUID4
+    owner_id: UUID4 | None = None
     owner_username: str | None = None
 
     thumbnail_url: str | None = None

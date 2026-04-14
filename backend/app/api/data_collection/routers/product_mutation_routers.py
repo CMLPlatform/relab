@@ -11,6 +11,7 @@ from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
+from app.api.auth.services.stats import recompute_user_stats
 from app.api.common.crud.base import get_nested_model_by_id
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -223,6 +224,7 @@ async def upload_product_image(
     session: AsyncSessionDep,
     parent_id: Annotated[int, Depends(get_user_owned_product_id)],
     file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
+    current_user: CurrentActiveVerifiedUserDep,
     description: Annotated[str | None, Form()] = None,
     image_metadata: Annotated[
         str | None,
@@ -247,6 +249,8 @@ async def upload_product_image(
             }
         ),
     )
+    await recompute_user_stats(session, current_user.id)
+    await session.commit()
     return ImageReadWithinParent.model_validate(item)
 
 
@@ -261,4 +265,9 @@ async def delete_product_image(
     session: AsyncSessionDep,
 ) -> None:
     """Remove an image from the product."""
+    # Need owner ID for stats update
+    product = await session.get(Product, parent_id)
     await crud.product_images_crud.delete(session, parent_id, image_id)
+    if product:
+        await recompute_user_stats(session, product.owner_id)
+        await session.commit()

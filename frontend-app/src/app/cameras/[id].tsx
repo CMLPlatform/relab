@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -15,6 +15,7 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
+import { LiveVideoPreview } from '@/components/cameras/LiveVideoPreview';
 import { useAuth } from '@/context/AuthProvider';
 import {
   useCameraPreview,
@@ -23,6 +24,8 @@ import {
   useUpdateCameraMutation,
 } from '@/hooks/useRpiCameras';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
+
+const IS_WEB = Platform.OS === 'web';
 
 // ─── Status ───────────────────────────────────────────────────────────────────
 
@@ -152,9 +155,12 @@ export default function CameraDetailScreen() {
   const [deleteVisible, setDeleteVisible] = useState(false);
 
   const isOnline = camera?.status?.connection === 'online';
+  // On web we prefer the WebRTC WHEP preview (sub-second latency, peer-to-peer
+  // once ICE completes). Native platforms fall back to JPEG polling because
+  // react-native-webrtc is out of scope for this round.
   const { snapshotUrl, error: previewError } = useCameraPreview(
-    isOnline && camera ? camera : null,
-    { enabled: !!isOnline },
+    !IS_WEB && isOnline && camera ? camera : null,
+    { enabled: !IS_WEB && !!isOnline },
   );
   const previewErrorMessage =
     previewError?.message ?? 'Snapshot preview unavailable. The camera may be offline.';
@@ -254,8 +260,9 @@ export default function CameraDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Snapshot preview — only for online cameras */}
-        {isOnline && (
+        {/* Preview — WebRTC on web, JPEG polling on native. */}
+        {isOnline && IS_WEB && <LiveVideoPreview camera={camera} />}
+        {isOnline && !IS_WEB && (
           <Card style={styles.card}>
             <Card.Content style={{ alignItems: 'center', gap: 8 }}>
               {previewError ? (

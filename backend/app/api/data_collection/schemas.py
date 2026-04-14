@@ -1,6 +1,7 @@
 """Pydantic models used to validate CRUD operations for data collection data."""
 
 from datetime import UTC, datetime, timedelta
+import logging
 from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import (
@@ -14,7 +15,8 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.auth.routers.oauth_token import logger
+logger = logging.getLogger(__name__)
+
 from app.api.background_data.schemas import ProductTypeRead
 from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProduct,
