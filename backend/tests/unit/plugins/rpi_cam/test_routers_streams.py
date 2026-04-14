@@ -125,7 +125,7 @@ class TestCameraStreamRouters:
         )
         mock_build_camera_request.return_value = mock_camera_request
 
-        result = await get_camera_stream_status(camera_id, session_mock, user_mock)
+        result = await get_camera_stream_status(camera_id, session_mock, user_mock, AsyncMock())
         assert str(result.url) == f"{TEST_STREAM_URL}/"
         mock_camera_request.assert_awaited_once()
         await_args = mock_camera_request.await_args
@@ -148,7 +148,7 @@ class TestCameraStreamRouters:
         mock_camera_request = AsyncMock(return_value=Response(HTTP_NO_CONTENT))
         mock_build_camera_request.return_value = mock_camera_request
 
-        await stop_all_streams(camera_id, session_mock, user_mock)
+        await stop_all_streams(camera_id, session_mock, user_mock, AsyncMock())
         mock_camera_request.assert_awaited_once()
         await_args = mock_camera_request.await_args
         assert await_args is not None
@@ -157,7 +157,7 @@ class TestCameraStreamRouters:
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
     @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.YouTubeService")
-    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_model_or_404")
+    @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.require_model")
     async def test_start_recording(
         self,
         mock_db_check: MagicMock,

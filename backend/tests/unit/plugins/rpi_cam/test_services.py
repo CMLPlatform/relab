@@ -12,8 +12,7 @@ import pytest
 from httpx import Request, Response
 
 from app.api.common.exceptions import BadRequestError, ConflictError, ServiceUnavailableError
-from app.api.plugins.rpi_cam.exceptions import GoogleOAuthAssociationRequiredError
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.rpi_cam.exceptions import GoogleOAuthAssociationRequiredError, InvalidCameraResponseError
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services import (
     YouTubeAPIError,
@@ -59,6 +58,7 @@ class SessionStub:
         self.add = MagicMock()
         self.commit = AsyncMock()
         self.refresh = AsyncMock()
+        self.get = AsyncMock()
 
 
 class HTTPClientStub:
@@ -66,18 +66,6 @@ class HTTPClientStub:
 
     def __init__(self) -> None:
         self.request = AsyncMock()
-
-
-def build_camera() -> Camera:
-    """Build a camera for service tests."""
-    owner_id = uuid4()
-    return Camera(
-        id=uuid4(),
-        name="Test Camera",
-        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "x", "y": "y"},
-        relay_key_id="test-key-id",
-        owner_id=owner_id,
-    )
 
 
 @pytest.fixture
@@ -110,40 +98,95 @@ def mock_oauth_account() -> OAuthAccountStub:
 
 
 class TestCaptureAndStoreImage:
-    """Test standard image capture and storage functionality."""
+    """Test standard image capture and storage functionality.
 
-    async def test_capture_and_store_image_success(self, mock_session: AsyncMock) -> None:
-        """Test capture and storage of an image from a camera."""
-        camera = build_camera()
+    As of Phase 6A this is a pure push flow: the Pi captures + pushes directly
+    to the backend's upload endpoint, and ``capture_and_store_image`` just
+    validates the product, triggers the capture over the relay, parses the
+    Pi's ``ImageCaptureResponse``, and returns the stored ``Image`` fetched
+    from the DB by id.
+    """
 
-        with (
-            patch("app.api.plugins.rpi_cam.services.get_model_or_404") as mock_check_product,
-            patch("app.api.plugins.rpi_cam.services.create_image") as mock_create_image,
-        ):
-            # Two fetches: one POST to capture, one GET to download
+    async def test_capture_and_store_image_success(self, mock_session: SessionStub) -> None:
+        """Happy path: Pi returns status=uploaded and the stored Image is fetched by id."""
+        image_uuid = uuid4()
+        image_hex = image_uuid.hex
+
+        expected_image = MagicMock()
+        mock_session.get = AsyncMock(return_value=expected_image)
+
+        with patch("app.api.plugins.rpi_cam.services.require_model") as mock_check_product:
             mock_capture_resp = MagicMock()
             mock_capture_resp.json.return_value = {
-                "image_url": CAPTURE_URL,
+                "status": "uploaded",
+                "image_id": image_hex,
+                "image_url": "https://backend.example/images/abc.jpg",
                 "metadata": {"image_properties": {"capture_time": CAPTURE_TIME}},
             }
+            mock_camera_request = AsyncMock(return_value=mock_capture_resp)
 
-            mock_download_resp = MagicMock()
-            mock_download_resp.content = IMG_BYTES
-
-            mock_camera_request = AsyncMock(side_effect=[mock_capture_resp, mock_download_resp])
-
-            mock_create_image.return_value = MagicMock()
-
-            await capture_and_store_image(
-                session=mock_session,
-                camera=camera,
+            result = await capture_and_store_image(
+                session=cast("Any", mock_session),
                 camera_request=mock_camera_request,
                 product_id=1,
+                description="unit test",
             )
 
-            mock_check_product.assert_called_once()
-            assert mock_camera_request.await_count == 2
-            mock_create_image.assert_called_once()
+        mock_check_product.assert_called_once()
+        # Only one relay roundtrip now — Pi handles the push itself.
+        assert mock_camera_request.await_count == 1
+        assert mock_camera_request.await_args is not None
+        call_kwargs = mock_camera_request.await_args.kwargs
+        assert call_kwargs["endpoint"] == "/images"
+        assert call_kwargs["body"] == {"upload_metadata": {"product_id": 1, "description": "unit test"}}
+        mock_session.get.assert_awaited_once()
+        assert result is expected_image
+
+    async def test_capture_raises_when_pi_queued_the_image(self, mock_session: SessionStub) -> None:
+        """A status=queued response from the Pi should surface as InvalidCameraResponseError."""
+        with patch("app.api.plugins.rpi_cam.services.require_model"):
+            mock_capture_resp = MagicMock()
+            mock_capture_resp.json.return_value = {
+                "status": "queued",
+                "image_id": "a" * 32,
+                "image_url": None,
+                "metadata": {},
+            }
+            mock_camera_request = AsyncMock(return_value=mock_capture_resp)
+
+            with pytest.raises(InvalidCameraResponseError) as excinfo:
+                await capture_and_store_image(
+                    session=cast("Any", mock_session),
+                    camera_request=mock_camera_request,
+                    product_id=1,
+                )
+        assert excinfo.value.details is not None
+        assert "queued" in excinfo.value.details
+
+    async def test_capture_raises_when_image_missing_from_db(self, mock_session: SessionStub) -> None:
+        """If the backend DB has no row for the reported id, surface a clean error."""
+        image_uuid = uuid4()
+
+        mock_session.get = AsyncMock(return_value=None)
+
+        with patch("app.api.plugins.rpi_cam.services.require_model"):
+            mock_capture_resp = MagicMock()
+            mock_capture_resp.json.return_value = {
+                "status": "uploaded",
+                "image_id": image_uuid.hex,
+                "image_url": "https://backend.example/images/abc.jpg",
+                "metadata": {},
+            }
+            mock_camera_request = AsyncMock(return_value=mock_capture_resp)
+
+            with pytest.raises(InvalidCameraResponseError) as excinfo:
+                await capture_and_store_image(
+                    session=cast("Any", mock_session),
+                    camera_request=mock_camera_request,
+                    product_id=1,
+                )
+        assert excinfo.value.details is not None
+        assert "not found" in excinfo.value.details
 
 
 class TestYouTubeService:

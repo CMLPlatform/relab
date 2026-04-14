@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 
 import pytest
 from pydantic import ValidationError
 
+from app.api.auth.services.privacy import redact_product_owner
 from app.api.background_data.schemas import CategoryReadAsSubCategory, ProductTypeRead, TaxonomyRead
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import MaterialProductLinkCreateWithinProduct
 from app.api.common.schemas.base import MaterialRead, ProductRead
+from app.api.data_collection.models.product import Product
 from app.api.data_collection.schemas import ProductCreateBaseProduct
 
 
@@ -70,6 +73,16 @@ def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> Non
     assert CategoryReadAsSubCategory.model_validate(CategoryRow()).external_id == "cat-1"
     assert TaxonomyRead.model_validate(TaxonomyRow()).domains == {"materials"}
     assert ProductRead.model_validate(ProductRow()).owner_username == "simon"
+
+
+@pytest.mark.unit
+def test_redact_product_owner_noops_on_serialized_schema() -> None:
+    """Privacy redaction should safely no-op if a schema object is passed by mistake."""
+    product = ProductRead(id=1, name="Office Chair", owner_username="simon")
+
+    redact_product_owner(cast("Product", product), None)
+
+    assert product.owner_username == "simon"
 
 
 @pytest.mark.unit

@@ -85,17 +85,23 @@ async def test_get_user_owned_camera_returns_camera_when_online() -> None:
     camera = build_camera()
     session = AsyncMock()
     user_id = uuid4()
+    redis = AsyncMock()
+    get_status_mock = AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.ONLINE))
 
-    with patch(
-        "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
-        new=AsyncMock(return_value=camera),
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
+            new=AsyncMock(return_value=camera),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_camera_status",
+            new=get_status_mock,
+        ),
     ):
-        camera.get_status = AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.ONLINE))
-
-        result = await get_user_owned_camera(session, camera.id, user_id)
+        result = await get_user_owned_camera(session, camera.id, user_id, redis)
 
     assert result is camera
-    camera.get_status.assert_awaited_once_with(force_refresh=True)
+    get_status_mock.assert_awaited_once_with(redis, camera.id)
 
 
 @pytest.mark.asyncio
@@ -104,19 +110,25 @@ async def test_get_user_owned_camera_raises_503_when_offline() -> None:
     camera = build_camera()
     session = AsyncMock()
     user_id = uuid4()
+    redis = AsyncMock()
+    get_status_mock = AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.OFFLINE))
 
-    with patch(
-        "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
-        new=AsyncMock(return_value=camera),
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
+            new=AsyncMock(return_value=camera),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_camera_status",
+            new=get_status_mock,
+        ),
+        pytest.raises(HTTPException) as exc_info,
     ):
-        camera.get_status = AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.OFFLINE))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_user_owned_camera(session, camera.id, user_id)
+        await get_user_owned_camera(session, camera.id, user_id, redis)
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is offline"
-    camera.get_status.assert_awaited_once_with(force_refresh=True)
+    get_status_mock.assert_awaited_once_with(redis, camera.id)
 
 
 @pytest.mark.asyncio
@@ -125,14 +137,20 @@ async def test_get_user_owned_camera_raises_401_when_unauthorized() -> None:
     camera = build_camera()
     session = AsyncMock()
     user_id = uuid4()
+    redis = AsyncMock()
+    get_status_mock = AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.UNAUTHORIZED))
 
-    with patch(
-        "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
-        new=AsyncMock(return_value=camera),
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_user_owned_object",
+            new=AsyncMock(return_value=camera),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.utils.get_camera_status",
+            new=get_status_mock,
+        ),
+        pytest.raises(HTTPException) as exc_info,
     ):
-        camera.get_status = AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.UNAUTHORIZED))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await get_user_owned_camera(session, camera.id, user_id)
+        await get_user_owned_camera(session, camera.id, user_id, redis)
 
     assert exc_info.value.status_code == 401

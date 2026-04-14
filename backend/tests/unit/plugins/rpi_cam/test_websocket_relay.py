@@ -23,7 +23,7 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnect
         patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/images/preview")
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
@@ -47,10 +47,10 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -
         patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/images/preview")
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
 
     assert exc_info.value.status_code == 503
-    assert exc_info.value.detail == "Camera did not respond in time: /images/preview"
+    assert exc_info.value.detail == "Camera did not respond in time: /camera"
     assert exc_info.value.headers == {"Retry-After": "2"}
 
 
@@ -61,12 +61,14 @@ class TestRelayCommandAllowlist:
         ("method", "path"),
         [
             ("GET", "/camera"),
-            ("GET", "/images/preview"),
             ("POST", "/images"),
             ("GET", "/stream"),
             ("POST", "/stream"),
             ("DELETE", "/stream"),
-            ("GET", "/images/abc123"),  # dynamic image path prefix
+            ("GET", "/telemetry"),  # Phase 5
+            # Phase 9: LL-HLS playlist + segment proxy through the relay.
+            ("GET", "/hls/cam-preview/index.m3u8"),
+            ("GET", "/hls/cam-preview/segment0.mp4"),
         ],
     )
     @pytest.mark.asyncio
@@ -87,9 +89,24 @@ class TestRelayCommandAllowlist:
             ("DELETE", "/camera"),
             ("PUT", "/stream"),
             ("GET", "/admin"),
-            ("POST", "/images/preview"),
+            ("GET", "/images/preview"),  # Phase 11: polling fallback gone.
             ("PATCH", "/camera"),
             ("GET", "/"),
+            # Phase 6A: image bytes no longer travel through the relay. The Pi
+            # pushes directly via HTTPS to the upload endpoint; any `GET /images/{id}`
+            # attempt must now be rejected.
+            ("GET", "/images/abc123"),
+            ("GET", "/images/"),
+            # Phase 9: WHEP is gone — LL-HLS replaces it. Old WHEP paths must be rejected.
+            ("POST", "/whep"),
+            ("DELETE", "/whep/abc-session"),
+            # HLS must stay read-only and under the /hls/ prefix.
+            ("POST", "/hls/cam-preview/index.m3u8"),
+            ("DELETE", "/hls/cam-preview/segment0.mp4"),
+            ("GET", "/hls"),  # bare /hls without trailing slash
+            # Telemetry must stay read-only.
+            ("POST", "/telemetry"),
+            ("DELETE", "/telemetry"),
         ],
     )
     @pytest.mark.asyncio

@@ -28,6 +28,7 @@ def _make_request() -> MagicMock:
 
 class TestFindRequest:
     """Tests for the internal function that looks for a Request object in the arguments of a rate-limited endpoint."""
+
     def test_finds_request_in_args(self) -> None:
         """When a Request object is present in the positional arguments, it should be returned."""
         req = _make_request()
@@ -50,6 +51,7 @@ class TestFindRequest:
 
 class TestRateLimitExceededError:
     """Tests for the custom exception that is raised when a rate limit is exceeded."""
+
     def test_default_detail(self) -> None:
         """When no custom message is provided, the detail should be "Rate limit exceeded"."""
         exc = RateLimitExceededError()
@@ -69,6 +71,7 @@ class TestRateLimitExceededError:
 
 class TestRateLimitExceededHandler:
     """Tests for the exception handler that converts a RateLimitExceededError into an HTTP response."""
+
     def test_returns_429(self) -> None:
         """The handler should return a 429 Too Many Requests status code."""
         resp = rate_limit_exceeded_handler(MagicMock(), RateLimitExceededError())
@@ -99,8 +102,10 @@ def limiter() -> Limiter:
 
 class TestLimiter:
     """Tests for the Limiter class that enforces rate limits on FastAPI endpoints."""
+
     async def test_allows_requests_under_limit(self, limiter: Limiter) -> None:
         """When the number of requests is within the defined limit, they should be allowed to proceed."""
+
         @limiter.limit("5/minute")
         async def endpoint(_request: Request) -> str:
             return "ok"
@@ -111,6 +116,7 @@ class TestLimiter:
 
     async def test_raises_when_limit_exceeded(self, limiter: Limiter) -> None:
         """When the number of requests exceeds the defined limit, a RateLimitExceededError should be raised."""
+
         @limiter.limit("2/minute")
         async def endpoint(_request: Request) -> str:
             return "ok"

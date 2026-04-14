@@ -10,7 +10,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.dependencies import current_active_superuser, current_active_user, current_active_verified_user
+from app.api.auth.dependencies import (
+    current_active_superuser,
+    current_active_user,
+    current_active_verified_user,
+    optional_current_active_user,
+)
 from app.api.auth.models import User
 from app.api.auth.services.rate_limiter import limiter
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
@@ -106,8 +111,10 @@ async def superuser_client(
     test_app.dependency_overrides[current_active_superuser] = lambda: superuser
     test_app.dependency_overrides[current_active_user] = lambda: superuser
     test_app.dependency_overrides[current_active_verified_user] = lambda: superuser
+    test_app.dependency_overrides[optional_current_active_user] = lambda: superuser
     yield async_client
     # Cleanup override
     test_app.dependency_overrides.pop(current_active_superuser, None)
     test_app.dependency_overrides.pop(current_active_user, None)
     test_app.dependency_overrides.pop(current_active_verified_user, None)
+    test_app.dependency_overrides.pop(optional_current_active_user, None)

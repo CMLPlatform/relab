@@ -106,7 +106,7 @@ import jwt  # noqa: E402
 import pytest  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402
 
-from app.api.plugins.rpi_cam.websocket.router import _verify_device_assertion  # noqa: E402
+from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion  # noqa: E402
 
 _ALG = "ES256"
 _AUD = "relab-rpi-cam-relay"

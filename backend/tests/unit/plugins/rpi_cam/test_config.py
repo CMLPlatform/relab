@@ -15,7 +15,6 @@ class TestRPiCamSettingsDefaults:
         assert settings.rpi_cam_plugin_secret == ""
 
 
-
 @pytest.mark.unit
 class TestRPiCamSettingsOverrides:
     """RPiCamSettings should accept constructor-level overrides."""
@@ -26,4 +25,3 @@ class TestRPiCamSettingsOverrides:
         fernet_key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         settings = RPiCamSettings(rpi_cam_plugin_secret=fernet_key)
         assert settings.rpi_cam_plugin_secret == fernet_key
-

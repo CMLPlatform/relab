@@ -79,7 +79,7 @@ class TestGetOrganizations:
     async def test_get_organizations_uses_paginated_helper(self, mock_session: AsyncMock) -> None:
         """Test that the org list helper delegates to the shared pagination helper."""
         with patch(
-            "app.api.auth.crud.organizations.get_paginated_models",
+            "app.api.auth.crud.organizations.page_models",
             new=AsyncMock(return_value=sentinel.page),
         ) as mock_get_paginated:
             result = await get_organizations(mock_session, read_schema=OrganizationReadPublic)
@@ -88,8 +88,8 @@ class TestGetOrganizations:
         mock_get_paginated.assert_awaited_once_with(
             mock_session,
             Organization,
-            include_relationships=None,
-            model_filter=None,
+            loaders=None,
+            filters=None,
             read_schema=OrganizationReadPublic,
         )
 
@@ -103,7 +103,7 @@ class TestUpdateUserOrganization:
         org = OrganizationFactory.build(name="Old Name")
         org_update = OrganizationUpdate(name="New Name")
 
-        with patch("app.api.auth.crud.organizations.get_model_by_id", new=AsyncMock(return_value=org)):
+        with patch("app.api.auth.crud.organizations.require_model", new=AsyncMock(return_value=org)):
             result = await update_user_organization(mock_session, org, org_update)
 
         assert result.name == "New Name"
@@ -122,7 +122,7 @@ class TestUpdateUserOrganization:
 
         org_update = OrganizationUpdate(name=org.name, owner_id=new_owner.id)
 
-        with patch("app.api.auth.crud.organizations.get_model_by_id", new=AsyncMock(return_value=org)):
+        with patch("app.api.auth.crud.organizations.require_model", new=AsyncMock(return_value=org)):
             result = await update_user_organization(mock_session, org, org_update)
 
         assert result.owner_id == new_owner.id
@@ -144,7 +144,7 @@ class TestUpdateUserOrganization:
         org_update = OrganizationUpdate(name=org.name, owner_id=non_member.id)
 
         with (
-            patch("app.api.auth.crud.organizations.get_model_by_id", new=AsyncMock(return_value=org)),
+            patch("app.api.auth.crud.organizations.require_model", new=AsyncMock(return_value=org)),
             pytest.raises(UserIsNotMemberError),
         ):
             await update_user_organization(mock_session, org, org_update)
@@ -204,7 +204,7 @@ class TestForceDeleteOrganization:
         org_id = uuid.uuid4()
         org = OrganizationFactory.build(id=org_id)
 
-        with patch("app.api.auth.crud.organizations.get_model_or_404", return_value=org):
+        with patch("app.api.auth.crud.organizations.require_model", return_value=org):
             await force_delete_organization(mock_session, org_id)
 
         mock_session.delete.assert_called_once_with(org)
@@ -282,7 +282,7 @@ class TestGetOrganizationMembers:
         mock_org = MagicMock()
         mock_org.members = mock_members
 
-        with patch("app.api.auth.crud.organizations.get_model_by_id", return_value=mock_org):
+        with patch("app.api.auth.crud.organizations.require_model", return_value=mock_org):
             result = await get_organization_members(mock_session, org_id, user)
 
         assert result == mock_members
@@ -294,7 +294,7 @@ class TestGetOrganizationMembers:
         mock_org = MagicMock()
         mock_org.members = [MagicMock()]
 
-        with patch("app.api.auth.crud.organizations.get_model_by_id", return_value=mock_org):
+        with patch("app.api.auth.crud.organizations.require_model", return_value=mock_org):
             result = await get_organization_members(mock_session, org_id, user)
 
         members = cast("list[User]", result)
@@ -307,11 +307,11 @@ class TestGetOrganizationMembers:
 
         with (
             patch(
-                "app.api.auth.crud.organizations.get_model_by_id",
+                "app.api.auth.crud.organizations.require_model",
                 new=AsyncMock(return_value=MagicMock()),
-            ) as mock_get_model_by_id,
+            ) as mock_require_model,
             patch(
-                "app.api.auth.crud.organizations.get_paginated_models",
+                "app.api.auth.crud.organizations.page_models",
                 new=AsyncMock(return_value=sentinel.page),
             ) as mock_get_paginated,
         ):
@@ -324,7 +324,7 @@ class TestGetOrganizationMembers:
             )
 
         assert result == sentinel.page
-        mock_get_model_by_id.assert_awaited_once_with(mock_session, Organization, org_id)
+        mock_require_model.assert_awaited_once_with(mock_session, Organization, org_id)
         mock_get_paginated.assert_awaited_once()
 
 

@@ -9,164 +9,178 @@ import pytest
 from app.api.background_data.models import Category, CategoryMaterialLink, Material
 from app.api.common.crud.associations import (
     LinkedModelReturnType,
-    create_model_links,
-    get_linked_model_by_id,
-    get_linked_models,
-    get_linking_model_with_ids_if_it_exists,
+    add_links,
+    list_linked_models,
+    require_link,
+    require_linked_model,
 )
 from app.api.common.exceptions import BadRequestError
 
 
 @pytest.mark.unit
-class TestGetLinkingModelWithIdsIfItExists:
-    """Tests for get_linking_model_with_ids_if_it_exists."""
+class TestRequireLink:
+    """Tests for require_link."""
 
     async def test_returns_link_when_found(self, mock_session: AsyncMock) -> None:
-        """Test that the link is returned when found."""
+        """Existing association rows should be returned."""
         mock_link = MagicMock()
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = mock_link
         mock_session.execute = AsyncMock(return_value=mock_result)
 
-        result = await get_linking_model_with_ids_if_it_exists(
-            mock_session, CategoryMaterialLink, 1, 2, "material_id", "category_id"
+        result = await require_link(
+            mock_session,
+            CategoryMaterialLink,
+            1,
+            2,
+            CategoryMaterialLink.material_id,
+            CategoryMaterialLink.category_id,
         )
 
         assert result == mock_link
 
     async def test_raises_bad_request_error_when_not_found(self, mock_session: AsyncMock) -> None:
-        """Test that BadRequestError is raised when link is not found."""
+        """Missing association rows should raise a client-safe error."""
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         with pytest.raises(BadRequestError, match="not found"):
-            await get_linking_model_with_ids_if_it_exists(
-                mock_session, CategoryMaterialLink, 1, 2, "material_id", "category_id"
+            await require_link(
+                mock_session,
+                CategoryMaterialLink,
+                1,
+                2,
+                CategoryMaterialLink.material_id,
+                CategoryMaterialLink.category_id,
             )
 
 
 @pytest.mark.unit
-class TestGetLinkedModelById:
-    """Tests for get_linked_model_by_id."""
+class TestRequireLinkedModel:
+    """Tests for require_linked_model."""
 
     async def test_returns_dependent_model_by_default(self, mock_session: AsyncMock) -> None:
-        """Test that the dependent model is returned with default return_type."""
+        """Linked dependent lookup should return the dependent model by default."""
         mock_dependent = MagicMock()
         mock_link = MagicMock()
 
         with (
-            patch("app.api.common.crud.associations.get_model_by_id", return_value=mock_dependent),
-            patch("app.api.common.crud.associations.get_linking_model_with_ids_if_it_exists", return_value=mock_link),
+            patch("app.api.common.crud.associations.require_model", return_value=mock_dependent),
+            patch("app.api.common.crud.associations.require_link", return_value=mock_link),
         ):
-            result = await get_linked_model_by_id(
+            result = await require_linked_model(
                 mock_session,
-                MagicMock(),
+                Material,
                 1,
-                MagicMock(),
+                Category,
                 2,
-                MagicMock(),
-                "parent_id",
-                "child_id",
+                CategoryMaterialLink,
+                CategoryMaterialLink.material_id,
+                CategoryMaterialLink.category_id,
                 return_type=LinkedModelReturnType.DEPENDENT,
             )
 
         assert result == mock_dependent
 
     async def test_returns_link_model_when_requested(self, mock_session: AsyncMock) -> None:
-        """Test that the link model is returned when return_type=LINK."""
+        """Linked dependent lookup can return the association row when requested."""
         mock_dependent = MagicMock()
         mock_link = MagicMock()
 
         with (
-            patch("app.api.common.crud.associations.get_model_by_id", return_value=mock_dependent),
-            patch("app.api.common.crud.associations.get_linking_model_with_ids_if_it_exists", return_value=mock_link),
+            patch("app.api.common.crud.associations.require_model", return_value=mock_dependent),
+            patch("app.api.common.crud.associations.require_link", return_value=mock_link),
         ):
-            result = await get_linked_model_by_id(
+            result = await require_linked_model(
                 mock_session,
-                MagicMock(),
+                Material,
                 1,
-                MagicMock(),
+                Category,
                 2,
-                MagicMock(),
-                "parent_id",
-                "child_id",
+                CategoryMaterialLink,
+                CategoryMaterialLink.material_id,
+                CategoryMaterialLink.category_id,
                 return_type=LinkedModelReturnType.LINK,
             )
 
         assert result == mock_link
 
     async def test_raises_bad_request_error_when_link_missing(self, mock_session: AsyncMock) -> None:
-        """Test that BadRequestError is raised with friendly message when link not found."""
+        """A missing link should be reported as an unlinked dependent."""
         mock_dependent = MagicMock()
 
-        parent_model = MagicMock()
-        parent_model.model_label = "Parent"
-        dependent_model = MagicMock()
-        dependent_model.model_label = "Child"
-
         with (
-            patch("app.api.common.crud.associations.get_model_by_id", return_value=mock_dependent),
-            patch(
-                "app.api.common.crud.associations.get_linking_model_with_ids_if_it_exists",
-                side_effect=BadRequestError("not found"),
-            ),
+            patch("app.api.common.crud.associations.require_model", return_value=mock_dependent),
+            patch("app.api.common.crud.associations.require_link", side_effect=BadRequestError("not found")),
             pytest.raises(BadRequestError, match="not linked"),
         ):
-            await get_linked_model_by_id(
+            await require_linked_model(
                 mock_session,
-                parent_model,
+                Material,
                 1,
-                dependent_model,
+                Category,
                 2,
-                MagicMock(),
-                "parent_id",
-                "child_id",
+                CategoryMaterialLink,
+                CategoryMaterialLink.material_id,
+                CategoryMaterialLink.category_id,
             )
 
 
 @pytest.mark.unit
-class TestGetLinkedModels:
-    """Tests for get_linked_models."""
+class TestListLinkedModels:
+    """Tests for list_linked_models."""
 
     async def test_returns_linked_models(self, mock_session: AsyncMock) -> None:
-        """Test that linked models are returned for a parent."""
+        """Linked list lookup should validate the parent then delegate to list_models."""
         mock_results = [MagicMock(), MagicMock()]
 
         with (
-            patch("app.api.common.crud.associations.get_model_by_id"),
-            patch("app.api.common.crud.associations.get_models", return_value=mock_results),
+            patch("app.api.common.crud.associations.require_model"),
+            patch("app.api.common.crud.associations.list_models", return_value=mock_results),
         ):
-            result = await get_linked_models(
+            result = await list_linked_models(
                 mock_session,
                 Material,
                 1,
                 Category,
                 CategoryMaterialLink,
-                "material_id",
+                CategoryMaterialLink.material_id,
             )
 
         assert result == mock_results
 
 
 @pytest.mark.unit
-class TestCreateModelLinks:
-    """Tests for create_model_links."""
+class TestAddLinks:
+    """Tests for add_links."""
 
     async def test_creates_links_for_all_ids(self, mock_session: AsyncMock) -> None:
-        """Test that links are created for all IDs in the set."""
-        await create_model_links(mock_session, 1, "parent_id", {10, 20, 30}, "child_id", MagicMock)
+        """Bulk link creation should create one association row per dependent ID."""
+        await add_links(
+            mock_session,
+            1,
+            CategoryMaterialLink.material_id,
+            {10, 20, 30},
+            CategoryMaterialLink.category_id,
+            MagicMock,
+        )
 
         mock_session.add_all.assert_called_once()
-        added_links = mock_session.add_all.call_args[0][0]
-        assert len(added_links) == 3
+        assert len(mock_session.add_all.call_args[0][0]) == 3
 
     async def test_creates_no_links_for_empty_set(self, mock_session: AsyncMock) -> None:
-        """Test that add_all is called with empty list for empty id set."""
+        """Bulk link creation should be a no-op for an empty dependent set."""
         mock_link_model = MagicMock()
 
-        await create_model_links(mock_session, 1, "parent_id", set(), "child_id", mock_link_model)
+        await add_links(
+            mock_session,
+            1,
+            CategoryMaterialLink.material_id,
+            set(),
+            CategoryMaterialLink.category_id,
+            mock_link_model,
+        )
 
         mock_session.add_all.assert_called_once()
-        added_links = mock_session.add_all.call_args[0][0]
-        assert len(added_links) == 0
+        assert len(mock_session.add_all.call_args[0][0]) == 0

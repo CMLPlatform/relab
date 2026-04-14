@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -55,7 +54,6 @@ class TestCameraConnectionStatus:
         assert CameraConnectionStatus.ERROR.to_http_error() == (HTTP_INTERNAL_ERROR, "Camera access error")
 
 
-# ruff: noqa: SLF001
 class TestCameraModel:
     """Test suite for the Camera model functionality."""
 
@@ -74,4 +72,3 @@ class TestCameraModel:
         assert camera.credential_is_active is True
         camera.relay_credential_status = CameraCredentialStatus.REVOKED
         assert camera.credential_is_active is False
-

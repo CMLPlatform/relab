@@ -9,7 +9,8 @@ import pytest
 from fastapi import status
 from sqlalchemy import select
 
-from app.api.data_collection.models.product import Product
+from app.api.common.models.enums import Unit
+from app.api.data_collection.models.product import MaterialProductLink, Product
 from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
@@ -127,6 +128,41 @@ class TestDataCollectionEndpoints:
         data = response.json()
         assert data["name"] == PRODUCT_BASE_NAME
         assert data["id"] == setup_product.id
+
+    async def test_validate_product_tree(
+        self, async_client: AsyncClient, session: AsyncSession, superuser: User
+    ) -> None:
+        """Test POST /products/{id}/validate handles a fully loaded tree safely."""
+        pt = await ProductTypeFactory.create_async(session=session)
+        root = await ProductFactory.create_async(
+            session=session,
+            owner_id=superuser.id,
+            product_type_id=pt.id,
+            name=f"{PRODUCT_BASE_NAME} Root",
+        )
+        child = await ProductFactory.create_async(
+            session=session,
+            owner_id=superuser.id,
+            parent_id=root.id,
+            product_type_id=pt.id,
+            name=f"{PRODUCT_BASE_NAME} Child",
+        )
+        material = await MaterialFactory.create_async(session=session)
+        session.add(
+            MaterialProductLink(
+                material_id=material.id,
+                product_id=child.id,
+                quantity=1.0,
+                unit=Unit.GRAM,
+            )
+        )
+        await session.commit()
+        await session.begin()
+
+        response = await async_client.post(f"/products/{root.id}/validate")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["valid"] is True
 
     async def test_create_product(self, superuser_client: AsyncClient, session: AsyncSession) -> None:
         """Test POST /products creates a new product."""

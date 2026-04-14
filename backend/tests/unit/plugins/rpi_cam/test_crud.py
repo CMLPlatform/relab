@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from app.api.plugins.rpi_cam.crud import create_camera, update_camera
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
-from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate
+from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate, RelayPublicKeyJWK
 
 if TYPE_CHECKING:
     from unittest.mock import AsyncMock
@@ -49,7 +49,7 @@ async def test_create_camera(session: AsyncSession, superuser: User) -> None:
     camera_in = CameraCreate(
         name=TEST_CAMERA_NAME,
         description=TEST_CAMERA_DESC,
-        relay_public_key_jwk=PUBLIC_JWK,
+        relay_public_key_jwk=RelayPublicKeyJWK(**PUBLIC_JWK),
         relay_key_id=KEY_ID,
     )
 

@@ -48,7 +48,7 @@ class TestCategoryValidation:
 
         super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
 
-        with patch("app.api.background_data.crud.categories.get_model_or_404", return_value=super_category) as mock_get:
+        with patch("app.api.background_data.crud.categories.require_model", return_value=super_category) as mock_get:
             # Case 1: Matching taxonomy_id
             result_id, result_cat = await validate_category_creation(
                 mock_session, category_create, taxonomy_id=10, supercategory_id=1
@@ -64,7 +64,7 @@ class TestCategoryValidation:
         super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
 
         with (
-            patch("app.api.background_data.crud.categories.get_model_or_404", return_value=super_category),
+            patch("app.api.background_data.crud.categories.require_model", return_value=super_category),
             pytest.raises(BadRequestError, match="does not belong to taxonomy with id") as exc,
         ):
             # Case 2: Mismatched taxonomy_id
@@ -79,7 +79,7 @@ class TestCategoryValidation:
 
         mock_taxonomy = TaxonomyFactory.build(id=10, name="Tax")
 
-        with patch("app.api.background_data.crud.categories.get_model_or_404", return_value=mock_taxonomy) as mock_get:
+        with patch("app.api.background_data.crud.categories.require_model", return_value=mock_taxonomy) as mock_get:
             result_id, result_cat = await validate_category_creation(
                 mock_session, category_create, taxonomy_id=None, supercategory_id=None
             )
@@ -179,7 +179,7 @@ class TestCategoryCrud:
         db_category = CategoryFactory.build(id=1, name="Old Name")
         category_update = CategoryUpdate(name="New Name")
 
-        with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_category):
+        with patch("app.api.background_data.crud.shared.require_model", return_value=db_category):
             result = await update_category(session, 1, category_update)
 
         assert result.name == "New Name"
@@ -191,7 +191,7 @@ class TestCategoryCrud:
         session = _make_session()
         db_category = CategoryFactory.build(id=1)
 
-        with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_category):
+        with patch("app.api.background_data.crud.shared.require_model", return_value=db_category):
             await delete_category(session, 1)
 
         session.delete.assert_called_once_with(db_category)
@@ -221,7 +221,7 @@ class TestTaxonomyCrud:
         db_taxonomy = TaxonomyFactory.build(id=10, name="Old Name")
         taxonomy_update = TaxonomyUpdate(name="New Name")
 
-        with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_taxonomy):
+        with patch("app.api.background_data.crud.shared.require_model", return_value=db_taxonomy):
             result = await update_taxonomy(session, 10, taxonomy_update)
 
         assert result.name == "New Name"
@@ -233,7 +233,7 @@ class TestTaxonomyCrud:
         session = _make_session()
         db_taxonomy = TaxonomyFactory.build(id=10)
 
-        with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_taxonomy):
+        with patch("app.api.background_data.crud.shared.require_model", return_value=db_taxonomy):
             await delete_taxonomy(session, 10)
 
         session.delete.assert_called_once_with(db_taxonomy)
@@ -261,7 +261,7 @@ class TestMaterialCrud:
         db_material = MaterialFactory.build(id=1, name="Old Material")
         material_update = MaterialUpdate(name="New Material")
 
-        with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_material):
+        with patch("app.api.background_data.crud.shared.require_model", return_value=db_material):
             result = await update_material(session, 1, material_update)
 
         assert result.name == "New Material"
@@ -274,7 +274,7 @@ class TestMaterialCrud:
         db_material = MaterialFactory.build(id=1)
 
         with (
-            patch("app.api.background_data.crud.materials.get_model_or_404", return_value=db_material),
+            patch("app.api.background_data.crud.materials.require_model", return_value=db_material),
             patch("app.api.background_data.crud.materials.material_files_crud.delete_all"),
             patch("app.api.background_data.crud.materials.material_images_crud.delete_all"),
         ):
@@ -291,10 +291,10 @@ class TestMaterialCrud:
         db_categories = [CategoryFactory.build(id=1)]
 
         with (
-            patch("app.api.background_data.crud.shared.get_model_by_id", return_value=db_material),
-            patch("app.api.background_data.crud.shared.get_models_by_ids_or_404", return_value=db_categories),
+            patch("app.api.background_data.crud.shared.require_model", return_value=db_material),
+            patch("app.api.background_data.crud.shared.require_models", return_value=db_categories),
             patch("app.api.background_data.crud.materials.validate_category_taxonomy_domains", new=AsyncMock()),
-            patch("app.api.background_data.crud.shared.create_model_links", new=AsyncMock()) as mock_create_links,
+            patch("app.api.background_data.crud.shared.add_links", new=AsyncMock()) as mock_create_links,
         ):
             result = await add_categories_to_material(session, 1, {1})
 
@@ -337,7 +337,7 @@ class TestGetCategoryTrees:
         mock_result.scalars.return_value = mock_scalars
         session.execute.return_value = mock_result
 
-        with patch("app.api.background_data.crud.categories.get_model_or_404"):
+        with patch("app.api.background_data.crud.categories.require_model"):
             result = await get_category_trees(session, taxonomy_id=10)
 
         assert result == [cat]
@@ -352,7 +352,7 @@ class TestGetCategoryTrees:
         mock_result.scalars.return_value = mock_scalars
         session.execute.return_value = mock_result
 
-        with patch("app.api.background_data.crud.categories.get_model_or_404"):
+        with patch("app.api.background_data.crud.categories.require_model"):
             result = await get_category_trees(session, supercategory_id=1)
 
         assert result == [child_cat]
@@ -369,10 +369,10 @@ class TestProductTypeCrud:
         db_categories = [CategoryFactory.build(id=1)]
 
         with (
-            patch("app.api.background_data.crud.shared.get_model_by_id", return_value=db_product_type),
-            patch("app.api.background_data.crud.shared.get_models_by_ids_or_404", return_value=db_categories),
+            patch("app.api.background_data.crud.shared.require_model", return_value=db_product_type),
+            patch("app.api.background_data.crud.shared.require_models", return_value=db_categories),
             patch("app.api.background_data.crud.product_types.validate_category_taxonomy_domains", new=AsyncMock()),
-            patch("app.api.background_data.crud.shared.create_model_links", new=AsyncMock()) as mock_create_links,
+            patch("app.api.background_data.crud.shared.add_links", new=AsyncMock()) as mock_create_links,
         ):
             result = await add_categories_to_product_type(session, 1, {1})
 
@@ -398,7 +398,7 @@ class TestProductTypeCrud:
         db_pt = ProductTypeFactory.build(id=1, name="Old Type")
         pt_update = ProductTypeUpdate(name="New Type")
 
-        with patch("app.api.background_data.crud.shared.get_model_or_404", return_value=db_pt):
+        with patch("app.api.background_data.crud.shared.require_model", return_value=db_pt):
             result = await update_product_type(session, 1, pt_update)
 
         assert result.name == "New Type"
@@ -411,7 +411,7 @@ class TestProductTypeCrud:
         db_pt = ProductTypeFactory.build(id=1)
 
         with (
-            patch("app.api.background_data.crud.product_types.get_model_or_404", return_value=db_pt),
+            patch("app.api.background_data.crud.product_types.require_model", return_value=db_pt),
             patch("app.api.background_data.crud.product_types.product_type_files_crud.delete_all"),
             patch("app.api.background_data.crud.product_types.product_type_images_crud.delete_all"),
         ):

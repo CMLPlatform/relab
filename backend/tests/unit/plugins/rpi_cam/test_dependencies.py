@@ -32,7 +32,7 @@ async def test_get_camera_transfer_owner_id_returns_none_when_owner_unchanged() 
     camera = build_camera(owner_id=uuid.uuid4())
     camera_in = CameraUpdate(name="Updated")
 
-    with patch("app.api.plugins.rpi_cam.dependencies.get_model_or_404", new=AsyncMock()) as mock_get_model:
+    with patch("app.api.plugins.rpi_cam.dependencies.require_model", new=AsyncMock()) as mock_get_model:
         result = await get_camera_transfer_owner_id(camera_in, camera, session)
 
     assert result is None
@@ -67,7 +67,7 @@ async def test_get_camera_transfer_owner_id_allows_same_org_transfer() -> None:
     camera_in = CameraUpdate.model_validate({"owner_id": target_owner.id})
 
     with patch(
-        "app.api.plugins.rpi_cam.dependencies.get_model_or_404",
+        "app.api.plugins.rpi_cam.dependencies.require_model",
         new=AsyncMock(side_effect=[current_owner, target_owner]),
     ) as mock_get_model:
         result = await get_camera_transfer_owner_id(camera_in, camera, session)
@@ -117,7 +117,7 @@ async def test_get_camera_transfer_owner_id_rejects_transfer_to_other_org() -> N
 
     with (
         patch(
-            "app.api.plugins.rpi_cam.dependencies.get_model_or_404",
+            "app.api.plugins.rpi_cam.dependencies.require_model",
             new=AsyncMock(side_effect=[current_owner, target_owner]),
         ),
         pytest.raises(UserIsNotMemberError),
@@ -153,7 +153,7 @@ async def test_get_camera_transfer_owner_id_rejects_owner_without_org() -> None:
 
     with (
         patch(
-            "app.api.plugins.rpi_cam.dependencies.get_model_or_404",
+            "app.api.plugins.rpi_cam.dependencies.require_model",
             new=AsyncMock(side_effect=[current_owner, target_owner]),
         ),
         pytest.raises(UserHasNoOrgError),

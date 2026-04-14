@@ -147,7 +147,7 @@ def _get_worker_test_db_name() -> str:
 def _build_database_url(driver: str, database_name: str) -> str:
     """Build database URL from environment variables set by pytest_configure."""
     host = os.environ["DATABASE_HOST"]
-    port = os.environ["DATABASE_PORT"]
+    port = int(os.environ["DATABASE_PORT"])
     user = os.environ["POSTGRES_USER"]
     password = os.environ["POSTGRES_PASSWORD"]
     return URL.create(

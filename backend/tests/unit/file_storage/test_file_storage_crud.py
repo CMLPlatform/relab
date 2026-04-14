@@ -14,7 +14,7 @@ from pydantic import HttpUrl
 from app.api.data_collection.models.product import Product
 from app.api.file_storage import crud
 from app.api.file_storage.crud import (
-    ParentImageCrud,
+    ParentMediaCrud,
     create_file,
     delete_file,
     delete_file_from_storage,
@@ -113,8 +113,8 @@ class TestFileStorageCrud:
         )
 
         with (
-            patch("app.api.file_storage.crud.get_file_parent_type_model") as mock_parent_model,
-            patch("app.api.file_storage.crud.get_model_or_404"),
+            patch("app.api.file_storage.crud.parent_model_for_type") as mock_parent_model,
+            patch("app.api.file_storage.crud.require_model"),
             patch.object(crud.file_storage_service, "_storage") as mock_storage,
         ):
             mock_parent_model.return_value = MagicMock()
@@ -144,7 +144,7 @@ class TestFileStorageCrud:
         )
 
         with (
-            patch("app.api.file_storage.crud.get_model_or_404"),
+            patch("app.api.file_storage.crud.require_model"),
             patch.object(crud.file_storage_service, "_storage") as mock_storage,
         ):
             mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
@@ -176,7 +176,7 @@ class TestFileStorageCrud:
         mock_db_file.file.path = FAKE_PATH
 
         with (
-            patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_file),
+            patch("app.api.file_storage.crud.require_model", return_value=mock_db_file),
             patch("app.api.file_storage.crud.delete_file_from_storage") as mock_delete_from_storage,
         ):
             await delete_file(mock_session, file_id)
@@ -205,7 +205,7 @@ class TestFileStorageCrud:
         mock_db_file = MagicMock(spec=File)
         file_update = FileUpdate(description=UPDATED_DESC)
 
-        with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_file):
+        with patch("app.api.file_storage.crud.require_model", return_value=mock_db_file):
             result = await crud.update_file(mock_session, file_id, file_update)
             assert result == mock_db_file
             mock_session.add.assert_called_once()
@@ -230,7 +230,7 @@ class TestImageStorageCrud:
 
         with (
             patch(
-                "app.api.file_storage.crud.get_model_or_404",
+                "app.api.file_storage.crud.require_model",
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
             patch.object(crud.image_storage_service, "_storage") as mock_storage,
@@ -262,7 +262,7 @@ class TestImageStorageCrud:
         mock_db_image = MagicMock(spec=Image)
         image_update = ImageUpdate(description=UPDATED_IMAGE_DESC)
 
-        with patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_image):
+        with patch("app.api.file_storage.crud.require_model", return_value=mock_db_image):
             result = await crud.update_image(mock_session, image_id, image_update)
             assert result == mock_db_image
 
@@ -273,7 +273,7 @@ class TestImageStorageCrud:
         mock_db_image.file.path = FAKE_IMAGE_PATH
 
         with (
-            patch("app.api.file_storage.crud.get_model_or_404", return_value=mock_db_image),
+            patch("app.api.file_storage.crud.require_model", return_value=mock_db_image),
             patch("app.api.file_storage.crud.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
         ):
             await crud.delete_image(mock_session, image_id)
@@ -289,7 +289,7 @@ class TestImageStorageCrud:
 
         with (
             patch(
-                "app.api.file_storage.crud.get_model_or_404",
+                "app.api.file_storage.crud.require_model",
                 side_effect=crud.ModelFileNotFoundError(Image, image_id),
             ),
             patch("app.api.file_storage.crud.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
@@ -307,7 +307,7 @@ class TestVideoCrud:
         """Test creating a video."""
         video_create = VideoCreate(url=YOUTUBE_URL, product_id=1, title=TEST_VIDEO_TITLE)
 
-        with patch("app.api.file_storage.crud.video.get_model_or_404"):
+        with patch("app.api.file_storage.crud.video.require_model"):
             result = await video_crud.create_video(mock_session, video_create, commit=True)
             assert isinstance(result, Video)
             assert result.title == TEST_VIDEO_TITLE
@@ -317,7 +317,7 @@ class TestVideoCrud:
         video_id = 1
         mock_db_video = MagicMock(spec=Video)
 
-        with patch("app.api.file_storage.crud.video.get_model_or_404", return_value=mock_db_video):
+        with patch("app.api.file_storage.crud.video.require_model", return_value=mock_db_video):
             await video_crud.delete_video(mock_session, video_id)
             mock_session.delete.assert_called_once()
 
@@ -327,9 +327,10 @@ class TestParentStorageCrud:
 
     async def test_create_rejects_parent_scope_mismatch(self, mock_session: AsyncMock) -> None:
         """Create should fail if the payload is not already scoped to the target parent."""
-        operations = ParentImageCrud(
+        operations = ParentMediaCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
+            storage_model=Image,
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
         )
 
@@ -347,9 +348,10 @@ class TestParentStorageCrud:
         """Delete should succeed even if the underlying file is already gone."""
         storage_service = MagicMock()
         storage_service.delete = AsyncMock()
-        operations = ParentImageCrud(
+        operations = ParentMediaCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
+            storage_model=Image,
             storage_service=storage_service,
         )
 
@@ -358,16 +360,17 @@ class TestParentStorageCrud:
         db_item.parent_id = 1
         mock_session.get.return_value = db_item
 
-        with patch("app.api.file_storage.crud.get_model_or_404"):
+        with patch("app.api.file_storage.crud.require_model"):
             await operations.delete(mock_session, 1, item_id)
 
         storage_service.delete.assert_awaited_once_with(mock_session, item_id)
 
     async def test_get_by_id_raises_not_found_for_wrong_parent(self, mock_session: AsyncMock) -> None:
         """Fetching an item through the wrong parent should return a parent-scoped not found error."""
-        operations = ParentImageCrud(
+        operations = ParentMediaCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
+            storage_model=Image,
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
         )
 
@@ -378,7 +381,7 @@ class TestParentStorageCrud:
         mock_session.get.return_value = db_item
 
         with (
-            patch("app.api.file_storage.crud.get_model_or_404"),
+            patch("app.api.file_storage.crud.require_model"),
             pytest.raises(ParentStorageOwnershipError, match="not found for"),
         ):
             await operations.get_by_id(mock_session, 1, item_id)

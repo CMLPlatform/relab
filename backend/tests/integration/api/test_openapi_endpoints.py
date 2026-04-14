@@ -132,3 +132,22 @@ class TestOpenAPIEndpoints:
 
         product_schema_examples = payload["components"]["schemas"]["ProductCreateWithComponents"]["examples"]
         assert product_schema_examples[0]["name"] == "Office Chair"
+
+        product_list_parameters = payload["paths"]["/products"]["get"].get("parameters", [])
+        assert all(parameter["name"] != "include" for parameter in product_list_parameters)
+
+        user_product_list_parameters = payload["paths"]["/users/{user_id}/products"]["get"].get("parameters", [])
+        assert all(parameter["name"] != "include" for parameter in user_product_list_parameters)
+
+        product_detail_parameters = payload["paths"]["/products/{product_id}"]["get"].get("parameters", [])
+        assert all(parameter["name"] != "include" for parameter in product_detail_parameters)
+
+        product_component_list_parameters = payload["paths"]["/products/{product_id}/components"]["get"].get(
+            "parameters", []
+        )
+        assert all(parameter["name"] != "include" for parameter in product_component_list_parameters)
+
+        product_component_detail_parameters = payload["paths"]["/products/{product_id}/components/{component_id}"][
+            "get"
+        ].get("parameters", [])
+        assert all(parameter["name"] != "include" for parameter in product_component_detail_parameters)

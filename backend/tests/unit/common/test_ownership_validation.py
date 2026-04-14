@@ -29,7 +29,7 @@ def _ownership_error(user_id: int | UUID, model_id: int | UUID) -> DependentMode
 
 @pytest.mark.unit
 class TestGetUserOwnedObject:
-    """get_user_owned_object delegates to get_nested_model_by_id and maps ownership errors."""
+    """get_user_owned_object delegates to require_scoped_model and maps ownership errors."""
 
     @pytest.mark.asyncio
     async def test_success_returns_object_and_passes_correct_params(self, mocker: MockerFixture) -> None:
@@ -37,8 +37,8 @@ class TestGetUserOwnedObject:
         user_id = uuid4()
         model_id = uuid4()
         expected = MagicMock()
-        mock_get_nested = mocker.patch(
-            "app.api.common.ownership.get_nested_model_by_id",
+        mock_require_scoped = mocker.patch(
+            "app.api.common.ownership.require_scoped_model",
             new_callable=AsyncMock,
             return_value=expected,
         )
@@ -48,7 +48,7 @@ class TestGetUserOwnedObject:
         # Default FK
         result = await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
         assert result is expected
-        call = mock_get_nested.call_args
+        call = mock_require_scoped.call_args
         assert call.kwargs["parent_model"] == User
         assert call.kwargs["parent_id"] == user_id
         assert call.kwargs["dependent_model"] == mock_model
@@ -59,7 +59,7 @@ class TestGetUserOwnedObject:
         await get_user_owned_object(
             db=db, model=mock_model, model_id=model_id, owner_id=user_id, user_fk="created_by_id"
         )
-        assert mock_get_nested.call_args.kwargs["parent_fk_name"] == "created_by_id"
+        assert mock_require_scoped.call_args.kwargs["parent_fk_name"] == "created_by_id"
 
     @pytest.mark.asyncio
     async def test_ownership_error_raises_user_ownership_error(self, mocker: MockerFixture) -> None:
@@ -67,7 +67,7 @@ class TestGetUserOwnedObject:
         user_id = uuid4()
         model_id = uuid4()
         mocker.patch(
-            "app.api.common.ownership.get_nested_model_by_id",
+            "app.api.common.ownership.require_scoped_model",
             new_callable=AsyncMock,
             side_effect=_ownership_error(user_id, model_id),
         )
@@ -91,7 +91,7 @@ class TestGetUserOwnedObject:
         model_id = uuid4()
         original = _ownership_error(user_id, model_id)
         mocker.patch(
-            "app.api.common.ownership.get_nested_model_by_id",
+            "app.api.common.ownership.require_scoped_model",
             new_callable=AsyncMock,
             side_effect=original,
         )
