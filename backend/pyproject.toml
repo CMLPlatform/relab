@@ -38,7 +38,7 @@
     "sqlalchemy >=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.1.1",
+    "relab-rpi-cam-models>=0.2.0",
     # Password strength and breach checking
     "zxcvbn>=4.4.28",
     # Configuration, validation, and utility types
@@ -114,6 +114,14 @@
   ]
 
 ### Tool configuration
+[tool.uv.sources]
+  # Source the shared camera models from the sibling rpi-cam-plugin monorepo during
+  # local dev so ty/pyright resolve ``ImageCaptureStatus`` and other 0.2.0-era symbols
+  # before the package is published to PyPI.
+  # TODO: Switch back to a plain PyPI install once
+  # the models.tag CI workflow ships 0.2.0.
+  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
+
 [tool.alembic]
   path_separator   = "os"
   prepend_sys_path = ["."]
