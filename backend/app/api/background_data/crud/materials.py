@@ -6,18 +6,17 @@ from typing import TYPE_CHECKING
 
 from app.api.background_data.models import Category, CategoryMaterialLink, Material, TaxonomyDomain
 from app.api.background_data.schemas import MaterialCreate, MaterialCreateWithCategories, MaterialUpdate
-from app.api.common.crud.associations import create_model_links
+from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import commit_and_refresh
+from app.api.common.crud.query import require_model, require_models
 from app.api.common.exceptions import InternalServerError
-from app.api.file_storage.crud import ParentFileCrud, ParentImageCrud
-from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.crud import ParentMediaCrud, file_storage_service, image_storage_service
+from app.api.file_storage.models import File, Image, MediaParentType
 
 from .categories import validate_category_taxonomy_domains
 from .shared import (
     add_categories_to_parent_model,
     create_background_model,
-    get_model_or_404,
-    get_models_by_ids_or_404,
     remove_categories_from_parent_model,
     update_background_model,
 )
@@ -33,15 +32,15 @@ async def create_material(db: AsyncSession, material: MaterialCreate | MaterialC
     db_material = await create_background_model(db, Material, material, exclude_fields={"category_ids"})
 
     if isinstance(material, MaterialCreateWithCategories) and material.category_ids:
-        await get_models_by_ids_or_404(db, Category, material.category_ids)
+        await require_models(db, Category, material.category_ids)
         await validate_category_taxonomy_domains(db, material.category_ids, {TaxonomyDomain.MATERIALS})
 
-        await create_model_links(
+        await add_links(
             db,
             id1=db_material.id,
-            id1_field="material_id",
+            id1_attr=CategoryMaterialLink.material_id,
             id2_set=material.category_ids,
-            id2_field="category_id",
+            id2_attr=CategoryMaterialLink.category_id,
             link_model=CategoryMaterialLink,
         )
 
@@ -55,7 +54,7 @@ async def update_material(db: AsyncSession, material_id: int, material: Material
 
 async def delete_material(db: AsyncSession, material_id: int) -> None:
     """Delete a material from the database."""
-    db_material = await get_model_or_404(db, Material, material_id)
+    db_material = await require_model(db, Material, material_id)
 
     await material_files_crud.delete_all(db, material_id)
     await material_images_crud.delete_all(db, material_id)
@@ -108,12 +107,16 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
     await db.commit()
 
 
-material_files_crud = ParentFileCrud(
+material_files_crud = ParentMediaCrud(
     parent_model=Material,
     parent_type=MediaParentType.MATERIAL,
+    storage_model=File,
+    storage_service=file_storage_service,
 )
 
-material_images_crud = ParentImageCrud(
+material_images_crud = ParentMediaCrud(
     parent_model=Material,
     parent_type=MediaParentType.MATERIAL,
+    storage_model=Image,
+    storage_service=image_storage_service,
 )

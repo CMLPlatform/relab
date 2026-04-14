@@ -12,7 +12,7 @@ from app.api.auth.dependencies import current_active_superuser
 from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization
 from app.api.auth.schemas import OrganizationReadWithRelationships
-from app.api.common.crud.base import get_model_by_id
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = APIRouter(prefix="/admin/organizations", tags=["admin"], dependencies=[Security(current_active_superuser)])
@@ -28,8 +28,8 @@ async def get_all_organizations(
     """Get all organizations with all relationships loaded. Only superusers can access this route."""
     return await crud.get_organizations(
         session,
-        include_relationships={"members"},
-        model_filter=org_filter,
+        loaders={"members"},
+        filters=org_filter,
         read_schema=OrganizationReadWithRelationships,
     )
 
@@ -44,11 +44,11 @@ async def get_organization_with_relationships(
     session: AsyncSessionDep,
 ) -> Organization:
     """Get organization by ID with all relationships loaded. Only superusers can access this route."""
-    return await get_model_by_id(
+    return await require_model(
         session,
         Organization,
         organization_id,
-        include_relationships={"members"},
+        loaders={"members"},
         read_schema=OrganizationReadWithRelationships,
     )
 

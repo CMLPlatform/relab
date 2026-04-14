@@ -12,7 +12,7 @@ from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.stats import recompute_user_stats
-from app.api.common.crud.base import get_nested_model_by_id
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -115,7 +115,7 @@ async def delete_product_component(
     db_product: UserOwnedProductDep, component_id: PositiveInt, session: AsyncSessionDep
 ) -> None:
     """Delete a component in a product, including subcomponents."""
-    await get_nested_model_by_id(session, Product, db_product.id, Product, component_id, "parent_id")
+    await require_scoped_model(session, Product, db_product.id, Product, component_id, "parent_id")
     await crud.delete_product(session, component_id)
 
 
@@ -268,6 +268,6 @@ async def delete_product_image(
     # Need owner ID for stats update
     product = await session.get(Product, parent_id)
     await crud.product_images_crud.delete(session, parent_id, image_id)
-    if product:
+    if product and product.owner_id is not None:
         await recompute_user_stats(session, product.owner_id)
         await session.commit()

@@ -97,8 +97,10 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     videos: Mapped[list[Video] | None] = relationship(cascade="all, delete-orphan")
 
     # Many-to-one: owner
-    owner_id: Mapped[UUID4] = mapped_column(ForeignKey("user.id"))
-    owner: Mapped[User] = relationship(
+    # nullable=False preserves the NOT NULL DB constraint; the Python type allows None
+    # so that pre-serialisation privacy redaction can null out the owner without a cast.
+    owner_id: Mapped[UUID4 | None] = mapped_column(ForeignKey("user.id"), nullable=False)
+    owner: Mapped[User | None] = relationship(
         uselist=False,
         lazy="selectin",
         foreign_keys="[Product.owner_id]",
@@ -200,6 +202,7 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"
+
 
 ### MaterialProductLink; lives here so Product and Material are both in scope ###
 class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):

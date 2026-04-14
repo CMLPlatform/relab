@@ -3,21 +3,19 @@
 import logging
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from anyio import Path as AnyIOPath
 from anyio import to_thread
 from fastapi import UploadFile
-from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import UUID4
 from slugify import slugify
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.common.crud.base import get_models
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.persistence import SupportsModelDump, update_and_commit
-from app.api.common.crud.utils import get_file_parent_type_model, get_model_or_404
+from app.api.common.crud.query import list_models, require_model
 from app.api.common.models.custom_types import MT
 from app.api.file_storage.exceptions import (
     FastAPIStorageFileNotFoundError,
@@ -28,6 +26,7 @@ from app.api.file_storage.exceptions import (
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage import _get_file_storage, _get_image_storage
+from app.api.file_storage.parents import parent_model_for_type
 from app.api.file_storage.schemas import (
     MAX_FILE_SIZE_MB,
     MAX_IMAGE_SIZE_MB,
@@ -42,6 +41,8 @@ from app.core.images import delete_thumbnails, generate_thumbnails, process_imag
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import BinaryIO
+
+    from fastapi_filter.contrib.sqlalchemy import Filter
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +109,8 @@ async def delete_image_from_storage(image_path: Path) -> None:
 
 async def _ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
     """Validate that the target parent record exists."""
-    parent_model = get_file_parent_type_model(parent_type)
-    await get_model_or_404(db, parent_model, parent_id)
+    parent_model = parent_model_for_type(parent_type)
+    await require_model(db, parent_model, parent_id)
 
 
 def _measure_file_size(file: BinaryIO) -> int:
@@ -185,7 +186,7 @@ async def _get_storage_item_or_raise[StorageModelT: StorageModel](
 ) -> StorageModelT:
     """Fetch a storage item and normalize storage-related lookup errors."""
     try:
-        return await get_model_or_404(db, model, item_id)
+        return await require_model(db, model, item_id)
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
         raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
 
@@ -251,7 +252,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         """Delete a file-backed model and best-effort clean up its storage file."""
         cleanup_path: Path | None = None
         try:
-            db_item = await get_model_or_404(db, self.model, item_id)
+            db_item = await require_model(db, self.model, item_id)
             file_path = stored_file_path(db_item)
             cleanup_path = file_path
         except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
@@ -313,7 +314,7 @@ image_storage_service = ImageStorageService()
 ### File CRUD operations ###
 async def get_files(db: AsyncSession, *, file_filter: FileFilter | None = None) -> Sequence[File]:
     """Get all files from the database."""
-    return await get_models(db, File, model_filter=file_filter)
+    return await list_models(db, File, filters=file_filter)
 
 
 async def get_file(db: AsyncSession, file_id: UUID4) -> File:
@@ -339,7 +340,7 @@ async def delete_file(db: AsyncSession, file_id: UUID4) -> None:
 ### Image CRUD operations ###
 async def get_images(db: AsyncSession, *, image_filter: ImageFilter | None = None) -> Sequence[Image]:
     """Get all images from the database."""
-    return await get_models(db, Image, model_filter=image_filter)
+    return await list_models(db, Image, filters=image_filter)
 
 
 async def get_image(db: AsyncSession, image_id: UUID4) -> Image:
@@ -363,31 +364,27 @@ async def delete_image(db: AsyncSession, image_id: UUID4) -> None:
 
 
 ### Parent CRUD operations ###
-StorageModelT = TypeVar("StorageModelT", File, Image)
-CreateSchemaT = TypeVar("CreateSchemaT", FileCreate, ImageCreateFromForm)
-FilterT = TypeVar("FilterT", bound=Filter)
-
-
-class ParentFileCrud:
-    """Parent-scoped operations for file storage."""
+class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
+    """Parent-scoped operations for stored media."""
 
     def __init__(
         self,
         *,
         parent_model: type[object],
         parent_type: MediaParentType,
-        storage_service: StoredMediaService[File, FileCreate] | None = None,
+        storage_model: type[StorageModelT],
+        storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
     ) -> None:
         self.parent_model = parent_model
-        self.storage_model = File
+        self.storage_model = storage_model
         self.parent_type = parent_type
-        self.storage_service = storage_service or file_storage_service
+        self.storage_service = storage_service
 
     async def _ensure_parent_exists(self, db: AsyncSession, parent_id: int) -> None:
         """Validate that the scoped parent record exists."""
-        await get_model_or_404(db, cast("type[MT]", self.parent_model), parent_id)
+        await require_model(db, cast("type[MT]", self.parent_model), parent_id)
 
-    def _validate_parent_scope(self, parent_id: int, item_data: FileCreate) -> None:
+    def _validate_parent_scope(self, parent_id: int, item_data: CreateSchemaT) -> None:
         """Ensure the payload is already scoped to this parent."""
         if item_data.parent_id != parent_id:
             err_msg = f"Parent ID mismatch: expected {parent_id}, got {item_data.parent_id}"
@@ -398,21 +395,21 @@ class ParentFileCrud:
 
     def _build_parent_statement(self) -> Select:
         """Build the base query for storage items owned by this parent type."""
-        return select(File).where(File.parent_type == self.parent_type)
+        return select(self.storage_model).where(self.storage_model.parent_type == self.parent_type)
 
-    async def _get_owned_item(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> File:
+    async def _get_owned_item(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> StorageModelT:
         """Fetch a storage item and verify that it belongs to the scoped parent."""
         try:
-            db_item: File | None = await db.get(File, item_id)
+            db_item = await db.get(self.storage_model, item_id)
         except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
-            raise ModelFileNotFoundError(File, item_id, details=str(e)) from e
+            raise ModelFileNotFoundError(self.storage_model, item_id, details=str(e)) from e
 
         if not db_item:
-            raise ModelNotFoundError(File, item_id)
+            raise ModelNotFoundError(self.storage_model, item_id)
 
         if db_item.parent_id != parent_id:
             raise ParentStorageOwnershipError(
-                File,
+                self.storage_model,
                 item_id,
                 cast("type[MT]", self.parent_model),
                 parent_id,
@@ -425,30 +422,30 @@ class ParentFileCrud:
         db: AsyncSession,
         parent_id: int,
         *,
-        filter_params: FileFilter | None = None,
-    ) -> list[File]:
+        filter_params: Filter | None = None,
+    ) -> list[StorageModelT]:
         """Get all storage items for a parent, excluding items with missing files."""
         await self._ensure_parent_exists(db, parent_id)
 
-        statement = self._build_parent_statement().where(File.parent_id == parent_id)
+        statement = self._build_parent_statement().where(self.storage_model.parent_id == parent_id)
 
         if filter_params:
             statement = filter_params.filter(statement)
 
-        items: list[File] = list((await db.execute(statement)).scalars().all())
+        items: list[StorageModelT] = list((await db.execute(statement)).scalars().all())
         valid_items = [item for item in items if storage_item_exists(item)]
         if len(valid_items) < len(items):
             missing = len(items) - len(valid_items)
             logger.warning(
                 "%d %s(s) for %s %s have missing files in storage and will be excluded from the response.",
                 missing,
-                File.__name__,
+                self.storage_model.__name__,
                 self.parent_model.__name__,
                 parent_id,
             )
         return valid_items
 
-    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> File:
+    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> StorageModelT:
         """Get a specific storage item for a parent, raising an error if the file is missing."""
         await self._ensure_parent_exists(db, parent_id)
         db_item = await self._get_owned_item(db, parent_id, item_id)
@@ -458,119 +455,7 @@ class ParentFileCrud:
 
         return db_item
 
-    async def create(self, db: AsyncSession, parent_id: int, item_data: FileCreate) -> File:
-        """Create a new storage item for a parent."""
-        self._validate_parent_scope(parent_id, item_data)
-        return await self.storage_service.create(db, item_data)
-
-    async def delete(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> None:
-        """Delete a storage item from a parent."""
-        await self._ensure_parent_exists(db, parent_id)
-        await self._get_owned_item(db, parent_id, item_id)
-
-        await self.storage_service.delete(db, item_id)
-
-    async def delete_all(self, db: AsyncSession, parent_id: int) -> None:
-        """Delete all storage items associated with a parent."""
-        items = await self.get_all(db, parent_id)
-        for item in items:
-            if item.id is not None:
-                await self.storage_service.delete(db, item.id)
-
-
-class ParentImageCrud:
-    """Parent-scoped operations for image storage."""
-
-    def __init__(
-        self,
-        *,
-        parent_model: type[object],
-        parent_type: MediaParentType,
-        storage_service: StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal] | None = None,
-    ) -> None:
-        self.parent_model = parent_model
-        self.storage_model = Image
-        self.parent_type = parent_type
-        self.storage_service = storage_service or image_storage_service
-
-    async def _ensure_parent_exists(self, db: AsyncSession, parent_id: int) -> None:
-        """Validate that the scoped parent record exists."""
-        await get_model_or_404(db, cast("type[MT]", self.parent_model), parent_id)
-
-    def _validate_parent_scope(self, parent_id: int, item_data: ImageCreateFromForm | ImageCreateInternal) -> None:
-        """Ensure the payload is already scoped to this parent."""
-        if item_data.parent_id != parent_id:
-            err_msg = f"Parent ID mismatch: expected {parent_id}, got {item_data.parent_id}"
-            raise ValueError(err_msg)
-        if item_data.parent_type != self.parent_type:
-            err_msg = f"Parent type mismatch: expected {self.parent_type}, got {item_data.parent_type}"
-            raise ValueError(err_msg)
-
-    def _build_parent_statement(self) -> Select:
-        """Build the base query for storage items owned by this parent type."""
-        return select(Image).where(Image.parent_type == self.parent_type)
-
-    async def _get_owned_item(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> Image:
-        """Fetch a storage item and verify that it belongs to the scoped parent."""
-        try:
-            db_item: Image | None = await db.get(Image, item_id)
-        except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
-            raise ModelFileNotFoundError(Image, item_id, details=str(e)) from e
-
-        if not db_item:
-            raise ModelNotFoundError(Image, item_id)
-
-        if db_item.parent_id != parent_id:
-            raise ParentStorageOwnershipError(
-                Image,
-                item_id,
-                cast("type[MT]", self.parent_model),
-                parent_id,
-            )
-
-        return db_item
-
-    async def get_all(
-        self,
-        db: AsyncSession,
-        parent_id: int,
-        *,
-        filter_params: ImageFilter | None = None,
-    ) -> list[Image]:
-        """Get all storage items for a parent, excluding items with missing files."""
-        await self._ensure_parent_exists(db, parent_id)
-
-        statement = self._build_parent_statement().where(Image.parent_id == parent_id)
-
-        if filter_params:
-            statement = filter_params.filter(statement)
-
-        items: list[Image] = list((await db.execute(statement)).scalars().all())
-        valid_items = [item for item in items if storage_item_exists(item)]
-        if len(valid_items) < len(items):
-            missing = len(items) - len(valid_items)
-            logger.warning(
-                "%d %s(s) for %s %s have missing files in storage and will be excluded from the response.",
-                missing,
-                Image.__name__,
-                self.parent_model.__name__,
-                parent_id,
-            )
-        return valid_items
-
-    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> Image:
-        """Get a specific storage item for a parent, raising an error if the file is missing."""
-        await self._ensure_parent_exists(db, parent_id)
-        db_item = await self._get_owned_item(db, parent_id, item_id)
-
-        if not storage_item_exists(db_item):
-            raise FastAPIStorageFileNotFoundError(filename=getattr(db_item, "filename", str(item_id)))
-
-        return db_item
-
-    async def create(
-        self, db: AsyncSession, parent_id: int, item_data: ImageCreateFromForm | ImageCreateInternal
-    ) -> Image:
+    async def create(self, db: AsyncSession, parent_id: int, item_data: CreateSchemaT) -> StorageModelT:
         """Create a new storage item for a parent."""
         self._validate_parent_scope(parent_id, item_data)
         return await self.storage_service.create(db, item_data)

@@ -18,9 +18,8 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.schemas import OrganizationCreate, OrganizationUpdate
-from app.api.common.crud.base import get_model_by_id, get_paginated_models
 from app.api.common.crud.persistence import commit_and_refresh, delete_and_commit
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.query import page_models, require_model
 from app.api.common.exceptions import InternalServerError
 
 if TYPE_CHECKING:
@@ -63,16 +62,16 @@ async def create_organization(db: AsyncSession, organization: OrganizationCreate
 async def get_organizations(
     db: AsyncSession,
     *,
-    include_relationships: set[str] | None = None,
-    model_filter: Filter | None = None,
+    loaders: set[str] | None = None,
+    filters: Filter | None = None,
     read_schema: type[BaseModel] | None = None,
 ) -> Page[Organization]:
     """Get organizations with optional filtering, relationships, and pagination."""
-    return await get_paginated_models(
+    return await page_models(
         db,
         Organization,
-        include_relationships=include_relationships,
-        model_filter=model_filter,
+        loaders=loaders,
+        filters=filters,
         read_schema=read_schema,
     )
 
@@ -84,11 +83,11 @@ async def update_user_organization(
     """Update an existing organization in the database."""
     transfer_owner_id = organization_in.owner_id if OWNER_ID_FIELD in organization_in.model_fields_set else None
     if transfer_owner_id is not None:
-        db_organization = await get_model_by_id(
+        db_organization = await require_model(
             db,
             Organization,
             db_organization.id,
-            include_relationships={"members", "owner"},
+            loaders={"members", "owner"},
         )
         new_owner = next((member for member in db_organization.members if member.id == transfer_owner_id), None)
         if new_owner is None:
@@ -139,7 +138,7 @@ async def delete_organization_as_owner(db: AsyncSession, owner: User) -> None:
 
 async def force_delete_organization(db: AsyncSession, organization_id: UUID4) -> None:
     """Force delete a organization from the database."""
-    db_organization = await get_model_or_404(db, Organization, organization_id)
+    db_organization = await require_model(db, Organization, organization_id)
 
     await delete_and_commit(db, db_organization)
 
@@ -156,11 +155,11 @@ async def user_join_organization(
         if user.organization_role == OrganizationRole.OWNER:
             db_organization = user.organization
             if db_organization is None or db_organization.id != user.organization_id:
-                db_organization = await get_model_by_id(
+                db_organization = await require_model(
                     db,
                     Organization,
                     user.organization_id,
-                    include_relationships={"members"},
+                    loaders={"members"},
                 )
 
             if len(db_organization.members) > 1:
@@ -203,14 +202,14 @@ async def get_organization_members(
         raise UserIsNotMemberError
 
     if paginate:
-        await get_model_by_id(db, Organization, organization_id)
+        await require_model(db, Organization, organization_id)
         statement = select(User).where(User.organization_id == organization_id)
         return cast(
             "Page[User]",
-            await get_paginated_models(db, User, statement=statement, read_schema=read_schema),
+            await page_models(db, User, statement=statement, read_schema=read_schema),
         )
 
-    organization = await get_model_by_id(db, Organization, organization_id, include_relationships={"members"})
+    organization = await require_model(db, Organization, organization_id, loaders={"members"})
 
     return organization.members
 

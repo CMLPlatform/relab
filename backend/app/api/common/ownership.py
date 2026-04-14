@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import User
-from app.api.common.crud.base import get_nested_model_by_id
 from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.models.custom_types import IDT, MT
 
 
@@ -19,7 +19,7 @@ async def get_user_owned_object(
 ) -> MT:
     """Validate user ownership of a model instance with a many-to-one relationship."""
     try:
-        return await get_nested_model_by_id(
+        return await require_scoped_model(
             db=db,
             parent_model=User,
             parent_id=owner_id,

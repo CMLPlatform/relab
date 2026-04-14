@@ -1,7 +1,7 @@
 """Pydantic models used to validate CRUD operations for data collection data."""
 
-from datetime import UTC, datetime, timedelta
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import (
@@ -14,8 +14,6 @@ from pydantic import (
     PositiveInt,
     model_validator,
 )
-
-logger = logging.getLogger(__name__)
 
 from app.api.background_data.schemas import ProductTypeRead
 from app.api.common.schemas.associations import (
@@ -43,9 +41,10 @@ from app.api.file_storage.schemas import (
 if TYPE_CHECKING:
     from collections.abc import Collection
 
+
+logger = logging.getLogger(__name__)
+
 ### Constants ###
-
-
 MAX_TIMESTAMP_AGE: timedelta = timedelta(days=365)
 
 # Normalizes brand strings: strips whitespace and lowercases; empty string becomes None

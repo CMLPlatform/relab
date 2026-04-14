@@ -16,7 +16,8 @@ from app.api.background_data.schemas import (
     CategoryCreateWithSubCategories,
     CategoryUpdate,
 )
-from app.api.common.crud.utils import enum_format_id_set, format_id_set, get_model_or_404
+from app.api.common.crud.query import require_model
+from app.api.common.crud.utils import enum_format_id_set, format_id_set
 from app.api.common.exceptions import BadRequestError
 
 from .shared import delete_background_model, update_background_model
@@ -36,7 +37,7 @@ async def validate_category_creation(
 ) -> tuple[int, Category | None]:
     """Validate category creation parameters and return taxonomy_id and supercategory."""
     if supercategory_id:
-        supercategory: Category = await get_model_or_404(db, Category, supercategory_id)
+        supercategory: Category = await require_model(db, Category, supercategory_id)
 
         taxonomy_id = taxonomy_id or supercategory.taxonomy_id
         if supercategory.taxonomy_id != taxonomy_id:
@@ -50,7 +51,7 @@ async def validate_category_creation(
         err_msg = "Taxonomy ID is required for top-level categories"
         raise BadRequestError(err_msg)
 
-    await get_model_or_404(db, Taxonomy, taxonomy_id)
+    await require_model(db, Taxonomy, taxonomy_id)
 
     return taxonomy_id, None
 
@@ -98,10 +99,10 @@ async def get_category_trees(
         raise BadRequestError(err_msg)
 
     if supercategory_id:
-        await get_model_or_404(db, Category, supercategory_id)
+        await require_model(db, Category, supercategory_id)
 
     if taxonomy_id:
-        await get_model_or_404(db, Taxonomy, taxonomy_id)
+        await require_model(db, Taxonomy, taxonomy_id)
 
     statement: Select[tuple[Category]] = (
         select(Category).where(Category.supercategory_id == supercategory_id).execution_options(populate_existing=True)

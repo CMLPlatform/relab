@@ -1,9 +1,11 @@
 """Privacy and redaction utilities for the platform."""
 
-from app.api.auth.models import User
-from app.api.data_collection.models.product import Product
 from sqlalchemy import inspect
 from sqlalchemy.exc import NoInspectionAvailable
+from sqlalchemy.orm.base import ATTR_EMPTY
+
+from app.api.auth.models import User
+from app.api.data_collection.models.product import Product
 
 VISIBILITY_PUBLIC = "public"
 VISIBILITY_COMMUNITY = "community"
@@ -43,10 +45,10 @@ def redact_product_owner(product: Product, viewer: User | None) -> None:
         product_state = inspect(product)
     except NoInspectionAvailable:
         return
-    if "owner" in product_state.unloaded:
-        return
 
-    owner = product.owner
+    owner = product_state.attrs[Product.owner.key].loaded_value
+    if owner is ATTR_EMPTY:
+        return
     if owner and should_redact_owner(owner, viewer):
         product.owner = None
-        product.owner_id = None  # type: ignore[assignment]
+        product.owner_id = None

@@ -11,9 +11,8 @@ from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.auth.services.stats import recompute_user_stats
 from app.api.background_data.models import Material, ProductType
-from app.api.common.crud.base import get_model_by_id
 from app.api.common.crud.persistence import commit_and_refresh
-from app.api.common.crud.utils import get_models_by_ids_or_404
+from app.api.common.crud.query import require_model, require_models
 from app.api.data_collection.crud.storage import product_files_crud, product_images_crud
 from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.filters import ProductFilterWithRelationships
@@ -49,7 +48,7 @@ async def get_product_trees(
 ) -> Sequence[Product]:
     """Get product with their components up to specified depth."""
     if parent_id:
-        await get_model_by_id(db, Product, parent_id)
+        await require_model(db, Product, parent_id)
 
     statement: Select[tuple[Product]] = (
         select(Product)
@@ -130,7 +129,7 @@ async def create_product_bill_of_materials(
         return
 
     material_ids = {material.material_id for material in product_data.bill_of_materials}
-    await get_models_by_ids_or_404(db, Material, material_ids)
+    await require_models(db, Material, material_ids)
 
     db.add_all(
         MaterialProductLink(**material.model_dump(), product=db_product) for material in product_data.bill_of_materials
@@ -211,24 +210,25 @@ async def create_product(
 
 async def update_product(db: AsyncSession, product_id: int, product: ProductUpdate) -> Product:
     """Update an existing product in the database."""
-    db_product = await get_model_by_id(db, Product, product_id)
+    db_product = await require_model(db, Product, product_id)
 
     if product.product_type_id:
-        await get_model_by_id(db, ProductType, product.product_type_id)
+        await require_model(db, ProductType, product.product_type_id)
 
     product_data: dict[str, Any] = product.model_dump(exclude_unset=True)
     for key, value in product_data.items():
         setattr(db_product, key, value)
 
     res = await commit_and_refresh(db, db_product)
-    await recompute_user_stats(db, db_product.owner_id)
-    await db.commit()
+    if db_product.owner_id is not None:
+        await recompute_user_stats(db, db_product.owner_id)
+        await db.commit()
     return res
 
 
 async def delete_product(db: AsyncSession, product_id: int) -> None:
     """Delete a product from the database."""
-    db_product = await get_model_by_id(db, Product, product_id)
+    db_product = await require_model(db, Product, product_id)
 
     await product_files_crud.delete_all(db, product_id)
     await product_images_crud.delete_all(db, product_id)
@@ -236,5 +236,6 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
     owner_id = db_product.owner_id
     await db.delete(db_product)
     await db.commit()
-    await recompute_user_stats(db, owner_id)
-    await db.commit()
+    if owner_id is not None:
+        await recompute_user_stats(db, owner_id)
+        await db.commit()

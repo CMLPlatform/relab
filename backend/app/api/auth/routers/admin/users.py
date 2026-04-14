@@ -15,7 +15,7 @@ from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.routers.users import router as public_user_router
 from app.api.auth.schemas import UserRead
-from app.api.common.crud.base import get_paginated_models
+from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
@@ -42,7 +42,7 @@ async def get_users(
     """Get a list of all users with optional filtering."""
     return cast(
         "Page[UserRead]",
-        await get_paginated_models(session, User, model_filter=user_filter, read_schema=UserRead),
+        await page_models(session, User, filters=user_filter, read_schema=UserRead),
     )
 
 

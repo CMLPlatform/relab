@@ -9,8 +9,8 @@ from pydantic import EmailStr
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep, current_active_superuser, current_active_user
-from app.api.common.crud.base import get_paginated_models
 from app.api.common.crud.persistence import commit_and_refresh, delete_and_commit
+from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.newsletter.examples import (
     NEWSLETTER_EMAIL_BODY_OPENAPI_EXAMPLES,
@@ -198,7 +198,7 @@ admin_router = APIRouter(prefix="/admin/newsletter", dependencies=[Security(curr
 @admin_router.get("/subscribers", response_model=Page[NewsletterSubscriberRead])
 async def get_subscribers(db: AsyncSessionDep) -> Page[NewsletterSubscriber]:
     """Get all newsletter subscribers. Only accessible by superusers."""
-    return await get_paginated_models(db, NewsletterSubscriber, read_schema=NewsletterSubscriberRead)
+    return await page_models(db, NewsletterSubscriber, read_schema=NewsletterSubscriberRead)
 
 
 ### Router registration ###

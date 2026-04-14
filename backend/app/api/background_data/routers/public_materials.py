@@ -14,8 +14,8 @@ from app.api.background_data.dependencies import CategoryFilterDep, MaterialFilt
 from app.api.background_data.models import Category, CategoryMaterialLink, Material
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, MaterialReadWithRelationships
-from app.api.common.crud.associations import get_linked_model_by_id, get_linked_models
-from app.api.common.crud.base import get_model_by_id, get_paginated_models
+from app.api.common.crud.associations import list_linked_models, require_linked_model
+from app.api.common.crud.query import page_models, require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent
@@ -36,11 +36,11 @@ async def get_materials(
     material_filter: MaterialFilterWithRelationshipsDep,
 ) -> Page[Material]:
     """Get all materials with all relationships loaded."""
-    return await get_paginated_models(
+    return await page_models(
         session,
         Material,
-        include_relationships={"categories", "product_links", "images", "files"},
-        model_filter=material_filter,
+        loaders={"categories", "images", "files"},
+        filters=material_filter,
         read_schema=MaterialReadWithRelationships,
     )
 
@@ -54,11 +54,11 @@ async def get_material(
     material_id: PositiveInt,
 ) -> Material:
     """Get material by ID with all relationships loaded."""
-    return await get_model_by_id(
+    return await require_model(
         session,
         Material,
         model_id=material_id,
-        include_relationships={"categories", "product_links", "images", "files"},
+        loaders={"categories", "images", "files"},
         read_schema=MaterialReadWithRelationships,
     )
 
@@ -74,14 +74,14 @@ async def get_material_categories(
     category_filter: CategoryFilterDep,
 ) -> Sequence[Category]:
     """Get categories linked to a material."""
-    return await get_linked_models(
+    return await list_linked_models(
         session,
         Material,
         material_id,
         Category,
         CategoryMaterialLink,
-        "material_id",
-        model_filter=category_filter,
+        CategoryMaterialLink.material_id,
+        filters=category_filter,
         read_schema=CategoryRead,
     )
 
@@ -97,15 +97,15 @@ async def get_material_category(
     session: AsyncSessionDep,
 ) -> Category:
     """Get a material category by ID."""
-    return await get_linked_model_by_id(
+    return await require_linked_model(
         session,
         Material,
         material_id,
         Category,
         category_id,
         CategoryMaterialLink,
-        "material_id",
-        "category_id",
+        CategoryMaterialLink.material_id,
+        CategoryMaterialLink.category_id,
         read_schema=CategoryRead,
     )
 

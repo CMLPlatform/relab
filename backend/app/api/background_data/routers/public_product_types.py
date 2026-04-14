@@ -14,8 +14,8 @@ from app.api.background_data.dependencies import CategoryFilterDep, ProductTypeF
 from app.api.background_data.models import Category, CategoryProductTypeLink, ProductType
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, ProductTypeReadWithRelationships
-from app.api.common.crud.associations import get_linked_model_by_id, get_linked_models
-from app.api.common.crud.base import get_model_by_id, get_paginated_models
+from app.api.common.crud.associations import list_linked_models, require_linked_model
+from app.api.common.crud.query import page_models, require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.schemas import FileReadWithinParent, ImageReadWithinParent
@@ -36,11 +36,11 @@ async def get_product_types(
     product_type_filter: ProductTypeFilterWithRelationshipsDep,
 ) -> Page[ProductType]:
     """Get a list of all product types with all relationships loaded."""
-    return await get_paginated_models(
+    return await page_models(
         session,
         ProductType,
-        include_relationships={"categories", "images", "files"},
-        model_filter=product_type_filter,
+        loaders={"categories", "images", "files"},
+        filters=product_type_filter,
         read_schema=ProductTypeReadWithRelationships,
     )
 
@@ -55,11 +55,11 @@ async def get_product_type(
     product_type_id: PositiveInt,
 ) -> ProductType:
     """Get a single product type by ID with all relationships loaded."""
-    return await get_model_by_id(
+    return await require_model(
         session,
         ProductType,
         product_type_id,
-        include_relationships={"categories", "images", "files"},
+        loaders={"categories", "images", "files"},
         read_schema=ProductTypeReadWithRelationships,
     )
 
@@ -75,14 +75,14 @@ async def get_product_type_categories(
     category_filter: CategoryFilterDep,
 ) -> Sequence[Category]:
     """Get categories linked to a product type."""
-    return await get_linked_models(
+    return await list_linked_models(
         session,
         ProductType,
         product_type_id,
         Category,
         CategoryProductTypeLink,
-        "product_type_id",
-        model_filter=category_filter,
+        CategoryProductTypeLink.product_type_id,
+        filters=category_filter,
         read_schema=CategoryRead,
     )
 
@@ -98,15 +98,15 @@ async def get_product_type_category(
     session: AsyncSessionDep,
 ) -> Category:
     """Get a product type category by ID."""
-    return await get_linked_model_by_id(
+    return await require_linked_model(
         session,
         ProductType,
         product_type_id,
         Category,
         category_id,
         CategoryProductTypeLink,
-        "product_type_id",
-        "category_id",
+        CategoryProductTypeLink.product_type_id,
+        CategoryProductTypeLink.category_id,
         read_schema=CategoryRead,
     )
 

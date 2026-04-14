@@ -13,7 +13,7 @@ from app.api.background_data.schemas import (
     CategoryRead,
     CategoryUpdate,
 )
-from app.api.common.crud.base import get_nested_model_by_id
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -57,5 +57,5 @@ async def create_subcategory(
 @router.delete("/{category_id}/subcategories/{subcategory_id}", summary="Delete category", status_code=204)
 async def delete_subcategory(category_id: PositiveInt, subcategory_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a subcategory by ID, including its subcategories."""
-    await get_nested_model_by_id(session, Category, category_id, Category, subcategory_id, "supercategory_id")
+    await require_scoped_model(session, Category, category_id, Category, subcategory_id, "supercategory_id")
     await crud.delete_category(session, subcategory_id)

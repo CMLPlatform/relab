@@ -1,8 +1,7 @@
 """CRUD operations for the background data models."""
 
-from app.api.common.crud.associations import create_model_links
-from app.api.common.crud.base import get_model_by_id
-from app.api.common.crud.utils import get_model_or_404, get_models_by_ids_or_404
+from app.api.common.crud.associations import add_links
+from app.api.common.crud.query import require_model, require_models
 
 from .categories import (
     create_category,
@@ -39,9 +38,9 @@ __all__ = [
     "add_categories_to_product_type",
     "add_category_to_material",
     "add_category_to_product_type",
+    "add_links",
     "create_category",
     "create_material",
-    "create_model_links",
     "create_product_type",
     "create_taxonomy",
     "delete_category",
@@ -49,15 +48,14 @@ __all__ = [
     "delete_product_type",
     "delete_taxonomy",
     "get_category_trees",
-    "get_model_by_id",
-    "get_model_or_404",
-    "get_models_by_ids_or_404",
     "material_files_crud",
     "material_images_crud",
     "product_type_files_crud",
     "product_type_images_crud",
     "remove_categories_from_material",
     "remove_categories_from_product_type",
+    "require_model",
+    "require_models",
     "update_category",
     "update_material",
     "update_product_type",

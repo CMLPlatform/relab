@@ -27,15 +27,15 @@ from app.api.auth.schemas import (
     UserReadPublic,
     UserUpdate,
 )
-from app.api.auth.services.stats import recompute_user_stats
-from app.api.auth.services.user_manager import fastapi_user_manager
-from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.auth.services.privacy import (
     VISIBILITY_COMMUNITY,
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
 )
+from app.api.auth.services.stats import recompute_user_stats
+from app.api.auth.services.user_manager import fastapi_user_manager
+from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.common.routers.openapi import PublicAPIRouter
 from app.core.cache import cache
 
 ### User self-management routes ###
@@ -135,7 +135,7 @@ async def get_public_profile(
         # Check if identifier is a valid UUID
         user_uuid = UUID(identifier)
         user = await session.get(User, user_uuid)
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         # Not a valid UUID, search by username
         stmt = select(User).where(User.username == identifier)
         result = await session.execute(stmt)

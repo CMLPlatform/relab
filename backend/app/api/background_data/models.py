@@ -93,9 +93,7 @@ class Taxonomy(TimeStampMixinBare, Base):
     domains: Mapped[set[TaxonomyDomain]] = mapped_column(ARRAY(SAEnum(TaxonomyDomain)))
     source: Mapped[str | None] = mapped_column(String(500), default=None)
 
-    categories: Mapped[list[Category]] = relationship(
-        back_populates="taxonomy", cascade="all, delete-orphan"
-    )
+    categories: Mapped[list[Category]] = relationship(back_populates="taxonomy", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"

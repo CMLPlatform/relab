@@ -14,12 +14,10 @@ from app.api.background_data.models import (
     ProductType,
     Taxonomy,
 )
-from app.api.common.crud.associations import create_model_links
-from app.api.common.crud.base import get_model_by_id
+from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import SupportsModelDump, delete_and_commit, update_and_commit
+from app.api.common.crud.query import require_model, require_models
 from app.api.common.crud.utils import (
-    get_model_or_404,
-    get_models_by_ids_or_404,
     validate_linked_items_exist,
     validate_no_duplicate_linked_items,
 )
@@ -64,7 +62,7 @@ async def update_background_model[ModelT: Taxonomy | Material | ProductType | Ca
     payload: SupportsModelDump,
 ) -> ModelT:
     """Apply a partial update and persist the model."""
-    db_model: ModelT = await get_model_or_404(db, model, model_id)
+    db_model: ModelT = await require_model(db, model, model_id)
     return await update_and_commit(db, db_model, payload)
 
 
@@ -74,7 +72,7 @@ async def delete_background_model[ModelT: Taxonomy | Material | ProductType | Ca
     model_id: int,
 ) -> ModelT:
     """Delete a model after resolving it from the database."""
-    db_model: ModelT = await get_model_or_404(db, model, model_id)
+    db_model: ModelT = await require_model(db, model, model_id)
     await delete_and_commit(db, db_model)
     return db_model
 
@@ -93,25 +91,26 @@ async def add_categories_to_parent_model[ParentT: Material | ProductType](
     """Create validated category links for a material-like parent model."""
     normalized_category_ids = normalize_category_ids(category_ids)
 
-    db_parent = await get_model_by_id(
+    db_parent = await require_model(
         db,
         parent_model,
         model_id=parent_id,
-        include_relationships={"categories"},
+        loaders={"categories"},
     )
 
-    db_categories: Sequence[Category] = await get_models_by_ids_or_404(db, Category, normalized_category_ids)
+    db_categories: Sequence[Category] = await require_models(db, Category, normalized_category_ids)
     await validate_category_taxonomy_domains(db, normalized_category_ids, expected_domains)
 
     if db_parent.categories:
         validate_no_duplicate_linked_items(normalized_category_ids, db_parent.categories, "Categories")
 
-    await create_model_links(
+    parent_id_attr = getattr(link_model, link_parent_id_field)
+    await add_links(
         db,
-        id1=db_parent.id,
-        id1_field=link_parent_id_field,
+        id1=parent_id,
+        id1_attr=parent_id_attr,
         id2_set=normalized_category_ids,
-        id2_field="category_id",
+        id2_attr=link_model.category_id,
         link_model=link_model,
     )
 
@@ -130,11 +129,11 @@ async def remove_categories_from_parent_model[ParentT: Material | ProductType](
     """Remove validated category links from a material-like parent model."""
     normalized_category_ids = normalize_category_ids(category_ids)
 
-    db_parent = await get_model_by_id(
+    db_parent = await require_model(
         db,
         parent_model,
         model_id=parent_id,
-        include_relationships={"categories"},
+        loaders={"categories"},
     )
 
     validate_linked_items_exist(normalized_category_ids, db_parent.categories, "Categories")

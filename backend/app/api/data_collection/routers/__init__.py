@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Annotated, Literal, cast
 from fastapi import APIRouter, Query
 from fastapi_pagination.links import Page
 
-from app.api.common.crud.base import paginate_with_exec
+from app.api.common.crud.pagination import paginate_select
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection.filters import get_brand_search_statement
@@ -43,7 +43,7 @@ async def get_brands(
 ) -> Page[str]:
     """Get a paginated, searchable and orderable list of unique product brands."""
     statement = get_brand_search_statement(search=search, order=order)
-    page = await paginate_with_exec(session, cast("Select[tuple[str]]", statement))
+    page = await paginate_select(session, cast("Select[tuple[str]]", statement))
     page.items = [brand.title() for brand in page.items if brand]
     return cast("Page[str]", page)
 

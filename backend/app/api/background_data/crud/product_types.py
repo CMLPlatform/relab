@@ -6,17 +6,17 @@ from typing import TYPE_CHECKING
 
 from app.api.background_data.models import Category, CategoryProductTypeLink, ProductType, TaxonomyDomain
 from app.api.background_data.schemas import ProductTypeCreate, ProductTypeCreateWithCategories, ProductTypeUpdate
-from app.api.common.crud.associations import create_model_links
+from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import commit_and_refresh
+from app.api.common.crud.query import require_model
 from app.api.common.exceptions import InternalServerError
-from app.api.file_storage.crud import ParentFileCrud, ParentImageCrud
-from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.crud import ParentMediaCrud, file_storage_service, image_storage_service
+from app.api.file_storage.models import File, Image, MediaParentType
 
 from .categories import validate_category_taxonomy_domains
 from .shared import (
     add_categories_to_parent_model,
     create_background_model,
-    get_model_or_404,
     remove_categories_from_parent_model,
     update_background_model,
 )
@@ -35,12 +35,12 @@ async def create_product_type(
 
     if isinstance(product_type, ProductTypeCreateWithCategories) and product_type.category_ids:
         await validate_category_taxonomy_domains(db, product_type.category_ids, {TaxonomyDomain.PRODUCTS})
-        await create_model_links(
+        await add_links(
             db,
             id1=db_product_type.id,
-            id1_field="product_type_id",
+            id1_attr=CategoryProductTypeLink.product_type_id,
             id2_set=product_type.category_ids,
-            id2_field="category_id",
+            id2_attr=CategoryProductTypeLink.category_id,
             link_model=CategoryProductTypeLink,
         )
         return await commit_and_refresh(db, db_product_type, add_before_commit=False)
@@ -55,7 +55,7 @@ async def update_product_type(db: AsyncSession, product_type_id: int, product_ty
 
 async def delete_product_type(db: AsyncSession, product_type_id: int) -> None:
     """Delete a product type from the database."""
-    db_product_type = await get_model_or_404(db, ProductType, product_type_id)
+    db_product_type = await require_model(db, ProductType, product_type_id)
 
     await product_type_files_crud.delete_all(db, product_type_id)
     await product_type_images_crud.delete_all(db, product_type_id)
@@ -109,12 +109,16 @@ async def remove_categories_from_product_type(
     await db.commit()
 
 
-product_type_files_crud = ParentFileCrud(
+product_type_files_crud = ParentMediaCrud(
     parent_model=ProductType,
     parent_type=MediaParentType.PRODUCT_TYPE,
+    storage_model=File,
+    storage_service=file_storage_service,
 )
 
-product_type_images_crud = ParentImageCrud(
+product_type_images_crud = ParentMediaCrud(
     parent_model=ProductType,
     parent_type=MediaParentType.PRODUCT_TYPE,
+    storage_model=Image,
+    storage_service=image_storage_service,
 )

@@ -17,7 +17,7 @@ from app.api.auth.schemas import (
     UserReadPublic,
     UserReadWithOrganization,
 )
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 
@@ -32,7 +32,7 @@ async def get_organizations(
     """Get a list of all organizations with optional filtering."""
     return cast(
         "Page[OrganizationReadPublic]",
-        await crud.get_organizations(session, model_filter=org_filter, read_schema=OrganizationReadPublic),
+        await crud.get_organizations(session, filters=org_filter, read_schema=OrganizationReadPublic),
     )
 
 
@@ -43,7 +43,7 @@ async def get_organizations(
 )
 async def get_organization(organization_id: UUID4, session: AsyncSessionDep) -> Organization:
     """Get an organization by ID."""
-    return await get_model_or_404(session, Organization, organization_id)
+    return await require_model(session, Organization, organization_id)
 
 
 @router.post("", response_model=OrganizationRead, status_code=201, summary="Create new organization")
@@ -84,5 +84,5 @@ async def join_organization(
     organization_id: UUID4, session: AsyncSessionDep, current_user: CurrentActiveVerifiedUserDep
 ) -> User:
     """Join an organization as a member."""
-    organization = await get_model_or_404(session, Organization, organization_id)
+    organization = await require_model(session, Organization, organization_id)
     return await crud.user_join_organization(session, organization, current_user)

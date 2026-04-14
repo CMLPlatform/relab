@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from app.api.common.crud.associations import get_linking_model_with_ids_if_it_exists
+from app.api.common.crud.associations import require_link
 from app.api.common.crud.persistence import update_and_commit
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
 from app.api.common.exceptions import InternalServerError
@@ -77,13 +77,13 @@ async def update_material_within_product(
     """Update material in a product bill of materials."""
     await get_product_with_bill_of_materials(db, product_id)
 
-    db_material_link: MaterialProductLink = await get_linking_model_with_ids_if_it_exists(
+    db_material_link: MaterialProductLink = await require_link(
         db,
         MaterialProductLink,
         product_id,
         material_id,
-        "product_id",
-        "material_id",
+        MaterialProductLink.product_id,
+        MaterialProductLink.material_id,
     )
 
     return await update_and_commit(db, db_material_link, material_link)

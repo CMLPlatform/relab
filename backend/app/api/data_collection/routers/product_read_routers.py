@@ -10,11 +10,12 @@ from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
 from sqlalchemy import select
 
-from app.api.auth.services.privacy import redact_product_owner
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
 from app.api.auth.models import User
+from app.api.auth.services.privacy import redact_product_owner
 from app.api.background_data.routers.public import RecursionDepthQueryParam
-from app.api.common.crud.base import get_model_by_id, get_models, get_nested_model_by_id, get_paginated_models
+from app.api.common.crud.query import list_models, page_models, require_model
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
@@ -63,6 +64,12 @@ def convert_components_to_read_model(
             )
         )
     return read_components
+
+
+def redact_product_owners(products: list[Product], current_user: User | None) -> None:
+    """Apply owner privacy redaction to paginated products in place."""
+    for product in products:
+        redact_product_owner(product, current_user)
 
 
 def assign_shared_owner(product: Product, owner: User | None) -> None:
@@ -140,17 +147,14 @@ async def get_user_products(
     if not include_components_as_base_products:
         statement = statement.where(Product.parent_id.is_(None))
 
-    page: Page[Product] = await get_paginated_models(
+    return await page_models(
         session,
         Product,
-        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-        model_filter=product_filter,
+        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        filters=product_filter,
         statement=statement,
+        mutate_items=lambda items: redact_product_owners(items, current_user),
     )
-    for p in page.items:
-        redact_product_owner(p, current_user)
-    page.items = [ProductRead.model_validate(p) for p in page.items]
-    return page
 
 
 @product_read_router.get(
@@ -171,17 +175,14 @@ async def get_products(
     else:
         statement = select(Product).where(Product.parent_id.is_(None))
 
-    page: Page[Product] = await get_paginated_models(
+    return await page_models(
         session,
         Product,
-        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-        model_filter=product_filter,
+        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        filters=product_filter,
         statement=statement,
+        mutate_items=lambda items: redact_product_owners(items, current_user),
     )
-    for p in page.items:
-        redact_product_owner(p, current_user)
-    page.items = [ProductRead.model_validate(p) for p in page.items]
-    return page
 
 
 @product_read_router.get(
@@ -224,13 +225,13 @@ async def get_product(
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
-) -> Product:
+) -> ProductReadWithRelationshipsAndFlatComponents:
     """Get product by ID."""
-    product: Product = await get_model_by_id(
+    product: Product = await require_model(
         session,
         Product,
         product_id,
-        include_relationships=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
+        loaders=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
     )
     redact_product_owner(product, current_user)
     return ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
@@ -249,11 +250,11 @@ async def get_product_subtree(
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[ComponentReadWithRecursiveComponents]:
     """Get a product's components in a tree structure, up to a specified depth."""
-    parent_product: Product = await get_model_by_id(
+    parent_product: Product = await require_model(
         session,
         Product,
         product_id,
-        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     )
     redact_product_owner(parent_product, current_user)
 
@@ -285,19 +286,19 @@ async def get_product_components(
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
-) -> Sequence[Product]:
+) -> list[ProductRead]:
     """Get all components of a product."""
-    parent_product = await get_model_by_id(
+    parent_product = await require_model(
         session,
         Product,
         product_id,
-        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     )
-    products: Sequence[Product] = await get_models(
+    products: Sequence[Product] = await list_models(
         session,
         Product,
-        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-        model_filter=product_filter,
+        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        filters=product_filter,
         statement=select(Product).where(Product.parent_id == product_id),
     )
     redact_product_owner(parent_product, current_user)
@@ -318,22 +319,22 @@ async def get_product_component(
     *,
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
-) -> Product:
+) -> ProductReadWithRelationshipsAndFlatComponents:
     """Get component by ID."""
-    product: Product = await get_nested_model_by_id(
+    product: Product = await require_scoped_model(
         session,
         Product,
         product_id,
         Product,
         component_id,
         "parent_id",
-        include_relationships=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
+        loaders=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
     )
-    parent_product = await get_model_by_id(
+    parent_product = await require_model(
         session,
         Product,
         product_id,
-        include_relationships=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     )
     redact_product_owner(parent_product, current_user)
     assign_shared_owner(product, parent_product.owner)
@@ -355,7 +356,7 @@ async def validate_product_tree(
     Returns ``{"valid": true, "errors": []}`` when the tree passes all checks,
     or ``{"valid": false, "errors": [...]}`` with human-readable messages otherwise.
     """
-    product = await get_model_by_id(session, Product, product_id)
+    product = await require_model(session, Product, product_id)
     await load_product_tree_for_validation(session, product)
     try:
         validate_product(product)

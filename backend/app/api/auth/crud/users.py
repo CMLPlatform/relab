@@ -16,7 +16,7 @@ from app.api.auth.schemas import (
     UserCreateWithOrganization,
     UserUpdate,
 )
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.query import require_model
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,7 +56,7 @@ async def validate_user_create(
 
     elif user_create.organization_id:
         # Validate organization ID (will raise ValueError if not found)
-        await get_model_or_404(user_db.session, Organization, user_create.organization_id)
+        await require_model(user_db.session, Organization, user_create.organization_id)
 
     return user_create
 
@@ -118,7 +118,7 @@ async def update_user_override(user_db: UserDatabaseAsync, user: User, user_upda
 
     if user_update.organization_id is not None:
         # Validate organization exists
-        await get_model_or_404(user_db.session, Organization, user_update.organization_id)
+        await require_model(user_db.session, Organization, user_update.organization_id)
 
     # Merge preferences (shallow) instead of replacing the whole dict
     if user_update.preferences is not None:

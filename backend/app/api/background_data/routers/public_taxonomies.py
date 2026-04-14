@@ -18,7 +18,8 @@ from app.api.background_data.routers.public_support import (
     convert_subcategories_to_read_model,
 )
 from app.api.background_data.schemas import CategoryRead, CategoryReadWithRecursiveSubCategories, TaxonomyRead
-from app.api.common.crud.base import get_model_by_id, get_nested_model_by_id, get_paginated_models
+from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 if TYPE_CHECKING:
@@ -30,14 +31,14 @@ router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 @router.get("", response_model=Page[TaxonomyRead])
 async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[TaxonomyRead]:
     """Get all taxonomies with optional filtering."""
-    page = await get_paginated_models(session, Taxonomy, model_filter=taxonomy_filter, read_schema=TaxonomyRead)
+    page = await page_models(session, Taxonomy, filters=taxonomy_filter, read_schema=TaxonomyRead)
     return cast("Page[TaxonomyRead]", page)
 
 
 @router.get("/{taxonomy_id}", response_model=TaxonomyRead)
 async def get_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) -> TaxonomyRead:
     """Get taxonomy by ID."""
-    taxonomy = await get_model_by_id(session, Taxonomy, taxonomy_id, read_schema=TaxonomyRead)
+    taxonomy = await require_model(session, Taxonomy, taxonomy_id, read_schema=TaxonomyRead)
     return TaxonomyRead.model_validate(taxonomy)
 
 
@@ -87,12 +88,12 @@ async def get_taxonomy_categories(
     category_filter: CategoryFilterDep,
 ) -> Page[CategoryRead]:
     """Get taxonomy categories with optional filtering."""
-    await get_model_by_id(session, Taxonomy, taxonomy_id)
+    await require_model(session, Taxonomy, taxonomy_id)
     statement = select(Category).where(Category.taxonomy_id == taxonomy_id)
-    return await get_paginated_models(
+    return await page_models(
         session,
         Category,
-        model_filter=category_filter,
+        filters=category_filter,
         statement=statement,
         read_schema=CategoryRead,
     )
@@ -109,7 +110,7 @@ async def get_taxonomy_category_by_id(
     session: AsyncSessionDep,
 ) -> Category:
     """Get a taxonomy category by ID."""
-    return await get_nested_model_by_id(
+    return await require_scoped_model(
         session,
         Taxonomy,
         taxonomy_id,

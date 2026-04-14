@@ -9,7 +9,7 @@ from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserHasNoOrgError
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_db, get_user_manager
-from app.api.common.crud.base import get_model_by_id
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 # Dependencies
@@ -45,11 +45,11 @@ async def get_current_user_owned_organization(
     if current_user.organization is not None:
         return current_user.organization
 
-    return await get_model_by_id(
+    return await require_model(
         session,
         Organization,
         current_user.organization_id,
-        include_relationships={"members", "owner"},
+        loaders={"members", "owner"},
     )
 
 

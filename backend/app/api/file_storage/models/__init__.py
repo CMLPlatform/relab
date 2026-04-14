@@ -56,9 +56,7 @@ class File(TimeStampMixinBare, Base):
     file: Mapped[Any] = mapped_column(FileType, nullable=False, doc="Local file path to the file")
     description: Mapped[str | None] = mapped_column(default=None)
 
-    parent_type: Mapped[MediaParentType] = mapped_column(
-        SAEnum(MediaParentType, name="fileparenttype"), nullable=False
-    )
+    parent_type: Mapped[MediaParentType] = mapped_column(SAEnum(MediaParentType, name="fileparenttype"), nullable=False)
     parent_id: Mapped[int] = mapped_column(nullable=False)
 
 

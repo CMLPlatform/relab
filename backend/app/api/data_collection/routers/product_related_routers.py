@@ -10,9 +10,9 @@ from pydantic import PositiveInt
 from sqlalchemy import select
 
 from app.api.background_data.models import Material
-from app.api.common.crud.associations import get_linking_model_with_ids_if_it_exists
-from app.api.common.crud.base import get_models, get_nested_model_by_id
-from app.api.common.crud.utils import get_model_or_404
+from app.api.common.crud.associations import require_link
+from app.api.common.crud.query import list_models, require_model
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.associations import (
@@ -58,10 +58,10 @@ async def get_product_videos(
 ) -> Sequence[Video]:
     """Get all videos associated with a specific product."""
     statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product.id)
-    return await get_models(
+    return await list_models(
         session,
         Video,
-        model_filter=video_filter,
+        filters=video_filter,
         statement=statement,
     )
 
@@ -77,7 +77,7 @@ async def get_product_video(
     session: AsyncSessionDep,
 ) -> Video:
     """Get a video associated with a specific product."""
-    return await get_nested_model_by_id(session, Product, product_id, Video, video_id, "product_id")
+    return await require_scoped_model(session, Product, product_id, Video, video_id, "product_id")
 
 
 @product_related_router.post(
@@ -107,7 +107,7 @@ async def update_product_video(
     session: AsyncSessionDep,
 ) -> Video:
     """Update a video associated with a specific product."""
-    await get_nested_model_by_id(session, Product, product.id, Video, video_id, "product_id")
+    await require_scoped_model(session, Product, product.id, Video, video_id, "product_id")
     return await update_video(session, video_id, video_update)
 
 
@@ -118,7 +118,7 @@ async def update_product_video(
 )
 async def delete_product_video(product: UserOwnedProductDep, video_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a video associated with a specific product."""
-    await get_nested_model_by_id(session, Product, product.id, Video, video_id, "product_id")
+    await require_scoped_model(session, Product, product.id, Video, video_id, "product_id")
     await delete_video(session, video_id)
 
 
@@ -133,14 +133,14 @@ async def get_product_bill_of_materials(
     material_filter: MaterialProductLinkFilterDep,
 ) -> Sequence[MaterialProductLink]:
     """Get bill of materials for a product."""
-    await get_model_or_404(session, Product, product_id)
+    await require_model(session, Product, product_id)
     statement: Select[tuple[MaterialProductLink]] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
     )
-    return await get_models(
+    return await list_models(
         session,
         MaterialProductLink,
-        model_filter=material_filter,
+        filters=material_filter,
         statement=statement,
     )
 
@@ -156,13 +156,13 @@ async def get_material_in_product_bill_of_materials(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Get a material in a product's bill of materials."""
-    return await get_linking_model_with_ids_if_it_exists(
+    return await require_link(
         session,
         MaterialProductLink,
         product_id,
         material_id,
-        "product_id",
-        "material_id",
+        MaterialProductLink.product_id,
+        MaterialProductLink.material_id,
     )
 
 

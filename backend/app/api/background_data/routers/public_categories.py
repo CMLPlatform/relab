@@ -21,7 +21,8 @@ from app.api.background_data.schemas import (
     CategoryReadWithRecursiveSubCategories,
     CategoryReadWithRelationshipsAndFlatSubCategories,
 )
-from app.api.common.crud.base import get_model_by_id, get_nested_model_by_id, get_paginated_models
+from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 if TYPE_CHECKING:
@@ -40,11 +41,11 @@ async def get_categories(
     category_filter: CategoryFilterWithRelationshipsDep,
 ) -> Page[Category]:
     """Get all categories with all relationships loaded."""
-    return await get_paginated_models(
+    return await page_models(
         session,
         Category,
-        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
-        model_filter=category_filter,
+        loaders={"taxonomy", "subcategories", "materials", "product_types"},
+        filters=category_filter,
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
 
@@ -84,11 +85,11 @@ async def get_category(
     category_id: PositiveInt,
 ) -> Category:
     """Get category by ID with all relationships."""
-    return await get_model_by_id(
+    return await require_model(
         session,
         Category,
         category_id,
-        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
+        loaders={"taxonomy", "subcategories", "materials", "product_types"},
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
 
@@ -104,13 +105,13 @@ async def get_subcategories(
     session: AsyncSessionDep,
 ) -> Page[Category]:
     """Get paginated subcategories of a category with all relationships loaded."""
-    await get_model_by_id(session, Category, category_id)
+    await require_model(session, Category, category_id)
     statement = select(Category).where(Category.supercategory_id == category_id)
-    return await get_paginated_models(
+    return await page_models(
         session,
         Category,
-        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
-        model_filter=category_filter,
+        loaders={"taxonomy", "subcategories", "materials", "product_types"},
+        filters=category_filter,
         statement=statement,
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
@@ -154,13 +155,13 @@ async def get_subcategory(
     session: AsyncSessionDep,
 ) -> Category:
     """Get subcategory by ID with all relationships loaded."""
-    return await get_nested_model_by_id(
+    return await require_scoped_model(
         session,
         Category,
         category_id,
         Category,
         subcategory_id,
         "supercategory_id",
-        include_relationships={"taxonomy", "subcategories", "materials", "product_types"},
+        loaders={"taxonomy", "subcategories", "materials", "product_types"},
         read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )

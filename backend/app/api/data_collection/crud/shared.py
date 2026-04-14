@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from app.api.background_data.models import Material
-from app.api.common.crud.base import get_model_by_id
-from app.api.common.crud.utils import get_models_by_ids_or_404
+from app.api.common.crud.query import require_model, require_models
 from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
@@ -27,7 +26,7 @@ def normalize_material_ids(material_ids: int | set[int]) -> set[int]:
 
 async def get_product_with_bill_of_materials(db: AsyncSession, product_id: int) -> Product:
     """Fetch a product with its bill of materials loaded."""
-    return await get_model_by_id(db, Product, product_id, include_relationships={"bill_of_materials"})
+    return await require_model(db, Product, product_id, loaders={"bill_of_materials"})
 
 
 async def validate_product_material_links(
@@ -38,7 +37,7 @@ async def validate_product_material_links(
     """Validate that the product and referenced materials exist."""
     normalized_material_ids = normalize_material_ids(material_ids)
     product = await get_product_with_bill_of_materials(db, product_id)
-    await get_models_by_ids_or_404(db, Material, normalized_material_ids)
+    await require_models(db, Material, normalized_material_ids)
     return product, normalized_material_ids
 
 

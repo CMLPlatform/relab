@@ -15,7 +15,7 @@ from app.api.background_data.schemas import (
     TaxonomyRead,
     TaxonomyUpdate,
 )
-from app.api.common.crud.base import get_nested_model_by_id
+from app.api.common.crud.scopes import require_scoped_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = APIRouter(prefix="/taxonomies", tags=["taxonomies"])
@@ -66,5 +66,5 @@ async def delete_category_in_taxonomy(
     taxonomy_id: PositiveInt, category_id: PositiveInt, session: AsyncSessionDep
 ) -> None:
     """Delete a category by ID, including its subcategories."""
-    await get_nested_model_by_id(session, Taxonomy, taxonomy_id, Category, category_id, "taxonomy_id")
+    await require_scoped_model(session, Taxonomy, taxonomy_id, Category, category_id, "taxonomy_id")
     await crud.delete_category(session, category_id)
