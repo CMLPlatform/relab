@@ -62,7 +62,7 @@ dev-clean PORT="8081":
 
 # Scan dependencies for known vulnerabilities
 audit:
-    sh -c 'trap "rm -f package-lock.json" EXIT; npm install --package-lock-only --ignore-scripts --legacy-peer-deps >/dev/null; npm audit --omit=dev --audit-level=high'
+    sh -c 'tmpdir=$(mktemp -d); trap "rm -rf \"$tmpdir\"" EXIT; cp package.json "$tmpdir"/; cd "$tmpdir"; /home/simon/.local/share/fnm/node-versions/v22.20.0/installation/bin/node /home/simon/.local/share/fnm/node-versions/v22.20.0/installation/lib/node_modules/npm/bin/npm-cli.js install --package-lock-only --ignore-scripts --legacy-peer-deps >/dev/null; /home/simon/.local/share/fnm/node-versions/v22.20.0/installation/bin/node /home/simon/.local/share/fnm/node-versions/v22.20.0/installation/lib/node_modules/npm/bin/npm-cli.js audit --omit=dev --audit-level=high'
     @echo "✓ Dependency audit complete"
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)
