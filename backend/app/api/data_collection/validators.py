@@ -12,6 +12,21 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.api.data_collection.models.product import Product
 
+ERR_PRODUCT_CYCLE = "Cycle detected: a product cannot contain itself directly or indirectly."
+ERR_BASE_PRODUCT_EMPTY = "A product must have at least one material or one component."
+ERR_BASE_PRODUCT_AMOUNT = "Base product must have amount_in_parent set to None."
+ERR_INTERMEDIATE_PRODUCT_AMOUNT = "Intermediate product must have amount_in_parent set."
+ERR_INTERMEDIATE_PRODUCT_EMPTY = "Intermediate product must have at least one material or one component."
+ERR_LEAF_COMPONENTS_WITHOUT_MATERIALS = "All leaf components must have a non-empty bill of materials."
+
+
+class ProductValidationError(ValueError):
+    """Business-rule validation failure safe to return to API clients."""
+
+    def __init__(self, public_message: str) -> None:
+        self.public_message = public_message
+        super().__init__(public_message)
+
 
 def validate_product(product: Product) -> Product:
     """Validate the product hierarchy and bill of materials constraints.
@@ -24,29 +39,23 @@ def validate_product(product: Product) -> Product:
     amount_in_parent = product.amount_in_parent
 
     if product.has_cycles():
-        err_msg = "Cycle detected: a product cannot contain itself directly or indirectly."
-        raise ValueError(err_msg)
+        raise ProductValidationError(ERR_PRODUCT_CYCLE)
 
     if product.is_base_product:
         if not components and not bill_of_materials:
-            err_msg = "A product must have at least one material or one component."
-            raise ValueError(err_msg)
+            raise ProductValidationError(ERR_BASE_PRODUCT_EMPTY)
         if amount_in_parent is not None:
-            err_msg = "Base product must have amount_in_parent set to None."
-            raise ValueError(err_msg)
+            raise ProductValidationError(ERR_BASE_PRODUCT_AMOUNT)
 
     else:
         # Intermediate product
         if amount_in_parent is None:
-            err_msg = "Intermediate product must have amount_in_parent set."
-            raise ValueError(err_msg)
+            raise ProductValidationError(ERR_INTERMEDIATE_PRODUCT_AMOUNT)
         if not components and not bill_of_materials:
-            err_msg = "Intermediate product must have at least one material or one component."
-            raise ValueError(err_msg)
+            raise ProductValidationError(ERR_INTERMEDIATE_PRODUCT_EMPTY)
 
     # Ensure all components ultimately resolve to materials
     if not product.components_resolve_to_materials():
-        err_msg = "All leaf components must have a non-empty bill of materials."
-        raise ValueError(err_msg)
+        raise ProductValidationError(ERR_LEAF_COMPONENTS_WITHOUT_MATERIALS)
 
     return product

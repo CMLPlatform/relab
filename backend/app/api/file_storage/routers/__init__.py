@@ -32,6 +32,11 @@ router = APIRouter(prefix="/images", tags=["images"])
 MEDIA_TYPE_WEBP = "image/webp"
 
 
+def _trusted_thumbnail_width(width: int | None) -> int | None:
+    """Return a configured thumbnail width rather than a raw query value."""
+    return next((thumbnail_width for thumbnail_width in THUMBNAIL_WIDTHS if width == thumbnail_width), None)
+
+
 @router.get("/{image_id}/resized", summary="Get a resized version of an image")
 async def get_resized_image(
     request: Request,
@@ -73,8 +78,9 @@ async def get_resized_image(
             _raise_not_found("Image file not found on disk")
 
         # Serve pre-computed thumbnail when the request matches a standard width
-        if width in THUMBNAIL_WIDTHS and not height:
-            thumb = AsyncPath(thumbnail_path_for(Path(image_path), width))
+        thumbnail_width = _trusted_thumbnail_width(width)
+        if thumbnail_width is not None and not height:
+            thumb = AsyncPath(thumbnail_path_for(Path(image_path), thumbnail_width))
             if await thumb.exists():
                 content = await thumb.read_bytes()
                 return Response(content=content, media_type=MEDIA_TYPE_WEBP, headers=cache_headers)

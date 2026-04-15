@@ -37,6 +37,7 @@ from app.api.file_storage.schemas import (
     ImageUpdate,
 )
 from app.core.images import delete_thumbnails, generate_thumbnails, process_image_for_storage
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -439,9 +440,9 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             logger.warning(
                 "%d %s(s) for %s %s have missing files in storage and will be excluded from the response.",
                 missing,
-                self.storage_model.__name__,
-                self.parent_model.__name__,
-                parent_id,
+                sanitize_log_value(self.storage_model.__name__),
+                sanitize_log_value(self.parent_model.__name__),
+                sanitize_log_value(parent_id),
             )
         return valid_items
 

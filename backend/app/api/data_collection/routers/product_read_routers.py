@@ -27,7 +27,7 @@ from app.api.data_collection.schemas import (
     ProductReadWithRecursiveComponents,
     ProductReadWithRelationshipsAndFlatComponents,
 )
-from app.api.data_collection.validators import validate_product
+from app.api.data_collection.validators import ProductValidationError, validate_product
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -360,6 +360,8 @@ async def validate_product_tree(
     await load_product_tree_for_validation(session, product)
     try:
         validate_product(product)
-    except ValueError as exc:
-        return {"valid": False, "errors": [str(exc)]}
+    except ProductValidationError as exc:
+        return {"valid": False, "errors": [exc.public_message]}
+    except ValueError:
+        return {"valid": False, "errors": ["Product failed validation."]}
     return {"valid": True, "errors": []}

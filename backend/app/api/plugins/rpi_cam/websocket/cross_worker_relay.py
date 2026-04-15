@@ -35,6 +35,8 @@ import time
 import uuid
 from typing import TYPE_CHECKING, cast
 
+from app.core.logging import sanitize_log_value
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable
 
@@ -196,9 +198,10 @@ async def run_relay_listener(
     read it with ``BLPOP``.
     """
     cmd_key = _cmd_key(camera_id)
+    camera_log_id = sanitize_log_value(camera_id)
     # Use the blocking client (socket_timeout=None) for the indefinite BLPOP.
     blocking_redis = get_blocking_redis() or redis
-    logger.debug("Cross-worker relay listener started for camera %s", camera_id)
+    logger.debug("Cross-worker relay listener started for camera %s", camera_log_id)
 
     try:
         while True:
@@ -219,11 +222,12 @@ async def run_relay_listener(
             except json.JSONDecodeError:
                 logger.warning(
                     "Relay listener for camera %s received malformed command JSON, skipping.",
-                    camera_id,
+                    camera_log_id,
                 )
                 continue
 
             msg_id: str = cmd.get("msg_id", "")
+            msg_log_id = sanitize_log_value(msg_id)
             if not msg_id:
                 logger.warning("Relay listener received command without msg_id, skipping.")
                 continue
@@ -233,8 +237,8 @@ async def run_relay_listener(
             if deadline and time.time() > deadline:
                 logger.debug(
                     "Relay listener skipping expired command %s for camera %s",
-                    msg_id,
-                    camera_id,
+                    msg_log_id,
+                    camera_log_id,
                 )
                 continue
 
@@ -243,7 +247,7 @@ async def run_relay_listener(
     except asyncio.CancelledError:
         pass
     finally:
-        logger.debug("Cross-worker relay listener stopped for camera %s", camera_id)
+        logger.debug("Cross-worker relay listener stopped for camera %s", camera_log_id)
 
 
 async def _execute_and_respond(
@@ -255,6 +259,8 @@ async def _execute_and_respond(
 ) -> None:
     """Execute one relayed command and push the response to Redis."""
     resp_key = _resp_key(msg_id)
+    camera_log_id = sanitize_log_value(camera_id)
+    msg_log_id = sanitize_log_value(msg_id)
     method: str = cmd.get("method", "GET")
     path: str = cmd.get("path", "/")
     params: dict | None = cmd.get("params")
@@ -266,9 +272,9 @@ async def _execute_and_respond(
         # Camera disconnected mid-flight — report error and stop listening.
         logger.warning(
             "Relay listener: camera %s disconnected during cross-worker command %s: %s",
-            camera_id,
-            msg_id,
-            exc,
+            camera_log_id,
+            msg_log_id,
+            sanitize_log_value(exc),
         )
         error_payload = json.dumps({"error": str(exc)})
         with contextlib.suppress(Exception):
@@ -278,8 +284,8 @@ async def _execute_and_respond(
     except Exception as exc:
         logger.exception(
             "Relay listener: unexpected error executing command %s for camera %s",
-            msg_id,
-            camera_id,
+            msg_log_id,
+            camera_log_id,
         )
         error_payload = json.dumps({"error": f"Internal relay error: {exc}"})
         with contextlib.suppress(Exception):
@@ -300,6 +306,6 @@ async def _execute_and_respond(
     except Exception:
         logger.exception(
             "Relay listener: failed to push response for command %s (camera %s)",
-            msg_id,
-            camera_id,
+            msg_log_id,
+            camera_log_id,
         )
