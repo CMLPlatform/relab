@@ -171,14 +171,11 @@ export function useLocalConnection(
 
   const consecutiveFailures = useRef(0);
   const probeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Track whether we've already attempted (or successfully completed) a relay
-  // bootstrap so we don't repeat the fetch on every isOnline change.
-  const relayBootstrapDoneRef = useRef(false);
   const lastBootstrapCameraIdRef = useRef(cameraId);
-  // Keep a ref so the interval callback always has the current values without
-  // triggering extra re-renders.
-  const stateRef = useRef({ localBaseUrl, localApiKey });
-  stateRef.current = { localBaseUrl, localApiKey };
+  // Keep a ref so the interval callback and bootstrap effect always have the
+  // current values without triggering extra re-renders.
+  const stateRef = useRef({ localBaseUrl, localApiKey, mode });
+  stateRef.current = { localBaseUrl, localApiKey, mode };
 
   // ── Probe function ──────────────────────────────────────────────────────
   const runProbe = useCallback(async (url: string, apiKey: string | null) => {
@@ -251,17 +248,17 @@ export function useLocalConnection(
   }, [cameraId, runProbe]);
 
   // ── Relay bootstrap: auto-fetch key + candidate URLs when camera is online ─
+  // Runs whenever isOnline transitions to true (relay connect / reconnect after
+  // Pi reboot). Skipped only when we are already in confirmed local mode —
+  // the periodic probe handles keepalive in that case.
   useEffect(() => {
     if (lastBootstrapCameraIdRef.current !== cameraId) {
-      relayBootstrapDoneRef.current = false;
       lastBootstrapCameraIdRef.current = cameraId;
     }
 
     if (!isOnline) return;
-    // Only attempt once per mount (or when isOnline transitions true the first time).
-    // Re-runs if cameraId changes.
-    if (relayBootstrapDoneRef.current) return;
-    relayBootstrapDoneRef.current = true;
+    // Already in local mode — the 30s periodic probe keeps it alive.
+    if (stateRef.current.mode === 'local') return;
 
     async function bootstrap() {
       const info = await fetchLocalAccessInfo(cameraId);
@@ -276,13 +273,6 @@ export function useLocalConnection(
       const reachableUrl = await probeAll(candidates, info.local_api_key);
       if (!reachableUrl) return;
 
-      // Persist and activate — don't overwrite a currently-active local connection
-      // with a different URL from the same camera unless we've confirmed reachability.
-      const { localBaseUrl: currentUrl } = stateRef.current;
-      if (currentUrl && currentUrl !== reachableUrl) {
-        // Already in local mode at a different URL; keep it.
-        return;
-      }
       await activateLocalMode(reachableUrl, info.local_api_key);
     }
 
