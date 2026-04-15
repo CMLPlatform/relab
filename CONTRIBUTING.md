@@ -53,7 +53,6 @@ This is the recommended path into the repo if you use VS Code.
 1. Run the standard checks when you want to verify the repo state.
 
    ```bash
-   just env-audit
    just validate
    ```
 
@@ -149,7 +148,6 @@ From the repo root:
 
 ```bash
 just setup
-just env-audit
 just validate
 just test
 just test-integration

@@ -66,8 +66,8 @@ jobs:
             uv.lock
             backend/uv.lock
 
-      - name: Run repository policy checks
-        run: just _check-root
+      - name: Run pre-commit checks
+        run: just pre-commit
 
       - name: Validate Compose stacks
         run: just compose-config

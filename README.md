@@ -60,7 +60,6 @@ Infrastructure is orchestrated with Docker Compose from the repo root.
 
 ```bash
 just setup     # install workspace dependencies and pre-commit hooks
-just env-audit # validate committed env templates and runtime version policy
 just validate  # run the canonical local validation pipeline
 just test      # run local test suites
 just security  # run dependency and security checks

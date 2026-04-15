@@ -85,26 +85,6 @@ From the camera detail screen you can:
 - Look at the RPi plugin logs for WebSocket connection errors.
 - If the camera was intentionally unpaired or re-paired, confirm the current relay credentials are present on the Pi.
 
-### Pairing or relay gets HTTP 403 behind Cloudflare
-
-- If the Raspberry Pi logs show `403` for `/plugins/rpi-cam/pairing/register`, `/plugins/rpi-cam/pairing/poll`, or `/plugins/rpi-cam/ws/connect`, the request may be blocked by Cloudflare before it reaches the backend.
-- Add a Cloudflare bypass rule for both `api-test.cml-relab.org` and `api.cml-relab.org` that covers the machine-facing RPi camera endpoints:
-
-```text
-(
-  http.host in {"api-test.cml-relab.org" "api.cml-relab.org"}
-  and starts_with(http.request.uri.path, "/plugins/rpi-cam/pairing/")
-)
-or
-(
-  http.host in {"api-test.cml-relab.org" "api.cml-relab.org"}
-  and http.request.uri.path eq "/plugins/rpi-cam/ws/connect"
-)
-```
-
-- Set the rule action to skip or bypass the Cloudflare feature issuing the challenge.
-- Verified on April 9, 2026: `api-test.cml-relab.org` returned `cf-mitigated: challenge` on both `/plugins/rpi-cam/pairing/register` and `/plugins/rpi-cam/ws/connect`.
-
 ## Device Setup
 
 For device installation, deployment, and hardware-specific details, see the external plugin documentation:

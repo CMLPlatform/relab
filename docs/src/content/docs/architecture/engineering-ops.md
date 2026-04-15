@@ -22,7 +22,6 @@ Use the root `justfile` as the primary interface:
 
 ```bash
 just setup
-just env-audit
 just validate
 just test
 just test-integration

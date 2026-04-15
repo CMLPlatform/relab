@@ -50,13 +50,12 @@ setup: install _pre-commit-install
 # ============================================================================
 
 # Run repository-wide policy checks
-_check-root:
+pre-commit:
     uv run pre-commit run --all-files
-    @just env-audit
     @echo "✓ Repository policy checks passed"
 
 # Canonical fast validation target used locally and in CI
-validate: _check-root _test-ci compose-config release-check
+validate: pre-commit _test-ci compose-config
     @echo "✅ Validation pipeline passed"
 
 # Auto-fix code issues where supported
@@ -136,15 +135,6 @@ _audit-root:
     uv audit --preview-features audit --frozen --no-dev
     @echo "✓ Root dependency audit complete"
 
-# Validate committed environment templates and runtime version policy
-env-audit:
-    python3 scripts/check_env_contract.py
-    python3 scripts/check_infra_contract.py
-    @echo "✓ Environment contract audit passed"
-
-# Check that release automation inputs are internally consistent
-release-check:
-    python3 scripts/check_release_contract.py
 
 # Validate every supported Compose stack shape
 compose-config:

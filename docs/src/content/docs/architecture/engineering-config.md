@@ -56,7 +56,6 @@ cp .env.example .env
 cp backend/.env.dev.example backend/.env.dev
 just setup
 just dev
-just env-audit
 just validate
 ```
 

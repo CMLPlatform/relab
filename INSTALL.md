@@ -76,7 +76,6 @@ This page is about running the stack. For manifest conventions, tooling policy, 
 1. Run checks if needed.
 
    ```bash
-   just env-audit
    just validate
    just test
    ```
