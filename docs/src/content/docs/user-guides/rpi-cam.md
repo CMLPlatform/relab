@@ -52,7 +52,12 @@ Use this when automatic pairing is not available.
 1. Start from a known product or component record.
 1. Trigger image capture or preview through the platform.
 1. The backend relays the request to the device via the WebSocket tunnel.
-1. The returned image metadata is stored in RELab and linked to the record.
+1. Captured images are uploaded back to RELab and linked to the record automatically.
+
+When the camera is already paired and the client is on the same LAN, the RELab
+app can also switch into local direct mode for lower-latency preview and
+capture. Relay remains the default path and the control-plane source of truth;
+local mode is an optimization, not a separate registration flow.
 
 Camera management (inspecting, updating, removing registered cameras) is available through the app's Cameras section.
 
@@ -60,9 +65,8 @@ Camera management (inspecting, updating, removing registered cameras) is availab
 
 From the camera detail screen you can:
 
-- View the live preview (snapshot polling) and connection status.
+- View the live preview (LL-HLS) and connection status.
 - Edit the camera name and description.
-- Regenerate the API key (the old key is invalidated immediately; the Pi will automatically reconnect with the new key).
 - Delete the camera.
 
 ## Practical Advice
@@ -79,7 +83,7 @@ From the camera detail screen you can:
 - Verify the Raspberry Pi is powered on and has internet access.
 - Check that the RPi plugin is running and relay credentials are configured.
 - Look at the RPi plugin logs for WebSocket connection errors.
-- Confirm the API key on the RPi matches the one stored in the platform (regenerate if unsure).
+- If the camera was intentionally unpaired or re-paired, confirm the current relay credentials are present on the Pi.
 
 ### Pairing or relay gets HTTP 403 behind Cloudflare
 

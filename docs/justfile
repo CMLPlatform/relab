@@ -58,6 +58,11 @@ test:
     pnpm run test
     @echo "✓ Docs tests passed"
 
+# Run visual and theme regression checks
+test-visual:
+    pnpm run test:visual
+    @echo "✓ Docs visual tests passed"
+
 # Scan Node dependencies for known CVEs
 audit:
     pnpm run audit

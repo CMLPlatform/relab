@@ -1,17 +1,24 @@
 # syntax=docker/dockerfile:1.10
 
-FROM node:22-bookworm-slim@sha256:ef5d50c59a5eed0fa793b8390a88a298f30e438f56ce4488d9d8df7f93e7abdf AS build
+# Production Dockerfile for Docs
+FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS build
+
 WORKDIR /opt/relab/docs
 
-ENV CI=1
+ENV CI=1 \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
 
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --prefer-offline
 
-COPY . .
+COPY astro.config.mjs biome.json tsconfig.json ./
+COPY public/ ./public/
+COPY src/ ./src/
 
 ARG BUILD_MODE=prod
 ARG PUBLIC_SITE_URL

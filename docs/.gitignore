@@ -11,3 +11,6 @@ site/
 
 # Local cache from the retired docs stack
 .cache/
+
+# Test results
+test-results/

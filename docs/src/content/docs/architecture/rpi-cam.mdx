@@ -7,7 +7,7 @@ lastReviewed: '2026-04-15'
 ---
 
 <div class="relab-section-intro">
-An optional plugin that connects camera devices to RELab for remote capture, HLS preview streaming, and YouTube streaming. The backend acts as a proxy; the Expo app never talks to the device directly.
+An optional plugin that connects camera devices to RELab for remote capture, LL-HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the RELab app can optionally switch to direct local access for lower-latency preview and capture.
 </div>
 
 For platform-side setup and day-to-day usage, see the [RPI Camera User Guide](../../user-guides/rpi-cam/). For device installation and deployment, see the [RPI Camera Plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
@@ -19,11 +19,12 @@ graph TD
     Researcher[Researcher] -->|Capture workflow| FrontendApp[Expo App]
     FrontendApp -->|API requests| MainAPI[FastAPI Backend]
 
-    MainAPI -->|Proxied requests + API key| RpiCamAPI[RPI Camera API]
+    MainAPI -->|Relay commands + backend APIs| RpiCamAPI[RPI Camera API]
+    FrontendApp -->|Optional local direct mode| RpiCamAPI
     RpiCamAPI -->|Controls| Camera[Camera Hardware]
 
-    RpiCamAPI -->|HLS preview stream| Researcher
-    RpiCamAPI -->|Direct stream| YouTube[YouTube API]
+    RpiCamAPI -->|LL-HLS preview| Researcher
+    RpiCamAPI -->|RTMP stream| YouTube[YouTube API]
     RpiCamAPI -->|Captured image + metadata| MainAPI
 
     GoogleOAuth[Google OAuth] -->|User tokens| MainAPI
@@ -48,11 +49,12 @@ graph TD
     Researcher["fa:fa-flask Researcher"] -->|Capture workflow| FrontendApp["fa:fa-mobile-screen Expo App"]
     FrontendApp -->|API requests| MainAPI["fa:fa-bolt FastAPI Backend"]
 
-    MainAPI -->|Proxied requests + API key| RpiCamAPI["fa:fa-microchip RPI Camera API"]
+    MainAPI -->|Relay commands + backend APIs| RpiCamAPI["fa:fa-microchip RPI Camera API"]
+    FrontendApp -->|Optional local direct mode| RpiCamAPI
     RpiCamAPI -->|Controls| Camera["fa:fa-camera Camera Hardware"]
 
-    RpiCamAPI -->|HLS preview stream| Researcher
-    RpiCamAPI -->|Direct stream| YouTube["fa:fa-video YouTube API"]
+    RpiCamAPI -->|LL-HLS preview| Researcher
+    RpiCamAPI -->|RTMP stream| YouTube["fa:fa-video YouTube API"]
     RpiCamAPI -->|Captured image + metadata| MainAPI
 
     GoogleOAuth["fa:fa-right-to-bracket Google OAuth"] -->|User tokens| MainAPI
@@ -99,22 +101,30 @@ sequenceDiagram
     participant Camera as Camera Hardware
 
     %% Camera Registration
-    Researcher->>App: Enter camera details
-    App->>Backend: Register camera
-    Backend->>Backend: Generate API key
-    Backend-->>App: Return camera details & API key
-    App-->>Researcher: Show connection details
+    Researcher->>App: Enter pairing code
+    App->>Backend: Claim pairing code
+    Backend->>Backend: Create camera + relay credentials
+    Backend-->>RPiCamAPI: Relay credentials via pairing flow
+    Backend-->>App: Return camera details
+    App-->>Researcher: Show paired camera
 
     %% Image Capture Flow
     Researcher->>App: Request image capture
     App->>Backend: Request image capture
-    Backend->>RPiCamAPI: Forward request with API key
+    Backend->>RPiCamAPI: Forward request via relay
     RPiCamAPI->>Camera: Control camera
     Camera->>RPiCamAPI: Image data
     RPiCamAPI-->>Backend: Image data & metadata
     Backend->>Backend: Store in database & link to product
     Backend-->>App: Return image
     App-->>Researcher: Show image
+
+    %% Optional Local Direct Mode
+    Researcher->>App: Open paired camera on same LAN
+    App->>Backend: Fetch camera status
+    Backend-->>App: Relay state + local bootstrap info
+    App->>RPiCamAPI: Optional direct local requests (X-API-Key)
+    RPiCamAPI-->>App: Lower-latency preview/capture responses
 
     %% YouTube Streaming Flow
     Researcher->>App: Start YouTube recording
@@ -131,7 +141,7 @@ sequenceDiagram
     %% Local Preview Stream
     Researcher->>App: Request preview stream
     App->>Backend: Request preview stream
-    Backend->>RPiCamAPI: Start HLS stream
+    Backend->>RPiCamAPI: Start preview / mark activity
     RPiCamAPI->>Camera: Start streaming
     RPiCamAPI-->>Backend: Stream info
     Backend-->>App: Stream viewer URL
@@ -148,7 +158,8 @@ sequenceDiagram
 
 ## Key Design Decisions
 
-- **Backend as proxy**: All device communication goes through the main backend. The Expo app never contacts the camera directly, keeping auth and storage centralised.
-- **API key per camera**: Each registered camera receives a unique key. The device uses this to authenticate inbound requests from the backend.
+- **Backend as control plane**: Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend.
+- **Optional local direct mode**: After pairing, the app can switch to LAN-direct access for lower-latency preview and capture when the device is reachable locally.
+- **Relay-first registration**: Cameras pair through a short-lived code and receive runtime relay credentials from the backend; operators do not manually copy long-lived API keys in the normal path.
 - **Media storage**: Captured images are stored in RELab's file storage and linked to the originating product or component record automatically.
 - **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorised.

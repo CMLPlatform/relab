@@ -5,17 +5,21 @@ Standalone Astro Starlight documentation app for the RELab platform.
 ## Quick Start
 
 ```bash
+fnm use 24 || nvm use 24
 just install
 just dev
 ```
 
 The docs site runs on <http://localhost:8000>.
 
+The docs app targets Node `24.x` and `pnpm 10.x`.
+
 ## Common Commands
 
 ```bash
 just build
 just check
+just test-visual
 just format
 just audit
 ```

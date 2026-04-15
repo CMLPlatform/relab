@@ -27,6 +27,7 @@
     "typecheck": "astro check",
     "test:links": "node ./scripts/run-with-preview.mjs \"pnpm exec linkinator \\$BASE_URL --recurse --silent --skip 'mailto:*' --skip 'https://*'\"",
     "test:a11y": "node ./scripts/run-with-preview.mjs \"pnpm exec playwright test e2e/accessibility.spec.ts e2e/smoke.spec.ts\"",
+    "test:visual": "node ./scripts/run-with-preview.mjs \"pnpm exec playwright test e2e/theme.spec.ts e2e/visual.spec.ts\"",
     "test:lighthouse": "node ./scripts/run-with-preview.mjs \"node ./scripts/check-lighthouse.mjs\"",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run test:links && pnpm run test:a11y && pnpm run test:lighthouse",
     "test": "pnpm run build && pnpm run test:links && pnpm run test:a11y",
