@@ -117,11 +117,48 @@ export default function ProfileTab() {
   const handleUnlinkOAuthConfirm = async () => {
     try {
       await unlinkOAuth(providerToUnlink);
+      // Revoking Google also kills the YouTube-scoped token — disable the feature.
+      if (providerToUnlink === 'google' && youtubeEnabled) {
+        await setYoutubeEnabled(false);
+      }
       setUnlinkDialogVisible(false);
       void refetch();
     } catch (error: unknown) {
       setUnlinkDialogVisible(false);
       alert(`Failed to disconnect: ${getErrorMessage(error, 'Unknown error')}`);
+    }
+  };
+
+  const handleYouTubeToggle = async (next: boolean) => {
+    if (!next) {
+      await setYoutubeEnabled(false);
+      return;
+    }
+    // Enabling requires the user to grant YouTube API scopes via a dedicated
+    // Google OAuth flow. The preference is only saved after a successful grant.
+    try {
+      const redirectUri = Linking.createURL('/profile');
+      const associateUrl = `${API_URL}/auth/oauth/google-youtube/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      const token = await getToken();
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const response = await apiFetch(associateUrl, { headers });
+      if (!response.ok) throw new Error('Failed to reach YouTube authorization endpoint.');
+      const data = await response.json();
+
+      const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
+      if (result.type === 'success' && result.url.includes('success=true')) {
+        await setYoutubeEnabled(true);
+        await refetch(false);
+      } else if (result.type === 'success') {
+        // Browser returned but backend signalled failure (e.g. user denied scope).
+        const detail = result.url.match(/[?&]detail=([^&]*)/)?.[1];
+        alert(`YouTube authorization failed: ${detail ? decodeURIComponent(detail) : 'Access was denied.'}`);
+      }
+    } catch (error: unknown) {
+      alert(`Failed to start YouTube authorization: ${getErrorMessage(error, '')}`);
     }
   };
 
@@ -337,7 +374,7 @@ export default function ProfileTab() {
               </View>
               <Switch
                 value={youtubeEnabled}
-                onValueChange={(v) => void setYoutubeEnabled(v)}
+                onValueChange={(v) => void handleYouTubeToggle(v)}
                 disabled={youtubeLoading}
               />
             </View>

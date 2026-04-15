@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { renderWithProviders } from '@/test-utils';
 import CamerasScreen from '../index';
 
@@ -29,6 +29,7 @@ describe('CamerasScreen', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
   const mockRefetch = jest.fn();
+  const mockSetOptions = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,6 +39,9 @@ describe('CamerasScreen', () => {
       back: jest.fn(),
       setParams: jest.fn(),
       dismissTo: jest.fn(),
+    });
+    (useNavigation as jest.Mock).mockReturnValue({
+      setOptions: mockSetOptions,
     });
     mockUseAuth.mockReturnValue({
       user: { id: 'user-1', email: 'test@example.com' },
@@ -60,6 +64,8 @@ describe('CamerasScreen', () => {
     expect(
       screen.getByText('Tap the + button to register your first RPi camera.'),
     ).toBeOnTheScreen();
+    expect(mockSetOptions).toHaveBeenCalled();
+    expect(mockSetOptions.mock.calls[0][0]).not.toHaveProperty('title');
 
     fireEvent.press(screen.getByLabelText('Add camera'));
 

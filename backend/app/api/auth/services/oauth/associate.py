@@ -49,13 +49,21 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         cookie_settings: OAuthCookieSettings | None = None,
         *,
         requires_verification: bool = False,
+        route_name_key: str | None = None,
     ) -> None:
-        """Initialize association router builder."""
+        """Initialize association router builder.
+
+        ``route_name_key`` overrides the key used in FastAPI route names
+        (e.g. ``oauth-associate:{key}.callback``). Useful when registering two
+        clients that share the same OAuth ``name`` (e.g. ``google`` and
+        ``google-youtube``) to avoid duplicate route-name conflicts.
+        """
         super().__init__(oauth_client, state_secret, redirect_url, cookie_settings)
         self.authenticator = authenticator
         self.user_schema = user_schema
         self.requires_verification = requires_verification
-        self.callback_route_name = f"oauth-associate:{oauth_client.name}.callback"
+        key = route_name_key if route_name_key is not None else oauth_client.name
+        self.callback_route_name = f"oauth-associate:{key}.callback"
 
     def build(self) -> APIRouter:
         """Construct the APIRouter."""
@@ -68,9 +76,11 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         else:
             oauth2_authorize_callback = OAuth2AuthorizeCallback(self.oauth_client, route_name=callback_route_name)
 
+        authorize_route_name = self.callback_route_name.replace(".callback", ".authorize")
+
         @router.get(
             "/authorize",
-            name=f"oauth-associate:{self.oauth_client.name}.authorize",
+            name=authorize_route_name,
             response_model=OAuth2AuthorizeResponse,
         )
         async def authorize(

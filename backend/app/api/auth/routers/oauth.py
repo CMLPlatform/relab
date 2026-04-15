@@ -15,6 +15,7 @@ from app.api.auth.services.oauth import (
     CustomOAuthRouterBuilder,
     github_oauth_client,
     google_oauth_client,
+    google_youtube_oauth_client,
 )
 from app.api.auth.services.user_manager import (
     bearer_auth_backend,
@@ -66,6 +67,22 @@ for client in (github_oauth_client, google_oauth_client):
         ).build(),
         prefix=f"/{provider_name}/associate",
     )
+
+
+# YouTube-specific association (requests additional YouTube API scopes).
+# Stored as oauth_name="google" — updates the same OAuthAccount record with
+# a token that includes YouTube scopes.
+router.include_router(
+    CustomOAuthAssociateRouterBuilder(
+        google_youtube_oauth_client,
+        fastapi_user_manager.authenticator,
+        UserRead,
+        settings.fastapi_users_secret.get_secret_value(),
+        redirect_url=_public_callback_url("/auth/oauth/google-youtube/associate/callback"),
+        route_name_key="google-youtube",
+    ).build(),
+    prefix="/google-youtube/associate",
+)
 
 
 @router.delete("/{provider}/associate", status_code=status.HTTP_204_NO_CONTENT)
