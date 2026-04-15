@@ -93,9 +93,7 @@ async def relay_via_websocket(
     except RuntimeError as exc:
         # Camera not connected in this worker — try the cross-worker bridge.
         if redis is not None:
-            logger.debug(
-                "Camera %s not in local manager; attempting cross-worker relay.", camera_id
-            )
+            logger.debug("Camera %s not in local manager; attempting cross-worker relay.", camera_id)
             try:
                 async with asyncio.timeout(timeout):
                     json_resp, binary = await relay_cross_worker(
@@ -108,9 +106,7 @@ async def relay_via_websocket(
                         timeout=timeout,
                     )
             except (RuntimeError, TimeoutError) as cross_exc:
-                logger.warning(
-                    "Cross-worker relay failed for camera %s: %s", camera_id, cross_exc
-                )
+                logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)
                 raise HTTPException(
                     status_code=503,
                     detail="Camera is not connected via WebSocket.",

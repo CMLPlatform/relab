@@ -62,6 +62,7 @@ def get_blocking_redis() -> Redis | None:
 
 # ── Redis key templates ────────────────────────────────────────────────────────
 
+
 def _cmd_key(camera_id: UUID4) -> str:
     return f"rpi_cam:relay_cmd:{camera_id}"
 
@@ -244,9 +245,7 @@ async def _execute_and_respond(
     body: dict | None = cmd.get("body")
 
     try:
-        json_resp, binary = await manager.send_command(
-            camera_id, method, path, params=params, body=body
-        )
+        json_resp, binary = await manager.send_command(camera_id, method, path, params=params, body=body)
     except RuntimeError as exc:
         # Camera disconnected mid-flight — report error and stop listening.
         logger.warning(

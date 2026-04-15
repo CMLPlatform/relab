@@ -11,7 +11,6 @@ from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.core.redis import OptionalRedisDep
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models import Image, MediaParentType
@@ -23,6 +22,7 @@ from app.api.plugins.rpi_cam.examples import (
 )
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.services import capture_and_store_image
+from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from typing import Any
