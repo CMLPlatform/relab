@@ -33,16 +33,16 @@ update:
     @echo "✓ Dependencies updated (run 'just install' to sync)"
 
 # Install pre-commit hooks (run once after clone)
-pre-commit-install:
+_pre-commit-install:
     uv run pre-commit install
     @echo "✓ Pre-commit hooks installed"
 
 # Create a conventional commit message interactively
-commit:
+_commit:
     uv run cz commit
 
 # Bootstrap a full local development environment
-setup: install pre-commit-install
+setup: install _pre-commit-install
     @echo "✓ Development environment ready"
 
 # ============================================================================
@@ -60,7 +60,7 @@ validate: _check-root _test-ci compose-config release-check
     @echo "✅ Validation pipeline passed"
 
 # Auto-fix code issues where supported
-fix:
+_fix:
     @just backend/fix
     @just docs/fix
     @just frontend-web/fix
@@ -93,21 +93,21 @@ _test-ci:
     @echo "✅ All CI test suites passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
-e2e-backend-up:
+_e2e-backend-up:
     docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
 
 # Tear down E2E backend infrastructure and remove volumes
-e2e-backend-down:
+_e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yml down -v --remove-orphans
 
 # Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down
 # Requires Docker to be running.
-test-e2e-full-stack:
+_test-e2e-full-stack:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just e2e-backend-down || true' EXIT
+    trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
-    just e2e-backend-up
+    just _e2e-backend-up
     echo "→ Building Expo web app..."
     just frontend-app/build-web
     echo "→ Running Playwright E2E tests..."
@@ -119,7 +119,7 @@ test-e2e-full-stack:
 # ============================================================================
 
 # Run dependency vulnerability audit across all subrepos
-audit:
+_audit:
     @just _audit-root
     @just backend/audit
     @just docs/audit
@@ -128,7 +128,7 @@ audit:
     @echo "✅ All dependency audits complete"
 
 # Canonical security target
-security: audit
+security: _audit
     @echo "✅ Security checks complete"
 
 # Run dependency vulnerability audit for root Python tooling
@@ -139,6 +139,7 @@ _audit-root:
 # Validate committed environment templates and runtime version policy
 env-audit:
     python3 scripts/check_env_contract.py
+    python3 scripts/check_infra_contract.py
     @echo "✓ Environment contract audit passed"
 
 # Check that release automation inputs are internally consistent
@@ -173,19 +174,19 @@ compose-config:
 # ============================================================================
 
 # Start backend + its infrastructure (database, cache) with hot reload
-dev-backend:
+_dev-backend:
     {{ dev_compose }} up --watch api
 
 # Start docs server with hot reload
-dev-docs:
+_dev-docs:
     {{ dev_compose }} up --watch docs-site
 
 # Start frontend-app + backend with hot reload
-dev-frontend-app:
+_dev-frontend-app:
     {{ dev_compose }} up --watch api app-site
 
 # Start frontend-web + backend with hot reload
-dev-frontend-web:
+_dev-frontend-web:
     {{ dev_compose }} up --watch api web-site
 
 # ============================================================================
@@ -201,7 +202,7 @@ dev-up:
     {{ dev_compose }} up
 
 # Build (or rebuild) dev images
-dev-build:
+_dev-build:
     {{ dev_compose }} --profile migrations build
 
 # Stop and remove dev containers
@@ -217,8 +218,8 @@ dev-migrate:
     {{ dev_compose }} --profile migrations up migrator
 
 # Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
-dev-reset confirm='':
-    @just _require-confirm "wipe the development Docker environment" "just dev-reset YES" "FORCE=1 just dev-reset" "{{ confirm }}"
+_dev-reset confirm='':
+    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" "{{ confirm }}"
     {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
@@ -273,8 +274,8 @@ prod-migrate confirm='':
     {{ prod_compose }} --profile migrations up migrator
 
 # Enable automated database + upload backups (prod)
-prod-backups-up confirm='':
-    @just _require-confirm "start the production backup services" "just prod-backups-up YES" "FORCE=1 just prod-backups-up" "{{ confirm }}"
+_prod-backups-up confirm='':
+    @just _require-confirm "start the production backup services" "just _prod-backups-up YES" "FORCE=1 just _prod-backups-up" "{{ confirm }}"
     {{ prod_compose }} --profile backups up -d
 
 # ============================================================================
@@ -354,7 +355,7 @@ _docker-smoke-down services:
     {{ test_compose }} down -v --remove-orphans {{ services }} || true
 
 # Smoke test: backend + its infrastructure (database, cache)
-docker-smoke-backend:
+_docker-smoke-backend:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down api' EXIT
@@ -362,7 +363,7 @@ docker-smoke-backend:
     echo "✅ Backend smoke test passed"
 
 # Smoke test: docs static server
-docker-smoke-docs:
+_docker-smoke-docs:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down docs-site' EXIT
@@ -370,7 +371,7 @@ docker-smoke-docs:
     echo "✅ Docs smoke test passed"
 
 # Smoke test: frontend-web static server
-docker-smoke-frontend-web:
+_docker-smoke-frontend-web:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down web-site' EXIT
@@ -378,7 +379,7 @@ docker-smoke-frontend-web:
     echo "✅ Frontend-web smoke test passed"
 
 # Smoke test: frontend-app static server (slow: expo export runs during build)
-docker-smoke-frontend-app:
+_docker-smoke-frontend-app:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down app-site' EXIT
@@ -386,7 +387,7 @@ docker-smoke-frontend-app:
     echo "✅ Frontend-app smoke test passed"
 
 # Smoke test: user-upload backups image can create a backup archive from a sample uploads tree
-docker-smoke-user-upload-backups:
+_docker-smoke-user-upload-backups:
     #!/usr/bin/env bash
     set -euo pipefail
     tmp_root="$(mktemp -d)"
@@ -410,7 +411,7 @@ docker-smoke-user-upload-backups:
     echo "✅ User-upload backups smoke test passed"
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
-docker-orchestration-smoke:
+_docker-orchestration-smoke:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down "postgres redis api migrator"' EXIT
@@ -419,70 +420,66 @@ docker-orchestration-smoke:
     echo "✅ Docker orchestration smoke test passed"
 
 # Run all smoke tests sequentially (CI runs them in parallel per-service)
-docker-smoke-all:
-    @just docker-smoke-backend
-    @just docker-smoke-docs
-    @just docker-smoke-frontend-web
-    @just docker-smoke-frontend-app
-    @just docker-smoke-user-upload-backups
-    @just docker-orchestration-smoke
+_docker-smoke-all:
+    @just _docker-smoke-backend
+    @just _docker-smoke-docs
+    @just _docker-smoke-frontend-web
+    @just _docker-smoke-frontend-app
+    @just _docker-smoke-user-upload-backups
+    @just _docker-orchestration-smoke
 
 # Canonical Docker smoke target
-docker-smoke: docker-smoke-all
+docker-smoke: _docker-smoke-all
 
 ### CI test helpers for backend performance regression testing ---
 
 # Build (or rebuild) CI images without cache
-docker-ci-build:
+_docker-ci-build:
     {{ test_compose }} --profile migrations build --no-cache
 
 # Start CI services and wait for readiness
-docker-ci-up services="postgres redis api":
+_docker-ci-up services="postgres redis api":
     {{ test_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
 
 # Start the CI backend subset (database, cache, backend) and wait for readiness
-docker-ci-backend-up:
-    @just docker-ci-up "postgres redis api"
+_docker-ci-backend-up:
+    @just _docker-ci-up "postgres redis api"
 
 # Run CI migrations and seed dummy data for repeatable backend perf tests
-docker-ci-migrate-dummy:
+_docker-ci-migrate-dummy:
     {{ test_compose }} run --rm -e SEED_DUMMY_DATA=true migrator
 
 # Stop the CI stack and remove volumes
-docker-ci-down confirm='':
+_docker-ci-down confirm='':
     @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
     {{ test_compose }}  --profile migrations down -v --remove-orphans
 
-# Tail CI stack logs
-docker-ci-logs:
-    {{ test_compose }} logs -f
-
 # Run the backend k6 baseline against the CI Docker stack.
-# Keeps the CI stack running; use `just docker-ci-down YES` when done.
+# Keeps the CI stack running for maintainer follow-up if needed.
 docker-ci-perf-baseline:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "→ Starting CI backend stack..."
-    just docker-ci-backend-up
+    just _docker-ci-backend-up
     echo "→ Running CI database migrations and seeding dummy data..."
-    just docker-ci-migrate-dummy
+    just _docker-ci-migrate-dummy
     echo "→ Running backend k6 baseline against the CI stack..."
-    just backend/perf-ci
+    just backend/_perf-ci
 
 # Write a dated CI baseline report from the latest backend k6 summary export
-docker-ci-perf-report DATE="":
-    just backend/perf-report-ci "{{ DATE }}"
+_docker-ci-perf-report DATE="":
+    just backend/_perf-report-ci "{{ DATE }}"
 
 # Recalibrate backend perf thresholds from the latest CI baseline summary export
-docker-ci-perf-thresholds HEADROOM="1.15":
-    just backend/perf-thresholds-apply "{{ HEADROOM }}"
+_docker-ci-perf-thresholds HEADROOM="1.15":
+    just backend/_perf-thresholds-apply "{{ HEADROOM }}"
 
 # ============================================================================
 # Maintenance
 # ============================================================================
 
 # Clean build artifacts and caches across all subrepos
-clean:
+_clean:
     @just backend/clean
     @just docs/clean
     @just frontend-web/clean

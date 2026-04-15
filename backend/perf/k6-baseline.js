@@ -19,7 +19,7 @@ const scenarios = {
 
 const thresholds = {
   "http_req_failed{scenario:product_tree_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_tree_read}": ["p(95)<5000"],
+  "http_req_duration{scenario:product_tree_read}": ["p(95)<1800"],
 };
 
 if (loginEmail && loginPassword) {
@@ -30,7 +30,7 @@ if (loginEmail && loginPassword) {
     duration: __ENV.PERF_LOGIN_DURATION || "30s",
   };
   thresholds["http_req_failed{scenario:bearer_login}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<4100"];
+  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<1600"];
 }
 
 if (imageId) {
@@ -41,7 +41,7 @@ if (imageId) {
     duration: __ENV.PERF_IMAGE_DURATION || "30s",
   };
   thresholds["http_req_failed{scenario:resized_image}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:resized_image}"] = ["p(95)<3600"];
+  thresholds["http_req_duration{scenario:resized_image}"] = ["p(95)<1400"];
 }
 
 export const options = {

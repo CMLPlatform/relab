@@ -1,14 +1,7 @@
 # compose.e2e.yml (END-TO-END TESTING, used for testing the full stack in CI)
 #
-# To start the environment:
-#  just e2e-backend-up
-#
-# Then build and test the Expo web app against the local backend:
-#  just frontend-app/build-web
-#  just frontend-app/test-e2e
-#
-# To stop and remove the environment:
-#  just e2e-backend-down
+# Normal local entrypoint:
+#  just test-e2e-full-stack
 #
 # Frontends are intentionally NOT included here. They are built and served
 # on the host, so that Playwright runs on the host and can freely reach the

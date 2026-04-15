@@ -291,7 +291,7 @@ jobs:
         working-directory: frontend-app
 
       - name: Run full-stack E2E tests
-        run: just test-e2e-full-stack
+        run: just _test-e2e-full-stack
 
       - name: Archive Playwright report
         if: failure()

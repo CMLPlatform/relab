@@ -37,12 +37,9 @@ Use the Docker CI stack as the canonical baseline environment.
 - it uses committed test credentials from `backend/.env.test`
 - it is more repeatable than the dev stack for regression checks
 
-Use the root recipes to manage that stack:
+Use the root perf entrypoint to manage that stack:
 
 ```bash
-just docker-ci-build
-just docker-ci-backend-up
-just docker-ci-migrate-dummy
 just docker-ci-perf-baseline
 ```
 
@@ -51,12 +48,6 @@ Treat local Docker CI runs as smoke validation, not as the source of truth for t
 - local runs are useful for proving the workflow works end to end
 - local runs are often distorted by laptop CPU contention, Docker overhead, and disk pressure
 - threshold calibration should come from the GitHub Actions perf workflow, because that is the environment that will run the recurring baseline checks
-
-The backend-local recipe also works once the CI stack is already up:
-
-```bash
-just perf-ci
-```
 
 ## Usage
 
@@ -114,7 +105,7 @@ just perf-baseline
 
 ## Recommended Baseline Inputs
 
-- Use the Docker CI stack plus `just docker-ci-migrate-dummy` so the database contains stable sample products and images.
+- Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products and images before the k6 run starts.
 - Use `/products/tree?recursion_depth=2` as the default product-read baseline unless you intentionally want a deeper tree.
 - Reuse the CI superuser from `backend/.env.test` for login measurements unless you explicitly need another account.
 
@@ -132,11 +123,6 @@ Use this flow to replace the historical docker-dev baseline with a canonical CI-
 
 For local work, use the Docker CI stack only to validate the mechanics:
 
-1. Build and start the CI stack:
-   `just docker-ci-build`
-   `just docker-ci-backend-up`
-1. Seed stable sample data:
-   `just docker-ci-migrate-dummy`
 1. Run the baseline:
    `just docker-ci-perf-baseline`
 
@@ -145,11 +131,12 @@ Then use GitHub Actions as the calibration source of truth:
 1. Run the `Performance Baseline` workflow with `workflow_dispatch`.
 1. Download the `backend-perf-baseline-artifacts` artifact from that run.
 1. Replace `reports/performance/latest-k6-summary.json` locally with the artifact copy from GitHub.
-1. Write the dated CI report:
-   `just docker-ci-perf-report`
-1. If those GitHub CI numbers should become the new regression baseline, apply a modest headroom factor:
-   `just docker-ci-perf-thresholds`
+1. If those GitHub CI numbers should become the new regression baseline, use the maintainer-only perf helpers in `backend/justfile` to write a dated report and refresh thresholds.
 1. Rerun the workflow or a local Docker CI smoke run to confirm the refreshed thresholds behave as expected.
 1. Commit the new dated CI report and the updated thresholds in `perf/k6-baseline.js`.
 
 Treat that new CI report as the canonical baseline and keep older docker-dev reports only as historical context.
+
+## Maintainer Note
+
+Report writing and threshold refresh are maintenance operations, not routine commands. They stay available as hidden backend `just` recipes so the public task surface can stay small and stable.

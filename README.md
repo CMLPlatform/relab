@@ -39,10 +39,10 @@ The fastest path is the hosted platform:
 
 [app.cml-relab.org](https://app.cml-relab.org)
 
-If you want to self-host or contribute:
+If you want to go deeper:
 
-- [INSTALL.md](INSTALL.md) for running the stack
-- [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow
+- [INSTALL.md](INSTALL.md) for running or self-hosting the stack
+- [CONTRIBUTING.md](CONTRIBUTING.md) for making code or docs changes
 - [docs.cml-relab.org](https://docs.cml-relab.org) for architecture and user-facing docs
 
 ## Monorepo

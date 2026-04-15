@@ -12,6 +12,8 @@ No local setup is required.
 
 Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. If your main goal is contributing code, [CONTRIBUTING.md](CONTRIBUTING.md) is the better starting point.
 
+This page is about running the stack. For manifest conventions, tooling policy, and contributor workflow, use the engineering and contributing docs instead.
+
 ### Prerequisites
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
@@ -120,6 +122,35 @@ Production deployments are Docker Compose based. Cloudflare Tunnel remains the s
    ```bash
    just prod-logs
    just prod-down YES
+   ```
+
+## Staging Deployment
+
+Staging is a first-class operational environment and follows the same manual server-side flow as production.
+
+1. Configure the backend staging environment.
+
+   ```bash
+   cp backend/.env.staging.example backend/.env.staging
+   ```
+
+1. Start the staging stack.
+
+   ```bash
+   just staging-up YES
+   ```
+
+1. Run migrations.
+
+   ```bash
+   just staging-migrate YES
+   ```
+
+1. Manage the running stack.
+
+   ```bash
+   just staging-logs
+   just staging-down YES
    ```
 
 ## Raspberry Pi Camera Plugin
