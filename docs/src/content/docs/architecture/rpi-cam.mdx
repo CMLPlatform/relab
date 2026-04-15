@@ -159,7 +159,14 @@ sequenceDiagram
 ## Key Design Decisions
 
 - **Backend as control plane**: Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend.
+- **Two contract layers**: backend OpenAPI remains the public app-facing contract, while a smaller shared private device contract covers pairing payloads, relay envelopes, local-access bootstrap, and Pi-initiated upload acknowledgements.
 - **Optional local direct mode**: After pairing, the app can switch to LAN-direct access for lower-latency preview and capture when the device is reachable locally.
 - **Relay-first registration**: Cameras pair through a short-lived code and receive runtime relay credentials from the backend; operators do not manually copy long-lived API keys in the normal path.
 - **Media storage**: Captured images are stored in RELab's file storage and linked to the originating product or component record automatically.
 - **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorised.
+
+## Contract Ownership
+
+- **Frontend -> backend** uses only backend-owned public routes and schemas.
+- **Backend -> plugin** uses a smaller private device seam: pairing register/poll payloads, relay command/response envelopes, local-access info, and direct upload/self-unpair acknowledgements.
+- **Shared models** exist to keep that private seam typed and versioned without leaking plugin implementation details into the frontend contract.

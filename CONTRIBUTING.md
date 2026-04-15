@@ -203,6 +203,50 @@ Keep modules small, explicit, and domain-shaped:
 - Use `services/` and `utils/` only when they reflect a real boundary; delete pass-through layers when simple enough to call directly
 - Keep shared behavior in `backend/app/api/common/`
 
+### Backend Test Architecture
+
+Keep the backend suite organized by execution cost first, then by feature:
+
+- `backend/tests/unit/`: pure unit tests only, with no database session, testcontainers startup, or real app lifespan
+- `backend/tests/integration/db/`: CRUD, ORM, and persistence behavior against the real schema
+- `backend/tests/integration/api/`: HTTP endpoint behavior against the ASGI app
+- `backend/tests/integration/flows/`: a small set of cross-boundary, multi-step scenarios
+
+Use the backend test commands that match those tiers:
+
+```bash
+cd backend
+just test-unit
+just test-integration-db
+just test-api
+just test-flows
+just test-ci
+```
+
+Fixture conventions should stay explicit and descriptive:
+
+- `db_session` for database access
+- `db_user` and `db_superuser` for persisted auth principals
+- `api_client`, `api_client_user`, and `api_client_superuser` for HTTP tests
+- `redis_client` or feature-local Redis fixtures where applicable
+
+Do not add or reintroduce `session` or `superuser` as in-repo fixture aliases. Use the canonical `db_session` and `db_superuser` names directly.
+
+Do not add compatibility-only test coverage for fixture aliases, re-export modules, or pass-through wrappers unless they protect a deliberate stable external contract. Prefer testing behavior at the canonical fixture or module surface.
+
+Keep fixtures close to the tests that use them when the reuse is local. Reserve `backend/tests/conftest.py` for bootstrap concerns such as testcontainers, test database setup, and global logging behavior. Avoid broad `autouse` fixtures unless they are true cross-suite safety rails.
+
+Keep API tests focused on one behavior per test. Avoid multi-step CRUD journeys in `tests/integration/api/`; move those broader stories to `tests/integration/flows/`.
+
+Path is the primary source of truth for where a test belongs:
+
+- Choose `unit` when the test can run with mocks/stubs only.
+- Choose `integration/db` when the behavior depends on SQLAlchemy queries, migrations, or constraints.
+- Choose `integration/api` when the behavior is expressed as HTTP requests against the app.
+- Choose `flows` only when the value comes from verifying a full multi-step journey.
+
+If a test file starts growing into a mixed “god file”, split it by behavior before adding more cases.
+
 ## Frontend Setup
 
 ### `frontend-app`

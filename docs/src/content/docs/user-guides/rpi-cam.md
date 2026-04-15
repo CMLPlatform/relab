@@ -19,6 +19,10 @@ This page covers the platform side only. For device installation and plugin depl
 
 The camera connects to the platform via **WebSocket relay**. The Raspberry Pi opens an outbound WebSocket connection to the backend, which relays commands (capture, preview, stream) through the tunnel. No public IP, port forwarding, or reverse proxy is needed.
 
+From the app's perspective, the backend remains the only public API surface.
+The device/plugin uses a smaller private backend-facing contract for pairing,
+relay, and direct upload flows.
+
 ## Platform Setup
 
 ### Option A: Automatic Pairing (recommended)
