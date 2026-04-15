@@ -3,26 +3,26 @@
 name: relab_test
 
 services:
-  backend:
+  api:
     environment:
       ENVIRONMENT: testing
     env_file: ./backend/.env.test
 
-  backend-migrations:
+  migrator:
     env_file: ./backend/.env.test
 
-  database:
+  postgres:
     env_file: ./backend/.env.test
 
-  cache:
+  redis:
     env_file: ./backend/.env.test
 
-  frontend-app:
+  app-site:
     build:
       args:
         BUILD_MODE: test
 
-  frontend-web:
+  web-site:
     build:
       args:
         BUILD_MODE: test

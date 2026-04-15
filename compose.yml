@@ -1,6 +1,6 @@
 # docker-compose.yml (BASE - common configuration)
 services:
-  backend:
+  api:
     build:
       context: ./backend
       cache_from:
@@ -8,19 +8,19 @@ services:
       cache_to:
         - type=gha,mode=max
     depends_on:
-      database:
+      postgres:
         condition: service_healthy
-      cache:
+      redis:
         condition: service_healthy
     environment:
-      DATABASE_HOST: database # Point to the database service
+      DATABASE_HOST: postgres # Point to the database service
       DATABASE_PORT: 5432
-      REDIS_HOST: cache # Point to the cache service
+      REDIS_HOST: redis # Point to the cache service
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
     restart: unless-stopped
 
-  backend-migrations:
+  migrator:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
@@ -32,11 +32,11 @@ services:
       cache_to:
         - type=gha,mode=max
     depends_on:
-      database:
+      postgres:
         condition: service_healthy
     environment:
-      DATABASE_HOST: database
-      REDIS_HOST: cache
+      DATABASE_HOST: postgres
+      REDIS_HOST: redis
       DEBUG: ${DEBUG:-false}
       SEED_DUMMY_DATA: ${SEED_DUMMY_DATA:-false}
       SEED_CPV_CATEGORIES: ${SEED_CPV_CATEGORIES:-false}
@@ -49,7 +49,7 @@ services:
       - migrations
     restart: on-failure:3
 
-  cache:
+  redis:
     image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
     command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ] # spell-checker: ignore requirepass
     healthcheck:
@@ -61,7 +61,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  database:
+  postgres:
     image: postgres:18
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
@@ -74,7 +74,7 @@ services:
       - database_data:/var/lib/postgresql
     restart: unless-stopped
 
-  docs:
+  docs-site:
     build:
       context: ./docs
       cache_from:
@@ -85,7 +85,7 @@ services:
       GOMAXPROCS: "1"
     restart: unless-stopped
 
-  frontend-app:
+  app-site:
     build:
       context: ./frontend-app
       cache_from:
@@ -96,7 +96,7 @@ services:
       GOMAXPROCS: "1"
     restart: unless-stopped
 
-  frontend-web:
+  web-site:
     build:
       context: ./frontend-web
       cache_from:

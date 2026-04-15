@@ -3,7 +3,7 @@
 name: relab_dev
 
 services:
-  backend:
+  api:
     build:
       dockerfile: Dockerfile.dev
     restart: "no"
@@ -31,20 +31,20 @@ services:
         - action: rebuild
           path: ./backend/pyproject.toml
 
-  cache:
+  redis:
     ports:
       - "6379:6379"
     env_file: ./backend/.env.dev
 
-  database:
+  postgres:
     ports:
       - "5432:5432"
     env_file: ./backend/.env.dev
 
-  backend-migrations:
+  migrator:
     env_file: ./backend/.env.dev
 
-  docs:
+  docs-site:
     build:
       context: ./docs
       dockerfile: Dockerfile.dev
@@ -66,7 +66,7 @@ services:
         - action: rebuild
           path: ./docs/pyproject.toml
 
-  frontend-app:
+  app-site:
     build:
       dockerfile: Dockerfile.dev
     restart: "no"
@@ -97,7 +97,7 @@ services:
         - action: rebuild
           path: ./frontend-app/pnpm-lock.yaml
 
-  frontend-web:
+  web-site:
     build:
       dockerfile: Dockerfile.dev
     restart: "no"

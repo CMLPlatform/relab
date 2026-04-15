@@ -2,7 +2,7 @@
 name: relab_prod # Separate prod containers, networks, and volumes from dev
 
 services:
-  backend:
+  api:
     image: ${RELAB_BACKEND_IMAGE:-relab-backend:prod-local}
     environment:
       ENVIRONMENT: prod
@@ -24,19 +24,19 @@ services:
       DB_POOL_MAX_OVERFLOW: "10"
     env_file: ./backend/.env.prod
 
-  backend-migrations:
+  migrator:
     image: ${RELAB_BACKEND_IMAGE:-relab-backend:prod-local}
     env_file: ./backend/.env.prod
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
-  backend-user-upload-backups:
+  uploads-backup:
     # Automated user uploads backups to local file system
     build:
       context: ./backend
       dockerfile: Dockerfile.user-upload-backups
     restart: unless-stopped
     depends_on:
-      backend:
+      api:
         condition: service_started
     volumes:
       - user_uploads:/data/uploads:ro
@@ -52,7 +52,7 @@ services:
     profiles:
       - backups
 
-  cache:
+  redis:
     volumes:
       # Persist cache data in production
       - cache_data:/data
@@ -63,37 +63,37 @@ services:
     image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
     restart: unless-stopped
     depends_on:
-      backend:
+      api:
         condition: service_healthy
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN_PROD}
     command: tunnel --no-autoupdate run
     pull_policy: always
 
-  database:
+  postgres:
     env_file: ./backend/.env.prod
 
-  docs:
+  docs-site:
     image: ${RELAB_DOCS_IMAGE:-relab-docs:prod-local}
 
-  frontend-app:
+  app-site:
     image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:prod-local}
 
-  frontend-web:
+  web-site:
     image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:prod-local}
 
-  database-backups:
+  postgres-backup:
     # Automated database backups to local file system
     image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f # spell-checker: ignore prodrigestivill
     restart: unless-stopped
     depends_on:
-      database:
+      postgres:
         condition: service_started
     volumes:
       - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
     environment:
       SCHEDULE: 0 2 * * * # Daily at 2am
-      POSTGRES_HOST: database
+      POSTGRES_HOST: postgres
       POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
