@@ -16,6 +16,7 @@ from app.api.common.routers.health import (
     perform_health_checks,
     unhealthy_check,
 )
+from app.core.runtime import AppServices
 
 
 @pytest.mark.unit
@@ -24,13 +25,14 @@ class TestHealthCheckHelpers:
 
     def test_healthy_check_returns_correct_payload(self) -> None:
         """Test that healthy_check returns the expected dict."""
-        result = healthy_check()
-        assert result == {"status": HEALTHY_STATUS}
+        result = healthy_check("database")
+        assert result == {"component": "database", "status": HEALTHY_STATUS}
 
     def test_unhealthy_check_returns_correct_payload(self) -> None:
         """Test that unhealthy_check includes status and error."""
-        result = unhealthy_check("db connection refused")
+        result = unhealthy_check("database", "db connection refused")
         assert result["status"] == UNHEALTHY_STATUS
+        assert result["component"] == "database"
         assert result["error"] == "db connection refused"
 
 
@@ -54,6 +56,7 @@ class TestCheckDatabase:
             result = await check_database()
 
         assert result["status"] == HEALTHY_STATUS
+        assert result["component"] == "database"
 
     async def test_database_unexpected_result(self) -> None:
         """Test unhealthy result when SELECT 1 returns wrong value."""
@@ -71,6 +74,7 @@ class TestCheckDatabase:
             result = await check_database()
 
         assert result["status"] == UNHEALTHY_STATUS
+        assert result["component"] == "database"
         assert "unexpected" in result["error"].lower()
 
     async def test_database_connection_error(self) -> None:
@@ -84,6 +88,7 @@ class TestCheckDatabase:
             result = await check_database()
 
         assert result["status"] == UNHEALTHY_STATUS
+        assert result["component"] == "database"
         assert result["error"] == "Database connection failed"
 
 
@@ -95,45 +100,49 @@ class TestCheckRedis:
         """Test healthy result when Redis ping succeeds."""
         mock_redis = AsyncMock()
         request = MagicMock()
-        request.app.state.redis = mock_redis
+        request.app.state.services = AppServices(redis=mock_redis)
 
         with patch("app.api.common.routers.health.ping_redis", return_value=True):
             result = await check_redis(request)
 
         assert result["status"] == HEALTHY_STATUS
+        assert result["component"] == "redis"
 
     async def test_redis_ping_returns_false(self) -> None:
         """Test unhealthy result when ping returns False."""
         mock_redis = AsyncMock()
         request = MagicMock()
-        request.app.state.redis = mock_redis
+        request.app.state.services = AppServices(redis=mock_redis)
 
         with patch("app.api.common.routers.health.ping_redis", return_value=False):
             result = await check_redis(request)
 
         assert result["status"] == UNHEALTHY_STATUS
+        assert result["component"] == "redis"
         assert "False" in result["error"]
 
     async def test_redis_not_initialized(self) -> None:
         """Test unhealthy result when Redis client is not set."""
         request = MagicMock()
-        del request.app.state.redis  # Remove redis attribute
+        request.app.state.services = AppServices()
 
         result = await check_redis(request)
 
         assert result["status"] == UNHEALTHY_STATUS
+        assert result["component"] == "redis"
         assert "not initialized" in result["error"]
 
     async def test_redis_connection_error(self) -> None:
         """Test unhealthy result when Redis raises an exception."""
         mock_redis = AsyncMock()
         request = MagicMock()
-        request.app.state.redis = mock_redis
+        request.app.state.services = AppServices(redis=mock_redis)
 
         with patch("app.api.common.routers.health.ping_redis", side_effect=OSError("connection refused")):
             result = await check_redis(request)
 
         assert result["status"] == UNHEALTHY_STATUS
+        assert result["component"] == "redis"
         assert result["error"] == "Redis connection failed"
 
 

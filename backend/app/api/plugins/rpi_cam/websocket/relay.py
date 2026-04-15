@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
+from opentelemetry.propagate import inject
 from pydantic import UUID4
+from relab_rpi_cam_models import SAFE_RELAY_TRACE_HEADERS
 
 from app.api.plugins.rpi_cam.websocket.connection_manager import (
     BINARY_COMMAND_TIMEOUT,
@@ -23,6 +26,114 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 _RELAY_RETRY_AFTER_SECONDS = "2"
+
+# ── Cross-worker relay circuit breaker ────────────────────────────────────────
+# When a camera's WebSocket is not local AND the cross-worker bridge keeps
+# failing (camera genuinely offline, not just in another worker), we open a
+# per-camera circuit so subsequent requests fast-fail in <1 ms instead of
+# paying the full 30 s / 60 s BLPOP timeout. Resets on first success.
+#
+# State is per-worker (in-process) — each worker learns independently that a
+# camera is unreachable. That's fine: the circuit breaker's job is just to
+# absorb the stampede of incoming HTTP requests that pile up while a camera
+# is down; persistence across workers is not required.
+_CROSS_WORKER_CB_FAILURE_THRESHOLD = 3
+_CROSS_WORKER_CB_COOL_DOWN_S = 30.0
+# Map[camera_id] → (consecutive_failures, open_until_monotonic). Reads are
+# atomic; the rare read-then-update race at the threshold just causes one
+# extra failed attempt, which is harmless.
+_cross_worker_cb_state: dict[UUID4, tuple[int, float]] = {}
+
+
+def _cb_is_open(camera_id: UUID4, *, now: float | None = None) -> bool:
+    """Return True if the cross-worker circuit for ``camera_id`` is currently open."""
+    entry = _cross_worker_cb_state.get(camera_id)
+    if entry is None:
+        return False
+    _failures, open_until = entry
+    return (now if now is not None else time.monotonic()) < open_until
+
+
+def _cb_record_success(camera_id: UUID4) -> None:
+    """Reset circuit state on a successful cross-worker call."""
+    _cross_worker_cb_state.pop(camera_id, None)
+
+
+def _cb_record_failure(camera_id: UUID4) -> None:
+    """Record a failed cross-worker call; open the circuit at the threshold."""
+    failures, _ = _cross_worker_cb_state.get(camera_id, (0, 0.0))
+    failures += 1
+    open_until = (
+        time.monotonic() + _CROSS_WORKER_CB_COOL_DOWN_S
+        if failures >= _CROSS_WORKER_CB_FAILURE_THRESHOLD
+        else 0.0
+    )
+    _cross_worker_cb_state[camera_id] = (failures, open_until)
+    if open_until:
+        logger.warning(
+            "Cross-worker relay circuit opened for camera %s after %d failures; "
+            "fast-failing subsequent requests for %.0fs",
+            camera_id,
+            failures,
+            _CROSS_WORKER_CB_COOL_DOWN_S,
+        )
+
+
+def _reset_cross_worker_cb_for_tests() -> None:
+    """Test hook: clear all per-camera circuit breaker state."""
+    _cross_worker_cb_state.clear()
+
+
+def _camera_not_connected() -> HTTPException:
+    """Return the canonical 503 for an unreachable camera."""
+    return HTTPException(
+        status_code=503,
+        detail="Camera is not connected via WebSocket.",
+        headers={"Retry-After": _RELAY_RETRY_AFTER_SECONDS},
+    )
+
+
+async def _attempt_cross_worker_relay(
+    redis: Redis,
+    camera_id: UUID4,
+    method: str,
+    path: str,
+    params: dict | None,
+    body: dict | None,
+    headers: dict[str, str] | None,
+    *,
+    timeout_s: float,
+) -> tuple[dict, bytes | None]:
+    """Dispatch a relay command across worker processes, gated by the circuit breaker.
+
+    Raises ``HTTPException(503)`` immediately when the circuit is open to spare
+    callers the full BLPOP timeout. Success resets the circuit; failure advances it
+    toward the open state.
+    """
+    if _cb_is_open(camera_id):
+        logger.debug("Cross-worker relay circuit open for camera %s; fast-failing", camera_id)
+        raise _camera_not_connected()
+
+    logger.debug("Camera %s not in local manager; attempting cross-worker relay.", camera_id)
+    try:
+        async with asyncio.timeout(timeout_s):
+            result = await relay_cross_worker(
+                redis,
+                camera_id,
+                method,
+                path,
+                params,
+                body,
+                headers,
+                timeout_s=timeout_s,
+            )
+    except (RuntimeError, TimeoutError) as cross_exc:
+        logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)
+        _cb_record_failure(camera_id)
+        raise
+
+    _cb_record_success(camera_id)
+    return result
 
 # Exact (method, path) pairs permitted through the relay. Anything outside this
 # set and _ALLOWED_PATH_PREFIXES is rejected with 403.
@@ -65,6 +176,13 @@ def _relay_command_allowed(method: str, path: str) -> bool:
     return any(method == m and path.startswith(p) for m, p in _ALLOWED_PATH_PREFIXES)
 
 
+def _build_relay_trace_headers() -> dict[str, str]:
+    """Inject the current trace context into relay-safe headers."""
+    carrier: dict[str, str] = {}
+    inject(carrier)
+    return {name: carrier[name] for name in SAFE_RELAY_TRACE_HEADERS if name in carrier}
+
+
 async def relay_via_websocket(
     camera_id: UUID4,
     method: str,
@@ -91,39 +209,38 @@ async def relay_via_websocket(
 
     manager = get_connection_manager()
     timeout = BINARY_COMMAND_TIMEOUT if expect_binary else DEFAULT_COMMAND_TIMEOUT
+    relay_headers = _build_relay_trace_headers()
 
     try:
         async with asyncio.timeout(timeout):
-            json_resp, binary = await manager.send_command(camera_id, normalized_method, path, params=params, body=body)
+            json_resp, binary = await manager.send_command(
+                camera_id,
+                normalized_method,
+                path,
+                params=params,
+                body=body,
+                headers=relay_headers or None,
+            )
     except RuntimeError as exc:
         # Camera not connected in this worker — try the cross-worker bridge.
-        if redis is not None:
-            logger.debug("Camera %s not in local manager; attempting cross-worker relay.", camera_id)
-            try:
-                async with asyncio.timeout(timeout):
-                    json_resp, binary = await relay_cross_worker(
-                        redis,
-                        camera_id,
-                        normalized_method,
-                        path,
-                        params,
-                        body,
-                        timeout_s=timeout,
-                    )
-            except (RuntimeError, TimeoutError) as cross_exc:
-                logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)
-                raise HTTPException(
-                    status_code=503,
-                    detail="Camera is not connected via WebSocket.",
-                    headers={"Retry-After": _RELAY_RETRY_AFTER_SECONDS},
-                ) from cross_exc
-        else:
+        if redis is None:
             logger.warning("Camera %s not connected for relay: %s", camera_id, exc)
-            raise HTTPException(
-                status_code=503,
-                detail="Camera is not connected via WebSocket.",
-                headers={"Retry-After": _RELAY_RETRY_AFTER_SECONDS},
-            ) from exc
+            raise _camera_not_connected() from exc
+        try:
+            json_resp, binary = await _attempt_cross_worker_relay(
+                redis,
+                camera_id,
+                normalized_method,
+                path,
+                params,
+                body,
+                relay_headers or None,
+                timeout_s=timeout,
+            )
+        except HTTPException:
+            raise
+        except (RuntimeError, TimeoutError) as cross_exc:
+            raise _camera_not_connected() from cross_exc
     except TimeoutError as exc:
         raise HTTPException(
             status_code=503,

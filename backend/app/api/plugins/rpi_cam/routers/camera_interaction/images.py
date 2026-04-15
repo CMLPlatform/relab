@@ -5,14 +5,15 @@ import logging
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Body, File, Form, HTTPException, UploadFile
-from pydantic import UUID4, BaseModel, Field, PositiveInt
+from pydantic import UUID4, PositiveInt
+from relab_rpi_cam_models import DeviceImageUploadAck
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud import create_image
+from app.api.file_storage.crud.media_queries import create_image
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal, ImageRead
 from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
@@ -77,18 +78,6 @@ async def capture_image(
 
 
 ### Device-pushed uploads ###
-
-
-class DeviceImageUploadAck(BaseModel):
-    """Small ack schema returned to the Pi after a successful image push.
-
-    Pi-side code in ``backend_client.upload_image`` expects exactly these two
-    fields; we avoid reusing the larger ``ImageRead`` schema here to keep the
-    device-facing contract narrow and stable.
-    """
-
-    image_id: str = Field(description="Stored image ID in hex32 (UUID without dashes)")
-    image_url: str = Field(description="Backend-hosted URL for the stored image")
 
 
 @router.post(

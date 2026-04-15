@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from jwt import InvalidTokenError
 from pydantic import UUID4
+from relab_rpi_cam_models import RelayResponseEnvelope
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
@@ -23,6 +24,7 @@ from app.api.plugins.rpi_cam.websocket.protocol import MSG_PING, MSG_PONG, MSG_R
 from app.core.database import get_async_session
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
+from app.core.runtime import get_connection_redis, require_connection_camera_manager, require_connection_redis
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -53,10 +55,10 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
 
     await websocket.accept()
 
-    manager: CameraConnectionManager = websocket.app.state.camera_connection_manager
+    manager: CameraConnectionManager = require_connection_camera_manager(websocket)
     await manager.register(camera_id, websocket)
 
-    redis = getattr(websocket.app.state, "redis", None)
+    redis = get_connection_redis(websocket)
 
     last_pong_at: list[float] = [asyncio.get_running_loop().time()]
     heartbeat = asyncio.create_task(
@@ -115,9 +117,10 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
         return False
 
-    redis = getattr(websocket.app.state, "redis", None)
-    if redis is None:
-        logger.error("Redis is required for RPi camera relay assertion replay protection.")
+    try:
+        redis = require_connection_redis(websocket)
+    except RuntimeError as exc:
+        logger.warning("Redis is required for RPi camera relay assertion replay protection: %s", exc)
         await websocket.close(code=status.WS_1011_INTERNAL_ERROR, reason="Authentication service unavailable.")
         return False
 
@@ -250,14 +253,15 @@ def _handle_response(
     pending_json: dict | None,
 ) -> tuple[str | None, dict | None]:
     """Resolve or defer a response frame depending on whether binary data follows."""
-    msg_id = msg.get("id")
+    envelope = RelayResponseEnvelope.model_validate(msg)
+    msg_id = envelope.id
     if not msg_id:
         return pending_id, pending_json
 
-    if msg.get("has_binary", False):
-        return msg_id, msg
+    if envelope.has_binary:
+        return msg_id, envelope.model_dump(mode="json")
 
-    manager.resolve_json(msg_id, msg, None)
+    manager.resolve_json(msg_id, envelope.model_dump(mode="json"), None)
     return None, None
 
 

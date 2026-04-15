@@ -19,6 +19,7 @@ from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserRea
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT, limiter
 from app.api.common.exceptions import APIError
 from app.core.logging import sanitize_log_value
+from app.core.runtime import get_request_email_checker
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +46,7 @@ async def register(
     - No organization: User registers without an organization
     """
     try:
-        # Get email checker from app state if available
-        email_checker = (
-            request.app.state.email_checker if (request.app and hasattr(request.app.state, "email_checker")) else None
-        )
+        email_checker = get_request_email_checker(request)
 
         # Validate user creation data (username uniqueness, disposable email, organization)
         user_create = await validate_user_create(user_manager.user_db, user_create, email_checker)

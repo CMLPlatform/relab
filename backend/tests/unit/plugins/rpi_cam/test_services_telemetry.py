@@ -60,7 +60,7 @@ class TestStoreTelemetry:
         redis = AsyncMock()
         set_mock = AsyncMock(return_value=True)
         monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.services.set_redis_value",
+            "app.api.plugins.rpi_cam.service_runtime.set_redis_value",
             set_mock,
         )
 
@@ -90,7 +90,7 @@ class TestGetCachedTelemetry:
         """Ensure cache hits are parsed correctly."""
         snapshot = _snapshot()
         monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.services.get_redis_value",
+            "app.api.plugins.rpi_cam.service_runtime.get_redis_value",
             AsyncMock(return_value=snapshot.model_dump_json()),
         )
 
@@ -100,7 +100,7 @@ class TestGetCachedTelemetry:
     async def test_cache_miss_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Ensure cache misses are handled gracefully."""
         monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.services.get_redis_value",
+            "app.api.plugins.rpi_cam.service_runtime.get_redis_value",
             AsyncMock(return_value=None),
         )
         result = await get_cached_telemetry(AsyncMock(), uuid4())
@@ -113,7 +113,7 @@ class TestGetCachedTelemetry:
     ) -> None:
         """Ensure malformed payloads are handled gracefully."""
         monkeypatch.setattr(
-            "app.api.plugins.rpi_cam.services.get_redis_value",
+            "app.api.plugins.rpi_cam.service_runtime.get_redis_value",
             AsyncMock(return_value='{"not": "a snapshot"}'),
         )
 

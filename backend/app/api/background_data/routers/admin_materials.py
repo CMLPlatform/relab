@@ -10,7 +10,34 @@ from fastapi import File as FastAPIFile
 from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
-from app.api.background_data import crud
+from app.api.background_data.crud.materials import (
+    add_categories_to_material as add_material_categories,
+)
+from app.api.background_data.crud.materials import (
+    add_category_to_material as add_material_category,
+)
+from app.api.background_data.crud.materials import (
+    create_material as create_material_record,
+)
+from app.api.background_data.crud.materials import (
+    create_material_file,
+    create_material_image,
+)
+from app.api.background_data.crud.materials import (
+    delete_material as delete_material_record,
+)
+from app.api.background_data.crud.materials import (
+    delete_material_file as delete_material_file_record,
+)
+from app.api.background_data.crud.materials import (
+    delete_material_image as delete_material_image_record,
+)
+from app.api.background_data.crud.materials import (
+    remove_categories_from_material as remove_material_categories,
+)
+from app.api.background_data.crud.materials import (
+    update_material as update_material_record,
+)
 from app.api.background_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category, Material
 from app.api.background_data.schemas import CategoryRead, MaterialCreateWithCategories, MaterialRead, MaterialUpdate
@@ -42,7 +69,7 @@ async def create_material(
     payload: MaterialCreateWithCategories,
 ) -> Material:
     """Create a material."""
-    return await crud.create_material(session, payload)
+    return await create_material_record(session, payload)
 
 
 @router.patch(
@@ -56,7 +83,7 @@ async def update_material(
     payload: MaterialUpdate,
 ) -> Material:
     """Update a material."""
-    return await crud.update_material(session, material_id, payload)
+    return await update_material_record(session, material_id, payload)
 
 
 @router.delete(
@@ -69,7 +96,7 @@ async def delete_material(
     session: AsyncSessionDep,
 ) -> None:
     """Delete a material."""
-    await crud.delete_material(session, material_id)
+    await delete_material_record(session, material_id)
 
 
 @router.post(
@@ -90,7 +117,7 @@ async def add_categories_to_material(
     ],
 ) -> Sequence[Category]:
     """Add multiple categories to a material."""
-    return await crud.add_categories_to_material(session, material_id, set(category_ids))
+    return await add_material_categories(session, material_id, set(category_ids))
 
 
 @router.post(
@@ -105,7 +132,7 @@ async def add_category_to_material(
     session: AsyncSessionDep,
 ) -> Category:
     """Add a single category to a material."""
-    return await crud.add_category_to_material(session, material_id, category_id)
+    return await add_material_category(session, material_id, category_id)
 
 
 @router.delete(
@@ -125,7 +152,7 @@ async def remove_categories_from_material(
     ],
 ) -> None:
     """Remove multiple categories from a material."""
-    await crud.remove_categories_from_material(session, material_id, set(category_ids))
+    await remove_material_categories(session, material_id, set(category_ids))
 
 
 @router.delete(
@@ -139,7 +166,7 @@ async def remove_category_from_material(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a single category from a material."""
-    await crud.remove_categories_from_material(session, material_id, category_id)
+    await remove_material_categories(session, material_id, category_id)
 
 
 @router.post(
@@ -156,7 +183,7 @@ async def upload_material_file(
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for the material."""
-    item = await crud.material_files_crud.create(
+    item = await create_material_file(
         session,
         material_id,
         FileCreate(file=file, description=description, parent_id=material_id, parent_type=MediaParentType.MATERIAL),
@@ -176,7 +203,7 @@ async def delete_material_file(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a file from the material."""
-    await crud.material_files_crud.delete(session, material_id, file_id)
+    await delete_material_file_record(session, material_id, file_id)
 
 
 @router.post(
@@ -201,7 +228,7 @@ async def upload_material_image(
     ] = None,
 ) -> ImageReadWithinParent:
     """Upload a new image for the material."""
-    item = await crud.material_images_crud.create(
+    item = await create_material_image(
         session,
         material_id,
         ImageCreateFromForm.model_validate(
@@ -229,4 +256,4 @@ async def delete_material_image(
     session: AsyncSessionDep,
 ) -> None:
     """Remove an image from the material."""
-    await crud.material_images_crud.delete(session, material_id, image_id)
+    await delete_material_image_record(session, material_id, image_id)

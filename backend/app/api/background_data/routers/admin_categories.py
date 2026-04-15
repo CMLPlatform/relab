@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from pydantic import PositiveInt
+from sqlalchemy import select
 
-from app.api.background_data import crud
+from app.api.background_data.crud.categories import create_category as create_category_record
+from app.api.background_data.crud.categories import delete_category as delete_category_record
+from app.api.background_data.crud.categories import update_category as update_category_record
 from app.api.background_data.models import Category
 from app.api.background_data.schemas import (
     CategoryCreateWithinCategoryWithSubCategories,
@@ -13,7 +16,8 @@ from app.api.background_data.schemas import (
     CategoryRead,
     CategoryUpdate,
 )
-from app.api.common.crud.scopes import require_scoped_model
+from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = APIRouter(prefix="/categories", tags=["categories"])
@@ -25,7 +29,7 @@ async def create_category(
     session: AsyncSessionDep,
 ) -> Category:
     """Create a new category, optionally with subcategories."""
-    return await crud.create_category(session, category)
+    return await create_category_record(session, category)
 
 
 @router.patch("/{category_id}", response_model=CategoryRead, summary="Update category")
@@ -35,13 +39,13 @@ async def update_category(
     session: AsyncSessionDep,
 ) -> Category:
     """Update an existing category."""
-    return await crud.update_category(session, category_id, category)
+    return await update_category_record(session, category_id, category)
 
 
 @router.delete("/{category_id}", summary="Delete category", status_code=204)
 async def delete_category(category_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a category by ID, including its subcategories."""
-    await crud.delete_category(session, category_id)
+    await delete_category_record(session, category_id)
 
 
 @router.post("/{category_id}/subcategories", response_model=CategoryRead, status_code=201)
@@ -51,11 +55,18 @@ async def create_subcategory(
     session: AsyncSessionDep,
 ) -> Category:
     """Create a new subcategory under an existing category."""
-    return await crud.create_category(db=session, category=category, supercategory_id=category_id)
+    return await create_category_record(db=session, category=category, supercategory_id=category_id)
 
 
 @router.delete("/{category_id}/subcategories/{subcategory_id}", summary="Delete category", status_code=204)
 async def delete_subcategory(category_id: PositiveInt, subcategory_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a subcategory by ID, including its subcategories."""
-    await require_scoped_model(session, Category, category_id, Category, subcategory_id, "supercategory_id")
-    await crud.delete_category(session, subcategory_id)
+    subcategory = await require_model(session, Category, subcategory_id)
+    if subcategory.supercategory_id != category_id:
+        raise DependentModelOwnershipError(Category, subcategory_id, Category, category_id)
+    exists = await session.scalar(
+        select(Category.id).where(Category.id == subcategory_id, Category.supercategory_id == category_id)
+    )
+    if exists is None:
+        raise DependentModelOwnershipError(Category, subcategory_id, Category, category_id)
+    await delete_category_record(session, subcategory_id)

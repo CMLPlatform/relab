@@ -35,13 +35,32 @@ GIF_BYTES = (
 )
 
 
+def _upload_request(kind: str) -> tuple[str, dict[str, tuple[str, bytes, str]], dict[str, str], str, str]:
+    """Return the endpoint and multipart payload for a file/image upload."""
+    if kind == "file":
+        return (
+            "files",
+            {"file": (FILE_NAME, FILE_CONTENT, FILE_MIMETYPE)},
+            {"description": FILE_DESC},
+            FILE_NAME,
+            "file_url",
+        )
+    return (
+        "images",
+        {"file": (IMAGE_NAME, GIF_BYTES, IMAGE_MIMETYPE)},
+        {"description": IMAGE_DESC, "image_metadata": json.dumps(IMAGE_METADATA)},
+        IMAGE_NAME,
+        "image_url",
+    )
+
+
 @pytest.fixture
-async def setup_product_for_files(session: AsyncSession, superuser: User) -> Product:
+async def setup_product_for_files(db_session: AsyncSession, db_superuser: User) -> Product:
     """Fixture to set up a product for file storage testing."""
-    pt = await ProductTypeFactory.create_async(session=session)
+    pt = await ProductTypeFactory.create_async(session=db_session)
     return await ProductFactory.create_async(
-        session=session,
-        owner_id=superuser.id,
+        session=db_session,
+        owner_id=db_superuser.id,
         product_type_id=pt.id,
         name=PRODUCT_FILES_NAME,
     )
@@ -50,76 +69,55 @@ async def setup_product_for_files(session: AsyncSession, superuser: User) -> Pro
 class TestFileStorageEndpoints:
     """Tests for file storage API endpoints."""
 
-    async def test_upload_file(self, superuser_client: AsyncClient, setup_product_for_files: Product) -> None:
-        """Test uploading a file to a product."""
-        files = {"file": (FILE_NAME, FILE_CONTENT, FILE_MIMETYPE)}
-        data = {"description": FILE_DESC}
-
-        response = await superuser_client.post(
-            f"/products/{setup_product_for_files.id}/files",
+    @pytest.mark.parametrize(
+        ("kind", "description"),
+        [("file", FILE_DESC), ("images", IMAGE_DESC)],
+    )
+    async def test_upload_media_returns_the_stored_contract(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_for_files: Product,
+        kind: str,
+        description: str,
+    ) -> None:
+        """Uploading media should return the stored file/image contract."""
+        request_kind = "file" if kind == "file" else "image"
+        endpoint, files, data, filename, url_field = _upload_request(request_kind)
+        response = await api_client_superuser.post(
+            f"/products/{setup_product_for_files.id}/{endpoint}",
             files=files,
             data=data,
         )
 
         assert response.status_code == status.HTTP_201_CREATED, response.text
         resp_data = response.json()
-        assert resp_data["filename"].endswith(FILE_NAME)
-        assert resp_data["description"] == FILE_DESC
-        assert "file_url" in resp_data
+        assert resp_data["filename"].endswith(filename)
+        assert resp_data["description"] == description
+        assert url_field in resp_data
         assert "id" in resp_data
 
-        # Test GET all files
-        response_all = await superuser_client.get(f"/products/{setup_product_for_files.id}/files")
-        assert response_all.status_code == status.HTTP_200_OK
-        assert len(response_all.json()) >= 1
-
-        # Test GET file by ID
-        file_id = resp_data["id"]
-        response_one = await superuser_client.get(f"/products/{setup_product_for_files.id}/files/{file_id}")
-        assert response_one.status_code == status.HTTP_200_OK
-        assert response_one.json()["id"] == file_id
-
-        # Test DELETE file
-        response_del = await superuser_client.delete(f"/products/{setup_product_for_files.id}/files/{file_id}")
-        assert response_del.status_code == status.HTTP_204_NO_CONTENT
-
-        # Verify it's deleted
-        response_get_deleted = await superuser_client.get(f"/products/{setup_product_for_files.id}/files/{file_id}")
-        assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_upload_image(self, superuser_client: AsyncClient, setup_product_for_files: Product) -> None:
-        """Test uploading an image to a product."""
-        files = {"file": (IMAGE_NAME, GIF_BYTES, IMAGE_MIMETYPE)}
-        data = {"description": IMAGE_DESC, "image_metadata": json.dumps(IMAGE_METADATA)}
-
-        response = await superuser_client.post(
-            f"/products/{setup_product_for_files.id}/images",
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_delete_uploaded_media_removes_the_resource(
+        self, api_client_superuser: AsyncClient, setup_product_for_files: Product, kind: str, endpoint: str
+    ) -> None:
+        """Deleting uploaded media should make follow-up reads return 404."""
+        _, files, data, _, _ = _upload_request(kind)
+        create_response = await api_client_superuser.post(
+            f"/products/{setup_product_for_files.id}/{endpoint}",
             files=files,
             data=data,
         )
+        media_id = create_response.json()["id"]
 
-        assert response.status_code == status.HTTP_201_CREATED, response.text
-        resp_data = response.json()
-        assert resp_data["filename"].endswith(IMAGE_NAME)
-        assert resp_data["description"] == IMAGE_DESC
-        assert "image_url" in resp_data
-        assert "id" in resp_data
+        response_del = await api_client_superuser.delete(
+            f"/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
+        )
+        response_get_deleted = await api_client_superuser.get(
+            f"/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
+        )
 
-        # Test GET all images
-        response_all = await superuser_client.get(f"/products/{setup_product_for_files.id}/images")
-        assert response_all.status_code == status.HTTP_200_OK
-        assert len(response_all.json()) >= 1
-
-        # Test GET image by ID
-        image_id = resp_data["id"]
-        response_one = await superuser_client.get(f"/products/{setup_product_for_files.id}/images/{image_id}")
-        assert response_one.status_code == status.HTTP_200_OK
-        assert response_one.json()["id"] == image_id
-
-        # Test DELETE image
-        response_del = await superuser_client.delete(f"/products/{setup_product_for_files.id}/images/{image_id}")
         assert response_del.status_code == status.HTTP_204_NO_CONTENT
-
-        # Verify it's deleted
-        response_get_deleted = await superuser_client.get(f"/products/{setup_product_for_files.id}/images/{image_id}")
         assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND

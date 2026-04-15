@@ -11,6 +11,7 @@ from app.api.auth.models import User
 from app.api.auth.services import refresh_token_service
 from app.core.config import settings as core_settings
 from app.core.logging import sanitize_log_value
+from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
     from starlette.requests import Request
@@ -29,10 +30,12 @@ async def update_last_login_metadata(user: User, request: Request | None, sessio
 
 async def maybe_set_refresh_token_cookie(user: User, request: Request | None, response: Response | None) -> None:
     """Create and attach a refresh token cookie when Redis is available."""
-    if not request or not request.app.state.redis:
+    if not request:
         return
 
-    redis = request.app.state.redis
+    redis = get_request_services(request).redis
+    if redis is None:
+        return
     refresh_token = await refresh_token_service.create_refresh_token(redis, user.id)
 
     if response is not None:

@@ -5,17 +5,19 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Any  # noqa: TC003 - SQLAlchemy Mapped needs Any at runtime
+from typing import TYPE_CHECKING, Any
 
 from pydantic import UUID4, BaseModel
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.api.auth.models import User
 from app.api.common.models.base import Base, TimeStampMixinBare
+
+if TYPE_CHECKING:
+    from app.api.auth.models import User
 
 
 class CameraCredentialStatus(StrEnum):
@@ -99,3 +101,22 @@ class Camera(TimeStampMixinBare, Base):
 
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"
+
+
+class RecordingSession(TimeStampMixinBare, Base):
+    """Durable backstop for an in-progress YouTube recording."""
+
+    __tablename__ = "recording_session"
+
+    camera_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("camera.id", ondelete="CASCADE"), primary_key=True)
+    product_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    stream_url: Mapped[str] = mapped_column(String, nullable=False)
+    broadcast_key: Mapped[str] = mapped_column(String, nullable=False)
+    video_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
+
+    camera: Mapped[Camera] = relationship(
+        primaryjoin="RecordingSession.camera_id == Camera.id",
+        foreign_keys="[RecordingSession.camera_id]",
+    )

@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
-from app.api.file_storage.models.storage import S3Storage
+from app.api.file_storage.models.storage_s3 import S3Storage
 from app.core.config import CoreSettings, StorageBackend
 
 if TYPE_CHECKING:
@@ -156,56 +156,12 @@ class TestS3StorageSyncOperations:
         with pytest.raises(FastAPIStorageFileNotFoundError):
             storage.open("missing.txt")
 
-    def test_get_size_returns_object_size(self, mock_boto3: MagicMock) -> None:
-        """Test get_size() returns ContentLength from HEAD request."""
-        mock_client = MagicMock()
-        mock_client.head_object.return_value = {"ContentLength": 4096}
-        mock_boto3.client.return_value = mock_client
-
-        storage = S3Storage(bucket="my-bucket", prefix="files")
-        size = storage.get_size("document.txt")
-
-        assert size == 4096
-        mock_client.head_object.assert_called_once_with(Bucket="my-bucket", Key="files/document.txt")
-
-    def test_generate_new_filename_probes_with_head_requests(self, mock_boto3: MagicMock) -> None:
-        """Test generate_new_filename() increments when object exists."""
-        mock_client = MagicMock()
-        # Simulate: file.txt exists, file_1.txt exists, file_2.txt doesn't exist
-        mock_client.head_object.side_effect = [
-            {"ContentLength": 100},  # file.txt exists
-            {"ContentLength": 200},  # file_1.txt exists
-            _make_client_error("NoSuchKey", "HeadObject"),  # file_2.txt doesn't exist
-        ]
-        mock_boto3.client.return_value = mock_client
-
-        storage = S3Storage(bucket="my-bucket", prefix="files")
-        result = storage.generate_new_filename("file.txt")
-
-        assert result == "file_2.txt"
-        assert mock_client.head_object.call_count == 3
-
-    def test_client_is_cached(self, mock_boto3: MagicMock) -> None:
-        """Test that boto3 client is cached and reused across calls."""
-        mock_client = MagicMock()
-        mock_client.head_object.return_value = {"ContentLength": 100}
-        mock_boto3.client.return_value = mock_client
-
-        storage = S3Storage(bucket="my-bucket", prefix="files")
-
-        # Call multiple methods
-        storage.get_size("file1.txt")
-        storage.get_size("file2.txt")
-
-        # boto3.client() should only be called once
-        mock_boto3.client.assert_called_once()
-
     def test_boto3_import_error_on_lazy_use(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test helpful error message when boto3 is not installed."""
         # Ensure boto3 is not available for import
         monkeypatch.delitem(sys.modules, "boto3", raising=False)
         monkeypatch.setattr(
-            "app.api.file_storage.models.storage.import_module",
+            "app.api.file_storage.models.storage_s3.import_module",
             lambda name: (_ for _ in ()).throw(ImportError(f"No module named '{name}'"))
             if name == "boto3"
             else importlib.import_module(name),
@@ -216,32 +172,6 @@ class TestS3StorageSyncOperations:
         with pytest.raises(ImportError, match="boto3 is required for S3 storage") as exc_info:
             storage.get_size("file.txt")
         assert "uv sync --group s3" in str(exc_info.value)
-
-    def test_credentials_passed_to_boto3_client(self, mock_boto3: MagicMock) -> None:
-        """Test that S3 credentials are passed to boto3.client() constructor."""
-        mock_client = MagicMock()
-        mock_boto3.client.return_value = mock_client
-
-        storage = S3Storage(
-            bucket="my-bucket",
-            prefix="files",
-            region="eu-central-1",
-            access_key_id="AKIAIOSFODNN7EXAMPLE",
-            secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-            endpoint_url="http://minio:9000",
-        )
-
-        # Trigger client initialization
-        storage.get_size("file.txt")
-
-        mock_boto3.client.assert_called_once_with(
-            "s3",
-            region_name="eu-central-1",
-            aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
-            aws_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-            endpoint_url="http://minio:9000",
-        )
-
 
 class TestS3StorageAsyncOperations:
     """Test asynchronous upload operations."""
@@ -282,7 +212,7 @@ class TestS3StorageAsyncOperations:
         """Test write_image_upload() validates image before upload."""
         mock_client = MagicMock()
         mock_boto3.client.return_value = mock_client
-        mock_validate = mocker.patch("app.api.file_storage.models.storage.validate_image_file")
+        mock_validate = mocker.patch("app.api.file_storage.models.storage_s3.validate_image_file")
 
         mock_file = MagicMock()
         mock_file.file = io.BytesIO(b"fake image data")

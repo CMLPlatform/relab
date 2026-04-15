@@ -5,27 +5,34 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
+from relab_rpi_cam_models import RelayCommandEnvelope, RelayMessageType
+
 # Message type sent backend → RPi
-MSG_REQUEST = "request"
+MSG_REQUEST = RelayMessageType.REQUEST
 # Message type sent RPi → backend
-MSG_RESPONSE = "response"
+MSG_RESPONSE = RelayMessageType.RESPONSE
 # Heartbeat messages (bidirectional)
-MSG_PING = "ping"
-MSG_PONG = "pong"
+MSG_PING = RelayMessageType.PING
+MSG_PONG = RelayMessageType.PONG
 
 
-def build_command(msg_id: str, method: str, path: str, params: dict | None = None, body: dict | None = None) -> str:
+def build_command(
+    msg_id: str,
+    method: str,
+    path: str,
+    params: dict | None = None,
+    body: dict | None = None,
+    headers: dict[str, str] | None = None,
+) -> str:
     """Serialise a command message to send to the RPi."""
-    return json.dumps(
-        {
-            "id": msg_id,
-            "type": MSG_REQUEST,
-            "method": method,
-            "path": path,
-            "params": params or {},
-            "body": body,
-        }
-    )
+    return RelayCommandEnvelope(
+        id=msg_id,
+        method=method,
+        path=path,
+        params=params or {},
+        body=body,
+        headers=headers or {},
+    ).model_dump_json()
 
 
 @dataclass

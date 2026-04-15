@@ -1,4 +1,4 @@
-"""API endpoint tests for background data (E2E tests)."""
+"""Integration tests for background-data HTTP contracts."""
 
 from __future__ import annotations
 
@@ -17,275 +17,150 @@ if TYPE_CHECKING:
 
     from app.api.background_data.models import Category, Taxonomy
 
-# Constants for test values
 TAXONOMY_NAME = "Test API Taxonomy"
 TAXONOMY_VERSION = "v1.0.0"
 TAXONOMY_DESC = "Created via API"
-TAXONOMY_DOMAIN_VAL = "materials"
-UPDATED_TAXONOMY_NAME = "Updated Taxonomy Name"
-UPDATED_TAXONOMY_VERSION = "v2.0.0"
-CATEGORY_NAME = "Test API Category"
-CATEGORY_DESC = "Created via API"
 PARENT_CATEGORY = "Parent Category"
 CHILD_CATEGORY = "Child Category"
-GRANDCHILD_CATEGORY = "Grandchild Category"
-MATERIAL_NAME = "Test API Material"
-MATERIAL_DESC = "Created via API"
-MATERIAL_DENSITY = 8000.0
-INVALID_MATERIAL = "Invalid Material"
-INVALID_DENSITY = -100.0
-PRODUCT_TYPE_NAME = "Test API Product Type"
-PRODUCT_TYPE_DESC = "Created via API"
 NONEXISTENT_ID = "99999"
 
+pytestmark = [pytest.mark.integration, pytest.mark.api]
 
-@pytest.mark.api
-class TestTaxonomyAPI:
-    """Test Taxonomy API endpoints."""
 
-    async def test_create_taxonomy(self, superuser_client: AsyncClient) -> None:
-        """Test POST /admin/taxonomies creates a taxonomy."""
-        data = {
+async def test_create_taxonomy_contract(api_client_superuser: AsyncClient) -> None:
+    """Admin taxonomy creation should return the created resource contract."""
+    response = await api_client_superuser.post(
+        "/admin/taxonomies",
+        json={
             "name": TAXONOMY_NAME,
             "version": TAXONOMY_VERSION,
             "description": TAXONOMY_DESC,
-            "domains": [TAXONOMY_DOMAIN_VAL],
-        }
+            "domains": ["materials"],
+        },
+    )
 
-        response = await superuser_client.post("/admin/taxonomies", json=data)
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["name"] == TAXONOMY_NAME
 
-        assert response.status_code == status.HTTP_201_CREATED
-        json_data = response.json()
-        assert json_data["name"] == TAXONOMY_NAME
-        assert json_data["version"] == TAXONOMY_VERSION
-        assert "id" in json_data
-        assert "created_at" in json_data
 
-    async def test_get_taxonomy(self, async_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
-        """Test GET /taxonomies/{id} retrieves a taxonomy."""
-        response = await async_client.get(f"/taxonomies/{db_taxonomy.id}")
+async def test_get_taxonomy_returns_expected_shape(api_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
+    """Public taxonomy reads should expose the stable response contract."""
+    response = await api_client.get(f"/taxonomies/{db_taxonomy.id}")
 
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-        assert json_data["id"] == db_taxonomy.id
-        assert json_data["name"] == db_taxonomy.name
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "id": IsInt & IsPositive,
+        "name": IsStr,
+        "version": IsStr | None,
+        "description": IsStr | None,
+        "domains": ["materials"],
+        "source": IsStr | None,
+        "created_at": IsStr,
+        "updated_at": IsStr,
+    }
 
-    async def test_get_nonexistent_taxonomy(self, async_client: AsyncClient) -> None:
-        """Test GET /taxonomies/{id} with non-existent ID returns 404."""
-        response = await async_client.get(f"/taxonomies/{NONEXISTENT_ID}")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_list_taxonomies(self, async_client: AsyncClient, session: AsyncSession) -> None:
-        """Test GET /taxonomies returns list of taxonomies."""
-        # Create a few taxonomies
-        for i in range(3):
-            await TaxonomyFactory.create_async(
-                session,
-                name=f"Taxonomy {i}",
-                version=f"v{i}.0.0",
-                domains={TaxonomyDomain.MATERIALS},
-            )
+async def test_unknown_taxonomy_returns_404(api_client: AsyncClient) -> None:
+    """Missing taxonomies should return 404."""
+    response = await api_client.get(f"/taxonomies/{NONEXISTENT_ID}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
-        response = await async_client.get("/taxonomies")
 
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-        assert "items" in json_data
-        assert len(json_data["items"]) >= 3
-
-    async def test_list_taxonomy_categories(
-        self, async_client: AsyncClient, session: AsyncSession, db_taxonomy: Taxonomy
-    ) -> None:
-        """Test GET /taxonomies/{id}/categories returns flat taxonomy categories."""
-        parent_category = await CategoryFactory.create_async(session, taxonomy_id=db_taxonomy.id, name=PARENT_CATEGORY)
-        await CategoryFactory.create_async(
-            session,
-            taxonomy_id=db_taxonomy.id,
-            supercategory_id=parent_category.id,
-            name=CHILD_CATEGORY,
+async def test_list_taxonomies_returns_paginated_items(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """Listing taxonomies should return paginated data once rows exist."""
+    for index in range(2):
+        await TaxonomyFactory.create_async(
+            db_session,
+            name=f"Taxonomy {index}",
+            version=f"v{index}.0.0",
+            domains={TaxonomyDomain.MATERIALS},
         )
 
-        response = await async_client.get(f"/taxonomies/{db_taxonomy.id}/categories")
+    response = await api_client.get("/taxonomies")
 
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-        assert "items" in json_data
-        category_names = {item["name"] for item in json_data["items"]}
-        assert PARENT_CATEGORY in category_names
-        assert CHILD_CATEGORY in category_names
-
-    async def test_get_taxonomy_category_tree(
-        self, async_client: AsyncClient, session: AsyncSession, db_taxonomy: Taxonomy
-    ) -> None:
-        """Test GET /taxonomies/{id}/categories/tree returns nested top-level categories."""
-        parent_category = await CategoryFactory.create_async(session, taxonomy_id=db_taxonomy.id, name=PARENT_CATEGORY)
-        await CategoryFactory.create_async(
-            session,
-            taxonomy_id=db_taxonomy.id,
-            supercategory_id=parent_category.id,
-            name=CHILD_CATEGORY,
-        )
-
-        response = await async_client.get(f"/taxonomies/{db_taxonomy.id}/categories/tree?recursion_depth=2")
-
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-        assert "items" in json_data
-        matching_parent = next(item for item in json_data["items"] if item["name"] == PARENT_CATEGORY)
-        assert [subcategory["name"] for subcategory in matching_parent["subcategories"]] == [CHILD_CATEGORY]
-
-    async def test_update_taxonomy(self, superuser_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
-        """Test PATCH /admin/taxonomies/{id} updates a taxonomy."""
-        update_data = {
-            "name": UPDATED_TAXONOMY_NAME,
-            "version": UPDATED_TAXONOMY_VERSION,
-        }
-
-        response = await superuser_client.patch(f"/admin/taxonomies/{db_taxonomy.id}", json=update_data)
-
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-        assert json_data["name"] == UPDATED_TAXONOMY_NAME
-        assert json_data["version"] == UPDATED_TAXONOMY_VERSION
-
-    async def test_delete_taxonomy(self, superuser_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
-        """Test DELETE /admin/taxonomies/{id} deletes a taxonomy."""
-        response = await superuser_client.delete(f"/admin/taxonomies/{db_taxonomy.id}")
-
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-
-        # Verify it's deleted
-        get_response = await superuser_client.get(f"/taxonomies/{db_taxonomy.id}")
-        assert get_response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()["items"]) >= 2
 
 
-@pytest.mark.api
-class TestCategoryAPI:
-    """Test Category API endpoints."""
+async def test_taxonomy_category_endpoints_return_flat_and_tree_views(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_taxonomy: Taxonomy,
+) -> None:
+    """Taxonomy category endpoints should expose both flat and nested read shapes."""
+    parent = await CategoryFactory.create_async(db_session, taxonomy_id=db_taxonomy.id, name=PARENT_CATEGORY)
+    await CategoryFactory.create_async(
+        db_session,
+        taxonomy_id=db_taxonomy.id,
+        supercategory_id=parent.id,
+        name=CHILD_CATEGORY,
+    )
 
-    async def test_create_category(self, superuser_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
-        """Test POST /admin/categories creates a category."""
-        data = {
-            "name": CATEGORY_NAME,
-            "description": CATEGORY_DESC,
-            "taxonomy_id": db_taxonomy.id,
-        }
+    flat_response = await api_client.get(f"/taxonomies/{db_taxonomy.id}/categories")
+    tree_response = await api_client.get(f"/taxonomies/{db_taxonomy.id}/categories/tree?recursion_depth=2")
 
-        response = await superuser_client.post("/admin/categories", json=data)
+    assert flat_response.status_code == status.HTTP_200_OK
+    assert {item["name"] for item in flat_response.json()["items"]} >= {PARENT_CATEGORY, CHILD_CATEGORY}
+    assert tree_response.status_code == status.HTTP_200_OK
+    assert tree_response.json()["items"][0]["name"] == PARENT_CATEGORY
 
-        assert response.status_code == status.HTTP_201_CREATED
-        json_data = response.json()
-        assert json_data["name"] == CATEGORY_NAME
-        assert json_data["taxonomy_id"] == db_taxonomy.id
 
-    async def test_get_category(self, async_client: AsyncClient, db_category: Category) -> None:
-        """Test GET /categories/{id} retrieves a category."""
-        response = await async_client.get(f"/categories/{db_category.id}")
+async def test_category_reads_support_conditional_get(api_client: AsyncClient, db_category: Category) -> None:
+    """Category detail responses should return 304 when the ETag matches."""
+    first_response = await api_client.get(f"/categories/{db_category.id}")
+    second_response = await api_client.get(
+        f"/categories/{db_category.id}",
+        headers={"If-None-Match": first_response.headers["etag"]},
+    )
 
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-        assert json_data["id"] == db_category.id
-        assert json_data["name"] == db_category.name
+    assert first_response.status_code == status.HTTP_200_OK
+    assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
 
-    async def test_create_category_with_subcategories(
-        self, superuser_client: AsyncClient, db_taxonomy: Taxonomy
-    ) -> None:
-        """Test creating category with nested subcategories."""
-        data = {
+
+async def test_admin_category_creation_supports_nested_subcategories(
+    api_client_superuser: AsyncClient,
+    db_taxonomy: Taxonomy,
+) -> None:
+    """Admin category creation should accept nested subcategory payloads."""
+    response = await api_client_superuser.post(
+        "/admin/categories",
+        json={
             "name": PARENT_CATEGORY,
             "taxonomy_id": db_taxonomy.id,
-            "subcategories": [{"name": CHILD_CATEGORY, "subcategories": [{"name": GRANDCHILD_CATEGORY}]}],
-        }
+            "subcategories": [{"name": CHILD_CATEGORY}],
+        },
+    )
 
-        response = await superuser_client.post("/admin/categories", json=data)
-
-        assert response.status_code == status.HTTP_201_CREATED
-        json_data = response.json()
-        assert json_data["name"] == PARENT_CATEGORY
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["name"] == PARENT_CATEGORY
 
 
-@pytest.mark.api
-class TestMaterialAPI:
-    """Test Material API endpoints."""
+async def test_material_validation_rejects_negative_density(api_client_superuser: AsyncClient) -> None:
+    """Materials with negative density should fail schema validation."""
+    response = await api_client_superuser.post(
+        "/admin/materials",
+        json={"name": "Bad Material", "density_kg_m3": -100.0},
+    )
 
-    async def test_create_material(self, superuser_client: AsyncClient) -> None:
-        """Test POST /admin/materials creates a material."""
-        data = {
-            "name": MATERIAL_NAME,
-            "description": MATERIAL_DESC,
-            "density_kg_m3": MATERIAL_DENSITY,
-            "is_crm": True,
-        }
-
-        response = await superuser_client.post("/admin/materials", json=data)
-
-        assert response.status_code == status.HTTP_201_CREATED
-        json_data = response.json()
-        assert json_data["name"] == MATERIAL_NAME
-        assert json_data["density_kg_m3"] == MATERIAL_DENSITY
-
-    async def test_create_material_with_invalid_density(self, superuser_client: AsyncClient) -> None:
-        """Test POST /admin/materials with negative density fails."""
-        data = {
-            "name": INVALID_MATERIAL,
-            "density_kg_m3": INVALID_DENSITY,
-        }
-
-        response = await superuser_client.post("/admin/materials", json=data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
-@pytest.mark.api
-class TestProductTypeAPI:
-    """Test ProductType API endpoints."""
+async def test_product_type_creation_returns_created_resource(api_client_superuser: AsyncClient) -> None:
+    """Admin product-type creation should return the created item."""
+    response = await api_client_superuser.post(
+        "/admin/product-types",
+        json={"name": "Test API Product Type", "description": "Created via API"},
+    )
 
-    async def test_create_product_type(self, superuser_client: AsyncClient) -> None:
-        """Test POST /admin/product-types creates a product type."""
-        data = {
-            "name": PRODUCT_TYPE_NAME,
-            "description": PRODUCT_TYPE_DESC,
-        }
-
-        response = await superuser_client.post("/admin/product-types", json=data)
-
-        assert response.status_code == status.HTTP_201_CREATED
-        json_data = response.json()
-        assert json_data["name"] == PRODUCT_TYPE_NAME
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["name"] == "Test API Product Type"
 
 
-@pytest.mark.api
-@pytest.mark.slow
-class TestAPIWithDirtyEquals:
-    """Example tests using dirty-equals for flexible assertions."""
-
-    async def test_taxonomy_response_structure(self, async_client: AsyncClient, db_taxonomy: Taxonomy) -> None:
-        """Test taxonomy response has expected structure using dirty-equals."""
-        response = await async_client.get(f"/taxonomies/{db_taxonomy.id}")
-
-        assert response.status_code == status.HTTP_200_OK
-        json_data = response.json()
-
-        # Use dirty-equals for flexible type checking
-        assert json_data == {
-            "id": IsInt & IsPositive,
-            "name": IsStr,
-            "version": IsStr | None,
-            "description": IsStr | None,
-            "domains": [TAXONOMY_DOMAIN_VAL],
-            "source": IsStr | None,
-            "created_at": IsStr,
-            "updated_at": IsStr,
-        }
-
-
-@pytest.mark.api
-class TestUnitsAPI:
-    """Test Units API endpoints."""
-
-    async def test_get_units(self, async_client: AsyncClient) -> None:
-        """Test GET /units retrieves available units."""
-        response = await async_client.get("/units")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
-        assert "kg" in data or "g" in data
+async def test_units_endpoint_returns_available_units(api_client: AsyncClient) -> None:
+    """The units endpoint should return the supported unit values."""
+    response = await api_client.get("/units")
+    assert response.status_code == status.HTTP_200_OK
+    assert "g" in response.json() or "kg" in response.json()

@@ -35,6 +35,15 @@ Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The 
 
 Taxonomy imports are intentionally opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
 
+## RPi Camera Contract Boundary
+
+The Raspberry Pi camera integration has two intentional contract layers:
+
+- **Public/frontend contract**: backend routes and OpenAPI remain the only app-facing API surface
+- **Private device seam**: `relab-rpi-cam-models` owns the backend<->plugin transport DTOs for pairing, relay envelopes, local-access bootstrap, and direct upload acknowledgements
+
+Frontend code should keep consuming backend-generated OpenAPI types rather than importing private device-seam DTOs directly.
+
 ## More
 
 For Docker setup, local development, migration workflow, and testing conventions, see [CONTRIBUTING.md](../CONTRIBUTING.md#backend-development).

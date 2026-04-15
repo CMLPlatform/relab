@@ -13,7 +13,7 @@ from app.api.auth.models import User
 from app.api.background_data.models import Material, ProductType
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import MaterialProductLinkCreateWithinProduct
-from app.api.data_collection.crud import create_product
+from app.api.data_collection.crud.products import create_product
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.schemas import ProductCreateWithComponents
 

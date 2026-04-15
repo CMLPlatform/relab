@@ -68,6 +68,7 @@ class CameraConnectionManager:
         path: str,
         params: dict | None = None,
         body: dict | None = None,
+        headers: dict[str, str] | None = None,
     ) -> tuple[dict, bytes | None]:
         """Send a command to the camera and await its response.
 
@@ -89,7 +90,7 @@ class CameraConnectionManager:
         self._pending[msg_id] = future
 
         try:
-            payload = build_command(msg_id, method, path, params, body)
+            payload = build_command(msg_id, method, path, params, body, headers)
             await ws.send_text(payload)
             return await future
         finally:

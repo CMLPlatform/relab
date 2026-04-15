@@ -3,13 +3,11 @@
 This conftest provides:
 - Ephemeral Postgres via Testcontainers (session-scoped)
 - Database setup with transaction isolation
-- Async HTTP client using httpx (via plugins)
-- Factory fixtures (via plugins)
-- Common test utilities (via plugins)
-- Mocking utilities via pytest-mock (mocker fixture auto-injected)
+- Cross-suite logging glue
+- Minimal global safety fixtures
 
 Key Fixtures:
-- session: Isolated async database session with transaction rollback
+- db_session: Isolated async database session with transaction rollback
 
 Architecture:
 - Testcontainers starts lazily when a DB-backed fixture is first requested
@@ -56,11 +54,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 pytest_plugins = [
+    "tests.fixtures.auth",
     "tests.fixtures.client",
     "tests.fixtures.data",
-    "tests.fixtures.database",
     "tests.fixtures.migrations",
     "tests.fixtures.redis",
+    "tests.integration.api.data_collection_support",
 ]
 
 _DEFAULT_TEST_DB_NAME = "test_relab"
@@ -247,7 +246,7 @@ def _setup_test_database(test_database_name: str) -> Generator[None]:
 
 
 @pytest.fixture
-async def session(_setup_test_database: None, async_engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
+async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
     """Provide isolated database session using transaction rollback."""
     async with async_engine.connect() as connection:
         transaction = await connection.begin()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -19,11 +20,11 @@ from app.api.auth.dependencies import (
 )
 from app.api.auth.models import User
 from app.api.auth.services.rate_limiter import limiter
+from app.api.auth.services.user_database import get_auth_async_session
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.main import create_app
-from tests.factories.models import UserFactory
 
 
 class _NoNetworkTransport(httpx.AsyncBaseTransport):
@@ -40,10 +41,12 @@ class _NoNetworkTransport(httpx.AsyncBaseTransport):
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, Generator
+    from collections.abc import AsyncGenerator, Generator, Iterator
     from pathlib import Path
 
     from redis.asyncio import Redis
+
+    from app.api.auth.models import User
 
 
 def _configure_test_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -55,6 +58,33 @@ def _configure_test_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(settings, "uploads_path", uploads_path)
     monkeypatch.setattr(settings, "file_storage_path", file_storage_path)
     monkeypatch.setattr(settings, "image_storage_path", image_storage_path)
+
+
+@contextmanager
+def override_authenticated_user(
+    test_app: FastAPI,
+    user: User,
+    *,
+    verified: bool = True,
+    optional: bool = True,
+    superuser: bool = False,
+) -> Iterator[None]:
+    """Temporarily bind auth dependencies to a specific test user."""
+    test_app.dependency_overrides[current_active_user] = lambda: user
+    if verified:
+        test_app.dependency_overrides[current_active_verified_user] = lambda: user
+    if optional:
+        test_app.dependency_overrides[optional_current_active_user] = lambda: user
+    if superuser:
+        test_app.dependency_overrides[current_active_superuser] = lambda: user
+
+    try:
+        yield
+    finally:
+        test_app.dependency_overrides.pop(current_active_user, None)
+        test_app.dependency_overrides.pop(current_active_verified_user, None)
+        test_app.dependency_overrides.pop(optional_current_active_user, None)
+        test_app.dependency_overrides.pop(current_active_superuser, None)
 
 
 @pytest.fixture
@@ -69,9 +99,9 @@ def test_app() -> Generator[FastAPI]:
 
 
 @pytest.fixture
-async def async_client(
+async def api_client(
     test_app: FastAPI,
-    session: AsyncSession,
+    db_session: AsyncSession,
     mock_redis_dependency: Redis,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -86,17 +116,19 @@ async def async_client(
     _configure_test_storage(tmp_path, monkeypatch)
 
     async def override_get_session() -> AsyncGenerator[AsyncSession]:
-        yield session
+        yield db_session
 
+    # Override both the app-wide DB session seam and the auth-specific seam that wraps it lazily.
     test_app.dependency_overrides[get_async_session] = override_get_session
+    test_app.dependency_overrides[get_auth_async_session] = override_get_session
 
     limiter.enabled = False
     outbound_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
 
     with (
-        patch("app.main.init_redis", return_value=mock_redis_dependency),
-        patch("app.main.init_blocking_redis", return_value=None),
-        patch("app.main.create_http_client", return_value=outbound_http_client),
+        patch("app.core.lifecycle.init_redis", return_value=mock_redis_dependency),
+        patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+        patch("app.core.lifecycle.create_http_client", return_value=outbound_http_client),
     ):
         async with test_app.router.lifespan_context(test_app):
             init_fastapi_cache(mock_redis_dependency)
@@ -116,23 +148,18 @@ async def async_client(
 
 
 @pytest.fixture
-async def superuser(session: AsyncSession) -> User:
-    """Create a superuser for testing."""
-    return await UserFactory.create_async(session=session, is_superuser=True, is_active=True)
+async def api_client_user(
+    api_client: httpx.AsyncClient, db_user: User, test_app: FastAPI
+) -> AsyncGenerator[httpx.AsyncClient]:
+    """Provide an authenticated client for a regular active user."""
+    with override_authenticated_user(test_app, db_user):
+        yield api_client
 
 
 @pytest.fixture
-async def superuser_client(
-    async_client: httpx.AsyncClient, superuser: User, test_app: FastAPI
+async def api_client_superuser(
+    api_client: httpx.AsyncClient, db_superuser: User, test_app: FastAPI
 ) -> AsyncGenerator[httpx.AsyncClient]:
     """Provide an authenticated client with superuser privileges (via dependency override)."""
-    test_app.dependency_overrides[current_active_superuser] = lambda: superuser
-    test_app.dependency_overrides[current_active_user] = lambda: superuser
-    test_app.dependency_overrides[current_active_verified_user] = lambda: superuser
-    test_app.dependency_overrides[optional_current_active_user] = lambda: superuser
-    yield async_client
-    # Cleanup override
-    test_app.dependency_overrides.pop(current_active_superuser, None)
-    test_app.dependency_overrides.pop(current_active_user, None)
-    test_app.dependency_overrides.pop(current_active_verified_user, None)
-    test_app.dependency_overrides.pop(optional_current_active_user, None)
+    with override_authenticated_user(test_app, db_superuser, superuser=True):
+        yield api_client

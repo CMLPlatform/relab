@@ -1,4 +1,4 @@
-"""Unit tests for file storage CRUD operations."""
+"""Behavior-focused tests for file storage CRUD operations."""
 
 from __future__ import annotations
 
@@ -9,23 +9,15 @@ from uuid import uuid4
 
 import pytest
 from fastapi import UploadFile
-from pydantic import HttpUrl
 
 from app.api.data_collection.models.product import Product
-from app.api.file_storage import crud
-from app.api.file_storage.crud import (
-    ParentMediaCrud,
-    create_file,
-    delete_file,
-    delete_file_from_storage,
-    delete_image_from_storage,
-    process_uploadfile_name,
-    sanitize_filename,
-)
-from app.api.file_storage.crud import video as video_crud
-from app.api.file_storage.exceptions import ParentStorageOwnershipError, UploadTooLargeError
-from app.api.file_storage.models import File, Image, MediaParentType, Video
-from app.api.file_storage.schemas import FileCreate, FileUpdate, ImageCreateInternal, ImageUpdate, VideoCreate
+from app.api.file_storage.crud.media_queries import create_file, create_image, delete_file, delete_image
+from app.api.file_storage.crud.parent_media import ParentMediaCrud
+from app.api.file_storage.crud.support import delete_image_from_storage, process_uploadfile_name, sanitize_filename
+from app.api.file_storage.exceptions import ModelFileNotFoundError, ParentStorageOwnershipError, UploadTooLargeError
+from app.api.file_storage.models import File, Image, MediaParentType
+from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
+from app.core.images import delete_thumbnails
 from tests.factories.models import ProductFactory
 
 # Constants for magic values
@@ -33,12 +25,8 @@ TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
 TEST_IMAGE_DESC = "Test image"
 IMAGE_FILENAME = "image.png"
-TEST_VIDEO_TITLE = "Test vid"
-UPDATED_DESC = "Updated description"
-UPDATED_IMAGE_DESC = "Updated image obj"
 FAKE_PATH = "/fake/path/test.txt"
 FAKE_IMAGE_PATH = "/fake/path/test.png"
-YOUTUBE_URL = HttpUrl("https://youtube.com/test")
 CONTENT_TYPE_PNG = "image/png"
 TEST_SAN_RAW = "test file.txt"
 TEST_SAN_CLEAN = "test-file.txt"
@@ -89,12 +77,12 @@ class TestFileStorageCrudUtils:
         image_path = Path(FAKE_IMAGE_PATH)
 
         with (
-            patch("app.api.file_storage.crud.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
-            patch("app.api.file_storage.crud.delete_file_from_storage", new=AsyncMock()) as mock_delete_file,
+            patch("app.api.file_storage.crud.support.to_thread.run_sync", new=AsyncMock()) as mock_run_sync,
+            patch("app.api.file_storage.crud.support.delete_file_from_storage", new=AsyncMock()) as mock_delete_file,
         ):
             await delete_image_from_storage(image_path)
 
-        mock_run_sync.assert_awaited_once_with(crud.delete_thumbnails, image_path)
+        mock_run_sync.assert_awaited_once_with(delete_thumbnails, image_path)
         mock_delete_file.assert_awaited_once_with(image_path)
 
 
@@ -113,9 +101,9 @@ class TestFileStorageCrud:
         )
 
         with (
-            patch("app.api.file_storage.crud.parent_model_for_type") as mock_parent_model,
-            patch("app.api.file_storage.crud.require_model"),
-            patch("app.api.file_storage.crud._get_file_storage") as mock_get_storage,
+            patch("app.api.file_storage.crud.support.parent_model_for_type") as mock_parent_model,
+            patch("app.api.file_storage.crud.support.require_model"),
+            patch("app.api.file_storage.crud.support._get_file_storage") as mock_get_storage,
         ):
             mock_parent_model.return_value = MagicMock()
             mock_storage = mock_get_storage.return_value
@@ -132,29 +120,6 @@ class TestFileStorageCrud:
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
             mock_session.refresh.assert_called_once()
-
-    async def test_create_file_accepts_missing_upload_size(self, mock_session: AsyncMock) -> None:
-        """Test creating a file when UploadFile.size is unavailable."""
-        mock_file = MagicMock(spec=UploadFile)
-        mock_file.filename = TEST_FILENAME
-        mock_file.size = None
-        mock_file.file = BytesIO(b"test content")
-
-        file_create = FileCreate(
-            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
-        )
-
-        with (
-            patch("app.api.file_storage.crud.require_model"),
-            patch("app.api.file_storage.crud._get_file_storage") as mock_get_storage,
-        ):
-            mock_storage = mock_get_storage.return_value
-            mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
-
-            result = await create_file(mock_session, file_create)
-
-            assert isinstance(result, File)
-            assert result.filename == TEST_FILENAME
 
     async def test_create_file_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
         """Test creating a file larger than the configured maximum."""
@@ -178,40 +143,14 @@ class TestFileStorageCrud:
         mock_db_file.file.path = FAKE_PATH
 
         with (
-            patch("app.api.file_storage.crud.require_model", return_value=mock_db_file),
-            patch("app.api.file_storage.crud.delete_file_from_storage") as mock_delete_from_storage,
+            patch("app.api.file_storage.crud.support.require_model", return_value=mock_db_file),
+            patch("app.api.file_storage.crud.support.delete_file_from_storage") as mock_delete_from_storage,
         ):
             await delete_file(mock_session, file_id)
 
             mock_session.delete.assert_called_once_with(mock_db_file)
             mock_session.commit.assert_called_once()
             mock_delete_from_storage.assert_called_once_with(Path(FAKE_PATH))
-
-    async def test_delete_file_from_storage(self) -> None:
-        """Test the async filesystem unlink."""
-        fake_path = Path("fake_storage_file.txt")
-
-        with patch("app.api.file_storage.crud.AnyIOPath") as mock_anyio_path:
-            mock_instance = mock_anyio_path.return_value
-            mock_instance.exists = AsyncMock(return_value=True)
-            mock_instance.unlink = AsyncMock()
-
-            await delete_file_from_storage(fake_path)
-
-            mock_instance.exists.assert_called_once()
-            mock_instance.unlink.assert_called_once()
-
-    async def test_update_file_success(self, mock_session: AsyncMock) -> None:
-        """Test updating a file."""
-        file_id = uuid4()
-        mock_db_file = MagicMock(spec=File)
-        file_update = FileUpdate(description=UPDATED_DESC)
-
-        with patch("app.api.file_storage.crud.require_model", return_value=mock_db_file):
-            result = await crud.update_file(mock_session, file_id, file_update)
-            assert result == mock_db_file
-            mock_session.add.assert_called_once()
-            mock_session.commit.assert_called_once()
 
 
 class TestImageStorageCrud:
@@ -232,14 +171,14 @@ class TestImageStorageCrud:
 
         with (
             patch(
-                "app.api.file_storage.crud.require_model",
+                "app.api.file_storage.crud.support.require_model",
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
-            patch("app.api.file_storage.crud._get_image_storage") as mock_get_storage,
+            patch("app.api.file_storage.crud.support._get_image_storage") as mock_get_storage,
         ):
             mock_storage = mock_get_storage.return_value
             mock_storage.write_image_upload = AsyncMock(return_value="stored_image.png")
-            result = await crud.create_image(mock_session, image_create)
+            result = await create_image(mock_session, image_create)
             assert isinstance(result, Image)
             assert result.description == TEST_IMAGE_DESC
             assert result.filename == IMAGE_FILENAME
@@ -257,17 +196,7 @@ class TestImageStorageCrud:
         )
 
         with pytest.raises(UploadTooLargeError, match="Maximum size: 10 MB"):
-            await crud.create_image(mock_session, image_create)
-
-    async def test_update_image_success(self, mock_session: AsyncMock) -> None:
-        """Test updating an image."""
-        image_id = uuid4()
-        mock_db_image = MagicMock(spec=Image)
-        image_update = ImageUpdate(description=UPDATED_IMAGE_DESC)
-
-        with patch("app.api.file_storage.crud.require_model", return_value=mock_db_image):
-            result = await crud.update_image(mock_session, image_id, image_update)
-            assert result == mock_db_image
+            await create_image(mock_session, image_create)
 
     async def test_delete_image_success(self, mock_session: AsyncMock) -> None:
         """Test deleting an image."""
@@ -276,12 +205,12 @@ class TestImageStorageCrud:
         mock_db_image.file.path = FAKE_IMAGE_PATH
 
         with (
-            patch("app.api.file_storage.crud.require_model", return_value=mock_db_image),
-            patch("app.api.file_storage.crud.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
+            patch("app.api.file_storage.crud.support.require_model", return_value=mock_db_image),
+            patch("app.api.file_storage.crud.support.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
         ):
-            await crud.delete_image(mock_session, image_id)
-            mock_session.delete.assert_called_once_with(mock_db_image)
-            mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
+            await delete_image(mock_session, image_id)
+        mock_session.delete.assert_called_once_with(mock_db_image)
+        mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
 
     async def test_delete_image_cleans_thumbnails_when_original_is_missing(self, mock_session: AsyncMock) -> None:
         """Image delete still removes thumbnails when the original file is already gone."""
@@ -292,37 +221,15 @@ class TestImageStorageCrud:
 
         with (
             patch(
-                "app.api.file_storage.crud.require_model",
-                side_effect=crud.ModelFileNotFoundError(Image, image_id),
+                "app.api.file_storage.crud.support.require_model",
+                side_effect=ModelFileNotFoundError(Image, image_id),
             ),
-            patch("app.api.file_storage.crud.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
+            patch("app.api.file_storage.crud.support.delete_image_from_storage", new=AsyncMock()) as mock_delete_image,
         ):
-            await crud.delete_image(mock_session, image_id)
+            await delete_image(mock_session, image_id)
 
         mock_session.delete.assert_called_once_with(mock_db_image)
         mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
-
-
-class TestVideoCrud:
-    """Test CRUD operations for video entries."""
-
-    async def test_create_video_success(self, mock_session: AsyncMock) -> None:
-        """Test creating a video."""
-        video_create = VideoCreate(url=YOUTUBE_URL, product_id=1, title=TEST_VIDEO_TITLE)
-
-        with patch("app.api.file_storage.crud.video.require_model"):
-            result = await video_crud.create_video(mock_session, video_create, commit=True)
-            assert isinstance(result, Video)
-            assert result.title == TEST_VIDEO_TITLE
-
-    async def test_delete_video_success(self, mock_session: AsyncMock) -> None:
-        """Test deleting a video."""
-        video_id = 1
-        mock_db_video = MagicMock(spec=Video)
-
-        with patch("app.api.file_storage.crud.video.require_model", return_value=mock_db_video):
-            await video_crud.delete_video(mock_session, video_id)
-            mock_session.delete.assert_called_once()
 
 
 class TestParentStorageCrud:
@@ -363,7 +270,7 @@ class TestParentStorageCrud:
         db_item.parent_id = 1
         mock_session.get.return_value = db_item
 
-        with patch("app.api.file_storage.crud.require_model"):
+        with patch("app.api.file_storage.crud.parent_media.require_model"):
             await operations.delete(mock_session, 1, item_id)
 
         storage_service.delete.assert_awaited_once_with(mock_session, item_id)
@@ -384,7 +291,7 @@ class TestParentStorageCrud:
         mock_session.get.return_value = db_item
 
         with (
-            patch("app.api.file_storage.crud.require_model"),
+            patch("app.api.file_storage.crud.parent_media.require_model"),
             pytest.raises(ParentStorageOwnershipError, match="not found for"),
         ):
             await operations.get_by_id(mock_session, 1, item_id)

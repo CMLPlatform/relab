@@ -9,15 +9,38 @@ from fastapi import Body, Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
 from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator, PositiveInt
+from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.stats import recompute_user_stats
-from app.api.common.crud.scopes import require_scoped_model
+from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.query import require_model
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
-from app.api.data_collection import crud
+from app.api.data_collection.crud.products import create_component
+from app.api.data_collection.crud.products import create_product as create_product_record
+from app.api.data_collection.crud.products import delete_product as delete_product_record
+from app.api.data_collection.crud.products import update_product as update_product_record
+from app.api.data_collection.crud.storage import (
+    create_product_file,
+    create_product_image,
+    list_product_files,
+    list_product_images,
+)
+from app.api.data_collection.crud.storage import (
+    delete_product_file as delete_product_file_record,
+)
+from app.api.data_collection.crud.storage import (
+    delete_product_image as delete_product_image_record,
+)
+from app.api.data_collection.crud.storage import (
+    get_product_file as load_product_file,
+)
+from app.api.data_collection.crud.storage import (
+    get_product_image as load_product_image,
+)
 from app.api.data_collection.dependencies import UserOwnedProductDep, get_user_owned_product_id
 from app.api.data_collection.examples import (
     COMPONENT_CREATE_OPENAPI_EXAMPLES,
@@ -61,7 +84,7 @@ async def create_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Create a new product."""
-    return await crud.create_product(session, product, current_user.id)
+    return await create_product_record(session, product, current_user.id)
 
 
 @product_mutation_router.patch("/{product_id}", response_model=ProductRead, summary="Update product")
@@ -71,7 +94,7 @@ async def update_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Update an existing product."""
-    return await crud.update_product(session, db_product.id, product_update)
+    return await update_product_record(session, db_product.id, product_update)
 
 
 @product_mutation_router.delete(
@@ -81,7 +104,7 @@ async def update_product(
 )
 async def delete_product(db_product: UserOwnedProductDep, session: AsyncSessionDep) -> None:
     """Delete a product, including components."""
-    await crud.delete_product(session, db_product.id)
+    await delete_product_record(session, db_product.id)
 
 
 @product_mutation_router.post(
@@ -99,7 +122,7 @@ async def add_component_to_product(
     session: AsyncSessionDep,
 ) -> Product:
     """Create a new component in an existing product."""
-    return await crud.create_component(
+    return await create_component(
         db=session,
         component=component,
         parent_product=db_product,
@@ -115,8 +138,15 @@ async def delete_product_component(
     db_product: UserOwnedProductDep, component_id: PositiveInt, session: AsyncSessionDep
 ) -> None:
     """Delete a component in a product, including subcomponents."""
-    await require_scoped_model(session, Product, db_product.id, Product, component_id, "parent_id")
-    await crud.delete_product(session, component_id)
+    component = await require_model(session, Product, component_id)
+    if component.parent_id != db_product.id:
+        raise DependentModelOwnershipError(Product, component_id, Product, db_product.id)
+    exists = await session.scalar(
+        select(Product.id).where(Product.id == component_id, Product.parent_id == db_product.id)
+    )
+    if exists is None:
+        raise DependentModelOwnershipError(Product, component_id, Product, db_product.id)
+    await delete_product_record(session, component_id)
 
 
 @product_mutation_router.get(
@@ -130,7 +160,7 @@ async def get_product_files(
     item_filter: FileFilter = FilterDepends(FileFilter),
 ) -> list[FileReadWithinParent]:
     """Get all files associated with a product."""
-    items = await crud.product_files_crud.get_all(session, product_id, filter_params=item_filter)
+    items = await list_product_files(session, product_id, filter_params=item_filter)
     return [FileReadWithinParent.model_validate(item) for item in items]
 
 
@@ -145,7 +175,7 @@ async def get_product_file(
     session: AsyncSessionDep,
 ) -> FileReadWithinParent:
     """Get a specific file associated with a product."""
-    item = await crud.product_files_crud.get_by_id(session, product_id, file_id)
+    item = await load_product_file(session, product_id, file_id)
     return FileReadWithinParent.model_validate(item)
 
 
@@ -162,7 +192,7 @@ async def upload_product_file(
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for the product."""
-    item = await crud.product_files_crud.create(
+    item = await create_product_file(
         session,
         parent_id,
         FileCreate(file=file, description=description, parent_id=parent_id, parent_type=MediaParentType.PRODUCT),
@@ -181,7 +211,7 @@ async def delete_product_file(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a file from the product."""
-    await crud.product_files_crud.delete(session, parent_id, file_id)
+    await delete_product_file_record(session, parent_id, file_id)
 
 
 @product_mutation_router.get(
@@ -195,7 +225,7 @@ async def get_product_images(
     item_filter: ImageFilter = FilterDepends(ImageFilter),
 ) -> list[ImageReadWithinParent]:
     """Get all images associated with a product."""
-    items = await crud.product_images_crud.get_all(session, product_id, filter_params=item_filter)
+    items = await list_product_images(session, product_id, filter_params=item_filter)
     return [ImageReadWithinParent.model_validate(item) for item in items]
 
 
@@ -210,7 +240,7 @@ async def get_product_image(
     session: AsyncSessionDep,
 ) -> ImageReadWithinParent:
     """Get a specific image associated with a product."""
-    item = await crud.product_images_crud.get_by_id(session, product_id, image_id)
+    item = await load_product_image(session, product_id, image_id)
     return ImageReadWithinParent.model_validate(item)
 
 
@@ -236,7 +266,7 @@ async def upload_product_image(
     ] = None,
 ) -> ImageReadWithinParent:
     """Upload a new image for the product."""
-    item = await crud.product_images_crud.create(
+    item = await create_product_image(
         session,
         parent_id,
         ImageCreateFromForm.model_validate(
@@ -267,7 +297,7 @@ async def delete_product_image(
     """Remove an image from the product."""
     # Need owner ID for stats update
     product = await session.get(Product, parent_id)
-    await crud.product_images_crud.delete(session, parent_id, image_id)
+    await delete_product_image_record(session, parent_id, image_id)
     if product and product.owner_id is not None:
         await recompute_user_stats(session, product.owner_id)
         await session.commit()

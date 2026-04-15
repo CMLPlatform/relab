@@ -88,8 +88,8 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
     _telemetry_state.fastapi_instrumentor = fastapi_instrumentor
     _telemetry_state.sqlalchemy_instrumentor = sqlalchemy_instrumentor
     _telemetry_state.httpx_instrumentor = httpx_instrumentor
-
     app.state.telemetry_enabled = True
+
     logger.info("OpenTelemetry instrumentation enabled")
     return True
 
@@ -97,7 +97,6 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
 def shutdown_telemetry(app: FastAPI) -> None:
     """Uninstrument telemetry hooks and flush the tracer provider."""
     if not _telemetry_state.initialized:
-        app.state.telemetry_enabled = False
         return
 
     if _telemetry_state.fastapi_instrumentor is not None:
@@ -117,5 +116,5 @@ def shutdown_telemetry(app: FastAPI) -> None:
     _telemetry_state.fastapi_instrumentor = None
     _telemetry_state.sqlalchemy_instrumentor = None
     _telemetry_state.httpx_instrumentor = None
-
     app.state.telemetry_enabled = False
+    logger.info("OpenTelemetry instrumentation disabled")

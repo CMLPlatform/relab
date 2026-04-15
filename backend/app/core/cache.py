@@ -34,6 +34,7 @@ T = TypeVar("T")
 
 _HTML_RESPONSE_TYPE = "HTMLResponse"
 _MEMORY_CACHE_BACKEND = "mem://"
+_ETAG_WILDCARD = "*"
 _MISSING = object()
 _backend = Cache()
 _cache_state = {"initialized": False}
@@ -141,6 +142,26 @@ def key_builder_excluding_dependencies(
     return f"{namespace}:{cache_key}"
 
 
+def _etag_matches(if_none_match: str | None, current_etag: str | None) -> bool:
+    """Return whether the request's ``If-None-Match`` header matches the cached ETag."""
+    if if_none_match is None or current_etag is None:
+        return False
+    candidates = {candidate.strip() for candidate in if_none_match.split(",")}
+    return _ETAG_WILDCARD in candidates or current_etag in candidates or f"W/{current_etag}" in candidates
+
+
+def _cached_not_modified_response(request: Request | None, cached_value: object) -> Response | None:
+    """Return a 304 response when a cached response already satisfies the client's ETag."""
+    if request is None or not isinstance(cached_value, Response):
+        return None
+
+    current_etag = cached_value.headers.get("ETag")
+    if not _etag_matches(request.headers.get("if-none-match"), current_etag):
+        return None
+
+    return Response(status_code=304, headers=dict(cached_value.headers))
+
+
 def cache(
     *,
     expire: int,
@@ -152,6 +173,10 @@ def cache(
     def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            request = kwargs.get("request")
+            if not isinstance(request, Request):
+                request = next((arg for arg in args if isinstance(arg, Request)), None)
+
             key = key_builder_excluding_dependencies(
                 func,
                 namespace=_cache_namespace(namespace),
@@ -160,6 +185,8 @@ def cache(
             )
             cached_value = await _get_cached_result(key, coder)
             if cached_value is not _MISSING:
+                if response := _cached_not_modified_response(request, cast("T", cached_value)):
+                    return cast("T", response)
                 return cast("T", cached_value)
 
             result = await func(*args, **kwargs)

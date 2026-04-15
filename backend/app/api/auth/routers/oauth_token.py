@@ -38,6 +38,7 @@ from app.api.auth.services.user_manager import (
     cookie_auth_backend,
 )
 from app.api.common.routers.openapi import mark_router_routes_public
+from app.core.runtime import get_connection_redis
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +153,7 @@ async def google_bearer_token(
 
     access_token = await strategy.write_token(user)
 
-    redis_client = getattr(request.app.state, "redis", None)
+    redis_client = get_connection_redis(request)
     refresh_token = await refresh_token_service.create_refresh_token(redis_client, user.id)
 
     await update_last_login_metadata(user, request, user_manager.user_db.session)

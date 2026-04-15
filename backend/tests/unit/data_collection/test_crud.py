@@ -15,15 +15,17 @@ from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProductAndMaterial,
     MaterialProductLinkUpdate,
 )
-from app.api.data_collection.crud import (
+from app.api.data_collection.crud.material_links import (
     add_material_to_product,
     add_materials_to_product,
+    remove_materials_from_product,
+    update_material_within_product,
+)
+from app.api.data_collection.crud.products import (
     create_component,
     create_product,
     delete_product,
     get_product_trees,
-    remove_materials_from_product,
-    update_material_within_product,
     update_product,
 )
 from app.api.data_collection.exceptions import (
@@ -126,8 +128,8 @@ class TestProductCrud:
 
         with (
             patch("app.api.data_collection.crud.products.require_model", return_value=db_product),
-            patch("app.api.data_collection.crud.products.product_files_crud.delete_all"),
-            patch("app.api.data_collection.crud.products.product_images_crud.delete_all"),
+            patch("app.api.data_collection.crud.products.delete_all_product_files"),
+            patch("app.api.data_collection.crud.products.delete_all_product_images"),
             patch("app.api.data_collection.crud.products.recompute_user_stats"),
         ):
             await delete_product(mock_session, product_id)

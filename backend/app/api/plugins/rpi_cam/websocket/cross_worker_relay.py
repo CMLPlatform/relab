@@ -97,6 +97,7 @@ async def relay_cross_worker(
     path: str,
     params: dict | None,
     body: dict | None,
+    headers: dict[str, str] | None,
     *,
     timeout_s: float,
 ) -> tuple[dict, bytes | None]:
@@ -124,6 +125,7 @@ async def relay_cross_worker(
             "path": path,
             "params": params,
             "body": body,
+            "headers": headers or {},
             "deadline": time.time() + timeout_s,  # wall-clock for cross-process comparison
         }
     )
@@ -264,9 +266,17 @@ async def _execute_and_respond(
     path: str = cmd.get("path", "/")
     params: dict | None = cmd.get("params")
     body: dict | None = cmd.get("body")
+    headers: dict[str, str] | None = cmd.get("headers")
 
     try:
-        json_resp, binary = await manager.send_command(camera_id, method, path, params=params, body=body)
+        json_resp, binary = await manager.send_command(
+            camera_id,
+            method,
+            path,
+            params=params,
+            body=body,
+            headers=headers,
+        )
     except RuntimeError as exc:
         # Camera disconnected mid-flight — report error and stop listening.
         logger.warning(

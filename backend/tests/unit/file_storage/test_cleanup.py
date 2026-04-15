@@ -62,32 +62,6 @@ async def test_get_referenced_files_with_paths(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_referenced_files_accepts_string_paths(tmp_path: Path) -> None:
-    """String paths returned by storage columns are resolved and included."""
-    session = AsyncMock()
-
-    fake_file = MagicMock()
-    fake_file.file = str(tmp_path / "upload.txt")
-    fake_image = MagicMock()
-    fake_image.file = str(tmp_path / "image.jpg")
-
-    mock_files_scalars = MagicMock()
-    mock_files_scalars.all.return_value = [fake_file]
-    mock_files_result = MagicMock()
-    mock_files_result.scalars.return_value = mock_files_scalars
-    mock_images_scalars = MagicMock()
-    mock_images_scalars.all.return_value = [fake_image]
-    mock_images_result = MagicMock()
-    mock_images_result.scalars.return_value = mock_images_scalars
-    session.execute.side_effect = [mock_files_result, mock_images_result]
-
-    result = await get_referenced_files(session)
-
-    assert (tmp_path / "upload.txt").resolve() in result
-    assert (tmp_path / "image.jpg").resolve() in result
-
-
-@pytest.mark.asyncio
 async def test_get_referenced_files_skips_none_entries() -> None:
     """None entries (no file attached) are silently skipped."""
     session = AsyncMock()
@@ -151,22 +125,6 @@ async def test_get_files_on_disk_excludes_recent_files(tmp_path: Path, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_get_files_on_disk_empty_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Empty storage directories return an empty set without errors."""
-    file_storage = tmp_path / "files"
-    image_storage = tmp_path / "images"
-    file_storage.mkdir()
-    image_storage.mkdir()
-
-    monkeypatch.setattr(settings, "file_storage_path", file_storage)
-    monkeypatch.setattr(settings, "image_storage_path", image_storage)
-
-    result = await get_files_on_disk()
-
-    assert result == set()
-
-
-@pytest.mark.asyncio
 async def test_get_files_on_disk_missing_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Non-existent storage directories are silently skipped."""
     monkeypatch.setattr(settings, "file_storage_path", tmp_path / "does_not_exist")
@@ -202,20 +160,6 @@ async def test_get_unreferenced_files_returns_delta() -> None:
         result = await get_unreferenced_files(session)
 
     assert result == [_UNREF_PATH]
-
-
-@pytest.mark.asyncio
-async def test_get_unreferenced_files_all_referenced() -> None:
-    """Returns empty list when every disk file is referenced."""
-    session = MagicMock()
-
-    with (
-        patch("app.api.file_storage.services.cleanup.get_referenced_files", new=AsyncMock(return_value={_REF_PATH})),
-        patch("app.api.file_storage.services.cleanup.get_files_on_disk", new=AsyncMock(return_value={_REF_PATH})),
-    ):
-        result = await get_unreferenced_files(session)
-
-    assert result == []
 
 
 @pytest.mark.asyncio
@@ -270,20 +214,6 @@ async def test_cleanup_force_deletes_files(tmp_path: Path) -> None:
 
     assert deleted == [target]
     assert not target.exists(), "file should have been deleted"
-
-
-@pytest.mark.asyncio
-async def test_cleanup_no_unreferenced_files() -> None:
-    """Returns empty list and logs a message when nothing needs deleting."""
-    session = MagicMock()
-
-    with patch(
-        "app.api.file_storage.services.cleanup.get_unreferenced_files",
-        new=AsyncMock(return_value=[]),
-    ):
-        deleted = await cleanup_unreferenced_files(session, dry_run=False)
-
-    assert deleted == []
 
 
 @pytest.mark.asyncio

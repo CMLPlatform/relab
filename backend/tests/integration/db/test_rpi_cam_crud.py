@@ -1,21 +1,25 @@
-"""Unit tests for RPi Cam plugin CRUD operations."""
+"""Integration tests for RPi Cam plugin CRUD operations."""
 
 from __future__ import annotations
 
 import uuid
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
+
+import pytest
 
 from app.api.plugins.rpi_cam.crud import create_camera, update_camera
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate, RelayPublicKeyJWK
 
 if TYPE_CHECKING:
-    from unittest.mock import AsyncMock
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
+
+pytestmark = [pytest.mark.integration, pytest.mark.db]
 
 TEST_CAMERA_NAME = "Test Camera"
 TEST_CAMERA_DESC = "Test Description"
@@ -43,9 +47,9 @@ def build_camera(*, owner_id: UUID, name: str = TEST_OLD_NAME) -> Camera:
     return Camera(name=name, owner_id=owner_id, relay_public_key_jwk=PUBLIC_JWK, relay_key_id=KEY_ID)
 
 
-async def test_create_camera(session: AsyncSession, superuser: User) -> None:
+async def test_create_camera(db_session: AsyncSession, db_superuser: User) -> None:
     """Test creating a new camera entry with device public key metadata."""
-    owner_id = require_uuid(superuser.id)
+    owner_id = require_uuid(db_superuser.id)
     camera_in = CameraCreate(
         name=TEST_CAMERA_NAME,
         description=TEST_CAMERA_DESC,
@@ -53,7 +57,7 @@ async def test_create_camera(session: AsyncSession, superuser: User) -> None:
         relay_key_id=KEY_ID,
     )
 
-    camera = await create_camera(session, camera_in, owner_id)
+    camera = await create_camera(db_session, camera_in, owner_id)
 
     assert camera.name == TEST_CAMERA_NAME
     assert camera.description == TEST_CAMERA_DESC
@@ -61,33 +65,34 @@ async def test_create_camera(session: AsyncSession, superuser: User) -> None:
     assert camera.relay_key_id == KEY_ID
     assert camera.owner_id == owner_id
 
-    db_camera = await session.get(Camera, camera.id)
+    db_camera = await db_session.get(Camera, camera.id)
     assert db_camera is not None
     assert db_camera.name == TEST_CAMERA_NAME
 
 
-async def test_update_camera(session: AsyncSession, superuser: User) -> None:
+async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> None:
     """Test updating mutable camera metadata and credential status."""
-    owner_id = require_uuid(superuser.id)
+    owner_id = require_uuid(db_superuser.id)
     camera = build_camera(owner_id=owner_id)
-    session.add(camera)
-    await session.commit()
-    await session.refresh(camera)
+    db_session.add(camera)
+    await db_session.commit()
+    await db_session.refresh(camera)
 
     update_data = CameraUpdate(name=TEST_NEW_NAME, relay_credential_status=CameraCredentialStatus.REVOKED)
 
-    updated_camera = await update_camera(session, camera, update_data)
+    updated_camera = await update_camera(db_session, camera, update_data)
 
     assert updated_camera.name == TEST_NEW_NAME
     assert updated_camera.relay_credential_status == CameraCredentialStatus.REVOKED
 
-    await session.refresh(camera)
+    await db_session.refresh(camera)
     assert camera.name == TEST_NEW_NAME
     assert camera.relay_credential_status == CameraCredentialStatus.REVOKED
 
 
-async def test_update_camera_applies_validated_owner_transfer(mock_session: AsyncMock) -> None:
+async def test_update_camera_applies_validated_owner_transfer() -> None:
     """CRUD applies an owner change once the router has already validated it."""
+    mock_session = AsyncMock()
     camera = build_camera(owner_id=uuid.uuid4())
     new_owner_id = uuid.uuid4()
     update_data = CameraUpdate.model_validate({"owner_id": new_owner_id, "relay_key_id": NEW_KEY_ID})

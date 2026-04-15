@@ -10,7 +10,34 @@ from fastapi import File as FastAPIFile
 from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
-from app.api.background_data import crud
+from app.api.background_data.crud.product_types import (
+    add_categories_to_product_type as add_product_type_categories,
+)
+from app.api.background_data.crud.product_types import (
+    add_category_to_product_type as add_product_type_category,
+)
+from app.api.background_data.crud.product_types import (
+    create_product_type as create_product_type_record,
+)
+from app.api.background_data.crud.product_types import (
+    create_product_type_file,
+    create_product_type_image,
+)
+from app.api.background_data.crud.product_types import (
+    delete_product_type as delete_product_type_record,
+)
+from app.api.background_data.crud.product_types import (
+    delete_product_type_file as delete_product_type_file_record,
+)
+from app.api.background_data.crud.product_types import (
+    delete_product_type_image as delete_product_type_image_record,
+)
+from app.api.background_data.crud.product_types import (
+    remove_categories_from_product_type as remove_product_type_categories,
+)
+from app.api.background_data.crud.product_types import (
+    update_product_type as update_product_type_record,
+)
 from app.api.background_data.examples import CATEGORY_IDS_OPENAPI_EXAMPLES
 from app.api.background_data.models import Category, ProductType
 from app.api.background_data.schemas import (
@@ -47,7 +74,7 @@ async def create_product_type(
     payload: ProductTypeCreateWithCategories,
 ) -> ProductType:
     """Create a product type."""
-    return await crud.create_product_type(session, payload)
+    return await create_product_type_record(session, payload)
 
 
 @router.patch(
@@ -61,7 +88,7 @@ async def update_product_type(
     payload: ProductTypeUpdate,
 ) -> ProductType:
     """Update a product type."""
-    return await crud.update_product_type(session, product_type_id, payload)
+    return await update_product_type_record(session, product_type_id, payload)
 
 
 @router.delete(
@@ -74,7 +101,7 @@ async def delete_product_type(
     session: AsyncSessionDep,
 ) -> None:
     """Delete a product type."""
-    await crud.delete_product_type(session, product_type_id)
+    await delete_product_type_record(session, product_type_id)
 
 
 @router.post(
@@ -95,7 +122,7 @@ async def add_categories_to_product_type(
     ],
 ) -> Sequence[Category]:
     """Add multiple categories to a product type."""
-    return await crud.add_categories_to_product_type(session, product_type_id, set(category_ids))
+    return await add_product_type_categories(session, product_type_id, set(category_ids))
 
 
 @router.post(
@@ -110,7 +137,7 @@ async def add_category_to_product_type(
     session: AsyncSessionDep,
 ) -> Category:
     """Add a single category to a product type."""
-    return await crud.add_category_to_product_type(session, product_type_id, category_id)
+    return await add_product_type_category(session, product_type_id, category_id)
 
 
 @router.delete(
@@ -130,7 +157,7 @@ async def remove_categories_from_product_type(
     ],
 ) -> None:
     """Remove multiple categories from a product type."""
-    await crud.remove_categories_from_product_type(session, product_type_id, set(category_ids))
+    await remove_product_type_categories(session, product_type_id, set(category_ids))
 
 
 @router.delete(
@@ -144,7 +171,7 @@ async def remove_category_from_product_type(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a single category from a product type."""
-    await crud.remove_categories_from_product_type(session, product_type_id, category_id)
+    await remove_product_type_categories(session, product_type_id, category_id)
 
 
 @router.post(
@@ -161,7 +188,7 @@ async def upload_product_type_file(
     description: Annotated[str | None, Form()] = None,
 ) -> FileReadWithinParent:
     """Upload a new file for the product type."""
-    item = await crud.product_type_files_crud.create(
+    item = await create_product_type_file(
         session,
         product_type_id,
         FileCreate(
@@ -186,7 +213,7 @@ async def delete_product_type_file(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a file from the product type."""
-    await crud.product_type_files_crud.delete(session, product_type_id, file_id)
+    await delete_product_type_file_record(session, product_type_id, file_id)
 
 
 @router.post(
@@ -211,7 +238,7 @@ async def upload_product_type_image(
     ] = None,
 ) -> ImageReadWithinParent:
     """Upload a new image for the product type."""
-    item = await crud.product_type_images_crud.create(
+    item = await create_product_type_image(
         session,
         product_type_id,
         ImageCreateFromForm.model_validate(
@@ -239,4 +266,4 @@ async def delete_product_type_image(
     session: AsyncSessionDep,
 ) -> None:
     """Remove an image from the product type."""
-    await crud.product_type_images_crud.delete(session, product_type_id, image_id)
+    await delete_product_type_image_record(session, product_type_id, image_id)

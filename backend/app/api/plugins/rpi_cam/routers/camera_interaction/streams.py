@@ -180,7 +180,7 @@ async def start_recording(
 
     # Idempotency guard: if a prior POST already started a recording but the response never reached
     # the client (network retry), return the live StreamView instead of creating a second broadcast.
-    existing_stream = await _resolve_existing_recording(redis_client, camera_id, camera_request)
+    existing_stream = await _resolve_existing_recording(redis_client, session, camera_id, camera_request)
     if existing_stream is not None:
         return existing_stream
 
@@ -212,6 +212,7 @@ async def start_recording(
     try:
         await store_recording_session(
             redis_client,
+            session,
             camera_id,
             YouTubeRecordingSession(
                 product_id=product_id,
@@ -250,6 +251,7 @@ async def start_recording(
 
 async def _resolve_existing_recording(
     redis_client: Redis,
+    session: AsyncSessionDep,
     camera_id: UUID4,
     camera_request: Callable[..., Awaitable[RelayResponse]],
 ) -> StreamView | None:
@@ -259,7 +261,7 @@ async def _resolve_existing_recording(
     cleared and ``None`` is returned so the caller can proceed with a fresh recording.
     """
     try:
-        await load_recording_session(redis_client, camera_id)
+        await load_recording_session(redis_client, session, camera_id)
     except RecordingSessionNotFoundError:
         return None
     except InvalidRecordingSessionDataError as exc:
@@ -268,7 +270,7 @@ async def _resolve_existing_recording(
             sanitize_log_value(camera_id),
             sanitize_log_value(exc),
         )
-        await clear_recording_session(redis_client, camera_id)
+        await clear_recording_session(redis_client, session, camera_id)
         return None
 
     try:
@@ -284,7 +286,7 @@ async def _resolve_existing_recording(
             sanitize_log_value(camera_id),
             sanitize_log_value(exc),
         )
-        await clear_recording_session(redis_client, camera_id)
+        await clear_recording_session(redis_client, session, camera_id)
         return None
 
     if stream_view.mode != StreamMode.YOUTUBE:
@@ -293,7 +295,7 @@ async def _resolve_existing_recording(
             sanitize_log_value(camera_id),
             sanitize_log_value(stream_view.mode),
         )
-        await clear_recording_session(redis_client, camera_id)
+        await clear_recording_session(redis_client, session, camera_id)
         return None
 
     return stream_view
@@ -319,7 +321,7 @@ async def stop_recording(
     cares about, and a running MediaMTX stream will eventually be noticed and stopped anyway.
     """
     redis_client = require_redis(redis)
-    recording_session = await load_recording_session(redis_client, camera_id)
+    recording_session = await load_recording_session(redis_client, session, camera_id)
 
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
 
@@ -359,7 +361,7 @@ async def stop_recording(
         video_metadata=recording_session.video_metadata,
     )
     created_video = await create_video(session, video)
-    await clear_recording_session(redis_client, camera_id)
+    await clear_recording_session(redis_client, session, camera_id)
 
     return VideoRead.model_validate(created_video)
 
@@ -378,7 +380,7 @@ async def get_recording_monitor_stream(
 ) -> YouTubeMonitorStreamResponse:
     """Get the YouTube monitor stream for the active backend-owned recording session."""
     redis_client = require_redis(redis)
-    recording_session = await load_recording_session(redis_client, camera_id)
+    recording_session = await load_recording_session(redis_client, session, camera_id)
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera, redis)
 

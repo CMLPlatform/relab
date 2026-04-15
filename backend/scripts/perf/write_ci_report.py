@@ -4,25 +4,31 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+from typing import Any, cast
 
 
-def scenario_metrics(metrics: dict[str, object], name: str) -> tuple[float, float, float]:
-    duration = metrics[f"http_req_duration{{scenario:{name}}}"]
-    failed = metrics[f"http_req_failed{{scenario:{name}}}"]
+def scenario_metrics(metrics: dict[str, Any], name: str) -> tuple[float, float, float]:
+    """Return average, p95, and failed-request rate for one scenario."""
+    duration = cast("dict[str, Any]", metrics[f"http_req_duration{{scenario:{name}}}"])
+    failed = cast("dict[str, Any]", metrics[f"http_req_failed{{scenario:{name}}}"])
     total = float(max(failed["passes"] + failed["fails"], 1))
     return float(duration["avg"]), float(duration["p(95)"]), float(failed["fails"]) / total
 
 
 def fmt_ms(value: float) -> str:
+    """Format a duration in milliseconds or seconds."""
     return f"{value / 1000:.2f}s" if value >= 1000 else f"{value:.2f}ms"
 
 
 def fmt_rate(value: float) -> str:
+    """Format a ratio as a percentage string."""
     return f"{value * 100:.2f}%"
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for report generation."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", required=True)
     parser.add_argument("--base-url", default="http://api:8000")
@@ -30,19 +36,37 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Write a markdown CI baseline report from the latest k6 summary."""
     args = parse_args()
     summary_path = Path("reports/performance/latest-k6-summary.json")
     if not summary_path.exists():
-        raise SystemExit(f"Missing summary export: {summary_path}")
+        msg = f"Missing summary export: {summary_path}"
+        raise SystemExit(msg)
 
     report_path = Path(f"reports/performance/{args.date}-ci-baseline.md")
     data = json.loads(summary_path.read_text())
-    metrics = data["metrics"]
+    metrics = cast("dict[str, Any]", data["metrics"])
 
     product_avg, product_p95, product_fail = scenario_metrics(metrics, "product_tree_read")
     login_avg, login_p95, login_fail = scenario_metrics(metrics, "bearer_login")
     image_avg, image_p95, image_fail = scenario_metrics(metrics, "resized_image")
-    overall = metrics["http_req_duration"]
+    overall = cast("dict[str, Any]", metrics["http_req_duration"])
+    product_line = (
+        f"- `product_tree_read`: avg `{fmt_ms(product_avg)}`, "
+        f"p95 `{fmt_ms(product_p95)}`, failed requests `{fmt_rate(product_fail)}`"
+    )
+    login_line = (
+        f"- `bearer_login`: avg `{fmt_ms(login_avg)}`, "
+        f"p95 `{fmt_ms(login_p95)}`, failed requests `{fmt_rate(login_fail)}`"
+    )
+    image_line = (
+        f"- `resized_image`: avg `{fmt_ms(image_avg)}`, "
+        f"p95 `{fmt_ms(image_p95)}`, failed requests `{fmt_rate(image_fail)}`"
+    )
+    overall_line = (
+        f"- overall HTTP: avg `{fmt_ms(float(overall['avg']))}`, "
+        f"p95 `{fmt_ms(float(overall['p(95)']))}`"
+    )
 
     report_path.write_text(
         "\n".join(
@@ -55,10 +79,10 @@ def main() -> None:
                 "",
                 "## Results",
                 "",
-                f"- `product_tree_read`: avg `{fmt_ms(product_avg)}`, p95 `{fmt_ms(product_p95)}`, failed requests `{fmt_rate(product_fail)}`",
-                f"- `bearer_login`: avg `{fmt_ms(login_avg)}`, p95 `{fmt_ms(login_p95)}`, failed requests `{fmt_rate(login_fail)}`",
-                f"- `resized_image`: avg `{fmt_ms(image_avg)}`, p95 `{fmt_ms(image_p95)}`, failed requests `{fmt_rate(image_fail)}`",
-                f"- overall HTTP: avg `{fmt_ms(float(overall['avg']))}`, p95 `{fmt_ms(float(overall['p(95)']))}`",
+                product_line,
+                login_line,
+                image_line,
+                overall_line,
                 "",
                 "## Notes",
                 "",
@@ -70,7 +94,7 @@ def main() -> None:
         )
         + "\n"
     )
-    print(report_path)
+    sys.stdout.write(f"{report_path}\n")
 
 
 if __name__ == "__main__":

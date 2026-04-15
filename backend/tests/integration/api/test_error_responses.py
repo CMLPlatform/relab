@@ -12,8 +12,9 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import FastAPI, HTTPException, status
 
-from app.api.auth.dependencies import current_active_superuser, current_active_user, current_active_verified_user
+from app.api.auth.dependencies import current_active_superuser
 from tests.factories.models import UserFactory
+from tests.fixtures.client import override_authenticated_user
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -26,19 +27,19 @@ if TYPE_CHECKING:
 class TestUnauthenticated:
     """Endpoints that require authentication must return 401 when no credentials are sent."""
 
-    async def test_create_product_without_auth_returns_401(self, async_client: AsyncClient) -> None:
+    async def test_create_product_without_auth_returns_401(self, api_client: AsyncClient) -> None:
         """POST /products requires a verified user; anonymous request → 401."""
-        response = await async_client.post("/products", json={})
+        response = await api_client.post("/products", json={})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_get_me_without_auth_returns_401(self, async_client: AsyncClient) -> None:
+    async def test_get_me_without_auth_returns_401(self, api_client: AsyncClient) -> None:
         """GET /users/me requires authentication; anonymous request → 401."""
-        response = await async_client.get("/users/me")
+        response = await api_client.get("/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_401_response_has_detail_key(self, async_client: AsyncClient) -> None:
+    async def test_401_response_has_detail_key(self, api_client: AsyncClient) -> None:
         """401 responses must include a 'detail' key (FastAPI standard shape)."""
-        response = await async_client.get("/users/me")
+        response = await api_client.get("/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         body = response.json()
         assert "detail" in body
@@ -51,8 +52,8 @@ class TestForbidden:
     @pytest.fixture
     async def regular_user_client(
         self,
-        async_client: AsyncClient,
-        session: AsyncSession,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
         test_app: FastAPI,
     ) -> AsyncGenerator[AsyncClient]:
         """Authenticated client for a non-superuser.
@@ -65,14 +66,11 @@ class TestForbidden:
         def raise_forbidden() -> None:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-        user = await UserFactory.create_async(session=session, is_superuser=False, is_active=True)
-        test_app.dependency_overrides[current_active_user] = lambda: user
-        test_app.dependency_overrides[current_active_verified_user] = lambda: user
-        test_app.dependency_overrides[current_active_superuser] = raise_forbidden
-        yield async_client
-        test_app.dependency_overrides.pop(current_active_user, None)
-        test_app.dependency_overrides.pop(current_active_verified_user, None)
-        test_app.dependency_overrides.pop(current_active_superuser, None)
+        user = await UserFactory.create_async(session=db_session, is_superuser=False, is_active=True)
+        with override_authenticated_user(test_app, user, optional=False):
+            test_app.dependency_overrides[current_active_superuser] = raise_forbidden
+            yield api_client
+            test_app.dependency_overrides.pop(current_active_superuser, None)
 
     async def test_admin_taxonomy_create_as_regular_user_returns_403(self, regular_user_client: AsyncClient) -> None:
         """POST /admin/taxonomies is superuser-only; regular user → 403."""
@@ -92,19 +90,19 @@ class TestForbidden:
 class TestNotFound:
     """Requests for non-existent resources must return 404."""
 
-    async def test_get_nonexistent_taxonomy_returns_404(self, async_client: AsyncClient) -> None:
+    async def test_get_nonexistent_taxonomy_returns_404(self, api_client: AsyncClient) -> None:
         """GET /taxonomies/{id} with an id that does not exist → 404."""
-        response = await async_client.get("/taxonomies/999999")
+        response = await api_client.get("/taxonomies/999999")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_get_nonexistent_material_returns_404(self, async_client: AsyncClient) -> None:
+    async def test_get_nonexistent_material_returns_404(self, api_client: AsyncClient) -> None:
         """GET /materials/{id} with an id that does not exist → 404."""
-        response = await async_client.get("/materials/999999")
+        response = await api_client.get("/materials/999999")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    async def test_404_response_has_detail_key(self, async_client: AsyncClient) -> None:
+    async def test_404_response_has_detail_key(self, api_client: AsyncClient) -> None:
         """404 responses must include a 'detail' key."""
-        response = await async_client.get("/taxonomies/999999")
+        response = await api_client.get("/taxonomies/999999")
         assert response.status_code == status.HTTP_404_NOT_FOUND
         body = response.json()
         assert "detail" in body
@@ -114,22 +112,24 @@ class TestNotFound:
 class TestUnprocessableEntity:
     """Invalid request bodies must return 422 with structured error details."""
 
-    async def test_create_taxonomy_missing_required_fields_returns_422(self, superuser_client: AsyncClient) -> None:
+    async def test_create_taxonomy_missing_required_fields_returns_422(
+        self, api_client_superuser: AsyncClient
+    ) -> None:
         """POST /admin/taxonomies with an empty body → 422 (name and domains are required)."""
-        response = await superuser_client.post("/admin/taxonomies", json={})
+        response = await api_client_superuser.post("/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
-    async def test_422_response_has_detail_list(self, superuser_client: AsyncClient) -> None:
+    async def test_422_response_has_detail_list(self, api_client_superuser: AsyncClient) -> None:
         """422 responses must have 'detail' as a list of validation error objects."""
-        response = await superuser_client.post("/admin/taxonomies", json={})
+        response = await api_client_superuser.post("/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         body = response.json()
         assert "detail" in body
         assert isinstance(body["detail"], list)
 
-    async def test_422_error_objects_have_loc_msg_type(self, superuser_client: AsyncClient) -> None:
+    async def test_422_error_objects_have_loc_msg_type(self, api_client_superuser: AsyncClient) -> None:
         """Each validation error must contain 'loc', 'msg', and 'type' keys."""
-        response = await superuser_client.post("/admin/taxonomies", json={})
+        response = await api_client_superuser.post("/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         errors = response.json()["detail"]
         assert len(errors) > 0
@@ -138,8 +138,10 @@ class TestUnprocessableEntity:
             assert "msg" in error, f"Missing 'msg' in error: {error}"
             assert "type" in error, f"Missing 'type' in error: {error}"
 
-    async def test_create_material_with_negative_density_returns_422(self, superuser_client: AsyncClient) -> None:
+    async def test_create_material_with_negative_density_returns_422(
+        self, api_client_superuser: AsyncClient
+    ) -> None:
         """Materials with negative density must fail schema validation with 422."""
         data = {"name": "Bad Material", "density_kg_m3": -500.0}
-        response = await superuser_client.post("/admin/materials", json=data)
+        response = await api_client_superuser.post("/admin/materials", json=data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

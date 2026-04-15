@@ -19,6 +19,7 @@ from limits.strategies import STRATEGIES
 from app.api.auth.config import settings as auth_settings
 from app.core.config import settings as core_settings
 from app.core.middleware.client_ip import get_client_ip
+from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -83,10 +84,16 @@ class Limiter:
         return decorator
 
 
-def rate_limit_exceeded_handler(_request: Request, exc: Exception) -> JSONResponse:
+def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return a 429 JSON response for rate-limited requests."""
     detail = exc.detail if isinstance(exc, RateLimitExceededError) else "Rate limit exceeded"
-    return JSONResponse(status_code=429, content={"detail": detail})
+    return build_problem_response(
+        request=request,
+        status_code=429,
+        detail=detail,
+        code="RateLimitExceeded",
+        type_="https://httpstatuses.com/429",
+    )
 
 
 def _find_request(args: tuple[object, ...], kwargs: dict[str, object]) -> Request | None:

@@ -14,12 +14,17 @@ from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiv
 from app.api.auth.models import User
 from app.api.auth.services.privacy import redact_product_owner
 from app.api.background_data.routers.public import RecursionDepthQueryParam
-from app.api.common.crud.query import list_models, page_models, require_model
-from app.api.common.crud.scopes import require_scoped_model
+from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.loading import apply_loader_profile
+from app.api.common.crud.query import page_models, require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
-from app.api.data_collection import crud
+from app.api.data_collection.crud.products import (
+    PRODUCT_READ_DETAIL_RELATIONSHIPS,
+    PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+    get_product_trees,
+)
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.schemas import (
@@ -28,11 +33,13 @@ from app.api.data_collection.schemas import (
     ProductReadWithRelationshipsAndFlatComponents,
 )
 from app.api.data_collection.validators import ProductValidationError, validate_product
+from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sqlalchemy import Select
+    from starlette.responses import Response
 
 user_product_redirect_router = PublicAPIRouter(prefix="/users/me/products", tags=["products"])
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
@@ -108,6 +115,49 @@ async def load_product_tree_for_validation(
         await load_product_tree_for_validation(session, component, visited=visited)
 
 
+async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
+    """Load one product with the summary relationships used on collection reads."""
+    return await require_model(session, Product, product_id, loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS)
+
+
+async def _require_product_detail(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
+    """Load one product with the detail relationships used on detail reads."""
+    return await require_model(session, Product, product_id, loaders=PRODUCT_READ_DETAIL_RELATIONSHIPS)
+
+
+async def _list_direct_components(
+    session: AsyncSessionDep,
+    *,
+    product_id: PositiveInt,
+    product_filter: ProductFilterWithRelationshipsDep,
+) -> Sequence[Product]:
+    """List direct child components for a product."""
+    statement = select(Product).where(Product.parent_id == product_id)
+    statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
+    statement = product_filter.filter(statement)
+    return list((await session.execute(statement)).scalars().unique().all())
+
+
+async def _load_product_component(
+    session: AsyncSessionDep,
+    *,
+    product_id: PositiveInt,
+    component_id: PositiveInt,
+) -> Product:
+    """Load one component scoped to a parent product."""
+    await _require_product_summary(session, product_id)
+    statement = select(Product).where(Product.id == component_id, Product.parent_id == product_id)
+    statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
+    product = (await session.execute(statement)).scalars().unique().one_or_none()
+    if product is not None:
+        return product
+
+    existing = await _require_product_detail(session, component_id)
+    if existing.parent_id != product_id:
+        raise DependentModelOwnershipError(Product, component_id, Product, product_id)
+    return existing
+
+
 @user_product_redirect_router.get(
     "",
     response_class=RedirectResponse,
@@ -132,13 +182,14 @@ async def redirect_to_current_user_products(
     summary="Get products collected by a user",
 )
 async def get_user_products(
+    request: Request,
     user_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
     *,
     include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
-) -> Page[Product]:
+) -> Page[Product] | Response:
     """Get products collected by a specific user."""
     if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
@@ -147,14 +198,15 @@ async def get_user_products(
     if not include_components_as_base_products:
         statement = statement.where(Product.parent_id.is_(None))
 
-    return await page_models(
+    payload = await page_models(
         session,
         Product,
-        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS,
         filters=product_filter,
         statement=statement,
         mutate_items=lambda items: redact_product_owners(items, current_user),
     )
+    return conditional_json_response(request, payload)
 
 
 @product_read_router.get(
@@ -163,26 +215,28 @@ async def get_user_products(
     summary="Get all products",
 )
 async def get_products(
+    request: Request,
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
     *,
     include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
-) -> Page[Product]:
+) -> Page[Product] | Response:
     """Get all products."""
     if include_components_as_base_products:
         statement: Select[tuple[Product]] = select(Product)
     else:
         statement = select(Product).where(Product.parent_id.is_(None))
 
-    return await page_models(
+    payload = await page_models(
         session,
         Product,
-        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+        loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS,
         filters=product_filter,
         statement=statement,
         mutate_items=lambda items: redact_product_owners(items, current_user),
     )
+    return conditional_json_response(request, payload)
 
 
 @product_read_router.get(
@@ -191,20 +245,21 @@ async def get_products(
     summary="Get products tree",
 )
 async def get_products_tree(
+    request: Request,
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
     recursion_depth: RecursionDepthQueryParam = 1,
-) -> list[ProductReadWithRecursiveComponents]:
+) -> list[ProductReadWithRecursiveComponents] | Response:
     """Get all base products and their components in a tree structure."""
-    products: Sequence[Product] = await crud.get_product_trees(
+    products: Sequence[Product] = await get_product_trees(
         session, recursion_depth=recursion_depth, product_filter=product_filter
     )
     for product in products:
         redact_product_owner(product, current_user)
         assign_shared_owner_tree(product, product.owner)
 
-    return [
+    payload = [
         ProductReadWithRecursiveComponents.model_validate(product).model_copy(
             update={
                 "components": convert_components_to_read_model(
@@ -214,6 +269,7 @@ async def get_products_tree(
         )
         for product in products
     ]
+    return conditional_json_response(request, payload)
 
 
 @product_read_router.get(
@@ -222,19 +278,16 @@ async def get_products_tree(
     summary="Get product by ID",
 )
 async def get_product(
+    request: Request,
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
-) -> ProductReadWithRelationshipsAndFlatComponents:
+) -> ProductReadWithRelationshipsAndFlatComponents | Response:
     """Get product by ID."""
-    product: Product = await require_model(
-        session,
-        Product,
-        product_id,
-        loaders=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
-    )
+    product = await _require_product_detail(session, product_id)
     redact_product_owner(product, current_user)
-    return ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
+    payload = ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
+    return conditional_json_response(request, payload)
 
 
 @product_read_router.get(
@@ -250,15 +303,10 @@ async def get_product_subtree(
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[ComponentReadWithRecursiveComponents]:
     """Get a product's components in a tree structure, up to a specified depth."""
-    parent_product: Product = await require_model(
-        session,
-        Product,
-        product_id,
-        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-    )
+    parent_product = await _require_product_summary(session, product_id)
     redact_product_owner(parent_product, current_user)
 
-    products: Sequence[Product] = await crud.get_product_trees(
+    products: Sequence[Product] = await get_product_trees(
         session, recursion_depth=recursion_depth, parent_id=product_id, product_filter=product_filter
     )
     for product in products:
@@ -288,19 +336,8 @@ async def get_product_components(
     product_filter: ProductFilterWithRelationshipsDep,
 ) -> list[ProductRead]:
     """Get all components of a product."""
-    parent_product = await require_model(
-        session,
-        Product,
-        product_id,
-        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-    )
-    products: Sequence[Product] = await list_models(
-        session,
-        Product,
-        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-        filters=product_filter,
-        statement=select(Product).where(Product.parent_id == product_id),
-    )
+    parent_product = await _require_product_summary(session, product_id)
+    products = await _list_direct_components(session, product_id=product_id, product_filter=product_filter)
     redact_product_owner(parent_product, current_user)
     for p in products:
         assign_shared_owner(p, parent_product.owner)
@@ -321,21 +358,8 @@ async def get_product_component(
     current_user: OptionalCurrentActiveUserDep,
 ) -> ProductReadWithRelationshipsAndFlatComponents:
     """Get component by ID."""
-    product: Product = await require_scoped_model(
-        session,
-        Product,
-        product_id,
-        Product,
-        component_id,
-        "parent_id",
-        loaders=crud.PRODUCT_READ_DETAIL_RELATIONSHIPS,
-    )
-    parent_product = await require_model(
-        session,
-        Product,
-        product_id,
-        loaders=crud.PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-    )
+    product = await _load_product_component(session, product_id=product_id, component_id=component_id)
+    parent_product = await _require_product_summary(session, product_id)
     redact_product_owner(parent_product, current_user)
     assign_shared_owner(product, parent_product.owner)
     assign_owner_to_components(product.components or [], parent_product.owner)

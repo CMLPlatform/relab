@@ -34,6 +34,10 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
 )
 from app.core.redis import OptionalRedisDep
 
+# Exponential backoff for LL-HLS manifest 404 retries. Totals ~7.75s; fast at the
+# start for the hot path, longer tail for a cold MediaMTX warm-up.
+_MANIFEST_RETRY_BACKOFF_S: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
+
 router = PublicAPIRouter()
 
 
@@ -61,13 +65,17 @@ async def proxy_hls(
 
     # MediaMTX creates the HLS muxer on first viewer but needs a few seconds
     # to buffer the first segment before the playlist is valid. Retry 404s on
-    # manifest requests only — segments are never retried.
+    # manifest requests only — segments are never retried. Uses an exponential
+    # backoff (0.25 / 0.5 / 1.0 / 2.0 / 4.0 s, ~7.75s total) so the first attempts
+    # are snappy for the common "MediaMTX already warm" case while still giving
+    # a slow startup ~8 s headroom.
+    media_type = _resolve_media_type(hls_path)
     is_manifest = hls_path.endswith(".m3u8")
-    max_attempts = 6 if is_manifest else 1
+    max_attempts = len(_MANIFEST_RETRY_BACKOFF_S) + 1 if is_manifest else 1
     last_exc: HTTPException | None = None
     for attempt in range(max_attempts):
         if attempt:
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(_MANIFEST_RETRY_BACKOFF_S[attempt - 1])
         try:
             relay_response = await camera_request(
                 endpoint=f"/hls/{hls_path}",
@@ -85,7 +93,6 @@ async def proxy_hls(
         if last_exc is None:
             raise HTTPException(status_code=404, detail="HLS manifest is not yet available")
         raise last_exc
-    media_type = _resolve_media_type(hls_path)
     return Response(
         content=relay_response.content,
         media_type=media_type,

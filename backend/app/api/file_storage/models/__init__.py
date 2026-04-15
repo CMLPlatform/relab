@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.api.common.models.base import Base, TimeStampMixinBare
-from app.api.file_storage.models.storage import FileType, ImageType
+from app.api.file_storage.models.storage_types import FileType, ImageType
 
 
 ### Pydantic base schemas (shared with schemas.py) ###

@@ -1,37 +1,43 @@
 """FastAPI exception handlers for API and framework exceptions."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import ValidationError
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.exceptions import APIError
+from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+
+    from starlette.responses import Response
 
 ### Generic exception handlers ###
 
 
 def create_exception_handler(
     default_status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
+) -> Callable[[Request, Exception], Awaitable[Response]]:
     """Create a FastAPI exception handler. Can take in a default status code for built-in exceptions."""
 
-    async def handler(_: Request, exc: Exception) -> JSONResponse:
+    async def handler(request: Request, exc: Exception) -> Response:
         if isinstance(exc, APIError):
             status_code = exc.http_status_code
-            detail = {"message": exc.message}
-            if exc.details:
-                detail["details"] = exc.details
+            detail = exc.message
             log_message = exc.log_message
+            extra = {"code": exc.__class__.__name__}
+            if exc.details:
+                extra["errors"] = exc.details
         else:
             status_code = default_status_code
-            detail = {"message": "Internal server error"} if status_code >= 500 else {"message": str(exc)}
+            detail = "Internal server error" if status_code >= 500 else str(exc)
             log_message = str(exc)
+            extra = {"code": exc.__class__.__name__}
 
         # Log based on status code severity. Can be made more granular if needed.
         if status_code >= 500:
@@ -41,7 +47,13 @@ def create_exception_handler(
         else:
             logger.info(f"{exc.__class__.__name__}: {log_message}")
 
-        return JSONResponse(status_code=status_code, content={"detail": detail})
+        return build_problem_response(
+            request=request,
+            status_code=status_code,
+            detail=detail,
+            code=extra.pop("code"),
+            extra=extra,
+        )
 
     return handler
 

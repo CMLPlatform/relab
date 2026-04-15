@@ -13,7 +13,7 @@ from pydantic import UUID4
 
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import mark_router_routes_public
-from app.api.file_storage.crud import get_image
+from app.api.file_storage.crud.media_queries import get_image
 from app.api.file_storage.examples import (
     IMAGE_RESIZE_HEIGHT_OPENAPI_EXAMPLES,
     IMAGE_RESIZE_WIDTH_OPENAPI_EXAMPLES,
@@ -21,6 +21,7 @@ from app.api.file_storage.examples import (
 from app.core.constants import HOUR
 from app.core.images import THUMBNAIL_WIDTHS, resize_image, thumbnail_path_for
 from app.core.logging import sanitize_log_value
+from app.core.runtime import get_connection_image_resize_limiter
 
 if TYPE_CHECKING:
     from typing import NoReturn
@@ -86,7 +87,7 @@ async def get_resized_image(
                 return Response(content=content, media_type=MEDIA_TYPE_WEBP, headers=cache_headers)
 
         # Fall back to on-demand resize for non-standard sizes
-        limiter = getattr(request.app.state, "image_resize_limiter", None)
+        limiter = get_connection_image_resize_limiter(request)
         resized_bytes = await to_thread.run_sync(resize_image, image_path, width, height, limiter=limiter)
 
         return Response(

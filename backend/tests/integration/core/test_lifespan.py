@@ -16,6 +16,7 @@ from httpx import CloseError
 
 from app.core.config import settings
 from app.core.database import async_engine
+from app.core.runtime import AppServices
 from app.main import app, lifespan
 
 if TYPE_CHECKING:
@@ -59,18 +60,20 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis) as mock_init_redis,
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis) as mock_init_redis,
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
                 assert app.state.redis is mock_redis
+                assert isinstance(app.state.services, AppServices)
+                assert app.state.services.redis is mock_redis
             mock_init_redis.assert_awaited_once()
 
     async def test_startup_sets_email_checker_on_app_state(self) -> None:
@@ -79,14 +82,14 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker) as mock_init_checker,
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker) as mock_init_checker,
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -96,18 +99,18 @@ class TestLifespan:
     async def test_startup_initializes_storage_on_app_state(self) -> None:
         """After startup, storage must be ensured and state marked ready."""
         with (
-            patch("app.main.init_redis"),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker"),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis"),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker"),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
-            patch("app.main.ensure_storage_directories") as mock_ensure,
-            patch("app.main.mount_static_directories") as mock_mount,
-            patch("app.main.register_favicon_route") as mock_favicon,
+            patch("app.core.lifecycle.ensure_storage_directories") as mock_ensure,
+            patch("app.core.lifecycle.mount_static_directories") as mock_mount,
+            patch("app.core.lifecycle.register_favicon_route") as mock_favicon,
         ):
             async with lifespan(app):
                 assert app.state.storage_ready is True
@@ -122,14 +125,14 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -143,14 +146,14 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis") as mock_close_redis,
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis") as mock_close_redis,
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -165,14 +168,14 @@ class TestLifespan:
         mock_email_checker.close.side_effect = RuntimeError("checker gone")
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis") as mock_close_redis,
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis") as mock_close_redis,
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -187,14 +190,14 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis", side_effect=ConnectionError("redis gone")),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis", side_effect=ConnectionError("redis gone")),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             # Must not raise
@@ -211,17 +214,17 @@ class TestLifespan:
         mock_http_client = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
-            patch("app.main.FileCleanupManager", return_value=mock_file_cleanup_manager),
-            patch("app.main.create_http_client", return_value=mock_http_client),
+            patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager),
+            patch("app.core.lifecycle.create_http_client", return_value=mock_http_client),
         ):
             async with lifespan(app):
                 pass
@@ -240,17 +243,17 @@ class TestLifespan:
         mock_http_client.aclose.side_effect = CloseError("client gone")
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
-            patch("app.main.FileCleanupManager", return_value=mock_file_cleanup_manager),
-            patch("app.main.create_http_client", return_value=mock_http_client),
+            patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager),
+            patch("app.core.lifecycle.create_http_client", return_value=mock_http_client),
         ):
             async with lifespan(app):
                 pass
@@ -264,14 +267,14 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry") as mock_init_telemetry,
-            patch("app.main.close_fastapi_cache"),
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry"),
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry") as mock_init_telemetry,
+            patch("app.core.lifecycle.close_fastapi_cache"),
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry"),
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
@@ -285,14 +288,14 @@ class TestLifespan:
         mock_email_checker = AsyncMock()
 
         with (
-            patch("app.main.init_redis", return_value=mock_redis),
-            patch("app.main.init_blocking_redis", return_value=None),
-            patch("app.main.init_email_checker", return_value=mock_email_checker),
-            patch("app.main.init_fastapi_cache"),
-            patch("app.main.init_telemetry"),
-            patch("app.main.close_fastapi_cache") as mock_close_fastapi_cache,
-            patch("app.main.close_redis"),
-            patch("app.main.shutdown_telemetry") as mock_shutdown_telemetry,
+            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
+            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
+            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
+            patch("app.core.lifecycle.init_fastapi_cache"),
+            patch("app.core.lifecycle.init_telemetry"),
+            patch("app.core.lifecycle.close_fastapi_cache") as mock_close_fastapi_cache,
+            patch("app.core.lifecycle.close_redis"),
+            patch("app.core.lifecycle.shutdown_telemetry") as mock_shutdown_telemetry,
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):

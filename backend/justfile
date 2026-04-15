@@ -85,20 +85,30 @@ test-cov-ci:
     mkdir -p reports/coverage
     {{ pytest }} --cov --cov-report=xml --cov-report=term
 
-# Run only unit tests (fast)
+# Run only unit tests (fast, no Docker/database path)
 test-unit *ARGS:
-    {{ pytest }} -m unit {{ ARGS }}
+    {{ pytest }} tests/unit {{ ARGS }}
 
-# Run only integration tests
-test-integration *ARGS:
-    {{ pytest }} -m integration {{ ARGS }}
+# Run DB-backed persistence and schema tests
+test-integration-db *ARGS:
+    {{ pytest }} tests/integration/db tests/integration/models tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
 
 # Run only API tests
 test-api *ARGS:
-    {{ pytest }} -m api {{ ARGS }}
+    {{ pytest }} tests/integration/api {{ ARGS }}
+
+# Run cross-boundary flow tests
+test-flows *ARGS:
+    {{ pytest }} tests/integration/flows {{ ARGS }}
+
+# Run all integration tests
+test-integration *ARGS:
+    {{ pytest }} tests/integration {{ ARGS }}
 
 # Run the backend CI test suite
-test-ci: test-cov-ci
+test-ci:
+    mkdir -p reports/coverage
+    {{ pytest }} tests/unit tests/integration --durations=20 --cov --cov-report=xml --cov-report=term
     @echo "✓ Backend CI test suite passed"
 
 # Run the full backend CI pipeline locally

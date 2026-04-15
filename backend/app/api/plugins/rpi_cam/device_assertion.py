@@ -21,6 +21,7 @@ from pydantic import UUID4
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.models import Camera
 from app.core.logging import sanitize_log_value
+from app.core.runtime import get_connection_redis
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -105,7 +106,7 @@ async def _authenticated_camera(
     if camera is None or not camera.credential_is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed.")
 
-    redis = getattr(request.app.state, "redis", None)
+    redis = get_connection_redis(request)
     if redis is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

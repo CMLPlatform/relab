@@ -42,10 +42,10 @@ UA_MOBILE = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0)"
 UA_DESKTOP = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0"
 
 
-async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
+async def get_user_by_email(db_session: AsyncSession, email: str) -> User | None:
     """Get a user from the database by email."""
     statement = select(User).where(User.email == email)
-    result = await session.execute(statement)
+    result = await db_session.execute(statement)
     return result.scalars().first()
 
 
@@ -54,7 +54,7 @@ class TestCompleteAuthFlow:
     """Test complete authentication flow from registration to logout."""
 
     async def test_full_bearer_auth_flow(
-        self, async_client: AsyncClient, mock_redis_dependency: Redis, session: AsyncSession
+        self, api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
     ) -> None:
         """Test complete bearer auth flow: register -> login -> refresh -> logout."""
         # Step 1: Register a new user
@@ -70,12 +70,12 @@ class TestCompleteAuthFlow:
                 password=register_data["password"],
                 username=register_data["username"],
             )
-            register_response = await async_client.post("/auth/register", json=register_data)
+            register_response = await api_client.post("/auth/register", json=register_data)
 
         assert register_response.status_code == status.HTTP_201_CREATED, "Registration failed"
 
         # Fetch user from database to verify registration
-        user = await get_user_by_email(session, register_data["email"])
+        user = await get_user_by_email(db_session, register_data["email"])
         assert user is not None, "User not found in database after registration"
 
         # Step 2: Login with bearer authentication
@@ -83,7 +83,7 @@ class TestCompleteAuthFlow:
             "username": register_data["email"],
             "password": register_data["password"],
         }
-        login_response = await async_client.post("/auth/bearer/login", data=login_data)
+        login_response = await api_client.post("/auth/bearer/login", data=login_data)
 
         assert login_response.status_code == status.HTTP_200_OK, "Login failed, skipping integration test"
 
@@ -97,42 +97,36 @@ class TestCompleteAuthFlow:
         # Get refresh token from cookies
         refresh_token = login_response.cookies.get("refresh_token")
 
-        # Skip if tokens not available
-        if not access_token or not refresh_token:
-            pytest.skip("Tokens not available")
-
         # Verify tokens are present
         assert access_token is not None
         assert refresh_token is not None
 
         # Step 5: Refresh the access token
         refresh_data = {"refresh_token": refresh_token}
-        refresh_response = await async_client.post("/auth/refresh", json=refresh_data)
+        refresh_response = await api_client.post("/auth/refresh", json=refresh_data)
+        assert refresh_response.status_code == status.HTTP_200_OK
+        refresh_result = refresh_response.json()
+        new_access_token = refresh_result["access_token"]
+        assert new_access_token is not None
+        assert new_access_token != access_token  # Should be a new token
 
-        if refresh_response.status_code == status.HTTP_200_OK:
-            refresh_result = refresh_response.json()
-            new_access_token = refresh_result["access_token"]
-            assert new_access_token is not None
-            assert new_access_token != access_token  # Should be a new token
+        # Step 6: Logout through the custom auth route so the refresh cookie is blacklisted too.
+        logout_response = await api_client.post(
+            "/auth/logout",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        assert logout_response.status_code == status.HTTP_204_NO_CONTENT
 
-        # Step 6: Logout (blacklist refresh token)
-        logout_data = {"refresh_token": refresh_token}
-        logout_response = await async_client.post("/auth/bearer/logout", json=logout_data)
+        # Verify token is now blacklisted in Redis
+        is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token}")
+        assert is_blacklisted
 
-        if logout_response.status_code == status.HTTP_200_OK:
-            logout_result = logout_response.json()
-            assert "message" in logout_result
-
-            # Verify token is now blacklisted in Redis
-            is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token}")
-            assert is_blacklisted
-
-            # Step 7: Try to use blacklisted token (should fail)
-            retry_refresh = await async_client.post("/auth/refresh", json=refresh_data)
-            assert retry_refresh.status_code == status.HTTP_401_UNAUTHORIZED
+        # Step 7: Try to use blacklisted token (should fail)
+        retry_refresh = await api_client.post("/auth/refresh", json=refresh_data)
+        assert retry_refresh.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_login_tracking(
-        self, async_client: AsyncClient, mock_redis_dependency: Redis, session: AsyncSession
+        self, api_client: AsyncClient, mock_redis_dependency: Redis, db_session: AsyncSession
     ) -> None:
         """Test that login tracking (last_login_at, last_login_ip) is updated."""
         del mock_redis_dependency
@@ -149,13 +143,12 @@ class TestCompleteAuthFlow:
                 password=register_data["password"],
                 username=register_data["username"],
             )
-            register_response = await async_client.post("/auth/register", json=register_data)
+            register_response = await api_client.post("/auth/register", json=register_data)
 
-        if register_response.status_code != status.HTTP_201_CREATED:
-            pytest.skip("Registration failed")
+        assert register_response.status_code == status.HTTP_201_CREATED
 
         # Fetch user from database to get ID (registration response doesn't include it)
-        user = await get_user_by_email(session, register_data["email"])
+        user = await get_user_by_email(db_session, register_data["email"])
         assert user is not None, "User not found in database after registration"
 
         # Verify user doesn't have login tracking yet
@@ -163,19 +156,18 @@ class TestCompleteAuthFlow:
 
         # Step 2: Login
         login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await async_client.post("/auth/bearer/login", data=login_data)
+        login_response = await api_client.post("/auth/bearer/login", data=login_data)
 
-        if login_response.status_code != status.HTTP_200_OK:
-            pytest.skip("Login failed")
+        assert login_response.status_code == status.HTTP_200_OK
 
         # Step 3: Verify login tracking was updated
         # Clear session cache to ensure we get fresh data from DB
-        session.expire_all()
-        user_after = await get_user_by_email(session, register_data["email"])
+        db_session.expire_all()
+        user_after = await get_user_by_email(db_session, register_data["email"])
         assert user_after is not None
         assert user_after.last_login_at is not None, "last_login_at was not updated"
 
-    async def test_cookie_auth_flow(self, async_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+    async def test_cookie_auth_flow(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
         """Test cookie-based authentication flow."""
         del mock_redis_dependency
         # Step 1: Register user
@@ -191,14 +183,13 @@ class TestCompleteAuthFlow:
                 password=register_data["password"],
                 username=register_data["username"],
             )
-            register_response = await async_client.post("/auth/register", json=register_data)
+            register_response = await api_client.post("/auth/register", json=register_data)
 
-        if register_response.status_code != status.HTTP_201_CREATED:
-            pytest.skip("Registration failed")
+        assert register_response.status_code == status.HTTP_201_CREATED
 
         # Step 2: Login with cookie transport
         login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await async_client.post("/auth/cookie/login", data=login_data)
+        login_response = await api_client.post("/auth/cookie/login", data=login_data)
 
         assert login_response.status_code == status.HTTP_204_NO_CONTENT, "Cookie login failed"
 
@@ -209,14 +200,14 @@ class TestCompleteAuthFlow:
         # Step 3: Access protected endpoint using cookies
 
         # Step 4: Logout (clear cookies)
-        await async_client.post("/auth/cookie/logout")
+        await api_client.post("/auth/cookie/logout")
 
 
 @pytest.mark.asyncio
 class TestErrorHandling:
     """Test error handling in authentication flows."""
 
-    async def test_refresh_with_expired_token(self, async_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+    async def test_refresh_with_expired_token(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
         """Test refreshing with an expired token returns 401."""
         # Create a refresh token manually and then delete it (simulate expiry)
         user_id = TEST_USER_ID
@@ -228,11 +219,11 @@ class TestErrorHandling:
 
         # Try to refresh
         refresh_data = {"refresh_token": token}
-        response = await async_client.post("/auth/refresh", json=refresh_data)
+        response = await api_client.post("/auth/refresh", json=refresh_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_concurrent_logout_and_refresh(self, async_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+    async def test_concurrent_logout_and_refresh(self, api_client: AsyncClient, mock_redis_dependency: Redis) -> None:
         """Test handling of concurrent logout and refresh operations."""
         del mock_redis_dependency
         # Register and login
@@ -248,13 +239,12 @@ class TestErrorHandling:
                 password=register_data["password"],
                 username=register_data["username"],
             )
-            await async_client.post("/auth/register", json=register_data)
+            await api_client.post("/auth/register", json=register_data)
 
         login_data = {"username": register_data["email"], "password": register_data["password"]}
-        login_response = await async_client.post("/auth/bearer/login", data=login_data)
+        login_response = await api_client.post("/auth/bearer/login", data=login_data)
 
-        if login_response.status_code != status.HTTP_200_OK:
-            pytest.skip("Login failed")
+        assert login_response.status_code == status.HTTP_200_OK
 
         # Get tokens from response and cookies
         login_result = login_response.json() if login_response.text else {}
@@ -262,14 +252,15 @@ class TestErrorHandling:
         refresh_token = login_response.cookies.get("refresh_token")
         assert refresh_token is not None, "No refresh token in cookies"
 
-        # Logout (blacklist token) - use access token for authentication
-        logout_data = {"refresh_token": refresh_token}
-        auth_headers = {"Authorization": f"Bearer {access_token}"} if access_token else {}
-        await async_client.post("/auth/bearer/logout", json=logout_data, headers=auth_headers)
+        # Logout via the custom route so the refresh token cookie is blacklisted.
+        logout_response = await api_client.post(
+            "/auth/logout",
+            headers={"Authorization": f"Bearer {access_token}"} if access_token else {},
+        )
+        assert logout_response.status_code == status.HTTP_204_NO_CONTENT
 
         # Try to refresh immediately after logout
         refresh_data = {"refresh_token": refresh_token}
-        refresh_response = await async_client.post("/auth/refresh", json=refresh_data)
+        refresh_response = await api_client.post("/auth/refresh", json=refresh_data)
 
-        # Should fail with 401 (or may succeed in test context if logout didn't work)
-        assert refresh_response.status_code in [status.HTTP_200_OK, status.HTTP_401_UNAUTHORIZED]
+        assert refresh_response.status_code == status.HTTP_401_UNAUTHORIZED

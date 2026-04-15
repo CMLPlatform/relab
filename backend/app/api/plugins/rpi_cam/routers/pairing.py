@@ -9,10 +9,15 @@ Flow:
 
 from __future__ import annotations
 
-import json
 import logging
 
 from fastapi import Query, Request, status
+from relab_rpi_cam_models import (
+    PairingClaimedRecord,
+    PairingPendingRecord,
+    PairingPollResponse,
+    PairingRegisterResponse,
+)
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.services.rate_limiter import limiter
@@ -29,9 +34,14 @@ from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead
 from app.api.plugins.rpi_cam.schemas.pairing import (
     PairingClaimRequest,
-    PairingPollResponse,
     PairingRegisterRequest,
-    PairingRegisterResponse,
+)
+from app.api.plugins.rpi_cam.utils.device_contracts import (
+    build_claimed_bootstrap,
+    build_claimed_record,
+    build_waiting_record,
+    dump_pairing_record,
+    parse_pairing_record,
 )
 from app.core.config import settings as core_settings
 from app.core.logging import sanitize_log_value
@@ -49,8 +59,6 @@ REGISTER_RATE_LIMIT = "20/minute"
 POLL_RATE_LIMIT = "60/minute"
 
 _STATUS_WAITING = "waiting"
-_STATUS_PAIRED = "paired"
-_AUTH_SCHEME_DEVICE_ASSERTION = "device_assertion"
 
 
 def _pairing_key(code: str) -> str:
@@ -83,13 +91,12 @@ async def register_pairing_code(
     if existing is not None:
         raise PairingCodeCollisionError
 
-    payload = json.dumps(
-        {
-            "rpi_fingerprint": body.rpi_fingerprint,
-            "status": _STATUS_WAITING,
-            "public_key_jwk": body.public_key_jwk.model_dump(exclude_none=True),
-            "key_id": body.key_id,
-        }
+    payload = dump_pairing_record(
+        build_waiting_record(
+            rpi_fingerprint=body.rpi_fingerprint,
+            public_key_jwk=body.public_key_jwk,
+            key_id=body.key_id,
+        )
     )
     stored = await set_redis_value(redis, key, payload, ex=PAIRING_TTL_SECONDS)
     if not stored:
@@ -117,8 +124,8 @@ async def claim_pairing_code(
     if raw is None:
         raise PairingCodeNotFoundError
 
-    data = json.loads(raw)
-    if data.get("status") != _STATUS_WAITING:
+    record = parse_pairing_record(raw)
+    if not isinstance(record, PairingPendingRecord):
         raise PairingCodeAlreadyClaimedError
 
     db_camera = await crud.create_camera(
@@ -126,21 +133,19 @@ async def claim_pairing_code(
         CameraCreate(
             name=body.camera_name,
             description=body.description,
-            relay_public_key_jwk=data["public_key_jwk"],
-            relay_key_id=data["key_id"],
+            relay_public_key_jwk=record.public_key_jwk.model_dump(exclude_none=True),
+            relay_key_id=record.key_id,
         ),
         current_user.id,
     )
-    ws_url = _build_ws_url()
-
-    paired_payload = json.dumps(
-        {
-            "status": _STATUS_PAIRED,
-            "camera_id": str(db_camera.id),
-            "ws_url": ws_url,
-            "auth_scheme": _AUTH_SCHEME_DEVICE_ASSERTION,
-            "key_id": db_camera.relay_key_id,
-        }
+    paired_payload = dump_pairing_record(
+        build_claimed_record(
+            build_claimed_bootstrap(
+                camera_id=str(db_camera.id),
+                ws_url=_build_ws_url(),
+                key_id=db_camera.relay_key_id,
+            )
+        )
     )
     await set_redis_value(redis, key, paired_payload, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
 
@@ -172,22 +177,22 @@ async def poll_pairing_status(
     if raw is None:
         raise PairingCodeNotFoundError
 
-    data = json.loads(raw)
+    record = parse_pairing_record(raw)
 
-    if data.get("status") == _STATUS_WAITING:
-        if data.get("rpi_fingerprint") != fingerprint:
+    if isinstance(record, PairingPendingRecord):
+        if record.rpi_fingerprint != fingerprint:
             raise PairingFingerprintMismatchError
-        return PairingPollResponse(status=_STATUS_WAITING)
+        return PairingPollResponse.waiting()
 
-    if data.get("status") == _STATUS_PAIRED:
+    if isinstance(record, PairingClaimedRecord):
         await delete_redis_key(redis, key)
         logger.info("Pairing credentials retrieved for code %s.", sanitize_log_value(code))
-        return PairingPollResponse(
-            status=_STATUS_PAIRED,
-            camera_id=data["camera_id"],
-            ws_url=data["ws_url"],
-            auth_scheme=data["auth_scheme"],
-            key_id=data["key_id"],
+        return PairingPollResponse.from_claimed_bootstrap(
+            build_claimed_bootstrap(
+                camera_id=record.camera_id,
+                ws_url=record.ws_url,
+                key_id=record.key_id,
+            )
         )
 
     raise PairingCodeNotFoundError

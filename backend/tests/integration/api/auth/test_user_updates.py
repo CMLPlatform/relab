@@ -25,60 +25,60 @@ class TestUpdateUserValidation:
     """Integration tests for update_user_override() username uniqueness logic."""
 
     @pytest.mark.asyncio
-    async def test_update_username_to_available_name_succeeds(self, session: AsyncSession) -> None:
+    async def test_update_username_to_available_name_succeeds(self, db_session: AsyncSession) -> None:
         """Updating to an available username should succeed."""
         user = await UserFactory.create_async(
-            session,
+            db_session,
             email=USER1_EMAIL,
             username=USER1_USERNAME,
             hashed_password="pw",
         )
         user_db = MagicMock()
-        user_db.session = session
+        user_db.session = db_session
         result = await update_user_override(user_db, user, UserUpdate(username=NEW_USERNAME))
         assert result.username == NEW_USERNAME
 
     @pytest.mark.asyncio
-    async def test_update_username_to_same_name_succeeds(self, session: AsyncSession) -> None:
+    async def test_update_username_to_same_name_succeeds(self, db_session: AsyncSession) -> None:
         """Updating to the same username should succeed."""
         user = await UserFactory.create_async(
-            session,
+            db_session,
             email=USER1_EMAIL,
             username=USER1_USERNAME,
             hashed_password="pw",
         )
         user_db = MagicMock()
-        user_db.session = session
+        user_db.session = db_session
         result = await update_user_override(user_db, user, UserUpdate(username=USER1_USERNAME))
         assert result.username == USER1_USERNAME
 
     @pytest.mark.asyncio
-    async def test_update_username_to_taken_name_raises(self, session: AsyncSession) -> None:
+    async def test_update_username_to_taken_name_raises(self, db_session: AsyncSession) -> None:
         """Updating to a taken username should raise an error."""
-        await UserFactory.create_async(session, email=USER1_EMAIL, username=TAKEN_USERNAME, hashed_password="pw")
+        await UserFactory.create_async(db_session, email=USER1_EMAIL, username=TAKEN_USERNAME, hashed_password="pw")
         user2 = await UserFactory.create_async(
-            session,
+            db_session,
             email=USER2_EMAIL,
             username=USER2_USERNAME,
             hashed_password="pw",
         )
         user_db = MagicMock()
-        user_db.session = session
+        user_db.session = db_session
 
         with pytest.raises(UserNameAlreadyExistsError):
             await update_user_override(user_db, user2, UserUpdate(username=TAKEN_USERNAME))
 
     @pytest.mark.asyncio
-    async def test_update_without_username_change_passes_through(self, session: AsyncSession) -> None:
+    async def test_update_without_username_change_passes_through(self, db_session: AsyncSession) -> None:
         """Updating without changing the username should pass through."""
         user = await UserFactory.create_async(
-            session,
+            db_session,
             email=USER1_EMAIL,
             username=USER1_USERNAME,
             hashed_password="pw",
         )
         user_db = MagicMock()
-        user_db.session = session
+        user_db.session = db_session
         result = await update_user_override(user_db, user, UserUpdate(username=None))
         assert result.username is None
 
@@ -88,12 +88,12 @@ class TestUpdateUserValidation:
 class TestUpdateUserEndpoint:
     """Integration tests for the user update API endpoint."""
 
-    async def test_update_user_unauthenticated_returns_401(self, async_client: AsyncClient) -> None:
+    async def test_update_user_unauthenticated_returns_401(self, api_client: AsyncClient) -> None:
         """Test that updating a user without authentication returns 401."""
-        response = await async_client.patch("/users/me", json={"username": "any_name"})
+        response = await api_client.patch("/users/me", json={"username": "any_name"})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_get_me_unauthenticated_returns_401(self, async_client: AsyncClient) -> None:
+    async def test_get_me_unauthenticated_returns_401(self, api_client: AsyncClient) -> None:
         """Test that getting user info without authentication returns 401."""
-        response = await async_client.get("/users/me")
+        response = await api_client.get("/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED

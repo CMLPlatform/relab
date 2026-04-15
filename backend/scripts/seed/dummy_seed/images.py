@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import Headers
 
-from app.api.file_storage.crud import create_image
+from app.api.file_storage.crud.media_queries import create_image
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
 from app.core.config import settings

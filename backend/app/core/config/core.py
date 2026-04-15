@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 # Constants for database drivers to resolve PLR2004
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
+HTTPS_SCHEME = "https"
 
 
 class CoreSettings(RelabBaseSettings):
@@ -246,14 +247,8 @@ class CoreSettings(RelabBaseSettings):
             raise ValueError(msg)
         return self
 
-    @model_validator(mode="after")
-    def validate_security_settings(self) -> Self:
-        """Validate environment-specific security settings."""
-        if self.environment not in (Environment.PROD, Environment.STAGING):
-            if self.cors_origin_regex is None:
-                self.cors_origin_regex = DEFAULT_CORS_ORIGIN_REGEX
-            return self
-
+    def _production_security_errors(self) -> list[str]:
+        """Collect environment-specific security validation errors."""
         errors: list[str] = []
 
         if self.cors_origin_regex == DEFAULT_CORS_ORIGIN_REGEX:
@@ -271,18 +266,29 @@ class CoreSettings(RelabBaseSettings):
         if self.superuser_email == DEFAULT_SUPERUSER_EMAIL:
             errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
 
-        if self.backend_api_url.scheme != "https":
+        if self.backend_api_url.scheme != HTTPS_SCHEME:
             errors.append("BACKEND_API_URL must use https in production/staging")
 
-        if self.frontend_app_url.scheme != "https":
+        if self.frontend_app_url.scheme != HTTPS_SCHEME:
             errors.append("FRONTEND_APP_URL must use https in production/staging")
 
-        if self.frontend_web_url.scheme != "https":
+        if self.frontend_web_url.scheme != HTTPS_SCHEME:
             errors.append("FRONTEND_WEB_URL must use https in production/staging")
 
         if self.otel_enabled and not self.otel_exporter_otlp_endpoint:
             errors.append("OTEL_EXPORTER_OTLP_ENDPOINT must be set when OTEL_ENABLED is true")
 
+        return errors
+
+    @model_validator(mode="after")
+    def validate_security_settings(self) -> Self:
+        """Validate environment-specific security settings."""
+        if self.environment not in (Environment.PROD, Environment.STAGING):
+            if self.cors_origin_regex is None:
+                self.cors_origin_regex = DEFAULT_CORS_ORIGIN_REGEX
+            return self
+
+        errors = self._production_security_errors()
         if errors:
             formatted = "\n  - ".join(errors)
             msg = f"Production security check failed:\n  - {formatted}"

@@ -1,5 +1,9 @@
 """Shared constants for auth integration and unit-style endpoint tests."""
 
+from functools import lru_cache
+
+from pwdlib import PasswordHash
+
 TEST_EMAIL = "newuser@example.com"
 TEST_PASSWORD = "SecurePassword123"
 TEST_USERNAME = "newuser"
@@ -29,3 +33,14 @@ TAKEN_USERNAME = "already_taken_user"
 FRONTEND_REDIRECT_URI = "http://localhost:3000"
 JWT_DOT_COUNT = 2
 TEST_STATE_JWT_SECRET = "test-state-jwt-secret-32-bytes-long"
+
+
+@lru_cache(maxsize=1)
+def _password_hasher() -> PasswordHash:
+    """Return a stable password hasher for auth integration test data."""
+    return PasswordHash.recommended()
+
+
+def hash_test_password(password: str) -> str:
+    """Hash a password with a real supported scheme for auth-focused tests."""
+    return _password_hasher().hash(password)

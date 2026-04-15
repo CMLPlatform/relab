@@ -8,10 +8,10 @@ from tests.factories.models import CategoryFactory, MaterialFactory, ProductType
 
 
 @pytest.fixture
-async def db_taxonomy(session: AsyncSession) -> Taxonomy:
+async def db_taxonomy(db_session: AsyncSession) -> Taxonomy:
     """Create and return a test taxonomy in database."""
     return await TaxonomyFactory.create_async(
-        session,
+        db_session,
         name="CEN/TC 411 Materials Taxonomy",
         version="v2.1.0",
         description="European standard material classification for circular economy",
@@ -21,10 +21,10 @@ async def db_taxonomy(session: AsyncSession) -> Taxonomy:
 
 
 @pytest.fixture
-async def db_category(session: AsyncSession, db_taxonomy: Taxonomy) -> Category:
+async def db_category(db_session: AsyncSession, db_taxonomy: Taxonomy) -> Category:
     """Create and return a test category in database."""
     return await CategoryFactory.create_async(
-        session,
+        db_session,
         name="Ferrous Metals",
         description="Iron-based alloys including steel and cast iron",
         taxonomy_id=db_taxonomy.id,
@@ -32,10 +32,10 @@ async def db_category(session: AsyncSession, db_taxonomy: Taxonomy) -> Category:
 
 
 @pytest.fixture
-async def db_material(session: AsyncSession) -> Material:
+async def db_material(db_session: AsyncSession) -> Material:
     """Create and return a test material in database."""
     return await MaterialFactory.create_async(
-        session,
+        db_session,
         name="Stainless Steel 304",
         description="Austenitic chromium-nickel stainless steel",
         density_kg_m3=7930.0,
@@ -44,10 +44,10 @@ async def db_material(session: AsyncSession) -> Material:
 
 
 @pytest.fixture
-async def db_product_type(session: AsyncSession) -> ProductType:
+async def db_product_type(db_session: AsyncSession) -> ProductType:
     """Create and return a test product type in database."""
     return await ProductTypeFactory.create_async(
-        session,
+        db_session,
         name="Power Tool",
         description="Handheld electric tools for construction and DIY",
     )

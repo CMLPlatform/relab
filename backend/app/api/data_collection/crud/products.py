@@ -13,7 +13,7 @@ from app.api.auth.services.stats import recompute_user_stats
 from app.api.background_data.models import Material, ProductType
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_model, require_models
-from app.api.data_collection.crud.storage import product_files_crud, product_images_crud
+from app.api.data_collection.crud.storage import delete_all_product_files, delete_all_product_images
 from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import (
@@ -230,8 +230,8 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
     """Delete a product from the database."""
     db_product = await require_model(db, Product, product_id)
 
-    await product_files_crud.delete_all(db, product_id)
-    await product_images_crud.delete_all(db, product_id)
+    await delete_all_product_files(db, product_id)
+    await delete_all_product_images(db, product_id)
 
     owner_id = db_product.owner_id
     await db.delete(db_product)

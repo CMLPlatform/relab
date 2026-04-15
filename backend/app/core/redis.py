@@ -10,6 +10,7 @@ from redis.exceptions import RedisError
 
 from app.core.config import settings
 from app.core.logging import sanitize_log_value
+from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def _redis_from_request(request: Request) -> Redis | None:
     """Return the Redis client from app state when available."""
-    return request.app.state.redis if hasattr(request.app.state, "redis") else None
+    return get_request_services(request).redis
 
 
 async def _execute_redis_operation[T](
@@ -189,13 +190,13 @@ async def delete_redis_key(redis_client: Redis, key: str) -> bool:
 
 
 def get_redis(request: Request) -> Redis:
-    """FastAPI dependency to get Redis client from application state (raises error if unavailable).
+    """FastAPI dependency to get the shared Redis client (raises if unavailable).
 
     Args:
-        request: FastAPI request object with app.state.redis
+        request: FastAPI request bound to the application's runtime services
 
     Returns:
-        Redis client from app state
+        Redis client from the runtime service container
 
     Raises:
         RuntimeError: If Redis not initialized or unavailable

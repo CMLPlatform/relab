@@ -14,14 +14,15 @@ class RPiCamSettings(RelabBaseSettings):
     rpi_cam_plugin_secret: str = ""
 
     @model_validator(mode="after")
-    def validate_plugin_secret(self) -> "RPiCamSettings":
+    def validate_plugin_secret(self) -> RPiCamSettings:
         """Require a valid Fernet key whenever the plugin may be active."""
         if self.rpi_cam_plugin_secret:
             Fernet(self.rpi_cam_plugin_secret.encode())
             return self
 
         if self.environment in (Environment.STAGING, Environment.PROD):
-            raise ValueError("RPI_CAM_PLUGIN_SECRET must not be empty in production/staging")
+            msg = "RPI_CAM_PLUGIN_SECRET must not be empty in production/staging"
+            raise ValueError(msg)
 
         return self
 

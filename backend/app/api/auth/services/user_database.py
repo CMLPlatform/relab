@@ -6,8 +6,9 @@ FastAPI Users requires.
 # spell-checker: ignore UOAP
 
 import uuid
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
+from fastapi import Depends
 from fastapi_users.db.base import BaseUserDatabase
 from fastapi_users.models import ID, OAP, UOAP, UP
 from sqlalchemy import String, func, select
@@ -17,7 +18,11 @@ from sqlalchemy.orm import Mapped, QueryableAttribute, mapped_column, selectinlo
 from app.api.common.models.base import Base
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import AsyncGenerator, Mapping
+
+    from pydantic import UUID4
+
+    from app.api.auth.models import User
 
 
 class BaseUserDB(Base):
@@ -146,3 +151,20 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
         self.session.add(oauth_account)
         await self.session.commit()
         return user
+
+
+async def get_auth_async_session() -> AsyncGenerator[AsyncSession]:
+    """Yield the shared async database session for auth request dependencies."""
+    from app.core.database import get_async_session  # noqa: PLC0415
+
+    async for session in get_async_session():
+        yield session
+
+
+async def get_user_db(
+    session: Annotated[AsyncSession, Depends(get_auth_async_session)],
+) -> AsyncGenerator[UserDatabaseAsync[User, UUID4]]:
+    """Build the FastAPI Users database adapter from the shared DB session."""
+    from app.api.auth.models import OAuthAccount, User  # noqa: PLC0415
+
+    yield UserDatabaseAsync(session, User, OAuthAccount)

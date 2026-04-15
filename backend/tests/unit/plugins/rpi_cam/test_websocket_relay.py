@@ -1,4 +1,5 @@
 """Unit tests for WebSocket relay transport helpers."""
+# ruff: noqa: SLF001
 # spell-checker: ignore whep
 
 from __future__ import annotations
@@ -32,6 +33,33 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnect
 
 
 @pytest.mark.asyncio
+async def test_relay_via_websocket_forwards_trace_headers_to_local_manager() -> None:
+    """The direct relay path should include the current trace headers."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.return_value = ({"status": 200, "data": {"ok": True}}, None)
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.relay._build_relay_trace_headers",
+            return_value={"traceparent": "00-abc-def-01", "tracestate": "vendor=value"},
+        ),
+    ):
+        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
+
+    assert response.status_code == 200
+    manager.send_command.assert_awaited_once_with(
+        camera_id,
+        "GET",
+        "/camera",
+        params=None,
+        body=None,
+        headers={"traceparent": "00-abc-def-01", "tracestate": "vendor=value"},
+    )
+
+
+@pytest.mark.asyncio
 async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -> None:
     """Relay timeouts should also hint that a retry is appropriate."""
     camera_id = uuid4()
@@ -53,6 +81,129 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera did not respond in time: /camera"
     assert exc_info.value.headers == {"Retry-After": "2"}
+
+
+@pytest.mark.asyncio
+async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
+    """After three failed cross-worker attempts, later requests should fast-fail."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = AsyncMock()
+
+    relay_mod._reset_cross_worker_cb_for_tests()
+
+    with patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager), patch(
+        "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+        AsyncMock(side_effect=RuntimeError("camera offline")),
+    ) as relay_cross_worker:
+        for _ in range(3):
+            with pytest.raises(HTTPException) as exc_info:
+                await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+            assert exc_info.value.status_code == 503
+
+        with pytest.raises(HTTPException) as exc_info:
+            await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Camera is not connected via WebSocket."
+    assert relay_cross_worker.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_cross_worker_relay_forwards_trace_headers() -> None:
+    """The cross-worker bridge should carry trace headers through Redis."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = AsyncMock()
+
+    relay_mod._reset_cross_worker_cb_for_tests()
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.relay._build_relay_trace_headers",
+            return_value={"traceparent": "00-abc-def-01", "baggage": "user_id=42"},
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            AsyncMock(return_value=({"status": 200, "data": {"ok": True}}, None)),
+        ) as relay_cross_worker,
+    ):
+        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert response.status_code == 200
+    relay_cross_worker.assert_awaited_once_with(
+        redis,
+        camera_id,
+        "GET",
+        "/camera",
+        None,
+        None,
+        {"traceparent": "00-abc-def-01", "baggage": "user_id=42"},
+        timeout_s=relay_mod.DEFAULT_COMMAND_TIMEOUT,
+    )
+
+
+@pytest.mark.asyncio
+async def test_cross_worker_relay_success_resets_circuit() -> None:
+    """A successful cross-worker call should clear prior failure state."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = AsyncMock()
+
+    relay_mod._reset_cross_worker_cb_for_tests()
+
+    with patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager), patch(
+        "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+        AsyncMock(
+            side_effect=[
+                RuntimeError("camera offline"),
+                RuntimeError("camera offline"),
+                ({"status": 200, "data": {"ok": True}}, None),
+                RuntimeError("camera offline"),
+            ]
+        ),
+    ) as relay_cross_worker:
+        for _ in range(2):
+            with pytest.raises(HTTPException):
+                await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        assert response.status_code == 200
+
+        with pytest.raises(HTTPException) as exc_info:
+            await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 503
+    assert relay_cross_worker.await_count == 4
+
+
+@pytest.mark.asyncio
+async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
+    """Once cooldown expires, the next call should probe the camera again."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = AsyncMock()
+
+    relay_mod._reset_cross_worker_cb_for_tests()
+    relay_mod._cross_worker_cb_state[camera_id] = (
+        relay_mod._CROSS_WORKER_CB_FAILURE_THRESHOLD,
+        0.0,
+    )
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            AsyncMock(side_effect=RuntimeError("camera still offline")),
+        ) as relay_cross_worker,pytest.raises(HTTPException)
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+    assert relay_cross_worker.await_count == 1
 
 
 class TestRelayCommandAllowlist:

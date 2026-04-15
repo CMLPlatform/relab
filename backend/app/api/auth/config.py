@@ -108,7 +108,7 @@ class AuthSettings(RelabBaseSettings):
         )
 
     @model_validator(mode="after")
-    def validate_production_auth_settings(self) -> "AuthSettings":
+    def validate_production_auth_settings(self) -> AuthSettings:
         """Fail fast when production-like auth settings are incomplete."""
         if not is_production_like_environment(self.environment.value):
             return self
@@ -140,7 +140,8 @@ class AuthSettings(RelabBaseSettings):
 
         if errors:
             formatted = "\n  - ".join(errors)
-            raise ValueError(f"Auth settings validation failed:\n  - {formatted}")
+            msg = f"Auth settings validation failed:\n  - {formatted}"
+            raise ValueError(msg)
 
         return self
 

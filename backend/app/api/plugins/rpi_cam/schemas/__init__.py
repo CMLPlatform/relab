@@ -6,14 +6,15 @@ from typing import TYPE_CHECKING, Any, Self
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
+from pydantic import UUID4, ConfigDict, Field, field_validator
+from relab_rpi_cam_models import DevicePublicKeyJWK
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.filters import UserFilter
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
-from app.api.plugins.rpi_cam.services import get_cached_telemetry, get_camera_status
+from app.api.plugins.rpi_cam.service_runtime import get_cached_telemetry, get_camera_status
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -40,17 +41,8 @@ class CameraFilterWithOwner(CameraFilter):
     owner: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
 
 
-class RelayPublicKeyJWK(BaseModel):
+class RelayPublicKeyJWK(DevicePublicKeyJWK):
     """Public P-256 JWK registered by an RPi camera."""
-
-    kty: str = Field(pattern="^EC$")
-    crv: str = Field(pattern="^P-256$")
-    x: str = Field(min_length=1)
-    y: str = Field(min_length=1)
-    use: str | None = None
-    kid: str | None = None
-
-    model_config = ConfigDict(extra="forbid")
 
 
 class CameraCreate(BaseCreateSchema, CameraBase):

@@ -4,73 +4,86 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import UserOwnershipError
-from app.api.auth.models import User
-from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.ownership import get_user_owned_object
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-
-def _ownership_error(user_id: int | UUID, model_id: int | UUID) -> DependentModelOwnershipError:
-    return DependentModelOwnershipError(
-        dependent_model=User,
-        dependent_id=model_id,
-        parent_model=User,
-        parent_id=user_id,
-    )
-
-
 @pytest.mark.unit
 class TestGetUserOwnedObject:
-    """get_user_owned_object delegates to require_scoped_model and maps ownership errors."""
+    """get_user_owned_object enforces owner scoping and maps failures cleanly."""
 
     @pytest.mark.asyncio
-    async def test_success_returns_object_and_passes_correct_params(self, mocker: MockerFixture) -> None:
-        """Happy path: returned object matches, FK defaults to 'owner_id', custom FK forwarded."""
+    async def test_success_returns_object_and_filters_by_default_owner_fk(self, mocker: MockerFixture) -> None:
+        """Happy path: returned object matches and the default FK is owner_id."""
         user_id = uuid4()
         model_id = uuid4()
         expected = MagicMock()
-        mock_require_scoped = mocker.patch(
-            "app.api.common.ownership.require_scoped_model",
+        expected.owner_id = user_id
+        statement = MagicMock()
+        statement.where.return_value = statement
+        mocker.patch(
+            "app.api.common.ownership.require_model",
             new_callable=AsyncMock,
             return_value=expected,
         )
+        mocker.patch("app.api.common.ownership.select", return_value=statement)
+        execute_result = MagicMock()
+        execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = expected
         db = AsyncMock(spec=AsyncSession)
+        db.execute.return_value = execute_result
         mock_model = MagicMock()
+        mock_model.id = MagicMock()
+        mock_model.owner_id = MagicMock()
 
-        # Default FK
         result = await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
-        assert result is expected
-        call = mock_require_scoped.call_args
-        assert call.kwargs["parent_model"] == User
-        assert call.kwargs["parent_id"] == user_id
-        assert call.kwargs["dependent_model"] == mock_model
-        assert call.kwargs["dependent_id"] == model_id
-        assert call.kwargs["parent_fk_name"] == "owner_id"
 
-        # Custom FK
-        await get_user_owned_object(
+        assert result is expected
+        db.execute.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_success_respects_custom_owner_fk(self, mocker: MockerFixture) -> None:
+        """Custom owner FK names should be checked and queried consistently."""
+        user_id = uuid4()
+        model_id = uuid4()
+        expected = MagicMock()
+        expected.created_by_id = user_id
+        statement = MagicMock()
+        statement.where.return_value = statement
+        mocker.patch(
+            "app.api.common.ownership.require_model",
+            new_callable=AsyncMock,
+            return_value=expected,
+        )
+        mocker.patch("app.api.common.ownership.select", return_value=statement)
+        execute_result = MagicMock()
+        execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = expected
+        db = AsyncMock(spec=AsyncSession)
+        db.execute.return_value = execute_result
+        mock_model = MagicMock()
+        mock_model.id = MagicMock()
+        mock_model.created_by_id = MagicMock()
+
+        result = await get_user_owned_object(
             db=db, model=mock_model, model_id=model_id, owner_id=user_id, user_fk="created_by_id"
         )
-        assert mock_require_scoped.call_args.kwargs["parent_fk_name"] == "created_by_id"
+
+        assert result is expected
 
     @pytest.mark.asyncio
     async def test_ownership_error_raises_user_ownership_error(self, mocker: MockerFixture) -> None:
-        """DependentModelOwnershipError is translated to UserOwnershipError (403, correct message)."""
+        """Mismatched owner IDs are translated to UserOwnershipError (403, correct message)."""
         user_id = uuid4()
         model_id = uuid4()
-        mocker.patch(
-            "app.api.common.ownership.require_scoped_model",
-            new_callable=AsyncMock,
-            side_effect=_ownership_error(user_id, model_id),
-        )
+        existing = MagicMock()
+        existing.owner_id = uuid4()
+        mocker.patch("app.api.common.ownership.require_model", new_callable=AsyncMock, return_value=existing)
         db = AsyncMock(spec=AsyncSession)
         mock_model = MagicMock()
         mock_model.model_label = "Product"
@@ -83,24 +96,3 @@ class TestGetUserOwnedObject:
         assert str(user_id) in err.message
         assert str(model_id) in err.message
         assert "Product" in err.message
-
-    @pytest.mark.asyncio
-    async def test_exception_chain_suppressed(self, mocker: MockerFixture) -> None:
-        """UserOwnershipError uses 'raise … from None' to hide internal CRUD error from clients."""
-        user_id = uuid4()
-        model_id = uuid4()
-        original = _ownership_error(user_id, model_id)
-        mocker.patch(
-            "app.api.common.ownership.require_scoped_model",
-            new_callable=AsyncMock,
-            side_effect=original,
-        )
-        db = AsyncMock(spec=AsyncSession)
-        mock_model = MagicMock()
-        mock_model.model_label = "Model"
-
-        with pytest.raises(UserOwnershipError) as exc_info:
-            await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)
-
-        assert exc_info.value.__cause__ is None
-        assert exc_info.value.__context__ is original

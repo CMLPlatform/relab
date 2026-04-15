@@ -11,8 +11,8 @@ from sqlalchemy import select
 
 from app.api.background_data.models import Material
 from app.api.common.crud.associations import require_link
-from app.api.common.crud.query import list_models, require_model
-from app.api.common.crud.scopes import require_scoped_model
+from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.associations import (
@@ -21,7 +21,18 @@ from app.api.common.schemas.associations import (
     MaterialProductLinkReadWithinProduct,
     MaterialProductLinkUpdate,
 )
-from app.api.data_collection import crud
+from app.api.data_collection.crud.material_links import (
+    add_material_to_product as add_material_to_product_link,
+)
+from app.api.data_collection.crud.material_links import (
+    add_materials_to_product as add_materials_to_product_links,
+)
+from app.api.data_collection.crud.material_links import (
+    remove_materials_from_product as remove_materials_from_product_links,
+)
+from app.api.data_collection.crud.material_links import (
+    update_material_within_product,
+)
 from app.api.data_collection.dependencies import MaterialProductLinkFilterDep, ProductByIDDep, UserOwnedProductDep
 from app.api.data_collection.examples import (
     PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES,
@@ -46,6 +57,40 @@ if TYPE_CHECKING:
 product_related_router = PublicAPIRouter(prefix="/products", tags=["products"])
 
 
+async def _load_product_video(session: AsyncSessionDep, *, product_id: PositiveInt, video_id: PositiveInt) -> Video:
+    """Load one video scoped to a product."""
+    video = await require_model(session, Video, video_id)
+    if video.product_id != product_id:
+        raise DependentModelOwnershipError(Video, video_id, Product, product_id)
+    return video
+
+
+async def _list_product_videos(
+    session: AsyncSessionDep,
+    *,
+    product_id: PositiveInt,
+    video_filter: VideoFilter,
+) -> Sequence[Video]:
+    """List videos scoped to one product."""
+    statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product_id)
+    statement = video_filter.filter(statement)
+    return list((await session.execute(statement)).scalars().unique().all())
+
+
+async def _list_product_material_links(
+    session: AsyncSessionDep,
+    *,
+    product_id: PositiveInt,
+    material_filter: MaterialProductLinkFilterDep,
+) -> Sequence[MaterialProductLink]:
+    """List bill-of-material rows scoped to one product."""
+    statement: Select[tuple[MaterialProductLink]] = (
+        select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
+    )
+    statement = material_filter.filter(statement)
+    return list((await session.execute(statement)).scalars().unique().all())
+
+
 @product_related_router.get(
     "/{product_id}/videos",
     response_model=list[VideoReadWithinProduct],
@@ -57,13 +102,7 @@ async def get_product_videos(
     video_filter: VideoFilter = FilterDepends(VideoFilter),
 ) -> Sequence[Video]:
     """Get all videos associated with a specific product."""
-    statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product.id)
-    return await list_models(
-        session,
-        Video,
-        filters=video_filter,
-        statement=statement,
-    )
+    return await _list_product_videos(session, product_id=product.id, video_filter=video_filter)
 
 
 @product_related_router.get(
@@ -77,7 +116,7 @@ async def get_product_video(
     session: AsyncSessionDep,
 ) -> Video:
     """Get a video associated with a specific product."""
-    return await require_scoped_model(session, Product, product_id, Video, video_id, "product_id")
+    return await _load_product_video(session, product_id=product_id, video_id=video_id)
 
 
 @product_related_router.post(
@@ -107,7 +146,7 @@ async def update_product_video(
     session: AsyncSessionDep,
 ) -> Video:
     """Update a video associated with a specific product."""
-    await require_scoped_model(session, Product, product.id, Video, video_id, "product_id")
+    await _load_product_video(session, product_id=product.id, video_id=video_id)
     return await update_video(session, video_id, video_update)
 
 
@@ -118,7 +157,7 @@ async def update_product_video(
 )
 async def delete_product_video(product: UserOwnedProductDep, video_id: PositiveInt, session: AsyncSessionDep) -> None:
     """Delete a video associated with a specific product."""
-    await require_scoped_model(session, Product, product.id, Video, video_id, "product_id")
+    await _load_product_video(session, product_id=product.id, video_id=video_id)
     await delete_video(session, video_id)
 
 
@@ -134,15 +173,7 @@ async def get_product_bill_of_materials(
 ) -> Sequence[MaterialProductLink]:
     """Get bill of materials for a product."""
     await require_model(session, Product, product_id)
-    statement: Select[tuple[MaterialProductLink]] = (
-        select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
-    )
-    return await list_models(
-        session,
-        MaterialProductLink,
-        filters=material_filter,
-        statement=statement,
-    )
+    return await _list_product_material_links(session, product_id=product_id, material_filter=material_filter)
 
 
 @product_related_router.get(
@@ -184,7 +215,7 @@ async def add_materials_to_product(
     session: AsyncSessionDep,
 ) -> list[MaterialProductLink]:
     """Add multiple materials to a product's bill of materials."""
-    return await crud.add_materials_to_product(session, product.id, materials)
+    return await add_materials_to_product_links(session, product.id, materials)
 
 
 @product_related_router.post(
@@ -212,7 +243,7 @@ async def add_material_to_product(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Add a single material to a product's bill of materials."""
-    return await crud.add_material_to_product(session, product.id, material_link, material_id=material_id)
+    return await add_material_to_product_link(session, product.id, material_link, material_id=material_id)
 
 
 @product_related_router.patch(
@@ -227,7 +258,7 @@ async def update_product_bill_of_materials(
     session: AsyncSessionDep,
 ) -> MaterialProductLink:
     """Update material in bill of materials for a product."""
-    return await crud.update_material_within_product(session, product.id, material_id, material)
+    return await update_material_within_product(session, product.id, material_id, material)
 
 
 @product_related_router.delete(
@@ -244,7 +275,7 @@ async def remove_material_from_product(
     session: AsyncSessionDep,
 ) -> None:
     """Remove a single material from a product's bill of materials."""
-    await crud.remove_materials_from_product(session, product.id, {material_id})
+    await remove_materials_from_product_links(session, product.id, {material_id})
 
 
 @product_related_router.delete(
@@ -265,4 +296,4 @@ async def remove_materials_from_product_bulk(
     session: AsyncSessionDep,
 ) -> None:
     """Remove multiple materials from a product's bill of materials."""
-    await crud.remove_materials_from_product(session, product.id, material_ids)
+    await remove_materials_from_product_links(session, product.id, material_ids)

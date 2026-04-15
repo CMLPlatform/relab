@@ -9,13 +9,15 @@ from typing import TYPE_CHECKING
 import pytest
 
 from app.api.file_storage.models import Image, MediaParentType
-from app.api.plugins.rpi_cam import services as rpi_cam_services
+from app.api.plugins.rpi_cam import service_runtime as rpi_cam_service_runtime
 from app.api.plugins.rpi_cam.services import get_last_image_url_per_camera
 
 if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
+pytestmark = [pytest.mark.integration, pytest.mark.db]
 
 
 @pytest.fixture(autouse=True)
@@ -40,11 +42,11 @@ def _stub_image_url_builder(monkeypatch: pytest.MonkeyPatch) -> None:
     # Patch the name as it is bound in the services module — the top-level
     # ``from ... import ImageRead`` creates a local reference there, so we must
     # target that reference rather than the originating schema module.
-    monkeypatch.setattr(rpi_cam_services, "ImageRead", _FakeImageRead)
+    monkeypatch.setattr(rpi_cam_service_runtime, "ImageRead", _FakeImageRead)
 
 
 async def _persist_image(
-    session: AsyncSession,
+    db_session: AsyncSession,
     *,
     camera_id: UUID,
     product_id: int,
@@ -65,36 +67,36 @@ async def _persist_image(
         parent_type=MediaParentType.PRODUCT,
         parent_id=product_id,
     )
-    session.add(image)
-    await session.flush()
+    db_session.add(image)
+    await db_session.flush()
     # Pin created_at after the ORM insert so we can force a deterministic
     # ordering across multiple rows in the same test.
     image.created_at = created_at
-    await session.flush()
+    await db_session.flush()
     return image
 
 
 @pytest.mark.asyncio
-async def test_empty_input_returns_empty_dict(session: AsyncSession) -> None:
+async def test_empty_input_returns_empty_dict(db_session: AsyncSession) -> None:
     """An empty ``camera_ids`` list should short-circuit to ``{}``."""
-    result = await get_last_image_url_per_camera(session, [])
+    result = await get_last_image_url_per_camera(db_session, [])
     assert result == {}
 
 
 @pytest.mark.asyncio
-async def test_returns_most_recent_image_per_camera(session: AsyncSession) -> None:
+async def test_returns_most_recent_image_per_camera(db_session: AsyncSession) -> None:
     """For each camera, the URL of the most recently-created image wins."""
     cam_a = uuid.uuid4()
     cam_b = uuid.uuid4()
 
     now = datetime.now(UTC)
     # Older capture on camera A → should be ignored in favour of the newer one.
-    await _persist_image(session, camera_id=cam_a, product_id=1, created_at=now - timedelta(hours=2))
-    newest_a = await _persist_image(session, camera_id=cam_a, product_id=1, created_at=now - timedelta(minutes=5))
-    newest_b = await _persist_image(session, camera_id=cam_b, product_id=2, created_at=now - timedelta(minutes=10))
-    await session.commit()
+    await _persist_image(db_session, camera_id=cam_a, product_id=1, created_at=now - timedelta(hours=2))
+    newest_a = await _persist_image(db_session, camera_id=cam_a, product_id=1, created_at=now - timedelta(minutes=5))
+    newest_b = await _persist_image(db_session, camera_id=cam_b, product_id=2, created_at=now - timedelta(minutes=10))
+    await db_session.commit()
 
-    result = await get_last_image_url_per_camera(session, [cam_a, cam_b])
+    result = await get_last_image_url_per_camera(db_session, [cam_a, cam_b])
 
     # Every camera in the request list is present in the response, even if
     # some don't have any images yet.
@@ -111,27 +113,27 @@ async def test_returns_most_recent_image_per_camera(session: AsyncSession) -> No
 
 
 @pytest.mark.asyncio
-async def test_camera_with_no_images_gets_none(session: AsyncSession) -> None:
+async def test_camera_with_no_images_gets_none(db_session: AsyncSession) -> None:
     """A camera in the request list with no captures must come back as ``None``."""
     cam_with_image = uuid.uuid4()
     cam_without_image = uuid.uuid4()
 
     await _persist_image(
-        session,
+        db_session,
         camera_id=cam_with_image,
         product_id=1,
         created_at=datetime.now(UTC),
     )
-    await session.commit()
+    await db_session.commit()
 
-    result = await get_last_image_url_per_camera(session, [cam_with_image, cam_without_image])
+    result = await get_last_image_url_per_camera(db_session, [cam_with_image, cam_without_image])
 
     assert result[cam_with_image] is not None
     assert result[cam_without_image] is None
 
 
 @pytest.mark.asyncio
-async def test_ignores_images_with_no_camera_id_in_metadata(session: AsyncSession) -> None:
+async def test_ignores_images_with_no_camera_id_in_metadata(db_session: AsyncSession) -> None:
     """Legacy images without ``camera_id`` in metadata must not leak into results."""
     cam = uuid.uuid4()
 
@@ -144,9 +146,9 @@ async def test_ignores_images_with_no_camera_id_in_metadata(session: AsyncSessio
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
-    session.add(legacy)
-    await session.commit()
+    db_session.add(legacy)
+    await db_session.commit()
 
-    result = await get_last_image_url_per_camera(session, [cam])
+    result = await get_last_image_url_per_camera(db_session, [cam])
 
     assert result == {cam: None}

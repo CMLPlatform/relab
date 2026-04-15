@@ -39,8 +39,8 @@ def mock_send_unsubscription_email() -> Generator[AsyncMock]:
 
 @pytest.mark.asyncio
 async def test_newsletter_subscription_lifecycle(
-    async_client: AsyncClient,
-    session: AsyncSession,
+    api_client: AsyncClient,
+    db_session: AsyncSession,
     mock_send_subscription_email: AsyncMock,
     mock_send_unsubscription_email: AsyncMock,
 ) -> None:
@@ -53,7 +53,7 @@ async def test_newsletter_subscription_lifecycle(
     4. Unsubscribe
     """
     # 1. Subscribe
-    response = await async_client.post("/newsletter/subscribe", json=FLOW_EMAIL)
+    response = await api_client.post("/newsletter/subscribe", json=FLOW_EMAIL)
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["email"] == FLOW_EMAIL
@@ -63,7 +63,7 @@ async def test_newsletter_subscription_lifecycle(
 
     # Verify DB state
     stmt = select(NewsletterSubscriber).where(NewsletterSubscriber.email == FLOW_EMAIL)
-    result = await session.execute(stmt)
+    result = await db_session.execute(stmt)
     subscriber = result.scalar_one_or_none()
     assert subscriber is not None
     assert subscriber.is_confirmed is False
@@ -74,16 +74,16 @@ async def test_newsletter_subscription_lifecycle(
     # Manually generate token as we can't easily intercept the one sent in email in this test setup
     token = create_jwt_token(FLOW_EMAIL, JWTType.NEWSLETTER_CONFIRMATION)
 
-    response = await async_client.post("/newsletter/confirm", json=token)
+    response = await api_client.post("/newsletter/confirm", json=token)
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["is_confirmed"] is True
 
     # Verify DB state
-    await session.refresh(subscriber)
+    await db_session.refresh(subscriber)
     assert subscriber.is_confirmed is True
 
     # 3. Request Unsubscribe
-    response = await async_client.post("/newsletter/request-unsubscribe", json=FLOW_EMAIL)
+    response = await api_client.post("/newsletter/request-unsubscribe", json=FLOW_EMAIL)
     assert response.status_code == status.HTTP_200_OK
 
     mock_send_unsubscription_email.assert_called_once()
@@ -91,10 +91,10 @@ async def test_newsletter_subscription_lifecycle(
     # 4. Unsubscribe
     unsubscribe_token = create_jwt_token(FLOW_EMAIL, JWTType.NEWSLETTER_UNSUBSCRIBE)
 
-    response = await async_client.post("/newsletter/unsubscribe", json=unsubscribe_token)
+    response = await api_client.post("/newsletter/unsubscribe", json=unsubscribe_token)
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
     # Verify DB state
-    result = await session.execute(stmt)
+    result = await db_session.execute(stmt)
     subscriber = result.scalar_one_or_none()
     assert subscriber is None

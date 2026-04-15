@@ -6,15 +6,16 @@ from typing import TYPE_CHECKING, Any, cast
 from fastapi import APIRouter, FastAPI, Security
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import HTMLResponse
+from fastapi.requests import Request
+from fastapi.responses import HTMLResponse, Response
 from fastapi.routing import APIRoute
 from fastapi.types import DecoratedCallable
 
 from app.api.auth.dependencies import current_active_superuser
 from app.api.common.config import settings as api_settings
 from app.api.common.routers.file_mounts import FAVICON_ROUTE
-from app.core.cache import HTMLCoder, cache
-from app.core.config import CacheNamespace, Environment, settings
+from app.core.config import Environment, settings
+from app.core.responses import conditional_html_response, conditional_json_response
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -24,6 +25,11 @@ OPENAPI_PUBLIC_INCLUSION_EXTENSION: str = "x-public"
 
 
 ### Route inclusion functions ###
+def _html_body_text(response: HTMLResponse) -> str:
+    """Normalize Starlette HTML response bodies to plain text."""
+    return bytes(response.body).decode("utf-8")
+
+
 class PublicAPIRouter(APIRouter):
     """A router that marks all routes as public in the OpenAPI schema.
 
@@ -63,6 +69,8 @@ def _build_public_openapi(app: FastAPI) -> dict[str, Any]:
                 filtered_paths.setdefault(path, {})[method] = operation
     schema["paths"] = filtered_paths
     schema["x-tagGroups"] = api_settings.public_docs.x_tag_groups
+    schema["info"]["x-api-version"] = api_settings.public_docs.version
+    schema["info"]["x-deprecation-policy"] = "Breaking changes are documented in release notes."
     return schema
 
 
@@ -83,25 +91,24 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:
 
     # Public documentation
     @public_docs_router.get("/openapi.json")
-    @cache(expire=settings.cache.ttls[CacheNamespace.DOCS])
-    async def get_openapi_schema() -> dict:
-        return app.openapi()
+    async def get_openapi_schema(request: Request) -> Response:
+        return conditional_json_response(request, app.openapi())
 
     @public_docs_router.get("/docs")
-    @cache(expire=settings.cache.ttls[CacheNamespace.DOCS], coder=HTMLCoder)
-    async def get_swagger_docs() -> HTMLResponse:
-        return get_swagger_ui_html(
+    async def get_swagger_docs(request: Request) -> Response:
+        html = get_swagger_ui_html(
             openapi_url="/openapi.json",
             title="Public API Documentation",
             swagger_favicon_url=FAVICON_ROUTE,
         )
+        return conditional_html_response(request, _html_body_text(html))
 
     @public_docs_router.get("/redoc")
-    @cache(expire=settings.cache.ttls[CacheNamespace.DOCS], coder=HTMLCoder)
-    async def get_redoc_docs() -> HTMLResponse:
-        return get_redoc_html(
+    async def get_redoc_docs(request: Request) -> Response:
+        html = get_redoc_html(
             openapi_url="/openapi.json", title="Public API Documentation - ReDoc", redoc_favicon_url=FAVICON_ROUTE
         )
+        return conditional_html_response(request, _html_body_text(html))
 
     app.include_router(public_docs_router)
 
@@ -112,29 +119,31 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:
     full_docs_router = APIRouter(prefix="", dependencies=full_docs_deps, include_in_schema=False)
 
     @full_docs_router.get("/openapi_full.json")
-    @cache(expire=settings.cache.ttls[CacheNamespace.DOCS])
-    async def get_full_openapi() -> dict:
-        return get_openapi(
+    async def get_full_openapi(request: Request) -> Response:
+        payload = get_openapi(
             title=api_settings.full_docs.title,
             version=api_settings.full_docs.version,
             description=api_settings.full_docs.description,
             routes=app.routes,
             license_info=api_settings.full_docs.license_info,
         )
+        payload["info"]["x-api-version"] = api_settings.full_docs.version
+        payload["info"]["x-deprecation-policy"] = "Breaking changes are documented in release notes."
+        return conditional_json_response(request, payload)
 
     @full_docs_router.get("/docs/full")
-    @cache(expire=settings.cache.ttls[CacheNamespace.DOCS], coder=HTMLCoder)
-    async def get_full_swagger_docs() -> HTMLResponse:
-        return get_swagger_ui_html(
+    async def get_full_swagger_docs(request: Request) -> Response:
+        html = get_swagger_ui_html(
             openapi_url="/openapi_full.json", title="Full API Documentation", swagger_favicon_url=FAVICON_ROUTE
         )
+        return conditional_html_response(request, _html_body_text(html))
 
     @full_docs_router.get("/redoc/full")
-    @cache(expire=settings.cache.ttls[CacheNamespace.DOCS], coder=HTMLCoder)
-    async def get_full_redoc_docs() -> HTMLResponse:
-        return get_redoc_html(
+    async def get_full_redoc_docs(request: Request) -> Response:
+        html = get_redoc_html(
             openapi_url="/openapi_full.json", title="Full API Documentation", redoc_favicon_url=FAVICON_ROUTE
         )
+        return conditional_html_response(request, _html_body_text(html))
 
     app.include_router(full_docs_router)
 

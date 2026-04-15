@@ -13,6 +13,7 @@ from redis.exceptions import RedisError
 from app.core.background_tasks import PeriodicBackgroundTask
 from app.core.config import Environment, settings
 from app.core.env import BACKEND_DIR
+from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -121,7 +122,7 @@ class EmailChecker(PeriodicBackgroundTask):
 
 def get_email_checker_dependency(request: Request) -> EmailChecker | None:
     """FastAPI dependency to get EmailChecker from app state."""
-    return request.app.state.email_checker
+    return get_request_services(request).email_checker
 
 
 async def init_email_checker(redis: Redis | None) -> EmailChecker | None:

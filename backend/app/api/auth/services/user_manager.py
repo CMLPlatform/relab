@@ -27,9 +27,10 @@ from app.api.auth.services.login_hooks import (
     update_last_login_metadata,
 )
 from app.api.auth.services.password_validator import validate_password as _validate_password
-from app.api.auth.services.user_db import get_user_db
+from app.api.auth.services.user_database import get_user_db
 from app.api.common.routers.dependencies import get_external_http_client
 from app.core.logging import sanitize_log_value
+from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -141,7 +142,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
     async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
         """Revoke all refresh tokens when a user is deactivated."""
         if update_dict.get("is_active") is False:
-            redis = getattr(request.app.state, "redis", None) if request else None
+            redis = get_request_services(request).redis if request else None
             await refresh_token_service.revoke_all_user_tokens(redis, user.id)
 
     async def on_after_login(

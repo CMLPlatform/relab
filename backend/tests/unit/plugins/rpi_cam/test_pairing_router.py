@@ -83,7 +83,14 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
     redis_client = await _make_fake_redis()
     await redis_client.set(
         "rpi_cam:pairing:ABCD12",
-        json.dumps({"status": "waiting", "public_key_jwk": PUBLIC_JWK, "key_id": KEY_ID}),
+        json.dumps(
+            {
+                "status": "waiting",
+                "rpi_fingerprint": "fingerprint",
+                "public_key_jwk": PUBLIC_JWK,
+                "key_id": KEY_ID,
+            }
+        ),
     )
 
     with (

@@ -6,24 +6,26 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.api.background_data.crud import (
-    add_categories_to_material,
-    add_categories_to_product_type,
-    create_material,
-    create_product_type,
-    create_taxonomy,
+from app.api.background_data.crud.categories import (
     delete_category,
-    delete_material,
-    delete_product_type,
-    delete_taxonomy,
     get_category_trees,
     update_category,
-    update_material,
-    update_product_type,
-    update_taxonomy,
     validate_category_creation,
     validate_category_taxonomy_domains,
 )
+from app.api.background_data.crud.materials import (
+    add_categories_to_material,
+    create_material,
+    delete_material,
+    update_material,
+)
+from app.api.background_data.crud.product_types import (
+    add_categories_to_product_type,
+    create_product_type,
+    delete_product_type,
+    update_product_type,
+)
+from app.api.background_data.crud.taxonomies import create_taxonomy, delete_taxonomy, update_taxonomy
 from app.api.background_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
 from app.api.background_data.schemas import (
     CategoryUpdate,
@@ -275,8 +277,8 @@ class TestMaterialCrud:
 
         with (
             patch("app.api.background_data.crud.materials.require_model", return_value=db_material),
-            patch("app.api.background_data.crud.materials.material_files_crud.delete_all"),
-            patch("app.api.background_data.crud.materials.material_images_crud.delete_all"),
+            patch("app.api.background_data.crud.materials.delete_all_material_files"),
+            patch("app.api.background_data.crud.materials.delete_all_material_images"),
         ):
             await delete_material(session, 1)
 
@@ -412,8 +414,8 @@ class TestProductTypeCrud:
 
         with (
             patch("app.api.background_data.crud.product_types.require_model", return_value=db_pt),
-            patch("app.api.background_data.crud.product_types.product_type_files_crud.delete_all"),
-            patch("app.api.background_data.crud.product_types.product_type_images_crud.delete_all"),
+            patch("app.api.background_data.crud.product_types.delete_all_product_type_files"),
+            patch("app.api.background_data.crud.product_types.delete_all_product_type_images"),
         ):
             await delete_product_type(session, 1)
 
