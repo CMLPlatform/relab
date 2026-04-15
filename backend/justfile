@@ -12,7 +12,7 @@ default:
 
 # Install and sync dependencies
 install:
-    uv sync --all-groups
+    uv sync --all-groups --frozen
     @echo "✓ Backend dependencies installed"
 
 # Start development server

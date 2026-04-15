@@ -12,5 +12,5 @@
     "ghcr.io/devcontainers-extra/features/expo-cli:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
   },
-  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n📦 If node_modules/.venv are missing, run pnpm install --frozen-lockfile and uv sync in the relevant subrepo\\n💡 Web frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012\\n💡 App frontend: http://localhost:8013'"
+  "postAttachCommand": "echo 'RELab full-stack devcontainer ready.\\nPrimary workflow: run just install once, then use just dev / just validate from the repo root.\\nPlatform: http://localhost:8010\\nAPI: http://localhost:8011\\nDocs: http://localhost:8012\\nApp: http://localhost:8013'"
 }

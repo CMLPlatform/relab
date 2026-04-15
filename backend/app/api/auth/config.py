@@ -3,10 +3,11 @@
 from dataclasses import dataclass
 from functools import cached_property
 
-from pydantic import EmailStr, Field, NameEmail, SecretStr, TypeAdapter
+from pydantic import EmailStr, Field, NameEmail, SecretStr, TypeAdapter, model_validator
 
+from app.core.config.models import Environment
 from app.core.constants import DAY, HOUR, MINUTE, MONTH
-from app.core.env import RelabBaseSettings
+from app.core.env import RelabBaseSettings, is_production_like_environment
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
 
@@ -37,6 +38,8 @@ class ResolvedEmailSettings:
 
 class AuthSettings(RelabBaseSettings):
     """Settings class to store settings related to auth components."""
+
+    environment: Environment = Environment.DEV
 
     # Authentication settings
     fastapi_users_secret: SecretStr = SecretStr("")
@@ -103,6 +106,43 @@ class AuthSettings(RelabBaseSettings):
             sender=sender,
             reply_to=parse_name_email(self.email_reply_to, fallback=self.email_from or self.email_username) or sender,
         )
+
+    @model_validator(mode="after")
+    def validate_production_auth_settings(self) -> "AuthSettings":
+        """Fail fast when production-like auth settings are incomplete."""
+        if not is_production_like_environment(self.environment.value):
+            return self
+
+        errors: list[str] = []
+        required_secrets = {
+            "FASTAPI_USERS_SECRET": self.fastapi_users_secret.get_secret_value(),
+            "NEWSLETTER_SECRET": self.newsletter_secret.get_secret_value(),
+            "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id.get_secret_value(),
+            "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret.get_secret_value(),
+            "GITHUB_OAUTH_CLIENT_ID": self.github_oauth_client_id.get_secret_value(),
+            "GITHUB_OAUTH_CLIENT_SECRET": self.github_oauth_client_secret.get_secret_value(),
+            "EMAIL_PASSWORD": self.email_password.get_secret_value(),
+        }
+        required_strings = {
+            "EMAIL_HOST": self.email_host,
+            "EMAIL_USERNAME": self.email_username,
+            "EMAIL_FROM": self.email_from,
+            "EMAIL_REPLY_TO": self.email_reply_to,
+        }
+
+        for name, value in required_secrets.items():
+            if not value:
+                errors.append(f"{name} must not be empty in production/staging")
+
+        for name, value in required_strings.items():
+            if not value:
+                errors.append(f"{name} must not be empty in production/staging")
+
+        if errors:
+            formatted = "\n  - ".join(errors)
+            raise ValueError(f"Auth settings validation failed:\n  - {formatted}")
+
+        return self
 
 
 # Create a settings instance that can be imported throughout the app

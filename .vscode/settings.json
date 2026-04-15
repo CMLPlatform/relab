@@ -1,6 +1,5 @@
 {
   "editor.formatOnSave": true,
-  "python.analysis.autoFormatStrings": true,
   "python.analysis.typeCheckingMode": "standard",
   "python.terminal.activateEnvInCurrentTerminal": true,
   "python.terminal.activateEnvironment": true,
@@ -18,9 +17,6 @@
       "source.fixAll.ruff": "explicit",
       "source.organizeImports.ruff": "explicit"
     }
-  },
-  "[notebook]": {
-    "editor.defaultFormatter": "astral-sh.ruff"
   },
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"

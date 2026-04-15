@@ -1,15 +1,12 @@
 {
   "recommendations": [
-    "KnisterPeter.vscode-commitizen",
     "astral-sh.ruff",
     "astral-sh.ty",
     "astro-build.astro-vscode",
     "biomejs.biome",
-    "bierner.markdown-mermaid",
-    "bierner.markdown-preview-github-styles",
     "DavidAnson.vscode-markdownlint",
     "ms-python.python",
-    "ms-python.vscode-python-envs",
-    "ms-python.vscode-pylance"
+    "ms-python.vscode-pylance",
+    "ms-vscode-remote.remote-containers"
   ]
 }

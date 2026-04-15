@@ -8,7 +8,7 @@
     "source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
   ],
   "overrideCommand": true,
-  "postAttachCommand": "echo '🚀 Backend dev container ready!\\n📦 If .venv is missing, run: uv sync\\n💡 To start the FastAPI dev server, run: fastapi dev\\n🔄 If that fails, try: uv run fastapi dev\\n🌐 The server will be available at http://localhost:8011 (forwarded port)'",
+  "postAttachCommand": "echo 'RELab backend devcontainer ready.\\nUse this for focused backend work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nAPI: http://localhost:8011'",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {}
   },
@@ -16,14 +16,6 @@
     "vscode": {
       "settings": {
         "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
-        "python-envs.pythonProjects": [
-          {
-            "name": "relab-backend",
-            "path": "${containerWorkspaceFolder}",
-            "envManager": "ms-python.python:venv",
-            "packageManager": "ms-python.python:pip"
-          }
-        ],
         "ty.configuration": {
           "environment": {
             "root": ["${containerWorkspaceFolder}"],

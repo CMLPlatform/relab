@@ -73,13 +73,13 @@ repos:
     hooks:
       - id: pnpm-lock-frontend-app
         name: pnpm-lock-frontend-app
-        entry: bash -c 'cd frontend-app && pnpm install --lockfile-only --ignore-scripts'
+        entry: just frontend-app/lockfile
         language: system
         files: ^frontend-app/package\.json$
         pass_filenames: false
       - id: pnpm-lock-frontend-web
         name: pnpm-lock-frontend-web
-        entry: bash -c 'cd frontend-web && pnpm install --lockfile-only --ignore-scripts'
+        entry: just frontend-web/lockfile
         language: system
         files: ^frontend-web/package\.json$
         pass_filenames: false

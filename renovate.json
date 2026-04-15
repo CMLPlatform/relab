@@ -46,29 +46,32 @@
       "matchFileNames": [
         ".pre-commit-config.yaml",
         ".github/**",
+        ".devcontainer/**",
+        ".vscode/**",
         "pyproject.toml",
-        "uv.lock"
+        "uv.lock",
+        "renovate.json"
       ],
       "labels": ["tooling"]
     },
     {
-      "groupName": "backend",
-      "matchFileNames": ["backend/.python-version", "backend/pyproject.toml", "backend/Dockerfile*"]
+      "groupName": "backend-python-runtime",
+      "matchFileNames": ["backend/pyproject.toml", "backend/uv.lock", "backend/Dockerfile*"]
     },
     {
-      "groupName": "docs",
-      "matchFileNames": ["docs/pyproject.toml", "docs/Dockerfile*"]
+      "groupName": "docs-python-tooling",
+      "matchFileNames": ["docs/pyproject.toml", "docs/uv.lock", "docs/Dockerfile*"]
     },
     {
-      "groupName": "frontend-web",
-      "matchFileNames": ["frontend-web/package.json", "frontend-web/Dockerfile*"]
+      "groupName": "frontend-web-runtime-tooling",
+      "matchFileNames": ["frontend-web/package.json", "frontend-web/pnpm-lock.yaml", "frontend-web/Dockerfile*"]
     },
     {
-      "groupName": "frontend-app",
-      "matchFileNames": ["frontend-app/package.json", "frontend-app/Dockerfile*"]
+      "groupName": "frontend-app-runtime-tooling",
+      "matchFileNames": ["frontend-app/package.json", "frontend-app/pnpm-lock.yaml", "frontend-app/Dockerfile*"]
     },
     {
-      "groupName": "compose-overlays",
+      "groupName": "containers-compose",
       "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
       "pinDigests": true
     }

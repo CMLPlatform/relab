@@ -11,7 +11,7 @@ just dev    # docs at http://localhost:8000 with live reload
 ## Common Commands
 
 ```bash
-just ci       # spelling + markdown formatting checks + build smoke test
+just check    # spelling + markdown formatting checks + build smoke test
 just format   # format markdown
 just build    # build the site locally
 ```

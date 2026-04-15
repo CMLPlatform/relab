@@ -1,0 +1,54 @@
+shared:
+  - '.github/**'
+  - '.devcontainer/**'
+  - '.vscode/**'
+  - '.python-version'
+  - '.nvmrc'
+  - '.env.example'
+  - 'backend/.env*.example'
+  - 'justfile'
+  - 'compose*.yml'
+  - 'renovate.json'
+
+policy:
+  - '.github/**'
+  - '.pre-commit-config.yaml'
+  - '.prettierrc*'
+  - '.editorconfig'
+  - '.devcontainer/**'
+  - '.vscode/**'
+  - '.python-version'
+  - '.nvmrc'
+  - '.env.example'
+  - 'backend/.env*.example'
+  - 'pyproject.toml'
+  - 'justfile'
+  - 'renovate.json'
+
+root-python:
+  - 'pyproject.toml'
+  - 'uv.lock'
+
+backend:
+  - 'backend/**'
+  - 'compose*.yml'
+
+frontend-web:
+  - 'frontend-web/**'
+  - 'compose*.yml'
+
+frontend-app:
+  - 'frontend-app/**'
+  - 'compose*.yml'
+
+docs:
+  - 'docs/**'
+  - 'compose*.yml'
+
+containers:
+  - 'compose*.yml'
+  - '**/Dockerfile*'
+  - 'backend/uv.lock'
+  - 'docs/uv.lock'
+  - 'frontend-app/pnpm-lock.yaml'
+  - 'frontend-web/pnpm-lock.yaml'

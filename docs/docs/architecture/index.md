@@ -24,4 +24,7 @@ How RELab is built: system design, data model, API layout, auth, camera integrat
 - :material-server: **[Deployment & Operations](deployment.md)**
   How the system is run today and the main operational trade-offs.
 
+- :material-tune: **[Engineering Configuration](engineering-config.md)**
+  Runtime/tooling versions, manifest ownership, env files, and infra review rules.
+
 </div>

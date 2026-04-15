@@ -11,6 +11,8 @@ from pydantic import HttpUrl, SecretStr
 from pydantic_core import ValidationError
 from sqlalchemy.engine import make_url
 
+from app.api.auth.config import AuthSettings
+from app.api.plugins.rpi_cam.config import RPiCamSettings
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
 from app.core.env import get_env_file
 
@@ -35,6 +37,7 @@ class TestCoreSettingsCors:
         """Staging origins should match browser Origin format (no trailing slash)."""
         settings = CoreSettings(
             environment=Environment.STAGING,
+            backend_api_url=HttpUrl("https://api-test.cml-relab.org/"),
             frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
             frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
             cors_origin_regex=None,
@@ -59,6 +62,8 @@ class TestCoreSettingsCors:
         settings = CoreSettings(
             environment=Environment.STAGING,
             backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+            frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+            frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
             cors_origin_regex=None,
             postgres_password=SecretStr("test-password"),
             redis_password=SecretStr("test-password"),
@@ -141,12 +146,69 @@ class TestCoreSettingsCors:
         settings = CoreSettings(
             environment=Environment.PROD,
             database_ssl=True,
+            backend_api_url=HttpUrl("https://api.cml-relab.org/"),
+            frontend_web_url=HttpUrl("https://cml-relab.org/"),
+            frontend_app_url=HttpUrl("https://app.cml-relab.org/"),
             postgres_password=SecretStr("test-password"),
             redis_password=SecretStr("test-password"),
             superuser_password=SecretStr("test-password"),
             superuser_email="test@example.com",
         )
         assert settings.async_database_connect_args == {"ssl": True}
+
+    def test_production_requires_https_origins(self) -> None:
+        """Production-like environments should use HTTPS for external URLs."""
+        with pytest.raises(ValidationError, match="BACKEND_API_URL must use https"):
+            CoreSettings(
+                environment=Environment.PROD,
+                backend_api_url=HttpUrl("http://api.cml-relab.org"),
+                frontend_web_url=HttpUrl("https://cml-relab.org"),
+                frontend_app_url=HttpUrl("https://app.cml-relab.org"),
+                postgres_password=SecretStr("test-password"),
+                redis_password=SecretStr("test-password"),
+                superuser_password=SecretStr("test-password"),
+                superuser_email="test@example.com",
+            )
+
+    def test_otel_enabled_requires_endpoint(self) -> None:
+        """Telemetry must provide an exporter endpoint when enabled."""
+        with pytest.raises(ValidationError, match="OTEL_EXPORTER_OTLP_ENDPOINT must be set"):
+            CoreSettings(
+                environment=Environment.STAGING,
+                otel_enabled=True,
+                postgres_password=SecretStr("test-password"),
+                redis_password=SecretStr("test-password"),
+                superuser_password=SecretStr("test-password"),
+                superuser_email="test@example.com",
+            )
+
+
+@pytest.mark.unit
+class TestModuleSettingsValidation:
+    """Test non-core module settings that should fail fast on bad config."""
+
+    def test_auth_settings_require_secrets_in_production(self) -> None:
+        """Auth settings should reject blank prod/staging secrets and email config."""
+        with pytest.raises(ValidationError, match="Auth settings validation failed"):
+            AuthSettings(
+                environment=Environment.PROD,
+                fastapi_users_secret=SecretStr(""),
+                newsletter_secret=SecretStr(""),
+                google_oauth_client_id=SecretStr(""),
+                google_oauth_client_secret=SecretStr(""),
+                github_oauth_client_id=SecretStr(""),
+                github_oauth_client_secret=SecretStr(""),
+                email_host="",
+                email_username="",
+                email_password=SecretStr(""),
+                email_from="",
+                email_reply_to="",
+            )
+
+    def test_rpi_cam_secret_must_be_valid_fernet_key(self) -> None:
+        """Plugin secret should be validated as a Fernet key when provided."""
+        with pytest.raises(ValidationError):
+            RPiCamSettings(environment=Environment.DEV, rpi_cam_plugin_secret="not-a-fernet-key")
 
 
 @pytest.mark.unit

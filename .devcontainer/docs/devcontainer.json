@@ -7,6 +7,7 @@
   "mounts": [
     "source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
   ],
+  "postAttachCommand": "echo 'RELab docs devcontainer ready.\\nUse this for focused docs work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nDocs: http://localhost:8012'",
   "features": {
     "ghcr.io/cirolosapio/devcontainers-features/alpine-bash:0": {},
     "ghcr.io/devcontainers/features/git:1": {}

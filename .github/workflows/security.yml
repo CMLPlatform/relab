@@ -80,10 +80,10 @@ jobs:
           uv-cache-dependency-glob: uv.lock
 
       - name: Install root dependencies
-        run: uv sync
+        run: uv sync --frozen
 
       - name: Run root dependency audit
-        run: just audit-root
+        run: just _audit-root
 
   backend-python-audit:
     name: Python Audit (backend)

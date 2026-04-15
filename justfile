@@ -16,7 +16,7 @@ prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml
 
 # Install all workspace dependencies (root + all subrepos)
 install:
-    uv sync
+    uv sync --frozen
     @just backend/install
     @just docs/install
     @just frontend-web/install
@@ -50,21 +50,13 @@ setup: install pre-commit-install
 # ============================================================================
 
 # Run repository-wide policy checks
-check-root:
+_check-root:
     uv run pre-commit run --all-files
+    @just env-audit
     @echo "✓ Repository policy checks passed"
 
-# Run all quality checks across every subrepo
-check:
-    @just check-root
-    @just backend/check
-    @just docs/check
-    @just frontend-web/check
-    @just frontend-app/check
-    @echo "✓ All quality checks passed"
-
 # Canonical fast validation target used locally and in CI
-validate: check test-ci compose-config release-check
+validate: _check-root _test-ci compose-config release-check
     @echo "✅ Validation pipeline passed"
 
 # Auto-fix code issues where supported
@@ -74,20 +66,6 @@ fix:
     @just frontend-web/fix
     @just frontend-app/fix
     @echo "✓ Code fixed"
-
-# Run all pre-commit hooks on all files (useful before big commits)
-pre-commit:
-    @just check-root
-
-# Run shellcheck on all shell scripts in the repo
-shellcheck:
-    git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
-    @echo "✓ Shell scripts linted"
-
-# Run spell check on all files in the repo
-spellcheck:
-    npx cspell lint --dot --gitignore .
-
 
 # ============================================================================
 # Testing
@@ -107,16 +85,12 @@ test-integration:
     @echo "✅ Integration tests passed"
 
 # CI-oriented test suite across all subrepos
-test-ci:
+_test-ci:
     @just backend/test-ci
-    @just docs/ci
+    @just docs/check
     @just frontend-web/test-ci
     @just frontend-app/test-ci
     @echo "✅ All CI test suites passed"
-
-# Full local CI pipeline
-ci: validate
-    @echo "✅ Local CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
 e2e-backend-up:
@@ -146,7 +120,7 @@ test-e2e-full-stack:
 
 # Run dependency vulnerability audit across all subrepos
 audit:
-    @just audit-root
+    @just _audit-root
     @just backend/audit
     @just docs/audit
     @just frontend-app/audit
@@ -158,13 +132,18 @@ security: audit
     @echo "✅ Security checks complete"
 
 # Run dependency vulnerability audit for root Python tooling
-audit-root:
+_audit-root:
     uv audit --preview-features audit --frozen --no-dev
     @echo "✓ Root dependency audit complete"
 
+# Validate committed environment templates and runtime version policy
+env-audit:
+    python3 scripts/check_env_contract.py
+    @echo "✓ Environment contract audit passed"
+
 # Check that release automation inputs are internally consistent
 release-check:
-    python3 -c "import json, tomllib; from pathlib import Path; root = Path('.'); root_version = tomllib.loads((root / 'pyproject.toml').read_text())['project']['version']; versions = {'root': root_version, 'backend': tomllib.loads((root / 'backend/pyproject.toml').read_text())['project']['version'], 'docs': tomllib.loads((root / 'docs/pyproject.toml').read_text())['project']['version'], 'frontend-app': json.loads((root / 'frontend-app/package.json').read_text())['version'], 'frontend-web': json.loads((root / 'frontend-web/package.json').read_text())['version'], 'release-please-manifest': json.loads((root / '.github/.release-please-manifest.json').read_text())['.']}; mismatched = {name: version for name, version in versions.items() if version != root_version}; assert not mismatched, f'Release metadata is out of sync with root version {root_version}: {mismatched}'; print(f'✓ Release metadata consistent at version {root_version}')"
+    python3 scripts/check_release_contract.py
 
 # Validate every supported Compose stack shape
 compose-config:

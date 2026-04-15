@@ -49,7 +49,8 @@ jobs:
 
   automation:
     name: Automation and Compose Policy
-    if: github.event_name != 'schedule'
+    needs: [changes]
+    if: github.event_name != 'schedule' && needs.changes.outputs.run-policy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -67,7 +68,7 @@ jobs:
             docs/uv.lock
 
       - name: Run repository policy checks
-        run: just check-root
+        run: just _check-root
 
       - name: Validate Compose stacks
         run: just compose-config
@@ -254,8 +255,8 @@ jobs:
       - name: Install dependencies
         run: just docs/install
 
-      - name: Run docs CI
-        run: just docs/ci
+      - name: Run docs checks
+        run: just docs/check
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E

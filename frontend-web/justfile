@@ -10,6 +10,10 @@ default:
 install:
     pnpm install --frozen-lockfile
 
+# Regenerate the lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
 # Upgrade Astro and official integrations using Astro's upgrade tool
 update:
     npx @astrojs/upgrade
@@ -29,7 +33,7 @@ dev PORT="8081":
 
 # Build for production
 build:
-    pnpm run build:prod
+    pnpm run build
 
 # Build for staging (loads .env.staging via --mode staging)
 build-staging:
@@ -41,7 +45,7 @@ build-staging:
 
 # Run Astro's project validation
 typecheck:
-    npx astro check
+    pnpm run typecheck
 
 # Lint with Biome (read-only)
 lint:
@@ -56,7 +60,8 @@ fix: format
     @echo "✓ Frontend-web code formatted"
 
 # Run all frontend-web checks
-check: lint typecheck
+check:
+    pnpm run check
     @echo "✓ Frontend-web checks passed"
 
 # ============================================================================
@@ -100,7 +105,7 @@ ci: check test-ci
 
 # Scan dependencies for known vulnerabilities
 audit:
-    pnpm audit --prod --audit-level high
+    pnpm run audit
     @echo "✓ Dependency audit complete"
 
 # Clean caches and build artifacts

@@ -6,10 +6,11 @@ Thanks for contributing. RELab is a research platform developed at CML, Leiden U
 
 | I want to...                         | Start here                                                                  |
 | ------------------------------------ | --------------------------------------------------------------------------- |
-| get a working environment quickly    | [Devcontainer Setup](#devcontainer-setup)                                   |
+| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                |
 | run the full stack locally in Docker | [Docker Development](#docker-development)                                   |
 | work on one subrepo directly         | [Local Development](#local-development)                                     |
 | understand the system first          | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/) |
+| understand config ownership          | [engineering configuration](https://docs.cml-relab.org/architecture/engineering-config/) |
 
 ## Code of Conduct
 
@@ -17,7 +18,7 @@ By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Devcontainer Setup
 
-This is the quickest way into the repo if you use VS Code.
+This is the recommended path into the repo if you use VS Code.
 
 ### Requirements
 
@@ -29,12 +30,6 @@ This is the quickest way into the repo if you use VS Code.
 
 1. Clone the repository.
 
-1. Install hooks.
-
-   ```bash
-   just pre-commit-install
-   ```
-
 1. Create the environment files.
 
    ```bash
@@ -44,16 +39,31 @@ This is the quickest way into the repo if you use VS Code.
 
 1. Fill in the required values in `backend/.env.dev` and `.env`.
 
-1. Reopen the repo in a dev container.
+1. Reopen the repo in the `relab-fullstack` devcontainer.
+
+1. Run the standard bootstrap path.
+
+   ```bash
+   just setup
+   just dev
+   ```
+
+1. Run the standard checks when you want to verify the repo state.
+
+   ```bash
+   just env-audit
+   just validate
+   ```
 
 ### Available Configurations
 
-| Configuration     | Purpose                |
-| ----------------- | ---------------------- |
-| `relab-backend`   | backend development    |
-| `relab-frontend`  | frontend development   |
-| `relab-docs`      | docs development       |
-| `relab-fullstack` | full stack development |
+| Configuration     | Purpose                                             |
+| ----------------- | --------------------------------------------------- |
+| `relab-fullstack` | primary onboarding path for full stack development  |
+| `relab-backend`   | focused backend work                                |
+| `relab-frontend-app` | focused Expo app work                            |
+| `relab-frontend-web` | focused public site work                         |
+| `relab-docs`      | focused docs work                                   |
 
 ### Forwarded Ports
 
@@ -72,6 +82,13 @@ Use this when you want the full stack without configuring each subrepo manually.
 
    ```bash
    cp backend/.env.dev.example backend/.env.dev
+   cp .env.example .env
+   ```
+
+1. Install local tooling.
+
+   ```bash
+   just setup
    ```
 
 1. Start the stack with file watching.
@@ -97,10 +114,8 @@ Use this when you want the full stack without configuring each subrepo manually.
 
 ```bash
 just dev-up       # start without file watching
-just dev-build    # rebuild images
 just dev-logs     # tail logs
 just dev-down     # stop containers
-just dev-reset    # wipe dev volumes and containers
 ```
 
 ## Local Development
@@ -121,7 +136,7 @@ Then run:
 ```bash
 git clone https://github.com/CMLPlatform/relab
 cd relab
-just pre-commit-install
+just setup
 ```
 
 ## Task Runner
@@ -132,6 +147,7 @@ From the repo root:
 
 ```bash
 just setup
+just env-audit
 just validate
 just test
 just test-integration
@@ -139,6 +155,7 @@ just security
 ```
 
 Use `just --list` in any directory to see what is available there.
+Manifest ownership, env rules, and infra review guidelines live in the [engineering configuration docs](https://docs.cml-relab.org/architecture/engineering-config/).
 
 ## Backend Setup
 
@@ -154,7 +171,7 @@ The backend lives in `backend/`.
 
 ```bash
 cd backend
-uv sync --all-groups
+uv sync --all-groups --frozen
 cp .env.dev.example .env.dev
 ./scripts/local_setup.sh
 just dev
@@ -214,7 +231,7 @@ cd frontend-app
 pnpm run codegen:api
 
 # regenerate and redact embedded JWT examples (recommended)
-pnpm run codegen:api:redact
+pnpm run codegen
 ```
 
 You can also run `just codegen` inside `frontend-app` (after `just install`) which runs the regeneration and redaction steps.
@@ -235,7 +252,7 @@ The Astro dev server runs on <http://localhost:8081>.
 
 ```bash
 cd docs
-uv sync --all-groups
+uv sync --all-groups --frozen
 just dev
 ```
 
@@ -407,7 +424,7 @@ Before opening a docs-focused PR:
 
 ```bash
 cd docs
-just ci
+just check
 ```
 
 To apply formatting:

@@ -31,30 +31,7 @@ runs:
       if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
       uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
       with:
-        filters: |
-          shared:
-            - '.github/**'
-            - 'justfile'
-            - '.python-version'
-            - '.nvmrc'
-          root-python:
-            - 'pyproject.toml'
-            - 'uv.lock'
-          backend:
-            - 'backend/**'
-          docs:
-            - 'docs/**'
-          frontend-app:
-            - 'frontend-app/**'
-          frontend-web:
-            - 'frontend-web/**'
-          containers:
-            - 'compose*.yml'
-            - '**/Dockerfile*'
-            - 'backend/uv.lock'
-            - 'docs/uv.lock'
-            - 'frontend-app/pnpm-lock.yaml'
-            - 'frontend-web/pnpm-lock.yaml'
+        filters: .github/path-filters.yml
 
     - name: Decide which security jobs should run
       id: decide

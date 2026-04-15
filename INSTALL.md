@@ -74,13 +74,14 @@ Self-hosting makes sense for evaluation, institutional deployment, offline use, 
 1. Run checks if needed.
 
    ```bash
+   just env-audit
    just validate
    just test
    ```
 
 ## Production Deployment
 
-Production deployments are Docker Compose based. Cloudflare Tunnel remains the supported ingress path. For now, the normal operational path is still manual on the server: pull the repo and run the appropriate `docker compose` / `just prod-*` commands there.
+Production deployments are Docker Compose based. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the production stack, run migrations, and verify health.
 
 1. Configure a Cloudflare tunnel.
 
@@ -100,16 +101,7 @@ Production deployments are Docker Compose based. Cloudflare Tunnel remains the s
    just prod-up YES
    ```
 
-   In the current setup, deployment is still done directly on the server.
-
-   To enable backend tracing with the bundled OpenTelemetry collector:
-
-   - set `OTEL_ENABLED='true'` in `backend/.env.prod`
-   - start the collector with:
-
-   ```bash
-   just prod-telemetry-up YES
-   ```
+   In the current setup, deployment is done directly on the server.
 
 1. Run migrations.
 
@@ -121,12 +113,6 @@ Production deployments are Docker Compose based. Cloudflare Tunnel remains the s
 
    ```bash
    BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.prod.yml --profile migrations up --build migrator
-   ```
-
-1. Optionally enable backups.
-
-   ```bash
-   just prod-backups-up YES
    ```
 
 1. Manage the running stack.

@@ -8,7 +8,7 @@ default:
 
 # Install dependencies
 install:
-    uv sync --all-groups
+    uv sync --all-groups --frozen
     @echo "✓ Docs dependencies installed"
 
 # Update dependencies
@@ -45,10 +45,6 @@ build:
 
 # Smoke-test the build
 test: build
-
-# Run the full docs CI pipeline locally (lint + build, single pass)
-ci: lint build
-    @echo "✓ Docs CI pipeline passed"
 
 # Scan Python dependencies for known CVEs
 audit:

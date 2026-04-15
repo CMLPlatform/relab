@@ -23,6 +23,16 @@ _ENV_FILE_MAP: dict[str, str] = {
 BACKEND_DIR = Path(__file__).parents[2].resolve()
 
 
+def get_environment_name() -> str:
+    """Return the active backend environment name."""
+    return os.environ.get("ENVIRONMENT", "dev")
+
+
+def is_production_like_environment(environment: str | None = None) -> bool:
+    """Return True for staging/production-style runtime validation."""
+    return (environment or get_environment_name()) in {"staging", "prod"}
+
+
 def get_env_file(base_dir: PathType) -> Path:
     """Return the .env file path for the current ENVIRONMENT.
 
@@ -30,7 +40,7 @@ def get_env_file(base_dir: PathType) -> Path:
     absent.  pydantic-settings silently ignores a missing file, so there is no
     error if the file does not exist yet.
     """
-    env = os.environ.get("ENVIRONMENT", "dev")
+    env = get_environment_name()
     filename = _ENV_FILE_MAP.get(env, f".env.{env}")
     return base_dir / filename
 

@@ -8,6 +8,10 @@ default:
 install:
     pnpm install --frozen-lockfile
 
+# Regenerate the lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
 # Update Expo-managed dependencies to versions compatible with the current SDK
 update:
     npx expo install --fix
@@ -24,7 +28,7 @@ lint:
 
 # Run the frontend-app quality gate
 check:
-    just lint
+    pnpm run check
     @echo "✓ Frontend-app checks passed"
 
 # Auto-format code
@@ -54,7 +58,7 @@ ci: check test-ci
 
 # Start dev server
 dev PORT="8081":
-    npx expo start --port {{PORT}}
+    pnpm exec expo start --port {{PORT}} --web
 
 # Start dev server with a clean Metro cache (use after adding new directories/aliases)
 dev-clean PORT="8081":
@@ -62,7 +66,7 @@ dev-clean PORT="8081":
 
 # Scan dependencies for known vulnerabilities
 audit:
-    pnpm audit --prod --audit-level high
+    pnpm run audit
     @echo "✓ Dependency audit complete"
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)
@@ -70,6 +74,9 @@ e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
 
 # Build Expo web app for E2E testing (exports static SPA to dist/)
 # Only the API URL is required for these tests; the public website URL falls back in-app.
+build:
+    pnpm run build
+
 build-web:
     @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
     EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} pnpm run build:web
@@ -93,6 +100,5 @@ clean:
 # Generate TypeScript API types from backend OpenAPI and redact sensitive examples
 codegen PORT="8011":
     @echo "Generating TypeScript API types and redacting JWT examples (backend at http://localhost:{{PORT}})..."
-    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} pnpm run codegen:api:redact
-    node scripts/redact_api.js
+    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} pnpm run codegen
     @echo "✓ Generated src/types/api.generated.ts (redacted)"

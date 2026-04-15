@@ -6,7 +6,7 @@ The platform runs as a self-hosted Docker Compose stack. It is intentionally sim
 
 ## Compose Service Topology
 
-The deployed stack is defined entirely in Docker Compose. Core services run in all environments; operational services are layered on top in staging and production, some via Compose profiles.
+The deployed stack is defined entirely in Docker Compose. Core services run in all environments. Some deployments also enable additional operational services such as migrations, backups, the Cloudflare tunnel, and tracing support.
 
 ```mermaid
 graph LR
@@ -20,7 +20,7 @@ graph LR
         Docs[Zensical Docs]
     end
 
-    subgraph Operational ["Operational Services (staging / prod)"]
+    subgraph Operational ["Optional Operational Services"]
         Migrations[migrator\none-shot on deploy]
         DBBackups[postgres-backup\ndaily pg_dump + zstd]
         UploadBackups[user-upload-backups\ndaily file archives]
@@ -35,7 +35,7 @@ graph LR
     OTel -->|receives OTLP from| Backend
 ```
 
-Backup services and the OpenTelemetry collector are activated via Compose profiles (`backups`, `telemetry`) so they can be started independently without restarting the core stack.
+Backup and telemetry services are supported through Compose profiles, but they are not required for the default local or production boot path.
 
 For formal architecture views of the platform as a whole, see [C4 Architecture Diagrams](c4-diagrams.md).
 

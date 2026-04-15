@@ -5,7 +5,6 @@
       "package-name": "relab",
       "extra-files": [
         "CITATION.cff",
-        "backend/.python-version",
         "backend/app/__version__.py",
         "backend/pyproject.toml",
         "codemeta.json",

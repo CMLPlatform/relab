@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@biomejs/biome':
-        specifier: ^2.4.9
-        version: 2.4.10
       '@expo/vector-icons':
         specifier: ^15.0.2
         version: 15.1.1(expo-font@55.0.6)(react-native@0.83.4(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)
@@ -147,6 +144,9 @@ importers:
       '@babel/core':
         specifier: ^7.28.4
         version: 7.29.0
+      '@biomejs/biome':
+        specifier: ^2.4.9
+        version: 2.4.10
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.59.1

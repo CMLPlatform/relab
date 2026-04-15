@@ -82,6 +82,14 @@ class CoreSettings(RelabBaseSettings):
                 raise ValueError(msg) from e
         return v
 
+    @field_validator("otel_exporter_otlp_endpoint", mode="before")
+    @classmethod
+    def normalize_empty_otel_endpoint(cls, v: str | None) -> str | None:
+        """Treat empty strings as an unset OTLP endpoint."""
+        if v in ("", None):
+            return None
+        return v
+
     @staticmethod
     def _normalize_origin(url: HttpUrl) -> str:
         """Normalize URL-like values to browser Origin format."""
@@ -262,6 +270,18 @@ class CoreSettings(RelabBaseSettings):
 
         if self.superuser_email == DEFAULT_SUPERUSER_EMAIL:
             errors.append("SUPERUSER_EMAIL must not be the default placeholder in production")
+
+        if self.backend_api_url.scheme != "https":
+            errors.append("BACKEND_API_URL must use https in production/staging")
+
+        if self.frontend_app_url.scheme != "https":
+            errors.append("FRONTEND_APP_URL must use https in production/staging")
+
+        if self.frontend_web_url.scheme != "https":
+            errors.append("FRONTEND_WEB_URL must use https in production/staging")
+
+        if self.otel_enabled and not self.otel_exporter_otlp_endpoint:
+            errors.append("OTEL_EXPORTER_OTLP_ENDPOINT must be set when OTEL_ENABLED is true")
 
         if errors:
             formatted = "\n  - ".join(errors)
