@@ -1,5 +1,7 @@
-# --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
+# syntax=docker/dockerfile:1.10
+
+# --- Build stage ---
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
 WORKDIR /opt/relab/docs
 
 # uv optimizations
@@ -39,10 +41,10 @@ RUN if [ "$BUILD_MODE" = "staging" ]; then \
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv run zensical build --clean
 
-# --- Final runtime ---
-FROM caddy:2-alpine
+# --- Runtime stage ---
+FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa
 
-COPY --link --from=builder /opt/relab/docs/site /srv
+COPY --link --from=build /opt/relab/docs/site /srv
 COPY --link Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8000

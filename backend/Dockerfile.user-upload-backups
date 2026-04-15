@@ -6,11 +6,13 @@ ARG BACKUP_SCRIPT_NAME=backup_user_uploads.sh
 
 # Install the GNU userland tools required by the backup script.
 RUN --mount=type=cache,target=/var/cache/apk,sharing=locked \
-    apk -U upgrade && apk add --no-interactive\
+    apk add --no-cache \
     coreutils \
     findutils \
     tar \
     zstd
+
+RUN adduser -D -u 1001 backupuser
 
 WORKDIR $WORKDIR
 
@@ -19,5 +21,7 @@ ENV BACKUP_SCRIPT=$WORKDIR/$BACKUP_SCRIPT_NAME
 
 COPY --chmod=755 scripts/backup/$BACKUP_SCRIPT_NAME .
 COPY --chmod=755 scripts/backup/user_upload_backups_entrypoint.sh .
+
+USER backupuser
 
 ENTRYPOINT ["./user_upload_backups_entrypoint.sh"]

@@ -1,48 +1,41 @@
-# --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
 
-# Set the working directory inside the container
 WORKDIR /opt/relab/backend
 
-# uv optimizations (see https://docs.astral.sh/uv/guides/integration/docker/#optimizations)
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=0
 
-# Copy dependency files
 COPY .python-version pyproject.toml uv.lock ./
 
-# Install dependencies (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable --no-default-groups
 
-# Copy application directory
 COPY app/ app/
 
-# Final sync with project code (see https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers)
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups
 
-# --- Final runtime stage ---
-FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9
+FROM python:3.14-slim@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa AS runtime
 
 ARG WORKDIR=/opt/relab/backend
 ARG APP_USER=appuser
 ARG APP_UID=1001
 
-RUN useradd -u $APP_UID -m $APP_USER
+RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER"
 
 WORKDIR $WORKDIR
 
-RUN mkdir -p data/uploads/files data/uploads/images \
-    && chown -R $APP_USER:$APP_USER data \
-    && chmod -R 0777 data/uploads
+RUN install -d -o "$APP_UID" -g 0 -m 0775 \
+    data/uploads \
+    data/uploads/files \
+    data/uploads/images
 
-COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/.venv $WORKDIR/.venv
-COPY --link --from=builder --chown=$APP_UID:$APP_UID $WORKDIR/app $WORKDIR/app
+COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/.venv $WORKDIR/.venv
+COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/app $WORKDIR/app
 
-# spell-checker: ignore PYTHONUNBUFFERED
-ENV PYTHONPATH=$WORKDIR \
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=$WORKDIR \
     PYTHONUNBUFFERED=1 \
     PATH="$WORKDIR/.venv/bin:$PATH"
 
@@ -50,8 +43,7 @@ EXPOSE 8000
 
 USER $APP_USER
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/live',timeout=5).status==200 else 1)"
 
-# Run the FastAPI application. Trust forwarded headers only from explicitly allowed proxy IPs.
 CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --workers ${WEB_CONCURRENCY:-1}"]
