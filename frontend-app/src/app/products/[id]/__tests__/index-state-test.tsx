@@ -271,22 +271,27 @@ describe('ProductPage state handling', () => {
   });
 
   it('shows slow-loading card after timeout', async () => {
+    jest.useFakeTimers();
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       isLoading: true,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    try {
+      renderWithProviders(<ProductPage />, { withDialog: true });
 
-    // Initially just the skeleton, no slow-loading message
-    expect(screen.queryByText(/taking longer than usual/i)).toBeNull();
+      // Initially just the skeleton, no slow-loading message
+      expect(screen.queryByText(/taking longer than usual/i)).toBeNull();
 
-    // Advance fake timers past the 5s threshold inside act()
-    await act(() => {
-      jest.advanceTimersByTime(5100);
-    });
+      // Advance fake timers past the 5s threshold inside act()
+      await act(() => {
+        jest.advanceTimersByTime(5100);
+      });
 
-    expect(screen.getByText(/taking longer than usual/i)).toBeOnTheScreen();
+      expect(screen.getByText(/taking longer than usual/i)).toBeOnTheScreen();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('opens the edit-name dialog from the header and saves the trimmed value', async () => {

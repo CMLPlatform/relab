@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/authentication';
 import type { User } from '@/types/User';
+import { logError } from '@/utils/logging';
 
 interface AuthContextType {
   user: User | undefined;
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(userData);
         }
       } catch (error) {
-        console.error('[AuthProvider] Initialization error:', error);
+        logError('[AuthProvider] Initialization error:', error);
         setUser(undefined);
       } finally {
         setIsLoading(false);

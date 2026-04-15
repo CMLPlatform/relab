@@ -6,6 +6,7 @@ import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductCard from '@/components/common/ProductCard';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { productComponents } from '@/services/api/products';
 import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
 import { setNewProductIntent } from '@/services/newProductStore';
@@ -20,6 +21,7 @@ export default function ProductComponents({ product, editMode }: Props) {
   // Hooks
   const router = useRouter();
   const dialog = useDialog();
+  const feedback = useAppFeedback();
 
   // States
   const [components, setComponents] = useState<Product[]>([]);
@@ -53,8 +55,10 @@ export default function ProductComponents({ product, editMode }: Props) {
             const parseResult = productSchema.shape.name.safeParse(name);
 
             if (!parseResult.success) {
-              // This shouldn't happen due to disabled check, but handle defensively
-              alert(parseResult.error.issues[0]?.message || 'Invalid component name');
+              feedback.error(
+                parseResult.error.issues[0]?.message || 'Invalid component name',
+                'Invalid component name',
+              );
               return;
             }
 

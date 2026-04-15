@@ -78,6 +78,14 @@ export const handlers = [
   http.delete(`${API_URL}/auth/oauth/:provider/associate`, () =>
     HttpResponse.json({ message: 'Unlinked' }),
   ),
+  http.get(`${API_URL}/plugins/rpi-cam/cameras/:cameraId/local-access`, () =>
+    HttpResponse.json({
+      local_api_key: 'test-local-api-key',
+      candidate_urls: ['http://192.168.7.1:8018'],
+      mdns_name: null,
+    }),
+  ),
+  http.get('http://192.168.7.1:8018/camera', () => HttpResponse.json({ ok: true })),
   // Handle OAuth authorize redirects used by Expo Auth Session in tests
   http.get(`${API_URL}/auth/oauth/:provider/session/authorize`, async (resolverParams: unknown) => {
     // The resolver param shape can vary between interceptor implementations:

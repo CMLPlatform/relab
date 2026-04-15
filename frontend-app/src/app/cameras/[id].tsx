@@ -17,6 +17,7 @@ import {
 import { LivePreview } from '@/components/cameras/LivePreview';
 import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
 import { useAuth } from '@/context/AuthProvider';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import {
   useCameraQuery,
@@ -135,6 +136,7 @@ export default function CameraDetailScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
   const { user } = useAuth();
+  const feedback = useAppFeedback();
 
   const {
     data: camera,
@@ -204,7 +206,12 @@ export default function CameraDetailScreen() {
       { name },
       {
         onSuccess: () => setEditNameVisible(false),
-        onError: (err) => alert(String(err)),
+        onError: (err) =>
+          feedback.alert({
+            title: 'Save failed',
+            message: String(err),
+            buttons: [{ text: 'OK' }],
+          }),
       },
     );
   };
@@ -214,7 +221,12 @@ export default function CameraDetailScreen() {
       { description: description || null },
       {
         onSuccess: () => setEditDescVisible(false),
-        onError: (err) => alert(String(err)),
+        onError: (err) =>
+          feedback.alert({
+            title: 'Save failed',
+            message: String(err),
+            buttons: [{ text: 'OK' }],
+          }),
       },
     );
   };
@@ -225,7 +237,11 @@ export default function CameraDetailScreen() {
         router.replace('/cameras');
       },
       onError: (error) => {
-        alert(String(error));
+        feedback.alert({
+          title: 'Delete failed',
+          message: String(error),
+          buttons: [{ text: 'OK' }],
+        });
       },
     });
   };

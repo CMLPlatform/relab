@@ -1,15 +1,11 @@
 // Products list moved here from app/index.tsx
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   type DimensionValue,
   FlatList,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   Platform,
   RefreshControl,
   ScrollView,
@@ -29,29 +25,14 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { useDebounce } from 'use-debounce';
 import { useDialog } from '@/components/common/DialogProvider';
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import ProductCard from '@/components/common/ProductCard';
 import ProductCardSkeleton from '@/components/common/ProductCardSkeleton';
-import { useAuth } from '@/context/AuthProvider';
 import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
-import {
-  DEFAULT_PRODUCT_SORT,
-  PRODUCT_SORT_OPTIONS,
-  useProductsQuery,
-  useSearchBrandsQuery,
-  useSearchProductTypesQuery,
-} from '@/hooks/useProductQueries';
-import { updateUser } from '@/services/api/authentication';
-import { setNewProductIntent } from '@/services/newProductStore';
-import type { Product } from '@/types/Product';
+import { PRODUCT_SORT_OPTIONS } from '@/hooks/useProductQueries';
+import { useProductsScreen } from '@/hooks/useProductsScreen';
 
-type ProductFilter = 'all' | 'mine';
-type RouterSetParams = Parameters<ReturnType<typeof useRouter>['setParams']>[0];
-type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
-
-const GUEST_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_guest';
 const PAGE_SIZE = 24;
 
 const DATE_PRESETS = [
@@ -60,9 +41,7 @@ const DATE_PRESETS = [
   { label: 'Last 90d', days: 90 },
 ] as const;
 
-// Using constants from useProductQueries.ts
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;
-const FALLBACK_DEFAULT_SORT = Array.from(SORT_OPTIONS[1].value);
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
@@ -257,270 +236,61 @@ function ListFooter({
 // ─── Main screen ───────────────────────────────────────────────────────────────
 
 export default function Products() {
-  // Hooks
   const dialog = useDialog();
   const theme = useTheme();
   const colorScheme = useEffectiveColorScheme();
   const bgOverlay = colorScheme === 'light' ? 'rgba(242, 242, 242, 0.95)' : 'rgba(10,10,10,0.90)';
   const router = useRouter();
-  const { user: currentUser, refetch: refetchUser } = useAuth();
   const { width } = useWindowDimensions();
   const numColumns = width < 600 ? 1 : width < 1000 ? 2 : 3;
-
-  // --- State Derived from URL/Search Params ---
-  const params = useLocalSearchParams<{
-    filterMode?: string;
-    q?: string;
-    page?: string;
-    sort?: string;
-    brands?: string;
-    types?: string;
-    days?: string;
-  }>();
-
-  const filterMode = (params.filterMode as ProductFilter) || 'all';
-  const searchQueryURL = params.q || '';
-  const page = Number(params.page) || 1;
-  // Default to Relevance when a search query is active; otherwise Newest first.
-  const sortBy = params.sort
-    ? params.sort.split(',')
-    : searchQueryURL
-      ? (['rank'] as string[])
-      : Array.from(DEFAULT_PRODUCT_SORT ?? FALLBACK_DEFAULT_SORT);
-  const activeDatePreset = params.days ? Number(params.days) : null;
-  const activeBrands = params.brands ? params.brands.split(',') : [];
-  const activeProductTypes = params.types ? params.types.split(',') : [];
-
-  const createdAfter = useMemo(() => {
-    if (!activeDatePreset) return undefined;
-    // We use a stable reference for "now" at the start of the day or just now
-    // to avoid millisecond changes triggering re-fetches.
-    // However, since it's in useMemo synced to activeDatePreset,
-    // it will ONLY re-calculate when the preset changes.
-    return new Date(Date.now() - activeDatePreset * 86_400_000);
-  }, [activeDatePreset]);
-
-  // Local state for UI responsiveness (search input)
-  const [searchQuery, setSearchQuery] = useState(searchQueryURL);
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
-
-  // Single-column (mobile) load-more page — not stored in URL
-  const [mobilePage, setMobilePage] = useState(1);
-
-  // For multi-column: page comes from URL; for single-column: use local mobilePage
-  const effectivePage = numColumns === 1 ? mobilePage : page;
-
-  // Local UI states
-  const [headerBottom, setHeaderBottom] = useState(0);
-  const [fabExtended, setFabExtended] = useState(true);
-  const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null);
-  const [accumulatedProducts, setAccumulatedProducts] = useState<Product[]>([]);
-  const [sortMenuVisible, setSortMenuVisible] = useState(false);
-  const [dateMenuVisible, setDateMenuVisible] = useState(false);
-
-  const [brandModalVisible, setBrandModalVisible] = useState(false);
-  const [typeModalVisible, setTypeModalVisible] = useState(false);
-  const [brandSearch, setBrandSearch] = useState('');
-  const [typeSearch, setTypeSearch] = useState('');
-  const [slowLoading, setSlowLoading] = useState(false);
-
-  // Helper to update URL params
-  const updateParams = useCallback(
-    (newParams: RouterSetParams) => {
-      // Expo Router's setParams merges with existing ones for the current route.
-      // We don't need to manually merge with `params`.
-      router.setParams(newParams);
-    },
-    [router],
-  );
-
-  // Sync local search back to URL
-  useEffect(() => {
-    if (debouncedSearchQuery !== searchQueryURL) {
-      updateParams({ q: debouncedSearchQuery || undefined, page: '1' });
-    }
-  }, [debouncedSearchQuery, searchQueryURL, updateParams]); // Added searchQueryURL to dependencies for robustness
-
-  // When search is cleared, drop an explicit 'rank' sort so the default (Newest first) takes over.
-  useEffect(() => {
-    if (!searchQueryURL && params.sort === 'rank') {
-      updateParams({ sort: undefined });
-    }
-  }, [searchQueryURL, params.sort, updateParams]);
-
-  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(brandSearch);
-  const { data: typeResults, isLoading: typesLoading } = useSearchProductTypesQuery(typeSearch);
-
-  const isAuthenticated = !!currentUser;
-
-  // If user logs out while on "mine", switch back to all
-  useEffect(() => {
-    if (!currentUser && filterMode === 'mine') {
-      updateParams({ filterMode: 'all', page: '1' });
-    }
-  }, [currentUser, filterMode, updateParams]);
-
-  // TanStack Query
-  const { data, isFetching, isLoading, error, refetch } = useProductsQuery(
+  const {
     filterMode,
-    effectivePage,
-    searchQueryURL, // Use the one from the URL
-    sortBy,
-    { brands: activeBrands, createdAfter, productTypeNames: activeProductTypes },
-  );
-  const resetAccumulationKey = JSON.stringify([
     searchQueryURL,
-    filterMode,
+    sortBy,
     activeDatePreset,
-    params.brands,
-    params.types,
-    params.sort,
-  ]);
-
-  // ─── Timeout for slow loading ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isLoading) {
-      setSlowLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setSlowLoading(true), 5000);
-    if (timer && typeof timer === 'object' && 'unref' in timer) {
-      (timer as TimerWithUnref).unref();
-    }
-    return () => clearTimeout(timer);
-  }, [isLoading]);
-
-  // Reset single-column accumulation when any filter/search/sort changes
-  useEffect(() => {
-    void resetAccumulationKey;
-    setMobilePage(1);
-    setAccumulatedProducts([]);
-  }, [resetAccumulationKey]);
-
-  useEffect(() => {
-    if (!data?.items) return;
-    if (data.page !== effectivePage) return;
-    if (effectivePage === 1) {
-      setAccumulatedProducts(data.items);
-    } else {
-      // Deduplicate to prevent key conflicts when items shift between pages
-      setAccumulatedProducts((prev) => {
-        const existingIds = new Set(prev.map((p) => p.id));
-        return [...prev, ...data.items.filter((p) => !existingIds.has(p.id))];
-      });
-    }
-  }, [data, effectivePage]);
-
-  const productList: Product[] = numColumns === 1 ? accumulatedProducts : (data?.items ?? []);
-  const totalPages = data?.pages ?? 0;
-  const total = data?.total ?? 0;
-  const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
-  // For authenticated users, read from server-side preferences; for guests, use local storage.
-  useEffect(() => {
-    if (isAuthenticated) {
-      setShowInfoCard(currentUser?.preferences?.products_welcome_dismissed !== true);
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      try {
-        if (Platform.OS === 'web') {
-          const dismissed =
-            typeof window !== 'undefined'
-              ? window.localStorage.getItem(GUEST_INFO_CARD_STORAGE_KEY)
-              : null;
-          if (!cancelled) setShowInfoCard(dismissed !== 'true');
-        } else {
-          const dismissed = await AsyncStorage.getItem(GUEST_INFO_CARD_STORAGE_KEY);
-          if (!cancelled) setShowInfoCard(dismissed !== 'true');
-        }
-      } catch {
-        if (!cancelled) setShowInfoCard(true);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, currentUser?.preferences?.products_welcome_dismissed]);
-
-  const dismissInfoCard = async () => {
-    setShowInfoCard(false);
-    if (isAuthenticated) {
-      try {
-        await updateUser({ preferences: { products_welcome_dismissed: true } });
-        if (typeof refetchUser === 'function') {
-          await refetchUser(false);
-        }
-      } catch (err) {
-        console.error('Failed to save info card preference:', err);
-      }
-    } else {
-      try {
-        if (Platform.OS === 'web') {
-          if (typeof window !== 'undefined')
-            window.localStorage.setItem(GUEST_INFO_CARD_STORAGE_KEY, 'true');
-        } else {
-          await AsyncStorage.setItem(GUEST_INFO_CARD_STORAGE_KEY, 'true');
-        }
-      } catch (err) {
-        console.error('Failed to save info card preference:', err);
-      }
-    }
-  };
-
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setFabExtended(event.nativeEvent.contentOffset.y <= 0);
-  };
-
-  const newProduct = () => {
-    if (!currentUser) {
-      dialog.alert({
-        title: 'Sign In Required',
-        message: 'Sign in to add new products and manage your own submissions.',
-        buttons: [
-          { text: 'Cancel' },
-          { text: 'Sign in', onPress: () => router.push('/login?redirectTo=/products') },
-        ],
-      });
-      return;
-    }
-
-    if (!currentUser?.isVerified) {
-      dialog.alert({
-        title: 'Email Verification Required',
-        message:
-          'Please verify your email address before creating products. Check your inbox for the verification link or go to your Profile to resend it.',
-        buttons: [
-          { text: 'OK' },
-          { text: 'Go to Profile', onPress: () => router.push('/profile') },
-        ],
-      });
-      return;
-    }
-
-    dialog.input({
-      title: 'Create New Product',
-      placeholder: 'Product Name',
-      helperText: 'Enter a descriptive name between 2 and 100 characters',
-      buttons: [
-        { text: 'Cancel' },
-        {
-          text: 'OK',
-          disabled: (value) => {
-            const name = typeof value === 'string' ? value.trim() : '';
-            return name.length < 2 || name.length > 100;
-          },
-          onPress: (productName) => {
-            const name = typeof productName === 'string' ? productName.trim() : '';
-            setNewProductIntent({ name });
-            router.push({ pathname: '/products/[id]', params: { id: 'new' } });
-          },
-        },
-      ],
-    });
-  };
+    activeBrands,
+    activeProductTypes,
+    searchQuery,
+    setSearchQuery,
+    debouncedSearchQuery,
+    effectivePage,
+    setMobilePage,
+    headerBottom,
+    setHeaderBottom,
+    fabExtended,
+    showInfoCard,
+    sortMenuVisible,
+    setSortMenuVisible,
+    dateMenuVisible,
+    setDateMenuVisible,
+    brandModalVisible,
+    setBrandModalVisible,
+    typeModalVisible,
+    setTypeModalVisible,
+    brandSearch,
+    setBrandSearch,
+    typeSearch,
+    setTypeSearch,
+    slowLoading,
+    brandResults,
+    brandsLoading,
+    typeResults,
+    typesLoading,
+    isAuthenticated,
+    isFetching,
+    isLoading,
+    error,
+    refetch,
+    productList,
+    totalPages,
+    total,
+    hasMore,
+    currentUser,
+    updateParams,
+    dismissInfoCard,
+    onScroll,
+    newProduct,
+  } = useProductsScreen(numColumns);
 
   // ─── Render ───────────────────────────────────────────────────────────────────
 

@@ -1,9 +1,17 @@
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
+import {
+  getSecureItem,
+  getSessionItem,
+  removeSecureItem,
+  removeSessionItem,
+  setSecureItem,
+  setSessionItem,
+} from '@/services/storage';
 import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
-import { fetchWithTimeout } from './request';
+import { logError } from '@/utils/logging';
+import { createRequestId, fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -17,19 +25,13 @@ let explicitlyLoggedOut = false;
 // Incremented on every logout so in-flight getUser requests can detect they raced with a logout
 let authGeneration = 0;
 
-// Suppress noisy error logs during tests; error paths are exercised intentionally.
-function logError(...args: unknown[]) {
-  if (process.env.NODE_ENV === 'test') return;
-  console.error(...(args as [unknown, ...unknown[]]));
-}
-
 const isWeb = () => Platform.OS === 'web';
 
 async function persistAccessToken(nextToken: string): Promise<void> {
   token = nextToken;
   explicitlyLoggedOut = false;
   if (!isWeb()) {
-    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, nextToken);
+    await setSecureItem(ACCESS_TOKEN_KEY, nextToken);
   }
 }
 
@@ -40,24 +42,15 @@ async function clearCachedAuthState(): Promise<void> {
   authGeneration++;
   explicitlyLoggedOut = true;
   if (!isWeb()) {
-    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await removeSecureItem(ACCESS_TOKEN_KEY);
   }
-  // clear the client-visible web session flag
-  try {
-    if (isWeb()) window.sessionStorage.removeItem(WEB_SESSION_FLAG);
-  } catch {
-    /* ignore */
-  }
+  removeSessionItem(WEB_SESSION_FLAG);
 }
 
 function setWebSessionFlag(value: boolean) {
   if (!isWeb()) return;
-  try {
-    if (value) window.sessionStorage.setItem(WEB_SESSION_FLAG, '1');
-    else window.sessionStorage.removeItem(WEB_SESSION_FLAG);
-  } catch {
-    /* ignore */
-  }
+  if (value) setSessionItem(WEB_SESSION_FLAG, '1');
+  else removeSessionItem(WEB_SESSION_FLAG);
 }
 
 export function markWebSessionActive(): void {
@@ -68,11 +61,7 @@ export function markWebSessionActive(): void {
 
 export function hasWebSessionFlag(): boolean {
   if (!isWeb()) return false;
-  try {
-    return !!window.sessionStorage.getItem(WEB_SESSION_FLAG);
-  } catch {
-    return false;
-  }
+  return !!getSessionItem(WEB_SESSION_FLAG);
 }
 
 // ─────────────────────────────────────────────
@@ -84,7 +73,7 @@ export async function getToken(): Promise<string | undefined> {
   if (isWeb()) return undefined;
 
   try {
-    const storedToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    const storedToken = await getSecureItem(ACCESS_TOKEN_KEY);
     if (storedToken) {
       token = storedToken;
       return token;
@@ -150,6 +139,7 @@ export async function fetchWithAuth(
   options: RequestInit = {},
 ): Promise<Response> {
   const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
+  headers['X-Request-ID'] ||= createRequestId();
 
   const authToken = await getToken();
   if (authToken) {

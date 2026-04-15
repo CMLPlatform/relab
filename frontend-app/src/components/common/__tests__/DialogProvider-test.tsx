@@ -194,6 +194,19 @@ describe('DialogProvider', () => {
     expect(screen.getByText('OK')).toBeOnTheScreen();
   });
 
+  it('toast() shows a transient snackbar message', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return <AlertTrigger onPress={() => dialog.toast('Saved')} />;
+    }
+
+    renderWithProviders(<ToastTest />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+
+    expect(screen.getByText('Saved')).toBeOnTheScreen();
+  });
+
   it('pressing a button with no onPress closes the dialog without throwing', async () => {
     function Test() {
       const dialog = useDialog();

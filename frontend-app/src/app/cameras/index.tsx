@@ -20,6 +20,7 @@ import { CameraCard } from '@/components/cameras/CameraCard';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import {
   type EffectiveCameraConnection,
   resolveEffectiveCameraConnection,
@@ -85,6 +86,7 @@ export default function CamerasScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
   const { user } = useAuth();
+  const feedback = useAppFeedback();
   const isDesktop = useIsDesktop();
 
   // ``/cameras?product=42`` puts the mosaic into "capture flow" mode — tapping
@@ -323,14 +325,30 @@ export default function CamerasScreen() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg === 'GOOGLE_OAUTH_REQUIRED') {
-        alert('Connect your Google account in Profile > Linked Accounts to stream to YouTube.');
+        feedback.alert({
+          title: 'Google account required',
+          message: 'Connect your Google account in Profile > Linked Accounts to stream to YouTube.',
+          buttons: [{ text: 'OK' }],
+        });
       } else {
-        alert(`Failed to start stream: ${msg}`);
+        feedback.alert({
+          title: 'Stream start failed',
+          message: `Failed to start stream: ${msg}`,
+          buttons: [{ text: 'OK' }],
+        });
       }
     } finally {
       setIsStartingStream(false);
     }
-  }, [streamDialog, streamProductId, streamProduct?.name, setActiveStream, queryClient, router]);
+  }, [
+    streamDialog,
+    streamProductId,
+    streamProduct?.name,
+    setActiveStream,
+    queryClient,
+    router,
+    feedback,
+  ]);
 
   const handleCardLongPress = useCallback(
     (camera: CameraReadWithStatus) => {

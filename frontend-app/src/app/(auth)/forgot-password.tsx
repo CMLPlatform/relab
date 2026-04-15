@@ -10,6 +10,7 @@ import {
   type ForgotPasswordFormValues,
   forgotPasswordSchema,
 } from '@/services/api/validation/userSchema';
+import { logError } from '@/utils/logging';
 
 export default function ForgotPasswordScreen() {
   const theme = useTheme();
@@ -60,7 +61,7 @@ export default function ForgotPasswordScreen() {
         setError(data.detail || 'Failed to send reset email');
       }
     } catch (err) {
-      console.error('Forgot password error:', err);
+      logError('Forgot password error:', err);
       setError('An error occurred. Please try again later.');
     }
   });

@@ -332,9 +332,6 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
 
   it('shows an alert when RPi button is pressed on an unsaved product', async () => {
     mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
-    const alertSpy = jest
-      .spyOn(globalThis as unknown as { alert: (msg: string) => void }, 'alert')
-      .mockImplementation(() => undefined);
 
     // Product with id: undefined simulates an unsaved product
     const unsavedProduct = { ...baseProduct, id: undefined } as unknown as Product;
@@ -347,10 +344,8 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     fireEvent.press(screen.getByLabelText('Set up RPi camera'));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringMatching(/Save this product first/i));
+      expect(screen.getByText(/Save this product first/i)).toBeOnTheScreen();
     });
-
-    alertSpy.mockRestore();
   });
 
   // ── RPi button — saved product, zero cameras ───────────────────────────────
@@ -509,9 +504,6 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
   });
 
   it('shows alert when capture fails', async () => {
-    const alertSpy = jest
-      .spyOn(globalThis as unknown as { alert: (msg: string) => void }, 'alert')
-      .mockImplementation(() => undefined);
     mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
     mockUseCamerasQuery.mockReturnValue({
       data: [makeCamera({ id: 'cam-1', name: 'Bench Cam' })],
@@ -539,9 +531,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     fireEvent.press(screen.getByText('Capture'));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(expect.stringMatching(/Capture failed/i));
+      expect(screen.getByText('Capture failed')).toBeOnTheScreen();
     });
-
-    alertSpy.mockRestore();
   });
 });

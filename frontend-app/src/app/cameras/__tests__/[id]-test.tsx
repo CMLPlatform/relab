@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { renderWithProviders } from '@/test-utils';
 import CameraDetailScreen from '../[id]';
@@ -260,6 +260,15 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
+    mockUseEffectiveCameraConnection.mockReturnValue(
+      makeEffectiveConnection({
+        relayStatus: 'offline',
+        status: 'offline',
+        transport: 'unreachable',
+        isReachable: false,
+        canUseRelay: false,
+      }),
+    );
 
     renderWithProviders(<CameraDetailScreen />);
 
@@ -286,6 +295,15 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
+    mockUseEffectiveCameraConnection.mockReturnValue(
+      makeEffectiveConnection({
+        relayStatus: 'offline',
+        status: 'offline',
+        transport: 'unreachable',
+        isReachable: false,
+        canUseRelay: false,
+      }),
+    );
 
     renderWithProviders(<CameraDetailScreen />);
 
@@ -318,12 +336,22 @@ describe('Camera detail screen', () => {
     renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     fireEvent.press(screen.getByText('Delete camera'));
-    expect(screen.getByText('Delete camera?')).toBeOnTheScreen();
+    await screen.findByText('Delete camera?');
 
-    fireEvent.press(screen.getByText('Cancel'));
+    const cancelButtons = screen.getAllByText('Cancel');
+    const cancelButton = cancelButtons[cancelButtons.length - 1];
+    expect(cancelButton).toBeTruthy();
+    if (!cancelButton) {
+      throw new Error('Cancel button not found');
+    }
+    fireEvent.press(cancelButton);
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
 
-    await waitFor(() => expect(screen.queryByText('Delete camera?')).toBeNull());
-  });
+    await waitFor(() => expect(screen.queryByText('Cancel')).toBeNull());
+    expect(mockDeleteMutate).not.toHaveBeenCalled();
+  }, 15_000);
 
   it('opens the delete confirmation and navigates away after successful deletion', async () => {
     mockDeleteMutate.mockImplementationOnce((_id: string, options?: { onSuccess?: () => void }) => {

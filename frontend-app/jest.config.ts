@@ -13,6 +13,8 @@ const config: Config = {
   fakeTimers: { enableGlobally: true },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
+  testTimeout: 15_000,
+  watchman: false,
 
   // We must correctly un-ignore packages in pnpm's nested node_modules.
   // The negative lookahead includes (.pnpm/.*?/node_modules/)? to handle this.

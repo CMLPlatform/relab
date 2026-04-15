@@ -31,11 +31,16 @@
  *   // conn.localBaseUrl, conn.localApiKey populated when mode === 'local'
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
+import {
+  getLocalItem,
+  getSecureItem,
+  removeLocalItem,
+  removeSecureItem,
+  setLocalItem,
+  setSecureItem,
+} from '@/services/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,30 +132,16 @@ async function probeAll(candidates: string[], apiKey: string | null): Promise<st
   });
 }
 
-// ─── SecureStore / AsyncStorage wrappers ─────────────────────────────────────
-// SecureStore is not available on web; fall back to AsyncStorage.
-
 async function storeApiKey(cameraId: string, key: string): Promise<void> {
-  if (Platform.OS !== 'web') {
-    await SecureStore.setItemAsync(apiKeySecureKey(cameraId), key);
-  } else {
-    await AsyncStorage.setItem(apiKeySecureKey(cameraId), key);
-  }
+  await setSecureItem(apiKeySecureKey(cameraId), key);
 }
 
 async function loadApiKey(cameraId: string): Promise<string | null> {
-  if (Platform.OS !== 'web') {
-    return SecureStore.getItemAsync(apiKeySecureKey(cameraId));
-  }
-  return AsyncStorage.getItem(apiKeySecureKey(cameraId));
+  return getSecureItem(apiKeySecureKey(cameraId));
 }
 
 async function deleteApiKey(cameraId: string): Promise<void> {
-  if (Platform.OS !== 'web') {
-    await SecureStore.deleteItemAsync(apiKeySecureKey(cameraId));
-  } else {
-    await AsyncStorage.removeItem(apiKeySecureKey(cameraId));
-  }
+  await removeSecureItem(apiKeySecureKey(cameraId));
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -196,7 +187,7 @@ export function useLocalConnection(
     async (url: string, apiKey: string) => {
       const normalised = url.replace(/\/$/, '');
       await Promise.all([
-        AsyncStorage.setItem(urlKey(cameraId), normalised),
+        setLocalItem(urlKey(cameraId), normalised),
         storeApiKey(cameraId, apiKey),
       ]);
       setLocalBaseUrl(normalised);
@@ -213,7 +204,7 @@ export function useLocalConnection(
 
     async function init() {
       const [storedUrl, storedKey] = await Promise.all([
-        AsyncStorage.getItem(urlKey(cameraId)),
+        getLocalItem(urlKey(cameraId)),
         loadApiKey(cameraId),
       ]);
 
@@ -301,7 +292,7 @@ export function useLocalConnection(
     async (baseUrl: string, apiKey: string) => {
       const normalised = baseUrl.replace(/\/$/, '');
       await Promise.all([
-        AsyncStorage.setItem(urlKey(cameraId), normalised),
+        setLocalItem(urlKey(cameraId), normalised),
         storeApiKey(cameraId, apiKey),
       ]);
       setLocalBaseUrl(normalised);
@@ -315,7 +306,7 @@ export function useLocalConnection(
 
   // ── clearLocalConnection: remove stored config ──────────────────────────
   const clearLocalConnection = useCallback(async () => {
-    await Promise.all([AsyncStorage.removeItem(urlKey(cameraId)), deleteApiKey(cameraId)]);
+    await Promise.all([removeLocalItem(urlKey(cameraId)), deleteApiKey(cameraId)]);
     setLocalBaseUrl(null);
     setLocalApiKey(null);
     setMode('relay');

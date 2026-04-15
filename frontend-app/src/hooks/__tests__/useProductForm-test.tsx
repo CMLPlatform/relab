@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
+import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider, useAuth } from '@/context/AuthProvider';
 import { consumeNewProductIntent } from '@/services/newProductStore';
@@ -67,7 +68,16 @@ const queryClient = new QueryClient({
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <DialogProvider>{children}</DialogProvider>
+      <SafeAreaProvider
+        initialMetrics={
+          initialWindowMetrics ?? {
+            frame: { x: 0, y: 0, width: 320, height: 640 },
+            insets: { top: 0, right: 0, bottom: 0, left: 0 },
+          }
+        }
+      >
+        <DialogProvider>{children}</DialogProvider>
+      </SafeAreaProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

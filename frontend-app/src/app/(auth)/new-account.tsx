@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthProvider';
 import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { login, register } from '@/services/api/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
+import { logError } from '@/utils/logging';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -185,7 +186,7 @@ export default function NewAccount() {
     try {
       await refetch(true);
     } catch (err) {
-      console.error('[NewAccount] Failed to refetch user after signup:', err);
+      logError('[NewAccount] Failed to refetch user after signup:', err);
     }
 
     router.replace('/products');

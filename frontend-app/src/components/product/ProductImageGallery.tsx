@@ -1,6 +1,5 @@
 // spell-checker: ignore Zoomable
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -22,12 +21,15 @@ import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
 import ZoomableImage from '@/components/common/ZoomableImage';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useCamerasQuery, useCaptureImageMutation } from '@/hooks/useRpiCameras';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { getResizedImageUrl, resolveApiMediaUrl } from '@/services/api/media';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { processImage } from '@/services/media/imageProcessing';
+import { getLocalItem, setLocalItem } from '@/services/storage';
 import type { Product } from '@/types/Product';
+import { logError } from '@/utils/logging';
 
 const GalleryFlatList: typeof GHFlatList =
   Platform.OS === 'web' ? (RNFlatList as unknown as typeof GHFlatList) : GHFlatList;
@@ -68,6 +70,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const images = useMemo(() => product.images ?? [], [product.images]);
   const router = useRouter();
+  const feedback = useAppFeedback();
 
   // ─── RPi camera capture ───────────────────────────────────────────────────
   const productId = typeof product.id === 'number' ? product.id : null;
@@ -108,17 +111,26 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
               },
             ]);
           },
-          onError: (err) => alert(`Capture failed: ${String(err)}`),
+          onError: (err) =>
+            feedback.alert({
+              title: 'Capture failed',
+              message: String(err),
+              buttons: [{ text: 'OK' }],
+            }),
           onSettled: () => setIsCapturing(false),
         },
       );
     },
-    [productId, captureMutation, images, onImagesChange],
+    [productId, captureMutation, images, onImagesChange, feedback],
   );
 
   const handleRpiCapture = useCallback(() => {
     if (isNewProduct) {
-      alert('Save this product first before capturing from an RPi camera.');
+      feedback.alert({
+        title: 'Save required',
+        message: 'Save this product first before capturing from an RPi camera.',
+        buttons: [{ text: 'OK' }],
+      });
       return;
     }
     if (rpiCamerasLoading) return;
@@ -128,7 +140,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     }
     // Always show the picker dialog — it has a Manage button for camera setup
     setCameraPickerVisible(true);
-  }, [isNewProduct, rpiCamerasLoading, hasCamerasConfigured, router]);
+  }, [isNewProduct, rpiCamerasLoading, hasCamerasConfigured, router, feedback]);
 
   const galleryRef = useRef<ScrollableListHandle | null>(null);
   const thumbsRef = useRef<ScrollableListHandle | null>(null);
@@ -191,7 +203,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     const loadLastIndex = async () => {
       try {
         const key = `product_gallery_index_${productId}`;
-        const saved = await AsyncStorage.getItem(key);
+        const saved = await getLocalItem(key);
         if (saved !== null) {
           const idx = parseInt(saved, 10);
           if (idx >= 0 && idx < imageCount) {
@@ -199,7 +211,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           }
         }
       } catch (e) {
-        console.warn('Failed to load gallery index', e);
+        logError('Failed to load gallery index', e);
       }
     };
     if (productId && imageCount > 0) {
@@ -213,9 +225,9 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
       setSelectedIndex(clampedIndex);
       try {
         const key = `product_gallery_index_${productId}`;
-        await AsyncStorage.setItem(key, String(clampedIndex));
+        await setLocalItem(key, String(clampedIndex));
       } catch (e) {
-        console.warn('Failed to save gallery index', e);
+        logError('Failed to save gallery index', e);
       }
     },
     [imageCount, productId],

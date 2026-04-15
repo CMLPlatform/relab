@@ -207,6 +207,29 @@ describe('Authentication API Service', () => {
       expect(fetchMock()).toHaveBeenCalledTimes(3);
     });
 
+    it('adds an X-Request-ID header to authenticated requests', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(200, { ok: true }) as Response);
+
+      await auth.fetchWithAuth('http://localhost:8000/api/test', {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      expect(fetchMock()).toHaveBeenCalledWith(
+        'http://localhost:8000/api/test',
+        expect.objectContaining({
+          method: 'GET',
+          credentials: 'include',
+          headers: expect.objectContaining({
+            Accept: 'application/json',
+            Authorization: 'Bearer test-token',
+            'X-Request-ID': expect.any(String),
+          }),
+        }),
+      );
+    });
+
     it('does not attempt token refresh after explicit logout when a 401 is received', async () => {
       // Logout first to set explicitlyLoggedOut = true
       fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
@@ -361,6 +384,7 @@ describe('Authentication API Service', () => {
 
       // Start a getUser request that hasn't resolved yet
       const inflight = auth.getUser(true);
+      await Promise.resolve();
 
       // Logout while it's in flight (logout fetch resolves immediately)
       fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);

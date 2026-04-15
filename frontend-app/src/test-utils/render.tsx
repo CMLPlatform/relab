@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { RenderOptions } from '@testing-library/react-native';
 import { render } from '@testing-library/react-native';
 import type React from 'react';
-import { PaperProvider } from 'react-native-paper';
+import { MD3LightTheme, PaperProvider } from 'react-native-paper';
+import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
@@ -44,12 +45,28 @@ export function renderWithProviders(
 
   // withThemeMode requires auth since ThemeModeProvider calls useAuth()
   const needsAuth = withAuth || withThemeMode;
+  const testTheme = {
+    ...MD3LightTheme,
+    animation: {
+      ...MD3LightTheme.animation,
+      scale: 0,
+    },
+  };
+  const safeAreaMetrics = initialWindowMetrics ?? {
+    frame: { x: 0, y: 0, width: 320, height: 640 },
+    insets: { top: 0, right: 0, bottom: 0, left: 0 },
+  };
 
   function Wrapper({ children }: { children: React.ReactNode }) {
     let content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
     if (withThemeMode) content = <ThemeModeProvider>{content}</ThemeModeProvider>;
-    const withPaper = <PaperProvider>{content}</PaperProvider>;
-    const withQuery = <QueryClientProvider client={queryClient}>{withPaper}</QueryClientProvider>;
+    const withPaper = <PaperProvider theme={testTheme}>{content}</PaperProvider>;
+    const withSafeArea = (
+      <SafeAreaProvider initialMetrics={safeAreaMetrics}>{withPaper}</SafeAreaProvider>
+    );
+    const withQuery = (
+      <QueryClientProvider client={queryClient}>{withSafeArea}</QueryClientProvider>
+    );
     return needsAuth ? <AuthProvider>{withQuery}</AuthProvider> : withQuery;
   }
 

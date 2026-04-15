@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput, useTheme } from 'react-native-paper';
 import { useAuth } from '@/context/AuthProvider';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useClaimPairingMutation } from '@/hooks/useRpiCameras';
 
 export default function AddCameraScreen() {
   const router = useRouter();
   const theme = useTheme();
   const { user } = useAuth();
+  const feedback = useAppFeedback();
   const claimMutation = useClaimPairingMutation();
 
   useEffect(() => {
@@ -35,7 +37,12 @@ export default function AddCameraScreen() {
       },
       {
         onSuccess: () => setPairingSuccess(true),
-        onError: (err) => alert(String(err)),
+        onError: (err) =>
+          feedback.alert({
+            title: 'Pairing failed',
+            message: String(err),
+            buttons: [{ text: 'OK' }],
+          }),
       },
     );
   };

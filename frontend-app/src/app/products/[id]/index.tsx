@@ -4,32 +4,22 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { type JSX, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  Platform,
-  Pressable,
   View,
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { AnimatedFAB, Button, Card, Icon, Text, Tooltip, useTheme } from 'react-native-paper';
+import { Button, Text, useTheme } from 'react-native-paper';
 
-import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
-import DetailCard from '@/components/common/DetailCard';
 import { useDialog } from '@/components/common/DialogProvider';
-import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
-import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
-import ProductComponents from '@/components/product/ProductComponents';
-import ProductDelete from '@/components/product/ProductDelete';
-import ProductDescription from '@/components/product/ProductDescription';
-import ProductImageGallery from '@/components/product/ProductImageGallery';
-import ProductMetaData from '@/components/product/ProductMetaData';
-import ProductPhysicalProperties from '@/components/product/ProductPhysicalProperties';
-import ProductTags from '@/components/product/ProductTags';
-import ProductType from '@/components/product/ProductType';
-import ProductVideo from '@/components/product/ProductVideo';
+import {
+  ProductFabControls,
+  ProductPageContent,
+  ProductPageErrorState,
+  ProductPageLoadingState,
+} from '@/components/product/ProductPageSections';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
@@ -54,6 +44,7 @@ export default function ProductPage(): JSX.Element {
   const navigation = useNavigation();
   const router = useRouter();
   const dialog = useDialog();
+  const feedback = useAppFeedback();
   const theme = useTheme();
   const { user: profile } = useAuth();
   const { enabled: rpiEnabled } = useRpiIntegration();
@@ -188,12 +179,12 @@ export default function ProductPage(): JSX.Element {
   useEffect(() => {
     if (!isNew || isProductComponent || !activeStream || streamPromptedRef.current) return;
     streamPromptedRef.current = true;
-    Alert.alert(
-      `You're live on YouTube`,
-      `Your stream for "${activeStream.productName}" is still running. It will keep going while you create this product.`,
-      [{ text: 'Got it' }],
-    );
-  }, [isNew, isProductComponent, activeStream]);
+    feedback.alert({
+      title: "You're live on YouTube",
+      message: `Your stream for "${activeStream.productName}" is still running. It will keep going while you create this product.`,
+      buttons: [{ text: 'Got it' }],
+    });
+  }, [activeStream, feedback, isNew, isProductComponent]);
 
   // ─── Unsaved changes guard ───────────────────────────────────────────────────
   useEffect(() => {
@@ -247,71 +238,26 @@ export default function ProductPage(): JSX.Element {
   // ─── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={{ flex: 1 }}>
-        <ProductDetailsSkeleton />
-        {slowLoading && (
-          <View
-            style={{ position: 'absolute', bottom: 100, left: 0, right: 0, alignItems: 'center' }}
-          >
-            <Card
-              style={{
-                backgroundColor: theme.colors.surfaceVariant,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-              }}
-            >
-              <Text variant="bodySmall">This is taking longer than usual. Please wait...</Text>
-            </Card>
-          </View>
-        )}
-      </View>
+      <ProductPageLoadingState
+        slowLoading={slowLoading}
+        surfaceVariant={theme.colors.surfaceVariant}
+      />
     );
   }
 
   // ─── Error state ──────────────────────────────────────────────────────────────
   if (isError) {
-    if (isProductNotFoundError(error)) {
-      return (
-        <View
-          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 }}
-        >
-          <MaterialCommunityIcons
-            name="package-variant-closed-remove"
-            size={64}
-            color={theme.colors.onSurfaceVariant}
-          />
-          <Text variant="headlineSmall" style={{ textAlign: 'center' }}>
-            Product not found
-          </Text>
-          <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
-            This product may have been removed or the link is no longer valid.
-          </Text>
-          <Button
-            mode="contained"
-            onPress={() => router.replace('/products')}
-            style={{ marginTop: 8 }}
-          >
-            Back to products
-          </Button>
-        </View>
-      );
-    }
-
     return (
-      <View
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, gap: 16 }}
-      >
-        <MaterialCommunityIcons name="alert-circle-outline" size={64} color={theme.colors.error} />
-        <Text variant="headlineSmall" style={{ textAlign: 'center' }}>
-          Oops! Something went wrong
-        </Text>
-        <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
-          {String(error) || 'We encountered an error while loading the product details.'}
-        </Text>
-        <Button mode="contained" onPress={() => refetch()} style={{ marginTop: 8 }}>
-          Try Again
-        </Button>
-      </View>
+      <ProductPageErrorState
+        error={error}
+        isNotFound={isProductNotFoundError(error)}
+        onBack={() => router.replace('/products')}
+        onRetry={() => refetch()}
+        themeColors={{
+          error: theme.colors.error,
+          onSurfaceVariant: theme.colors.onSurfaceVariant,
+        }}
+      />
     );
   }
 
@@ -327,206 +273,63 @@ export default function ProductPage(): JSX.Element {
   // ─── Render ────────────────────────────────────────────────────────────────────
   return (
     <>
-      <KeyboardAwareScrollView
-        contentContainerStyle={{ gap: 15, paddingBottom: 5 }}
+      <ProductPageContent
+        product={product}
+        editMode={editMode}
+        isNew={isNew}
+        isProductComponent={isProductComponent}
+        justCreated={justCreated}
         onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
-        {rpiEnabled &&
-          !isNew &&
-          !editMode &&
-          !isProductComponent &&
-          product.ownedBy === 'me' &&
-          streamingOtherProduct &&
-          activeStream && (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/products/[id]',
-                  params: { id: String(activeStream.productId) },
-                })
-              }
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                marginHorizontal: 14,
-                marginBottom: 8,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: 'rgba(229,57,53,0.08)',
-              }}
-              accessibilityRole="button"
-            >
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#e53935' }} />
-              <Text variant="bodySmall" style={{ flex: 1, color: '#e53935' }}>
-                Live: {activeStream.productName}
-              </Text>
-              <Icon source="chevron-right" size={14} color="#e53935" />
-            </Pressable>
-          )}
-        <ProductImageGallery
-          product={product}
-          editMode={editMode}
-          onImagesChange={onImagesChange}
-        />
-        <DetailCard>
-          <ProductDescription
-            product={product}
-            editMode={editMode}
-            onChangeDescription={onChangeDescription}
-          />
-        </DetailCard>
-        <ProductTags
-          product={product}
-          editMode={editMode}
-          onBrandChange={onBrandChange}
-          onModelChange={onModelChange}
-          onAmountChange={onAmountInParentChange}
-          isComponent={isProductComponent}
-        />
-        <DetailCard>
-          <ProductType product={product} editMode={editMode} onTypeChange={onTypeChange} />
-        </DetailCard>
-        <DetailCard>
-          <ProductPhysicalProperties
-            product={product}
-            editMode={editMode}
-            onChangePhysicalProperties={onChangePhysicalProperties}
-          />
-        </DetailCard>
-        <DetailCard>
-          <ProductCircularityProperties
-            product={product}
-            editMode={editMode}
-            onChangeCircularityProperties={onChangeCircularityProperties}
-          />
-        </DetailCard>
-        <DetailCard>
-          <ProductVideo product={product} editMode={editMode} onVideoChange={onVideoChange} />
-        </DetailCard>
-        {isNew ? null : (
-          <>
-            {justCreated && (
-              <Card
-                style={{ marginHorizontal: 14, backgroundColor: theme.colors.secondaryContainer }}
-                mode="contained"
-              >
-                <Card.Content>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-                    Product saved! Want to track sub-components (e.g. battery, screen)? Use the
-                    &quot;Add component&quot; button below.
-                  </Text>
-                </Card.Content>
-              </Card>
-            )}
-            <DetailCard>
-              <ProductComponents product={product} editMode={editMode} />
-            </DetailCard>
-          </>
-        )}
-        <DetailCard>
-          <ProductMetaData product={product} />
-        </DetailCard>
-        <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
-        {rpiEnabled &&
-          !isNew &&
-          !editMode &&
-          !isProductComponent &&
-          product.ownedBy === 'me' &&
-          !youtubeEnabled && (
-            <Pressable
-              onPress={() => router.push('/profile')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                marginHorizontal: 14,
-                marginBottom: 8,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: theme.colors.surfaceVariant,
-                opacity: 0.7,
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Set up YouTube Live"
-            >
-              <Icon source="youtube" size={16} color={theme.colors.onSurfaceVariant} />
-              <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
-                {isGoogleLinked
-                  ? 'Enable YouTube Live in Integrations to stream this product'
-                  : 'Link your Google account to stream this product live'}
-              </Text>
-              <Icon source="chevron-right" size={16} color={theme.colors.onSurfaceVariant} />
-            </Pressable>
-          )}
-      </KeyboardAwareScrollView>
-      {rpiEnabled &&
-        youtubeEnabled &&
-        isGoogleLinked &&
-        !isNew &&
-        !editMode &&
-        !isProductComponent &&
-        product.ownedBy === 'me' &&
-        typeof product.id === 'number' &&
-        !streamingOtherProduct &&
-        !streamingThisProduct && (
-          <AnimatedFAB
-            icon="youtube"
-            label="Go Live"
-            extended={fabExtended}
-            onPress={() => setStreamPickerVisible(true)}
-            style={{
-              position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
-              left: 0,
-              bottom: 0,
-              margin: 19,
-            }}
-          />
-        )}
-      {editMode && validationResult.error ? (
-        <Tooltip title={validationResult.error} enterTouchDelay={0} leaveTouchDelay={1500}>
-          <AnimatedFAB
-            icon={FABicon}
-            onPress={toggleEditMode}
-            style={{
-              position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
-              right: 0,
-              bottom: 0,
-              margin: 19,
-            }}
-            disabled={!validationResult.isValid || isSaving}
-            extended={fabExtended}
-            label="Save Product"
-            visible={product.ownedBy === 'me'}
-          />
-        </Tooltip>
-      ) : (
-        <AnimatedFAB
-          icon={FABicon}
-          onPress={toggleEditMode}
-          style={{
-            position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
-            right: 0,
-            bottom: 0,
-            margin: 19,
-          }}
-          disabled={(editMode && !validationResult.isValid) || isSaving}
-          extended={fabExtended}
-          label={editMode ? 'Save Product' : 'Edit Product'}
-          visible={product.ownedBy === 'me'}
-        />
-      )}
-      {typeof product.id === 'number' && (
-        <CameraStreamPicker
-          productId={product.id}
-          productName={product.name ?? ''}
-          visible={streamPickerVisible}
-          onDismiss={() => setStreamPickerVisible(false)}
-        />
-      )}
+        onNavigateToActiveStream={() =>
+          router.push({
+            pathname: '/products/[id]',
+            params: { id: String(activeStream?.productId) },
+          })
+        }
+        onNavigateToProfile={() => router.push('/profile')}
+        onImagesChange={onImagesChange}
+        onChangeDescription={onChangeDescription}
+        onBrandChange={onBrandChange}
+        onModelChange={onModelChange}
+        onAmountInParentChange={onAmountInParentChange}
+        onTypeChange={onTypeChange}
+        onChangePhysicalProperties={onChangePhysicalProperties}
+        onChangeCircularityProperties={onChangeCircularityProperties}
+        onVideoChange={onVideoChange}
+        onProductDelete={onProductDelete}
+        rpiEnabled={rpiEnabled}
+        youtubeEnabled={youtubeEnabled}
+        isGoogleLinked={isGoogleLinked}
+        streamingOtherProduct={streamingOtherProduct}
+        activeStreamProductName={activeStream?.productName}
+        themeColors={{
+          secondaryContainer: theme.colors.secondaryContainer,
+          onSecondaryContainer: theme.colors.onSecondaryContainer,
+          surfaceVariant: theme.colors.surfaceVariant,
+          onSurfaceVariant: theme.colors.onSurfaceVariant,
+        }}
+      />
+      <ProductFabControls
+        rpiEnabled={rpiEnabled}
+        youtubeEnabled={youtubeEnabled}
+        isGoogleLinked={isGoogleLinked}
+        isNew={isNew}
+        editMode={editMode}
+        isProductComponent={isProductComponent}
+        ownedByMe={product.ownedBy === 'me'}
+        productId={typeof product.id === 'number' ? product.id : undefined}
+        productName={product.name ?? ''}
+        fabExtended={fabExtended}
+        validationError={validationResult.error}
+        validationValid={validationResult.isValid}
+        isSaving={isSaving}
+        onPrimaryFabPress={toggleEditMode}
+        onOpenStreamPicker={() => setStreamPickerVisible(true)}
+        streamPickerVisible={streamPickerVisible}
+        onDismissStreamPicker={() => setStreamPickerVisible(false)}
+        showGoLiveFab={!streamingOtherProduct && !streamingThisProduct}
+        primaryFabIcon={FABicon}
+      />
     </>
   );
 }
@@ -539,6 +342,7 @@ function EditNameButton({
   onProductNameChange?: (newName: string) => void;
 }) {
   const dialog = useDialog();
+  const feedback = useAppFeedback();
 
   const onPress = () => {
     if (!product) return;
@@ -559,7 +363,10 @@ function EditNameButton({
             const name = typeof newName === 'string' ? newName.trim() : '';
             const parseResult = productSchema.shape.name.safeParse(name);
             if (!parseResult.success) {
-              alert(parseResult.error.issues[0]?.message || 'Invalid product name');
+              feedback.error(
+                parseResult.error.issues[0]?.message || 'Invalid product name',
+                'Invalid product name',
+              );
               return;
             }
             onProductNameChange?.(name);

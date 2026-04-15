@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/useRpiCameras';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 
@@ -37,6 +38,7 @@ export function YouTubeStreamCard({ cameraId, isOnline }: YouTubeStreamCardProps
   const theme = useTheme();
   const { enabled: youtubeEnabled } = useYouTubeIntegration();
   const { setActiveStream } = useStreamSession();
+  const feedback = useAppFeedback();
 
   const { data: streamStatus, isLoading: statusLoading } = useStreamStatusQuery(cameraId, {
     enabled: isOnline && youtubeEnabled,
@@ -50,18 +52,26 @@ export function YouTubeStreamCard({ cameraId, isOnline }: YouTubeStreamCardProps
   const isLive = !!streamStatus;
 
   const handleStop = () => {
-    Alert.alert('End live stream?', 'This will stop the broadcast and save the recording.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'End Stream',
-        style: 'destructive',
-        onPress: () =>
-          stopMutation.mutate(undefined, {
-            onSuccess: () => setActiveStream(null),
-            onError: (err) => alert(`Failed to stop stream: ${String(err)}`),
-          }),
-      },
-    ]);
+    feedback.alert({
+      title: 'End live stream?',
+      message: 'This will stop the broadcast and save the recording.',
+      buttons: [
+        { text: 'Cancel' },
+        {
+          text: 'End Stream',
+          onPress: () =>
+            stopMutation.mutate(undefined, {
+              onSuccess: () => setActiveStream(null),
+              onError: (err) =>
+                feedback.alert({
+                  title: 'Stop failed',
+                  message: `Failed to stop stream: ${String(err)}`,
+                  buttons: [{ text: 'OK' }],
+                }),
+            }),
+        },
+      ],
+    });
   };
 
   return (

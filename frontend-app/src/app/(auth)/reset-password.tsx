@@ -10,6 +10,7 @@ import {
   type ResetPasswordFormValues,
   resetPasswordSchema,
 } from '@/services/api/validation/userSchema';
+import { logError } from '@/utils/logging';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function ResetPasswordScreen() {
         setError(data.detail || 'Password reset failed');
       }
     } catch (err) {
-      console.error('Password reset error:', err);
+      logError('Password reset error:', err);
       setError('An error occurred during password reset');
     }
   });

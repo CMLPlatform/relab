@@ -13,7 +13,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, screen } from '@testing-library/react-native';
 import { mockPlatform, renderWithProviders } from '@/test-utils';
-import { LivePreview } from '../LivePreview';
+import { LivePreview, PreviewErrorBoundary } from '../LivePreview';
 
 // ─── useCameraLivePreview mock ─────────────────────────────────────────────────
 
@@ -29,11 +29,16 @@ jest.mock('@/hooks/useRpiCameras', () => ({
 // setup callback against a fresh ``{ muted, loop, play }`` object. ``VideoView``
 // renders as a ``View`` with a test id so we can assert on props.
 
-const mockVideoPlayerInstance = { muted: false, loop: false, play: jest.fn() };
+const mockVideoPlayerInstance = { muted: false, loop: false, play: jest.fn(), release: jest.fn() };
 const mockUseVideoPlayer = jest.fn(
   (
     _url: string,
-    setup?: (instance: { muted: boolean; loop: boolean; play: () => void }) => void,
+    setup?: (instance: {
+      muted: boolean;
+      loop: boolean;
+      play: () => void;
+      release: () => void;
+    }) => void,
   ) => {
     if (setup) setup(mockVideoPlayerInstance);
     return mockVideoPlayerInstance;
@@ -65,6 +70,7 @@ describe('LivePreview', () => {
     mockPlatform('ios');
     mockVideoPlayerInstance.muted = false;
     mockVideoPlayerInstance.loop = false;
+    mockVideoPlayerInstance.release.mockReset();
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: HLS_URL });
   });
 
@@ -136,6 +142,32 @@ describe('LivePreview', () => {
 
     const videoView = screen.getByTestId('video-view');
     expect(videoView.props.accessibilityHint).toBe('contain');
+  });
+
+  it('releases the native player on unmount', () => {
+    const { unmount } = renderWithProviders(<LivePreview camera={CAMERA} />);
+
+    unmount();
+
+    expect(mockVideoPlayerInstance.release).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a fallback when the preview player throws during render', () => {
+    const ThrowingPreview = () => {
+      throw new Error('boom');
+    };
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      renderWithProviders(
+        <PreviewErrorBoundary>
+          <ThrowingPreview />
+        </PreviewErrorBoundary>,
+      );
+
+      expect(screen.getByText('Live preview unavailable')).toBeOnTheScreen();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('re-resolves hlsUrl when the camera prop changes', () => {

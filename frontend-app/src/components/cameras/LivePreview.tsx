@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { createElement, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { Component, createElement, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
@@ -44,11 +45,13 @@ export function LivePreview({
   return (
     <Card style={styles.card}>
       <Card.Content style={styles.content}>
-        {Platform.OS === 'web' ? (
-          <WebHlsVideo src={hlsUrl} withCredentials={!isLocalStream} />
-        ) : (
-          <NativeHlsVideo src={hlsUrl} />
-        )}
+        <PreviewErrorBoundary>
+          {Platform.OS === 'web' ? (
+            <WebHlsVideo src={hlsUrl} withCredentials={!isLocalStream} />
+          ) : (
+            <NativeHlsVideo src={hlsUrl} />
+          )}
+        </PreviewErrorBoundary>
         <Text variant="bodySmall" style={styles.caption}>
           {isLocalStream ? 'Live preview · Direct · <1s' : 'Live preview · LL-HLS'}
         </Text>
@@ -60,6 +63,31 @@ export function LivePreview({
 // ─── Web player (hls.js + native Safari) ──────────────────────────────────────
 
 const MAX_RETRIES = 5;
+
+export class PreviewErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.videoFrame}>
+          <View style={styles.overlay}>
+            <MaterialCommunityIcons name="video-off" size={32} color="#999" />
+            <Text style={styles.overlayText}>Live preview unavailable</Text>
+          </View>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredentials?: boolean }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -135,45 +163,60 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
       };
     } else {
       // Dynamic import keeps hls.js out of the native bundle.
-      void import('hls.js').then(({ default: Hls }) => {
-        if (cancelled) return;
-        if (!Hls.isSupported()) {
-          setState('error');
-          setErrorMessage('Live preview is not supported in this browser.');
-          return;
-        }
-        const hls = new Hls({
-          // LL-HLS tuning — match the MediaMTX 200ms part duration so the
-          // player asks for new parts as soon as MediaMTX produces them.
-          lowLatencyMode: true,
-          backBufferLength: 4,
-          maxBufferLength: 4,
-          // Relay mode: the backend HLS endpoint requires the user's session
-          // cookie for cross-origin requests. Local (MediaMTX direct) mode:
-          // no auth needed, omit credentials to avoid preflight rejections.
-          xhrSetup: withCredentials
-            ? (xhr) => {
-                xhr.withCredentials = true;
-              }
-            : undefined,
-        });
-        hls.loadSource(src);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal && !cancelled) {
-            if (retryCount.current < MAX_RETRIES) {
-              scheduleRetry();
-            } else {
-              setState('error');
-              setErrorMessage(data.details ?? 'HLS playback failed');
-            }
+      void import('hls.js')
+        .then(({ default: Hls }) => {
+          if (cancelled) return;
+          if (!Hls.isSupported()) {
+            setState('error');
+            setErrorMessage('Live preview is not supported in this browser.');
+            return;
           }
+          const hls = new Hls({
+            // LL-HLS tuning — match the MediaMTX 200ms part duration so the
+            // player asks for new parts as soon as MediaMTX produces them.
+            lowLatencyMode: true,
+            backBufferLength: 4,
+            maxBufferLength: 4,
+            // Relay mode: the backend HLS endpoint requires the user's session
+            // cookie for cross-origin requests. Local (MediaMTX direct) mode:
+            // no auth needed, omit credentials to avoid preflight rejections.
+            xhrSetup: withCredentials
+              ? (xhr) => {
+                  xhr.withCredentials = true;
+                }
+              : undefined,
+          });
+          hls.loadSource(src);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.ERROR, (_event, data) => {
+            if (data.fatal && !cancelled) {
+              if (retryCount.current < MAX_RETRIES) {
+                scheduleRetry();
+              } else {
+                setState('error');
+                setErrorMessage(data.details ?? 'HLS playback failed');
+              }
+            }
+          });
+          cleanup = () => {
+            video.removeEventListener('playing', onPlaying);
+            hls.destroy();
+          };
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setState('error');
+            setErrorMessage('Live preview unavailable');
+          }
+        })
+        .finally(() => {
+          if (cleanup || cancelled) {
+            return;
+          }
+          cleanup = () => {
+            video.removeEventListener('playing', onPlaying);
+          };
         });
-        cleanup = () => {
-          video.removeEventListener('playing', onPlaying);
-          hls.destroy();
-        };
-      });
     }
 
     return () => {
@@ -225,6 +268,12 @@ function NativeHlsVideo({ src }: { src: string }) {
     instance.loop = false;
     instance.play();
   });
+
+  useEffect(() => {
+    return () => {
+      player.release?.();
+    };
+  }, [player]);
 
   return (
     <View style={styles.videoFrame}>

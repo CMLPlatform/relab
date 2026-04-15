@@ -3,6 +3,7 @@ import * as auth from '../authentication';
 import {
   buildCameraHlsUrl,
   captureImageFromCamera,
+  captureImageLocally,
   claimPairingCode,
   deleteCamera,
   fetchCamera,
@@ -280,6 +281,7 @@ describe('rpiCamera API service', () => {
         headers: expect.objectContaining({
           Accept: 'image/jpeg',
           'X-API-Key': 'local-key',
+          'X-Request-ID': expect.any(String),
         }),
       }),
     );
@@ -308,5 +310,41 @@ describe('rpiCamera API service', () => {
     await expect(fetchCameraTelemetry('cam-broken')).rejects.toThrow(
       'Failed to fetch camera telemetry (503)',
     );
+  });
+
+  it('captures a local image with a request id header', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        image_id: 'img-1',
+        image_url: 'https://cdn.example/image.jpg',
+        thumbnail_url: null,
+        description: 'test image',
+      }),
+    } as Response);
+
+    const result = await captureImageLocally('http://192.168.7.1:8018/', 'local-key', 42);
+
+    expect(result).toEqual({
+      id: 'img-1',
+      url: 'https://cdn.example/image.jpg',
+      thumbnailUrl: null,
+      description: 'test image',
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://192.168.7.1:8018/images',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-API-Key': 'local-key',
+          'X-Request-ID': expect.any(String),
+        }),
+      }),
+    );
+
+    fetchSpy.mockRestore();
   });
 });

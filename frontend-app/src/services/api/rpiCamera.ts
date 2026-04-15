@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/authentication';
 import { resolveApiMediaUrl } from '@/services/api/media';
+import { createRequestId } from '@/services/api/request';
 
 export type CameraConnectionStatus = 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error';
 export type CameraCredentialStatus = 'active' | 'revoked';
@@ -149,6 +150,7 @@ export async function fetchCameraSnapshotLocally(
     headers: {
       Accept: 'image/jpeg',
       'X-API-Key': localApiKey,
+      'X-Request-ID': createRequestId(),
     },
     signal,
   });
@@ -240,6 +242,7 @@ export async function captureImageLocally(
       'Content-Type': 'application/json',
       Accept: 'application/json',
       'X-API-Key': localApiKey,
+      'X-Request-ID': createRequestId(),
     },
     body: JSON.stringify({ product_id: productId }),
   });

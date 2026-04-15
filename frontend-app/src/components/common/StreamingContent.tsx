@@ -4,6 +4,7 @@ import { Button, Chip, Icon, Text, useTheme } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { StreamSession } from '@/context/StreamSessionContext';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
 
@@ -23,6 +24,7 @@ export function StreamingContent({
   const theme = useTheme();
   const router = useRouter();
   const { setActiveStream } = useStreamSession();
+  const feedback = useAppFeedback();
   const elapsed = useElapsed(session.startedAt);
   const stopMutation = useStopYouTubeStreamMutation(session.cameraId);
 
@@ -34,7 +36,12 @@ export function StreamingContent({
         setActiveStream(null);
         onStop?.();
       },
-      onError: (err) => alert(`Failed to stop stream: ${String(err)}`),
+      onError: (err) =>
+        feedback.alert({
+          title: 'Stop failed',
+          message: `Failed to stop stream: ${String(err)}`,
+          buttons: [{ text: 'OK' }],
+        }),
     });
   };
 

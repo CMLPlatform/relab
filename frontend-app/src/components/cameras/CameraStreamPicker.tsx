@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { Button, Dialog, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { addProductVideo } from '@/services/api/products';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
@@ -35,6 +36,7 @@ export function CameraStreamPicker({
   onDismiss,
 }: CameraStreamPickerProps) {
   const { setActiveStream } = useStreamSession();
+  const feedback = useAppFeedback();
   const queryClient = useQueryClient();
   const [config, setConfig] = useState<ConfigState | null>(null);
   const [isStarting, setIsStarting] = useState(false);
@@ -76,9 +78,17 @@ export function CameraStreamPicker({
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg === 'GOOGLE_OAUTH_REQUIRED') {
-        alert('Connect your Google account in Profile > Linked Accounts to stream to YouTube.');
+        feedback.alert({
+          title: 'Google account required',
+          message: 'Connect your Google account in Profile > Linked Accounts to stream to YouTube.',
+          buttons: [{ text: 'OK' }],
+        });
       } else {
-        alert(`Failed to start stream: ${msg}`);
+        feedback.alert({
+          title: 'Stream start failed',
+          message: `Failed to start stream: ${msg}`,
+          buttons: [{ text: 'OK' }],
+        });
       }
     } finally {
       setIsStarting(false);

@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
 
 type DialogButton = {
   text: string;
@@ -22,6 +22,7 @@ type DialogOptions = {
 type DialogContextType = {
   alert: (options: DialogOptions) => void;
   input: (options: DialogOptions) => void;
+  toast: (message: string) => void;
 };
 
 const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -32,9 +33,14 @@ export function useDialog() {
   return ctx;
 }
 
+export function useOptionalDialog() {
+  return useContext(DialogContext);
+}
+
 export function DialogProvider({ children }: { children: ReactNode }) {
   // States
   const [options, setOptions] = useState<DialogOptions | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Context functions
   const alert: DialogContextType['alert'] = (options: DialogOptions) => {
@@ -45,6 +51,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setOptions({ ...options, input: true });
   };
 
+  const toast: DialogContextType['toast'] = (message: string) => {
+    setToastMessage(message);
+  };
+
   // Callbacks
   const clear = () => {
     setOptions(null);
@@ -52,7 +62,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
   // Render
   return (
-    <DialogContext.Provider value={{ alert, input }}>
+    <DialogContext.Provider value={{ alert, input, toast }}>
       {children}
 
       <Modal visible={!!options} transparent onRequestClose={clear}>
@@ -60,6 +70,9 @@ export function DialogProvider({ children }: { children: ReactNode }) {
           <Dialog options={options} onDismiss={clear} />
         </Pressable>
       </Modal>
+      <Snackbar visible={!!toastMessage} onDismiss={() => setToastMessage(null)} duration={3000}>
+        {toastMessage ?? ''}
+      </Snackbar>
     </DialogContext.Provider>
   );
 }
