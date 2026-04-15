@@ -17,6 +17,24 @@ from app.core.database import async_engine
 from app.main import app, lifespan
 
 
+@pytest.fixture(autouse=True)
+def _reset_app_state() -> None:
+    """Start each lifespan test with a clean app.state."""
+    app.state.redis = None
+    app.state.email_checker = None
+    app.state.blocking_redis = None
+    app.state.camera_connection_manager = None
+    app.state.file_cleanup_manager = None
+    app.state.http_client = None
+    yield
+    app.state.redis = None
+    app.state.email_checker = None
+    app.state.blocking_redis = None
+    app.state.camera_connection_manager = None
+    app.state.file_cleanup_manager = None
+    app.state.http_client = None
+
+
 @pytest.mark.integration
 class TestLifespan:
     """Application lifespan startup and shutdown."""

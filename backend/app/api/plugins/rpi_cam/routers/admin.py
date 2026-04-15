@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, BackgroundTasks, Depends, Path
 from fastapi_pagination import Page
 from pydantic import UUID4
 
@@ -63,11 +63,12 @@ async def get_camera_status(
 @router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
 async def delete_camera(
     _camera_id: Annotated[UUID4, Path(alias="camera_id")],
+    background_tasks: BackgroundTasks,
     session: AsyncSessionDep,
     camera: CameraByIDDep,
     redis: OptionalRedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
-    await _notify_camera_unpair(camera.id, redis)
     await session.delete(camera)
     await session.commit()
+    background_tasks.add_task(_notify_camera_unpair, camera.id, redis)

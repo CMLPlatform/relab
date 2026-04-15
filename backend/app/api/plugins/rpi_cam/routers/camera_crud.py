@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from fastapi import HTTPException, Query
+from fastapi import BackgroundTasks, HTTPException, Query
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -165,11 +165,16 @@ async def update_user_camera(
 
 
 @camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
-async def delete_user_camera(db: AsyncSessionDep, camera: UserOwnedCameraDep, redis: OptionalRedisDep) -> None:
+async def delete_user_camera(
+    background_tasks: BackgroundTasks,
+    db: AsyncSessionDep,
+    camera: UserOwnedCameraDep,
+    redis: OptionalRedisDep,
+) -> None:
     """Delete Raspberry Pi camera."""
-    await _notify_camera_unpair(camera.id, redis)
     await db.delete(camera)
     await db.commit()
+    background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
 
 
 async def _notify_camera_unpair(camera_id: object, redis: object) -> None:
