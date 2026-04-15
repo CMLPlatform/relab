@@ -42,9 +42,9 @@ graph TD
     Backend -->|Optional streaming| YouTube[YouTube API]
 ```
 
-??? info "Styled architecture overview (ELK layout)"
+<details>
+<summary>Styled architecture overview (ELK layout)</summary>
 
-````
 ```mermaid
 graph TD
     Researcher["fa:fa-flask Researcher"] -->|Data entry| FrontendApp
@@ -104,7 +104,8 @@ graph TD
     class OAuthProviders,AuthSystem,HIBP auth
     class SMTP,RaspberryPi,YouTube external
 ```
-````
+
+</details>
 
 For formal C4 architecture views (Context, Container, Component), see [C4 Architecture Diagrams](../c4-diagrams/).
 
