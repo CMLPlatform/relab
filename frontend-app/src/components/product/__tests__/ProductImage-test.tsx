@@ -50,6 +50,15 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
 }));
 
+jest.mock('@/components/common/DialogProvider', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    DialogProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useOptionalDialog: jest.fn(() => null),
+  };
+});
+
 jest.mock('@/services/media/imageProcessing', () => ({
   processImage: jest.fn(),
 }));

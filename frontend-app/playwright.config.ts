@@ -6,11 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  * Assumes the Docker backend stack (compose.e2e.yml) is already running and
  * the Expo web build has already been exported to dist/ before this runs.
  *
- * Local usage:
- *   just e2e-backend-up          # starts the backend stack on :18432
- *   just frontend-app/build-web  # exports to dist/
- *   just frontend-app/test-e2e   # starts serve on :18081 + runs Playwright
- *   just e2e-backend-down        # stops the backend stack
+ * Preferred local usage:
+ *   just test-e2e-full-stack
  *
  * CI: see the e2e-full-stack job in .github/workflows/validate.yml
  */

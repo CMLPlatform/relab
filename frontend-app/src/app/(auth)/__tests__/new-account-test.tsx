@@ -7,6 +7,12 @@ import { renderWithProviders } from '@/test-utils';
 import type { User } from '@/types/User';
 import NewAccount from '../new-account';
 
+const mockDialogApi = {
+  alert: jest.fn(),
+  input: jest.fn(),
+  toast: jest.fn(),
+};
+
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
   register: jest.fn(),
@@ -28,6 +34,15 @@ jest.mock('@/context/AuthProvider', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+jest.mock('@/components/common/DialogProvider', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    DialogProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useDialog: jest.fn(() => mockDialogApi),
+  };
+});
+
 // Mock global alert (used by the screen to show errors)
 global.alert = jest.fn();
 
@@ -38,6 +53,9 @@ const mockDismissTo = jest.fn();
 describe('NewAccount screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDialogApi.alert.mockReset();
+    mockDialogApi.input.mockReset();
+    mockDialogApi.toast.mockReset();
     (useRouter as jest.Mock).mockReturnValue({
       push: jest.fn(),
       replace: mockReplace,
@@ -49,13 +67,13 @@ describe('NewAccount screen', () => {
   });
 
   it('renders the username section by default', () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     expect(screen.getByPlaceholderText('Username')).toBeOnTheScreen();
     expect(screen.getByText('Who are you?')).toBeOnTheScreen();
   });
 
   it('shows validation error for invalid username', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     await act(async () => {
       fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
     });
@@ -69,7 +87,7 @@ describe('NewAccount screen', () => {
   });
 
   it('chevron button is disabled for invalid username', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     // With empty username, the chevron-right button should be disabled
     // We check by verifying no navigation happens
     const input = screen.getByPlaceholderText('Username');
@@ -81,7 +99,7 @@ describe('NewAccount screen', () => {
   });
 
   it('advances to email section with valid username', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     await act(async () => {
       fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
     });
@@ -89,13 +107,11 @@ describe('NewAccount screen', () => {
       fireEvent(screen.getByPlaceholderText('Username'), 'submitEditing');
     });
 
-    await waitFor(() => {
-      expect(screen.getByText(/How do we reach you/)).toBeOnTheScreen();
-    });
+    expect(screen.getByText(/How do we reach you/)).toBeOnTheScreen();
   });
 
   it('does not advance from username when invalid', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     await act(async () => {
       fireEvent.changeText(screen.getByPlaceholderText('Username'), 'a');
     });
@@ -108,7 +124,7 @@ describe('NewAccount screen', () => {
   });
 
   it('shows email validation error for invalid email', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     await act(async () => {
       fireEvent.changeText(screen.getByPlaceholderText('Username'), 'validuser');
     });
@@ -132,7 +148,7 @@ describe('NewAccount screen', () => {
     mockedRegister.mockResolvedValue({ success: true });
     mockedLogin.mockResolvedValue('access-token');
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
 
     // Username section
     await act(async () => {
@@ -160,15 +176,13 @@ describe('NewAccount screen', () => {
       fireEvent.press(screen.getByText('Create Account'));
     });
 
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith('/products');
-    });
+    expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
   it('shows error when registration fails', async () => {
     mockedRegister.mockResolvedValue({ success: false, error: 'Email already in use' });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
 
     // Navigate to password section
     await act(async () => {
@@ -193,13 +207,17 @@ describe('NewAccount screen', () => {
       fireEvent.press(screen.getByText('Create Account'));
     });
 
-    await waitFor(() => {
-      expect(auth.register).toHaveBeenCalled();
-    });
+    expect(auth.register).toHaveBeenCalled();
+    expect(mockDialogApi.alert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Registration Failed',
+        message: 'Email already in use',
+      }),
+    );
   });
 
   it('shows validation error for short password', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
 
     // Jump to password section manually via sections
     await act(async () => {
@@ -228,7 +246,7 @@ describe('NewAccount screen', () => {
   });
 
   it('navigates back through sections', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
 
     await act(async () => {
       fireEvent.changeText(screen.getByPlaceholderText('Username'), 'testuser');
@@ -246,7 +264,7 @@ describe('NewAccount screen', () => {
   });
 
   it('navigates to login via "I already have an account"', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
     await act(async () => {
       fireEvent.press(screen.getByText('I already have an account'));
     });
@@ -283,7 +301,7 @@ describe('NewAccount – authenticated redirect', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/products');
@@ -293,7 +311,7 @@ describe('NewAccount – authenticated redirect', () => {
   it('does not redirect while auth is still loading', async () => {
     mockUseAuth.mockReturnValue({ user: null, isLoading: true, refetch: mockRefetch });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    renderWithProviders(<NewAccount />);
 
     expect(mockReplace).not.toHaveBeenCalled();
   });

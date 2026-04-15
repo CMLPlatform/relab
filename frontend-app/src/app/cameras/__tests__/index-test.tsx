@@ -194,7 +194,7 @@ describe('CamerasScreen', () => {
 
     // Long-press a camera in capture mode → enters selection mode → SelectionBar appears
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
   });
 
   it('does not enable capture mode for non-numeric product param', () => {
@@ -234,10 +234,10 @@ describe('CamerasScreen', () => {
 
     renderWithProviders(<CamerasScreen />);
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
 
-    await waitFor(() => expect(screen.getByText('Captured 2/2 cameras')).toBeOnTheScreen());
+    expect(screen.getByText('Captured 2/2 cameras')).toBeOnTheScreen();
   });
 
   it('shows partial-failure snackbar when some captures fail', async () => {
@@ -259,10 +259,10 @@ describe('CamerasScreen', () => {
 
     renderWithProviders(<CamerasScreen />);
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
 
-    await waitFor(() => expect(screen.getByText('Captured 2/3 · 1 failed')).toBeOnTheScreen());
+    expect(screen.getByText('Captured 2/3 · 1 failed')).toBeOnTheScreen();
   });
 
   it('shows error snackbar on capture mutation error', async () => {
@@ -282,12 +282,10 @@ describe('CamerasScreen', () => {
 
     renderWithProviders(<CamerasScreen />);
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Capture 1'));
 
-    await waitFor(() =>
-      expect(screen.getByText('Capture failed: Error: timeout')).toBeOnTheScreen(),
-    );
+    expect(screen.getByText('Capture failed: Error: timeout')).toBeOnTheScreen();
   });
 
   it('redirects unauthenticated users to login', async () => {
@@ -341,15 +339,15 @@ describe('CamerasScreen', () => {
 
     // Enter selection mode with cam-1
     fireEvent(screen.getByLabelText('Camera: Cam A'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
 
     // Long-press cam-2 to add it → 2 selected
     fireEvent(screen.getByLabelText('Camera: Cam B'), 'longPress');
-    await waitFor(() => expect(screen.getByText('2 selected')).toBeOnTheScreen());
+    expect(screen.getByText('2 selected')).toBeOnTheScreen();
 
     // Long-press cam-1 again to deselect → 1 selected
     fireEvent(screen.getByLabelText('Camera: Cam A'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
   });
 
   it('long-pressing an offline camera in capture mode shows snackbar and does not toggle', async () => {
@@ -397,12 +395,12 @@ describe('CamerasScreen', () => {
 
     // Enter selection mode
     fireEvent(screen.getByLabelText('Camera: Cam A'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
 
     // Press "Select all (2)" — 2 online cameras
     fireEvent.press(screen.getByLabelText('Select all online cameras'));
 
-    await waitFor(() => expect(screen.getByText('2 selected')).toBeOnTheScreen());
+    expect(screen.getByText('2 selected')).toBeOnTheScreen();
   });
 
   it('"Capture N" fires useCaptureAllMutation with selected ids + productId and clears selection on success', async () => {
@@ -425,7 +423,7 @@ describe('CamerasScreen', () => {
     renderWithProviders(<CamerasScreen />);
 
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeOnTheScreen());
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Capture 1'));
 
@@ -437,7 +435,7 @@ describe('CamerasScreen', () => {
     });
 
     // Selection is cleared after success
-    await waitFor(() => expect(screen.queryByText(/selected/)).toBeNull());
+    expect(screen.queryByText(/selected/)).toBeNull();
   });
 
   // ── Pull-to-refresh ────────────────────────────────────────────────────────

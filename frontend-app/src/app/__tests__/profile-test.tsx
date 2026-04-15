@@ -100,9 +100,7 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
-    await waitFor(() => {
-      expect(screen.getByText('You are not subscribed.')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('You are not subscribed.')).toBeOnTheScreen();
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 
@@ -127,9 +125,7 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
-    await waitFor(() => {
-      expect(screen.getByText('You are not subscribed.')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('You are not subscribed.')).toBeOnTheScreen();
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 

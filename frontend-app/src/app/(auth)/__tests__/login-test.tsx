@@ -9,6 +9,12 @@ import * as auth from '@/services/api/authentication';
 import { mockPlatform, mockUser, renderWithProviders, restorePlatform, server } from '@/test-utils';
 import Login from '../login';
 
+const mockDialogApi = {
+  alert: jest.fn(),
+  input: jest.fn(),
+  toast: jest.fn(),
+};
+
 jest.mock('@/services/api/authentication', () => ({
   login: jest.fn(),
   getUser: jest.fn(),
@@ -32,6 +38,15 @@ jest.mock('expo-linking', () => ({
   createURL: jest.fn().mockReturnValue('exp://localhost/login'),
 }));
 
+jest.mock('@/components/common/DialogProvider', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    DialogProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useDialog: jest.fn(() => mockDialogApi),
+  };
+});
+
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
 const mockedLogin = jest.mocked(auth.login);
@@ -44,6 +59,9 @@ type AuthSessionResult = Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsy
 describe('Login screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDialogApi.alert.mockReset();
+    mockDialogApi.input.mockReset();
+    mockDialogApi.toast.mockReset();
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
@@ -156,7 +174,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: 'Invalid email or password.',
+        }),
+      );
     });
   });
 
@@ -173,7 +196,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: 'Network error',
+        }),
+      );
     });
   });
 
@@ -257,8 +285,12 @@ describe('Login screen', () => {
     renderWithProviders(<Login />, { withDialog: true, withAuth: true });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-      expect(screen.getByText(/You denied access/i)).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(/You denied access/i),
+        }),
+      );
       expect(mockReplace).not.toHaveBeenCalled();
     });
   });
@@ -278,7 +310,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Email Already Registered')).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Email Already Registered',
+          message: expect.stringMatching(/already exists/i),
+        }),
+      );
       expect(WebBrowser.openAuthSessionAsync).not.toHaveBeenCalled();
     });
   });
@@ -302,8 +339,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-      expect(screen.getByText(/You denied access/i)).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(/You denied access/i),
+        }),
+      );
     });
   });
 
@@ -327,9 +368,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-      // Native platform should show device/internet guidance
-      expect(screen.getByText(/ensure your device has internet/i)).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(/ensure your device has internet/i),
+        }),
+      );
     });
   });
 
@@ -386,8 +430,12 @@ describe('Login screen', () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-        expect(screen.getByText(/couldn't establish your session/i)).toBeOnTheScreen();
+        expect(mockDialogApi.alert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Login Failed',
+            message: expect.stringMatching(/couldn't establish your session/i),
+          }),
+        );
       },
       { timeout: 3000 },
     );
@@ -417,8 +465,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Account Suspended')).toBeOnTheScreen();
-      expect(screen.getByText(/your account has been suspended/i)).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Account Suspended',
+          message: expect.stringMatching(/your account has been suspended/i),
+        }),
+      );
     });
   });
 
@@ -450,7 +502,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Account Suspended')).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Account Suspended',
+          message: expect.stringMatching(/your account has been suspended/i),
+        }),
+      );
     });
   });
 
@@ -468,8 +525,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-      expect(screen.getByText('Endpoint not found')).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: 'Endpoint not found',
+        }),
+      );
     });
   });
 
@@ -511,8 +572,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-      expect(screen.getByText(/Unable to retrieve user information/)).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(/Unable to retrieve user information/),
+        }),
+      );
     });
   });
 
@@ -531,8 +596,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Login Failed')).toBeOnTheScreen();
-      expect(screen.getByText(/Unexpected authorization URL/)).toBeOnTheScreen();
+      expect(mockDialogApi.alert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Login Failed',
+          message: expect.stringMatching(/Unexpected authorization URL/),
+        }),
+      );
     });
   });
 
@@ -544,7 +613,7 @@ describe('Login screen', () => {
     });
     // MSW will catch the request
     await waitFor(() => {
-      expect(screen.queryByText('Login Failed')).toBeNull();
+      expect(mockDialogApi.alert).not.toHaveBeenCalled();
     });
   });
 });

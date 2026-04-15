@@ -165,7 +165,7 @@ describe('Camera detail screen', () => {
   });
 
   it('opens the edit-name dialog and saves the trimmed camera name', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    renderWithProviders(<CameraDetailScreen />);
 
     fireEvent.press(screen.getByLabelText('Edit name'));
 
@@ -235,7 +235,7 @@ describe('Camera detail screen', () => {
   });
 
   it('opens the edit-description dialog and saves the trimmed description', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    renderWithProviders(<CameraDetailScreen />);
 
     fireEvent.press(screen.getByLabelText('Edit description'));
 
@@ -311,29 +311,29 @@ describe('Camera detail screen', () => {
   });
 
   it('dismisses the edit-name dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    renderWithProviders(<CameraDetailScreen />);
 
     fireEvent.press(screen.getByLabelText('Edit name'));
     expect(screen.getByText('Edit name')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Cancel'));
 
-    await waitFor(() => expect(screen.queryByText('Edit name')).toBeNull());
+    expect(screen.queryByText('Edit name')).toBeNull();
   });
 
   it('dismisses the edit-description dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    renderWithProviders(<CameraDetailScreen />);
 
     fireEvent.press(screen.getByLabelText('Edit description'));
     expect(screen.getByText('Edit description')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Cancel'));
 
-    await waitFor(() => expect(screen.queryByText('Edit description')).toBeNull());
+    expect(screen.queryByText('Edit description')).toBeNull();
   });
 
   it('dismisses the delete dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    renderWithProviders(<CameraDetailScreen />);
 
     fireEvent.press(screen.getByText('Delete camera'));
     await screen.findByText('Delete camera?');
@@ -349,7 +349,7 @@ describe('Camera detail screen', () => {
       jest.runOnlyPendingTimers();
     });
 
-    await waitFor(() => expect(screen.queryByText('Cancel')).toBeNull());
+    expect(screen.queryByText('Cancel')).toBeNull();
     expect(mockDeleteMutate).not.toHaveBeenCalled();
   }, 15_000);
 
@@ -358,7 +358,7 @@ describe('Camera detail screen', () => {
       options?.onSuccess?.();
     });
 
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    renderWithProviders(<CameraDetailScreen />);
 
     fireEvent.press(screen.getByText('Delete camera'));
     expect(screen.getByText('Delete camera?')).toBeOnTheScreen();
@@ -369,6 +369,6 @@ describe('Camera detail screen', () => {
       'cam-1',
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/cameras'));
+    expect(mockReplace).toHaveBeenCalledWith('/cameras');
   });
 });

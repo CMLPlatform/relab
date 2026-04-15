@@ -6,12 +6,29 @@ import { mockUser, renderWithProviders } from '@/test-utils';
 import Products from '../index';
 
 const mockUseAuth = jest.fn();
+const mockDialogApi = {
+  alert: jest.fn(),
+  input: jest.fn(),
+  toast: jest.fn(),
+};
+const mockUseDialog = jest.fn(() => ({
+  ...mockDialogApi,
+}));
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 jest.mock('@/context/AuthProvider', () => ({
   useAuth: () => mockUseAuth(),
 }));
+
+jest.mock('@/components/common/DialogProvider', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    DialogProvider: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+    useDialog: () => mockUseDialog(),
+  };
+});
 
 // useWindowDimensions is spied on in beforeEach to control numColumns per describe block
 
@@ -177,6 +194,9 @@ beforeEach(async () => {
   mockUseProductsQuery.mockReturnValue(emptyQueryResult);
   mockUseBrandsQuery.mockReturnValue({ data: [], isLoading: false });
   mockUseProductTypesQuery.mockReturnValue({ data: [], isLoading: false });
+  mockDialogApi.alert.mockReset();
+  mockDialogApi.input.mockReset();
+  mockDialogApi.toast.mockReset();
 });
 
 afterEach(() => {
@@ -339,9 +359,9 @@ describe('FAB and new-product flow', () => {
     renderWithProviders(<Products />, { withDialog: true });
     await screen.findByLabelText('Sign in to create products');
     fireEvent.press(screen.getByLabelText('Sign in to create products'));
-    await waitFor(() => {
-      expect(screen.getByText('Sign in to create products')).toBeOnTheScreen();
-    });
+    expect(mockDialogApi.alert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Sign in to create products' }),
+    );
   });
 
   it('shows create-product dialog when verified user presses FAB', async () => {
@@ -349,9 +369,9 @@ describe('FAB and new-product flow', () => {
     renderWithProviders(<Products />, { withDialog: true });
     await screen.findByLabelText('Create new product');
     fireEvent.press(screen.getByLabelText('Create new product'));
-    await waitFor(() => {
-      expect(screen.getByText('Create New Product')).toBeOnTheScreen();
-    });
+    expect(mockDialogApi.input).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Create New Product' }),
+    );
   });
 
   it('shows email-verification dialog when unverified user presses FAB', async () => {
@@ -359,9 +379,9 @@ describe('FAB and new-product flow', () => {
     renderWithProviders(<Products />, { withDialog: true });
     await screen.findByLabelText('Create new product');
     fireEvent.press(screen.getByLabelText('Create new product'));
-    await waitFor(() => {
-      expect(screen.getByText('Email Verification Required')).toBeOnTheScreen();
-    });
+    expect(mockDialogApi.alert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Email Verification Required' }),
+    );
   });
 });
 
