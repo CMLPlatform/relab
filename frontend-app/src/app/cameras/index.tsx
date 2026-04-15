@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import {
@@ -22,6 +23,7 @@ const MOBILE_COLUMNS = 2;
 
 export default function CamerasScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const theme = useTheme();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
@@ -88,6 +90,26 @@ export default function CamerasScreen() {
       router.replace({ pathname: '/login', params: { redirectTo: '/cameras' } });
     }
   }, [user, router]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: (props: HeaderBackButtonProps) => (
+        <HeaderBackButton
+          {...props}
+          onPress={() => {
+            if (captureAllProductId) {
+              router.replace({
+                pathname: '/products/[id]',
+                params: { id: captureAllProductId.toString() },
+              });
+            } else {
+              router.replace('/products');
+            }
+          }}
+        />
+      ),
+    });
+  }, [navigation, router, captureAllProductId]);
 
   const rows = cameras ?? [];
   const onlineCameras = rows.filter((c) => c.status?.connection === 'online');

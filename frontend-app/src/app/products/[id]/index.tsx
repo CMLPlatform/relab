@@ -106,9 +106,7 @@ export default function ProductPage(): JSX.Element {
         <HeaderBackButton
           {...props}
           onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else if (isProductComponent && product.parentID) {
+            if (isProductComponent && product.parentID) {
               router.replace({
                 pathname: '/products/[id]',
                 params: { id: product.parentID.toString() },

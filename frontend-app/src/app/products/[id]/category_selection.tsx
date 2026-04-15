@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
@@ -17,6 +18,7 @@ type searchParams = {
 export default function CategorySelection() {
   // Hooks
   const router = useRouter();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const { id } = useLocalSearchParams<searchParams>();
 
@@ -32,6 +34,17 @@ export default function CategorySelection() {
       router.replace({ pathname: '/login', params: { redirectTo: `/products/${id}` } });
     }
   }, [user, id, router]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: (props: HeaderBackButtonProps) => (
+        <HeaderBackButton
+          {...props}
+          onPress={() => router.replace({ pathname: '/products/[id]', params: { id } })}
+        />
+      ),
+    });
+  }, [navigation, router, id]);
 
   useEffect(() => {
     let isMounted = true;

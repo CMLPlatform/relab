@@ -1,4 +1,5 @@
-import { Stack, useGlobalSearchParams } from 'expo-router';
+import { HeaderBackButton } from '@react-navigation/elements';
+import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Icon, useTheme } from 'react-native-paper';
@@ -8,6 +9,7 @@ import { getPublicProfile, type PublicProfileView } from '@/services/api/profile
 
 export default function UserProfileScreen() {
   const { username } = useGlobalSearchParams();
+  const router = useRouter();
   const theme = useTheme();
 
   const [profile, setProfile] = useState<PublicProfileView | null>(null);
@@ -34,7 +36,17 @@ export default function UserProfileScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '', headerBackTitle: 'Back' }} />
+      <Stack.Screen
+        options={{
+          title: '',
+          headerLeft: (props) => (
+            <HeaderBackButton
+              {...props}
+              onPress={() => router.replace('/products')}
+            />
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={styles.container}>
         {loading && (
           <View style={styles.centerContainer}>

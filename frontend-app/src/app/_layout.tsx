@@ -216,9 +216,7 @@ function AppShell() {
             headerLeft: (props) => (
               <HeaderBackButton
                 {...props}
-                onPress={() => {
-                  router.replace('/products');
-                }}
+                onPress={() => router.replace('/products')}
               />
             ),
           }}
@@ -240,8 +238,30 @@ function AppShell() {
             title: 'My Cameras',
           }}
         />
-        <Stack.Screen name="cameras/add" options={{ title: 'Add Camera' }} />
-        <Stack.Screen name="cameras/[id]" options={{ title: 'Camera' }} />
+        <Stack.Screen
+          name="cameras/add"
+          options={{
+            title: 'Add Camera',
+            headerLeft: (props) => (
+              <HeaderBackButton
+                {...props}
+                onPress={() => router.replace('/cameras')}
+              />
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="cameras/[id]"
+          options={{
+            title: 'Camera',
+            headerLeft: (props) => (
+              <HeaderBackButton
+                {...props}
+                onPress={() => router.replace('/cameras')}
+              />
+            ),
+          }}
+        />
       </Stack>
     </View>
   );
