@@ -106,6 +106,33 @@ async def test_taxonomy_category_endpoints_return_flat_and_tree_views(
     assert {item["name"] for item in flat_response.json()["items"]} >= {PARENT_CATEGORY, CHILD_CATEGORY}
     assert tree_response.status_code == status.HTTP_200_OK
     assert tree_response.json()["items"][0]["name"] == PARENT_CATEGORY
+    assert tree_response.json()["items"][0]["subcategories"][0]["name"] == CHILD_CATEGORY
+
+
+async def test_category_tree_endpoints_return_bounded_recursive_children(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_taxonomy: Taxonomy,
+) -> None:
+    """Category tree endpoints return nested children without relying on lazy loads."""
+    parent = await CategoryFactory.create_async(db_session, taxonomy_id=db_taxonomy.id, name=f"{PARENT_CATEGORY} Root")
+    child = await CategoryFactory.create_async(
+        db_session,
+        taxonomy_id=db_taxonomy.id,
+        supercategory_id=parent.id,
+        name=f"{CHILD_CATEGORY} Branch",
+    )
+
+    categories_tree = await api_client.get("/categories/tree?recursion_depth=2")
+    subtree = await api_client.get(f"/categories/{parent.id}/subcategories/tree?recursion_depth=1")
+
+    assert categories_tree.status_code == status.HTTP_200_OK
+    parent_payload = next((item for item in categories_tree.json() if item["id"] == parent.id), None)
+    assert parent_payload is not None
+    assert [item["id"] for item in parent_payload["subcategories"]] == [child.id]
+
+    assert subtree.status_code == status.HTTP_200_OK
+    assert [item["id"] for item in subtree.json()] == [child.id]
 
 
 async def test_category_reads_support_conditional_get(api_client: AsyncClient, db_category: Category) -> None:

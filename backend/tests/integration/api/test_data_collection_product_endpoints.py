@@ -68,6 +68,20 @@ async def test_get_products_tree(api_client: AsyncClient, setup_product: Product
         assert tree_product["name"] == PRODUCT_BASE_NAME
 
 
+async def test_get_products_tree_includes_nested_components_without_async_lazy_loads(
+    api_client: AsyncClient,
+    setup_product: Product,
+    setup_component: Product,
+) -> None:
+    """GET /products/tree returns nested components at bounded depth without crashing."""
+    response = await api_client.get("/products/tree?recursion_depth=2")
+
+    assert response.status_code == status.HTTP_200_OK
+    tree_product = next((item for item in response.json() if item["id"] == setup_product.id), None)
+    assert tree_product is not None
+    assert [component["id"] for component in tree_product["components"]] == [setup_component.id]
+
+
 async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns the requested product."""
     response = await api_client.get(f"/products/{setup_product.id}")

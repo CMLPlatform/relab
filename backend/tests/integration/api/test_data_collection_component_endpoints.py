@@ -47,6 +47,18 @@ async def test_get_product_component_by_id(
     assert response.json()["id"] == setup_component.id
 
 
+async def test_get_product_component_tree(
+    api_client: AsyncClient,
+    setup_product: Product,
+    setup_component: Product,
+) -> None:
+    """GET /products/{id}/components/tree returns the bounded component subtree."""
+    response = await api_client.get(f"/products/{setup_product.id}/components/tree?recursion_depth=1")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert [item["id"] for item in response.json()] == [setup_component.id]
+
+
 async def test_add_component_to_product(
     api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
 ) -> None:

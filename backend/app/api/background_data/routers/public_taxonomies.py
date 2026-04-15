@@ -15,7 +15,7 @@ from app.api.background_data.models import Category, Taxonomy
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
     RecursionDepthQueryParam,
-    convert_subcategories_to_read_model,
+    convert_categories_to_tree,
 )
 from app.api.background_data.schemas import CategoryRead, CategoryReadWithRecursiveSubCategories, TaxonomyRead
 from app.api.common.crud.exceptions import DependentModelOwnershipError
@@ -103,16 +103,7 @@ async def get_taxonomy_category_tree(
         taxonomy_id=taxonomy_id,
         category_filter=category_filter,
     )
-    tree_items = [
-        CategoryReadWithRecursiveSubCategories.model_validate(category).model_copy(
-            update={
-                "subcategories": convert_subcategories_to_read_model(
-                    category.subcategories or [], max_depth=recursion_depth - 1
-                )
-            }
-        )
-        for category in categories
-    ]
+    tree_items = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
     return cast(
         "Page[CategoryReadWithRecursiveSubCategories]",
         create_page(tree_items, total=len(tree_items), params=params),

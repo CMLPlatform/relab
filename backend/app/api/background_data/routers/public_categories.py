@@ -15,7 +15,7 @@ from app.api.background_data.models import Category
 from app.api.background_data.routers.public_support import (
     BackgroundDataAPIRouter,
     RecursionDepthQueryParam,
-    convert_subcategories_to_read_model,
+    convert_categories_to_tree,
 )
 from app.api.background_data.schemas import (
     CategoryReadWithRecursiveSubCategories,
@@ -82,16 +82,7 @@ async def get_categories_tree(
     categories: Sequence[Category] = await get_category_trees(
         session, recursion_depth, category_filter=category_filter
     )
-    payload = [
-        CategoryReadWithRecursiveSubCategories.model_validate(category).model_copy(
-            update={
-                "subcategories": convert_subcategories_to_read_model(
-                    category.subcategories or [], max_depth=recursion_depth - 1
-                )
-            }
-        )
-        for category in categories
-    ]
+    payload = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
     return conditional_json_response(request, payload)
 
 
@@ -149,16 +140,7 @@ async def get_category_subtree(
     categories: Sequence[Category] = await get_category_trees(
         session, recursion_depth=recursion_depth, supercategory_id=category_id, category_filter=category_filter
     )
-    return [
-        CategoryReadWithRecursiveSubCategories.model_validate(category).model_copy(
-            update={
-                "subcategories": convert_subcategories_to_read_model(
-                    category.subcategories or [], max_depth=recursion_depth - 1
-                )
-            }
-        )
-        for category in categories
-    ]
+    return convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
 
 
 @router.get(
