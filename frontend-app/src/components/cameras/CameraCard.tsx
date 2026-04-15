@@ -1,6 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
@@ -75,7 +74,6 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  * state so users can still see history / dialog / settings when offline.
  */
 export function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
-  const router = useRouter();
   const theme = useTheme();
   const connection = camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
@@ -88,8 +86,6 @@ export function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
         { backgroundColor: theme.colors.elevation.level1 },
         !isOnline && styles.cardOffline,
       ]}
-      onPress={() => router.push({ pathname: '/cameras/[id]', params: { id: camera.id } })}
-      accessibilityRole="button"
       accessibilityLabel={`Camera: ${camera.name}`}
     >
       {/* Thumbnail (online only) or placeholder */}

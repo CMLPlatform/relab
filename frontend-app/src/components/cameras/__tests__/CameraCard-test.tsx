@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
-import { useRouter } from 'expo-router';
+import { screen } from '@testing-library/react-native';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { renderWithProviders } from '@/test-utils';
 import { CameraCard } from '../CameraCard';
@@ -26,8 +25,6 @@ jest.mock('@/components/cameras/TelemetryBadge', () => {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-const mockPush = jest.fn();
-
 function makeCamera(overrides: Partial<CameraReadWithStatus> = {}): CameraReadWithStatus {
   return {
     id: 'cam-1',
@@ -50,11 +47,6 @@ function secsAgo(seconds: number): string {
 describe('CameraCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue({
-      push: mockPush,
-      replace: jest.fn(),
-      back: jest.fn(),
-    });
   });
 
   // ── Three-state visual distinction ────────────────────────────────────────
@@ -181,21 +173,6 @@ describe('CameraCard', () => {
     renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 7d ago')).toBeOnTheScreen();
-  });
-
-  // ── Tap navigation ─────────────────────────────────────────────────────────
-
-  it('tap fires router.push with the correct camera id', () => {
-    const camera = makeCamera({ id: 'cam-99' });
-
-    renderWithProviders(<CameraCard camera={camera} />);
-
-    fireEvent.press(screen.getByLabelText('Camera: Test Camera'));
-
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/cameras/[id]',
-      params: { id: 'cam-99' },
-    });
   });
 
   // ── Accessibility ──────────────────────────────────────────────────────────

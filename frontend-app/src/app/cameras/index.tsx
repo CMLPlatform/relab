@@ -261,7 +261,7 @@ export default function CamerasScreen() {
         youtubeUrl: result.url,
       });
       dispatchStreamDialog({ type: 'close' });
-      router.push({ pathname: '/cameras/[id]', params: { id: streamDialog.cameraId } });
+      router.back();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg === 'GOOGLE_OAUTH_REQUIRED') {
