@@ -230,28 +230,82 @@ export default function CameraDetailScreen() {
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Status card */}
+        {/* Combined connection + status card */}
         <Card style={styles.card}>
-          <Card.Content>
+          <Card.Content style={{ gap: 6 }}>
+            {/* Header row: dot + label + actions */}
             <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-              <Text variant="titleMedium" style={{ color: statusColor }}>
-                {statusLabel}
-              </Text>
-              <View style={{ flex: 1 }} />
+              {localConnection.mode === 'probing' ? (
+                <>
+                  <ActivityIndicator size={14} style={{ marginRight: 4 }} />
+                  <Text variant="titleSmall" style={{ opacity: 0.6, flex: 1 }}>
+                    {isOnline
+                      ? 'Searching for direct connection…'
+                      : 'Checking connection…'}
+                  </Text>
+                </>
+              ) : localConnection.mode === 'local' ? (
+                <>
+                  <MaterialCommunityIcons name="ethernet" size={18} color="#2e7d32" style={{ marginRight: 4 }} />
+                  <Text variant="titleSmall" style={{ color: '#2e7d32', flex: 1 }}>
+                    Connected — Direct · &lt;1 s
+                  </Text>
+                </>
+              ) : isOnline ? (
+                <>
+                  <View style={[styles.statusDot, { backgroundColor: statusColor, marginRight: 4 }]} />
+                  <Text variant="titleSmall" style={{ color: statusColor, flex: 1 }}>
+                    Connected — Remote · ~2 s
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View style={[styles.statusDot, { backgroundColor: statusColor, marginRight: 4 }]} />
+                  <Text variant="titleSmall" style={{ color: statusColor, flex: 1 }}>
+                    {statusLabel}
+                  </Text>
+                </>
+              )}
+              {/* Right-side action(s) */}
               <IconButton
                 icon="refresh"
-                size={20}
+                size={18}
                 loading={isFetching}
                 onPress={() => refetch()}
                 accessibilityLabel="Refresh status"
+                style={{ margin: 0 }}
               />
+              {localConnection.mode === 'local' && (
+                <Button compact mode="text" onPress={() => void localConnection.clearLocalConnection()}>
+                  Disconnect
+                </Button>
+              )}
+              {localConnection.mode === 'relay' && (
+                <Button
+                  compact
+                  mode="text"
+                  onPress={() => {
+                    setLocalUrlInput(localConnection.localBaseUrl ?? '');
+                    setLocalKeyInput('');
+                    setLocalSetupVisible(true);
+                  }}
+                >
+                  Manual setup…
+                </Button>
+              )}
             </View>
-            {camera.status?.connection === 'offline' && (
-              <Text variant="bodySmall" style={{ opacity: 0.6, marginTop: 4 }}>
-                Waiting for camera to connect via WebSocket relay.
-              </Text>
-            )}
+            {/* Sub-label */}
+            <Text variant="bodySmall" style={{ opacity: 0.55 }}>
+              {localConnection.mode === 'local'
+                ? `Via Ethernet · ${localConnection.localBaseUrl ?? ''}`
+                : localConnection.mode === 'probing' && isOnline
+                  ? 'Camera online — checking local network for direct connection'
+                  : isOnline
+                    ? 'Via WebSocket relay · no public IP required'
+                    : camera.status?.connection === 'offline'
+                      ? 'Waiting for camera to connect via WebSocket relay'
+                      : statusLabel}
+            </Text>
           </Card.Content>
         </Card>
 
@@ -274,70 +328,9 @@ export default function CameraDetailScreen() {
               onEdit={() => setEditDescVisible(true)}
             />
             <Divider />
-            <DetailRow label="Relay" value="WebSocket" />
-            <Divider />
             <DetailRow label="Key ID" value={camera.relay_key_id} mono />
             <Divider />
             <DetailRow label="Camera ID" value={camera.id} mono />
-          </Card.Content>
-        </Card>
-
-        {/* Connection mode info */}
-        <Card style={styles.card}>
-          <Card.Content style={{ gap: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {localConnection.mode === 'local' ? (
-                <>
-                  <MaterialCommunityIcons name="ethernet" size={20} color="#2e7d32" />
-                  <Text variant="titleSmall" style={{ color: '#2e7d32' }}>
-                    Direct · &lt;1 s
-                  </Text>
-                </>
-              ) : localConnection.mode === 'probing' ? (
-                <>
-                  <ActivityIndicator size={16} />
-                  <Text variant="titleSmall" style={{ opacity: 0.6 }}>
-                    {isOnline ? 'Auto-configuring direct connection…' : 'Checking for direct connection…'}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="access-point"
-                    size={20}
-                    color={theme.colors.onSurfaceVariant}
-                  />
-                  <Text variant="titleSmall">WebSocket relay</Text>
-                </>
-              )}
-              <View style={{ flex: 1 }} />
-              {localConnection.mode === 'local' ? (
-                <Button
-                  compact
-                  mode="text"
-                  onPress={() => void localConnection.clearLocalConnection()}
-                >
-                  Disconnect
-                </Button>
-              ) : (
-                <Button
-                  compact
-                  mode="text"
-                  onPress={() => {
-                    setLocalUrlInput(localConnection.localBaseUrl ?? '');
-                    setLocalKeyInput('');
-                    setLocalSetupVisible(true);
-                  }}
-                >
-                  Set up direct
-                </Button>
-              )}
-            </View>
-            <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-              {localConnection.mode === 'local'
-                ? `Connected directly via Ethernet/USB-C to ${localConnection.localBaseUrl ?? ''}`
-                : 'Camera connects outbound to the backend. No public IP required.'}
-            </Text>
           </Card.Content>
         </Card>
 
@@ -398,7 +391,7 @@ export default function CameraDetailScreen() {
         </Dialog>
 
         <Dialog visible={localSetupVisible} onDismiss={() => setLocalSetupVisible(false)}>
-          <Dialog.Title>Set up direct connection</Dialog.Title>
+          <Dialog.Title>Manual direct connection</Dialog.Title>
           <Dialog.Content style={{ gap: 12 }}>
             <Text variant="bodySmall" style={{ opacity: 0.7 }}>
               Connect an Ethernet cable (or USB-C to Ethernet adapter) between the Pi and this
