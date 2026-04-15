@@ -103,7 +103,7 @@ async def relay_via_websocket(
                         path,
                         params,
                         body,
-                        timeout=timeout,
+                        timeout_s=timeout,
                     )
             except (RuntimeError, TimeoutError) as cross_exc:
                 logger.warning("Cross-worker relay failed for camera %s: %s", camera_id, cross_exc)

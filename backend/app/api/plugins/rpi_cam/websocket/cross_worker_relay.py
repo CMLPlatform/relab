@@ -86,7 +86,7 @@ async def relay_cross_worker(
     params: dict | None,
     body: dict | None,
     *,
-    timeout: float,
+    timeout_s: float,
 ) -> tuple[dict, bytes | None]:
     """Send a relay command to whichever worker holds the camera's WebSocket.
 
@@ -103,7 +103,7 @@ async def relay_cross_worker(
             error).  Callers convert this to HTTP 503.
     """
     msg_id = str(uuid.uuid4())
-    deadline = time.monotonic() + timeout
+    deadline = time.monotonic() + timeout_s
 
     command_payload = json.dumps(
         {
@@ -112,7 +112,7 @@ async def relay_cross_worker(
             "path": path,
             "params": params,
             "body": body,
-            "deadline": time.time() + timeout,  # wall-clock for cross-process comparison
+            "deadline": time.time() + timeout_s,  # wall-clock for cross-process comparison
         }
     )
 
@@ -128,7 +128,12 @@ async def relay_cross_worker(
     # Use the blocking client (socket_timeout=None) so BLPOP can wait for the
     # full relay timeout without the socket being closed prematurely.
     blocking_redis = get_blocking_redis() or redis
-    result = await blocking_redis.blpop(resp_key, timeout=int(remaining) or 1)  # type: ignore[misc]
+    try:
+        async with asyncio.timeout(remaining):
+            result = await blocking_redis.blpop(resp_key, timeout=0)  # type: ignore[misc]
+    except TimeoutError as exc:
+        msg = f"Cross-worker relay timed out waiting for camera response: {path}"
+        raise RuntimeError(msg) from exc
     if result is None:
         msg = f"Cross-worker relay timed out waiting for camera response: {path}"
         raise RuntimeError(msg)

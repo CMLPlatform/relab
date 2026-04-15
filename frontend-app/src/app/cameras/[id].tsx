@@ -211,10 +211,13 @@ export default function CameraDetailScreen() {
 
   const handleDelete = () => {
     deleteMutation.mutate(camera.id, {
-      onSuccess: () => router.replace('/cameras'),
-      onError: (err) => {
-        setDeleteVisible(false);
-        alert(String(err));
+      onSettled: (_data, error) => {
+        if (error) {
+          setDeleteVisible(false);
+          alert(String(error));
+        } else {
+          router.replace('/cameras');
+        }
       },
     });
   };

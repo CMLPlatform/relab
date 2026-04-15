@@ -28,6 +28,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis) as mock_init_redis,
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -47,6 +48,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker) as mock_init_checker,
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -63,6 +65,7 @@ class TestLifespan:
         """After startup, storage must be ensured and state marked ready."""
         with (
             patch("app.main.init_redis"),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker"),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -88,6 +91,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -108,6 +112,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -129,6 +134,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -150,6 +156,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -173,6 +180,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -201,6 +209,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),
@@ -224,6 +233,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry") as mock_init_telemetry,
@@ -244,6 +254,7 @@ class TestLifespan:
 
         with (
             patch("app.main.init_redis", return_value=mock_redis),
+            patch("app.main.init_blocking_redis", return_value=None),
             patch("app.main.init_email_checker", return_value=mock_email_checker),
             patch("app.main.init_fastapi_cache"),
             patch("app.main.init_telemetry"),

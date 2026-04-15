@@ -137,7 +137,7 @@ class TestCaptureAndStoreImage:
         assert mock_camera_request.await_args is not None
         call_kwargs = mock_camera_request.await_args.kwargs
         assert call_kwargs["endpoint"] == "/images"
-        assert call_kwargs["body"] == {"upload_metadata": {"product_id": 1, "description": "unit test"}}
+        assert call_kwargs["body"] == {"product_id": 1, "description": "unit test"}
         mock_session.get.assert_awaited_once()
         assert result is expected_image
 
