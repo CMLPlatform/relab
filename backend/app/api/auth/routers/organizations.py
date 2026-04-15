@@ -6,7 +6,18 @@ from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from pydantic import UUID4
 
-from app.api.auth import crud
+from app.api.auth.crud.organizations import (
+    create_organization as create_organization_record,
+)
+from app.api.auth.crud.organizations import (
+    get_organization_members as get_org_members,
+)
+from app.api.auth.crud.organizations import (
+    get_organizations as get_orgs,
+)
+from app.api.auth.crud.organizations import (
+    user_join_organization,
+)
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization, User
@@ -32,7 +43,7 @@ async def get_organizations(
     """Get a list of all organizations with optional filtering."""
     return cast(
         "Page[OrganizationReadPublic]",
-        await crud.get_organizations(session, filters=org_filter, read_schema=OrganizationReadPublic),
+        await get_orgs(session, filters=org_filter, read_schema=OrganizationReadPublic),
     )
 
 
@@ -51,7 +62,7 @@ async def create_organization(
     organization: OrganizationCreate, current_user: CurrentActiveVerifiedUserDep, session: AsyncSessionDep
 ) -> Organization:
     """Create new organization with current user as owner."""
-    return await crud.create_organization(session, organization, current_user)
+    return await create_organization_record(session, organization, current_user)
 
 
 ## Organization member routes ##
@@ -64,7 +75,7 @@ async def get_organization_members(
     """Get the members of an organization."""
     return cast(
         "Page[UserReadPublic]",
-        await crud.get_organization_members(
+        await get_org_members(
             session,
             organization_id,
             current_user,
@@ -85,4 +96,4 @@ async def join_organization(
 ) -> User:
     """Join an organization as a member."""
     organization = await require_model(session, Organization, organization_id)
-    return await crud.user_join_organization(session, organization, current_user)
+    return await user_join_organization(session, organization, current_user)

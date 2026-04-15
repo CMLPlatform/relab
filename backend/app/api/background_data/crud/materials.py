@@ -11,7 +11,7 @@ from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_model, require_models
 from app.api.common.exceptions import InternalServerError
 from app.api.file_storage.crud.parent_media import ParentMediaCrud
-from app.api.file_storage.crud.support import file_storage_service, image_storage_service
+from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.models import File, Image, MediaParentType
 
 from .categories import validate_category_taxonomy_domains

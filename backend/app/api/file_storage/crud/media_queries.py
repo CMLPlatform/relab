@@ -12,11 +12,13 @@ from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.schemas import FileCreate, FileUpdate, ImageCreateFromForm, ImageCreateInternal, ImageUpdate
 
-from .support import (
-    file_storage_service,
+from .support_queries import (
     get_storage_item_or_raise,
-    image_storage_service,
     update_storage_item,
+)
+from .support_services import (
+    file_storage_service,
+    image_storage_service,
 )
 
 if TYPE_CHECKING:

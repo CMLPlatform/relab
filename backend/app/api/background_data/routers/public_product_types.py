@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Path
 from fastapi_filter import FilterDepends
@@ -25,7 +25,7 @@ from app.api.background_data.models import Category, CategoryProductTypeLink, Pr
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, ProductTypeReadWithRelationships
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import list_models, page_models, require_model
+from app.api.common.crud.query import page_models, require_model
 from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
@@ -67,6 +67,27 @@ async def _get_linked_product_type_category(
         msg = "Category is not linked to ProductType"
         raise BadRequestError(msg)
     return category
+
+
+async def _list_product_type_categories(
+    session: AsyncSessionDep,
+    *,
+    product_type_id: PositiveInt,
+    category_filter: CategoryFilterDep,
+) -> Sequence[Category]:
+    """List categories linked to a product type."""
+    await require_model(session, ProductType, product_type_id)
+    statement: Select[tuple[Category]] = (
+        select(Category)
+        .join(CategoryProductTypeLink, Category.id == CategoryProductTypeLink.category_id)
+        .where(CategoryProductTypeLink.product_type_id == product_type_id)
+    )
+    statement = cast("Select[tuple[Category]]", category_filter.filter(statement))
+    statement = cast(
+        "Select[tuple[Category]]",
+        apply_loader_profile(statement, Category, read_schema=CategoryRead),
+    )
+    return list((await session.execute(statement)).scalars().unique().all())
 
 
 @router.get(
@@ -112,18 +133,10 @@ async def get_product_type_categories(
     category_filter: CategoryFilterDep,
 ) -> Sequence[Category]:
     """Get categories linked to a product type."""
-    await require_model(session, ProductType, product_type_id)
-    statement: Select[tuple[Category]] = (
-        select(Category)
-        .join(CategoryProductTypeLink, Category.id == CategoryProductTypeLink.category_id)
-        .where(CategoryProductTypeLink.product_type_id == product_type_id)
-    )
-    return await list_models(
+    return await _list_product_type_categories(
         session,
-        Category,
-        filters=category_filter,
-        statement=statement,
-        read_schema=CategoryRead,
+        product_type_id=product_type_id,
+        category_filter=category_filter,
     )
 
 

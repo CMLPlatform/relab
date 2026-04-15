@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import UserOwnershipError
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.ownership import get_user_owned_object
 
 if TYPE_CHECKING:
@@ -28,11 +29,6 @@ class TestGetUserOwnedObject:
         expected.owner_id = user_id
         statement = MagicMock()
         statement.where.return_value = statement
-        mocker.patch(
-            "app.api.common.ownership.require_model",
-            new_callable=AsyncMock,
-            return_value=expected,
-        )
         mocker.patch("app.api.common.ownership.select", return_value=statement)
         execute_result = MagicMock()
         execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = expected
@@ -56,11 +52,6 @@ class TestGetUserOwnedObject:
         expected.created_by_id = user_id
         statement = MagicMock()
         statement.where.return_value = statement
-        mocker.patch(
-            "app.api.common.ownership.require_model",
-            new_callable=AsyncMock,
-            return_value=expected,
-        )
         mocker.patch("app.api.common.ownership.select", return_value=statement)
         execute_result = MagicMock()
         execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = expected
@@ -83,8 +74,13 @@ class TestGetUserOwnedObject:
         model_id = uuid4()
         existing = MagicMock()
         existing.owner_id = uuid4()
-        mocker.patch("app.api.common.ownership.require_model", new_callable=AsyncMock, return_value=existing)
+        statement = MagicMock()
+        statement.where.return_value = statement
+        mocker.patch("app.api.common.ownership.select", return_value=statement)
+        execute_result = MagicMock()
+        execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = existing
         db = AsyncMock(spec=AsyncSession)
+        db.execute.return_value = execute_result
         mock_model = MagicMock()
         mock_model.model_label = "Product"
 
@@ -96,3 +92,21 @@ class TestGetUserOwnedObject:
         assert str(user_id) in err.message
         assert str(model_id) in err.message
         assert "Product" in err.message
+
+    @pytest.mark.asyncio
+    async def test_missing_object_raises_model_not_found(self, mocker: MockerFixture) -> None:
+        """Missing owned objects should surface as ModelNotFoundError."""
+        user_id = uuid4()
+        model_id = uuid4()
+        statement = MagicMock()
+        statement.where.return_value = statement
+        mocker.patch("app.api.common.ownership.select", return_value=statement)
+        execute_result = MagicMock()
+        execute_result.scalars.return_value.unique.return_value.one_or_none.return_value = None
+        db = AsyncMock(spec=AsyncSession)
+        db.execute.return_value = execute_result
+        mock_model = MagicMock()
+        mock_model.model_label = "Product"
+
+        with pytest.raises(ModelNotFoundError):
+            await get_user_owned_object(db=db, model=mock_model, model_id=model_id, owner_id=user_id)

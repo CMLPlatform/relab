@@ -20,10 +20,13 @@ from app.api.file_storage.exceptions import (
 from app.api.file_storage.models import MediaParentType
 from app.core.logging import sanitize_log_value
 
-from .support import StorageCreateSchema, StorageModel, StoredMediaService, storage_item_exists
+from .support_paths import storage_item_exists
+from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
     from fastapi_filter.contrib.sqlalchemy import Filter
+
+    from .support_services import StoredMediaService
 
 
 logger = logging.getLogger(__name__)

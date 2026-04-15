@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import ParentMediaCrud
-from app.api.file_storage.crud.support import file_storage_service, image_storage_service
+from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.models import File, Image, MediaParentType
 
 if TYPE_CHECKING:

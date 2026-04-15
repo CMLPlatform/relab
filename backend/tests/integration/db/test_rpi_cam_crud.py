@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -93,6 +93,7 @@ async def test_update_camera(db_session: AsyncSession, db_superuser: User) -> No
 async def test_update_camera_applies_validated_owner_transfer() -> None:
     """CRUD applies an owner change once the router has already validated it."""
     mock_session = AsyncMock()
+    mock_session.add = MagicMock()
     camera = build_camera(owner_id=uuid.uuid4())
     new_owner_id = uuid.uuid4()
     update_data = CameraUpdate.model_validate({"owner_id": new_owner_id, "relay_key_id": NEW_KEY_ID})

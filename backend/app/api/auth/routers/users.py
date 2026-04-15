@@ -9,7 +9,16 @@ from fastapi import HTTPException, Security
 from fastapi_pagination import Page
 from sqlalchemy import select
 
-from app.api.auth import crud
+from app.api.auth.crud.organizations import (
+    delete_organization_as_owner,
+    update_user_organization,
+)
+from app.api.auth.crud.organizations import (
+    get_organization_members as get_org_members,
+)
+from app.api.auth.crud.organizations import (
+    leave_organization as leave_org,
+)
 from app.api.auth.dependencies import (
     CurrentActiveVerifiedUserDep,
     CurrentUserOrgDep,
@@ -70,7 +79,7 @@ async def get_user_organization_members(
     """Get the members of the organization of the current user."""
     return cast(
         "Page[UserReadPublic]",
-        await crud.get_organization_members(
+        await get_org_members(
             session,
             current_user_organization.id,
             current_user,
@@ -87,7 +96,7 @@ async def update_organization(
     session: AsyncSessionDep,
 ) -> Organization:
     """Update organization as owner."""
-    return await crud.update_user_organization(session, db_organization, organization_in)
+    return await update_user_organization(session, db_organization, organization_in)
 
 
 @router.delete("/me/organization", status_code=204, summary="Delete your organization as owner")
@@ -96,7 +105,7 @@ async def delete_my_organization(
     current_user: CurrentActiveVerifiedUserDep,
 ) -> None:
     """Delete organization as owner. Fails if organization has members."""
-    return await crud.delete_organization_as_owner(session, current_user)
+    return await delete_organization_as_owner(session, current_user)
 
 
 @router.delete("/me/organization/membership", status_code=204, summary="Leave current organization")
@@ -105,7 +114,7 @@ async def leave_organization(
     current_user: CurrentActiveVerifiedUserDep,
 ) -> None:
     """Leave current organization. Cannot be used by organization owner."""
-    await crud.leave_organization(session, current_user)
+    await leave_org(session, current_user)
 
 
 ## Public Profile Routes ##

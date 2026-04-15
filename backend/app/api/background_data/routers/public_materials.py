@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Path, Request
 from fastapi_filter import FilterDepends
@@ -25,7 +25,7 @@ from app.api.background_data.models import Category, CategoryMaterialLink, Mater
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, MaterialReadWithRelationships
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import list_models, page_models, require_model
+from app.api.common.crud.query import page_models, require_model
 from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
@@ -70,6 +70,27 @@ async def _get_linked_material_category(
         msg = "Category is not linked to Material"
         raise BadRequestError(msg)
     return category
+
+
+async def _list_material_categories(
+    session: AsyncSessionDep,
+    *,
+    material_id: PositiveInt,
+    category_filter: CategoryFilterDep,
+) -> Sequence[Category]:
+    """List categories linked to a material."""
+    await require_model(session, Material, material_id)
+    statement: Select[tuple[Category]] = (
+        select(Category)
+        .join(CategoryMaterialLink, Category.id == CategoryMaterialLink.category_id)
+        .where(CategoryMaterialLink.material_id == material_id)
+    )
+    statement = cast("Select[tuple[Category]]", category_filter.filter(statement))
+    statement = cast(
+        "Select[tuple[Category]]",
+        apply_loader_profile(statement, Category, read_schema=CategoryRead),
+    )
+    return list((await session.execute(statement)).scalars().unique().all())
 
 
 @router.get(
@@ -118,19 +139,7 @@ async def get_material_categories(
     category_filter: CategoryFilterDep,
 ) -> Sequence[Category]:
     """Get categories linked to a material."""
-    await require_model(session, Material, material_id)
-    statement: Select[tuple[Category]] = (
-        select(Category)
-        .join(CategoryMaterialLink, Category.id == CategoryMaterialLink.category_id)
-        .where(CategoryMaterialLink.material_id == material_id)
-    )
-    return await list_models(
-        session,
-        Category,
-        filters=category_filter,
-        statement=statement,
-        read_schema=CategoryRead,
-    )
+    return await _list_material_categories(session, material_id=material_id, category_filter=category_filter)
 
 
 @router.get(

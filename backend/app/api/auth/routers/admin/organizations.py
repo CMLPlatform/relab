@@ -7,7 +7,7 @@ from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from pydantic import UUID4
 
-from app.api.auth import crud
+from app.api.auth.crud.organizations import force_delete_organization, get_organizations
 from app.api.auth.dependencies import current_active_superuser
 from app.api.auth.filters import OrganizationFilter
 from app.api.auth.models import Organization
@@ -26,7 +26,7 @@ async def get_all_organizations(
     org_filter: Annotated[OrganizationFilter, FilterDepends(OrganizationFilter)],
 ) -> Page[Organization]:
     """Get all organizations with all relationships loaded. Only superusers can access this route."""
-    return await crud.get_organizations(
+    return await get_organizations(
         session,
         loaders={"members"},
         filters=org_filter,
@@ -56,4 +56,4 @@ async def get_organization_with_relationships(
 @router.delete("/{organization_id}", status_code=204, summary="Delete organization by ID")
 async def delete_organization(organization_id: UUID4, session: AsyncSessionDep) -> None:
     """Delete organization by ID. Only superusers can access this route."""
-    await crud.force_delete_organization(session, organization_id)
+    await force_delete_organization(session, organization_id)

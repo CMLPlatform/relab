@@ -79,19 +79,13 @@ class TestGetOrganizations:
     async def test_get_organizations_uses_paginated_helper(self, mock_session: AsyncMock) -> None:
         """Test that the org list helper delegates to the shared pagination helper."""
         with patch(
-            "app.api.auth.crud.organizations.page_models",
+            "app.api.auth.crud.organizations.paginate_select",
             new=AsyncMock(return_value=sentinel.page),
         ) as mock_get_paginated:
             result = await get_organizations(mock_session, read_schema=OrganizationReadPublic)
 
         assert result == sentinel.page
-        mock_get_paginated.assert_awaited_once_with(
-            mock_session,
-            Organization,
-            loaders=None,
-            filters=None,
-            read_schema=OrganizationReadPublic,
-        )
+        mock_get_paginated.assert_awaited_once()
 
 
 @pytest.mark.unit
@@ -311,7 +305,7 @@ class TestGetOrganizationMembers:
                 new=AsyncMock(return_value=MagicMock()),
             ) as mock_require_model,
             patch(
-                "app.api.auth.crud.organizations.page_models",
+                "app.api.auth.crud.organizations.page_organization_members",
                 new=AsyncMock(return_value=sentinel.page),
             ) as mock_get_paginated,
         ):
@@ -325,7 +319,11 @@ class TestGetOrganizationMembers:
 
         assert result == sentinel.page
         mock_require_model.assert_awaited_once_with(mock_session, Organization, org_id)
-        mock_get_paginated.assert_awaited_once()
+        mock_get_paginated.assert_awaited_once_with(
+            mock_session,
+            org_id,
+            read_schema=UserReadPublic,
+        )
 
 
 @pytest.mark.unit

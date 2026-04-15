@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, cast
 
 from pydantic import UUID4, BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import Select, delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,8 +18,11 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import Organization, OrganizationRole, User
 from app.api.auth.schemas import OrganizationCreate, OrganizationUpdate
+from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.loading import apply_loader_profile
+from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.persistence import commit_and_refresh, delete_and_commit
-from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.query import require_model
 from app.api.common.exceptions import InternalServerError
 
 if TYPE_CHECKING:
@@ -28,6 +31,56 @@ if TYPE_CHECKING:
 
 ### Constants ###
 OWNER_ID_FIELD = "owner_id"
+
+
+def _organization_statement(
+    *,
+    loaders: set[str] | None = None,
+    filters: Filter | None = None,
+    read_schema: type[BaseModel] | None = None,
+) -> Select[tuple[Organization]]:
+    """Build the shared organization-listing query."""
+    statement: Select[tuple[Organization]] = select(Organization)
+    statement = apply_filter(statement, Organization, filters)
+    return cast(
+        "Select[tuple[Organization]]",
+        apply_loader_profile(statement, Organization, loaders, read_schema=read_schema),
+    )
+
+
+def _organization_members_statement(organization_id: UUID4) -> Select[tuple[User]]:
+    """Build the organization-members query."""
+    return select(User).where(User.organization_id == organization_id)
+
+
+async def _load_org_for_transfer(db: AsyncSession, organization_id: UUID4) -> Organization:
+    """Load an organization with members and owner for ownership transfer flows."""
+    return await require_model(db, Organization, organization_id, loaders={"members", "owner"})
+
+
+def _require_transfer_member(db_organization: Organization, transfer_owner_id: UUID4) -> User:
+    """Return the transfer target when it is already an organization member."""
+    new_owner = next((member for member in db_organization.members if member.id == transfer_owner_id), None)
+    if new_owner is None:
+        raise UserIsNotMemberError(
+            organization_id=db_organization.id,
+            details="Ownership can only be transferred to an existing member.",
+        )
+    return new_owner
+
+
+def _apply_organization_updates(db_organization: Organization, organization_in: OrganizationUpdate) -> None:
+    """Apply non-ownership organization updates."""
+    for key, value in organization_in.model_dump(exclude_unset=True, exclude={OWNER_ID_FIELD}).items():
+        setattr(db_organization, key, value)
+
+
+def _transfer_organization_ownership(db_organization: Organization, *, new_owner: User) -> None:
+    """Transfer ownership from the current owner to an existing member."""
+    current_owner = db_organization.owner
+    current_owner.organization_role = OrganizationRole.MEMBER
+    new_owner.organization_role = OrganizationRole.OWNER
+    db_organization.owner_id = new_owner.id
 
 
 ## Create Organization ##
@@ -67,13 +120,20 @@ async def get_organizations(
     read_schema: type[BaseModel] | None = None,
 ) -> Page[Organization]:
     """Get organizations with optional filtering, relationships, and pagination."""
-    return await page_models(
-        db,
-        Organization,
-        loaders=loaders,
-        filters=filters,
-        read_schema=read_schema,
-    )
+    statement = _organization_statement(loaders=loaders, filters=filters, read_schema=read_schema)
+    return cast("Page[Organization]", await paginate_select(db, statement, model=Organization))
+
+
+async def page_organization_members(
+    db: AsyncSession,
+    organization_id: UUID4,
+    *,
+    read_schema: type[BaseModel] | None = None,
+) -> Page[User]:
+    """Get organization members in a paginated response."""
+    statement = _organization_members_statement(organization_id)
+    statement = cast("Select[tuple[User]]", apply_loader_profile(statement, User, read_schema=read_schema))
+    return cast("Page[User]", await paginate_select(db, statement, model=User))
 
 
 ## Update Organization ##
@@ -83,35 +143,13 @@ async def update_user_organization(
     """Update an existing organization in the database."""
     transfer_owner_id = organization_in.owner_id if OWNER_ID_FIELD in organization_in.model_fields_set else None
     if transfer_owner_id is not None:
-        db_organization = await require_model(
-            db,
-            Organization,
-            db_organization.id,
-            loaders={"members", "owner"},
-        )
-        new_owner = next((member for member in db_organization.members if member.id == transfer_owner_id), None)
-        if new_owner is None:
-            raise UserIsNotMemberError(
-                organization_id=db_organization.id,
-                details="Ownership can only be transferred to an existing member.",
-            )
+        db_organization = await _load_org_for_transfer(db, db_organization.id)
 
-    # Update organization data without clobbering ownership transfer logic.
-    for key, value in organization_in.model_dump(exclude_unset=True, exclude={"owner_id"}).items():
-        setattr(db_organization, key, value)
+    _apply_organization_updates(db_organization, organization_in)
 
     if transfer_owner_id is not None and transfer_owner_id != db_organization.owner_id:
-        current_owner = db_organization.owner
-        new_owner = next((member for member in db_organization.members if member.id == transfer_owner_id), None)
-        if new_owner is None:
-            raise UserIsNotMemberError(
-                organization_id=db_organization.id,
-                details="Ownership can only be transferred to an existing member.",
-            )
-
-        current_owner.organization_role = OrganizationRole.MEMBER
-        new_owner.organization_role = OrganizationRole.OWNER
-        db_organization.owner_id = new_owner.id
+        new_owner = _require_transfer_member(db_organization, transfer_owner_id)
+        _transfer_organization_ownership(db_organization, new_owner=new_owner)
 
     try:
         db.add(db_organization)
@@ -203,11 +241,7 @@ async def get_organization_members(
 
     if paginate:
         await require_model(db, Organization, organization_id)
-        statement = select(User).where(User.organization_id == organization_id)
-        return cast(
-            "Page[User]",
-            await page_models(db, User, statement=statement, read_schema=read_schema),
-        )
+        return await page_organization_members(db, organization_id, read_schema=read_schema)
 
     organization = await require_model(db, Organization, organization_id, loaders={"members"})
 
