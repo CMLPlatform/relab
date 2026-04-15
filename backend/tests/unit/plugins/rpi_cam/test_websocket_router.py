@@ -276,7 +276,7 @@ class TestVerifyDeviceAssertion:
                 "exp": now + 120,
                 "jti": secrets.token_urlsafe(24),
             },
-            "some-hmac-secret",
+            "some-random-thirty-two-bit-hmac-secret",
             algorithm="HS256",
             headers={"kid": key_id},
         )
