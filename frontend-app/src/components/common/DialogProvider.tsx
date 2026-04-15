@@ -19,7 +19,7 @@ type DialogOptions = {
   error?: boolean;
 };
 
-type DialogContextType = {
+export type DialogContextType = {
   alert: (options: DialogOptions) => void;
   input: (options: DialogOptions) => void;
   toast: (message: string) => void;

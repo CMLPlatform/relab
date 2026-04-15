@@ -1,6 +1,7 @@
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Portal, Surface, Text } from 'react-native-paper';
 import type { StreamSession } from '@/context/StreamSessionContext';
+import { getFloatingPosition, getStreamingSheetBottomPadding } from '@/utils/platformLayout';
 import { StreamingContent } from './StreamingContent';
 
 interface StreamingSheetProps {
@@ -38,14 +39,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
-    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+    position: getFloatingPosition(),
     bottom: 0,
     left: 0,
     right: 0,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    paddingBottom: getStreamingSheetBottomPadding(),
     overflow: 'hidden',
   },
   handle: {

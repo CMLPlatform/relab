@@ -203,36 +203,33 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+function renderProducts() {
+  return renderWithProviders(<Products />, { withDialog: true });
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('Products screen', () => {
   it('renders the search bar and sort button', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search products')).toBeOnTheScreen();
-    });
+    renderProducts();
+    expect(await screen.findByPlaceholderText('Search products')).toBeOnTheScreen();
   });
 
   it('shows skeleton rows while loading', async () => {
     mockUseProductsQuery.mockReturnValue(loadingQueryResult);
-    renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      // Skeleton renders 8 placeholder cards; check at least one exists
-      expect(screen.getAllByTestId('product-card-skeleton').length).toBeGreaterThan(0);
-    });
+    renderProducts();
+    expect((await screen.findAllByTestId('product-card-skeleton')).length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no products match', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(
-        screen.getByText('No products available yet. Sign in to add your own.'),
-      ).toBeOnTheScreen();
-    });
+    renderProducts();
+    expect(
+      await screen.findByText('No products available yet. Sign in to add your own.'),
+    ).toBeOnTheScreen();
   });
 
   it('shows search-specific empty state when searching', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByPlaceholderText('Search products');
 
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
@@ -246,7 +243,7 @@ describe('Products screen', () => {
     // Start on page 2 by making the query return multi-page data and simulating
     // a page advance; then type in search and verify page arg resets to 1
     mockUseProductsQuery.mockReturnValue(pagedQueryResult);
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByPlaceholderText('Search products');
 
     // Verify initial call uses page 1
@@ -270,7 +267,7 @@ describe('Products screen', () => {
 
   it('clears the search query from the URL when the search box is emptied', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'saved query' });
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByPlaceholderText('Search products');
 
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), '');
@@ -280,7 +277,7 @@ describe('Products screen', () => {
 
   it('resets page to 1 when sort changes (colocated in onPress)', async () => {
     mockUseProductsQuery.mockReturnValue(pagedQueryResult);
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByPlaceholderText('Search products');
 
     // Open sort menu and pick a different option
@@ -292,17 +289,15 @@ describe('Products screen', () => {
   });
 
   it('renders welcome banner on first visit', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByText('Welcome to RELab')).toBeOnTheScreen();
-      expect(
-        screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
-      ).toBeOnTheScreen();
-    });
+    renderProducts();
+    expect(await screen.findByText('Welcome to RELab')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
+    ).toBeOnTheScreen();
   });
 
   it('dismisses welcome banner when Maybe later is pressed', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByText('Maybe later');
     fireEvent.press(screen.getByText('Maybe later'));
     await waitFor(() => {
@@ -328,15 +323,13 @@ describe('Products screen', () => {
   it('prompts unverified signed-in users to verify their email', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
 
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
 
-    await waitFor(() => {
-      expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
-      expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-      expect(screen.getByText('profile')).toBeOnTheScreen();
-      expect(screen.getByText('Got it')).toBeOnTheScreen();
-      expect(screen.getByText('Verify email')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('Verify your email to start creating')).toBeOnTheScreen();
+    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
+    expect(screen.getByText('profile')).toBeOnTheScreen();
+    expect(screen.getByText('Got it')).toBeOnTheScreen();
+    expect(screen.getByText('Verify email')).toBeOnTheScreen();
 
     fireEvent.press(screen.getByText('Verify email'));
     expect(mockPush).toHaveBeenCalledWith('/profile');
@@ -345,28 +338,26 @@ describe('Products screen', () => {
   it('uses Got it for the dismiss action when signed in', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
 
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
 
-    await waitFor(() => {
-      expect(screen.getByText('Got it')).toBeOnTheScreen();
-      expect(screen.getByText('profile')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('Got it')).toBeOnTheScreen();
+    expect(screen.getByText('profile')).toBeOnTheScreen();
   });
 });
 
 describe('FAB and new-product flow', () => {
   it('shows sign-in dialog when guest presses the FAB', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByLabelText('Sign in to create products');
     fireEvent.press(screen.getByLabelText('Sign in to create products'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Sign in to create products' }),
+      expect.objectContaining({ title: 'Sign In Required' }),
     );
   });
 
   it('shows create-product dialog when verified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByLabelText('Create new product');
     fireEvent.press(screen.getByLabelText('Create new product'));
     expect(mockDialogApi.input).toHaveBeenCalledWith(
@@ -376,7 +367,7 @@ describe('FAB and new-product flow', () => {
 
   it('shows email-verification dialog when unverified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByLabelText('Create new product');
     fireEvent.press(screen.getByLabelText('Create new product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
@@ -387,7 +378,7 @@ describe('FAB and new-product flow', () => {
 
 describe('Filter chips and modals', () => {
   it('opens brand filter modal when Brand chip is pressed', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByText('Brand');
     fireEvent.press(screen.getByText('Brand'));
     await waitFor(() => {
@@ -396,7 +387,7 @@ describe('Filter chips and modals', () => {
   });
 
   it('opens product type filter modal when Type chip is pressed', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByText('Type');
     fireEvent.press(screen.getByText('Type'));
     await waitFor(() => {
@@ -405,7 +396,7 @@ describe('Filter chips and modals', () => {
   });
 
   it('shows Date chip and opens dropdown menu when pressed', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByText('Date');
     fireEvent.press(screen.getByText('Date'));
     await waitFor(() => {
@@ -416,7 +407,7 @@ describe('Filter chips and modals', () => {
   });
 
   it('activates a date preset when selected from the dropdown menu', async () => {
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
     await screen.findByText('Date');
     fireEvent.press(screen.getByText('Date'));
     await screen.findByText('Last 7d');
@@ -426,11 +417,8 @@ describe('Filter chips and modals', () => {
 
   it('shows the active preset label on the Date chip', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '30' });
-    renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByText('Last 30d')).toBeOnTheScreen();
-      // The chip label reflects the active selection
-    });
+    renderProducts();
+    expect(await screen.findByText('Last 30d')).toBeOnTheScreen();
   });
 
   it('clears an active date preset via the chip close button', async () => {
@@ -450,11 +438,9 @@ describe('Error state', () => {
       ...emptyQueryResult,
       error: new Error('Network failure'),
     });
-    renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByText(/Network failure/)).toBeOnTheScreen();
-      expect(screen.getByLabelText('Retry loading products')).toBeOnTheScreen();
-    });
+    renderProducts();
+    expect(await screen.findByText(/Network failure/)).toBeOnTheScreen();
+    expect(screen.getByLabelText('Retry loading products')).toBeOnTheScreen();
   });
 });
 
@@ -462,7 +448,7 @@ describe('Empty-state messages', () => {
   it('shows mine-specific empty state when authenticated and filterMode=mine', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     mockUseProductsQuery.mockReturnValue(emptyQueryResult);
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
 
     // Switch to mine filter via the Mine chip
     await screen.findByText('Mine');
@@ -475,23 +461,21 @@ describe('Empty-state messages', () => {
     mockUseProductsQuery.mockReturnValue(emptyQueryResult);
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
 
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
 
-    await waitFor(() => {
-      expect(screen.getByText("You haven't created any products yet. Tap the")).toBeOnTheScreen();
-      expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-    });
+    expect(
+      await screen.findByText("You haven't created any products yet. Tap the"),
+    ).toBeOnTheScreen();
+    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
   });
 
   it('shows creation prompt when authenticated user has no products', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     mockUseProductsQuery.mockReturnValue(emptyQueryResult);
-    renderWithProviders(<Products />, { withDialog: true });
+    renderProducts();
 
-    await waitFor(() => {
-      expect(screen.getByText('No products yet. Start by tapping the')).toBeOnTheScreen();
-      expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
-    });
+    expect(await screen.findByText('No products yet. Start by tapping the')).toBeOnTheScreen();
+    expect(screen.getAllByText('New Product').length).toBeGreaterThan(0);
   });
 });
 

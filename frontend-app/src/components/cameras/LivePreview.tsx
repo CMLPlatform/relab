@@ -1,9 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useVideoPlayer, VideoView } from 'expo-video';
 import type { ReactNode } from 'react';
-import { Component, createElement, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Card, Text } from 'react-native-paper';
+import { Component } from 'react';
+import { View } from 'react-native';
+import { Text } from 'react-native-paper';
+import {
+  getLivePreviewCaption,
+  PreviewPlayer,
+} from '@/components/cameras/live-preview/PreviewPlayer';
+import {
+  PreviewShell,
+  livePreviewStyles as styles,
+} from '@/components/cameras/live-preview/shared';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
 import type { CameraRead } from '@/services/api/rpiCamera';
@@ -43,26 +50,13 @@ export function LivePreview({
   }
 
   return (
-    <Card style={styles.card}>
-      <Card.Content style={styles.content}>
-        <PreviewErrorBoundary>
-          {Platform.OS === 'web' ? (
-            <WebHlsVideo src={hlsUrl} withCredentials={!isLocalStream} />
-          ) : (
-            <NativeHlsVideo src={hlsUrl} />
-          )}
-        </PreviewErrorBoundary>
-        <Text variant="bodySmall" style={styles.caption}>
-          {isLocalStream ? 'Live preview · Direct · <1s' : 'Live preview · LL-HLS'}
-        </Text>
-      </Card.Content>
-    </Card>
+    <PreviewShell caption={getLivePreviewCaption(isLocalStream)}>
+      <PreviewErrorBoundary>
+        <PreviewPlayer src={hlsUrl} isLocalStream={isLocalStream} />
+      </PreviewErrorBoundary>
+    </PreviewShell>
   );
 }
-
-// ─── Web player (hls.js + native Safari) ──────────────────────────────────────
-
-const MAX_RETRIES = 5;
 
 export class PreviewErrorBoundary extends Component<
   { children: ReactNode },
@@ -88,240 +82,3 @@ export class PreviewErrorBoundary extends Component<
     return this.props.children;
   }
 }
-
-function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredentials?: boolean }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [state, setState] = useState<'loading' | 'live' | 'error'>('loading');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
-  const retryCount = useRef(0);
-  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track previous src to reset retry count only on URL changes, not on retries.
-  const prevSrc = useRef(src);
-
-  const retryNow = () => {
-    retryCount.current = 0;
-    setState('loading');
-    setRetryKey((k) => k + 1);
-  };
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is intentionally listed to re-run this effect on each retry without being read inside
-  useEffect(() => {
-    retryTimer.current && clearTimeout(retryTimer.current);
-
-    // Reset retry count when the URL changes (not when retrying the same URL).
-    if (prevSrc.current !== src) {
-      prevSrc.current = src;
-      retryCount.current = 0;
-    }
-
-    // Defined inside the effect so it closes over the stable refs/setters
-    // without needing to be listed as an external dependency.
-    const scheduleRetry = () => {
-      const delay = Math.min(3000 * 2 ** retryCount.current, 30_000);
-      retryCount.current += 1;
-      setState('loading');
-      retryTimer.current = setTimeout(() => setRetryKey((k) => k + 1), delay);
-    };
-
-    const video = videoRef.current;
-    if (!video) return;
-
-    let cancelled = false;
-    let cleanup: (() => void) | null = null;
-
-    const onPlaying = () => {
-      if (!cancelled) setState('live');
-    };
-    video.addEventListener('playing', onPlaying);
-
-    // Safari and iOS-on-web ship native HLS — feed it the URL directly and
-    // skip hls.js entirely. Everything else gets the JS-side MSE player.
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // For relay mode: send the session cookie for cross-origin auth.
-      // For local mode (MediaMTX direct): anonymous requests are fine.
-      video.crossOrigin = withCredentials ? 'use-credentials' : 'anonymous';
-      video.src = src;
-      video.play().catch(() => {
-        // Autoplay rejections are common; the browser shows its own UI.
-      });
-      const onError = () => {
-        if (cancelled) return;
-        if (retryCount.current < MAX_RETRIES) {
-          scheduleRetry();
-        } else {
-          setState('error');
-          setErrorMessage('HLS playback failed');
-        }
-      };
-      video.addEventListener('error', onError);
-      cleanup = () => {
-        video.removeEventListener('playing', onPlaying);
-        video.removeEventListener('error', onError);
-        video.removeAttribute('src');
-        video.load();
-      };
-    } else {
-      // Dynamic import keeps hls.js out of the native bundle.
-      void import('hls.js')
-        .then(({ default: Hls }) => {
-          if (cancelled) return;
-          if (!Hls.isSupported()) {
-            setState('error');
-            setErrorMessage('Live preview is not supported in this browser.');
-            return;
-          }
-          const hls = new Hls({
-            // LL-HLS tuning — match the MediaMTX 200ms part duration so the
-            // player asks for new parts as soon as MediaMTX produces them.
-            lowLatencyMode: true,
-            backBufferLength: 4,
-            maxBufferLength: 4,
-            // Relay mode: the backend HLS endpoint requires the user's session
-            // cookie for cross-origin requests. Local (MediaMTX direct) mode:
-            // no auth needed, omit credentials to avoid preflight rejections.
-            xhrSetup: withCredentials
-              ? (xhr) => {
-                  xhr.withCredentials = true;
-                }
-              : undefined,
-          });
-          hls.loadSource(src);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.ERROR, (_event, data) => {
-            if (data.fatal && !cancelled) {
-              if (retryCount.current < MAX_RETRIES) {
-                scheduleRetry();
-              } else {
-                setState('error');
-                setErrorMessage(data.details ?? 'HLS playback failed');
-              }
-            }
-          });
-          cleanup = () => {
-            video.removeEventListener('playing', onPlaying);
-            hls.destroy();
-          };
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setState('error');
-            setErrorMessage('Live preview unavailable');
-          }
-        })
-        .finally(() => {
-          if (cleanup || cancelled) {
-            return;
-          }
-          cleanup = () => {
-            video.removeEventListener('playing', onPlaying);
-          };
-        });
-    }
-
-    return () => {
-      cancelled = true;
-      retryTimer.current && clearTimeout(retryTimer.current);
-      if (cleanup) cleanup();
-    };
-  }, [src, withCredentials, retryKey]);
-
-  return (
-    <View style={styles.videoFrame}>
-      {createElement('video', {
-        ref: videoRef,
-        autoPlay: true,
-        muted: true,
-        playsInline: true,
-        style: {
-          width: '100%',
-          height: '100%',
-          borderRadius: 8,
-          objectFit: 'contain',
-          backgroundColor: '#000',
-        },
-      })}
-      {state === 'loading' && (
-        <View style={styles.overlay}>
-          <ActivityIndicator size={24} />
-          <Text style={styles.overlayText}>Loading preview…</Text>
-        </View>
-      )}
-      {state === 'error' && (
-        <View style={styles.overlay}>
-          <MaterialCommunityIcons name="video-off" size={32} color="#999" />
-          <Text style={styles.overlayText}>{errorMessage ?? 'Live preview unavailable'}</Text>
-          <Pressable onPress={retryNow}>
-            <Text style={styles.retryText}>Tap to retry</Text>
-          </Pressable>
-        </View>
-      )}
-    </View>
-  );
-}
-
-// ─── Native player (expo-video) ───────────────────────────────────────────────
-
-function NativeHlsVideo({ src }: { src: string }) {
-  const player = useVideoPlayer(src, (instance) => {
-    instance.muted = true;
-    instance.loop = false;
-    instance.play();
-  });
-
-  useEffect(() => {
-    return () => {
-      player.release?.();
-    };
-  }, [player]);
-
-  return (
-    <View style={styles.videoFrame}>
-      <VideoView
-        player={player}
-        style={{ width: '100%', height: '100%', borderRadius: 8, backgroundColor: '#000' }}
-        contentFit="contain"
-        nativeControls={false}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 16,
-    marginTop: 12,
-  },
-  content: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  videoFrame: {
-    width: '100%',
-    aspectRatio: 4 / 3,
-    position: 'relative',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  overlayText: {
-    color: '#fff',
-    textAlign: 'center',
-  },
-  caption: {
-    color: '#999',
-  },
-  retryText: {
-    color: '#fff',
-    textDecorationLine: 'underline',
-    marginTop: 4,
-  },
-});

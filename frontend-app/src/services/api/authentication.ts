@@ -1,21 +1,18 @@
-import { Platform } from 'react-native';
 import { API_URL } from '@/config';
-import {
-  getSecureItem,
-  getSessionItem,
-  removeSecureItem,
-  removeSessionItem,
-  setSecureItem,
-  setSessionItem,
-} from '@/services/storage';
 import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
+import {
+  clearStoredAccessToken,
+  isWeb,
+  loadStoredAccessToken,
+  persistStoredAccessToken,
+  hasWebSessionFlag as readWebSessionFlag,
+  setWebSessionFlag,
+} from './authSession';
 import { createRequestId, fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
-const ACCESS_TOKEN_KEY = 'access_token';
-const WEB_SESSION_FLAG = 'web_has_session';
 let token: string | undefined;
 let user: User | undefined;
 let refreshPromise: Promise<boolean> | null = null;
@@ -25,14 +22,10 @@ let explicitlyLoggedOut = false;
 // Incremented on every logout so in-flight getUser requests can detect they raced with a logout
 let authGeneration = 0;
 
-const isWeb = () => Platform.OS === 'web';
-
 async function persistAccessToken(nextToken: string): Promise<void> {
   token = nextToken;
   explicitlyLoggedOut = false;
-  if (!isWeb()) {
-    await setSecureItem(ACCESS_TOKEN_KEY, nextToken);
-  }
+  await persistStoredAccessToken(nextToken);
 }
 
 async function clearCachedAuthState(): Promise<void> {
@@ -41,27 +34,8 @@ async function clearCachedAuthState(): Promise<void> {
   getUserPromise = null;
   authGeneration++;
   explicitlyLoggedOut = true;
-  if (!isWeb()) {
-    await removeSecureItem(ACCESS_TOKEN_KEY);
-  }
-  removeSessionItem(WEB_SESSION_FLAG);
-}
-
-function setWebSessionFlag(value: boolean) {
-  if (!isWeb()) return;
-  if (value) setSessionItem(WEB_SESSION_FLAG, '1');
-  else removeSessionItem(WEB_SESSION_FLAG);
-}
-
-export function markWebSessionActive(): void {
-  if (!isWeb()) return;
-  explicitlyLoggedOut = false;
-  setWebSessionFlag(true);
-}
-
-export function hasWebSessionFlag(): boolean {
-  if (!isWeb()) return false;
-  return !!getSessionItem(WEB_SESSION_FLAG);
+  await clearStoredAccessToken();
+  setWebSessionFlag(false);
 }
 
 // ─────────────────────────────────────────────
@@ -73,7 +47,7 @@ export async function getToken(): Promise<string | undefined> {
   if (isWeb()) return undefined;
 
   try {
-    const storedToken = await getSecureItem(ACCESS_TOKEN_KEY);
+    const storedToken = await loadStoredAccessToken();
     if (storedToken) {
       token = storedToken;
       return token;
@@ -82,6 +56,16 @@ export async function getToken(): Promise<string | undefined> {
     logError('[GetToken Error]:', err);
   }
   return undefined;
+}
+
+export function markWebSessionActive(): void {
+  if (!isWeb()) return;
+  explicitlyLoggedOut = false;
+  setWebSessionFlag(true);
+}
+
+export function hasWebSessionFlag(): boolean {
+  return readWebSessionFlag();
 }
 
 export async function refreshAuthToken(): Promise<boolean> {

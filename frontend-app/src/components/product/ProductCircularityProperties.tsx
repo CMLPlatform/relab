@@ -16,22 +16,161 @@ interface Props {
 }
 
 type CircularityPropertyType = 'recyclability' | 'remanufacturability' | 'repairability';
+type CircularityField = 'comment' | 'observation' | 'reference';
 
-const propertyLabels: Record<CircularityPropertyType, string> = {
-  recyclability: 'Recyclability',
-  remanufacturability: 'Remanufacturability',
-  repairability: 'Repairability',
+type CircularityFieldKey = keyof Pick<
+  CircularityProperties,
+  | 'recyclabilityComment'
+  | 'recyclabilityObservation'
+  | 'recyclabilityReference'
+  | 'remanufacturabilityComment'
+  | 'remanufacturabilityObservation'
+  | 'remanufacturabilityReference'
+  | 'repairabilityComment'
+  | 'repairabilityObservation'
+  | 'repairabilityReference'
+>;
+
+type CircularityPropertyConfig = {
+  type: CircularityPropertyType;
+  label: string;
+  commentKey: CircularityFieldKey;
+  observationKey: CircularityFieldKey;
+  referenceKey: CircularityFieldKey;
 };
 
-// Separate component for rendering individual property sections
-interface CircularityPropertySectionProps {
-  type: CircularityPropertyType;
+type CircularityPropertySectionProps = {
+  config: CircularityPropertyConfig;
   circularityProperties: CircularityProperties;
   editMode: boolean;
   isExpanded: boolean;
   onToggleExpanded: () => void;
   onRemove: () => void;
-  onUpdateField: (field: 'comment' | 'observation' | 'reference', value: string) => void;
+  onUpdateField: (field: CircularityField, value: string) => void;
+};
+
+const PROPERTY_CONFIGS: readonly CircularityPropertyConfig[] = [
+  {
+    type: 'recyclability',
+    label: 'Recyclability',
+    commentKey: 'recyclabilityComment',
+    observationKey: 'recyclabilityObservation',
+    referenceKey: 'recyclabilityReference',
+  },
+  {
+    type: 'remanufacturability',
+    label: 'Remanufacturability',
+    commentKey: 'remanufacturabilityComment',
+    observationKey: 'remanufacturabilityObservation',
+    referenceKey: 'remanufacturabilityReference',
+  },
+  {
+    type: 'repairability',
+    label: 'Repairability',
+    commentKey: 'repairabilityComment',
+    observationKey: 'repairabilityObservation',
+    referenceKey: 'repairabilityReference',
+  },
+] as const;
+
+const EMPTY_CIRCULARITY_PROPERTIES: CircularityProperties = {
+  recyclabilityComment: null,
+  recyclabilityObservation: '',
+  recyclabilityReference: null,
+  remanufacturabilityComment: null,
+  remanufacturabilityObservation: '',
+  remanufacturabilityReference: null,
+  repairabilityComment: null,
+  repairabilityObservation: '',
+  repairabilityReference: null,
+};
+
+function getCircularityKeys(
+  config: CircularityPropertyConfig,
+  field: CircularityField,
+): CircularityFieldKey {
+  switch (field) {
+    case 'comment':
+      return config.commentKey;
+    case 'observation':
+      return config.observationKey;
+    case 'reference':
+      return config.referenceKey;
+  }
+}
+
+function hasContent(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function getCircularityValues(
+  properties: CircularityProperties,
+  config: CircularityPropertyConfig,
+) {
+  return {
+    observation: properties[config.observationKey],
+    comment: properties[config.commentKey],
+    reference: properties[config.referenceKey],
+  };
+}
+
+function hasPropertyData(
+  properties: CircularityProperties | undefined,
+  config: CircularityPropertyConfig,
+): boolean {
+  if (!properties) return false;
+
+  const { observation, comment, reference } = getCircularityValues(properties, config);
+  return (
+    hasContent(observation) ||
+    hasContent(comment) ||
+    hasContent(reference) ||
+    comment !== null ||
+    reference !== null
+  );
+}
+
+function updateCircularityField(
+  properties: CircularityProperties,
+  config: CircularityPropertyConfig,
+  field: CircularityField,
+  value: string,
+): CircularityProperties {
+  return {
+    ...properties,
+    [getCircularityKeys(config, field)]: value,
+  };
+}
+
+function addCircularityProperty(
+  properties: CircularityProperties | undefined,
+  config: CircularityPropertyConfig,
+): CircularityProperties {
+  const next = { ...(properties ?? EMPTY_CIRCULARITY_PROPERTIES) };
+  next[config.commentKey] = '';
+  next[config.observationKey] = '';
+  next[config.referenceKey] = '';
+  return next;
+}
+
+function removeCircularityProperty(
+  properties: CircularityProperties,
+  config: CircularityPropertyConfig,
+): CircularityProperties {
+  return {
+    ...properties,
+    [config.commentKey]: null,
+    [config.observationKey]: '',
+    [config.referenceKey]: null,
+  };
+}
+
+function getHiddenSummary(count: number): string {
+  if (count === 0) {
+    return 'No associated circularity properties.';
+  }
+
+  return `${count} ${count === 1 ? 'property' : 'properties'} hidden.`;
 }
 
 export default function ProductCircularityProperties({
@@ -43,126 +182,38 @@ export default function ProductCircularityProperties({
   const [isSectionExpanded, setIsSectionExpanded] = useState(false);
   const [expandedProperty, setExpandedProperty] = useState<CircularityPropertyType | null>(null);
 
-  // Helper function to check if a property has been added (exists in the data structure)
-  const hasPropertyData = (type: CircularityPropertyType): boolean => {
-    if (!product.circularityProperties) return false;
+  const chipsToShow = editMode
+    ? PROPERTY_CONFIGS.filter((config) => !hasPropertyData(product.circularityProperties, config))
+    : [];
+  const visibleProperties = PROPERTY_CONFIGS.filter((config) =>
+    hasPropertyData(product.circularityProperties, config),
+  );
 
-    const observationKey = `${type}Observation` as keyof CircularityProperties;
-    const observation = product.circularityProperties[observationKey];
-
-    // Check if observation field exists and is not null (even if empty string)
-    // When a property is "removed", observation is set to empty string ''
-    // When a property has never been added, observation would typically be ''
-    // So we need to check if it's been explicitly added by checking all three fields
-    const commentKey = `${type}Comment` as keyof CircularityProperties;
-    const referenceKey = `${type}Reference` as keyof CircularityProperties;
-
-    const comment = product.circularityProperties[commentKey];
-    const reference = product.circularityProperties[referenceKey];
-
-    // A property "has data" if ANY field has actual content OR
-    // if the fields exist with non-null values (meaning it was explicitly added)
-    // When removed, comment and reference are set to null, observation to ''
-    return (
-      (typeof observation === 'string' && observation.trim() !== '') ||
-      (typeof comment === 'string' && comment.trim() !== '') ||
-      (typeof reference === 'string' && reference.trim() !== '') ||
-      // Also consider it as "having data" if comment or reference are empty strings (not null)
-      // This means the property was added but not yet filled in
-      comment !== null ||
-      reference !== null
-    );
-  };
-
-  // Helper function to update a specific field
   const updateField = (
-    type: CircularityPropertyType,
-    field: 'comment' | 'observation' | 'reference',
+    config: CircularityPropertyConfig,
+    field: CircularityField,
     value: string,
   ) => {
     if (!product.circularityProperties) return;
-
-    const key =
-      `${type}${field.charAt(0).toUpperCase()}${field.slice(1)}` as keyof CircularityProperties;
-    const newProperties = {
-      ...product.circularityProperties,
-      [key]: value,
-    };
-    onChangeCircularityProperties?.(newProperties);
+    onChangeCircularityProperties?.(
+      updateCircularityField(product.circularityProperties, config, field, value),
+    );
   };
 
-  // Helper function to add a new property
-  const addProperty = (type: CircularityPropertyType) => {
-    const baseProperties = product.circularityProperties || {
-      recyclabilityComment: null,
-      recyclabilityObservation: '',
-      recyclabilityReference: null,
-      remanufacturabilityComment: null,
-      remanufacturabilityObservation: '',
-      remanufacturabilityReference: null,
-      repairabilityComment: null,
-      repairabilityObservation: '',
-      repairabilityReference: null,
-    };
-
-    const newProperties = {
-      ...baseProperties,
-      [`${type}Comment`]: '',
-      [`${type}Observation`]: '',
-      [`${type}Reference`]: '',
-    };
-
-    onChangeCircularityProperties?.(newProperties);
-    setExpandedProperty(type);
+  const addProperty = (config: CircularityPropertyConfig) => {
+    onChangeCircularityProperties?.(addCircularityProperty(product.circularityProperties, config));
+    setExpandedProperty(config.type);
   };
 
-  // Helper function to remove a property
-  const removeProperty = (type: CircularityPropertyType) => {
+  const removeProperty = (config: CircularityPropertyConfig) => {
     if (!product.circularityProperties) return;
-
-    const newProperties = {
-      ...product.circularityProperties,
-      [`${type}Comment`]: null,
-      [`${type}Observation`]: '',
-      [`${type}Reference`]: null,
-    };
-    onChangeCircularityProperties?.(newProperties);
+    onChangeCircularityProperties?.(
+      removeCircularityProperty(product.circularityProperties, config),
+    );
     setExpandedProperty(null);
   };
 
-  const propertyTypes = [
-    'recyclability',
-    'remanufacturability',
-    'repairability',
-  ] as CircularityPropertyType[];
-  const chipsToShow = editMode ? propertyTypes.filter((type) => !hasPropertyData(type)) : [];
-  const expandedPropertiesToShow = propertyTypes.filter((type) => hasPropertyData(type));
-  const propertyCount = expandedPropertiesToShow.length;
-
-  if (!isSectionExpanded) {
-    return (
-      <View>
-        <DetailSectionHeader
-          title="Circularity Properties"
-          tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
-          rightElement={
-            <Pressable
-              onPress={() => setIsSectionExpanded(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Show circularity properties"
-            >
-              <Text style={{ fontWeight: '600', color: colors.primary }}>Show</Text>
-            </Pressable>
-          }
-        />
-        <Text style={{ opacity: 0.7, marginBottom: 8 }}>
-          {propertyCount === 0
-            ? 'No associated circularity properties.'
-            : `${propertyCount} ${propertyCount === 1 ? 'property' : 'properties'} hidden.`}
-        </Text>
-      </View>
-    );
-  }
+  const toggleSectionLabel = isSectionExpanded ? 'Hide' : 'Show';
 
   return (
     <View>
@@ -171,57 +222,61 @@ export default function ProductCircularityProperties({
         tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
         rightElement={
           <Pressable
-            onPress={() => setIsSectionExpanded(false)}
+            onPress={() => setIsSectionExpanded((value) => !value)}
             accessibilityRole="button"
-            accessibilityLabel="Hide circularity properties"
+            accessibilityLabel={`${toggleSectionLabel.toLowerCase()} circularity properties`}
           >
-            <Text style={{ fontWeight: '600', color: colors.primary }}>Hide</Text>
+            <Text style={{ fontWeight: '600', color: colors.primary }}>{toggleSectionLabel}</Text>
           </Pressable>
         }
       />
 
-      {/* Show message when no properties exist */}
-      {expandedPropertiesToShow.length === 0 && !editMode && (
-        <Text style={{ opacity: 0.7, marginBottom: 8 }}>No associated circularity properties.</Text>
-      )}
+      {!isSectionExpanded ? (
+        <Text style={styles.sectionSummary}>{getHiddenSummary(visibleProperties.length)}</Text>
+      ) : (
+        <>
+          {visibleProperties.length === 0 && !editMode ? (
+            <Text style={styles.sectionSummary}>No associated circularity properties.</Text>
+          ) : null}
 
-      {/* Render chips in a single horizontal container */}
-      {chipsToShow.length > 0 && (
-        <View style={styles.chipContainer}>
-          {chipsToShow.map((type) => (
-            <Chip
-              key={type}
-              onPress={() => addProperty(type)}
-              icon={<MaterialCommunityIcons name="plus" size={16} color={colors.onPrimary} />}
-            >
-              {propertyLabels[type]}
-            </Chip>
-          ))}
-        </View>
-      )}
+          {chipsToShow.length > 0 ? (
+            <View style={styles.chipContainer}>
+              {chipsToShow.map((config) => (
+                <Chip
+                  key={config.type}
+                  onPress={() => addProperty(config)}
+                  icon={<MaterialCommunityIcons name="plus" size={16} color={colors.onPrimary} />}
+                >
+                  {config.label}
+                </Chip>
+              ))}
+            </View>
+          ) : null}
 
-      {/* Render expanded properties */}
-      {expandedPropertiesToShow.map(
-        (type) =>
-          product.circularityProperties && (
-            <CircularityPropertySection
-              key={type}
-              type={type}
-              circularityProperties={product.circularityProperties}
-              editMode={editMode}
-              isExpanded={expandedProperty === type}
-              onToggleExpanded={() => setExpandedProperty(expandedProperty === type ? null : type)}
-              onRemove={() => removeProperty(type)}
-              onUpdateField={(field, value) => updateField(type, field, value)}
-            />
-          ),
+          {visibleProperties.map((config) =>
+            product.circularityProperties ? (
+              <CircularityPropertySection
+                key={config.type}
+                config={config}
+                circularityProperties={product.circularityProperties}
+                editMode={editMode}
+                isExpanded={expandedProperty === config.type}
+                onToggleExpanded={() =>
+                  setExpandedProperty((current) => (current === config.type ? null : config.type))
+                }
+                onRemove={() => removeProperty(config)}
+                onUpdateField={(field, value) => updateField(config, field, value)}
+              />
+            ) : null,
+          )}
+        </>
       )}
     </View>
   );
 }
 
 function CircularityPropertySection({
-  type,
+  config,
   circularityProperties,
   editMode,
   isExpanded,
@@ -230,33 +285,21 @@ function CircularityPropertySection({
   onUpdateField,
 }: CircularityPropertySectionProps) {
   const { colors } = useAppTheme();
-
-  const commentKey = `${type}Comment` as keyof CircularityProperties;
-  const observationKey = `${type}Observation` as keyof CircularityProperties;
-  const referenceKey = `${type}Reference` as keyof CircularityProperties;
-
-  // Helper to check if a field has content
-  const hasContent = (value: string | null | undefined): boolean => {
-    return typeof value === 'string' && value.trim() !== '';
-  };
-
-  const observation = circularityProperties[observationKey];
-  const comment = circularityProperties[commentKey];
-  const reference = circularityProperties[referenceKey];
+  const { observation, comment, reference } = getCircularityValues(circularityProperties, config);
 
   return (
     <Fragment>
       <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
       <View style={styles.propertySection}>
         <View style={styles.propertyHeader}>
-          <Text style={styles.propertyTitle}>{propertyLabels[type]}</Text>
+          <Text style={styles.propertyTitle}>{config.label}</Text>
           <View style={styles.propertyActions}>
             <Pressable
               onPress={onToggleExpanded}
               style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
               accessibilityRole="button"
               accessibilityLabel={
-                isExpanded ? `Collapse ${propertyLabels[type]}` : `Expand ${propertyLabels[type]}`
+                isExpanded ? `Collapse ${config.label}` : `Expand ${config.label}`
               }
             >
               <MaterialCommunityIcons
@@ -265,107 +308,120 @@ function CircularityPropertySection({
                 color={colors.onSurface}
               />
             </Pressable>
-            {editMode && (
+            {editMode ? (
               <Pressable
                 onPress={onRemove}
                 style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
                 accessibilityRole="button"
-                accessibilityLabel={`Remove ${propertyLabels[type]}`}
+                accessibilityLabel={`Remove ${config.label}`}
               >
                 <MaterialCommunityIcons name="delete" size={24} color={colors.onSurface} />
               </Pressable>
-            )}
+            ) : null}
           </View>
         </View>
 
-        {isExpanded && (
+        {isExpanded ? (
           <View style={styles.propertyFields}>
-            {/* Observation field - always show in edit mode, only show if has content in view mode */}
-            {(editMode || hasContent(observation)) && (
-              <View>
-                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>
-                  Observation (Required)
-                </Text>
-                <TextInput
-                  value={String(observation || '')}
-                  onChangeText={(text) => onUpdateField('observation', text)}
-                  multiline
-                  numberOfLines={3}
-                  editable={editMode}
-                  style={[
-                    styles.input,
-                    styles.multilineInput,
-                    {
-                      borderColor: colors.outline,
-                      backgroundColor: colors.surface,
-                      color: colors.onSurface,
-                    },
-                    editMode &&
-                      !observation && {
-                        borderColor: colors.error,
-                        backgroundColor: colors.errorContainer,
-                      },
-                  ]}
-                  errorOnEmpty={editMode && !observation}
-                />
-              </View>
-            )}
+            {editMode || hasContent(observation) ? (
+              <CircularityFieldInput
+                label="Observation (Required)"
+                value={String(observation || '')}
+                editable={editMode}
+                multiline
+                numberOfLines={3}
+                onChangeText={(text) => onUpdateField('observation', text)}
+                colors={colors}
+                isRequiredError={editMode && !observation}
+              />
+            ) : null}
 
-            {/* Comment field - always show in edit mode, only show if has content in view mode */}
-            {(editMode || hasContent(comment)) && (
-              <View>
-                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>
-                  Comment (Optional)
-                </Text>
-                <TextInput
-                  value={String(comment || '')}
-                  onChangeText={(text) => onUpdateField('comment', text)}
-                  multiline
-                  numberOfLines={2}
-                  editable={editMode}
-                  style={[
-                    styles.input,
-                    styles.multilineInput,
-                    {
-                      borderColor: colors.outline,
-                      backgroundColor: colors.surface,
-                      color: colors.onSurface,
-                    },
-                  ]}
-                />
-              </View>
-            )}
+            {editMode || hasContent(comment) ? (
+              <CircularityFieldInput
+                label="Comment (Optional)"
+                value={String(comment || '')}
+                editable={editMode}
+                multiline
+                numberOfLines={2}
+                onChangeText={(text) => onUpdateField('comment', text)}
+                colors={colors}
+              />
+            ) : null}
 
-            {/* Reference field - always show in edit mode, only show if has content in view mode */}
-            {(editMode || hasContent(reference)) && (
-              <View>
-                <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>
-                  Reference (Optional)
-                </Text>
-                <TextInput
-                  value={String(reference || '')}
-                  onChangeText={(text) => onUpdateField('reference', text)}
-                  editable={editMode}
-                  style={[
-                    styles.input,
-                    {
-                      borderColor: colors.outline,
-                      backgroundColor: colors.surface,
-                      color: colors.onSurface,
-                    },
-                  ]}
-                  placeholder="e.g., ISO 14021:2016"
-                />
-              </View>
-            )}
+            {editMode || hasContent(reference) ? (
+              <CircularityFieldInput
+                label="Reference (Optional)"
+                value={String(reference || '')}
+                editable={editMode}
+                onChangeText={(text) => onUpdateField('reference', text)}
+                colors={colors}
+                placeholder="e.g., ISO 14021:2016"
+              />
+            ) : null}
           </View>
-        )}
+        ) : null}
       </View>
     </Fragment>
   );
 }
 
+function CircularityFieldInput({
+  label,
+  value,
+  editable,
+  onChangeText,
+  colors,
+  multiline = false,
+  numberOfLines,
+  placeholder,
+  isRequiredError = false,
+}: {
+  label: string;
+  value: string;
+  editable: boolean;
+  onChangeText: (text: string) => void;
+  colors: ReturnType<typeof useAppTheme>['colors'];
+  multiline?: boolean;
+  numberOfLines?: number;
+  placeholder?: string;
+  isRequiredError?: boolean;
+}) {
+  return (
+    <View>
+      <Text style={[styles.label, { color: colors.onSurfaceVariant }]}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+        editable={editable}
+        style={[
+          styles.input,
+          multiline ? styles.multilineInput : null,
+          {
+            borderColor: colors.outline,
+            backgroundColor: colors.surface,
+            color: colors.onSurface,
+          },
+          isRequiredError
+            ? {
+                borderColor: colors.error,
+                backgroundColor: colors.errorContainer,
+              }
+            : null,
+        ]}
+        errorOnEmpty={isRequiredError}
+        placeholder={placeholder}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  sectionSummary: {
+    opacity: 0.7,
+    marginBottom: 8,
+  },
   chipContainer: {
     paddingVertical: 14,
     flexDirection: 'row',

@@ -30,6 +30,9 @@ if (typeof window !== 'undefined' && typeof window.history?.replaceState !== 'fu
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
+afterEach(() => {
+  jest.clearAllTimers();
+});
 
 // Mock Expo Router
 jest.mock('expo-router', () => {

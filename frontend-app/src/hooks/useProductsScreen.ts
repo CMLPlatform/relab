@@ -4,6 +4,8 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDebounce } from 'use-debounce';
 import { useDialog } from '@/components/common/DialogProvider';
 import { useAuth } from '@/context/AuthProvider';
+import { useNewProductAction } from '@/hooks/products/useNewProductAction';
+import { useProductsWelcomeCard } from '@/hooks/products/useProductsWelcomeCard';
 import {
   DEFAULT_PRODUCT_SORT,
   PRODUCT_SORT_OPTIONS,
@@ -11,17 +13,11 @@ import {
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
 } from '@/hooks/useProductQueries';
-import { updateUser } from '@/services/api/authentication';
-import { setNewProductIntent } from '@/services/newProductStore';
-import { getLocalItem, setLocalItem } from '@/services/storage';
 import type { Product } from '@/types/Product';
-import { logError } from '@/utils/logging';
 
 export type ProductFilter = 'all' | 'mine';
 type RouterSetParams = Parameters<ReturnType<typeof useRouter>['setParams']>[0];
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
-
-const GUEST_INFO_CARD_STORAGE_KEY = 'products_info_card_dismissed_guest';
 const FALLBACK_DEFAULT_SORT = Array.from(PRODUCT_SORT_OPTIONS[1].value);
 
 export function useProductsScreen(numColumns: number) {
@@ -60,7 +56,6 @@ export function useProductsScreen(numColumns: number) {
   const effectivePage = numColumns === 1 ? mobilePage : page;
   const [headerBottom, setHeaderBottom] = useState(0);
   const [fabExtended, setFabExtended] = useState(true);
-  const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null);
   const [accumulatedProducts, setAccumulatedProducts] = useState<Product[]>([]);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [dateMenuVisible, setDateMenuVisible] = useState(false);
@@ -70,6 +65,7 @@ export function useProductsScreen(numColumns: number) {
   const [typeSearch, setTypeSearch] = useState('');
   const [slowLoading, setSlowLoading] = useState(false);
   const isAuthenticated = !!currentUser;
+  const newProduct = useNewProductAction({ dialog, router, currentUser });
 
   const updateParams = useCallback(
     (newParams: RouterSetParams) => {
@@ -145,99 +141,14 @@ export function useProductsScreen(numColumns: number) {
       return [...prev, ...data.items.filter((p) => !existingIds.has(p.id))];
     });
   }, [data, effectivePage]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      setShowInfoCard(currentUser?.preferences?.products_welcome_dismissed !== true);
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const dismissed = await getLocalItem(GUEST_INFO_CARD_STORAGE_KEY);
-        if (!cancelled) setShowInfoCard(dismissed !== 'true');
-      } catch {
-        if (!cancelled) setShowInfoCard(true);
-      }
-    };
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, currentUser?.preferences?.products_welcome_dismissed]);
-
-  const dismissInfoCard = async () => {
-    setShowInfoCard(false);
-    if (isAuthenticated) {
-      try {
-        await updateUser({ preferences: { products_welcome_dismissed: true } });
-        if (typeof refetchUser === 'function') {
-          await refetchUser(false);
-        }
-      } catch (err) {
-        logError('Failed to save info card preference:', err);
-      }
-      return;
-    }
-
-    try {
-      await setLocalItem(GUEST_INFO_CARD_STORAGE_KEY, 'true');
-    } catch (err) {
-      logError('Failed to save info card preference:', err);
-    }
-  };
+  const { showInfoCard, dismissInfoCard } = useProductsWelcomeCard({
+    isAuthenticated,
+    currentUser,
+    refetchUser,
+  });
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setFabExtended(event.nativeEvent.contentOffset.y <= 0);
-  };
-
-  const newProduct = () => {
-    if (!currentUser) {
-      dialog.alert({
-        title: 'Sign In Required',
-        message: 'Sign in to add new products and manage your own submissions.',
-        buttons: [
-          { text: 'Cancel' },
-          { text: 'Sign in', onPress: () => router.push('/login?redirectTo=/products') },
-        ],
-      });
-      return;
-    }
-
-    if (!currentUser.isVerified) {
-      dialog.alert({
-        title: 'Email Verification Required',
-        message:
-          'Please verify your email address before creating products. Check your inbox for the verification link or go to your Profile to resend it.',
-        buttons: [
-          { text: 'OK' },
-          { text: 'Go to Profile', onPress: () => router.push('/profile') },
-        ],
-      });
-      return;
-    }
-
-    dialog.input({
-      title: 'Create New Product',
-      placeholder: 'Product Name',
-      helperText: 'Enter a descriptive name between 2 and 100 characters',
-      buttons: [
-        { text: 'Cancel' },
-        {
-          text: 'OK',
-          disabled: (value) => {
-            const name = typeof value === 'string' ? value.trim() : '';
-            return name.length < 2 || name.length > 100;
-          },
-          onPress: (productName) => {
-            const name = typeof productName === 'string' ? productName.trim() : '';
-            setNewProductIntent({ name });
-            router.push({ pathname: '/products/[id]', params: { id: 'new' } });
-          },
-        },
-      ],
-    });
   };
 
   const productList = numColumns === 1 ? accumulatedProducts : (data?.items ?? []);
@@ -246,53 +157,78 @@ export function useProductsScreen(numColumns: number) {
   const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
 
   return {
-    params,
-    filterMode,
-    searchQueryURL,
-    sortBy,
-    activeDatePreset,
-    activeBrands,
-    activeProductTypes,
-    searchQuery,
-    setSearchQuery,
-    debouncedSearchQuery,
-    effectivePage,
-    setMobilePage,
-    headerBottom,
-    setHeaderBottom,
-    fabExtended,
-    showInfoCard,
-    sortMenuVisible,
-    setSortMenuVisible,
-    dateMenuVisible,
-    setDateMenuVisible,
-    brandModalVisible,
-    setBrandModalVisible,
-    typeModalVisible,
-    setTypeModalVisible,
-    brandSearch,
-    setBrandSearch,
-    typeSearch,
-    setTypeSearch,
-    slowLoading,
-    brandResults,
-    brandsLoading,
-    typeResults,
-    typesLoading,
-    isAuthenticated,
-    data,
-    isFetching,
-    isLoading,
-    error,
-    refetch,
-    productList,
-    totalPages,
-    total,
-    hasMore,
-    currentUser,
-    updateParams,
-    dismissInfoCard,
-    onScroll,
-    newProduct,
+    screen: {
+      params,
+      filterMode,
+      activeDatePreset,
+      activeBrands,
+      activeProductTypes,
+      isAuthenticated,
+      currentUser,
+      headerBottom,
+      fabExtended,
+      showWelcomeCard: showInfoCard,
+      slowLoading,
+    },
+    search: {
+      query: searchQuery,
+      queryFromUrl: searchQueryURL,
+      debouncedQuery: debouncedSearchQuery,
+      sortBy,
+      sortMenuVisible,
+      setQuery: setSearchQuery,
+      setSortMenuVisible,
+      clearQuery: () => updateParams({ q: undefined, page: '1' }),
+      applySort: (sort: readonly string[]) => updateParams({ sort: sort.join(','), page: '1' }),
+    },
+    filters: {
+      brandResults,
+      brandsLoading,
+      typeResults,
+      typesLoading,
+      dateMenuVisible,
+      brandModalVisible,
+      typeModalVisible,
+      brandSearch,
+      typeSearch,
+      setDateMenuVisible,
+      setBrandModalVisible,
+      setTypeModalVisible,
+      setBrandSearch,
+      setTypeSearch,
+      toggleMine: () =>
+        updateParams({ filterMode: filterMode === 'mine' ? 'all' : 'mine', page: '1' }),
+      clearMine: () => updateParams({ filterMode: 'all', page: '1' }),
+      applyDatePreset: (days: string | undefined) => updateParams({ days, page: '1' }),
+      applyBrandSelection: (values: string[]) =>
+        updateParams({ brands: values.length ? values.join(',') : undefined, page: '1' }),
+      clearBrands: () => updateParams({ brands: undefined, page: '1' }),
+      applyTypeSelection: (values: string[]) =>
+        updateParams({ types: values.length ? values.join(',') : undefined, page: '1' }),
+      clearTypes: () => updateParams({ types: undefined, page: '1' }),
+    },
+    list: {
+      data,
+      productList,
+      effectivePage,
+      totalPages,
+      total,
+      hasMore,
+      isFetching,
+      isLoading,
+      error,
+      refetch,
+      onScroll,
+      setHeaderBottom,
+      setPage: (nextPage: number) =>
+        numColumns === 1 ? setMobilePage(nextPage) : updateParams({ page: String(nextPage) }),
+    },
+    actions: {
+      dismissWelcomeCard: dismissInfoCard,
+      createProduct: newProduct,
+      goToLogin: () => router.push('/login'),
+      goToProfile: () => router.push('/profile'),
+      updateParams,
+    },
   };
 }

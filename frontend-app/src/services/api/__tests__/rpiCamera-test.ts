@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as auth from '../authentication';
 import {
   buildCameraHlsUrl,
+  buildLocalHlsUrl,
   captureImageFromCamera,
   captureImageLocally,
   claimPairingCode,
@@ -11,6 +12,7 @@ import {
   fetchCameraSnapshotLocally,
   fetchCameras,
   fetchCameraTelemetry,
+  fetchLocalAccessInfo,
   updateCamera,
 } from '../rpiCamera';
 
@@ -194,6 +196,12 @@ describe('rpiCamera API service', () => {
     expect(url).toContain('/plugins/rpi-cam/cameras/cam-live/hls/cam-preview/index.m3u8');
   });
 
+  it('builds the local LL-HLS playlist URL through the Pi FastAPI proxy', () => {
+    expect(buildLocalHlsUrl('http://192.168.1.20:8018/')).toBe(
+      'http://192.168.1.20:8018/hls/cam-preview/index.m3u8',
+    );
+  });
+
   it('sets include_telemetry on the list endpoint when requested', async () => {
     mockJsonResponse([{ id: 'cam-1', telemetry: null, status: { connection: 'online' } }]);
 
@@ -218,6 +226,26 @@ describe('rpiCamera API service', () => {
     const urlArg = mockFetchWithAuth.mock.calls[0]?.[0] as URL;
     expect(urlArg.searchParams.get('include_status')).toBe('true');
     expect(urlArg.searchParams.get('include_telemetry')).toBeNull();
+  });
+
+  it('returns local access info when the backend payload is well shaped', async () => {
+    mockJsonResponse({
+      local_api_key: 'LOCAL_123',
+      candidate_urls: ['http://192.168.1.20:8018'],
+      mdns_name: 'pi.local',
+    });
+
+    await expect(fetchLocalAccessInfo('cam-1')).resolves.toEqual({
+      local_api_key: 'LOCAL_123',
+      candidate_urls: ['http://192.168.1.20:8018'],
+      mdns_name: 'pi.local',
+    });
+  });
+
+  it('returns null when the backend local access payload is malformed', async () => {
+    mockJsonResponse({ local_api_key: 'LOCAL_123', candidate_urls: 'oops', mdns_name: null });
+
+    await expect(fetchLocalAccessInfo('cam-1')).resolves.toBeNull();
   });
 
   it('fetches a camera telemetry snapshot via the shared auth fetcher', async () => {

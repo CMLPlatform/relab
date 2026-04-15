@@ -31,16 +31,24 @@
  *   // conn.localBaseUrl, conn.localApiKey populated when mode === 'local'
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import {
-  getLocalItem,
-  getSecureItem,
-  removeLocalItem,
-  removeSecureItem,
-  setLocalItem,
-  setSecureItem,
-} from '@/services/storage';
+  createInitialLocalConnectionState,
+  localConnectionReducer,
+  normalizeLocalConnectionUrl,
+} from '@/hooks/local-connection/reducer';
+import {
+  buildLocalProbeCandidates,
+  clearStoredLocalConnection,
+  loadLocalConnection,
+  MAX_FAILURES_BEFORE_RELAY,
+  PROBE_INTERVAL_ACTIVE_MS,
+  probeAll,
+  probeLocalUrl,
+  storeLocalConnection,
+  USB_GADGET_DEFAULT,
+} from '@/hooks/local-connection/shared';
+import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,84 +74,6 @@ export interface UseLocalConnectionResult extends CameraConnectionInfo {
   isInitializing: boolean;
 }
 
-// ─── Storage keys ─────────────────────────────────────────────────────────────
-
-const urlKey = (cameraId: string) => `localConnection:${cameraId}:url`;
-// SecureStore key names must be alphanumeric + _ + - (no colons on all platforms)
-const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId}_apiKey`;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/**
- * Derive the media server URL from the API server URL by swapping the port.
- * e.g. "http://192.168.1.100:8018" → "http://192.168.1.100:8888"
- */
-function deriveMediaUrl(baseUrl: string): string {
-  try {
-    const u = new URL(baseUrl);
-    u.port = '8888';
-    return u.origin;
-  } catch {
-    return baseUrl.replace(':8018', ':8888');
-  }
-}
-
-/** Default link-local / USB gadget IP to probe first (no mDNS needed). */
-const USB_GADGET_DEFAULT = 'http://192.168.7.1:8018';
-/** Probe timeout in ms. Short enough to not visibly delay the UI. */
-const PROBE_TIMEOUT_MS = 3_000;
-/** Re-probe interval when local mode is active. */
-const PROBE_INTERVAL_ACTIVE_MS = 30_000;
-/** Consecutive failures before switching from local → relay. */
-const MAX_FAILURES_BEFORE_RELAY = 2;
-
-async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<boolean> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-  try {
-    const headers: Record<string, string> = { Accept: 'application/json' };
-    if (apiKey) headers['X-API-Key'] = apiKey;
-    const resp = await fetch(`${baseUrl}/camera`, { headers, signal: controller.signal });
-    return resp.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** Probe all candidate URLs in parallel; resolve with the first that responds. */
-async function probeAll(candidates: string[], apiKey: string | null): Promise<string | null> {
-  if (candidates.length === 0) return null;
-  return new Promise((resolve) => {
-    let resolved = false;
-    let pending = candidates.length;
-    for (const url of candidates) {
-      void probeLocalUrl(url, apiKey).then((ok) => {
-        pending -= 1;
-        if (ok && !resolved) {
-          resolved = true;
-          resolve(url);
-        } else if (pending === 0 && !resolved) {
-          resolve(null);
-        }
-      });
-    }
-  });
-}
-
-async function storeApiKey(cameraId: string, key: string): Promise<void> {
-  await setSecureItem(apiKeySecureKey(cameraId), key);
-}
-
-async function loadApiKey(cameraId: string): Promise<string | null> {
-  return getSecureItem(apiKeySecureKey(cameraId));
-}
-
-async function deleteApiKey(cameraId: string): Promise<void> {
-  await removeSecureItem(apiKeySecureKey(cameraId));
-}
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 interface UseLocalConnectionOptions {
@@ -155,10 +85,12 @@ export function useLocalConnection(
   cameraId: string,
   { isOnline = false }: UseLocalConnectionOptions = {},
 ): UseLocalConnectionResult {
-  const [mode, setMode] = useState<ConnectionMode>('probing');
-  const [localBaseUrl, setLocalBaseUrl] = useState<string | null>(null);
-  const [localApiKey, setLocalApiKey] = useState<string | null>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [state, dispatch] = useReducer(
+    localConnectionReducer,
+    undefined,
+    createInitialLocalConnectionState,
+  );
+  const { mode, localBaseUrl, localMediaUrl, localApiKey, isInitializing } = state;
 
   const consecutiveFailures = useRef(0);
   const probeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,11 +105,11 @@ export function useLocalConnection(
     const ok = await probeLocalUrl(url, apiKey);
     if (ok) {
       consecutiveFailures.current = 0;
-      setMode('local');
+      dispatch({ type: 'setMode', payload: 'local' });
     } else {
       consecutiveFailures.current += 1;
       if (consecutiveFailures.current >= MAX_FAILURES_BEFORE_RELAY) {
-        setMode('relay');
+        dispatch({ type: 'setMode', payload: 'relay' });
       }
     }
   }, []);
@@ -185,15 +117,13 @@ export function useLocalConnection(
   // ── activateLocalMode: store and switch state ───────────────────────────
   const activateLocalMode = useCallback(
     async (url: string, apiKey: string) => {
-      const normalised = url.replace(/\/$/, '');
-      await Promise.all([
-        setLocalItem(urlKey(cameraId), normalised),
-        storeApiKey(cameraId, apiKey),
-      ]);
-      setLocalBaseUrl(normalised);
-      setLocalApiKey(apiKey);
+      const normalised = normalizeLocalConnectionUrl(url);
+      await storeLocalConnection(cameraId, normalised, apiKey);
       consecutiveFailures.current = 0;
-      setMode('local');
+      dispatch({
+        type: 'activate',
+        payload: { localBaseUrl: normalised, localApiKey: apiKey },
+      });
     },
     [cameraId],
   );
@@ -203,17 +133,19 @@ export function useLocalConnection(
     let cancelled = false;
 
     async function init() {
-      const [storedUrl, storedKey] = await Promise.all([
-        getLocalItem(urlKey(cameraId)),
-        loadApiKey(cameraId),
-      ]);
+      const { url: storedUrl, apiKey: storedKey } = await loadLocalConnection(cameraId);
 
       if (cancelled) return;
 
       const url = storedUrl ?? null;
       const key = storedKey ?? null;
-      setLocalBaseUrl(url);
-      setLocalApiKey(key);
+      dispatch({
+        type: 'restore',
+        payload: {
+          localBaseUrl: url,
+          localApiKey: key,
+        },
+      });
 
       if (url) {
         // We have a configured URL — probe immediately
@@ -222,14 +154,20 @@ export function useLocalConnection(
         // No URL configured — try the USB gadget default silently
         const ok = await probeLocalUrl(USB_GADGET_DEFAULT, key);
         if (!cancelled && ok) {
-          setLocalBaseUrl(USB_GADGET_DEFAULT);
-          setMode('probing'); // reachable but no key yet — wait for relay bootstrap
+          dispatch({
+            type: 'restore',
+            payload: {
+              localBaseUrl: USB_GADGET_DEFAULT,
+              localApiKey: key,
+            },
+          });
+          dispatch({ type: 'setMode', payload: 'probing' }); // reachable but no key yet — wait for relay bootstrap
         } else if (!cancelled) {
-          setMode('relay');
+          dispatch({ type: 'setMode', payload: 'relay' });
         }
       }
 
-      if (!cancelled) setIsInitializing(false);
+      if (!cancelled) dispatch({ type: 'finishInitialization' });
     }
 
     void init();
@@ -255,10 +193,7 @@ export function useLocalConnection(
       const info = await fetchLocalAccessInfo(cameraId);
       if (!info?.local_api_key) return;
 
-      // Build candidate list: Pi-reported IPs + USB gadget default
-      const candidates = [...info.candidate_urls, USB_GADGET_DEFAULT].filter(
-        (u, i, arr) => arr.indexOf(u) === i,
-      ); // deduplicate
+      const candidates = buildLocalProbeCandidates(info.candidate_urls);
 
       // Probe all in parallel — use the key from the Pi
       const reachableUrl = await probeAll(candidates, info.local_api_key);
@@ -290,13 +225,15 @@ export function useLocalConnection(
   // ── configure: manual store and activate ───────────────────────────────
   const configure = useCallback(
     async (baseUrl: string, apiKey: string) => {
-      const normalised = baseUrl.replace(/\/$/, '');
-      await Promise.all([
-        setLocalItem(urlKey(cameraId), normalised),
-        storeApiKey(cameraId, apiKey),
-      ]);
-      setLocalBaseUrl(normalised);
-      setLocalApiKey(apiKey);
+      const normalised = normalizeLocalConnectionUrl(baseUrl);
+      await storeLocalConnection(cameraId, normalised, apiKey);
+      dispatch({
+        type: 'restore',
+        payload: {
+          localBaseUrl: normalised,
+          localApiKey: apiKey,
+        },
+      });
       consecutiveFailures.current = 0;
       // Probe immediately so mode updates without waiting for the next interval
       await runProbe(normalised, apiKey);
@@ -306,18 +243,14 @@ export function useLocalConnection(
 
   // ── clearLocalConnection: remove stored config ──────────────────────────
   const clearLocalConnection = useCallback(async () => {
-    await Promise.all([removeLocalItem(urlKey(cameraId)), deleteApiKey(cameraId)]);
-    setLocalBaseUrl(null);
-    setLocalApiKey(null);
-    setMode('relay');
+    await clearStoredLocalConnection(cameraId);
+    dispatch({ type: 'clear' });
     consecutiveFailures.current = 0;
     if (probeIntervalRef.current) {
       clearInterval(probeIntervalRef.current);
       probeIntervalRef.current = null;
     }
   }, [cameraId]);
-
-  const localMediaUrl = localBaseUrl ? deriveMediaUrl(localBaseUrl) : null;
 
   return {
     mode,

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Linking, StyleSheet, View } from 'react-native';
 import { Button, Chip, Icon, Text, useTheme } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
+import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import type { StreamSession } from '@/context/StreamSessionContext';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
@@ -36,12 +37,7 @@ export function StreamingContent({
         setActiveStream(null);
         onStop?.();
       },
-      onError: (err) =>
-        feedback.alert({
-          title: 'Stop failed',
-          message: `Failed to stop stream: ${String(err)}`,
-          buttons: [{ text: 'OK' }],
-        }),
+      onError: (err) => showStreamStopFailed(feedback, err),
     });
   };
 

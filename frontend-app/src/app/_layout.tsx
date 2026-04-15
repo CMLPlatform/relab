@@ -1,4 +1,3 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton } from '@react-navigation/elements';
 import {
   DarkTheme as RNDark,
@@ -6,10 +5,10 @@ import {
   ThemeProvider,
 } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack, usePathname, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import { type ComponentType, type ReactNode, useEffect, useState } from 'react';
-import { Animated, Platform, Pressable, View } from 'react-native';
+import { type ReactNode, useEffect } from 'react';
+import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {
@@ -17,64 +16,22 @@ import {
   MD3DarkTheme,
   MD3LightTheme,
   PaperProvider,
-  useTheme,
 } from 'react-native-paper';
+import {
+  ensureWebAnimatedPatch,
+  getProductsHeaderStyle,
+  HeaderRightPill,
+  useAnimatedBackground,
+} from '@/app/layout/helpers';
 import darkTheme from '@/assets/themes/dark';
 import lightTheme from '@/assets/themes/light';
-import { Text } from '@/components/base/Text';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
 import { DialogProvider } from '@/components/common/DialogProvider';
-import { AuthProvider, useAuth } from '@/context/AuthProvider';
+import { AuthProvider } from '@/context/AuthProvider';
 import { StreamSessionProvider, useStreamSession } from '@/context/StreamSessionContext';
 import { ThemeModeProvider, useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 
-// Monkey-patch Animated to always use useNativeDriver: false on web.
-// This silences warnings from third-party libraries (like react-native-paper)
-// that might have hardcoded useNativeDriver: true.
-if (Platform.OS === 'web') {
-  const originalTiming = Animated.timing;
-  Object.defineProperty(Animated, 'timing', {
-    value: (
-      value: Parameters<typeof Animated.timing>[0],
-      config: Parameters<typeof Animated.timing>[1],
-    ) => originalTiming(value, { ...config, useNativeDriver: false }),
-    writable: true,
-    configurable: true,
-  });
-
-  const originalSpring = Animated.spring;
-  Object.defineProperty(Animated, 'spring', {
-    value: (
-      value: Parameters<typeof Animated.spring>[0],
-      config: Parameters<typeof Animated.spring>[1],
-    ) => originalSpring(value, { ...config, useNativeDriver: false }),
-    writable: true,
-    configurable: true,
-  });
-
-  const originalDecay = Animated.decay;
-  Object.defineProperty(Animated, 'decay', {
-    value: (
-      value: Parameters<typeof Animated.decay>[0],
-      config: Parameters<typeof Animated.decay>[1],
-    ) => originalDecay(value, { ...config, useNativeDriver: false }),
-    writable: true,
-    configurable: true,
-  });
-
-  const originalEvent = Animated.event;
-  Object.defineProperty(Animated, 'event', {
-    value: (...args: Parameters<typeof originalEvent>) => {
-      const [argMapping, config] = args;
-      return originalEvent(argMapping, { ...config, useNativeDriver: false });
-    },
-    writable: true,
-    configurable: true,
-  });
-}
-
-// Routes that show the animated background but NOT the overlay
-const NO_OVERLAY_PATHS = ['/login', '/new-account', '/onboarding'];
+ensureWebAnimatedPatch();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -84,57 +41,6 @@ const queryClient = new QueryClient({
   },
 });
 
-export function HeaderRight() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const theme = useTheme();
-
-  const pill = {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 6,
-    marginRight: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: theme.dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
-  };
-
-  const primaryText = {
-    color: theme.colors.onBackground,
-    fontWeight: '600' as const,
-    fontSize: 14,
-  };
-
-  if (user) {
-    const username = user.username.length > 16 ? `${user.username.slice(0, 14)}…` : user.username;
-    return (
-      <Pressable
-        onPress={() => router.push('/profile')}
-        style={pill}
-        accessibilityRole="button"
-        accessibilityLabel={`Profile: ${username}`}
-      >
-        <MaterialCommunityIcons name="account-circle" size={18} color={theme.colors.onBackground} />
-        <Text style={primaryText} numberOfLines={1}>
-          {username}
-        </Text>
-      </Pressable>
-    );
-  }
-
-  return (
-    <Pressable
-      onPress={() => router.push('/login')}
-      style={pill}
-      accessibilityRole="button"
-      accessibilityLabel="Sign in"
-    >
-      <Text style={primaryText}>Sign In</Text>
-    </Pressable>
-  );
-}
-
 export default function RootLayout() {
   return (
     <Providers>
@@ -143,12 +49,15 @@ export default function RootLayout() {
   );
 }
 
+export const HeaderRight = HeaderRightPill;
+
 function AppShell() {
   const colorScheme = useEffectiveColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
-  const pathname = usePathname();
   const { activeStream } = useStreamSession();
+  const { BackgroundComponent, overlayColor, showBackground, showOverlay } =
+    useAnimatedBackground(isDark);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !activeStream) return;
@@ -159,31 +68,12 @@ function AppShell() {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [activeStream]);
-  const showBackground = true;
-  const showOverlay = showBackground && !NO_OVERLAY_PATHS.some((p) => pathname.includes(p));
-  const bgOverlay = isDark ? 'rgba(10,10,10,0.90)' : 'rgba(242,242,242,0.95)';
-  const [BackgroundComponent, setBackgroundComponent] = useState<ComponentType | null>(null);
 
   useEffect(() => {
     setBackgroundColorAsync(isDark ? 'black' : 'white').catch(() => {
       // Best-effort only; the app can render fine without this on unsupported targets.
     });
   }, [isDark]);
-
-  useEffect(() => {
-    if (!showBackground || BackgroundComponent) return;
-
-    let isMounted = true;
-
-    import('@/components/common/AnimatedBackground').then((module) => {
-      if (!isMounted) return;
-      setBackgroundComponent(() => module.AnimatedBackground);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [BackgroundComponent]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -196,7 +86,7 @@ function AppShell() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: bgOverlay,
+            backgroundColor: overlayColor,
             pointerEvents: 'none',
           }}
         />
@@ -207,17 +97,8 @@ function AppShell() {
           name="products/index"
           options={{
             title: 'RELab',
-            headerTitleStyle: {
-              fontWeight: 'bold',
-              fontSize: 34,
-              color: isDark ? darkTheme.colors.onBackground : lightTheme.colors.onBackground,
-            },
-            headerStyle: {
-              backgroundColor: isDark
-                ? darkTheme.colors.elevation.level2
-                : lightTheme.colors.elevation.level2,
-            },
-            headerRight: () => <HeaderRight />,
+            ...getProductsHeaderStyle(isDark),
+            headerRight: () => <HeaderRightPill />,
             headerLeft: () => null,
           }}
         />

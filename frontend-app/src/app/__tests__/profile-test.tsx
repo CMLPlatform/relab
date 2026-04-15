@@ -74,9 +74,7 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
-    expect(
-      await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText('You are subscribed.')).toBeOnTheScreen();
   });
 
   it('updates the preference when the switch is toggled', async () => {
@@ -104,9 +102,7 @@ describe('Profile screen newsletter preference', () => {
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 
-    expect(
-      await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText('You are subscribed.')).toBeOnTheScreen();
   });
 
   it('shows an error when updating the preference fails', async () => {
@@ -129,9 +125,7 @@ describe('Profile screen newsletter preference', () => {
 
     fireEvent(screen.getByTestId('newsletter-switch'), 'valueChange', true);
 
-    expect(
-      await screen.findByText('Unable to save right now.', {}, { timeout: 10000 }),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText('Unable to save right now.')).toBeOnTheScreen();
   });
 
   it('shows an error and retry action when newsletter preferences fail to load', async () => {
@@ -143,9 +137,7 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
-    expect(
-      await screen.findByText('Could not load right now.', {}, { timeout: 10000 }),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText('Could not load right now.')).toBeOnTheScreen();
     expect(screen.getByText('Try again')).toBeOnTheScreen();
   });
 
@@ -158,7 +150,7 @@ describe('Profile screen newsletter preference', () => {
 
     renderWithProviders(<Profile />, { withAuth: true, withThemeMode: true });
 
-    expect(await screen.findByText('Temporary failure', {}, { timeout: 10000 })).toBeOnTheScreen();
+    expect(await screen.findByText('Temporary failure')).toBeOnTheScreen();
 
     // Override with a success response for the retry
     server.use(
@@ -173,9 +165,7 @@ describe('Profile screen newsletter preference', () => {
 
     fireEvent.press(screen.getByText('Try again'));
 
-    expect(
-      await screen.findByText('You are subscribed.', {}, { timeout: 10000 }),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText('You are subscribed.')).toBeOnTheScreen();
   });
 });
 

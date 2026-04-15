@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useElapsed } from '@/hooks/useElapsed';
+import { getActiveStreamBannerBottomInset, getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
 
 export function ActiveStreamBanner() {
@@ -15,7 +16,7 @@ export function ActiveStreamBanner() {
   return (
     <>
       <View
-        style={[styles.container, { bottom: Platform.OS === 'web' ? 16 : 88 }]}
+        style={[styles.container, { bottom: getActiveStreamBannerBottomInset() }]}
         pointerEvents="box-none"
       >
         <Pressable
@@ -43,7 +44,7 @@ export function ActiveStreamBanner() {
 
 const styles = StyleSheet.create({
   container: {
-    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+    position: getFloatingPosition(),
     left: 16,
     right: 16,
     alignItems: 'center',

@@ -1,17 +1,25 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type CaptureAllResult,
+  captureFromMultipleCameras,
+  clearOptimisticStreamStatus,
+  invalidateCameraDetailQuery,
+  invalidateCameraListQuery,
+  invalidateCameraStreamStatusQuery,
+  invalidateProductQuery,
+  resolveCaptureImageRequest,
+  restoreOptimisticStreamStatus,
+} from '@/hooks/rpi-cameras/mutations';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import type {
   CameraRead,
   CameraUpdate,
   PairingClaimRequest,
   StartYouTubeStreamParams,
-  StreamView,
 } from '@/services/api/rpiCamera';
 import {
   buildCameraHlsUrl,
   buildLocalHlsUrl,
-  captureImageFromCamera,
-  captureImageLocally,
   claimPairingCode,
   deleteCamera,
   fetchCamera,
@@ -24,6 +32,8 @@ import {
   stopYouTubeStream,
   updateCamera,
 } from '@/services/api/rpiCamera';
+
+export type { CaptureAllResult } from '@/hooks/rpi-cameras/mutations';
 
 export const camerasQueryOptions = (
   includeStatus = false,
@@ -127,8 +137,8 @@ export function useUpdateCameraMutation(id: string) {
   return useMutation({
     mutationFn: (data: CameraUpdate) => updateCamera(id, data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCamera', id] });
-      void queryClient.invalidateQueries({ queryKey: ['rpiCameras'] });
+      invalidateCameraDetailQuery(queryClient, id);
+      invalidateCameraListQuery(queryClient);
     },
   });
 }
@@ -138,7 +148,7 @@ export function useDeleteCameraMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteCamera(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCameras'] });
+      invalidateCameraListQuery(queryClient);
     },
   });
 }
@@ -148,7 +158,7 @@ export function useClaimPairingMutation() {
   return useMutation({
     mutationFn: (data: PairingClaimRequest) => claimPairingCode(data),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCameras'] });
+      invalidateCameraListQuery(queryClient);
     },
   });
 }
@@ -192,22 +202,10 @@ export function useCameraLivePreview(
 export function useCaptureImageMutation(connectionInfo?: CameraConnectionInfo) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ cameraId, productId }: { cameraId: string; productId: number }) => {
-      if (
-        connectionInfo?.mode === 'local' &&
-        connectionInfo.localBaseUrl &&
-        connectionInfo.localApiKey
-      ) {
-        return captureImageLocally(
-          connectionInfo.localBaseUrl,
-          connectionInfo.localApiKey,
-          productId,
-        );
-      }
-      return captureImageFromCamera(cameraId, productId);
-    },
+    mutationFn: (params: { cameraId: string; productId: number }) =>
+      resolveCaptureImageRequest(params, connectionInfo),
     onSuccess: (_data, { productId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      invalidateProductQuery(queryClient, productId);
     },
   });
 }
@@ -233,7 +231,7 @@ export function useStartYouTubeStreamMutation(cameraId: string) {
   return useMutation({
     mutationFn: (params: StartYouTubeStreamParams) => startYouTubeStream(cameraId, params),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] });
+      invalidateCameraStreamStatusQuery(queryClient, cameraId);
     },
   });
 }
@@ -242,71 +240,23 @@ export function useStopYouTubeStreamMutation(cameraId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => stopYouTubeStream(cameraId),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] });
-      const previous = queryClient.getQueryData<StreamView | null>([
-        'rpiCameraStreamStatus',
-        cameraId,
-      ]);
-      queryClient.setQueryData(['rpiCameraStreamStatus', cameraId], null);
-      return { previous };
-    },
+    onMutate: async () => clearOptimisticStreamStatus(queryClient, cameraId),
     onError: (_err, _vars, context) => {
-      if (context?.previous !== undefined) {
-        queryClient.setQueryData(['rpiCameraStreamStatus', cameraId], context.previous);
-      }
+      restoreOptimisticStreamStatus(queryClient, cameraId, context?.previous);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] });
+      invalidateCameraStreamStatusQuery(queryClient, cameraId);
     },
   });
-}
-
-export interface CaptureAllResult {
-  total: number;
-  succeeded: number;
-  failed: number;
-  errors: Array<{ cameraId: string; error: Error }>;
 }
 
 export function useCaptureAllMutation(connectionInfoMap?: Record<string, CameraConnectionInfo>) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      cameraIds,
-      productId,
-    }: {
-      cameraIds: string[];
-      productId: number;
-    }): Promise<CaptureAllResult> => {
-      const settled = await Promise.allSettled(
-        cameraIds.map((id) => {
-          const info = connectionInfoMap?.[id];
-          if (info?.mode === 'local' && info.localBaseUrl && info.localApiKey) {
-            return captureImageLocally(info.localBaseUrl, info.localApiKey, productId);
-          }
-          return captureImageFromCamera(id, productId);
-        }),
-      );
-      const errors = settled.flatMap((res, i) =>
-        res.status === 'rejected'
-          ? [
-              {
-                cameraId: cameraIds[i],
-                error: res.reason instanceof Error ? res.reason : new Error(String(res.reason)),
-              },
-            ]
-          : [],
-      );
-      return {
-        total: cameraIds.length,
-        succeeded: cameraIds.length - errors.length,
-        failed: errors.length,
-        errors,
-      };
-    },
+    mutationFn: (params: { cameraIds: string[]; productId: number }): Promise<CaptureAllResult> =>
+      captureFromMultipleCameras(params, connectionInfoMap),
     onSuccess: (_data, { productId }) => {
-      void queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      invalidateProductQuery(queryClient, productId);
     },
   });
 }

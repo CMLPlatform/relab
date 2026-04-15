@@ -4,47 +4,26 @@ import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/authentication';
 import { resolveApiMediaUrl } from '@/services/api/media';
 import { createRequestId } from '@/services/api/request';
+import type {
+  ApiCameraConnectionStatus,
+  ApiCameraCredentialStatus,
+  ApiCameraRead,
+  ApiCameraReadWithStatus,
+  ApiCameraStatus,
+  ApiCameraTelemetry,
+  ApiLocalAccessInfo,
+  ApiPairingClaimRequest,
+  ApiStreamView,
+  ApiThermalState,
+} from '@/types/api';
 
-export type CameraConnectionStatus = 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error';
-export type CameraCredentialStatus = 'active' | 'revoked';
-
-export interface CameraStatus {
-  connection: CameraConnectionStatus;
-  last_seen_at: string | null;
-  details: Record<string, unknown> | null;
-}
-
-export interface CameraRead {
-  id: string;
-  name: string;
-  description: string | null;
-  owner_id: string;
-  relay_key_id: string;
-  relay_credential_status: CameraCredentialStatus;
-  created_at: string;
-  updated_at: string;
-}
-
-export type ThermalState = 'normal' | 'warm' | 'throttle' | 'critical';
-
-export interface CameraTelemetry {
-  timestamp: string;
-  cpu_temp_c: number | null;
-  cpu_percent: number;
-  mem_percent: number;
-  disk_percent: number;
-  preview_fps: number | null;
-  preview_sessions: number;
-  thermal_state: ThermalState;
-  current_preview_size: [number, number] | null;
-}
-
-export interface CameraReadWithStatus extends CameraRead {
-  status: CameraStatus;
-  telemetry?: CameraTelemetry | null;
-  /** Canonical URL of the most recent capture for this camera, or null if none yet. */
-  last_image_url?: string | null;
-}
+export type CameraConnectionStatus = ApiCameraConnectionStatus;
+export type CameraCredentialStatus = ApiCameraCredentialStatus;
+export type CameraStatus = ApiCameraStatus;
+export type CameraRead = ApiCameraRead;
+export type ThermalState = ApiThermalState;
+export type CameraTelemetry = ApiCameraTelemetry;
+export type CameraReadWithStatus = ApiCameraReadWithStatus;
 
 export interface CameraUpdate {
   name?: string | null;
@@ -58,21 +37,11 @@ export interface CapturedImage {
   description: string;
 }
 
-export interface PairingClaimRequest {
-  code: string;
-  camera_name: string;
-  description?: string | null;
-}
+export type PairingClaimRequest = ApiPairingClaimRequest;
 
 export type YouTubePrivacyStatus = 'public' | 'private' | 'unlisted';
 
-export interface StreamView {
-  mode: 'youtube';
-  provider: string;
-  url: string;
-  started_at: string;
-  metadata: Record<string, unknown>;
-}
+export type StreamView = ApiStreamView;
 
 export interface StartYouTubeStreamParams {
   product_id: number;
@@ -256,13 +225,17 @@ export async function captureImageLocally(
   };
 }
 
-export interface LocalAccessInfo {
-  /** Local API key accepted by the Pi for direct-connect requests. */
-  local_api_key: string;
-  /** FastAPI base URLs to probe, e.g. ["http://192.168.1.100:8018"]. */
-  candidate_urls: string[];
-  /** mDNS hostname, e.g. "relab-rpi-cam-mypi.local", or null. */
-  mdns_name: string | null;
+export type LocalAccessInfo = ApiLocalAccessInfo;
+
+function isLocalAccessInfo(value: unknown): value is LocalAccessInfo {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.local_api_key === 'string' &&
+    Array.isArray(candidate.candidate_urls) &&
+    candidate.candidate_urls.every((url) => typeof url === 'string') &&
+    (candidate.mdns_name === null || typeof candidate.mdns_name === 'string')
+  );
 }
 
 /**
@@ -279,7 +252,8 @@ export async function fetchLocalAccessInfo(cameraId: string): Promise<LocalAcces
       headers: { Accept: 'application/json' },
     });
     if (!resp.ok) return null;
-    return resp.json() as Promise<LocalAccessInfo>;
+    const payload = (await resp.json()) as unknown;
+    return isLocalAccessInfo(payload) ? payload : null;
   } catch {
     return null;
   }

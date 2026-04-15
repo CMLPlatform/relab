@@ -11,6 +11,10 @@ const config: Config = {
   // gracefully" warnings.  Tests that need real timers can call
   // jest.useRealTimers() locally.
   fakeTimers: { enableGlobally: true },
+  // Expo/JSDOM-heavy suites are more stable on this repo when worker fan-out
+  // is capped. The default often oversaturates local machines and triggers
+  // forced worker exits despite a clean --detectOpenHandles run.
+  maxWorkers: '50%',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   testTimeout: 15_000,

@@ -1,20 +1,16 @@
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
-import { API_URL } from '@/config';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useThemeMode } from '@/context/ThemeModeProvider';
+import { useNewsletterPreference } from '@/hooks/profile/useNewsletterPreference';
+import { useOAuthAssociations } from '@/hooks/profile/useOAuthAssociations';
+import { useOwnProfileStats } from '@/hooks/profile/useOwnProfileStats';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
-import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
-import { apiFetch } from '@/services/api/client';
-import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
-import { getPublicProfile, type PublicProfileView } from '@/services/api/profiles';
+import { logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
 import type { ThemeMode } from '@/types/User';
-import { logError } from '@/utils/logging';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -31,7 +27,6 @@ export function useProfileScreen() {
   const [newUsername, setNewUsername] = useState('');
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
-  const [youtubeAuthPending, setYoutubeAuthPending] = useState(false);
   const {
     enabled: rpiEnabled,
     loading: rpiLoading,
@@ -44,13 +39,17 @@ export function useProfileScreen() {
   } = useYouTubeIntegration();
   const { themeMode, setThemeMode } = useThemeMode();
   const { activeStream, setActiveStream } = useStreamSession();
-  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
-  const [newsletterLoading, setNewsletterLoading] = useState(true);
-  const [newsletterSaving, setNewsletterSaving] = useState(false);
-  const [newsletterError, setNewsletterError] = useState('');
-  const [ownStats, setOwnStats] = useState<PublicProfileView | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
   const [visibilitySaving, setVisibilitySaving] = useState(false);
+  const closeDeleteDialog = () => setDeleteDialogVisible(false);
+  const openDeleteDialog = () => setDeleteDialogVisible(true);
+  const closeLogoutDialog = () => setLogoutDialogVisible(false);
+  const openLogoutDialog = () => setLogoutDialogVisible(true);
+  const closeEditUsername = () => setEditUsernameVisible(false);
+  const closeUnlinkDialog = () => setUnlinkDialogVisible(false);
+  const requestUnlink = (provider: string) => {
+    setProviderToUnlink(provider);
+    setUnlinkDialogVisible(true);
+  };
 
   useEffect(() => {
     if (!profile && !isLoggingOut) {
@@ -63,18 +62,15 @@ export function useProfileScreen() {
       feedback.alert({
         title: 'Stream still active',
         message: `You're live for "${activeStream.productName}". Logging out won't stop the stream.`,
-        buttons: [
-          { text: 'Cancel' },
-          { text: 'Log out anyway', onPress: () => setLogoutDialogVisible(true) },
-        ],
+        buttons: [{ text: 'Cancel' }, { text: 'Log out anyway', onPress: openLogoutDialog }],
       });
       return;
     }
-    setLogoutDialogVisible(true);
+    openLogoutDialog();
   };
 
   const confirmLogout = () => {
-    setLogoutDialogVisible(false);
+    closeLogoutDialog();
     setIsLoggingOut(true);
     setActiveStream(null);
     logout()
@@ -114,7 +110,7 @@ export function useProfileScreen() {
       }
       await updateUser({ username: newUsername });
       await refetch(false);
-      setEditUsernameVisible(false);
+      closeEditUsername();
       feedback.toast('Username updated.');
     } catch (error: unknown) {
       feedback.error(
@@ -130,10 +126,10 @@ export function useProfileScreen() {
       if (providerToUnlink === 'google' && youtubeEnabled) {
         await setYoutubeEnabled(false);
       }
-      setUnlinkDialogVisible(false);
+      closeUnlinkDialog();
       void refetch();
     } catch (error: unknown) {
-      setUnlinkDialogVisible(false);
+      closeUnlinkDialog();
       feedback.error(
         `Failed to disconnect: ${getErrorMessage(error, 'Unknown error')}`,
         'Disconnect failed',
@@ -141,124 +137,13 @@ export function useProfileScreen() {
     }
   };
 
-  const handleYouTubeToggle = async (next: boolean) => {
-    if (!next) {
-      await setYoutubeEnabled(false);
-      return;
-    }
-    setYoutubeAuthPending(true);
-    try {
-      const redirectUri = Linking.createURL('/profile');
-      const associateUrl = `${API_URL}/auth/oauth/google-youtube/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-      const token = await getToken();
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const response = await apiFetch(associateUrl, { headers });
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new Error(`Server error ${response.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
-      }
-      const data = await response.json();
-
-      const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
-      if (result.type === 'success' && result.url.includes('success=true')) {
-        await setYoutubeEnabled(true);
-        await refetch(false);
-      } else if (result.type === 'success') {
-        const detail = result.url.match(/[?&]detail=([^&]*)/)?.[1];
-        feedback.error(
-          detail ? decodeURIComponent(detail) : 'Access was denied.',
-          'YouTube authorization failed',
-        );
-      }
-    } catch (error: unknown) {
-      feedback.error(
-        `Failed to start YouTube authorization: ${getErrorMessage(error, 'Unknown error')}`,
-        'Authorization failed',
-      );
-    } finally {
-      setYoutubeAuthPending(false);
-    }
-  };
-
-  const handleLinkOAuth = async (provider: 'google' | 'github') => {
-    try {
-      const redirectUri = Linking.createURL('/profile');
-      const associateUrl = `${API_URL}/auth/oauth/${provider}/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-      const token = await getToken();
-      const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const response = await apiFetch(associateUrl, { headers });
-      if (!response.ok) throw new Error('Failed to reach association endpoint.');
-      const data = await response.json();
-
-      const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
-      if (result.type === 'success') {
-        await refetch();
-      }
-    } catch (error: unknown) {
-      feedback.error(
-        `Failed to start link flow: ${getErrorMessage(error, 'Unknown error')}`,
-        'Link failed',
-      );
-    }
-  };
-
-  const handleNewsletterToggle = async (nextSubscribed: boolean) => {
-    if (!profile || newsletterSaving) return;
-    setNewsletterSaving(true);
-    setNewsletterError('');
-
-    try {
-      const preference = await setNewsletterPreference(nextSubscribed);
-      setNewsletterSubscribed(preference.subscribed);
-    } catch (error: unknown) {
-      setNewsletterError(getErrorMessage(error, 'Unable to update email updates.'));
-    } finally {
-      setNewsletterSaving(false);
-    }
-  };
-
-  const loadNewsletterPreference = useCallback(async () => {
-    if (!profile) return;
-    setNewsletterLoading(true);
-    setNewsletterError('');
-
-    try {
-      const preference = await getNewsletterPreference();
-      setNewsletterSubscribed(preference.subscribed);
-      setNewsletterError('');
-    } catch (error: unknown) {
-      setNewsletterError(getErrorMessage(error, 'Unable to load email updates.'));
-    } finally {
-      setNewsletterLoading(false);
-    }
-  }, [profile]);
-
-  useEffect(() => {
-    void loadNewsletterPreference();
-  }, [loadNewsletterPreference]);
-
-  const loadOwnStats = useCallback(async () => {
-    if (!profile?.username) return;
-    setStatsLoading(true);
-    try {
-      const stats = await getPublicProfile(profile.username);
-      setOwnStats(stats);
-    } catch (error) {
-      logError('Failed to load own stats:', error);
-    } finally {
-      setStatsLoading(false);
-    }
-  }, [profile?.username]);
-
-  useEffect(() => {
-    void loadOwnStats();
-  }, [loadOwnStats]);
+  const newsletter = useNewsletterPreference(!!profile);
+  const ownProfileStats = useOwnProfileStats(profile?.username);
+  const oauthAssociations = useOAuthAssociations({
+    feedback,
+    refetch,
+    setYoutubeEnabled,
+  });
 
   const handleVisibilityChange = async (visibility: 'public' | 'community' | 'private') => {
     if (!profile || visibilitySaving) return;
@@ -293,49 +178,72 @@ export function useProfileScreen() {
   const githubAccount = profile?.oauth_accounts?.find((a) => a.oauth_name === 'github');
 
   return {
-    profile,
-    themeMode,
-    setThemeMode: setThemeMode as (mode: ThemeMode) => Promise<void>,
-    rpiEnabled,
-    rpiLoading,
-    setRpiEnabled,
-    youtubeEnabled,
-    youtubeLoading,
-    setYoutubeEnabled,
-    youtubeAuthPending,
-    newsletterSubscribed,
-    newsletterLoading,
-    newsletterSaving,
-    newsletterError,
-    ownStats,
-    statsLoading,
-    visibilitySaving,
-    isGoogleLinked,
-    isGithubLinked,
-    googleAccount,
-    githubAccount,
-    deleteDialogVisible,
-    setDeleteDialogVisible,
-    logoutDialogVisible,
-    setLogoutDialogVisible,
-    editUsernameVisible,
-    setEditUsernameVisible,
-    newUsername,
-    setNewUsername,
-    unlinkDialogVisible,
-    setUnlinkDialogVisible,
-    providerToUnlink,
-    setProviderToUnlink,
-    onLogout,
-    confirmLogout,
-    onVerifyAccount,
-    handleUpdateUsername,
-    handleUnlinkOAuthConfirm,
-    handleYouTubeToggle,
-    handleLinkOAuth,
-    handleNewsletterToggle,
-    loadNewsletterPreference,
-    handleVisibilityChange,
-    openEditUsername,
+    profile: {
+      profile,
+      themeMode,
+      setThemeMode: setThemeMode as (mode: ThemeMode) => Promise<void>,
+      ownStats: ownProfileStats.state.stats,
+      statsLoading: ownProfileStats.state.loading,
+      visibilitySaving,
+      openEditUsername,
+      handleVisibilityChange,
+    },
+    integrations: {
+      rpiEnabled,
+      rpiLoading,
+      setRpiEnabled,
+      youtubeEnabled,
+      youtubeLoading,
+      setYoutubeEnabled,
+      youtubeAuthPending: oauthAssociations.youtube.authPending,
+      isGoogleLinked,
+      isGithubLinked,
+      googleAccount,
+      githubAccount,
+      handleYouTubeToggle: oauthAssociations.youtube.toggle,
+      handleLinkOAuth: oauthAssociations.actions.linkOAuth,
+      linkGoogle: oauthAssociations.actions.linkGoogle,
+      linkGithub: oauthAssociations.actions.linkGithub,
+      handleUnlinkOAuthConfirm,
+    },
+    newsletter: {
+      newsletterSubscribed: newsletter.state.subscribed,
+      newsletterLoading: newsletter.state.loading,
+      newsletterSaving: newsletter.state.saving,
+      newsletterError: newsletter.state.error,
+      handleNewsletterToggle: newsletter.actions.toggle,
+      loadNewsletterPreference: newsletter.actions.reload,
+    },
+    dialogs: {
+      deleteDialog: {
+        visible: deleteDialogVisible,
+        open: openDeleteDialog,
+        close: closeDeleteDialog,
+      },
+      logoutDialog: {
+        visible: logoutDialogVisible,
+        open: openLogoutDialog,
+        close: closeLogoutDialog,
+      },
+      editUsername: {
+        visible: editUsernameVisible,
+        open: openEditUsername,
+        close: closeEditUsername,
+        value: newUsername,
+        setValue: setNewUsername,
+      },
+      unlinkDialog: {
+        visible: unlinkDialogVisible,
+        provider: providerToUnlink,
+        request: requestUnlink,
+        close: closeUnlinkDialog,
+      },
+    },
+    actions: {
+      onLogout,
+      confirmLogout,
+      onVerifyAccount,
+      handleUpdateUsername,
+    },
   };
 }

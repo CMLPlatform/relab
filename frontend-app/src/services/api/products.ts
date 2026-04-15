@@ -45,8 +45,7 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
     createdAt: data.created_at ?? undefined,
     updatedAt: data.updated_at ?? undefined,
     productTypeID: data.product_type_id ?? undefined,
-    productTypeName: data.product_type?.name,
-    ownedBy: data.owner_id === meId ? 'me' : data.owner_id,
+    ownedBy: data.owner_id && data.owner_id === meId ? 'me' : (data.owner_id ?? ''),
     amountInParent: data.amount_in_parent ?? undefined,
     physicalProperties: {
       weight: data.weight_g ?? NaN,
@@ -82,6 +81,7 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
         description: vid.description ?? '',
         title: vid.title ?? '',
       })) ?? [],
+    ...(data.product_type?.name ? { productTypeName: data.product_type.name } : {}),
   };
 }
 

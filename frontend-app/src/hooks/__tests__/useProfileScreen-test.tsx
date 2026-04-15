@@ -114,7 +114,7 @@ describe('useProfileScreen', () => {
     const { result } = renderHook(() => useProfileScreen());
 
     await act(async () => {
-      result.current.onVerifyAccount();
+      result.current.actions.onVerifyAccount();
       await Promise.resolve();
     });
 
@@ -128,11 +128,11 @@ describe('useProfileScreen', () => {
     const { result } = renderHook(() => useProfileScreen());
 
     await act(async () => {
-      result.current.setNewUsername('a');
+      result.current.dialogs.editUsername.setValue('a');
     });
 
     await act(async () => {
-      await result.current.handleUpdateUsername();
+      await result.current.actions.handleUpdateUsername();
     });
 
     expect(mockUpdateUser).not.toHaveBeenCalled();
@@ -146,8 +146,8 @@ describe('useProfileScreen', () => {
     const { result } = renderHook(() => useProfileScreen());
 
     await act(async () => {
-      result.current.setLogoutDialogVisible(true);
-      result.current.confirmLogout();
+      result.current.dialogs.logoutDialog.open();
+      result.current.actions.confirmLogout();
       await Promise.resolve();
       await Promise.resolve();
     });

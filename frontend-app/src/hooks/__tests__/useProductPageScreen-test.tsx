@@ -1,0 +1,211 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { act, renderHook } from '@testing-library/react-native';
+import { useProductPageScreen } from '@/hooks/useProductPageScreen';
+
+const mockReplace = jest.fn();
+const mockPush = jest.fn();
+const mockSetOptions = jest.fn();
+const mockDispatch = jest.fn();
+const mockAddListener = jest.fn(() => jest.fn());
+const mockAlert = jest.fn();
+const mockFeedbackAlert = jest.fn();
+const mockUseProductForm = jest.fn();
+const mockUseProductQuery = jest.fn();
+
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({ id: '42' }),
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+  }),
+  useNavigation: () => ({
+    setOptions: mockSetOptions,
+    addListener: mockAddListener,
+    dispatch: mockDispatch,
+  }),
+}));
+
+jest.mock('@/components/common/DialogProvider', () => ({
+  useDialog: () => ({
+    alert: mockAlert,
+    input: jest.fn(),
+  }),
+}));
+
+jest.mock('@/hooks/useAppFeedback', () => ({
+  useAppFeedback: () => ({
+    alert: mockFeedbackAlert,
+    error: jest.fn(),
+  }),
+}));
+
+jest.mock('@/context/AuthProvider', () => ({
+  useAuth: () => ({
+    user: {
+      oauth_accounts: [{ oauth_name: 'google' }],
+    },
+  }),
+}));
+
+jest.mock('@/context/StreamSessionContext', () => ({
+  useStreamSession: () => ({
+    activeStream: { productId: 99, productName: 'Stream Product' },
+  }),
+}));
+
+jest.mock('@/hooks/useRpiIntegration', () => ({
+  useRpiIntegration: () => ({ enabled: true }),
+}));
+
+jest.mock('@/hooks/useYouTubeIntegration', () => ({
+  useYouTubeIntegration: () => ({ enabled: true }),
+}));
+
+jest.mock('@/hooks/useProductForm', () => ({
+  useProductForm: (...args: unknown[]) => mockUseProductForm(...args),
+}));
+
+jest.mock('@/hooks/useProductQueries', () => ({
+  useProductQuery: (...args: unknown[]) => mockUseProductQuery(...args),
+}));
+
+jest.mock('react-native-paper', () => {
+  const actual = jest.requireActual<typeof import('react-native-paper')>('react-native-paper');
+  return {
+    ...actual,
+    useTheme: () => ({
+      colors: {
+        onBackground: '#000',
+        onSurfaceVariant: '#999',
+      },
+    }),
+  };
+});
+
+const baseProduct = {
+  id: 42,
+  name: 'Desk Radio',
+  parentID: undefined,
+  ownedBy: 'me',
+};
+
+const baseFormReturn = {
+  product: baseProduct,
+  editMode: false,
+  isNew: false,
+  isProductComponent: false,
+  justCreated: false,
+  validationResult: { isValid: true, error: '' },
+  isLoading: false,
+  isError: false,
+  error: null,
+  refetch: jest.fn(),
+  isSaving: false,
+  justSaved: false,
+  onProductNameChange: jest.fn(),
+  onChangeDescription: jest.fn(),
+  onChangePhysicalProperties: jest.fn(),
+  onChangeCircularityProperties: jest.fn(),
+  onBrandChange: jest.fn(),
+  onModelChange: jest.fn(),
+  onTypeChange: jest.fn(),
+  onImagesChange: jest.fn(),
+  onAmountInParentChange: jest.fn(),
+  onVideoChange: jest.fn(),
+  toggleEditMode: jest.fn(),
+  onProductDelete: jest.fn(),
+};
+
+describe('useProductPageScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseProductQuery.mockReturnValue({ data: undefined });
+    mockUseProductForm.mockReturnValue(baseFormReturn);
+  });
+
+  it('returns grouped screen, editing, streaming, capabilities, and actions domains', () => {
+    const { result } = renderHook(() => useProductPageScreen());
+
+    expect(result.current.screen.product).toEqual(baseProduct);
+    expect(result.current.editing.editMode).toBe(false);
+    expect(result.current.streaming.streamingOtherProduct).toBe(true);
+    expect(result.current.capabilities.ownedByMe).toBe(true);
+    expect(typeof result.current.actions.toggleEditMode).toBe('function');
+  });
+
+  it('opens and closes the stream picker through named actions', () => {
+    const { result } = renderHook(() => useProductPageScreen());
+
+    expect(result.current.streaming.streamPickerVisible).toBe(false);
+
+    act(() => {
+      result.current.streaming.openStreamPicker();
+    });
+    expect(result.current.streaming.streamPickerVisible).toBe(true);
+
+    act(() => {
+      result.current.streaming.closeStreamPicker();
+    });
+    expect(result.current.streaming.streamPickerVisible).toBe(false);
+  });
+
+  it('navigates back immediately when not editing', () => {
+    const { result } = renderHook(() => useProductPageScreen());
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith('/products');
+    expect(mockAlert).not.toHaveBeenCalled();
+  });
+
+  it('prompts before navigating back when editing', () => {
+    mockUseProductForm.mockReturnValueOnce({
+      ...baseFormReturn,
+      editMode: true,
+    });
+
+    const { result } = renderHook(() => useProductPageScreen());
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Discard changes?',
+      }),
+    );
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('navigates to the active stream product and profile setup routes', () => {
+    const { result } = renderHook(() => useProductPageScreen());
+
+    act(() => {
+      result.current.actions.goToActiveStreamProduct();
+      result.current.actions.goToProfileForYouTubeSetup();
+    });
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/products/[id]',
+      params: { id: '99' },
+    });
+    expect(mockPush).toHaveBeenCalledWith('/profile');
+  });
+
+  it('collapses the FAB when the hook receives a downward scroll event', () => {
+    const { result } = renderHook(() => useProductPageScreen());
+
+    expect(result.current.editing.fabExtended).toBe(true);
+
+    act(() => {
+      result.current.editing.onScroll({
+        nativeEvent: { contentOffset: { y: 120 } },
+      } as never);
+    });
+
+    expect(result.current.editing.fabExtended).toBe(false);
+  });
+});

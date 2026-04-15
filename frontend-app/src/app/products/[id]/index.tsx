@@ -1,258 +1,32 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { type JSX, useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  View,
-} from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
-
-import { useDialog } from '@/components/common/DialogProvider';
+import { ActivityIndicator, View } from 'react-native';
 import {
   ProductFabControls,
   ProductPageContent,
   ProductPageErrorState,
   ProductPageLoadingState,
 } from '@/components/product/ProductPageSections';
-import { useAuth } from '@/context/AuthProvider';
-import { useStreamSession } from '@/context/StreamSessionContext';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useProductForm } from '@/hooks/useProductForm';
-import { useProductQuery } from '@/hooks/useProductQueries';
-import { useRpiIntegration } from '@/hooks/useRpiIntegration';
-import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
+import { useProductPageScreen } from '@/hooks/useProductPageScreen';
 import { isProductNotFoundError } from '@/services/api/products';
-import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
 
-import type { Product } from '@/types/Product';
+export default function ProductPage() {
+  const { theme, screen, editing, streaming, capabilities, actions } = useProductPageScreen();
 
-type SearchParams = {
-  id: string;
-};
-
-function truncateHeaderLabel(value: string | undefined, maxLength: number): string {
-  if (!value) return 'Product';
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
-}
-
-export default function ProductPage(): JSX.Element {
-  const { id } = useLocalSearchParams<SearchParams>();
-  const navigation = useNavigation();
-  const router = useRouter();
-  const dialog = useDialog();
-  const feedback = useAppFeedback();
-  const theme = useTheme();
-  const { user: profile } = useAuth();
-  const { enabled: rpiEnabled } = useRpiIntegration();
-  const { enabled: youtubeEnabled } = useYouTubeIntegration();
-  const isGoogleLinked = profile?.oauth_accounts?.some((a) => a.oauth_name === 'google') ?? false;
-  const { activeStream } = useStreamSession();
-
-  const [fabExtended, setFabExtended] = useState(true);
-  const [slowLoading, setSlowLoading] = useState(false);
-  const [showSavedIcon, setShowSavedIcon] = useState(false);
-  const [streamPickerVisible, setStreamPickerVisible] = useState(false);
-
-  const {
-    product,
-    editMode,
-    isNew,
-    isProductComponent,
-    justCreated,
-    validationResult,
-    isLoading,
-    isError,
-    error,
-    refetch,
-    isSaving,
-    justSaved,
-    onProductNameChange,
-    onChangeDescription,
-    onChangePhysicalProperties,
-    onChangeCircularityProperties,
-    onBrandChange,
-    onModelChange,
-    onTypeChange,
-    onImagesChange,
-    onAmountInParentChange,
-    onVideoChange,
-    toggleEditMode,
-    onProductDelete,
-  } = useProductForm(id);
-  const parentProductId =
-    typeof product.parentID === 'number' && !Number.isNaN(product.parentID)
-      ? product.parentID
-      : undefined;
-  const { data: parentProduct } = useProductQuery(parentProductId ?? 'new');
-
-  const streamingThisProduct =
-    typeof product.id === 'number' && activeStream?.productId === product.id;
-  const streamingOtherProduct = !!activeStream && !streamingThisProduct;
-
-  // ─── Timeout for slow loading ────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isLoading) {
-      setSlowLoading(false);
-      return;
-    }
-    const timer = setTimeout(() => setSlowLoading(true), 5000);
-    return () => clearTimeout(timer);
-  }, [isLoading]);
-
-  // ─── Navigation header ───────────────────────────────────────────────────────
-  useEffect(() => {
-    const truncatedProductName = truncateHeaderLabel(product?.name, 36);
-    const truncatedParentName = truncateHeaderLabel(parentProduct?.name, 20);
-
-    navigation.setOptions({
-      title: isProductComponent ? undefined : truncatedProductName,
-      headerLeft: (props: HeaderBackButtonProps) => (
-        <HeaderBackButton
-          {...props}
-          onPress={() => {
-            const navigate = () => {
-              if (isProductComponent && product.parentID) {
-                router.replace({
-                  pathname: '/products/[id]',
-                  params: { id: product.parentID.toString() },
-                });
-              } else {
-                router.replace('/products');
-              }
-            };
-            if (editMode) {
-              dialog.alert({
-                title: 'Discard changes?',
-                message:
-                  'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
-                buttons: [{ text: "Don't leave" }, { text: 'Discard', onPress: navigate }],
-              });
-            } else {
-              navigate();
-            }
-          }}
-        />
-      ),
-      headerTitle:
-        isProductComponent && parentProduct?.name && typeof product.parentID === 'number'
-          ? () => (
-              <View style={{ maxWidth: 260, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text
-                  numberOfLines={1}
-                  style={{ maxWidth: 100, fontSize: 13, opacity: 0.7, fontWeight: '600' }}
-                >
-                  {truncatedParentName}
-                </Text>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={16}
-                  color={theme.colors.onSurfaceVariant}
-                />
-                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
-                  {truncatedProductName}
-                </Text>
-              </View>
-            )
-          : undefined,
-      headerRight: editMode
-        ? () => <EditNameButton product={product} onProductNameChange={onProductNameChange} />
-        : undefined,
-    });
-  }, [
-    navigation,
-    product,
-    editMode,
-    isProductComponent,
-    parentProduct?.name,
-    router,
-    onProductNameChange,
-    theme.colors.onSurfaceVariant,
-    dialog,
-  ]);
-
-  // ─── Active stream prompt for new base products ───────────────────────────────
-  const streamPromptedRef = useRef(false);
-  useEffect(() => {
-    if (!isNew || isProductComponent || !activeStream || streamPromptedRef.current) return;
-    streamPromptedRef.current = true;
-    feedback.alert({
-      title: "You're live on YouTube",
-      message: `Your stream for "${activeStream.productName}" is still running. It will keep going while you create this product.`,
-      buttons: [{ text: 'Got it' }],
-    });
-  }, [activeStream, feedback, isNew, isProductComponent]);
-
-  // ─── Unsaved changes guard ───────────────────────────────────────────────────
-  useEffect(() => {
-    return navigation.addListener('beforeRemove', (e) => {
-      if (!editMode && !streamingThisProduct) return;
-      e.preventDefault();
-      dialog.alert({
-        title: editMode ? 'Discard changes?' : 'Stream still active',
-        message: editMode
-          ? 'You have unsaved changes. Are you sure you want to discard them and leave the screen?'
-          : "You're currently live on YouTube. Leaving won't stop the stream — use Stop first.",
-        buttons: editMode
-          ? [
-              { text: "Don't leave" },
-              { text: 'Discard', onPress: () => navigation.dispatch(e.data.action) },
-            ]
-          : [
-              { text: 'Stay' },
-              { text: 'Leave anyway', onPress: () => navigation.dispatch(e.data.action) },
-            ],
-      });
-    });
-  }, [navigation, editMode, streamingThisProduct, dialog]);
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setFabExtended(e.nativeEvent.contentOffset.y <= 0);
-  };
-
-  // ─── FAB icon ────────────────────────────────────────────────────────────────
-  const FABicon = useCallback(() => {
-    if (isSaving) return <ActivityIndicator color={theme.colors.onBackground} />;
-    if (showSavedIcon)
-      return (
-        <MaterialCommunityIcons name="check-bold" size={20} color={theme.colors.onBackground} />
-      );
-    if (editMode)
-      return (
-        <MaterialCommunityIcons name="content-save" size={20} color={theme.colors.onBackground} />
-      );
-    return <MaterialCommunityIcons name="pencil" size={20} color={theme.colors.onBackground} />;
-  }, [isSaving, showSavedIcon, editMode, theme.colors.onBackground]);
-
-  // Show the saved checkmark briefly after a successful save
-  useEffect(() => {
-    if (!justSaved) return;
-    setShowSavedIcon(true);
-    const t = setTimeout(() => setShowSavedIcon(false), 3000);
-    return () => clearTimeout(t);
-  }, [justSaved]);
-
-  // ─── Loading state ────────────────────────────────────────────────────────────
-  if (isLoading) {
+  if (screen.isLoading) {
     return (
       <ProductPageLoadingState
-        slowLoading={slowLoading}
+        slowLoading={screen.slowLoading}
         surfaceVariant={theme.colors.surfaceVariant}
       />
     );
   }
 
-  // ─── Error state ──────────────────────────────────────────────────────────────
-  if (isError) {
+  if (screen.isError) {
     return (
       <ProductPageErrorState
-        error={error}
-        isNotFound={isProductNotFoundError(error)}
-        onBack={() => router.replace('/products')}
-        onRetry={() => refetch()}
+        error={screen.error}
+        isNotFound={isProductNotFoundError(screen.error)}
+        onBack={actions.goBackWithGuards}
+        onRetry={() => screen.refetch()}
         themeColors={{
           error: theme.colors.error,
           onSurfaceVariant: theme.colors.onSurfaceVariant,
@@ -261,8 +35,7 @@ export default function ProductPage(): JSX.Element {
     );
   }
 
-  // Fallback for missing product
-  if (!product.id && !isNew) {
+  if (!screen.product.id && !capabilities.isNew) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -270,38 +43,32 @@ export default function ProductPage(): JSX.Element {
     );
   }
 
-  // ─── Render ────────────────────────────────────────────────────────────────────
   return (
     <>
       <ProductPageContent
-        product={product}
-        editMode={editMode}
-        isNew={isNew}
-        isProductComponent={isProductComponent}
-        justCreated={justCreated}
-        onScroll={onScroll}
-        onNavigateToActiveStream={() =>
-          router.push({
-            pathname: '/products/[id]',
-            params: { id: String(activeStream?.productId) },
-          })
-        }
-        onNavigateToProfile={() => router.push('/profile')}
-        onImagesChange={onImagesChange}
-        onChangeDescription={onChangeDescription}
-        onBrandChange={onBrandChange}
-        onModelChange={onModelChange}
-        onAmountInParentChange={onAmountInParentChange}
-        onTypeChange={onTypeChange}
-        onChangePhysicalProperties={onChangePhysicalProperties}
-        onChangeCircularityProperties={onChangeCircularityProperties}
-        onVideoChange={onVideoChange}
-        onProductDelete={onProductDelete}
-        rpiEnabled={rpiEnabled}
-        youtubeEnabled={youtubeEnabled}
-        isGoogleLinked={isGoogleLinked}
-        streamingOtherProduct={streamingOtherProduct}
-        activeStreamProductName={activeStream?.productName}
+        product={screen.product}
+        editMode={editing.editMode}
+        isNew={capabilities.isNew}
+        isProductComponent={capabilities.isProductComponent}
+        justCreated={capabilities.justCreated}
+        onScroll={editing.onScroll}
+        onNavigateToActiveStream={actions.goToActiveStreamProduct}
+        onNavigateToProfile={actions.goToProfileForYouTubeSetup}
+        onImagesChange={actions.onImagesChange}
+        onChangeDescription={actions.onChangeDescription}
+        onBrandChange={actions.onBrandChange}
+        onModelChange={actions.onModelChange}
+        onAmountInParentChange={actions.onAmountInParentChange}
+        onTypeChange={actions.onTypeChange}
+        onChangePhysicalProperties={actions.onChangePhysicalProperties}
+        onChangeCircularityProperties={actions.onChangeCircularityProperties}
+        onVideoChange={actions.onVideoChange}
+        onProductDelete={actions.onProductDelete}
+        rpiEnabled={capabilities.rpiEnabled}
+        youtubeEnabled={capabilities.youtubeEnabled}
+        isGoogleLinked={capabilities.isGoogleLinked}
+        streamingOtherProduct={streaming.streamingOtherProduct}
+        activeStreamProductName={streaming.activeStream?.productName}
         themeColors={{
           secondaryContainer: theme.colors.secondaryContainer,
           onSecondaryContainer: theme.colors.onSecondaryContainer,
@@ -310,71 +77,26 @@ export default function ProductPage(): JSX.Element {
         }}
       />
       <ProductFabControls
-        rpiEnabled={rpiEnabled}
-        youtubeEnabled={youtubeEnabled}
-        isGoogleLinked={isGoogleLinked}
-        isNew={isNew}
-        editMode={editMode}
-        isProductComponent={isProductComponent}
-        ownedByMe={product.ownedBy === 'me'}
-        productId={typeof product.id === 'number' ? product.id : undefined}
-        productName={product.name ?? ''}
-        fabExtended={fabExtended}
-        validationError={validationResult.error}
-        validationValid={validationResult.isValid}
-        isSaving={isSaving}
-        onPrimaryFabPress={toggleEditMode}
-        onOpenStreamPicker={() => setStreamPickerVisible(true)}
-        streamPickerVisible={streamPickerVisible}
-        onDismissStreamPicker={() => setStreamPickerVisible(false)}
-        showGoLiveFab={!streamingOtherProduct && !streamingThisProduct}
-        primaryFabIcon={FABicon}
+        rpiEnabled={capabilities.rpiEnabled}
+        youtubeEnabled={capabilities.youtubeEnabled}
+        isGoogleLinked={capabilities.isGoogleLinked}
+        isNew={capabilities.isNew}
+        editMode={editing.editMode}
+        isProductComponent={capabilities.isProductComponent}
+        ownedByMe={capabilities.ownedByMe}
+        productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
+        productName={screen.product.name ?? ''}
+        fabExtended={editing.fabExtended}
+        validationError={editing.validationResult.error}
+        validationValid={editing.validationResult.isValid}
+        isSaving={editing.isSaving}
+        onPrimaryFabPress={actions.toggleEditMode}
+        onOpenStreamPicker={streaming.openStreamPicker}
+        streamPickerVisible={streaming.streamPickerVisible}
+        onDismissStreamPicker={streaming.closeStreamPicker}
+        showGoLiveFab={!streaming.streamingOtherProduct && !streaming.streamingThisProduct}
+        primaryFabIcon={editing.primaryFabIcon}
       />
     </>
   );
-}
-
-function EditNameButton({
-  product,
-  onProductNameChange,
-}: {
-  product: Product | undefined;
-  onProductNameChange?: (newName: string) => void;
-}) {
-  const dialog = useDialog();
-  const feedback = useAppFeedback();
-
-  const onPress = () => {
-    if (!product) return;
-    dialog.input({
-      title: 'Edit name',
-      placeholder: 'Product Name',
-      helperText: getProductNameHelperText(),
-      defaultValue: product.name || '',
-      buttons: [
-        { text: 'Cancel' },
-        {
-          text: 'OK',
-          disabled: (value) => {
-            const parseResult = productSchema.shape.name.safeParse(value);
-            return !parseResult.success;
-          },
-          onPress: (newName) => {
-            const name = typeof newName === 'string' ? newName.trim() : '';
-            const parseResult = productSchema.shape.name.safeParse(name);
-            if (!parseResult.success) {
-              feedback.error(
-                parseResult.error.issues[0]?.message || 'Invalid product name',
-                'Invalid product name',
-              );
-              return;
-            }
-            onProductNameChange?.(name);
-          },
-        },
-      ],
-    });
-  };
-
-  return <Button onPress={onPress}>Edit name</Button>;
 }

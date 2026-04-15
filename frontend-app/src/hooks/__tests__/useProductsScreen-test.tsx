@@ -88,7 +88,7 @@ describe('useProductsScreen', () => {
     const { result } = await renderUseProductsScreen();
 
     act(() => {
-      result.current.setSearchQuery('laptop');
+      result.current.search.setQuery('laptop');
       jest.advanceTimersByTime(500);
     });
 
@@ -101,7 +101,7 @@ describe('useProductsScreen', () => {
     const { result } = await renderUseProductsScreen();
 
     await act(async () => {
-      await result.current.dismissInfoCard();
+      await result.current.actions.dismissWelcomeCard();
     });
 
     expect(mockSetLocalItem).toHaveBeenCalledWith('products_info_card_dismissed_guest', 'true');
@@ -111,7 +111,7 @@ describe('useProductsScreen', () => {
     const { result } = await renderUseProductsScreen();
 
     act(() => {
-      result.current.newProduct();
+      result.current.actions.createProduct();
     });
 
     expect(mockAlert).toHaveBeenCalledWith(
@@ -121,5 +121,29 @@ describe('useProductsScreen', () => {
     );
     expect(mockInput).not.toHaveBeenCalled();
     expect(mockSetNewProductIntent).not.toHaveBeenCalled();
+  });
+
+  it('returns grouped screen, search, filters, list, and action domains', async () => {
+    const { result } = await renderUseProductsScreen();
+
+    expect(result.current.screen.filterMode).toBe('all');
+    expect(result.current.search.query).toBe('');
+    expect(result.current.filters.brandResults).toEqual([]);
+    expect(result.current.list.productList).toEqual([]);
+    expect(typeof result.current.actions.createProduct).toBe('function');
+  });
+
+  it('applies filter and pagination actions through named handlers', async () => {
+    const { result } = await renderUseProductsScreen();
+
+    act(() => {
+      result.current.filters.toggleMine();
+      result.current.filters.applyBrandSelection(['Apple', 'Dell']);
+      result.current.list.setPage(3);
+    });
+
+    expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ brands: 'Apple,Dell', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ page: '3' });
   });
 });
