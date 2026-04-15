@@ -1,19 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { View } from 'react-native';
-import {
-  Button,
-  Dialog,
-  Portal,
-  SegmentedButtons,
-  Text,
-  TextInput,
-} from 'react-native-paper';
-import { CameraPickerDialog } from './CameraPickerDialog';
+import { Button, Dialog, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { addProductVideo } from '@/services/api/products';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
-import { addProductVideo } from '@/services/api/products';
+import { CameraPickerDialog } from './CameraPickerDialog';
 
 interface CameraStreamPickerProps {
   productId: number;

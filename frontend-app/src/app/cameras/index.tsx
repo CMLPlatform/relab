@@ -21,11 +21,12 @@ import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { type CameraConnectionInfo, useLocalConnection } from '@/hooks/useLocalConnection';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
+import { addProductVideo } from '@/services/api/products';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
-import { addProductVideo } from '@/services/api/products';
 
 // ─── Stream dialog state ──────────────────────────────────────────────────────
 
@@ -72,6 +73,8 @@ function streamDialogReducer(
 
 const DESKTOP_COLUMNS = 3;
 const MOBILE_COLUMNS = 2;
+
+type LocalConnectionSnapshot = Pick<CameraConnectionInfo, 'mode' | 'localBaseUrl'>;
 
 export default function CamerasScreen() {
   const router = useRouter();
@@ -129,6 +132,9 @@ export default function CamerasScreen() {
   const { setActiveStream } = useStreamSession();
   const queryClient = useQueryClient();
   const [snackbar, setSnackbar] = useState<string | null>(null);
+  const [localConnectionByCameraId, setLocalConnectionByCameraId] = useState<
+    Record<string, LocalConnectionSnapshot>
+  >({});
 
   // ── Multi-select state ─────────────────────────────────────────────────────
   const [selectionMode, setSelectionMode] = useState(false);
@@ -187,8 +193,27 @@ export default function CamerasScreen() {
   }, [navigation, router, captureAllProductId, streamProductId, streamModeEnabled]);
 
   const rows = cameras ?? [];
-  const onlineCameras = rows.filter((c) => c.status?.connection === 'online');
+  const isCameraReachable = useCallback(
+    (camera: CameraReadWithStatus) =>
+      camera.status?.connection === 'online' ||
+      localConnectionByCameraId[camera.id]?.mode === 'local',
+    [localConnectionByCameraId],
+  );
+  const onlineCameras = rows.filter(isCameraReachable);
   const onlineCount = onlineCameras.length;
+
+  const handleLocalConnectionChange = useCallback(
+    (cameraId: string, connection: LocalConnectionSnapshot) => {
+      setLocalConnectionByCameraId((prev) => {
+        const current = prev[cameraId];
+        if (current?.mode === connection.mode && current.localBaseUrl === connection.localBaseUrl) {
+          return prev;
+        }
+        return { ...prev, [cameraId]: connection };
+      });
+    },
+    [],
+  );
 
   // ── Capture flows ──────────────────────────────────────────────────────────
 
@@ -226,7 +251,7 @@ export default function CamerasScreen() {
   const handleCardTap = useCallback(
     (camera: CameraReadWithStatus) => {
       if (streamModeEnabled) {
-        if (camera.status?.connection !== 'online') {
+        if (!isCameraReachable(camera)) {
           setSnackbar(`${camera.name} is offline — can't stream.`);
           return;
         }
@@ -241,7 +266,7 @@ export default function CamerasScreen() {
       if (selectionMode) {
         // Tap toggles selection while in selection mode; offline cameras
         // can't be selected because the capture fan-out would just fail.
-        if (camera.status?.connection === 'online') {
+        if (isCameraReachable(camera)) {
           toggleSelected(camera.id);
         } else {
           setSnackbar(`${camera.name} is offline — can't capture.`);
@@ -251,7 +276,14 @@ export default function CamerasScreen() {
       // Default: navigate to the detail screen.
       router.push({ pathname: '/cameras/[id]', params: { id: camera.id } });
     },
-    [router, selectionMode, streamModeEnabled, streamProduct?.name, toggleSelected],
+    [
+      isCameraReachable,
+      router,
+      selectionMode,
+      streamModeEnabled,
+      streamProduct?.name,
+      toggleSelected,
+    ],
   );
 
   const handleStartStream = useCallback(async () => {
@@ -296,7 +328,7 @@ export default function CamerasScreen() {
   const handleCardLongPress = useCallback(
     (camera: CameraReadWithStatus) => {
       if (!captureModeEnabled) return;
-      if (camera.status?.connection !== 'online') {
+      if (!isCameraReachable(camera)) {
         setSnackbar(`${camera.name} is offline — can't capture.`);
         return;
       }
@@ -306,7 +338,7 @@ export default function CamerasScreen() {
         toggleSelected(camera.id);
       }
     },
-    [captureModeEnabled, enterSelectionMode, selectionMode, toggleSelected],
+    [captureModeEnabled, enterSelectionMode, isCameraReachable, selectionMode, toggleSelected],
   );
 
   if (!user) return null;
@@ -352,20 +384,13 @@ export default function CamerasScreen() {
         data={rows}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.cell}>
-            <Pressable
-              onPress={() => handleCardTap(item)}
-              onLongPress={() => handleCardLongPress(item)}
-              delayLongPress={350}
-              style={({ pressed }) => [
-                styles.cellPressable,
-                pressed && styles.cellPressed,
-                selectedIds.has(item.id) && styles.cellSelected,
-              ]}
-            >
-              <CameraCard camera={item} />
-            </Pressable>
-          </View>
+          <CameraGridCell
+            camera={item}
+            selected={selectedIds.has(item.id)}
+            onPress={handleCardTap}
+            onLongPress={handleCardLongPress}
+            onLocalConnectionChange={handleLocalConnectionChange}
+          />
         )}
         numColumns={numColumns}
         // Changing numColumns at runtime requires a fresh key so RN re-mounts
@@ -458,6 +483,52 @@ export default function CamerasScreen() {
         </Dialog>
       </Portal>
     </>
+  );
+}
+
+function CameraGridCell({
+  camera,
+  selected,
+  onPress,
+  onLongPress,
+  onLocalConnectionChange,
+}: {
+  camera: CameraReadWithStatus;
+  selected: boolean;
+  onPress: (camera: CameraReadWithStatus) => void;
+  onLongPress: (camera: CameraReadWithStatus) => void;
+  onLocalConnectionChange: (cameraId: string, connection: LocalConnectionSnapshot) => void;
+}) {
+  const relayOnline = camera.status?.connection === 'online';
+  const localConnection = useLocalConnection(camera.id, { isOnline: relayOnline });
+  const isDirect = localConnection.mode === 'local';
+
+  useEffect(() => {
+    onLocalConnectionChange(camera.id, {
+      mode: localConnection.mode,
+      localBaseUrl: localConnection.localBaseUrl,
+    });
+  }, [camera.id, localConnection.localBaseUrl, localConnection.mode, onLocalConnectionChange]);
+
+  return (
+    <View style={styles.cell}>
+      <Pressable
+        onPress={() => onPress(camera)}
+        onLongPress={() => onLongPress(camera)}
+        delayLongPress={350}
+        style={({ pressed }) => [
+          styles.cellPressable,
+          pressed && styles.cellPressed,
+          selected && styles.cellSelected,
+        ]}
+      >
+        <CameraCard
+          camera={camera}
+          connectionOverride={isDirect ? 'online' : undefined}
+          connectionDetail={isDirect ? 'Direct connection' : undefined}
+        />
+      </Pressable>
+    </View>
   );
 }
 

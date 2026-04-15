@@ -1,13 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
-import {
-  ActivityIndicator,
-  Button,
-  Dialog,
-  Icon,
-  Portal,
-  Text,
-} from 'react-native-paper';
+import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { useCamerasQuery } from '@/hooks/useRpiCameras';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 

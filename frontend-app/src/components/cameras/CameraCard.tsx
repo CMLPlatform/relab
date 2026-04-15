@@ -76,10 +76,18 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  * Tapping the card navigates to the camera detail screen regardless of
  * state so users can still see history / dialog / settings when offline.
  */
-export function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
+export function CameraCard({
+  camera,
+  connectionOverride,
+  connectionDetail,
+}: {
+  camera: CameraReadWithStatus;
+  connectionOverride?: CameraConnectionStatus;
+  connectionDetail?: string;
+}) {
   const theme = useTheme();
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
-  const connection = camera.status?.connection ?? 'offline';
+  const connection = connectionOverride ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
   const snapshotQuery = useCameraSnapshotQuery(isOnline ? camera.id : null, {
     enabled: isOnline,
@@ -151,7 +159,13 @@ export function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
           <View style={styles.cardChips}>
             <StatusBadge status={connection} />
             {isOnline ? (
-              <TelemetryBadge telemetry={camera.telemetry} />
+              connectionDetail ? (
+                <Text variant="labelSmall" style={styles.lastSeenText}>
+                  {connectionDetail}
+                </Text>
+              ) : (
+                <TelemetryBadge telemetry={camera.telemetry} />
+              )
             ) : (
               <Text variant="labelSmall" style={styles.lastSeenText}>
                 Last seen {formatLastSeen(camera.status?.last_seen_at)}

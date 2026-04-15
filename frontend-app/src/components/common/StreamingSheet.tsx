@@ -26,11 +26,7 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
           {session.cameraName}
         </Text>
 
-        <StreamingContent
-          session={session}
-          onStop={onDismiss}
-          showProductLink
-        />
+        <StreamingContent session={session} onStop={onDismiss} showProductLink />
       </Surface>
     </Portal>
   );

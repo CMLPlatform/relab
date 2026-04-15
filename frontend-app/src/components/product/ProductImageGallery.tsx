@@ -16,13 +16,7 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView, FlatList as GHFlatList } from 'react-native-gesture-handler';
-import {
-  ActivityIndicator,
-  Button,
-  Dialog,
-  Icon,
-  Portal,
-} from 'react-native-paper';
+import { ActivityIndicator, Button, Dialog, Icon, Portal } from 'react-native-paper';
 
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';

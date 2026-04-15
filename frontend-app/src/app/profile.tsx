@@ -2,7 +2,15 @@ import * as Linking from 'expo-linking';
 import { Link, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  type TextStyle,
+  View,
+} from 'react-native';
 import {
   Button,
   Dialog,
@@ -139,6 +147,10 @@ export default function ProfileTab() {
   const handleUnlinkOAuthConfirm = async () => {
     try {
       await unlinkOAuth(providerToUnlink);
+      // Revoking Google also removes the YouTube-scoped token — disable the feature.
+      if (providerToUnlink === 'google' && youtubeEnabled) {
+        await setYoutubeEnabled(false);
+      }
       setUnlinkDialogVisible(false);
       void refetch();
     } catch (error: unknown) {
@@ -172,6 +184,7 @@ export default function ProfileTab() {
 
       const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
       if (result.type === 'success' && result.url.includes('success=true')) {
+        await setYoutubeEnabled(true);
         await refetch(false);
       } else if (result.type === 'success') {
         // Browser returned but backend signalled failure (e.g. user denied scope).

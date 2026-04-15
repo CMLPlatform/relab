@@ -155,9 +155,11 @@ export default function CameraDetailScreen() {
   const [localUrlInput, setLocalUrlInput] = useState('');
   const [localKeyInput, setLocalKeyInput] = useState('');
   const [localSetupSaving, setLocalSetupSaving] = useState(false);
+  const [previewEnabled, setPreviewEnabled] = useState(true);
 
   const isOnline = camera?.status?.connection === 'online';
   const localConnection = useLocalConnection(id ?? '', { isOnline });
+  const canPreview = isOnline || localConnection.mode === 'local';
 
   useEffect(() => {
     if (!user) {
@@ -321,7 +323,27 @@ export default function CameraDetailScreen() {
         </Card>
 
         {/* Live preview — LL-HLS, direct (local mode) or via relay. */}
-        {(isOnline || localConnection.mode === 'local') && (
+        {canPreview && (
+          <Card style={styles.card}>
+            <Card.Content style={styles.previewControlContent}>
+              <View style={{ flex: 1 }}>
+                <Text variant="titleMedium">Camera Preview</Text>
+                <Text variant="bodySmall" style={{ opacity: 0.55 }}>
+                  {previewEnabled
+                    ? 'Preview is running. Stop it when you no longer need the live feed.'
+                    : 'Load the live feed when you want to check framing or focus.'}
+                </Text>
+              </View>
+              <Button
+                mode={previewEnabled ? 'outlined' : 'contained'}
+                onPress={() => setPreviewEnabled((enabled) => !enabled)}
+              >
+                {previewEnabled ? 'Stop Preview' : 'Load Preview'}
+              </Button>
+            </Card.Content>
+          </Card>
+        )}
+        {canPreview && previewEnabled && (
           <LivePreview camera={camera} connectionInfo={localConnection} />
         )}
 
@@ -562,6 +584,11 @@ const styles = StyleSheet.create({
   },
   detailsContent: {
     gap: 0,
+  },
+  previewControlContent: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
   },
   detailRow: {
     flexDirection: 'row',

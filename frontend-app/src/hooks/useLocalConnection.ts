@@ -320,7 +320,6 @@ export function useLocalConnection(
     setLocalApiKey(null);
     setMode('relay');
     consecutiveFailures.current = 0;
-    relayBootstrapDoneRef.current = false;
     if (probeIntervalRef.current) {
       clearInterval(probeIntervalRef.current);
       probeIntervalRef.current = null;

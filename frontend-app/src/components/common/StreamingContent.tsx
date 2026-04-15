@@ -1,6 +1,6 @@
+import { useRouter } from 'expo-router';
 import { Linking, StyleSheet, View } from 'react-native';
 import { Button, Chip, Icon, Text, useTheme } from 'react-native-paper';
-import { useRouter } from 'expo-router';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { StreamSession } from '@/context/StreamSessionContext';
 import { useStreamSession } from '@/context/StreamSessionContext';
@@ -63,12 +63,7 @@ export function StreamingContent({
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Button
-          mode="outlined"
-          onPress={handleWatch}
-          style={styles.actionBtn}
-          icon="youtube"
-        >
+        <Button mode="outlined" onPress={handleWatch} style={styles.actionBtn} icon="youtube">
           Watch
         </Button>
         <Button
