@@ -37,6 +37,9 @@ _ALLOWED_COMMANDS = {
     ("POST", "/stream"),
     ("DELETE", "/stream"),
     ("GET", "/telemetry"),
+    # Sent by the backend when a camera is deleted so the Pi clears its
+    # credentials and re-enters pairing mode automatically.
+    ("DELETE", "/pairing/credentials"),
 }
 
 # Dynamic prefixes. Requests where `path.startswith(prefix)` are permitted for

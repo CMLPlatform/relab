@@ -1,5 +1,6 @@
 """Routers for the Raspberry Pi Camera plugin."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
@@ -11,9 +12,12 @@ from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
+from app.api.plugins.rpi_cam.routers.camera_crud import _notify_camera_unpair
 from app.api.plugins.rpi_cam.schemas import CameraRead
 from app.api.plugins.rpi_cam.services import get_camera_status as fetch_camera_status
 from app.core.redis import OptionalRedisDep
+
+logger = logging.getLogger(__name__)
 
 ### Camera admin router ###
 
@@ -61,7 +65,9 @@ async def delete_camera(
     _camera_id: Annotated[UUID4, Path(alias="camera_id")],
     session: AsyncSessionDep,
     camera: CameraByIDDep,
+    redis: OptionalRedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
+    await _notify_camera_unpair(camera.id, redis)
     await session.delete(camera)
     await session.commit()

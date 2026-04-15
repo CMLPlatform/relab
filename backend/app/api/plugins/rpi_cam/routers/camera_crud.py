@@ -1,8 +1,9 @@
 """Camera CRUD operations for Raspberry Pi Camera plugin."""
 
+import logging
 from typing import TYPE_CHECKING
 
-from fastapi import Query
+from fastapi import HTTPException, Query
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -22,10 +23,13 @@ from app.api.plugins.rpi_cam.services import (
 from app.api.plugins.rpi_cam.services import (
     get_last_image_url_per_camera,
 )
+from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+logger = logging.getLogger(__name__)
 
 camera_router = PublicAPIRouter(tags=["rpi-cam-management"])
 router = PublicAPIRouter()
@@ -161,10 +165,27 @@ async def update_user_camera(
 
 
 @camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
-async def delete_user_camera(db: AsyncSessionDep, camera: UserOwnedCameraDep) -> None:
+async def delete_user_camera(db: AsyncSessionDep, camera: UserOwnedCameraDep, redis: OptionalRedisDep) -> None:
     """Delete Raspberry Pi camera."""
+    await _notify_camera_unpair(camera.id, redis)
     await db.delete(camera)
     await db.commit()
+
+
+async def _notify_camera_unpair(camera_id: object, redis: object) -> None:
+    """Best-effort relay of DELETE /pairing/credentials to the camera.
+
+    Logs a warning and continues if the camera is offline or unresponsive —
+    deletion should never be blocked by camera connectivity.
+    """
+    try:
+        await relay_via_websocket(camera_id, "DELETE", "/pairing/credentials", redis=redis)  # type: ignore[arg-type]
+    except HTTPException as exc:
+        logger.warning(
+            "Could not notify camera %s to unpair (HTTP %d) — deleting anyway.",
+            camera_id,
+            exc.status_code,
+        )
 
 
 router.include_router(camera_router, prefix="/plugins/rpi-cam/cameras")

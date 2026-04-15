@@ -69,6 +69,7 @@ class TestRelayCommandAllowlist:
             ("GET", "/telemetry"),
             ("GET", "/hls/cam-preview/index.m3u8"),
             ("GET", "/hls/cam-preview/segment0.mp4"),
+            ("DELETE", "/pairing/credentials"),
         ],
     )
     @pytest.mark.asyncio
