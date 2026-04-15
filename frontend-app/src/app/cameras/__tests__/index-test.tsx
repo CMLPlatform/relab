@@ -65,7 +65,9 @@ describe('CamerasScreen', () => {
       screen.getByText('Tap the + button to register your first RPi camera.'),
     ).toBeOnTheScreen();
     expect(mockSetOptions).toHaveBeenCalled();
-    expect(mockSetOptions.mock.calls[0][0]).not.toHaveProperty('title');
+    expect(mockSetOptions.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ title: 'My Cameras' }),
+    );
 
     fireEvent.press(screen.getByLabelText('Add camera'));
 

@@ -45,6 +45,7 @@ export default function ProfileTab() {
   const [newUsername, setNewUsername] = useState('');
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
+  const [youtubeAuthPending, setYoutubeAuthPending] = useState(false);
   const {
     enabled: rpiEnabled,
     loading: rpiLoading,
@@ -136,6 +137,7 @@ export default function ProfileTab() {
     }
     // Enabling requires the user to grant YouTube API scopes via a dedicated
     // Google OAuth flow. The preference is only saved after a successful grant.
+    setYoutubeAuthPending(true);
     try {
       const redirectUri = Linking.createURL('/profile');
       const associateUrl = `${API_URL}/auth/oauth/google-youtube/associate/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
@@ -145,7 +147,10 @@ export default function ProfileTab() {
       if (token) headers.Authorization = `Bearer ${token}`;
 
       const response = await apiFetch(associateUrl, { headers });
-      if (!response.ok) throw new Error('Failed to reach YouTube authorization endpoint.');
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Server error ${response.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
+      }
       const data = await response.json();
 
       const result = await WebBrowser.openAuthSessionAsync(data.authorization_url, redirectUri);
@@ -158,7 +163,9 @@ export default function ProfileTab() {
         alert(`YouTube authorization failed: ${detail ? decodeURIComponent(detail) : 'Access was denied.'}`);
       }
     } catch (error: unknown) {
-      alert(`Failed to start YouTube authorization: ${getErrorMessage(error, '')}`);
+      alert(`Failed to start YouTube authorization: ${getErrorMessage(error, 'Unknown error')}`);
+    } finally {
+      setYoutubeAuthPending(false);
     }
   };
 
@@ -375,7 +382,7 @@ export default function ProfileTab() {
               <Switch
                 value={youtubeEnabled}
                 onValueChange={(v) => void handleYouTubeToggle(v)}
-                disabled={youtubeLoading}
+                disabled={youtubeLoading || youtubeAuthPending}
               />
             </View>
           ) : (

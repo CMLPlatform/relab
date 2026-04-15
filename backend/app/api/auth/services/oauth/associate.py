@@ -1,7 +1,7 @@
 """OAuth account association router builder."""
 # spell-checker: ignore annotationlib
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import Response as FastAPIResponse
@@ -50,6 +50,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         *,
         requires_verification: bool = False,
         route_name_key: str | None = None,
+        authorize_extras_params: dict[str, Any] | None = None,
     ) -> None:
         """Initialize association router builder.
 
@@ -57,11 +58,17 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         (e.g. ``oauth-associate:{key}.callback``). Useful when registering two
         clients that share the same OAuth ``name`` (e.g. ``google`` and
         ``google-youtube``) to avoid duplicate route-name conflicts.
+
+        ``authorize_extras_params`` is forwarded to
+        ``oauth_client.get_authorization_url`` as ``extras_params``. Use this
+        to pass provider-specific flags such as ``{"access_type": "offline",
+        "prompt": "consent"}`` for the Google YouTube scope-upgrade flow.
         """
         super().__init__(oauth_client, state_secret, redirect_url, cookie_settings)
         self.authenticator = authenticator
         self.user_schema = user_schema
         self.requires_verification = requires_verification
+        self.authorize_extras_params = authorize_extras_params
         key = route_name_key if route_name_key is not None else oauth_client.name
         self.callback_route_name = f"oauth-associate:{key}.callback"
 
@@ -142,6 +149,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
             authorize_redirect_url,
             state,
             scopes,
+            extras_params=self.authorize_extras_params,
         )
 
         self.set_csrf_cookie(response, csrf_token)
@@ -181,21 +189,38 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
         if existing_account and existing_account.user_id != user.id:
             raise OAuthAccountAlreadyLinkedError
 
-        oauth_associate_callback = cast(
-            "Callable[..., Awaitable[User]]",
-            user_manager.oauth_associate_callback,
-        )
+        if existing_account:
+            # Same user — upgrade the stored token in-place.
+            # This happens when re-running an associate flow to gain additional
+            # OAuth scopes (e.g. upgrading a plain Google token to include
+            # YouTube API scopes). fastapi-users' oauth_associate_callback calls
+            # add_oauth_account (INSERT), which would fail on the unique
+            # constraint — so we update directly instead.
+            user = await user_manager.user_db.update_oauth_account(
+                user,
+                existing_account,
+                {
+                    "access_token": token["access_token"],
+                    "expires_at": token.get("expires_at"),
+                    "refresh_token": token.get("refresh_token"),
+                },
+            )
+        else:
+            oauth_associate_callback = cast(
+                "Callable[..., Awaitable[User]]",
+                user_manager.oauth_associate_callback,
+            )
 
-        user = await oauth_associate_callback(
-            user,
-            self.oauth_client.name,
-            token["access_token"],
-            account_id,
-            account_email,
-            token.get("expires_at"),
-            token.get("refresh_token"),
-            request,
-        )
+            user = await oauth_associate_callback(
+                user,
+                self.oauth_client.name,
+                token["access_token"],
+                account_id,
+                account_email,
+                token.get("expires_at"),
+                token.get("refresh_token"),
+                request,
+            )
 
         frontend_redirect = state_data.get("frontend_redirect_uri")
         if frontend_redirect:

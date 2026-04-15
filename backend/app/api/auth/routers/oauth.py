@@ -80,6 +80,10 @@ router.include_router(
         settings.fastapi_users_secret.get_secret_value(),
         redirect_url=_public_callback_url("/auth/oauth/google-youtube/associate/callback"),
         route_name_key="google-youtube",
+        # Force Google to show the consent screen so the user explicitly grants
+        # YouTube scopes, even if they already authorized the app for base scopes.
+        # access_type=offline ensures we get a refresh token for background calls.
+        authorize_extras_params={"access_type": "offline", "prompt": "consent"},
     ).build(),
     prefix="/google-youtube/associate",
 )

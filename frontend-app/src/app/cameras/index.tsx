@@ -164,7 +164,7 @@ export default function CamerasScreen() {
   useEffect(() => {
     const backProductId = captureAllProductId ?? streamProductId;
     navigation.setOptions({
-      ...(streamModeEnabled ? { title: 'Select camera to stream' } : {}),
+      title: streamModeEnabled ? 'Select camera to stream' : 'My Cameras',
       headerLeft: (props: HeaderBackButtonProps) => (
         <HeaderBackButton
           {...props}

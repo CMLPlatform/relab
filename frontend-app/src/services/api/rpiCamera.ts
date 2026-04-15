@@ -1,6 +1,5 @@
 import { API_URL } from '@/config';
-import { getToken } from '@/services/api/authentication';
-import { apiFetch } from '@/services/api/client';
+import { fetchWithAuth } from '@/services/api/authentication';
 
 export type CameraConnectionStatus = 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error';
 export type CameraCredentialStatus = 'active' | 'revoked';
@@ -81,17 +80,6 @@ export interface StartYouTubeStreamParams {
 const BASE = `${API_URL}/plugins/rpi-cam/cameras`;
 const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
 
-async function authHeaders(): Promise<Record<string, string>> {
-  const token = await getToken();
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-}
-
-async function jsonHeaders(): Promise<Record<string, string>> {
-  return { ...(await authHeaders()), 'Content-Type': 'application/json' };
-}
-
 export async function fetchCameras(
   includeStatus = false,
   { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
@@ -99,7 +87,7 @@ export async function fetchCameras(
   const url = new URL(BASE);
   if (includeStatus || includeTelemetry) url.searchParams.set('include_status', 'true');
   if (includeTelemetry) url.searchParams.set('include_telemetry', 'true');
-  const resp = await apiFetch(url, { method: 'GET', headers: await authHeaders() });
+  const resp = await fetchWithAuth(url, { method: 'GET', headers: { Accept: 'application/json' } });
   if (!resp.ok) throw new Error(`Failed to fetch cameras (${resp.status})`);
   return resp.json() as Promise<CameraReadWithStatus[]>;
 }
@@ -112,24 +100,24 @@ export async function fetchCamera(
   const url = new URL(`${BASE}/${id}`);
   if (includeStatus || includeTelemetry) url.searchParams.set('include_status', 'true');
   if (includeTelemetry) url.searchParams.set('include_telemetry', 'true');
-  const resp = await apiFetch(url, { method: 'GET', headers: await authHeaders() });
+  const resp = await fetchWithAuth(url, { method: 'GET', headers: { Accept: 'application/json' } });
   if (!resp.ok) throw new Error(`Failed to fetch camera (${resp.status})`);
   return resp.json() as Promise<CameraReadWithStatus>;
 }
 
 export async function fetchCameraTelemetry(cameraId: string): Promise<CameraTelemetry> {
-  const resp = await apiFetch(`${BASE}/${cameraId}/telemetry`, {
+  const resp = await fetchWithAuth(`${BASE}/${cameraId}/telemetry`, {
     method: 'GET',
-    headers: await authHeaders(),
+    headers: { Accept: 'application/json' },
   });
   if (!resp.ok) throw new Error(`Failed to fetch camera telemetry (${resp.status})`);
   return resp.json() as Promise<CameraTelemetry>;
 }
 
 export async function updateCamera(id: string, data: CameraUpdate): Promise<CameraRead> {
-  const resp = await apiFetch(`${BASE}/${id}`, {
+  const resp = await fetchWithAuth(`${BASE}/${id}`, {
     method: 'PATCH',
-    headers: await jsonHeaders(),
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(data),
   });
   if (!resp.ok) throw new Error(`Failed to update camera (${resp.status})`);
@@ -137,9 +125,9 @@ export async function updateCamera(id: string, data: CameraUpdate): Promise<Came
 }
 
 export async function deleteCamera(id: string): Promise<void> {
-  const resp = await apiFetch(`${BASE}/${id}`, {
+  const resp = await fetchWithAuth(`${BASE}/${id}`, {
     method: 'DELETE',
-    headers: await authHeaders(),
+    headers: { Accept: 'application/json' },
   });
   if (!resp.ok) throw new Error(`Failed to delete camera (${resp.status})`);
 }
@@ -148,9 +136,9 @@ export async function captureImageFromCamera(
   cameraId: string,
   productId: number,
 ): Promise<CapturedImage> {
-  const resp = await apiFetch(`${BASE}/${cameraId}/image`, {
+  const resp = await fetchWithAuth(`${BASE}/${cameraId}/image`, {
     method: 'POST',
-    headers: await jsonHeaders(),
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ product_id: productId }),
   });
   if (!resp.ok) throw new Error(`Failed to capture image (${resp.status})`);
@@ -173,14 +161,15 @@ export function buildCameraHlsUrl(cameraId: string): string {
 }
 
 /**
- * LL-HLS playlist URL served directly by the Pi's MediaMTX server.
- * Used in local (direct Ethernet) mode. No authentication required —
- * MediaMTX is configured with ``hlsAllowOrigin: '*'``.
+ * LL-HLS playlist URL served by the Pi's FastAPI HLS proxy in local mode.
+ * Routes through port 8018 (/hls/ → MediaMTX on localhost:8888) so FastAPI
+ * can attach CORS and Private Network Access headers. No API key required —
+ * the /hls/ route uses an IP-locality check instead.
  *
- * @param localMediaUrl - Base URL of the Pi's MediaMTX, e.g. "http://192.168.1.100:8888"
+ * @param localBaseUrl - Base URL of the Pi's FastAPI server, e.g. "http://192.168.1.100:8018"
  */
-export function buildLocalHlsUrl(localMediaUrl: string): string {
-  return `${localMediaUrl.replace(/\/$/, '')}/cam-preview/index.m3u8`;
+export function buildLocalHlsUrl(localBaseUrl: string): string {
+  return `${localBaseUrl.replace(/\/$/, '')}/hls/cam-preview/index.m3u8`;
 }
 
 /**
@@ -237,9 +226,9 @@ export interface LocalAccessInfo {
  */
 export async function fetchLocalAccessInfo(cameraId: string): Promise<LocalAccessInfo | null> {
   try {
-    const resp = await apiFetch(`${BASE}/${cameraId}/local-access`, {
+    const resp = await fetchWithAuth(`${BASE}/${cameraId}/local-access`, {
       method: 'GET',
-      headers: await authHeaders(),
+      headers: { Accept: 'application/json' },
     });
     if (!resp.ok) return null;
     return resp.json() as Promise<LocalAccessInfo>;
@@ -249,9 +238,9 @@ export async function fetchLocalAccessInfo(cameraId: string): Promise<LocalAcces
 }
 
 export async function claimPairingCode(data: PairingClaimRequest): Promise<CameraRead> {
-  const resp = await apiFetch(`${PAIRING_BASE}/claim`, {
+  const resp = await fetchWithAuth(`${PAIRING_BASE}/claim`, {
     method: 'POST',
-    headers: await jsonHeaders(),
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(data),
   });
   if (!resp.ok) {
@@ -268,9 +257,9 @@ export async function startYouTubeStream(
   cameraId: string,
   params: StartYouTubeStreamParams,
 ): Promise<StreamView> {
-  const resp = await apiFetch(`${streamBase(cameraId)}/record/start`, {
+  const resp = await fetchWithAuth(`${streamBase(cameraId)}/record/start`, {
     method: 'POST',
-    headers: await jsonHeaders(),
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(params),
   });
   if (resp.status === 403) throw new Error('GOOGLE_OAUTH_REQUIRED');
@@ -280,17 +269,17 @@ export async function startYouTubeStream(
 }
 
 export async function stopYouTubeStream(cameraId: string): Promise<void> {
-  const resp = await apiFetch(`${streamBase(cameraId)}/record/stop`, {
+  const resp = await fetchWithAuth(`${streamBase(cameraId)}/record/stop`, {
     method: 'DELETE',
-    headers: await authHeaders(),
+    headers: { Accept: 'application/json' },
   });
   if (!resp.ok && resp.status !== 204) throw new Error(`Failed to stop stream (${resp.status})`);
 }
 
 export async function getStreamStatus(cameraId: string): Promise<StreamView | null> {
-  const resp = await apiFetch(`${streamBase(cameraId)}/status`, {
+  const resp = await fetchWithAuth(`${streamBase(cameraId)}/status`, {
     method: 'GET',
-    headers: await authHeaders(),
+    headers: { Accept: 'application/json' },
   });
   if (resp.status === 404) return null;
   if (!resp.ok) throw new Error(`Failed to fetch stream status (${resp.status})`);

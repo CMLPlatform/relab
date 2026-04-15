@@ -145,7 +145,10 @@ export async function refreshAuthToken(): Promise<boolean> {
   return refreshPromise;
 }
 
-async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Promise<Response> {
+export async function fetchWithAuth(
+  url: URL | string,
+  options: RequestInit = {},
+): Promise<Response> {
   const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
 
   const authToken = await getToken();

@@ -144,8 +144,8 @@ export function useCameraLivePreview(
   if (!enabled || !camera) {
     return { hlsUrl: null, isLocalStream: false };
   }
-  if (connectionInfo?.mode === 'local' && connectionInfo.localMediaUrl) {
-    return { hlsUrl: buildLocalHlsUrl(connectionInfo.localMediaUrl), isLocalStream: true };
+  if (connectionInfo?.mode === 'local' && connectionInfo.localBaseUrl) {
+    return { hlsUrl: buildLocalHlsUrl(connectionInfo.localBaseUrl), isLocalStream: true };
   }
   return { hlsUrl: buildCameraHlsUrl(camera.id), isLocalStream: false };
 }
