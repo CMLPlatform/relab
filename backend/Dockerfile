@@ -1,5 +1,8 @@
 # syntax=docker/dockerfile:1.10
 
+# Production Dockerfile for Backend
+
+# --- Build stage ---
 FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
 
 WORKDIR /opt/relab/backend
@@ -18,7 +21,8 @@ COPY app/ app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups
 
-FROM python:3.14-slim@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa AS runtime
+# --- Runtime stage ---
+FROM python:3.14-slim-trixie@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa AS runtime
 
 ARG WORKDIR=/opt/relab/backend
 ARG APP_USER=appuser

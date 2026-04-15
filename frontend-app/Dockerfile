@@ -6,16 +6,18 @@ FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224
 
 WORKDIR /opt/relab/frontend-app
 
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+ENV CI=1 \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
     PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
+
+RUN corepack enable
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN corepack enable
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 
@@ -28,6 +30,7 @@ ARG BUILD_MODE=production
 COPY ".env.$BUILD_MODE" .env
 
 RUN pnpm exec expo export -p web -c
+
 
 # --- Runtime stage ---
 FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa

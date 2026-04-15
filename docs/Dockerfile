@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.10
 
 # Production Dockerfile for Docs
+
+# --- Build stage ---
 FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS build
 
 WORKDIR /opt/relab/docs
@@ -27,6 +29,7 @@ ENV PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
 
 RUN pnpm run build:${BUILD_MODE}
 
+# --- Runtime stage ---
 FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa
 
 COPY --link --from=build /opt/relab/docs/dist /srv

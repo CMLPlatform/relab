@@ -25,6 +25,7 @@ README.md
 
 # Docker and git
 Dockerfile
+Dockerfile.*
 .dockerignore
 .git
 .gitignore
