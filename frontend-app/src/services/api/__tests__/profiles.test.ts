@@ -5,8 +5,8 @@ import { getPublicProfile } from '../profiles';
 jest.mock('../authentication');
 jest.mock('../client');
 
-const mockedGetToken = auth.getToken as jest.MockedFunction<any>;
-const mockedApiFetch = client.apiFetch as jest.MockedFunction<any>;
+const mockedGetToken = auth.getToken as jest.MockedFunction<typeof auth.getToken>;
+const mockedApiFetch = client.apiFetch as jest.MockedFunction<typeof client.apiFetch>;
 
 describe('getPublicProfile', () => {
   beforeEach(() => {
@@ -69,7 +69,7 @@ describe('getPublicProfile', () => {
     const result = await getPublicProfile('a b');
     expect(result).toEqual(profile);
     expect(mockedApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining(encodeURIComponent('a b') + '/profile'),
+      expect.stringContaining(`${encodeURIComponent('a b')}/profile`),
       expect.any(Object),
     );
   });

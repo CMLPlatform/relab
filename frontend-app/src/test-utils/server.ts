@@ -90,9 +90,9 @@ export const handlers = [
       const req = obj.request;
       if (req && typeof req === 'object') {
         const reqObj = req as Record<string, unknown>;
-        const rurl = reqObj.url;
-        if (typeof rurl === 'string') return rurl;
-        if (rurl && typeof (rurl as URL).href === 'string') return (rurl as URL).href;
+        const reqUrl = reqObj.url;
+        if (typeof reqUrl === 'string') return reqUrl;
+        if (reqUrl && typeof (reqUrl as URL).href === 'string') return (reqUrl as URL).href;
       }
       const url = obj.url;
       if (typeof url === 'string') return url;

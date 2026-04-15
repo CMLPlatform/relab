@@ -41,9 +41,8 @@ describe('UserProfileScreen', () => {
 
   it('shows loading spinner while the profile is being fetched', async () => {
     mockGetPublicProfile.mockReturnValue(new Promise(() => {})); // never resolves
-    const { UNSAFE_getByType } = renderWithProviders(<UserProfileScreen />);
-    const { ActivityIndicator } = jest.requireActual('react-native');
-    expect(UNSAFE_getByType(ActivityIndicator)).toBeOnTheScreen();
+    renderWithProviders(<UserProfileScreen />);
+    expect(screen.getByTestId('activity-indicator')).toBeOnTheScreen();
     expect(screen.queryByText('alice')).toBeNull();
   });
 

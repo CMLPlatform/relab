@@ -38,7 +38,11 @@ export default function UserProfileScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         {loading && (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator
+              testID="activity-indicator"
+              size="large"
+              color={theme.colors.primary}
+            />
           </View>
         )}
 

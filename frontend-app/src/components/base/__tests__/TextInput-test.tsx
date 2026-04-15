@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
-import * as ReactNative from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { TextInput } from '../TextInput';
 
 describe('<TextInput />', () => {
@@ -32,14 +32,15 @@ describe('<TextInput />', () => {
   });
 
   it('applies dark mode placeholder and text colors when there is no error', () => {
-    const colorSchemeSpy = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('dark');
 
     render(<TextInput testID="dark-input" value="valid" placeholder="Dark mode" />);
 
     const input = screen.getByTestId('dark-input');
     expect(input).toHaveStyle({ color: DarkTheme.colors.onSurface });
     expect(input).toHaveProp('placeholderTextColor', DarkTheme.colors.onSurface);
-    colorSchemeSpy.mockRestore();
+
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
   });
 
   it('does not treat a passing customValidation function as an error', () => {

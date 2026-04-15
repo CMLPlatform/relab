@@ -1,8 +1,8 @@
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 import { fetchWithTimeout } from './request';
 
 const apiURL = API_URL;

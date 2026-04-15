@@ -1,14 +1,12 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
-import * as ReactNative from 'react-native';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { renderWithProviders } from '@/test-utils';
 import { Text } from '../Text';
 
 describe('Text', () => {
-  let useColorSchemeSpy: ReturnType<typeof jest.spyOn> | undefined;
-
   afterEach(() => {
-    useColorSchemeSpy?.mockRestore();
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
   });
 
   it('renders children text', () => {
@@ -17,20 +15,20 @@ describe('Text', () => {
   });
 
   it('applies light-mode text color in light mode', () => {
-    useColorSchemeSpy = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('light');
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
     renderWithProviders(<Text testID="txt">Light text</Text>);
     expect(screen.getByTestId('txt')).toHaveStyle({ color: 'rgb(25, 28, 30)' });
   });
 
   it('applies dark-mode text color in dark mode', () => {
-    useColorSchemeSpy = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('dark');
     renderWithProviders(<Text testID="txt">Dark text</Text>);
     // DarkTheme.colors.onSurface
     expect(screen.getByTestId('txt')).toHaveStyle({ color: 'rgb(225, 226, 228)' });
   });
 
   it('merges a custom style prop without overriding theme color', () => {
-    useColorSchemeSpy = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('light');
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
     renderWithProviders(
       <Text testID="txt" style={{ fontWeight: 'bold' }}>
         Styled

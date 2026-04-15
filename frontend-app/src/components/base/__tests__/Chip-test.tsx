@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react-native';
 import * as ReactNative from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
+import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 import { setupUser } from '@/test-utils';
 import { Chip } from '../Chip';
 
@@ -48,7 +49,7 @@ describe('Chip', () => {
   });
 
   it('applies dark mode styles when the system theme is dark', () => {
-    const colorSchemeSpy = jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('dark');
 
     render(<Chip>Dark Chip</Chip>);
 
@@ -56,7 +57,8 @@ describe('Chip', () => {
       backgroundColor: DarkTheme.colors.primary,
       color: DarkTheme.colors.onPrimary,
     });
-    colorSchemeSpy.mockRestore();
+
+    jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
   });
 
   it('renders an icon when one is provided', () => {

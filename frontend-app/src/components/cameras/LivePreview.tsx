@@ -5,6 +5,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
 import type { CameraRead } from '@/services/api/rpiCamera';
+// spell-checker: ignore mpegurl
 
 /**
  * LL-HLS live preview for a single camera.
@@ -20,6 +21,7 @@ import type { CameraRead } from '@/services/api/rpiCamera';
  * Either way, the parent only needs to pass a camera; the URL is derived
  * server-side and the proxy handles auth via the user's session token.
  */
+
 export function LivePreview({
   camera,
   enabled = true,

@@ -1,11 +1,11 @@
-import { API_URL } from '@/config';
-import { useAuth } from '@/context/AuthProvider';
-import { apiFetch } from '@/services/api/client';
-import { logError } from '@/utils/logging';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
+import { API_URL } from '@/config';
+import { useAuth } from '@/context/AuthProvider';
+import { apiFetch } from '@/services/api/client';
+import { logError } from '@/utils/logging';
 
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 

@@ -86,7 +86,6 @@ jest.mock('@expo/vector-icons', () => {
     // Mock the factory functions
     createIconSet: () => MockIcon,
     createIconSetFromIcoMoon: () => MockIcon,
-    createIconSetFromFontello: () => MockIcon,
   };
 });
 
@@ -255,7 +254,10 @@ jest.mock('expo-video', () => {
   const React = require('react');
   const noop = jest.fn();
   return {
-    useVideoPlayer: (src: string, init?: (instance: any) => void) => {
+    useVideoPlayer: (
+      _src: string,
+      init?: (instance: { muted: boolean; loop: boolean; play: () => void }) => void,
+    ) => {
       const instance = { muted: false, loop: false, play: noop };
       try {
         if (typeof init === 'function') init(instance);
@@ -270,10 +272,15 @@ jest.mock('expo-video', () => {
 });
 
 // Provide a safe default for ThemeModeProvider hooks used by UI components
-jest.mock('@/context/ThemeModeProvider', () => ({
-  useEffectiveColorScheme: () => 'light',
-  useThemeMode: () => ({ themeMode: 'auto', setThemeMode: jest.fn() }),
-}));
+jest.mock('@/context/ThemeModeProvider', () => {
+  const React = require('react');
+  return {
+    ThemeModeProvider: ({ children }: { children: unknown }) =>
+      React.createElement(React.Fragment, null, children),
+    useEffectiveColorScheme: jest.fn().mockReturnValue('light'),
+    useThemeMode: () => ({ themeMode: 'auto', setThemeMode: jest.fn() }),
+  };
+});
 
 // Mock react-native-gesture-handler
 jest.mock('react-native-gesture-handler', () => {
