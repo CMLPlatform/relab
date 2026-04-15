@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim AS builder
 WORKDIR /opt/relab/backend-migrations
 
 # Create needed directories data uploads for seeding example images and files
@@ -31,7 +31,7 @@ COPY app/ app/
 COPY data/seed/ data/seed/
 
 # --- Final runtime stage ---
-FROM python:3.14-slim@sha256:584e89d31009a79ae4d9e3ab2fba078524a6c0921cb2711d05e8bb5f628fc9b9
+FROM python:3.14-slim@sha256:5e59aae31ff0e87511226be8e2b94d78c58f05216efda3b07dbbed938ec8583b
 
 ARG WORKDIR=/opt/relab/backend-migrations
 ARG APP_USER=appuser

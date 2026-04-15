@@ -1,6 +1,6 @@
 # Development Dockerfile for FastAPI Backend
 # Note: Source is kept in image; use `docker compose watch` for hot reload
-FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim AS builder
 
 # Build arguments
 ARG WORKDIR=/opt/relab/backend

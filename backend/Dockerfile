@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM ghcr.io/astral-sh/uv:0.10-python3.14-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim AS builder
 
 # Set the working directory inside the container
 WORKDIR /opt/relab/backend
