@@ -15,7 +15,7 @@ every segment/part URL the player dereferences (``cam-preview/segment0.mp4``,
 ``cam-preview/part0.mp4``, etc.) since LL-HLS resolves segments relative to
 the playlist URL.
 """
-# spell-checker: ignore mpegurl
+# spell-checker: ignore mpegurl, muxer
 
 from __future__ import annotations
 
@@ -82,7 +82,9 @@ async def proxy_hls(
                 continue
             raise
     else:
-        raise last_exc  # type: ignore[misc]
+        if last_exc is None:
+            raise HTTPException(status_code=404, detail="HLS manifest is not yet available")
+        raise last_exc
     media_type = _resolve_media_type(hls_path)
     return Response(
         content=relay_response.content,

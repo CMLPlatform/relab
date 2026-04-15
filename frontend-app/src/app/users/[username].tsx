@@ -40,10 +40,7 @@ export default function UserProfileScreen() {
         options={{
           title: '',
           headerLeft: (props) => (
-            <HeaderBackButton
-              {...props}
-              onPress={() => router.replace('/products')}
-            />
+            <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
           ),
         }}
       />

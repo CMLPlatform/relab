@@ -62,7 +62,7 @@ dev-clean PORT="8081":
 
 # Scan dependencies for known vulnerabilities
 audit:
-    pnpm audit --audit-level=high --prod
+    sh -c 'trap "rm -f package-lock.json" EXIT; npm install --package-lock-only --ignore-scripts --legacy-peer-deps >/dev/null; npm audit --omit=dev --audit-level=high'
     @echo "✓ Dependency audit complete"
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)

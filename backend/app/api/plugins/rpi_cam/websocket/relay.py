@@ -1,4 +1,5 @@
 """Relay camera HTTP-style commands through an active WebSocket connection."""
+# spell-checker: ignore mpegurl
 
 from __future__ import annotations
 

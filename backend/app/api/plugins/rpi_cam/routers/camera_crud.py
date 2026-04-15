@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastapi import BackgroundTasks, HTTPException, Query
+from pydantic import UUID4
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -28,6 +29,8 @@ from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
@@ -177,14 +180,14 @@ async def delete_user_camera(
     background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
 
 
-async def _notify_camera_unpair(camera_id: object, redis: object) -> None:
+async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
     """Best-effort relay of DELETE /pairing/credentials to the camera.
 
     Logs a warning and continues if the camera is offline or unresponsive —
     deletion should never be blocked by camera connectivity.
     """
     try:
-        await relay_via_websocket(camera_id, "DELETE", "/pairing/credentials", redis=redis)  # type: ignore[arg-type]
+        await relay_via_websocket(camera_id, "DELETE", "/pairing/credentials", redis=redis)
     except HTTPException as exc:
         logger.warning(
             "Could not notify camera %s to unpair (HTTP %d) — deleting anyway.",

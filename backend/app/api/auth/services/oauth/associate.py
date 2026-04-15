@@ -1,4 +1,5 @@
 """OAuth account association router builder."""
+# spell-checker: ignore annotationlib
 
 from typing import TYPE_CHECKING, Annotated, cast
 

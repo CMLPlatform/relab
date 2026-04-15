@@ -19,7 +19,7 @@ update:
 # Check code style and spelling
 lint:
     uv run mdformat --check docs README.md
-    npx cspell lint "docs/**/*.md" "README.md" --dot --config ../.cspell.yaml
+    npx cspell lint "docs/**/*.md" "README.md" --dot --config ../.cspell.yml
     @echo "✓ Docs linting passed"
 
 # Format documentation

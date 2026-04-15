@@ -100,7 +100,7 @@ ci: check test-ci
 
 # Scan dependencies for known vulnerabilities
 audit:
-    pnpm audit --audit-level=high --prod
+    npm audit --omit=dev --audit-level=high
     @echo "✓ Dependency audit complete"
 
 # Clean caches and build artifacts

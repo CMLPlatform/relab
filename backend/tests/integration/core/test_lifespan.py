@@ -8,6 +8,7 @@ are mocked so these tests run without any real infrastructure.
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -16,9 +17,12 @@ from httpx import CloseError
 from app.core.database import async_engine
 from app.main import app, lifespan
 
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 
 @pytest.fixture(autouse=True)
-def _reset_app_state() -> None:
+def _reset_app_state() -> Generator[None]:
     """Start each lifespan test with a clean app.state."""
     app.state.redis = None
     app.state.email_checker = None

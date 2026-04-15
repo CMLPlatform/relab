@@ -214,10 +214,7 @@ function AppShell() {
           options={{
             title: 'Profile',
             headerLeft: (props) => (
-              <HeaderBackButton
-                {...props}
-                onPress={() => router.replace('/products')}
-              />
+              <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
             ),
           }}
         />
@@ -243,10 +240,7 @@ function AppShell() {
           options={{
             title: 'Add Camera',
             headerLeft: (props) => (
-              <HeaderBackButton
-                {...props}
-                onPress={() => router.replace('/cameras')}
-              />
+              <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
             ),
           }}
         />
@@ -255,10 +249,7 @@ function AppShell() {
           options={{
             title: 'Camera',
             headerLeft: (props) => (
-              <HeaderBackButton
-                {...props}
-                onPress={() => router.replace('/cameras')}
-              />
+              <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
             ),
           }}
         />

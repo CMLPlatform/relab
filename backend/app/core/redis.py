@@ -1,5 +1,6 @@
 """Redis connection management."""
 
+# spell-checker: ignore BLPOP, BRPOP
 import logging
 from typing import TYPE_CHECKING, Annotated
 

@@ -21,19 +21,23 @@ command to the worker that owns the connection:
 Binary payloads (HLS segments, captured images) are base-64 encoded inside
 the JSON response so a single ``decode_responses=True`` Redis client suffices.
 """
+# spell-checker: ignore RPUSH, BLPOP
 
 from __future__ import annotations
 
 import asyncio
 import base64
 import contextlib
+import inspect
 import json
 import logging
 import time
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
     from pydantic import UUID4
     from redis.asyncio import Redis
 
@@ -73,6 +77,13 @@ def _resp_key(msg_id: str) -> str:
 
 # Expire stale response keys in case the requesting worker dies before reading.
 _RESP_TTL_SECONDS = 120
+
+
+async def _await_redis_result[T](result: Awaitable[T] | T) -> T:
+    """Await Redis calls only when the type checker cannot prove they are async."""
+    if inspect.isawaitable(result):
+        return await cast("Awaitable[T]", result)
+    return cast("T", result)
 
 
 # ── Requesting-worker side ─────────────────────────────────────────────────────
@@ -118,7 +129,7 @@ async def relay_cross_worker(
 
     resp_key = _resp_key(msg_id)
 
-    await redis.rpush(_cmd_key(camera_id), command_payload)  # type: ignore[misc]
+    await _await_redis_result(redis.rpush(_cmd_key(camera_id), command_payload))
 
     remaining = deadline - time.monotonic()
     if remaining <= 0:
@@ -130,7 +141,7 @@ async def relay_cross_worker(
     blocking_redis = get_blocking_redis() or redis
     try:
         async with asyncio.timeout(remaining):
-            result = await blocking_redis.blpop(resp_key, timeout=0)  # type: ignore[misc]
+            result = await _await_redis_result(blocking_redis.blpop(resp_key, timeout=0))
     except TimeoutError as exc:
         msg = f"Cross-worker relay timed out waiting for camera response: {path}"
         raise RuntimeError(msg) from exc
@@ -194,7 +205,7 @@ async def run_relay_listener(
             # Block until a command arrives or the task is cancelled.
             # timeout=0 means "block indefinitely" in redis-py.
             try:
-                result = await blocking_redis.blpop(cmd_key, timeout=0)  # type: ignore[misc]
+                result = await _await_redis_result(blocking_redis.blpop(cmd_key, timeout=0))
             except asyncio.CancelledError:
                 break
 
@@ -261,8 +272,8 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": str(exc)})
         with contextlib.suppress(Exception):
-            await redis.rpush(resp_key, error_payload)  # type: ignore[misc]
-            await redis.expire(resp_key, _RESP_TTL_SECONDS)  # type: ignore[misc]
+            await _await_redis_result(redis.rpush(resp_key, error_payload))
+            await _await_redis_result(redis.expire(resp_key, _RESP_TTL_SECONDS))
         return
     except Exception as exc:
         logger.exception(
@@ -272,8 +283,8 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": f"Internal relay error: {exc}"})
         with contextlib.suppress(Exception):
-            await redis.rpush(resp_key, error_payload)  # type: ignore[misc]
-            await redis.expire(resp_key, _RESP_TTL_SECONDS)  # type: ignore[misc]
+            await _await_redis_result(redis.rpush(resp_key, error_payload))
+            await _await_redis_result(redis.expire(resp_key, _RESP_TTL_SECONDS))
         return
 
     response: dict = {
@@ -284,8 +295,8 @@ async def _execute_and_respond(
         response["binary_b64"] = base64.b64encode(binary).decode()
 
     try:
-        await redis.rpush(resp_key, json.dumps(response))  # type: ignore[misc]
-        await redis.expire(resp_key, _RESP_TTL_SECONDS)  # type: ignore[misc]
+        await _await_redis_result(redis.rpush(resp_key, json.dumps(response)))
+        await _await_redis_result(redis.expire(resp_key, _RESP_TTL_SECONDS))
     except Exception:
         logger.exception(
             "Relay listener: failed to push response for command %s (camera %s)",

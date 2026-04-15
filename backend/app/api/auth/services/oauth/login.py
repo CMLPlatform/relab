@@ -1,5 +1,7 @@
 """OAuth login router builder."""
 
+# spell-checker: ignore annotationlib
+
 from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response
