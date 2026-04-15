@@ -20,6 +20,14 @@
   },
   "packageRules": [
     {
+      "groupName": "runtime-containers",
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "pinDigests": true,
+      "automerge": false,
+      "labels": ["runtime-risk", "containers"]
+    },
+    {
       "matchUpdateTypes": ["minor", "patch"],
       "matchPackagePatterns": ["*"],
       "automerge": true,
@@ -32,6 +40,16 @@
       "pinDigests": true,
       "automerge": true,
       "labels": ["automerge", "github-actions"]
+    },
+    {
+      "groupName": "repo-tooling",
+      "matchFileNames": [
+        ".pre-commit-config.yaml",
+        ".github/**",
+        "pyproject.toml",
+        "uv.lock"
+      ],
+      "labels": ["tooling"]
     },
     {
       "groupName": "backend",
@@ -50,7 +68,7 @@
       "matchFileNames": ["frontend-app/package.json", "frontend-app/Dockerfile*"]
     },
     {
-      "groupName": "infrastructure",
+      "groupName": "compose-overlays",
       "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
       "pinDigests": true
     }

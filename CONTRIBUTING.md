@@ -132,10 +132,10 @@ From the repo root:
 
 ```bash
 just setup
-just check
+just validate
 just test
-just test-ci
-just ci
+just test-integration
+just security
 ```
 
 Use `just --list` in any directory to see what is available there.
@@ -257,6 +257,10 @@ If you are new to the repo, start with the architecture docs before making struc
 
 1. Run the relevant checks.
 
+   ```bash
+   just validate
+   ```
+
 1. Push your branch and open a PR.
 
 1. Address review feedback.
@@ -285,10 +289,10 @@ The repo uses GitHub Actions for:
 
 Locally, the important commands are:
 
-- `just check`
+- `just validate`
 - `just test`
-- `just test-ci`
-- `just ci`
+- `just test-integration`
+- `just security`
 
 ## Backend Development
 
@@ -403,7 +407,7 @@ Before opening a docs-focused PR:
 
 ```bash
 cd docs
-just check
+just ci
 ```
 
 To apply formatting:

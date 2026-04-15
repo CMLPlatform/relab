@@ -60,9 +60,9 @@ Infrastructure is orchestrated with Docker Compose from the repo root.
 
 ```bash
 just setup     # install workspace dependencies and pre-commit hooks
-just check     # run repo and subrepo quality checks
+just validate  # run the canonical local validation pipeline
 just test      # run local test suites
-just ci        # run the local CI-equivalent pipeline
+just security  # run dependency and security checks
 just dev       # start the full Docker dev stack with file watching
 ```
 

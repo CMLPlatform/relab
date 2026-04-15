@@ -19,6 +19,9 @@ outputs:
   run-frontend-web-node:
     description: Whether the frontend-web Node audit should run.
     value: ${{ steps.decide.outputs.run-frontend-web-node }}
+  run-container-images:
+    description: Whether container image scanning and SBOM generation should run.
+    value: ${{ steps.decide.outputs.run-container-images }}
 
 runs:
   using: composite
@@ -26,12 +29,14 @@ runs:
     - name: Detect changed paths
       id: filter
       if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
-      uses: dorny/paths-filter@v4
+      uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
       with:
         filters: |
           shared:
             - '.github/**'
             - 'justfile'
+            - '.python-version'
+            - '.nvmrc'
           root-python:
             - 'pyproject.toml'
             - 'uv.lock'
@@ -43,6 +48,13 @@ runs:
             - 'frontend-app/**'
           frontend-web:
             - 'frontend-web/**'
+          containers:
+            - 'compose*.yml'
+            - '**/Dockerfile*'
+            - 'backend/uv.lock'
+            - 'docs/uv.lock'
+            - 'frontend-app/pnpm-lock.yaml'
+            - 'frontend-web/pnpm-lock.yaml'
 
     - name: Decide which security jobs should run
       id: decide
@@ -55,6 +67,7 @@ runs:
         DOCS: ${{ steps.filter.outputs.docs }}
         FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
         FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
+        CONTAINERS: ${{ steps.filter.outputs.containers }}
       run: |
         if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
           echo "run-root-python=true" >> "$GITHUB_OUTPUT"
@@ -62,6 +75,7 @@ runs:
           echo "run-docs-python=true" >> "$GITHUB_OUTPUT"
           echo "run-frontend-app-node=true" >> "$GITHUB_OUTPUT"
           echo "run-frontend-web-node=true" >> "$GITHUB_OUTPUT"
+          echo "run-container-images=true" >> "$GITHUB_OUTPUT"
           exit 0
         fi
 
@@ -70,3 +84,4 @@ runs:
         echo "run-docs-python=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-container-images=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"

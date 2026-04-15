@@ -3,6 +3,7 @@ name: relab_prod # Separate prod containers, networks, and volumes from dev
 
 services:
   backend:
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:prod-local}
     environment:
       ENVIRONMENT: prod
       # Trust forwarded headers only from Docker-internal proxy addresses.
@@ -24,6 +25,7 @@ services:
     env_file: ./backend/.env.prod
 
   backend-migrations:
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:prod-local}
     env_file: ./backend/.env.prod
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
@@ -70,6 +72,15 @@ services:
 
   database:
     env_file: ./backend/.env.prod
+
+  docs:
+    image: ${RELAB_DOCS_IMAGE:-relab-docs:prod-local}
+
+  frontend-app:
+    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:prod-local}
+
+  frontend-web:
+    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:prod-local}
 
   database-backups:
     # Automated database backups to local file system

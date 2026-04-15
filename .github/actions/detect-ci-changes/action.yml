@@ -29,13 +29,15 @@ runs:
     - name: Detect changed paths
       id: filter
       if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
-      uses: dorny/paths-filter@v4
+      uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
       with:
         filters: |
           shared:
             - '.github/**'
             - 'justfile'
             - 'compose*.yml'
+            - '.python-version'
+            - '.nvmrc'
           policy:
             - '.github/**'
             - '.pre-commit-config.yaml'
@@ -43,6 +45,8 @@ runs:
             - '.editorconfig'
             - 'justfile'
             - 'pyproject.toml'
+            - '.python-version'
+            - '.nvmrc'
           backend:
             - 'backend/**'
             - 'compose*.yml'

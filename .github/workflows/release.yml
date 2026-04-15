@@ -19,10 +19,45 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      release-created: ${{ steps.release.outputs.release_created }}
+      tag-name: ${{ steps.release.outputs.tag_name }}
     steps:
       - name: Run release-please
-        uses: googleapis/release-please-action@v4
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
+
+  release-metadata:
+    needs: [release-please]
+    if: needs.release-please.outputs.release-created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Write release metadata
+        run: |
+          cat > release-metadata.json <<EOF
+          {
+            "tag": "${{ needs.release-please.outputs.tag-name }}",
+            "commit_sha": "${{ github.sha }}"
+          }
+          EOF
+
+      - name: Publish release metadata summary
+        run: |
+          {
+            echo "### Release metadata"
+            echo
+            echo "- tag: \`${{ needs.release-please.outputs.tag-name }}\`"
+            echo "- commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive release metadata
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-metadata
+          path: release-metadata.json
+          retention-days: 30

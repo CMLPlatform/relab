@@ -100,7 +100,7 @@ ci: check test-ci
 
 # Scan dependencies for known vulnerabilities
 audit:
-    /home/simon/.local/share/fnm/node-versions/v22.20.0/installation/bin/node /home/simon/.local/share/fnm/node-versions/v22.20.0/installation/lib/node_modules/npm/bin/npm-cli.js audit --omit=dev --audit-level=high
+    pnpm audit --prod --audit-level high
     @echo "✓ Dependency audit complete"
 
 # Clean caches and build artifacts

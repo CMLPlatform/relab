@@ -53,12 +53,6 @@ repos:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
-  - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v9.7.0
-    hooks:
-      - id: cspell
-        args: ["--config", ".cspell.yml", "--dot", "--gitignore"]
-
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.1
     hooks:

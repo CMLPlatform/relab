@@ -53,7 +53,7 @@ For formal architecture views of the platform as a whole, see [C4 Architecture D
 - frontend-web: Vitest and Playwright coverage for the public site
 - docs: formatting, spelling checks, and build smoke tests
 
-The repository also includes dependency maintenance and repository-level checks. Deployment is still largely manual.
+The repository also includes dependency maintenance, image publishing, protected deploy operations, and repository-level checks through GitHub Actions.
 
 ## Operational Considerations
 

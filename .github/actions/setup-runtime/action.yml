@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Setup Runtime
+description: Install just plus optional Python/uv or Node.js toolchains for workflow jobs.
+
+inputs:
+  python-version:
+    description: Python version to install.
+    required: false
+    default: ""
+  uv-cache-dependency-glob:
+    description: Newline-delimited dependency files for uv cache keys.
+    required: false
+    default: ""
+  node-version:
+    description: Node.js version to install.
+    required: false
+    default: ""
+  cache:
+    description: Package manager cache to configure in setup-node.
+    required: false
+    default: pnpm
+  cache-dependency-path:
+    description: Lockfile path used for package-manager cache keys.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      if: inputs.python-version != ''
+      uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+      with:
+        enable-cache: true
+        cache-dependency-glob: ${{ inputs.uv-cache-dependency-glob }}
+
+    - name: Set up Python
+      if: inputs.python-version != ''
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Set up Node.js
+      if: inputs.node-version != ''
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Enable Corepack
+      if: inputs.node-version != ''
+      shell: bash
+      run: corepack enable
+
+    - name: Install just
+      uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3

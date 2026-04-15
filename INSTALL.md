@@ -74,13 +74,13 @@ Self-hosting makes sense for evaluation, institutional deployment, offline use, 
 1. Run checks if needed.
 
    ```bash
-   just check
+   just validate
    just test
    ```
 
 ## Production Deployment
 
-Production deployments are Docker Compose based. In the current setup, Cloudflare Tunnel is used to expose services without directly opening inbound ports.
+Production deployments are Docker Compose based. Cloudflare Tunnel remains the supported ingress path. For now, the normal operational path is still manual on the server: pull the repo and run the appropriate `docker compose` / `just prod-*` commands there.
 
 1. Configure a Cloudflare tunnel.
 
@@ -99,6 +99,8 @@ Production deployments are Docker Compose based. In the current setup, Cloudflar
    ```bash
    just prod-up YES
    ```
+
+   In the current setup, deployment is still done directly on the server.
 
    To enable backend tracing with the bundled OpenTelemetry collector:
 

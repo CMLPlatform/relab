@@ -1,6 +1,6 @@
 {
 	"name": "relab-frontend-app",
-	"dockerComposeFile": ["../../compose.yml", "../../compose.override.yml"],
+	"dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
 	"service": "frontend-app",
 	"runServices": ["frontend-app"],
 	"workspaceFolder": "/opt/relab/frontend-app",

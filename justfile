@@ -5,6 +5,11 @@
 default:
     @just --list
 
+dev_compose := "docker compose -p relab_dev -f compose.yml -f compose.dev.yml"
+test_compose := "docker compose -p relab_test -f compose.yml -f compose.test.yml"
+staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.staging.yml"
+prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml"
+
 # ============================================================================
 # Setup
 # ============================================================================
@@ -58,6 +63,10 @@ check:
     @just frontend-app/check
     @echo "✓ All quality checks passed"
 
+# Canonical fast validation target used locally and in CI
+validate: check test-ci compose-config release-check
+    @echo "✅ Validation pipeline passed"
+
 # Auto-fix code issues where supported
 fix:
     @just backend/fix
@@ -92,16 +101,21 @@ test:
     @just frontend-app/test
     @echo "✅ All tests passed"
 
+# Shared integration-confidence target
+test-integration:
+    @just backend/test-integration
+    @echo "✅ Integration tests passed"
+
 # CI-oriented test suite across all subrepos
 test-ci:
     @just backend/test-ci
-    @just docs/test-ci
+    @just docs/ci
     @just frontend-web/test-ci
     @just frontend-app/test-ci
     @echo "✅ All CI test suites passed"
 
 # Full local CI pipeline
-ci: check test-ci
+ci: validate
     @echo "✅ Local CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
@@ -139,10 +153,40 @@ audit:
     @just frontend-web/audit
     @echo "✅ All dependency audits complete"
 
+# Canonical security target
+security: audit
+    @echo "✅ Security checks complete"
+
 # Run dependency vulnerability audit for root Python tooling
 audit-root:
     uv audit --preview-features audit --frozen --no-dev
     @echo "✓ Root dependency audit complete"
+
+# Check that release automation inputs are internally consistent
+release-check:
+    python3 -c "import json, tomllib; from pathlib import Path; root = Path('.'); root_version = tomllib.loads((root / 'pyproject.toml').read_text())['project']['version']; versions = {'root': root_version, 'backend': tomllib.loads((root / 'backend/pyproject.toml').read_text())['project']['version'], 'docs': tomllib.loads((root / 'docs/pyproject.toml').read_text())['project']['version'], 'frontend-app': json.loads((root / 'frontend-app/package.json').read_text())['version'], 'frontend-web': json.loads((root / 'frontend-web/package.json').read_text())['version'], 'release-please-manifest': json.loads((root / '.github/.release-please-manifest.json').read_text())['.']}; mismatched = {name: version for name, version in versions.items() if version != root_version}; assert not mismatched, f'Release metadata is out of sync with root version {root_version}: {mismatched}'; print(f'✓ Release metadata consistent at version {root_version}')"
+
+# Validate every supported Compose stack shape
+compose-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    created_prod_env=false
+    created_staging_env=false
+    if [[ ! -f backend/.env.prod && -f backend/.env.prod.example ]]; then
+        cp backend/.env.prod.example backend/.env.prod
+        created_prod_env=true
+    fi
+    if [[ ! -f backend/.env.staging && -f backend/.env.staging.example ]]; then
+        cp backend/.env.staging.example backend/.env.staging
+        created_staging_env=true
+    fi
+    trap '[[ "$created_prod_env" == true ]] && rm -f backend/.env.prod; [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging' EXIT
+    {{ dev_compose }} config >/dev/null
+    {{ test_compose }} config >/dev/null
+    {{ staging_compose }} config >/dev/null
+    {{ prod_compose }} config >/dev/null
+    docker compose -p relab_e2e -f compose.e2e.yml config >/dev/null
+    echo "✓ Compose configurations validated"
 
 
 # ============================================================================
@@ -151,19 +195,19 @@ audit-root:
 
 # Start backend + its infrastructure (database, cache) with hot reload
 dev-backend:
-    docker compose up --watch backend
+    {{ dev_compose }} up --watch backend
 
 # Start docs server with hot reload
 dev-docs:
-    docker compose up --watch docs
+    {{ dev_compose }} up --watch docs
 
 # Start frontend-app + backend with hot reload
 dev-frontend-app:
-    docker compose up --watch backend frontend-app
+    {{ dev_compose }} up --watch backend frontend-app
 
 # Start frontend-web + backend with hot reload
 dev-frontend-web:
-    docker compose up --watch backend frontend-web
+    {{ dev_compose }} up --watch backend frontend-web
 
 # ============================================================================
 # Docker: Development
@@ -171,38 +215,36 @@ dev-frontend-web:
 
 # Start full dev stack with hot reload (syncs source changes, auto-rebuilds on lockfile changes)
 dev:
-    docker compose up --watch
+    {{ dev_compose }} up --watch
 
 # Start full dev stack without hot reload (uses source snapshot baked into image)
 dev-up:
-    docker compose up
+    {{ dev_compose }} up
 
 # Build (or rebuild) dev images
 dev-build:
-    docker compose --profile migrations build
+    {{ dev_compose }} --profile migrations build
 
 # Stop and remove dev containers
 dev-down:
-    docker compose down
+    {{ dev_compose }} down
 
 # Tail dev logs (all services)
 dev-logs:
-    docker compose logs -f
+    {{ dev_compose }} logs -f
 
 # Run database migrations (dev); required on first start and after schema changes
 dev-migrate:
-    docker compose --profile migrations up backend-migrations
+    {{ dev_compose }} --profile migrations up backend-migrations
 
 # Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
 dev-reset confirm='':
     @just _require-confirm "wipe the development Docker environment" "just dev-reset YES" "FORCE=1 just dev-reset" "{{ confirm }}"
-    docker compose --profile migrations down -v
+    {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
 # Docker: Production
 # ============================================================================
-
-prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml"
 
 # Start production stack (optional profiles: telemetry, backups, migrations)
 prod-up *PROFILES:
@@ -260,8 +302,6 @@ prod-backups-up confirm='':
 # Docker: Staging
 # ============================================================================
 
-staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.staging.yml"
-
 # Start staging stack (optional profiles: telemetry, migrations)
 staging-up *PROFILES:
     #!/usr/bin/env bash
@@ -310,11 +350,10 @@ staging-migrate confirm='':
     {{ staging_compose }} --profile migrations up backend-migrations
 
 # ============================================================================
-# Docker: CI
+# Docker: Test / CI
 # ============================================================================
 
-### Smoke tests for CI Docker images and orchestration ---
-ci_compose := "docker compose -p relab_ci -f compose.yml -f compose.ci.yml"
+### Smoke tests for test Docker images and orchestration ---
 
 # Internal helper: require explicit confirmation for state-changing commands.
 _require-confirm action example force_example confirm='':
@@ -329,11 +368,11 @@ _require-confirm action example force_example confirm='':
 
 # Internal helper: bring up a CI compose subset and wait for readiness.
 _docker-smoke-up services timeout:
-    {{ ci_compose }} up --build -d --wait --wait-timeout {{ timeout }} {{ services }}
+    {{ test_compose }} up --build -d --wait --wait-timeout {{ timeout }} {{ services }}
 
 # Internal helper: tear down a CI compose subset and its anonymous resources.
 _docker-smoke-down services:
-    {{ ci_compose }} down -v --remove-orphans {{ services }} || true
+    {{ test_compose }} down -v --remove-orphans {{ services }} || true
 
 # Smoke test: backend + its infrastructure (database, cache)
 docker-smoke-backend:
@@ -397,7 +436,7 @@ docker-orchestration-smoke:
     set -euo pipefail
     trap 'just _docker-smoke-down "database cache backend backend-migrations"' EXIT
     just _docker-smoke-up "database cache backend backend-migrations" 120
-    {{ ci_compose }} exec -T backend python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
+    {{ test_compose }} exec -T backend python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
     echo "✅ Docker orchestration smoke test passed"
 
 # Run all smoke tests sequentially (CI runs them in parallel per-service)
@@ -409,15 +448,18 @@ docker-smoke-all:
     @just docker-smoke-user-upload-backups
     @just docker-orchestration-smoke
 
+# Canonical Docker smoke target
+docker-smoke: docker-smoke-all
+
 ### CI test helpers for backend performance regression testing ---
 
 # Build (or rebuild) CI images without cache
 docker-ci-build:
-    {{ ci_compose }} --profile migrations build --no-cache
+    {{ test_compose }} --profile migrations build --no-cache
 
 # Start CI services and wait for readiness
 docker-ci-up services="database cache backend":
-    {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
+    {{ test_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
 
 # Start the CI backend subset (database, cache, backend) and wait for readiness
 docker-ci-backend-up:
@@ -425,16 +467,16 @@ docker-ci-backend-up:
 
 # Run CI migrations and seed dummy data for repeatable backend perf tests
 docker-ci-migrate-dummy:
-    {{ ci_compose }} run --rm -e SEED_DUMMY_DATA=true backend-migrations
+    {{ test_compose }} run --rm -e SEED_DUMMY_DATA=true backend-migrations
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':
     @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
-    {{ ci_compose }}  --profile migrations down -v --remove-orphans
+    {{ test_compose }}  --profile migrations down -v --remove-orphans
 
 # Tail CI stack logs
 docker-ci-logs:
-    {{ ci_compose }} logs -f
+    {{ test_compose }} logs -f
 
 # Run the backend k6 baseline against the CI Docker stack.
 # Keeps the CI stack running; use `just docker-ci-down YES` when done.

@@ -1,6 +1,6 @@
-# compose.override.yml (DEVELOPMENT - automatically used with docker-compose up)
-# Run with: docker compose watch
-name: relab_dev # Separate dev containers, networks, and volumes from prod
+# compose.dev.yml (DEVELOPMENT - explicit dev overlay)
+# Run with: docker compose -f compose.yml -f compose.dev.yml up
+name: relab_dev
 
 services:
   backend:
@@ -72,11 +72,10 @@ services:
     restart: "no"
     ports:
       - "8013:8081"
-    # Enable polling for file watchers (helps Docker/VM mounts on macOS)
     environment:
       EXPO_PUBLIC_API_URL: "http://localhost:8011"
       EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
-      CHOKIDAR_USEPOLLING: "true" # spell-checker: ignore USEPOLLING
+      CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "100"
       WATCHPACK_POLLING: "true"
     develop:

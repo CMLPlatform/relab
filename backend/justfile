@@ -181,7 +181,7 @@ perf-baseline:
     mkdir -p reports/performance
     k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
 
-ci_compose := "docker compose -p relab_ci -f ../compose.yml -f ../compose.ci.yml"
+ci_compose := "docker compose -p relab_test -f ../compose.yml -f ../compose.test.yml"
 k6_docker_image := "grafana/k6:latest"
 
 # Run the backend k6 baseline suite against the Docker CI stack.
@@ -341,11 +341,9 @@ clean:
 # Security
 # ============================================================================
 # Scan runtime Python dependencies for known CVEs.
-# NOTE: `uv audit` currently reports `pygments` from excluded groups in this project,
-
-# so this recipe uses an exported runtime requirements set for accurate scoping.
+# This excludes optional dependency groups and audits only the default runtime set.
 audit:
-    uv export --frozen --no-default-groups
+    uv audit --preview-features audit --frozen --no-default-groups
     @echo "✓ Backend: Runtime dependency audit complete"
 
 # Scan runtime + grouped Python dependencies for known CVEs

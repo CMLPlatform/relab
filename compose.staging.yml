@@ -2,6 +2,7 @@ name: relab_staging
 
 services:
   backend:
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:staging-local}
     env_file: ./backend/.env.staging
     environment:
       ENVIRONMENT: staging
@@ -15,6 +16,7 @@ services:
       DB_POOL_MAX_OVERFLOW: "10"
 
   backend-migrations:
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:staging-local}
     env_file: ./backend/.env.staging
     environment:
       SEED_DUMMY_DATA: True
@@ -36,16 +38,19 @@ services:
     env_file: ./backend/.env.staging
 
   docs:
+    image: ${RELAB_DOCS_IMAGE:-relab-docs:staging-local}
     build:
       args:
         BUILD_MODE: staging
 
   frontend-web:
+    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:staging-local}
     build:
       args:
         BUILD_MODE: staging
 
   frontend-app:
+    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:staging-local}
     build:
       args:
         BUILD_MODE: staging

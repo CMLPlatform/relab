@@ -1,6 +1,6 @@
 {
 	"name": "relab-backend",
-	"dockerComposeFile": ["../../compose.yml", "../../compose.override.yml"],
+	"dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
 	"service": "backend",
 	"runServices": ["backend"],
 	"workspaceFolder": "/opt/relab/backend",

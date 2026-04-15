@@ -1,6 +1,6 @@
-# compose.ci.yml (CI environment, used for testing individual services in CI)
+# compose.test.yml (TEST / CI environment)
 # Provides credentials via .env.test so services can start without real secrets.
-name: relab_ci
+name: relab_test
 
 services:
   backend:

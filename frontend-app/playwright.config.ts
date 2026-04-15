@@ -12,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   just frontend-app/test-e2e   # starts serve on :18081 + runs Playwright
  *   just e2e-backend-down        # stops the backend stack
  *
- * CI: see the e2e-full-stack job in .github/workflows/ci.yml
+ * CI: see the e2e-full-stack job in .github/workflows/validate.yml
  */
 export default defineConfig({
   testDir: './e2e',
