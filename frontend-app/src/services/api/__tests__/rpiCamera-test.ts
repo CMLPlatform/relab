@@ -7,6 +7,7 @@ import {
   deleteCamera,
   fetchCamera,
   fetchCameraSnapshot,
+  fetchCameraSnapshotLocally,
   fetchCameras,
   fetchCameraTelemetry,
   updateCamera,
@@ -257,6 +258,33 @@ describe('rpiCamera API service', () => {
         headers: expect.objectContaining({ Accept: 'image/jpeg' }),
       }),
     );
+  });
+
+  it('fetches a local camera snapshot directly from the Pi', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'image/jpeg' : null),
+      },
+      arrayBuffer: async () => new TextEncoder().encode('local-preview').buffer,
+    } as Response);
+
+    const result = await fetchCameraSnapshotLocally('http://192.168.7.1:8018/', 'local-key');
+
+    expect(result).toBe('data:image/jpeg;base64,bG9jYWwtcHJldmlldw==');
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://192.168.7.1:8018/camera/snapshot',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Accept: 'image/jpeg',
+          'X-API-Key': 'local-key',
+        }),
+      }),
+    );
+
+    fetchSpy.mockRestore();
   });
 
   it('resolves relative last_image_url values against the API base', async () => {

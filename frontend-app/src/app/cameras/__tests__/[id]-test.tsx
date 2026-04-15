@@ -8,7 +8,7 @@ const mockUseAuth = jest.fn();
 const mockUseCameraQuery = jest.fn();
 const mockUseUpdateCameraMutation = jest.fn();
 const mockUseDeleteCameraMutation = jest.fn();
-const mockUseLocalConnection = jest.fn();
+const mockUseEffectiveCameraConnection = jest.fn();
 const mockUpdateMutate = jest.fn();
 const mockDeleteMutate = jest.fn<(_id: string, options?: { onSuccess?: () => void }) => void>();
 
@@ -22,8 +22,8 @@ jest.mock('@/hooks/useRpiCameras', () => ({
   useDeleteCameraMutation: () => mockUseDeleteCameraMutation(),
 }));
 
-jest.mock('@/hooks/useLocalConnection', () => ({
-  useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
+jest.mock('@/hooks/useEffectiveCameraConnection', () => ({
+  useEffectiveCameraConnection: (...args: unknown[]) => mockUseEffectiveCameraConnection(...args),
 }));
 
 jest.mock('@/components/cameras/YouTubeStreamCard', () => ({
@@ -49,6 +49,25 @@ describe('Camera detail screen', () => {
   const mockReplace = jest.fn();
   const mockNavigationSetOptions = jest.fn();
   const mockRefetch = jest.fn();
+  const makeEffectiveConnection = (overrides: Record<string, unknown> = {}) => ({
+    relayStatus: 'online',
+    status: 'online',
+    transport: 'relay',
+    isReachable: true,
+    canUseRelay: true,
+    canUseDirect: false,
+    detailLabel: null,
+    localConnection: {
+      mode: 'relay',
+      localBaseUrl: null,
+      localMediaUrl: null,
+      localApiKey: null,
+      configure: jest.fn(),
+      clearLocalConnection: jest.fn(),
+      isInitializing: false,
+    },
+    ...overrides,
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -84,15 +103,7 @@ describe('Camera detail screen', () => {
     });
     mockUseUpdateCameraMutation.mockReturnValue({ mutate: mockUpdateMutate, isPending: false });
     mockUseDeleteCameraMutation.mockReturnValue({ mutate: mockDeleteMutate, isPending: false });
-    mockUseLocalConnection.mockReturnValue({
-      mode: 'relay',
-      localBaseUrl: null,
-      localMediaUrl: null,
-      localApiKey: null,
-      configure: jest.fn(),
-      clearLocalConnection: jest.fn(),
-      isInitializing: false,
-    });
+    mockUseEffectiveCameraConnection.mockReturnValue(makeEffectiveConnection());
   });
 
   it('renders the live preview component for an online camera and sets the screen title', async () => {
@@ -133,6 +144,15 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
+    mockUseEffectiveCameraConnection.mockReturnValue(
+      makeEffectiveConnection({
+        relayStatus: 'offline',
+        status: 'offline',
+        transport: 'unreachable',
+        isReachable: false,
+        canUseRelay: false,
+      }),
+    );
     renderWithProviders(<CameraDetailScreen />);
 
     expect(
@@ -172,6 +192,15 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
+    mockUseEffectiveCameraConnection.mockReturnValue(
+      makeEffectiveConnection({
+        relayStatus: 'offline',
+        status: 'offline',
+        transport: 'unreachable',
+        isReachable: false,
+        canUseRelay: false,
+      }),
+    );
 
     renderWithProviders(<CameraDetailScreen />);
 
@@ -188,6 +217,15 @@ describe('Camera detail screen', () => {
       refetch: mockRefetch,
       isFetching: false,
     });
+    mockUseEffectiveCameraConnection.mockReturnValue(
+      makeEffectiveConnection({
+        relayStatus: 'offline',
+        status: 'offline',
+        transport: 'unreachable',
+        isReachable: false,
+        canUseRelay: false,
+      }),
+    );
 
     renderWithProviders(<CameraDetailScreen />);
 

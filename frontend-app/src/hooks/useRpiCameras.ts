@@ -16,6 +16,7 @@ import {
   deleteCamera,
   fetchCamera,
   fetchCameraSnapshot,
+  fetchCameraSnapshotLocally,
   fetchCameras,
   fetchCameraTelemetry,
   getStreamStatus,
@@ -88,13 +89,30 @@ export function useCameraSnapshotQuery(
   cameraId: string | null,
   {
     enabled = true,
+    connectionInfo,
     refetchInterval = 30_000,
-  }: { enabled?: boolean; refetchInterval?: number } = {},
+  }: {
+    enabled?: boolean;
+    connectionInfo?: CameraConnectionInfo;
+    refetchInterval?: number;
+  } = {},
 ) {
+  const localSnapshotBaseUrl =
+    connectionInfo?.mode === 'local' ? connectionInfo.localBaseUrl : null;
+  const localSnapshotApiKey = connectionInfo?.mode === 'local' ? connectionInfo.localApiKey : null;
+  const isLocalSnapshot = !!localSnapshotBaseUrl && !!localSnapshotApiKey;
+
   return useQuery({
-    queryKey: ['rpiCameraSnapshot', cameraId] as const,
+    queryKey: [
+      'rpiCameraSnapshot',
+      cameraId,
+      isLocalSnapshot ? localSnapshotBaseUrl : 'relay',
+    ] as const,
     queryFn: ({ signal }) => {
       if (!cameraId) throw new Error('cameraId is required');
+      if (localSnapshotBaseUrl && localSnapshotApiKey) {
+        return fetchCameraSnapshotLocally(localSnapshotBaseUrl, localSnapshotApiKey, signal);
+      }
       return fetchCameraSnapshot(cameraId, signal);
     },
     enabled: enabled && !!cameraId,

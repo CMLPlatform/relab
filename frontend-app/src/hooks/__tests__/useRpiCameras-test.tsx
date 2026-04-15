@@ -8,6 +8,7 @@ import {
   deleteCamera,
   fetchCamera,
   fetchCameraSnapshot,
+  fetchCameraSnapshotLocally,
   fetchCameras,
   updateCamera,
 } from '@/services/api/rpiCamera';
@@ -30,6 +31,7 @@ jest.mock('@/services/api/rpiCamera', () => ({
   fetchCamera: jest.fn(),
   fetchCameraTelemetry: jest.fn(),
   fetchCameraSnapshot: jest.fn(),
+  fetchCameraSnapshotLocally: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
   claimPairingCode: jest.fn(),
@@ -40,6 +42,7 @@ jest.mock('@/services/api/rpiCamera', () => ({
 const mockedFetchCameras = jest.mocked(fetchCameras);
 const mockedFetchCamera = jest.mocked(fetchCamera);
 const mockedFetchCameraSnapshot = jest.mocked(fetchCameraSnapshot);
+const mockedFetchCameraSnapshotLocally = jest.mocked(fetchCameraSnapshotLocally);
 const mockedUpdateCamera = jest.mocked(updateCamera);
 const mockedDeleteCamera = jest.mocked(deleteCamera);
 const mockedClaimPairingCode = jest.mocked(claimPairingCode);
@@ -220,6 +223,32 @@ describe('useCameraSnapshotQuery', () => {
 
     await waitFor(() => expect(result.current.data).toBe('data:image/jpeg;base64,c2hvdA=='));
     expect(mockedFetchCameraSnapshot).toHaveBeenCalledWith('cam-10', expect.any(Object));
+  });
+
+  it('fetches snapshots directly from the Pi when local connection info is available', async () => {
+    mockedFetchCameraSnapshotLocally.mockResolvedValue('data:image/jpeg;base64,bG9jYWw=');
+
+    const { result } = renderHook(
+      () =>
+        useCameraSnapshotQuery('cam-local', {
+          enabled: true,
+          connectionInfo: {
+            mode: 'local',
+            localBaseUrl: 'http://192.168.7.1:8018',
+            localMediaUrl: 'http://192.168.7.1:8888',
+            localApiKey: 'local-key',
+          },
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toBe('data:image/jpeg;base64,bG9jYWw='));
+    expect(mockedFetchCameraSnapshotLocally).toHaveBeenCalledWith(
+      'http://192.168.7.1:8018',
+      'local-key',
+      expect.any(Object),
+    );
+    expect(mockedFetchCameraSnapshot).not.toHaveBeenCalled();
   });
 
   it('stays idle when disabled or when the camera id is missing', () => {

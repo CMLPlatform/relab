@@ -17,7 +17,7 @@ import {
 import { LivePreview } from '@/components/cameras/LivePreview';
 import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
 import { useAuth } from '@/context/AuthProvider';
-import { useLocalConnection } from '@/hooks/useLocalConnection';
+import { useEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
@@ -157,9 +157,10 @@ export default function CameraDetailScreen() {
   const [localSetupSaving, setLocalSetupSaving] = useState(false);
   const [previewEnabled, setPreviewEnabled] = useState(true);
 
-  const isOnline = camera?.status?.connection === 'online';
-  const localConnection = useLocalConnection(id ?? '', { isOnline });
-  const canPreview = isOnline || localConnection.mode === 'local';
+  const effectiveConnection = useEffectiveCameraConnection(camera, id ?? '');
+  const { localConnection } = effectiveConnection;
+  const isOnline = effectiveConnection.relayStatus === 'online';
+  const canPreview = effectiveConnection.isReachable;
 
   useEffect(() => {
     if (!user) {

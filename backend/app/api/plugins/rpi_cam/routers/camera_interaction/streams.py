@@ -1,7 +1,9 @@
 """Camera stream interaction routes."""
 
+from __future__ import annotations
+
 import logging
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Body, HTTPException
 from pydantic import UUID4, PositiveInt, ValidationError
@@ -28,7 +30,9 @@ from app.api.plugins.rpi_cam.examples import (
 from app.api.plugins.rpi_cam.exceptions import (
     GoogleOAuthAssociationRequiredError,
     InvalidCameraResponseError,
+    InvalidRecordingSessionDataError,
     NoActiveYouTubeRecordingError,
+    RecordingSessionNotFoundError,
 )
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
@@ -45,6 +49,13 @@ from app.api.plugins.rpi_cam.services import (
 )
 from app.core.logging import sanitize_log_value
 from app.core.redis import OptionalRedisDep, require_redis
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from redis.asyncio import Redis
+
+    from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
 
 # Initialize router
 router = PublicAPIRouter()
@@ -163,16 +174,22 @@ async def start_recording(
     # Initialize YouTube service
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
 
+    # Fetch user camera up-front so the idempotency check can verify an existing session against the Pi.
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
+    camera_request = build_camera_request(camera, redis)
+
+    # Idempotency guard: if a prior POST already started a recording but the response never reached
+    # the client (network retry), return the live StreamView instead of creating a second broadcast.
+    existing_stream = await _resolve_existing_recording(redis_client, camera_id, camera_request)
+    if existing_stream is not None:
+        return existing_stream
+
     # Create livestream
     youtube_config = await youtube_service.setup_livestream(
         resolved_title,
         privacy_status=privacy_status,
         description=resolved_description,
     )
-
-    # Fetch user camera
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera, redis)
 
     # Start Youtube stream
     response = await camera_request(
@@ -205,14 +222,14 @@ async def start_recording(
                 video_metadata=serialize_stream_metadata(stream_info.metadata),
             ),
         )
-    except HTTPException, APIError:
+    except (HTTPException, APIError):
         try:
             await camera_request(
                 endpoint=PLUGIN_STREAM_ENDPOINT,
                 method=HttpMethod.DELETE,
                 error_msg="Failed to roll back stream after recording session storage failure",
             )
-        except HTTPException as cleanup_error:
+        except (HTTPException, APIError) as cleanup_error:
             logger.warning(
                 "Failed to roll back camera stream for camera %s: %s",
                 sanitize_log_value(camera_id),
@@ -231,6 +248,57 @@ async def start_recording(
     return stream_info
 
 
+async def _resolve_existing_recording(
+    redis_client: Redis,
+    camera_id: UUID4,
+    camera_request: Callable[..., Awaitable[RelayResponse]],
+) -> StreamView | None:
+    """Return the live StreamView if a recording session already exists and is still active.
+
+    If the cached session is stale (Pi lost the stream, or mode is not YouTube), the session is
+    cleared and ``None`` is returned so the caller can proceed with a fresh recording.
+    """
+    try:
+        await load_recording_session(redis_client, camera_id)
+    except RecordingSessionNotFoundError:
+        return None
+    except InvalidRecordingSessionDataError as exc:
+        logger.warning(
+            "Cached recording session for camera %s is corrupt (%s); clearing",
+            sanitize_log_value(camera_id),
+            sanitize_log_value(exc),
+        )
+        await clear_recording_session(redis_client, camera_id)
+        return None
+
+    try:
+        response = await camera_request(
+            endpoint=PLUGIN_STREAM_ENDPOINT,
+            method=HttpMethod.GET,
+            error_msg="Failed to verify existing recording stream",
+        )
+        stream_view = StreamView.model_validate(response.json())
+    except (APIError, ValidationError) as exc:
+        logger.warning(
+            "Cached recording session for camera %s could not be verified (%s); clearing",
+            sanitize_log_value(camera_id),
+            sanitize_log_value(exc),
+        )
+        await clear_recording_session(redis_client, camera_id)
+        return None
+
+    if stream_view.mode != StreamMode.YOUTUBE:
+        logger.warning(
+            "Cached recording session for camera %s is stale (mode=%s); clearing",
+            sanitize_log_value(camera_id),
+            sanitize_log_value(stream_view.mode),
+        )
+        await clear_recording_session(redis_client, camera_id)
+        return None
+
+    return stream_view
+
+
 @router.delete(
     "/{camera_id}/stream/record/stop",
     response_model=VideoRead,
@@ -243,7 +311,13 @@ async def stop_recording(
     redis: OptionalRedisDep,
     current_user: CurrentActiveUserDep,
 ) -> VideoRead:
-    """Stop the active YouTube recording, end the livestream, and create the video record."""
+    """Stop the active YouTube recording, end the livestream, and create the video record.
+
+    Cleanup order is: YouTube first, then the Pi. If the Pi is offline the YouTube broadcast
+    must still be torn down to avoid leaving orphan broadcasts on the user's channel. A Pi
+    cleanup failure degrades to a warning — the recording state on YouTube is what the user
+    cares about, and a running MediaMTX stream will eventually be noticed and stopped anyway.
+    """
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
 
@@ -260,13 +334,22 @@ async def stop_recording(
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
     camera_request = build_camera_request(camera, redis)
 
-    await camera_request(
-        endpoint=PLUGIN_STREAM_ENDPOINT,
-        method=HttpMethod.DELETE,
-        error_msg="Failed to stop stream",
-    )
-
+    # End the YouTube broadcast first so a Pi outage cannot strand an orphan live broadcast.
+    # If this fails we leave the recording session in Redis so the caller can retry.
     await youtube_service.end_livestream(recording_session.broadcast_key)
+
+    try:
+        await camera_request(
+            endpoint=PLUGIN_STREAM_ENDPOINT,
+            method=HttpMethod.DELETE,
+            error_msg="Failed to stop stream",
+        )
+    except (HTTPException, APIError) as camera_cleanup_error:
+        logger.warning(
+            "YouTube broadcast ended but Pi stream cleanup failed for camera %s: %s",
+            sanitize_log_value(camera_id),
+            sanitize_log_value(camera_cleanup_error),
+        )
 
     video = VideoCreate(
         url=recording_session.stream_url,

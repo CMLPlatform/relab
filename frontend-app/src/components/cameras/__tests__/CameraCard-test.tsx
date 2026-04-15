@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
+import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { renderWithProviders } from '@/test-utils';
 import { CameraCard } from '../CameraCard';
@@ -88,6 +89,32 @@ describe('CameraCard', () => {
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();
     expect(screen.getByText('No preview available')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
+  });
+
+  it('does not call the backend snapshot endpoint for direct-only cards without a local key', () => {
+    mockUseCameraSnapshotQuery.mockReturnValue({ data: null, isLoading: false });
+    const camera = makeCamera({
+      status: { connection: 'offline', last_seen_at: null, details: null },
+    });
+
+    renderWithProviders(
+      <CameraCard
+        camera={camera}
+        effectiveConnection={resolveEffectiveCameraConnection(camera, {
+          mode: 'local',
+          localBaseUrl: 'http://192.168.7.1:8018',
+          localMediaUrl: 'http://192.168.7.1:8888',
+          localApiKey: null,
+        })}
+      />,
+    );
+
+    expect(mockUseCameraSnapshotQuery).toHaveBeenCalledWith('cam-1', {
+      enabled: false,
+      connectionInfo: expect.objectContaining({ mode: 'local', localApiKey: null }),
+    });
+    expect(screen.getByText('Online')).toBeOnTheScreen();
+    expect(screen.getByText('Direct connection')).toBeOnTheScreen();
   });
 
   it('offline: card has opacity 0.6, "Offline" chip, "Last seen" text; no thumbnail even with last_image_url', () => {

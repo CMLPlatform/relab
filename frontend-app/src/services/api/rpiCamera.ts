@@ -139,6 +139,26 @@ export async function fetchCameraSnapshot(cameraId: string, signal?: AbortSignal
   return `data:${contentType};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
+export async function fetchCameraSnapshotLocally(
+  localBaseUrl: string,
+  localApiKey: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/camera/snapshot`, {
+    method: 'GET',
+    headers: {
+      Accept: 'image/jpeg',
+      'X-API-Key': localApiKey,
+    },
+    signal,
+  });
+  if (!resp.ok) throw new Error(`Failed to fetch local camera snapshot (${resp.status})`);
+
+  const contentType = resp.headers.get('content-type')?.split(';')[0] ?? 'image/jpeg';
+  const bytes = await resp.arrayBuffer();
+  return `data:${contentType};base64,${Buffer.from(bytes).toString('base64')}`;
+}
+
 export async function updateCamera(id: string, data: CameraUpdate): Promise<CameraRead> {
   const resp = await fetchWithAuth(`${BASE}/${id}`, {
     method: 'PATCH',

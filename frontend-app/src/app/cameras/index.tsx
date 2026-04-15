@@ -20,8 +20,12 @@ import { CameraCard } from '@/components/cameras/CameraCard';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import {
+  type EffectiveCameraConnection,
+  resolveEffectiveCameraConnection,
+  useEffectiveCameraConnection,
+} from '@/hooks/useEffectiveCameraConnection';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
-import { type CameraConnectionInfo, useLocalConnection } from '@/hooks/useLocalConnection';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
 import { addProductVideo } from '@/services/api/products';
@@ -74,7 +78,7 @@ function streamDialogReducer(
 const DESKTOP_COLUMNS = 3;
 const MOBILE_COLUMNS = 2;
 
-type LocalConnectionSnapshot = Pick<CameraConnectionInfo, 'mode' | 'localBaseUrl'>;
+type EffectiveConnectionSnapshot = Pick<EffectiveCameraConnection, 'isReachable' | 'transport'>;
 
 export default function CamerasScreen() {
   const router = useRouter();
@@ -132,8 +136,8 @@ export default function CamerasScreen() {
   const { setActiveStream } = useStreamSession();
   const queryClient = useQueryClient();
   const [snackbar, setSnackbar] = useState<string | null>(null);
-  const [localConnectionByCameraId, setLocalConnectionByCameraId] = useState<
-    Record<string, LocalConnectionSnapshot>
+  const [effectiveConnectionByCameraId, setEffectiveConnectionByCameraId] = useState<
+    Record<string, EffectiveConnectionSnapshot>
   >({});
 
   // ── Multi-select state ─────────────────────────────────────────────────────
@@ -195,18 +199,21 @@ export default function CamerasScreen() {
   const rows = cameras ?? [];
   const isCameraReachable = useCallback(
     (camera: CameraReadWithStatus) =>
-      camera.status?.connection === 'online' ||
-      localConnectionByCameraId[camera.id]?.mode === 'local',
-    [localConnectionByCameraId],
+      effectiveConnectionByCameraId[camera.id]?.isReachable ??
+      resolveEffectiveCameraConnection(camera).isReachable,
+    [effectiveConnectionByCameraId],
   );
   const onlineCameras = rows.filter(isCameraReachable);
   const onlineCount = onlineCameras.length;
 
-  const handleLocalConnectionChange = useCallback(
-    (cameraId: string, connection: LocalConnectionSnapshot) => {
-      setLocalConnectionByCameraId((prev) => {
+  const handleEffectiveConnectionChange = useCallback(
+    (cameraId: string, connection: EffectiveConnectionSnapshot) => {
+      setEffectiveConnectionByCameraId((prev) => {
         const current = prev[cameraId];
-        if (current?.mode === connection.mode && current.localBaseUrl === connection.localBaseUrl) {
+        if (
+          current?.isReachable === connection.isReachable &&
+          current.transport === connection.transport
+        ) {
           return prev;
         }
         return { ...prev, [cameraId]: connection };
@@ -389,7 +396,7 @@ export default function CamerasScreen() {
             selected={selectedIds.has(item.id)}
             onPress={handleCardTap}
             onLongPress={handleCardLongPress}
-            onLocalConnectionChange={handleLocalConnectionChange}
+            onEffectiveConnectionChange={handleEffectiveConnectionChange}
           />
         )}
         numColumns={numColumns}
@@ -491,24 +498,27 @@ function CameraGridCell({
   selected,
   onPress,
   onLongPress,
-  onLocalConnectionChange,
+  onEffectiveConnectionChange,
 }: {
   camera: CameraReadWithStatus;
   selected: boolean;
   onPress: (camera: CameraReadWithStatus) => void;
   onLongPress: (camera: CameraReadWithStatus) => void;
-  onLocalConnectionChange: (cameraId: string, connection: LocalConnectionSnapshot) => void;
+  onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
 }) {
-  const relayOnline = camera.status?.connection === 'online';
-  const localConnection = useLocalConnection(camera.id, { isOnline: relayOnline });
-  const isDirect = localConnection.mode === 'local';
+  const effectiveConnection = useEffectiveCameraConnection(camera);
 
   useEffect(() => {
-    onLocalConnectionChange(camera.id, {
-      mode: localConnection.mode,
-      localBaseUrl: localConnection.localBaseUrl,
+    onEffectiveConnectionChange(camera.id, {
+      isReachable: effectiveConnection.isReachable,
+      transport: effectiveConnection.transport,
     });
-  }, [camera.id, localConnection.localBaseUrl, localConnection.mode, onLocalConnectionChange]);
+  }, [
+    camera.id,
+    effectiveConnection.isReachable,
+    effectiveConnection.transport,
+    onEffectiveConnectionChange,
+  ]);
 
   return (
     <View style={styles.cell}>
@@ -522,11 +532,7 @@ function CameraGridCell({
           selected && styles.cellSelected,
         ]}
       >
-        <CameraCard
-          camera={camera}
-          connectionOverride={isDirect ? 'online' : undefined}
-          connectionDetail={isDirect ? 'Direct connection' : undefined}
-        />
+        <CameraCard camera={camera} effectiveConnection={effectiveConnection} />
       </Pressable>
     </View>
   );

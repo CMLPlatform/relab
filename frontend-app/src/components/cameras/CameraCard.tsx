@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
+import type { EffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import { useCameraSnapshotQuery } from '@/hooks/useRpiCameras';
 import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
 
@@ -78,19 +79,25 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  */
 export function CameraCard({
   camera,
-  connectionOverride,
-  connectionDetail,
+  effectiveConnection,
 }: {
   camera: CameraReadWithStatus;
-  connectionOverride?: CameraConnectionStatus;
-  connectionDetail?: string;
+  effectiveConnection?: EffectiveCameraConnection;
 }) {
   const theme = useTheme();
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
-  const connection = connectionOverride ?? camera.status?.connection ?? 'offline';
+  const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
+  const hasDirectSnapshotCredentials =
+    effectiveConnection?.canUseDirect &&
+    !!effectiveConnection.localConnection.localBaseUrl &&
+    !!effectiveConnection.localConnection.localApiKey;
+  const canUseRelaySnapshot =
+    effectiveConnection?.canUseRelay ?? camera.status?.connection === 'online';
+  const shouldFetchSnapshot = isOnline && (canUseRelaySnapshot || !!hasDirectSnapshotCredentials);
   const snapshotQuery = useCameraSnapshotQuery(isOnline ? camera.id : null, {
-    enabled: isOnline,
+    enabled: shouldFetchSnapshot,
+    connectionInfo: effectiveConnection?.localConnection,
   });
   const resolvedThumbnailUrl = snapshotQuery.data ?? null;
   const hasThumbnail =
@@ -159,9 +166,9 @@ export function CameraCard({
           <View style={styles.cardChips}>
             <StatusBadge status={connection} />
             {isOnline ? (
-              connectionDetail ? (
+              effectiveConnection?.detailLabel ? (
                 <Text variant="labelSmall" style={styles.lastSeenText}>
-                  {connectionDetail}
+                  {effectiveConnection.detailLabel}
                 </Text>
               ) : (
                 <TelemetryBadge telemetry={camera.telemetry} />
