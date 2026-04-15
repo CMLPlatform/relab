@@ -1,15 +1,15 @@
 {
-    admin off
+	admin off
 }
 
 :8081 {
-    root * /srv
-    encode zstd gzip
+	root * /srv
+	encode zstd gzip
 
-    handle /health {
-        respond "ok" 200
-    }
+	handle /health {
+		respond "ok" 200
+	}
 
-    try_files {path} /index.html
-    file_server
+	try_files {path} /index.html
+	file_server
 }

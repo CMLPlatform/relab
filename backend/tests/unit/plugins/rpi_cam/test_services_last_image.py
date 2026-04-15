@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.api.file_storage import schemas as file_storage_schemas
 from app.api.file_storage.models import Image, MediaParentType
+from app.api.plugins.rpi_cam import services as rpi_cam_services
 from app.api.plugins.rpi_cam.services import get_last_image_url_per_camera
 
 if TYPE_CHECKING:
@@ -37,9 +37,10 @@ def _stub_image_url_builder(monkeypatch: pytest.MonkeyPatch) -> None:
         def model_validate(cls, image: Image) -> _FakeImageRead:
             return cls(image_url=f"/fake/images/{image.id.hex}.jpg")
 
-    # Patch the symbol in the file_storage.schemas module since the
-    # services.get_last_image_url_per_camera uses a lazy import.
-    monkeypatch.setattr(file_storage_schemas, "ImageRead", _FakeImageRead)
+    # Patch the name as it is bound in the services module — the top-level
+    # ``from ... import ImageRead`` creates a local reference there, so we must
+    # target that reference rather than the originating schema module.
+    monkeypatch.setattr(rpi_cam_services, "ImageRead", _FakeImageRead)
 
 
 async def _persist_image(
