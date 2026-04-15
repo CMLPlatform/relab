@@ -115,9 +115,10 @@ class TestFileStorageCrud:
         with (
             patch("app.api.file_storage.crud.parent_model_for_type") as mock_parent_model,
             patch("app.api.file_storage.crud.require_model"),
-            patch.object(crud.file_storage_service, "_storage") as mock_storage,
+            patch("app.api.file_storage.crud._get_file_storage") as mock_get_storage,
         ):
             mock_parent_model.return_value = MagicMock()
+            mock_storage = mock_get_storage.return_value
             mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
 
             result = await create_file(mock_session, file_create)
@@ -145,8 +146,9 @@ class TestFileStorageCrud:
 
         with (
             patch("app.api.file_storage.crud.require_model"),
-            patch.object(crud.file_storage_service, "_storage") as mock_storage,
+            patch("app.api.file_storage.crud._get_file_storage") as mock_get_storage,
         ):
+            mock_storage = mock_get_storage.return_value
             mock_storage.write_upload = AsyncMock(return_value="stored_test.txt")
 
             result = await create_file(mock_session, file_create)
@@ -233,8 +235,9 @@ class TestImageStorageCrud:
                 "app.api.file_storage.crud.require_model",
                 return_value=ProductFactory.build(id=1, owner_id=uuid4(), first_image_id=uuid4()),
             ),
-            patch.object(crud.image_storage_service, "_storage") as mock_storage,
+            patch("app.api.file_storage.crud._get_image_storage") as mock_get_storage,
         ):
+            mock_storage = mock_get_storage.return_value
             mock_storage.write_image_upload = AsyncMock(return_value="stored_image.png")
             result = await crud.create_image(mock_session, image_create)
             assert isinstance(result, Image)

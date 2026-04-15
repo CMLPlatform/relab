@@ -8,7 +8,6 @@ are mocked so these tests run without any real infrastructure.
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -21,6 +20,7 @@ from app.main import app, lifespan
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from pathlib import Path
 
 
 @pytest.fixture(autouse=True)

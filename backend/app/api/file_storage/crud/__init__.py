@@ -285,11 +285,10 @@ class FileStorageService(StoredMediaService[File, FileCreate]):
 
     def __init__(self) -> None:
         super().__init__(model=File, max_size_mb=MAX_FILE_SIZE_MB)
-        self._storage = _get_file_storage()
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist a generic file upload."""
-        return await self._storage.write_upload(upload_file, filename)
+        return await _get_file_storage().write_upload(upload_file, filename)
 
 
 class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal]):
@@ -297,11 +296,10 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
 
     def __init__(self) -> None:
         super().__init__(model=Image, max_size_mb=MAX_IMAGE_SIZE_MB)
-        self._storage = _get_image_storage()
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an image upload."""
-        return await self._storage.write_image_upload(upload_file, filename)
+        return await _get_image_storage().write_image_upload(upload_file, filename)
 
     async def after_create(self, db: AsyncSession, item: Image) -> Image:
         """Process the saved image after it has been persisted."""

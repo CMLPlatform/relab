@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -38,14 +39,22 @@ class _NoNetworkTransport(httpx.AsyncBaseTransport):
         return httpx.Response(200, content=b"")
 
 
-# Shared outbound HTTP client for tests — never reaches the internet.
-_test_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
-
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
     from pathlib import Path
 
     from redis.asyncio import Redis
+
+
+def _configure_test_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point storage settings at per-test temp dirs."""
+    uploads_path = tmp_path / "uploads"
+    file_storage_path = uploads_path / "files"
+    image_storage_path = uploads_path / "images"
+
+    monkeypatch.setattr(settings, "uploads_path", uploads_path)
+    monkeypatch.setattr(settings, "file_storage_path", file_storage_path)
+    monkeypatch.setattr(settings, "image_storage_path", image_storage_path)
 
 
 @pytest.fixture
@@ -74,13 +83,7 @@ async def async_client(
     Disables rate limiting for tests.
     Sets up Redis for on_after_login hooks.
     """
-    uploads_path = tmp_path / "uploads"
-    file_storage_path = uploads_path / "files"
-    image_storage_path = uploads_path / "images"
-
-    monkeypatch.setattr(settings, "uploads_path", uploads_path)
-    monkeypatch.setattr(settings, "file_storage_path", file_storage_path)
-    monkeypatch.setattr(settings, "image_storage_path", image_storage_path)
+    _configure_test_storage(tmp_path, monkeypatch)
 
     async def override_get_session() -> AsyncGenerator[AsyncSession]:
         yield session
@@ -88,28 +91,28 @@ async def async_client(
     test_app.dependency_overrides[get_async_session] = override_get_session
 
     limiter.enabled = False
+    outbound_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
 
-    async with test_app.router.lifespan_context(test_app):
-        # Set up redis for on_after_login hooks
-        test_app.state.redis = mock_redis_dependency
+    with (
+        patch("app.main.init_redis", return_value=mock_redis_dependency),
+        patch("app.main.init_blocking_redis", return_value=None),
+        patch("app.main.create_http_client", return_value=outbound_http_client),
+    ):
+        async with test_app.router.lifespan_context(test_app):
+            init_fastapi_cache(mock_redis_dependency)
 
-        # Provide the shared outbound HTTP client (used by UserManager for Have I Been Pwnd checks etc.)
-        test_app.state.http_client = _test_http_client
+            async with httpx.AsyncClient(
+                transport=ASGITransport(app=test_app),
+                base_url="http://test",
+                follow_redirects=True,
+            ) as client:
+                yield client
 
-        init_fastapi_cache(mock_redis_dependency)
-
-        async with httpx.AsyncClient(
-            transport=ASGITransport(app=test_app),
-            base_url="http://test",
-            follow_redirects=True,
-        ) as client:
-            yield client
-
-        # Cleanup
-        test_app.state.redis = None
-        await close_fastapi_cache()
-        limiter.enabled = True
-        test_app.dependency_overrides.clear()
+            # Cleanup
+            test_app.state.redis = None
+            await close_fastapi_cache()
+            limiter.enabled = True
+            test_app.dependency_overrides.clear()
 
 
 @pytest.fixture

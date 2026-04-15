@@ -1,6 +1,5 @@
 """Data fixtures for pre-populating test database."""
 
-
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
