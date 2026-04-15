@@ -1,50 +1,28 @@
 # syntax=docker/dockerfile:1.10
 
-# --- Build stage ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
+FROM node:22-bookworm-slim@sha256:ef5d50c59a5eed0fa793b8390a88a298f30e438f56ce4488d9d8df7f93e7abdf AS build
 WORKDIR /opt/relab/docs
 
-# uv optimizations
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0
+ENV CI=1
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
+RUN corepack enable
 
-# Install build dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
-# Copy source files
-COPY zensical.toml ./
-COPY docs ./docs
-COPY overrides ./overrides
+COPY . .
 
-# Inject the current year into the copyright string.
-# zensical.toml uses <year> as a placeholder since zensical does not yet
-# support build-time variable substitution.
-# TODO: Revisit when it does.
-RUN sed -i "s/<year>/$(date +%Y)/g" zensical.toml
-
-# Replace the base URL for staging builds so links/sitemaps point to the
-# staging domain. Same limitation as above — needs sed until zensical
-# supports environment variable substitution in config.
-# Tracking: https://github.com/CMLPlatform/relab/issues
-# TODO: Update when resolved.
 ARG BUILD_MODE=prod
-RUN if [ "$BUILD_MODE" = "staging" ]; then \
-    sed -i 's#https://docs.cml-relab.org#https://docs-test.cml-relab.org#g' zensical.toml; \
-    fi
+ARG PUBLIC_SITE_URL
+ENV BUILD_MODE=${BUILD_MODE}
+ENV PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
 
-# Build the static site with zensical
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv run zensical build --clean
+RUN pnpm run build:${BUILD_MODE}
 
-# --- Runtime stage ---
 FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa
 
-COPY --link --from=build /opt/relab/docs/site /srv
+COPY --link --from=build /opt/relab/docs/dist /srv
 COPY --link Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8000

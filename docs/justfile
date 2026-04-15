@@ -8,52 +8,62 @@ default:
 
 # Install dependencies
 install:
-    uv sync --all-groups --frozen
+    pnpm install --frozen-lockfile
     @echo "✓ Docs dependencies installed"
+
+# Regenerate the lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+    @echo "✓ Docs lockfile refreshed"
 
 # Update dependencies
 update:
-    uv lock --upgrade
+    npx @astrojs/upgrade
     @echo "✓ Docs dependencies updated"
 
-# Check code style and spelling
+# Check source quality
 lint:
-    uv run mdformat --check docs README.md
-    npx cspell lint "docs/**/*.md" "README.md" --dot --config ../.cspell.yml
+    pnpm run lint
     @echo "✓ Docs linting passed"
 
 # Format documentation
 format:
-    uv run mdformat docs README.md
+    pnpm run format
     @echo "✓ Docs formatted"
 
 # Automatically fix formatting issues
 fix: format
 
 # Run all quality checks (linting + build smoke test)
-check: lint build
+check:
+    pnpm run check
     @echo "✓ Docs checks passed"
 
 # Start development server with live reload
 dev PORT="8000":
-    uv run zensical serve --open --dev-addr localhost:{{PORT}}
+    pnpm run dev -- --port {{PORT}}
 
 # Build the documentation site locally
 build:
-    uv run zensical build --clean
+    pnpm run build
     @echo "✓ Docs built successfully"
 
-# Smoke-test the build
-test: build
+# Print a simple static output budget for local review
+size:
+    du -sh dist
+    find dist -type f | sort | xargs du -h
 
-# Scan Python dependencies for known CVEs
+# Smoke-test the build
+test:
+    pnpm run test
+    @echo "✓ Docs tests passed"
+
+# Scan Node dependencies for known CVEs
 audit:
-    uv audit --preview-features audit --frozen --no-dev
-    @echo "✓ Docs: dependency audit complete"
+    pnpm run audit
+    @echo "✓ Docs dependency audit complete"
 
 # Clean caches and generated site output
 clean:
-    rm -rf .cache .ruff_cache __pycache__ site
-    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    rm -rf .astro dist node_modules playwright-report test-results site
     @echo "✓ Docs: Cleaned caches and build artifacts"

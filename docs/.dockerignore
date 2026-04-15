@@ -1,12 +1,9 @@
-# Virtual environment (created locally by uv)
-.venv/
-
-# Python bytecode
-__pycache__/
-*.pyc
-*.pyo
+# Node dependencies
+node_modules/
 
 # Build output
+dist/
+.astro/
 site/
 
 # Dev tooling

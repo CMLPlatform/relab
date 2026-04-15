@@ -1,0 +1,295 @@
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-italic-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-italic-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: optional;
+  src: url("/fonts/space-grotesk-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: optional;
+  src: url("/fonts/space-grotesk-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --sl-content-width: 54rem;
+  --sl-text-5xl: 3.4rem;
+  --relab-primary: #006783;
+  --relab-primary-soft: rgba(0, 103, 131, 0.08);
+  --relab-accent: #5c5b7d;
+  --relab-text: #112235;
+}
+
+:root[data-theme="dark"] {
+  --relab-primary: #63d3ff;
+  --relab-primary-soft: rgba(99, 211, 255, 0.14);
+  --relab-accent: #d2cbff;
+  --relab-text: #e6f2ff;
+}
+
+html,
+body {
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+body {
+  color: var(--relab-text);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("/images/bg-light.jpg") center / cover no-repeat;
+  opacity: 0.26;
+  filter: blur(3px) saturate(0.96);
+  transform: scale(1.01);
+}
+
+:root[data-theme="dark"] body::before {
+  background-image: url("/images/bg-dark.jpg");
+  opacity: 0.26;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.78) 0%,
+    rgba(248, 250, 252, 0.72) 100%
+  );
+  backdrop-filter: blur(3px);
+}
+
+:root[data-theme="dark"] body::after {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0.72) 0%,
+    rgba(15, 23, 42, 0.66) 100%
+  );
+}
+
+h1,
+h2,
+h3,
+h4,
+.site-title,
+.hero {
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: var(--relab-primary);
+}
+
+.relab-section-intro {
+  padding: 1rem 1.1rem;
+  margin: 0.2rem 0 1.2rem;
+  border-left: 4px solid var(--relab-primary);
+  background: var(--relab-primary-soft);
+  border-radius: 0.8rem;
+}
+
+.relab-hero {
+  padding: 1.25rem 1.3rem;
+  margin: 0.2rem 0 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  border-radius: 1rem;
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--relab-accent) 14%, transparent),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--relab-primary) 10%, transparent),
+      transparent 55%
+    );
+}
+
+.relab-hero h1 {
+  margin: 0 0 0.55rem;
+}
+
+.relab-hero-title {
+  margin: 0 0 0.55rem;
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.relab-hero p:last-child {
+  margin-bottom: 0;
+}
+
+.relab-card-grid > ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  padding-left: 0;
+}
+
+.relab-card-grid > ul > li {
+  list-style: none;
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--relab-primary) 4%, transparent);
+}
+
+.relab-card-grid strong:first-child {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+}
+
+.sidebar-pane :where(a[aria-current="page"]) {
+  color: #12314b;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--relab-primary) 14%, white 86%);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--relab-primary) 18%, transparent);
+}
+
+.sidebar-pane :where(a[aria-current="page"] span) {
+  color: inherit;
+}
+
+:root[data-theme="dark"] .sidebar-pane :where(a[aria-current="page"]) {
+  color: #eaf7ff;
+  background: color-mix(
+    in srgb,
+    var(--relab-primary) 22%,
+    rgba(15, 23, 42, 0.9) 78%
+  );
+}
+
+.right-sidebar-panel :where(h2) {
+  display: none;
+}
+
+.relab-toc-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, white 84%, var(--relab-primary) 8%);
+  color: var(--relab-text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.relab-toc-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 160ms ease;
+}
+
+.right-sidebar-panel[data-relab-toc-collapsed="true"] .relab-toc-toggle svg {
+  transform: rotate(-90deg);
+}
+
+.right-sidebar-panel[data-relab-toc-collapsed="true"] starlight-toc {
+  display: none;
+}
+
+:root[data-theme="dark"] .relab-toc-toggle {
+  background: color-mix(
+    in srgb,
+    rgba(15, 23, 42, 0.88) 88%,
+    var(--relab-primary) 12%
+  );
+  color: #eaf7ff;
+}
+
+.relab-mermaid {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 16%, transparent);
+  background: color-mix(in srgb, white 88%, var(--relab-primary) 6%);
+}
+
+:root[data-theme="dark"] .relab-mermaid {
+  background: rgba(13, 23, 34, 0.88);
+}
+
+.relab-mermaid svg {
+  min-width: 100%;
+}

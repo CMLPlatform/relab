@@ -1,21 +1,27 @@
 # RELab Docs
 
-Documentation for the RELab platform: project context, architecture, user guides, dataset notes, and deployment. Built with [Zensical](https://stefanbschneider.github.io/zensical/).
+Standalone Astro Starlight documentation app for the RELab platform.
 
 ## Quick Start
 
 ```bash
-just dev    # docs at http://localhost:8000 with live reload
+just install
+just dev
 ```
+
+The docs site runs on <http://localhost:8000>.
 
 ## Common Commands
 
 ```bash
-just check    # spelling + markdown formatting checks + build smoke test
-just format   # format markdown
-just build    # build the site locally
+just build
+just check
+just format
+just audit
 ```
 
-## More
+## Canonical Sources
 
-Writing style, diagram guidelines, and Zensical-specific features are in [CONTRIBUTING.md](../CONTRIBUTING.md#docs-development).
+- Product, platform, and architecture docs live in this app.
+- Repo onboarding remains in [../README.md](../README.md), [../INSTALL.md](../INSTALL.md), and [../CONTRIBUTING.md](../CONTRIBUTING.md).
+- Interactive API reference remains canonical at <https://api.cml-relab.org/docs>.

@@ -1,0 +1,56 @@
+{
+  "name": "relab-docs",
+  "type": "module",
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": "22.x",
+    "pnpm": "10.x"
+  },
+  "license": "AGPL-3.0-or-later",
+  "contributors": [
+    "Simon van Lierde <s.n.van.lierde@cml.leidenuniv.nl>"
+  ],
+  "scripts": {
+    "dev": "astro dev --port 8000 --host --mode dev",
+    "build": "astro build --mode prod",
+    "build:prod": "astro build --mode prod",
+    "build:staging": "astro build --mode staging",
+    "build:test": "astro build --mode test",
+    "preview": "astro preview --port 8000 --host",
+    "format": "biome format --write astro.config.mjs playwright.config.ts src/components src/styles scripts package.json tsconfig.json && markdownlint-cli2 --fix \"README.md\" \"src/content/**/*.{md,mdx}\"",
+    "lint:biome": "biome lint astro.config.mjs playwright.config.ts src/components src/styles scripts package.json tsconfig.json",
+    "lint:markdown": "markdownlint-cli2 \"README.md\" \"src/content/**/*.{md,mdx}\"",
+    "lint:external-links": "node ./scripts/check-external-links.mjs",
+    "lint:no-cdn": "node ./scripts/check-no-cdn-imports.mjs",
+    "lint": "pnpm run lint:biome && pnpm run lint:markdown && pnpm run lint:external-links && pnpm run lint:no-cdn",
+    "typecheck": "astro check",
+    "test:links": "node ./scripts/run-with-preview.mjs \"pnpm exec linkinator \\$BASE_URL --recurse --silent --skip 'mailto:*' --skip 'https://*'\"",
+    "test:a11y": "node ./scripts/run-with-preview.mjs \"pnpm exec playwright test e2e/accessibility.spec.ts e2e/smoke.spec.ts\"",
+    "test:lighthouse": "node ./scripts/run-with-preview.mjs \"node ./scripts/check-lighthouse.mjs\"",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run build && pnpm run test:links && pnpm run test:a11y && pnpm run test:lighthouse",
+    "test": "pnpm run build && pnpm run test:links && pnpm run test:a11y",
+    "audit": "pnpm audit --prod --audit-level high"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^5.0.3",
+    "@astrojs/starlight": "^0.38.3",
+    "astro": "^6.1.6",
+    "mermaid": "^11.14.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@axe-core/playwright": "^4.11.1",
+    "@biomejs/biome": "^2.4.9",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.5.0",
+    "chrome-launcher": "^1.2.1",
+    "linkinator": "^6.1.2",
+    "lighthouse": "^13.1.0",
+    "markdown-link-extractor": "^3.0.2",
+    "markdownlint-cli2": "^0.22.0",
+    "playwright": "^1.59.1",
+    "start-server-and-test": "^2.1.2",
+    "typescript": "^5.9.3"
+  }
+}
