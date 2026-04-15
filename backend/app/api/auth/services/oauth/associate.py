@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import Response as FastAPIResponse
 from fastapi_users import schemas
+from fastapi_users.models import UserOAuthProtocol
 from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # Used at runtime for FastAPI validation
 from pydantic import UUID4
@@ -196,8 +197,8 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
             # YouTube API scopes). fastapi-users' oauth_associate_callback calls
             # add_oauth_account (INSERT), which would fail on the unique
             # constraint — so we update directly instead.
-            user = await user_manager.user_db.update_oauth_account(
-                user,
+            updated_user = await user_manager.user_db.update_oauth_account(
+                cast("UserOAuthProtocol[UUID4, OAuthAccount]", user),
                 existing_account,
                 {
                     "access_token": token["access_token"],
@@ -205,6 +206,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
                     "refresh_token": token.get("refresh_token"),
                 },
             )
+            user = cast("User", updated_user)
         else:
             oauth_associate_callback = cast(
                 "Callable[..., Awaitable[User]]",
