@@ -27,7 +27,6 @@ import ProductPhysicalProperties from '@/components/product/ProductPhysicalPrope
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
-import { StreamingContent } from '@/components/common/StreamingContent';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useProductForm } from '@/hooks/useProductForm';
@@ -428,25 +427,6 @@ export default function ProductPage(): JSX.Element {
         <DetailCard>
           <ProductMetaData product={product} />
         </DetailCard>
-        {rpiEnabled &&
-          !isNew &&
-          !editMode &&
-          !isProductComponent &&
-          product.ownedBy === 'me' &&
-          streamingThisProduct &&
-          activeStream && (
-            <Card
-              style={{
-                marginHorizontal: 14,
-                borderLeftWidth: 3,
-                borderLeftColor: '#e53935',
-              }}
-            >
-              <Card.Content>
-                <StreamingContent session={activeStream} />
-              </Card.Content>
-            </Card>
-          )}
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
         {rpiEnabled &&
           !isNew &&

@@ -201,7 +201,6 @@ function AppShell() {
           }}
         />
       )}
-      <ActiveStreamBanner />
       <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
@@ -268,6 +267,7 @@ function AppShell() {
           }}
         />
       </Stack>
+      <ActiveStreamBanner />
     </View>
   );
 }

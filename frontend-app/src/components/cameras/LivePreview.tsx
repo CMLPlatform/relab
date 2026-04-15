@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { createElement, useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
@@ -59,12 +59,37 @@ export function LivePreview({
 
 // ─── Web player (hls.js + native Safari) ──────────────────────────────────────
 
+const MAX_RETRIES = 5;
+
 function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredentials?: boolean }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<'loading' | 'live' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const retryCount = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Reset retry count whenever the source URL changes (new connection attempt).
+  useEffect(() => {
+    retryCount.current = 0;
+  }, [src]);
+
+  const scheduleRetry = () => {
+    const delay = Math.min(3000 * 2 ** retryCount.current, 30_000);
+    retryCount.current += 1;
+    setState('loading');
+    retryTimer.current = setTimeout(() => setRetryKey((k) => k + 1), delay);
+  };
+
+  const retryNow = () => {
+    retryCount.current = 0;
+    setState('loading');
+    setRetryKey((k) => k + 1);
+  };
 
   useEffect(() => {
+    retryTimer.current && clearTimeout(retryTimer.current);
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -86,8 +111,19 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
       video.play().catch(() => {
         // Autoplay rejections are common; the browser shows its own UI.
       });
+      const onError = () => {
+        if (cancelled) return;
+        if (retryCount.current < MAX_RETRIES) {
+          scheduleRetry();
+        } else {
+          setState('error');
+          setErrorMessage('HLS playback failed');
+        }
+      };
+      video.addEventListener('error', onError);
       cleanup = () => {
         video.removeEventListener('playing', onPlaying);
+        video.removeEventListener('error', onError);
         video.removeAttribute('src');
         video.load();
       };
@@ -118,9 +154,13 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
         hls.loadSource(src);
         hls.attachMedia(video);
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          if (data.fatal) {
-            setState('error');
-            setErrorMessage(data.details ?? 'HLS playback failed');
+          if (data.fatal && !cancelled) {
+            if (retryCount.current < MAX_RETRIES) {
+              scheduleRetry();
+            } else {
+              setState('error');
+              setErrorMessage(data.details ?? 'HLS playback failed');
+            }
           }
         });
         cleanup = () => {
@@ -132,9 +172,12 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
 
     return () => {
       cancelled = true;
+      retryTimer.current && clearTimeout(retryTimer.current);
       if (cleanup) cleanup();
     };
-  }, [src, withCredentials]);
+    // retryKey intentionally included to re-run the effect on each retry attempt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, withCredentials, retryKey]);
 
   return (
     <View style={styles.videoFrame}>
@@ -161,6 +204,9 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
         <View style={styles.overlay}>
           <MaterialCommunityIcons name="video-off" size={32} color="#999" />
           <Text style={styles.overlayText}>{errorMessage ?? 'Live preview unavailable'}</Text>
+          <Pressable onPress={retryNow}>
+            <Text style={styles.retryText}>Tap to retry</Text>
+          </Pressable>
         </View>
       )}
     </View>
@@ -219,5 +265,10 @@ const styles = StyleSheet.create({
   },
   caption: {
     color: '#999',
+  },
+  retryText: {
+    color: '#fff',
+    textDecorationLine: 'underline',
+    marginTop: 4,
   },
 });

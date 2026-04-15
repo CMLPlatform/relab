@@ -48,9 +48,9 @@ const styles = StyleSheet.create({
     right: 0,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 16,
+    paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 32 : 16,
-    gap: 12,
+    overflow: 'hidden',
   },
   handle: {
     width: 40,
@@ -58,9 +58,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(128,128,128,0.4)',
     alignSelf: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   cameraLabel: {
     opacity: 0.6,
+    paddingHorizontal: 16,
+    marginBottom: 4,
   },
 });

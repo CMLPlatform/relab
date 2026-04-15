@@ -1,7 +1,7 @@
-import { Image } from 'expo-image';
 import { Linking, StyleSheet, View } from 'react-native';
 import { Button, Chip, Icon, Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { LivePreview } from '@/components/cameras/LivePreview';
 import type { StreamSession } from '@/context/StreamSessionContext';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useElapsed } from '@/hooks/useElapsed';
@@ -15,14 +15,6 @@ interface StreamingContentProps {
   showProductLink?: boolean;
 }
 
-function getYouTubeVideoId(url: string): string | null {
-  try {
-    return new URL(url).searchParams.get('v');
-  } catch {
-    return null;
-  }
-}
-
 export function StreamingContent({
   session,
   onStop,
@@ -33,11 +25,6 @@ export function StreamingContent({
   const { setActiveStream } = useStreamSession();
   const elapsed = useElapsed(session.startedAt);
   const stopMutation = useStopYouTubeStreamMutation(session.cameraId);
-
-  const videoId = getYouTubeVideoId(session.youtubeUrl);
-  const thumbnailUri = videoId
-    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    : null;
 
   const handleWatch = () => void Linking.openURL(session.youtubeUrl);
 
@@ -63,11 +50,7 @@ export function StreamingContent({
         <View style={styles.youtubeIcon}>
           <Icon source="youtube" size={20} color="#e53935" />
         </View>
-        <Chip
-          compact
-          style={styles.liveChip}
-          textStyle={styles.liveChipText}
-        >
+        <Chip compact style={styles.liveChip} textStyle={styles.liveChipText}>
           LIVE
         </Chip>
         <Text style={styles.elapsed} variant="bodySmall">
@@ -75,22 +58,8 @@ export function StreamingContent({
         </Text>
       </View>
 
-      {/* Thumbnail */}
-      {thumbnailUri && (
-        <Button
-          onPress={handleWatch}
-          contentStyle={styles.thumbnailButton}
-          style={styles.thumbnailWrapper}
-          mode="text"
-        >
-          <Image
-            source={{ uri: thumbnailUri }}
-            style={styles.thumbnail}
-            contentFit="cover"
-            accessibilityLabel="YouTube live thumbnail"
-          />
-        </Button>
-      )}
+      {/* Live camera preview */}
+      <LivePreview camera={{ id: session.cameraId }} />
 
       {/* Actions */}
       <View style={styles.actions}>
@@ -132,12 +101,14 @@ export function StreamingContent({
 
 const styles = StyleSheet.create({
   root: {
-    gap: 10,
+    gap: 4,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   youtubeIcon: {
     marginRight: 2,
@@ -157,29 +128,18 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontVariant: ['tabular-nums'],
   },
-  thumbnailWrapper: {
-    borderRadius: 8,
-    overflow: 'hidden',
-    padding: 0,
-  },
-  thumbnailButton: {
-    padding: 0,
-    margin: 0,
-  },
-  thumbnail: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    borderRadius: 8,
-  },
   actions: {
     flexDirection: 'row',
     gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
   actionBtn: {
     flex: 1,
   },
   productLink: {
     alignSelf: 'flex-start',
+    marginLeft: 8,
     marginTop: 2,
   },
   productLinkContent: {
