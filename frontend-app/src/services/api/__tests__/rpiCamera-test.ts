@@ -6,9 +6,9 @@ import {
   claimPairingCode,
   deleteCamera,
   fetchCamera,
+  fetchCameraSnapshot,
   fetchCameras,
   fetchCameraTelemetry,
-  fetchCameraSnapshot,
   updateCamera,
 } from '../rpiCamera';
 
@@ -33,7 +33,8 @@ function mockImageResponse(bytes: Uint8Array, contentType = 'image/jpeg') {
     headers: {
       get: (name: string) => (name.toLowerCase() === 'content-type' ? contentType : null),
     },
-    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    arrayBuffer: async () =>
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   } as Response);
 }
 

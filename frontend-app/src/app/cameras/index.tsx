@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
@@ -24,6 +25,7 @@ import { useProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { startYouTubeStream } from '@/services/api/rpiCamera';
+import { addProductVideo } from '@/services/api/products';
 
 // ─── Stream dialog state ──────────────────────────────────────────────────────
 
@@ -125,6 +127,7 @@ export default function CamerasScreen() {
 
   const captureAll = useCaptureAllMutation();
   const { setActiveStream } = useStreamSession();
+  const queryClient = useQueryClient();
   const [snackbar, setSnackbar] = useState<string | null>(null);
 
   // ── Multi-select state ─────────────────────────────────────────────────────
@@ -269,6 +272,14 @@ export default function CamerasScreen() {
         youtubeUrl: result.url,
       });
       dispatchStreamDialog({ type: 'close' });
+      addProductVideo(streamProductId, {
+        url: result.url,
+        title: streamDialog.title.trim() || 'Live stream',
+        description: '',
+      }).catch(() => {});
+      void queryClient.invalidateQueries({ queryKey: ['product', streamProductId] });
+      setSnackbar(`Now live: ${streamDialog.cameraName}`);
+      await new Promise((r) => setTimeout(r, 800));
       router.back();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -280,7 +291,7 @@ export default function CamerasScreen() {
     } finally {
       setIsStartingStream(false);
     }
-  }, [streamDialog, streamProductId, streamProduct?.name, setActiveStream, router]);
+  }, [streamDialog, streamProductId, streamProduct?.name, setActiveStream, queryClient, router]);
 
   const handleCardLongPress = useCallback(
     (camera: CameraReadWithStatus) => {

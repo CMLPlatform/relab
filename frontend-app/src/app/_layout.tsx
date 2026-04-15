@@ -25,7 +25,7 @@ import { Text } from '@/components/base/Text';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider, useAuth } from '@/context/AuthProvider';
-import { StreamSessionProvider } from '@/context/StreamSessionContext';
+import { StreamSessionProvider, useStreamSession } from '@/context/StreamSessionContext';
 import { ThemeModeProvider, useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 
 // Monkey-patch Animated to always use useNativeDriver: false on web.
@@ -148,6 +148,17 @@ function AppShell() {
   const router = useRouter();
   const isDark = colorScheme === 'dark';
   const pathname = usePathname();
+  const { activeStream } = useStreamSession();
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !activeStream) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [activeStream]);
   const showBackground = true;
   const showOverlay = showBackground && !NO_OVERLAY_PATHS.some((p) => pathname.includes(p));
   const bgOverlay = isDark ? 'rgba(10,10,10,0.90)' : 'rgba(242,242,242,0.95)';

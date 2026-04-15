@@ -69,8 +69,9 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  *     caption, telemetry chip. Full opacity.
  *   - **Offline:** whole card dimmed to 60% opacity, status chip in the
  *     offline colour, "Last seen X ago" caption replaces telemetry. No
- *     thumbnail even if ``last_image_url`` is set — stale thumbnails would
- *     mask the "can't reach" state.
+ *     thumbnail. The preview is a cached low-res snapshot so it stays
+ *     visually close to the live feed without depending on the stored still
+ *     capture.
  *
  * Tapping the card navigates to the camera detail screen regardless of
  * state so users can still see history / dialog / settings when offline.

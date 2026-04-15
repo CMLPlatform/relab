@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import { Link, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, type TextStyle, View } from 'react-native';
 import {
   Button,
   Dialog,
@@ -18,6 +18,7 @@ import { Text } from '@/components/base/Text';
 import LogoutConfirm from '@/components/common/LogoutConfirm';
 import { API_URL, DOCS_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
+import { useStreamSession } from '@/context/StreamSessionContext';
 import { useThemeMode } from '@/context/ThemeModeProvider';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
@@ -57,6 +58,7 @@ export default function ProfileTab() {
     setEnabled: setYoutubeEnabled,
   } = useYouTubeIntegration();
   const { themeMode, setThemeMode } = useThemeMode();
+  const { activeStream } = useStreamSession();
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(true);
   const [newsletterSaving, setNewsletterSaving] = useState(false);
@@ -72,7 +74,24 @@ export default function ProfileTab() {
     }
   }, [profile, router, isLoggingOut]);
 
-  const onLogout = () => setLogoutDialogVisible(true);
+  const onLogout = () => {
+    if (activeStream) {
+      Alert.alert(
+        'Stream still active',
+        `You're live for "${activeStream.productName}". Logging out won't stop the stream.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Log out anyway',
+            style: 'destructive',
+            onPress: () => setLogoutDialogVisible(true),
+          },
+        ],
+      );
+      return;
+    }
+    setLogoutDialogVisible(true);
+  };
 
   const confirmLogout = () => {
     setLogoutDialogVisible(false);

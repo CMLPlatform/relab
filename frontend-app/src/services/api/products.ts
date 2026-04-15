@@ -301,3 +301,14 @@ export async function myProducts(
 export async function productComponents(product: Product): Promise<Product[]> {
   return Promise.all(product.componentIDs.map((id) => getProduct(id, ['product_type'])));
 }
+
+export async function addProductVideo(
+  productId: number,
+  video: { url: string; title: string; description: string },
+): Promise<void> {
+  const resp = await apiFetch(new URL(`${baseUrl}/products/${productId}/videos`), {
+    method: 'POST',
+    body: JSON.stringify(video),
+  });
+  if (!resp.ok) throw new Error(`Failed to add video (${resp.status})`);
+}

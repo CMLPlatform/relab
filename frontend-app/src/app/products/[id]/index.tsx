@@ -27,6 +27,7 @@ import ProductPhysicalProperties from '@/components/product/ProductPhysicalPrope
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
+import { StreamingContent } from '@/components/common/StreamingContent';
 import { useAuth } from '@/context/AuthProvider';
 import { useStreamSession } from '@/context/StreamSessionContext';
 import { useProductForm } from '@/hooks/useProductForm';
@@ -196,19 +197,25 @@ export default function ProductPage(): JSX.Element {
   // ─── Unsaved changes guard ───────────────────────────────────────────────────
   useEffect(() => {
     return navigation.addListener('beforeRemove', (e) => {
-      if (!editMode) return;
+      if (!editMode && !streamingThisProduct) return;
       e.preventDefault();
       dialog.alert({
-        title: 'Discard changes?',
-        message:
-          'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
-        buttons: [
-          { text: "Don't leave" },
-          { text: 'Discard', onPress: () => navigation.dispatch(e.data.action) },
-        ],
+        title: editMode ? 'Discard changes?' : 'Stream still active',
+        message: editMode
+          ? 'You have unsaved changes. Are you sure you want to discard them and leave the screen?'
+          : "You're currently live on YouTube. Leaving won't stop the stream — use Stop first.",
+        buttons: editMode
+          ? [
+              { text: "Don't leave" },
+              { text: 'Discard', onPress: () => navigation.dispatch(e.data.action) },
+            ]
+          : [
+              { text: 'Stay' },
+              { text: 'Leave anyway', onPress: () => navigation.dispatch(e.data.action) },
+            ],
       });
     });
-  }, [navigation, editMode, dialog]);
+  }, [navigation, editMode, streamingThisProduct, dialog]);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setFabExtended(e.nativeEvent.contentOffset.y <= 0);
@@ -324,6 +331,40 @@ export default function ProductPage(): JSX.Element {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
+        {rpiEnabled &&
+          !isNew &&
+          !editMode &&
+          !isProductComponent &&
+          product.ownedBy === 'me' &&
+          streamingOtherProduct &&
+          activeStream && (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/products/[id]',
+                  params: { id: String(activeStream.productId) },
+                })
+              }
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginHorizontal: 14,
+                marginBottom: 8,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                backgroundColor: 'rgba(229,57,53,0.08)',
+              }}
+              accessibilityRole="button"
+            >
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#e53935' }} />
+              <Text variant="bodySmall" style={{ flex: 1, color: '#e53935' }}>
+                Live: {activeStream.productName}
+              </Text>
+              <Icon source="chevron-right" size={14} color="#e53935" />
+            </Pressable>
+          )}
         <ProductImageGallery
           product={product}
           editMode={editMode}
@@ -387,38 +428,26 @@ export default function ProductPage(): JSX.Element {
         <DetailCard>
           <ProductMetaData product={product} />
         </DetailCard>
-        <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
         {rpiEnabled &&
           !isNew &&
           !editMode &&
           !isProductComponent &&
           product.ownedBy === 'me' &&
-          streamingOtherProduct && (
-            <Pressable
-              onPress={() => {
-                if (!activeStream) return;
-                router.push({ pathname: '/cameras/[id]', params: { id: activeStream.cameraId } });
-              }}
+          streamingThisProduct &&
+          activeStream && (
+            <Card
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
                 marginHorizontal: 14,
-                marginBottom: 8,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 8,
-                backgroundColor: 'rgba(229,57,53,0.1)',
+                borderLeftWidth: 3,
+                borderLeftColor: '#e53935',
               }}
-              accessibilityRole="button"
             >
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#e53935' }} />
-              <Text variant="bodySmall" style={{ flex: 1, color: '#e53935' }}>
-                Streaming {activeStream?.productName}
-              </Text>
-              <Icon source="chevron-right" size={16} color="#e53935" />
-            </Pressable>
+              <Card.Content>
+                <StreamingContent session={activeStream} />
+              </Card.Content>
+            </Card>
           )}
+        <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
         {rpiEnabled &&
           !isNew &&
           !editMode &&
@@ -460,7 +489,8 @@ export default function ProductPage(): JSX.Element {
         !isProductComponent &&
         product.ownedBy === 'me' &&
         typeof product.id === 'number' &&
-        !streamingOtherProduct && (
+        !streamingOtherProduct &&
+        !streamingThisProduct && (
           <AnimatedFAB
             icon="youtube"
             label="Go Live"
