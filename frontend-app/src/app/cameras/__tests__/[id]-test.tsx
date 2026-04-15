@@ -102,6 +102,21 @@ describe('Camera detail screen', () => {
     expect(mockNavigationSetOptions).toHaveBeenCalledWith({ title: 'Workbench Camera' });
   });
 
+  it('can stop and restart the live preview without leaving the detail screen', async () => {
+    renderWithProviders(<CameraDetailScreen />);
+
+    expect(await screen.findByText('live-preview-stub')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Stop Preview'));
+
+    expect(screen.queryByText('live-preview-stub')).toBeNull();
+    expect(screen.getByText('Load Preview')).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Load Preview'));
+
+    expect(await screen.findByText('live-preview-stub')).toBeOnTheScreen();
+  });
+
   it('shows websocket offline helper copy and supports retrying camera status', async () => {
     mockUseCameraQuery.mockReturnValue({
       data: {

@@ -117,6 +117,35 @@ describe('CamerasScreen', () => {
     });
   });
 
+  it('treats a locally reachable camera as online even when relay status is offline', () => {
+    mockUseCamerasQuery.mockReturnValue({
+      data: [
+        {
+          id: 'cam-1',
+          name: 'Direct Camera',
+          description: 'Ethernet setup',
+          status: { connection: 'offline', last_seen_at: null, details: null },
+        },
+      ],
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+    mockUseLocalConnection.mockReturnValue({
+      mode: 'local',
+      localBaseUrl: 'http://192.168.7.1:8018',
+    });
+
+    renderWithProviders(<CamerasScreen />);
+
+    expect(screen.getByText('Direct Camera')).toBeOnTheScreen();
+    expect(screen.getByText('Online')).toBeOnTheScreen();
+    expect(screen.getByText('Direct connection')).toBeOnTheScreen();
+    expect(screen.queryByText('Offline')).toBeNull();
+  });
+
   it('shows an error state and retries loading', async () => {
     mockUseCamerasQuery.mockReturnValue({
       data: undefined,
