@@ -47,7 +47,11 @@ class InvalidCameraResponseError(FailedDependencyError):
     """Raised when the camera returns a payload that does not match the expected schema."""
 
     def __init__(self, details: str) -> None:
-        super().__init__("Invalid response from camera.", details=details)
+        super().__init__(
+            "Invalid response from camera.",
+            details=details,
+            log_message=f"Invalid response from camera: {details}",
+        )
 
 
 class NoActiveYouTubeRecordingError(ConflictError):

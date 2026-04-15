@@ -19,7 +19,9 @@ the playlist URL.
 
 from __future__ import annotations
 
-from fastapi import Response
+import asyncio
+
+from fastapi import HTTPException, Response
 from pydantic import UUID4
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -56,12 +58,31 @@ async def proxy_hls(
     """Proxy an LL-HLS URL through the camera's WebSocket relay."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera, redis)
-    relay_response = await camera_request(
-        endpoint=f"/hls/{hls_path}",
-        method=HttpMethod.GET,
-        error_msg="Failed to fetch HLS data",
-        expect_binary=True,
-    )
+
+    # MediaMTX creates the HLS muxer on first viewer but needs a few seconds
+    # to buffer the first segment before the playlist is valid. Retry 404s on
+    # manifest requests only — segments are never retried.
+    is_manifest = hls_path.endswith(".m3u8")
+    max_attempts = 6 if is_manifest else 1
+    last_exc: HTTPException | None = None
+    for attempt in range(max_attempts):
+        if attempt:
+            await asyncio.sleep(0.5)
+        try:
+            relay_response = await camera_request(
+                endpoint=f"/hls/{hls_path}",
+                method=HttpMethod.GET,
+                error_msg="Failed to fetch HLS data",
+                expect_binary=True,
+            )
+            break
+        except HTTPException as exc:
+            if exc.status_code == 404 and attempt < max_attempts - 1:
+                last_exc = exc
+                continue
+            raise
+    else:
+        raise last_exc  # type: ignore[misc]
     media_type = _resolve_media_type(hls_path)
     return Response(
         content=relay_response.content,
