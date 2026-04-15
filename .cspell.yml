@@ -23,6 +23,7 @@ ignorePaths:
   - .gitignore
   - .vscode
   - package-lock.json
+  - pnpm-lock.yaml
   - uv.lock
   - "backend/app/api/auth/resources/disposable_email_domains.txt"
   - "frontend-app/src/assets/data/**"

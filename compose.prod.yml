@@ -117,5 +117,3 @@ services:
 volumes:
   cache_data:
   jaeger_data:
-
-
