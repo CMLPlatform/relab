@@ -8,6 +8,7 @@ test.describe('Newsletter unsubscribe form', () => {
     await expect(
       page.getByRole('heading', { name: 'Unsubscribe from Newsletter', level: 1 }),
     ).toBeVisible();
+    await expect(page.locator('.content-page.content-page-compact')).toBeVisible();
     await expect(page.getByLabel('Email address')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unsubscribe' })).toBeVisible();
   });
@@ -36,8 +37,13 @@ test.describe('Newsletter unsubscribe form', () => {
   });
 
   test('shows loading state and disables controls while submitting', async ({ page }) => {
+    let releaseResponse!: () => void;
+    const responseReady = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+
     await page.route('**/newsletter/request-unsubscribe', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      await responseReady;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -51,6 +57,7 @@ test.describe('Newsletter unsubscribe form', () => {
     await expect(page.getByLabel('Email address')).toBeDisabled();
     await expect(submitButton).toBeDisabled();
     await expect(page.locator(message)).toContainText('Submitting…');
+    releaseResponse();
     await expect(page.locator(message)).toContainText(
       'Please check your email to confirm unsubscription.',
     );

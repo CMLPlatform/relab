@@ -6,7 +6,7 @@ test.describe('Responsive layout', () => {
     await page.goto('/');
     await expect(
       page.getByRole('heading', {
-        name: 'Document products with less friction and more reusable evidence.',
+        name: 'Reverse Engineering Lab',
         level: 1,
       }),
     ).toBeVisible();
@@ -18,7 +18,7 @@ test.describe('Responsive layout', () => {
     await page.goto('/');
     await expect(
       page.getByRole('heading', {
-        name: 'Document products with less friction and more reusable evidence.',
+        name: 'Reverse Engineering Lab',
         level: 1,
       }),
     ).toBeVisible();

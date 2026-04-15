@@ -6,6 +6,7 @@ import { getPublicSiteConfig } from '@/config/public';
 import { siteLinks, siteMeta } from '@/content/site';
 import SiteFooter from '@/components/SiteFooter.astro';
 import SiteHeader from '@/components/SiteHeader.astro';
+import { getThemeBootstrapScript } from '@/scripts/theme';
 
 interface Props {
   title: string;
@@ -28,6 +29,7 @@ const pageTitle =
   title === siteMeta.title || title.includes(siteMeta.name) ? title : `${title} | ${siteMeta.name}`;
 const socialImage = siteOrigin ? new URL(image, siteOrigin).toString() : image;
 const currentYear = new Date().getFullYear();
+const themeBootstrapScript = getThemeBootstrapScript();
 ---
 
 <!doctype html>
@@ -37,8 +39,7 @@ const currentYear = new Date().getFullYear();
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#f3f7f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b171b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#eef4f7" data-dynamic-theme />
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
     {noIndex && <meta name="robots" content="noindex, nofollow" />}
     <meta property="og:type" content="website" />
@@ -53,14 +54,7 @@ const currentYear = new Date().getFullYear();
     <meta name="twitter:image" content={socialImage} />
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
     <title>{pageTitle}</title>
-    <script is:inline>
-      (() => {
-        const storedTheme = localStorage.getItem('relab-theme');
-        if (storedTheme === 'light' || storedTheme === 'dark') {
-          document.documentElement.setAttribute('data-theme', storedTheme);
-        }
-      })();
-    </script>
+    <script is:inline set:html={themeBootstrapScript}></script>
   </head>
   <body>
     <div class="site-backdrop" aria-hidden="true">

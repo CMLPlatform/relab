@@ -11,21 +11,23 @@ const newsletterRequestUnsubscribeUrl = joinApiUrl(
 ---
 
 <Layout title="Unsubscribe from Newsletter — RELab">
-  <section class="page-intro content-reveal">
-    <h1>Unsubscribe</h1>
-    <p>Enter your email address and we’ll send a confirmation link to complete the unsubscribe request.</p>
-  </section>
+  <div class="content-page content-page-compact stack-md">
+    <section class="page-intro content-reveal">
+      <h1>Unsubscribe from Newsletter</h1>
+      <p>Enter your email address and we’ll send a confirmation link to complete the unsubscribe request.</p>
+    </section>
 
-  <div class="card narrow-card content-reveal">
-    <EmailForm
-      apiUrl={newsletterRequestUnsubscribeUrl}
-      placeholder="Your email address"
-      buttonText="Unsubscribe"
-      buttonVariant="btn-primary"
-    >
-      <p class="muted-text">
-        This confirmation step makes sure only the owner of the address can unsubscribe it.
-      </p>
-    </EmailForm>
+    <div class="card narrow-card content-reveal">
+      <EmailForm
+        apiUrl={newsletterRequestUnsubscribeUrl}
+        placeholder="Your email address"
+        buttonText="Unsubscribe"
+        buttonVariant="btn-primary"
+      >
+        <p class="muted-text">
+          This confirmation step makes sure only the owner of the address can unsubscribe it.
+        </p>
+      </EmailForm>
+    </div>
   </div>
 </Layout>

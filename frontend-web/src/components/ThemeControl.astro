@@ -1,7 +1,8 @@
-<theme-control class="theme-control" data-theme-current="system">
+<div class="theme-control" data-theme-control data-theme-current="system">
   <button
     type="button"
     class="theme-toggle"
+    data-theme-toggle
     aria-label="Theme: system. Switch theme"
     title="Theme: system"
   >
@@ -28,66 +29,10 @@
     </span>
     <span class="sr-only">Cycle theme</span>
   </button>
-</theme-control>
+</div>
 
 <script>
-  const STORAGE_KEY = 'relab-theme';
-  const THEMES = ['system', 'light', 'dark'] as const;
-  type ThemeName = (typeof THEMES)[number];
+  import { initThemeControl } from '@/scripts/theme';
 
-  class ThemeControl extends HTMLElement {
-    connectedCallback() {
-      if (this.dataset.initialized === 'true') {
-        return;
-      }
-
-      this.dataset.initialized = 'true';
-
-      const button = this.querySelector('button');
-      const root = document.documentElement;
-
-      if (!button) {
-        return;
-      }
-
-      const getStoredTheme = (): ThemeName => {
-        const storedTheme = localStorage.getItem(STORAGE_KEY);
-        return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
-          ? storedTheme
-          : 'system';
-      };
-
-      const updateButton = (theme: ThemeName) => {
-        this.dataset.themeCurrent = theme;
-        button.setAttribute('aria-label', `Theme: ${theme}. Switch theme`);
-        button.setAttribute('title', `Theme: ${theme}`);
-      };
-
-      const applyTheme = (theme: ThemeName) => {
-        if (theme === 'system') {
-          root.removeAttribute('data-theme');
-        } else {
-          root.setAttribute('data-theme', theme);
-        }
-
-        updateButton(theme);
-      };
-
-      const cycleTheme = () => {
-        const currentTheme = getStoredTheme();
-        const currentIndex = THEMES.indexOf(currentTheme);
-        const nextTheme = THEMES[(currentIndex + 1) % THEMES.length];
-
-        localStorage.setItem(STORAGE_KEY, nextTheme);
-        applyTheme(nextTheme);
-      };
-
-      applyTheme(getStoredTheme());
-      button.addEventListener('click', cycleTheme);
-    }
-  }
-
-  if (!customElements.get('theme-control')) {
-    customElements.define('theme-control', ThemeControl);
-  }
+  initThemeControl();
 </script>
