@@ -21,12 +21,11 @@ async def redis_client() -> AsyncGenerator[Redis]:
     """Provide a fake async Redis client for testing.
 
     Uses fakeredis to simulate Redis without requiring a running Redis server.
-    The client is cleared after each test.
+    Each test gets its own isolated client instance, so teardown only needs to
+    close the connection.
     """
     client = FakeRedis(decode_responses=True, version=7)
     yield client
-    # Clean up all keys after each test
-    await client.flushall()
     await client.aclose()
 
 
