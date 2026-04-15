@@ -1,16 +1,18 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { type JSX, useCallback, useEffect, useState } from 'react';
+import { type JSX, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
+  Pressable,
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { AnimatedFAB, Button, Card, Text, Tooltip, useTheme } from 'react-native-paper';
+import { AnimatedFAB, Button, Card, Icon, Text, Tooltip, useTheme } from 'react-native-paper';
 
 import DetailCard from '@/components/common/DetailCard';
 import { useDialog } from '@/components/common/DialogProvider';
@@ -25,8 +27,12 @@ import ProductPhysicalProperties from '@/components/product/ProductPhysicalPrope
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
+import { useAuth } from '@/context/AuthProvider';
+import { useStreamSession } from '@/context/StreamSessionContext';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
+import { useRpiIntegration } from '@/hooks/useRpiIntegration';
+import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 import { isProductNotFoundError } from '@/services/api/products';
 import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
 
@@ -48,6 +54,11 @@ export default function ProductPage(): JSX.Element {
   const router = useRouter();
   const dialog = useDialog();
   const theme = useTheme();
+  const { user: profile } = useAuth();
+  const { enabled: rpiEnabled } = useRpiIntegration();
+  const { enabled: youtubeEnabled } = useYouTubeIntegration();
+  const isGoogleLinked = profile?.oauth_accounts?.some((a) => a.oauth_name === 'google') ?? false;
+  const { activeStream } = useStreamSession();
 
   const [fabExtended, setFabExtended] = useState(true);
   const [slowLoading, setSlowLoading] = useState(false);
@@ -84,6 +95,10 @@ export default function ProductPage(): JSX.Element {
       ? product.parentID
       : undefined;
   const { data: parentProduct } = useProductQuery(parentProductId ?? 'new');
+
+  const streamingThisProduct =
+    typeof product.id === 'number' && activeStream?.productId === product.id;
+  const streamingOtherProduct = !!activeStream && !streamingThisProduct;
 
   // ─── Timeout for slow loading ────────────────────────────────────────────────
   useEffect(() => {
@@ -152,6 +167,18 @@ export default function ProductPage(): JSX.Element {
     onProductNameChange,
     theme.colors.onSurfaceVariant,
   ]);
+
+  // ─── Active stream prompt for new base products ───────────────────────────────
+  const streamPromptedRef = useRef(false);
+  useEffect(() => {
+    if (!isNew || isProductComponent || !activeStream || streamPromptedRef.current) return;
+    streamPromptedRef.current = true;
+    Alert.alert(
+      `You're live on YouTube`,
+      `Your stream for "${activeStream.productName}" is still running. It will keep going while you create this product.`,
+      [{ text: 'Got it' }],
+    );
+  }, [isNew, isProductComponent, activeStream]);
 
   // ─── Unsaved changes guard ───────────────────────────────────────────────────
   useEffect(() => {
@@ -348,7 +375,78 @@ export default function ProductPage(): JSX.Element {
           <ProductMetaData product={product} />
         </DetailCard>
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
+        {rpiEnabled && !isNew && !editMode && !isProductComponent && product.ownedBy === 'me' && streamingOtherProduct && (
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/cameras/[id]', params: { id: activeStream!.cameraId } })
+            }
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              marginHorizontal: 14,
+              marginBottom: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: 'rgba(229,57,53,0.1)',
+            }}
+            accessibilityRole="button"
+          >
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#e53935' }} />
+            <Text variant="bodySmall" style={{ flex: 1, color: '#e53935' }}>
+              Streaming {activeStream!.productName}
+            </Text>
+            <Icon source="chevron-right" size={16} color="#e53935" />
+          </Pressable>
+        )}
+        {rpiEnabled && !isNew && !editMode && !isProductComponent && product.ownedBy === 'me' && !youtubeEnabled && (
+          <Pressable
+            onPress={() => router.push('/profile')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              marginHorizontal: 14,
+              marginBottom: 8,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+              borderRadius: 8,
+              backgroundColor: theme.colors.surfaceVariant,
+              opacity: 0.7,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Set up YouTube Live"
+          >
+            <Icon source="youtube" size={16} color={theme.colors.onSurfaceVariant} />
+            <Text
+              variant="bodySmall"
+              style={{ flex: 1, color: theme.colors.onSurfaceVariant }}
+            >
+              {isGoogleLinked
+                ? 'Enable YouTube Live in Integrations to stream this product'
+                : 'Link your Google account to stream this product live'}
+            </Text>
+            <Icon source="chevron-right" size={16} color={theme.colors.onSurfaceVariant} />
+          </Pressable>
+        )}
       </KeyboardAwareScrollView>
+      {rpiEnabled && youtubeEnabled && isGoogleLinked && !isNew && !editMode && !isProductComponent && product.ownedBy === 'me' && typeof product.id === 'number' && !streamingOtherProduct && (
+        <AnimatedFAB
+          icon="youtube"
+          label="Go Live"
+          extended={fabExtended}
+          onPress={() =>
+            router.push({ pathname: '/cameras', params: { stream: String(product.id) } })
+          }
+          style={{
+            position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+            left: 0,
+            bottom: 0,
+            margin: 19,
+          }}
+        />
+      )}
       {editMode && validationResult.error ? (
         <Tooltip title={validationResult.error} enterTouchDelay={0} leaveTouchDelay={1500}>
           <AnimatedFAB

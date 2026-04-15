@@ -15,7 +15,9 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
+import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
 import { useAuth } from '@/context/AuthProvider';
+import { useLocalConnection } from '@/hooks/useLocalConnection';
 import {
   useCameraQuery,
   useDeleteCameraMutation,
@@ -145,10 +147,15 @@ export default function CameraDetailScreen() {
 
   const updateMutation = useUpdateCameraMutation(id ?? '');
   const deleteMutation = useDeleteCameraMutation();
+  const localConnection = useLocalConnection(id ?? '');
 
   const [editNameVisible, setEditNameVisible] = useState(false);
   const [editDescVisible, setEditDescVisible] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
+  const [localSetupVisible, setLocalSetupVisible] = useState(false);
+  const [localUrlInput, setLocalUrlInput] = useState('');
+  const [localKeyInput, setLocalKeyInput] = useState('');
+  const [localSetupSaving, setLocalSetupSaving] = useState(false);
 
   const isOnline = camera?.status?.connection === 'online';
 
@@ -248,8 +255,13 @@ export default function CameraDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Live preview — same LL-HLS stream on web (hls.js) and native (expo-video). */}
-        {isOnline && <LivePreview camera={camera} />}
+        {/* Live preview — LL-HLS, direct (local mode) or via relay. */}
+        {(isOnline || localConnection.mode === 'local') && (
+          <LivePreview camera={camera} connectionInfo={localConnection} />
+        )}
+
+        {/* YouTube streaming status — only shown when online and YouTube integration is enabled. */}
+        {isOnline && <YouTubeStreamCard cameraId={camera.id} isOnline={isOnline} />}
 
         {/* Details */}
         <Card style={styles.card}>
@@ -270,19 +282,61 @@ export default function CameraDetailScreen() {
           </Card.Content>
         </Card>
 
-        {/* Relay info */}
+        {/* Connection mode info */}
         <Card style={styles.card}>
-          <Card.Content style={{ gap: 4 }}>
+          <Card.Content style={{ gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <MaterialCommunityIcons
-                name="access-point"
-                size={20}
-                color={theme.colors.onSurfaceVariant}
-              />
-              <Text variant="titleSmall">WebSocket relay</Text>
+              {localConnection.mode === 'local' ? (
+                <>
+                  <MaterialCommunityIcons name="ethernet" size={20} color="#2e7d32" />
+                  <Text variant="titleSmall" style={{ color: '#2e7d32' }}>
+                    Direct · &lt;1 s
+                  </Text>
+                </>
+              ) : localConnection.mode === 'probing' ? (
+                <>
+                  <ActivityIndicator size={16} />
+                  <Text variant="titleSmall" style={{ opacity: 0.6 }}>
+                    Checking for direct connection…
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <MaterialCommunityIcons
+                    name="access-point"
+                    size={20}
+                    color={theme.colors.onSurfaceVariant}
+                  />
+                  <Text variant="titleSmall">WebSocket relay</Text>
+                </>
+              )}
+              <View style={{ flex: 1 }} />
+              {localConnection.mode === 'local' ? (
+                <Button
+                  compact
+                  mode="text"
+                  onPress={() => void localConnection.clearLocalConnection()}
+                >
+                  Disconnect
+                </Button>
+              ) : (
+                <Button
+                  compact
+                  mode="text"
+                  onPress={() => {
+                    setLocalUrlInput(localConnection.localBaseUrl ?? '');
+                    setLocalKeyInput('');
+                    setLocalSetupVisible(true);
+                  }}
+                >
+                  Set up direct
+                </Button>
+              )}
             </View>
             <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-              Camera connects outbound to the backend. No public IP required.
+              {localConnection.mode === 'local'
+                ? `Connected directly via Ethernet/USB-C to ${localConnection.localBaseUrl ?? ''}`
+                : 'Camera connects outbound to the backend. No public IP required.'}
             </Text>
           </Card.Content>
         </Card>
@@ -339,6 +393,59 @@ export default function CameraDetailScreen() {
               textColor={theme.colors.error}
             >
               Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={localSetupVisible} onDismiss={() => setLocalSetupVisible(false)}>
+          <Dialog.Title>Set up direct connection</Dialog.Title>
+          <Dialog.Content style={{ gap: 12 }}>
+            <Text variant="bodySmall" style={{ opacity: 0.7 }}>
+              Connect an Ethernet cable (or USB-C to Ethernet adapter) between the Pi and this
+              device. Enable LOCAL_MODE_ENABLED=true on the Pi, then copy the API key from the
+              Pi&apos;s /setup page.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Pi API URL"
+              placeholder="http://192.168.7.1:8018"
+              value={localUrlInput}
+              onChangeText={setLocalUrlInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+            <TextInput
+              mode="outlined"
+              label="Local API key"
+              placeholder="local_…"
+              value={localKeyInput}
+              onChangeText={setLocalKeyInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setLocalSetupVisible(false)} disabled={localSetupSaving}>
+              Cancel
+            </Button>
+            <Button
+              onPress={async () => {
+                setLocalSetupSaving(true);
+                try {
+                  await localConnection.configure(localUrlInput.trim(), localKeyInput.trim());
+                  setLocalSetupVisible(false);
+                } catch {
+                  // probe result is shown via mode state; nothing extra needed
+                } finally {
+                  setLocalSetupSaving(false);
+                }
+              }}
+              loading={localSetupSaving}
+              disabled={!localUrlInput.trim() || !localKeyInput.trim() || localSetupSaving}
+            >
+              Connect
             </Button>
           </Dialog.Actions>
         </Dialog>

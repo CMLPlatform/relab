@@ -8,6 +8,7 @@ export type ThemeMode = 'light' | 'dark' | 'auto';
 
 export type UserPreferences = {
   rpi_camera_enabled?: boolean;
+  youtube_streaming_enabled?: boolean;
   products_welcome_dismissed?: boolean;
   theme_mode?: ThemeMode;
   [key: string]: unknown;

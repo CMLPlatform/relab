@@ -61,6 +61,23 @@ export interface PairingClaimRequest {
   description?: string | null;
 }
 
+export type YouTubePrivacyStatus = 'public' | 'private' | 'unlisted';
+
+export interface StreamView {
+  mode: 'youtube';
+  provider: string;
+  url: string;
+  started_at: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface StartYouTubeStreamParams {
+  product_id: number;
+  title?: string;
+  description?: string;
+  privacy_status?: YouTubePrivacyStatus;
+}
+
 const BASE = `${API_URL}/plugins/rpi-cam/cameras`;
 const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
 
@@ -155,6 +172,53 @@ export function buildCameraHlsUrl(cameraId: string): string {
   return `${BASE}/${cameraId}/hls/cam-preview/index.m3u8`;
 }
 
+/**
+ * LL-HLS playlist URL served directly by the Pi's MediaMTX server.
+ * Used in local (direct Ethernet) mode. No authentication required —
+ * MediaMTX is configured with ``hlsAllowOrigin: '*'``.
+ *
+ * @param localMediaUrl - Base URL of the Pi's MediaMTX, e.g. "http://192.168.1.100:8888"
+ */
+export function buildLocalHlsUrl(localMediaUrl: string): string {
+  return `${localMediaUrl.replace(/\/$/, '')}/cam-preview/index.m3u8`;
+}
+
+/**
+ * Capture a still image by calling the Pi's FastAPI directly (local mode).
+ *
+ * The Pi captures the image and pushes it to the backend independently via its
+ * own upload queue. The returned image URL points at the backend storage, same
+ * as relay-mode captures. Works even when the backend relay connection is down,
+ * as long as the Pi can eventually reach the backend for the upload.
+ *
+ * @param localBaseUrl - Base URL of the Pi's FastAPI, e.g. "http://192.168.1.100:8018"
+ * @param localApiKey  - The local API key shown on the Pi's /setup page
+ * @param productId    - Product to associate the capture with
+ */
+export async function captureImageLocally(
+  localBaseUrl: string,
+  localApiKey: string,
+  productId: number,
+): Promise<CapturedImage> {
+  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/images`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-API-Key': localApiKey,
+    },
+    body: JSON.stringify({ product_id: productId }),
+  });
+  if (!resp.ok) throw new Error(`Local capture failed (${resp.status})`);
+  const data = await resp.json();
+  return {
+    id: String(data.image_id ?? data.id ?? ''),
+    url: data.image_url ?? data.url ?? '',
+    thumbnailUrl: data.thumbnail_url ?? null,
+    description: data.description ?? '',
+  };
+}
+
 export async function claimPairingCode(data: PairingClaimRequest): Promise<CameraRead> {
   const resp = await apiFetch(`${PAIRING_BASE}/claim`, {
     method: 'POST',
@@ -167,4 +231,39 @@ export async function claimPairingCode(data: PairingClaimRequest): Promise<Camer
     throw new Error(msg);
   }
   return resp.json() as Promise<CameraRead>;
+}
+
+const streamBase = (cameraId: string) => `${BASE}/${cameraId}/stream`;
+
+export async function startYouTubeStream(
+  cameraId: string,
+  params: StartYouTubeStreamParams,
+): Promise<StreamView> {
+  const resp = await apiFetch(`${streamBase(cameraId)}/record/start`, {
+    method: 'POST',
+    headers: await jsonHeaders(),
+    body: JSON.stringify(params),
+  });
+  if (resp.status === 403) throw new Error('GOOGLE_OAUTH_REQUIRED');
+  if (resp.status === 409) throw new Error('STREAM_ALREADY_ACTIVE');
+  if (!resp.ok) throw new Error(`Failed to start stream (${resp.status})`);
+  return resp.json() as Promise<StreamView>;
+}
+
+export async function stopYouTubeStream(cameraId: string): Promise<void> {
+  const resp = await apiFetch(`${streamBase(cameraId)}/record/stop`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  if (!resp.ok && resp.status !== 204) throw new Error(`Failed to stop stream (${resp.status})`);
+}
+
+export async function getStreamStatus(cameraId: string): Promise<StreamView | null> {
+  const resp = await apiFetch(`${streamBase(cameraId)}/status`, {
+    method: 'GET',
+    headers: await authHeaders(),
+  });
+  if (resp.status === 404) return null;
+  if (!resp.ok) throw new Error(`Failed to fetch stream status (${resp.status})`);
+  return resp.json() as Promise<StreamView>;
 }

@@ -23,7 +23,9 @@ import darkTheme from '@/assets/themes/dark';
 import lightTheme from '@/assets/themes/light';
 import { Text } from '@/components/base/Text';
 import { DialogProvider } from '@/components/common/DialogProvider';
+import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
 import { AuthProvider, useAuth } from '@/context/AuthProvider';
+import { StreamSessionProvider } from '@/context/StreamSessionContext';
 import { ThemeModeProvider, useEffectiveColorScheme } from '@/context/ThemeModeProvider';
 
 // Monkey-patch Animated to always use useNativeDriver: false on web.
@@ -188,6 +190,7 @@ function AppShell() {
           }}
         />
       )}
+      <ActiveStreamBanner />
       <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen
@@ -263,7 +266,9 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeModeProvider>
-          <ThemedProviders>{children}</ThemedProviders>
+          <StreamSessionProvider>
+            <ThemedProviders>{children}</ThemedProviders>
+          </StreamSessionProvider>
         </ThemeModeProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -1,22 +1,67 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   AnimatedFAB,
   Button,
+  Dialog,
+  Portal,
+  SegmentedButtons,
   Snackbar,
   Text,
+  TextInput,
   useTheme,
 } from 'react-native-paper';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { useAuth } from '@/context/AuthProvider';
+import { useStreamSession } from '@/context/StreamSessionContext';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
+import { startYouTubeStream } from '@/services/api/rpiCamera';
+
+// ─── Stream dialog state ──────────────────────────────────────────────────────
+
+type StreamDialogState = {
+  cameraId: string | null;
+  cameraName: string;
+  title: string;
+  privacy: YouTubePrivacyStatus;
+};
+
+type StreamDialogAction =
+  | { type: 'open'; cameraId: string; cameraName: string; defaultTitle: string }
+  | { type: 'close' }
+  | { type: 'set_title'; value: string }
+  | { type: 'set_privacy'; value: YouTubePrivacyStatus };
+
+const STREAM_DIALOG_INITIAL: StreamDialogState = {
+  cameraId: null,
+  cameraName: '',
+  title: '',
+  privacy: 'private',
+};
+
+function streamDialogReducer(
+  state: StreamDialogState,
+  action: StreamDialogAction,
+): StreamDialogState {
+  switch (action.type) {
+    case 'open':
+      return { cameraId: action.cameraId, cameraName: action.cameraName, title: action.defaultTitle, privacy: 'private' };
+    case 'close':
+      return STREAM_DIALOG_INITIAL;
+    case 'set_title':
+      return { ...state, title: action.value };
+    case 'set_privacy':
+      return { ...state, privacy: action.value };
+  }
+}
 
 const DESKTOP_COLUMNS = 3;
 const MOBILE_COLUMNS = 2;
@@ -30,15 +75,31 @@ export default function CamerasScreen() {
 
   // ``/cameras?product=42`` puts the mosaic into "capture flow" mode — tapping
   // a single card captures immediately, long-pressing enters multi-select.
-  // Without the param the mosaic is a read-only dashboard (tap navigates to
-  // the detail screen, long-press does nothing).
-  const { product: productParam } = useLocalSearchParams<{ product?: string }>();
+  // ``/cameras?stream=42`` puts the mosaic into "stream mode" — tapping a card
+  // opens a config dialog then starts a YouTube stream for that product.
+  // Without params the mosaic is a read-only dashboard.
+  const { product: productParam, stream: streamParam } = useLocalSearchParams<{
+    product?: string;
+    stream?: string;
+  }>();
   const captureAllProductId = useMemo(() => {
     if (!productParam) return null;
     const id = Number(Array.isArray(productParam) ? productParam[0] : productParam);
     return Number.isFinite(id) && id > 0 ? id : null;
   }, [productParam]);
   const captureModeEnabled = captureAllProductId !== null;
+
+  const streamProductId = useMemo(() => {
+    if (!streamParam) return null;
+    const id = Number(Array.isArray(streamParam) ? streamParam[0] : streamParam);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }, [streamParam]);
+  const streamModeEnabled = streamProductId !== null;
+
+  const [streamDialog, dispatchStreamDialog] = useReducer(streamDialogReducer, STREAM_DIALOG_INITIAL);
+  const [isStartingStream, setIsStartingStream] = useState(false);
+
+  const { data: streamProduct } = useProductQuery(streamProductId ?? 'new');
 
   // Telemetry polling is always on when the mosaic is open — the backend
   // serves from a Redis cache so fan-out is a single query regardless of how
@@ -55,6 +116,7 @@ export default function CamerasScreen() {
   });
 
   const captureAll = useCaptureAllMutation();
+  const { setActiveStream } = useStreamSession();
   const [snackbar, setSnackbar] = useState<string | null>(null);
 
   // ── Multi-select state ─────────────────────────────────────────────────────
@@ -92,15 +154,17 @@ export default function CamerasScreen() {
   }, [user, router]);
 
   useEffect(() => {
+    const backProductId = captureAllProductId ?? streamProductId;
     navigation.setOptions({
+      title: streamModeEnabled ? 'Select camera to stream' : undefined,
       headerLeft: (props: HeaderBackButtonProps) => (
         <HeaderBackButton
           {...props}
           onPress={() => {
-            if (captureAllProductId) {
+            if (backProductId) {
               router.replace({
                 pathname: '/products/[id]',
-                params: { id: captureAllProductId.toString() },
+                params: { id: backProductId.toString() },
               });
             } else {
               router.replace('/products');
@@ -109,7 +173,7 @@ export default function CamerasScreen() {
         />
       ),
     });
-  }, [navigation, router, captureAllProductId]);
+  }, [navigation, router, captureAllProductId, streamProductId, streamModeEnabled]);
 
   const rows = cameras ?? [];
   const onlineCameras = rows.filter((c) => c.status?.connection === 'online');
@@ -150,6 +214,19 @@ export default function CamerasScreen() {
   // Single-camera tap handler — when NOT in selection mode.
   const handleCardTap = useCallback(
     (camera: CameraReadWithStatus) => {
+      if (streamModeEnabled) {
+        if (camera.status?.connection !== 'online') {
+          setSnackbar(`${camera.name} is offline — can't stream.`);
+          return;
+        }
+        dispatchStreamDialog({
+          type: 'open',
+          cameraId: camera.id,
+          cameraName: camera.name,
+          defaultTitle: streamProduct?.name ?? '',
+        });
+        return;
+      }
       if (selectionMode) {
         // Tap toggles selection while in selection mode; offline cameras
         // can't be selected because the capture fan-out would just fail.
@@ -163,8 +240,39 @@ export default function CamerasScreen() {
       // Default: navigate to the detail screen.
       router.push({ pathname: '/cameras/[id]', params: { id: camera.id } });
     },
-    [router, selectionMode, toggleSelected],
+    [router, selectionMode, streamModeEnabled, streamProduct?.name, toggleSelected],
   );
+
+  const handleStartStream = useCallback(async () => {
+    if (!streamDialog.cameraId || !streamProductId) return;
+    setIsStartingStream(true);
+    try {
+      const result = await startYouTubeStream(streamDialog.cameraId, {
+        product_id: streamProductId,
+        title: streamDialog.title.trim() || undefined,
+        privacy_status: streamDialog.privacy,
+      });
+      setActiveStream({
+        cameraId: streamDialog.cameraId,
+        cameraName: streamDialog.cameraName,
+        productId: streamProductId,
+        productName: streamProduct?.name ?? (streamDialog.title || `Product ${streamProductId}`),
+        startedAt: result.started_at,
+        youtubeUrl: result.url,
+      });
+      dispatchStreamDialog({ type: 'close' });
+      router.push({ pathname: '/cameras/[id]', params: { id: streamDialog.cameraId } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === 'GOOGLE_OAUTH_REQUIRED') {
+        alert('Connect your Google account in Profile > Linked Accounts to stream to YouTube.');
+      } else {
+        alert(`Failed to start stream: ${msg}`);
+      }
+    } finally {
+      setIsStartingStream(false);
+    }
+  }, [streamDialog, streamProductId, streamProduct?.name, setActiveStream, router]);
 
   const handleCardLongPress = useCallback(
     (camera: CameraReadWithStatus) => {
@@ -265,22 +373,71 @@ export default function CamerasScreen() {
         }
       />
 
-      <AnimatedFAB
-        icon="plus"
-        label="Add Camera"
-        extended
-        onPress={() => router.push('/cameras/add')}
-        style={{
-          position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
-          right: 16,
-          bottom: 16,
-        }}
-        accessibilityLabel="Add camera"
-      />
+      {!streamModeEnabled && (
+        <AnimatedFAB
+          icon="plus"
+          label="Add Camera"
+          extended
+          onPress={() => router.push('/cameras/add')}
+          style={{
+            position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+            right: 16,
+            bottom: 16,
+          }}
+          accessibilityLabel="Add camera"
+        />
+      )}
 
       <Snackbar visible={snackbar !== null} onDismiss={() => setSnackbar(null)} duration={4000}>
         {snackbar ?? ''}
       </Snackbar>
+
+      <Portal>
+        <Dialog
+          visible={streamDialog.cameraId !== null}
+          onDismiss={() => dispatchStreamDialog({ type: 'close' })}
+        >
+          <Dialog.Title>Go Live on {streamDialog.cameraName}</Dialog.Title>
+          <Dialog.Content style={{ gap: 12 }}>
+            <TextInput
+              mode="outlined"
+              label="Stream title (optional)"
+              value={streamDialog.title}
+              onChangeText={(v) => dispatchStreamDialog({ type: 'set_title', value: v })}
+              maxLength={100}
+            />
+            <Text variant="labelMedium" style={{ marginTop: 4 }}>
+              Visibility
+            </Text>
+            <SegmentedButtons
+              value={streamDialog.privacy}
+              onValueChange={(v) =>
+                dispatchStreamDialog({ type: 'set_privacy', value: v as YouTubePrivacyStatus })
+              }
+              buttons={[
+                { value: 'private', label: 'Private', icon: 'lock' },
+                { value: 'unlisted', label: 'Unlisted', icon: 'eye-off' },
+                { value: 'public', label: 'Public', icon: 'earth' },
+              ]}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => dispatchStreamDialog({ type: 'close' })}
+              disabled={isStartingStream}
+            >
+              Cancel
+            </Button>
+            <Button
+              onPress={() => void handleStartStream()}
+              loading={isStartingStream}
+              disabled={isStartingStream}
+            >
+              Go Live
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }

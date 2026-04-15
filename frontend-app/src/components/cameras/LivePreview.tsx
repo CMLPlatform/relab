@@ -3,6 +3,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { createElement, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
+import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
 import type { CameraRead } from '@/services/api/rpiCamera';
 // spell-checker: ignore mpegurl
@@ -11,25 +12,28 @@ import type { CameraRead } from '@/services/api/rpiCamera';
  * LL-HLS live preview for a single camera.
  *
  * Web: renders a ``<video>`` element with [hls.js](https://github.com/video-dev/hls.js/)
- * attached to the playlist URL the backend HLS proxy serves. Safari/iOS-on-web
- * uses the browser's native HLS playback path instead of hls.js.
+ * attached to the playlist URL. When ``connectionInfo.mode`` is ``"local"``, the
+ * URL points directly at the Pi's MediaMTX, reducing latency to ~0.4–0.8 s.
+ * Otherwise the backend HLS proxy is used (~1.5–3 s via relay).
+ * Safari/iOS-on-web uses the browser's native HLS playback path.
  *
  * Native (iOS/Android in the Expo app): uses ``expo-video`` which speaks HLS
- * out of the box. Same backend URL, same media format, same ~1.5-3s latency
- * — but the player engine is the platform's own.
+ * out of the box. Same URL switching logic applies.
  *
- * Either way, the parent only needs to pass a camera; the URL is derived
- * server-side and the proxy handles auth via the user's session token.
+ * Either way, the parent only needs to pass a camera; URL selection is handled
+ * internally based on the connection mode.
  */
 
 export function LivePreview({
   camera,
   enabled = true,
+  connectionInfo,
 }: {
   camera: Pick<CameraRead, 'id'> | null;
   enabled?: boolean;
+  connectionInfo?: CameraConnectionInfo;
 }) {
-  const { hlsUrl } = useCameraLivePreview(camera, { enabled });
+  const { hlsUrl, isLocalStream } = useCameraLivePreview(camera, { enabled, connectionInfo });
 
   if (!hlsUrl) {
     return null;
@@ -38,9 +42,13 @@ export function LivePreview({
   return (
     <Card style={styles.card}>
       <Card.Content style={styles.content}>
-        {Platform.OS === 'web' ? <WebHlsVideo src={hlsUrl} /> : <NativeHlsVideo src={hlsUrl} />}
+        {Platform.OS === 'web' ? (
+          <WebHlsVideo src={hlsUrl} withCredentials={!isLocalStream} />
+        ) : (
+          <NativeHlsVideo src={hlsUrl} />
+        )}
         <Text variant="bodySmall" style={styles.caption}>
-          Live preview · LL-HLS
+          {isLocalStream ? 'Live preview · Direct · <1s' : 'Live preview · LL-HLS'}
         </Text>
       </Card.Content>
     </Card>
@@ -49,7 +57,7 @@ export function LivePreview({
 
 // ─── Web player (hls.js + native Safari) ──────────────────────────────────────
 
-function WebHlsVideo({ src }: { src: string }) {
+function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredentials?: boolean }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<'loading' | 'live' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -69,9 +77,9 @@ function WebHlsVideo({ src }: { src: string }) {
     // Safari and iOS-on-web ship native HLS — feed it the URL directly and
     // skip hls.js entirely. Everything else gets the JS-side MSE player.
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Required for cross-origin requests so the browser sends the session
-      // cookie alongside the playlist and segment requests.
-      video.crossOrigin = 'use-credentials';
+      // For relay mode: send the session cookie for cross-origin auth.
+      // For local mode (MediaMTX direct): anonymous requests are fine.
+      video.crossOrigin = withCredentials ? 'use-credentials' : 'anonymous';
       video.src = src;
       video.play().catch(() => {
         // Autoplay rejections are common; the browser shows its own UI.
@@ -96,12 +104,14 @@ function WebHlsVideo({ src }: { src: string }) {
           lowLatencyMode: true,
           backBufferLength: 4,
           maxBufferLength: 4,
-          // The backend HLS endpoint is on a different origin and requires the
-          // user's session cookie. Without withCredentials the browser strips
-          // cookies from all cross-origin XHR requests made by hls.js.
-          xhrSetup: (xhr) => {
-            xhr.withCredentials = true;
-          },
+          // Relay mode: the backend HLS endpoint requires the user's session
+          // cookie for cross-origin requests. Local (MediaMTX direct) mode:
+          // no auth needed, omit credentials to avoid preflight rejections.
+          xhrSetup: withCredentials
+            ? (xhr) => {
+                xhr.withCredentials = true;
+              }
+            : undefined,
         });
         hls.loadSource(src);
         hls.attachMedia(video);

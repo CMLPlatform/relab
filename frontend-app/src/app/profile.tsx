@@ -20,6 +20,7 @@ import { API_URL, DOCS_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { useThemeMode } from '@/context/ThemeModeProvider';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
+import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 import { getToken, logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
 import { getNewsletterPreference, setNewsletterPreference } from '@/services/api/newsletter';
@@ -49,6 +50,11 @@ export default function ProfileTab() {
     loading: rpiLoading,
     setEnabled: setRpiEnabled,
   } = useRpiIntegration();
+  const {
+    enabled: youtubeEnabled,
+    loading: youtubeLoading,
+    setEnabled: setYoutubeEnabled,
+  } = useYouTubeIntegration();
   const { themeMode, setThemeMode } = useThemeMode();
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(true);
@@ -318,6 +324,38 @@ export default function ProfileTab() {
             subtitle="Add, edit, or remove connected cameras"
             onPress={() => router.push('/cameras')}
           />
+        )}
+        {rpiEnabled && (
+          isGoogleLinked ? (
+            <View style={styles.rpiRow}>
+              <View style={styles.rpiIcon}>
+                <Icon source="youtube" size={22} color="#555" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.actionTitle}>YouTube Live</Text>
+                <Text style={styles.actionSubtitle}>
+                  Stream product sessions live to YouTube.
+                </Text>
+              </View>
+              <Switch
+                value={youtubeEnabled}
+                onValueChange={(v) => void setYoutubeEnabled(v)}
+                disabled={youtubeLoading}
+              />
+            </View>
+          ) : (
+            <View style={styles.rpiRow}>
+              <View style={styles.rpiIcon}>
+                <Icon source="youtube" size={22} color="#999" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionTitle, { opacity: 0.5 }]}>YouTube Live</Text>
+                <Text style={styles.actionSubtitle}>
+                  Link your Google account below to enable live streaming.
+                </Text>
+              </View>
+            </View>
+          )
         )}
       </View>
 
