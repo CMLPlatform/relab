@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -291,7 +291,7 @@ export default function CameraDetailScreen() {
                   Disconnect
                 </Button>
               )}
-              {localConnection.mode === 'relay' && Platform.OS !== 'web' && (
+              {localConnection.mode === 'relay' && (
                 <Button
                   compact
                   mode="text"
@@ -312,9 +312,7 @@ export default function CameraDetailScreen() {
                 : localConnection.mode === 'probing' && isOnline
                   ? 'Camera online — checking local network for a faster direct connection'
                   : isOnline
-                    ? Platform.OS === 'web'
-                      ? 'Via WebSocket relay · direct Ethernet mode requires the native app'
-                      : 'Via WebSocket relay · connect Ethernet for ~0.4 s latency instead of ~2 s'
+                    ? 'Via WebSocket relay · connect Ethernet for ~0.4 s latency instead of ~2 s'
                     : camera.status?.connection === 'offline'
                       ? 'Waiting for camera to connect via WebSocket relay'
                       : statusLabel}
