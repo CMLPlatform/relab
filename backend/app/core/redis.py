@@ -74,6 +74,41 @@ async def init_redis() -> Redis | None:
         return redis_client
 
 
+async def init_blocking_redis() -> Redis | None:
+    """Initialize a Redis client for blocking commands (BLPOP/BRPOP).
+
+    Identical to ``init_redis`` except ``socket_timeout`` is ``None`` so that
+    blocking pops (BLPOP with large or zero timeout) are not interrupted by the
+    socket-level timeout.  Use this client *only* for blocking operations; all
+    other operations should use the regular client from ``init_redis``.
+    """
+    try:
+        redis_client = Redis(
+            host=settings.redis_host,
+            port=settings.redis_port,
+            db=settings.redis_db,
+            password=settings.redis_password.get_secret_value() if settings.redis_password else None,
+            decode_responses=True,
+            socket_connect_timeout=5,
+            socket_timeout=None,  # must be None for BLPOP — a finite timeout kills the socket mid-wait
+        )
+        await redis_client.ping()  # ty: ignore[invalid-await]
+        logger.info(
+            "Blocking Redis client initialized and connected: %s:%s",
+            settings.redis_host,
+            settings.redis_port,
+        )
+    except (TimeoutError, RedisError, OSError, ConnectionError) as e:
+        logger.warning(
+            "Failed to connect to Redis (blocking client) during initialization: %s. "
+            "Cross-worker relay will be unavailable.",
+            e,
+        )
+        return None
+    else:
+        return redis_client
+
+
 async def close_redis(redis_client: Redis) -> None:
     """Close Redis connection and connection pool.
 

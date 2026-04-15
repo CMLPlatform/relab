@@ -310,7 +310,7 @@ async def capture_and_store_image(
     capture_response = await camera_request(
         endpoint="/images",
         method=HttpMethod.POST,
-        body={"upload_metadata": upload_metadata},
+        body=upload_metadata,
         error_msg="Failed to capture image",
     )
     try:

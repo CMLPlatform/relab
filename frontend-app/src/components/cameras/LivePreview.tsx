@@ -69,6 +69,9 @@ function WebHlsVideo({ src }: { src: string }) {
     // Safari and iOS-on-web ship native HLS — feed it the URL directly and
     // skip hls.js entirely. Everything else gets the JS-side MSE player.
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Required for cross-origin requests so the browser sends the session
+      // cookie alongside the playlist and segment requests.
+      video.crossOrigin = 'use-credentials';
       video.src = src;
       video.play().catch(() => {
         // Autoplay rejections are common; the browser shows its own UI.
@@ -93,6 +96,12 @@ function WebHlsVideo({ src }: { src: string }) {
           lowLatencyMode: true,
           backBufferLength: 4,
           maxBufferLength: 4,
+          // The backend HLS endpoint is on a different origin and requires the
+          // user's session cookie. Without withCredentials the browser strips
+          // cookies from all cross-origin XHR requests made by hls.js.
+          xhrSetup: (xhr) => {
+            xhr.withCredentials = true;
+          },
         });
         hls.loadSource(src);
         hls.attachMedia(video);

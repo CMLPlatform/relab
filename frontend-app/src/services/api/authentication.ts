@@ -14,13 +14,12 @@ let refreshPromise: Promise<boolean> | null = null;
 let getUserPromise: Promise<User | undefined> | null = null;
 // When true, network auth requests should be suppressed (set on explicit logout)
 let explicitlyLoggedOut = false;
+// Incremented on every logout so in-flight getUser requests can detect they raced with a logout
+let authGeneration = 0;
 
-// Helper to log errors, but avoid noisy logs during tests. Tests exercise
-// error paths intentionally; skip logging when running under Jest.
+// Suppress noisy error logs during tests; error paths are exercised intentionally.
 function logError(...args: unknown[]) {
-  try {
-    if (process.env.NODE_ENV === 'test') return;
-  } catch {}
+  if (process.env.NODE_ENV === 'test') return;
   // eslint-disable-next-line no-console
   console.error(...(args as [unknown, ...unknown[]]));
 }
@@ -38,6 +37,8 @@ async function persistAccessToken(nextToken: string): Promise<void> {
 async function clearCachedAuthState(): Promise<void> {
   token = undefined;
   user = undefined;
+  getUserPromise = null;
+  authGeneration++;
   explicitlyLoggedOut = true;
   if (!isWeb()) {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
@@ -162,7 +163,7 @@ async function fetchWithAuth(url: URL | string, options: RequestInit = {}): Prom
 
   let response = await makeRequest();
 
-  if (response.status === 401) {
+  if (response.status === 401 && !explicitlyLoggedOut) {
     const refreshed = await refreshAuthToken();
     if (refreshed) {
       const newToken = await getToken();
@@ -202,17 +203,10 @@ export async function login(username: string, password: string): Promise<string 
             await getUser(true);
           } else {
             // small delay and one final attempt to populate cache
-            await new Promise((resolve) => {
-              const timer = setTimeout(resolve, 150);
-              if (timer && typeof timer === 'object' && 'unref' in timer) {
-                (timer as { unref(): void }).unref();
-              }
-            });
-            try {
-              await getUser(true);
-            } catch {
+            await new Promise<void>((resolve) => setTimeout(resolve, 150));
+            await getUser(true).catch(() => {
               /* ignore */
-            }
+            });
           }
         } catch {
           /* ignore */
@@ -251,12 +245,6 @@ export async function login(username: string, password: string): Promise<string 
 
 export async function logout(): Promise<void> {
   await clearCachedAuthState();
-  // ensure client-visible flag cleared for web
-  try {
-    if (Platform.OS === 'web') window.sessionStorage.removeItem(WEB_SESSION_FLAG);
-  } catch {
-    /* ignore */
-  }
   try {
     await fetchWithTimeout(new URL(`${apiURL}/auth/logout`), {
       method: 'POST',
@@ -286,6 +274,7 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
 
     // create a shared in-flight promise so concurrent callers reuse the same request
     getUserPromise = (async (): Promise<User | undefined> => {
+      const capturedGeneration = authGeneration;
       try {
         const url = new URL(`${apiURL}/users/me`);
         const response = await fetchWithAuth(url, {
@@ -293,23 +282,23 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
           headers: { Accept: 'application/json' },
         });
 
-        let data: ApiUserRead;
-        try {
-          data = await response.json();
-        } catch (jsonErr) {
-          logError('[GetUser Fetch Error]: Unable to parse server response.', jsonErr);
-          return undefined;
-        }
-
         if (!response.ok) {
-          // 401 is expected for guests; only log other errors
+          // 401 is expected for guests; log unexpected errors
           if (response.status !== 401) {
-            console.error('[GetUser Fetch Error]:', data);
+            logError('[GetUser] HTTP', response.status);
           }
-          // If we failed to fetch the user (likely guest), ensure web flag is false
           setWebSessionFlag(false);
           return undefined;
         }
+
+        // Discard result if logout happened while request was in flight
+        if (authGeneration !== capturedGeneration) return undefined;
+
+        const data = (await response.json().catch((err: unknown) => {
+          logError('[GetUser] Failed to parse response:', err);
+          return undefined;
+        })) as ApiUserRead | undefined;
+        if (!data) return undefined;
 
         user = {
           id: data.id,
@@ -317,10 +306,9 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
           isActive: data.is_active,
           isSuperuser: data.is_superuser,
           isVerified: data.is_verified,
-          username: data.username || 'Username not defined',
-          oauth_accounts: data.oauth_accounts || [],
-          preferences:
-            (data as ApiUserRead & { preferences?: Record<string, unknown> }).preferences || {},
+          username: data.username ?? 'Username not defined',
+          oauth_accounts: data.oauth_accounts ?? [],
+          preferences: data.preferences ?? {},
         };
 
         // successful user fetch; mark web session flag
@@ -368,7 +356,7 @@ export async function register(
 
     return { success: false, error: errorMessage };
   } catch (error) {
-    console.error('Registration error:', error);
+    logError('[Register Error]:', error);
     return { success: false, error: 'Network error. Please check your connection and try again.' };
   }
 }
@@ -396,16 +384,15 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      let errorMessage = 'Failed to update user profile';
-      if (errorData?.detail) {
-        if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail;
-        } else if (typeof errorData.detail === 'object') {
-          errorMessage =
-            errorData.detail.message || errorData.detail.reason || JSON.stringify(errorData.detail);
-        }
-      }
-      throw new Error(errorMessage);
+      const detail = errorData?.detail;
+      throw new Error(
+        typeof detail === 'string'
+          ? detail
+          : (detail?.message ??
+              detail?.reason ??
+              JSON.stringify(detail) ??
+              'Failed to update user profile'),
+      );
     }
 
     return await getUser(true);

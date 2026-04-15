@@ -25,6 +25,7 @@ from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
 from app.api.file_storage.services.manager import FileCleanupManager
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager, set_connection_manager
+from app.api.plugins.rpi_cam.websocket.cross_worker_relay import set_blocking_redis
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.clients import create_http_client
 from app.core.config import settings
@@ -32,7 +33,7 @@ from app.core.database import async_engine, async_sessionmaker_factory
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.middleware import register_request_id_middleware, register_request_size_limit_middleware
 from app.core.observability import init_telemetry, shutdown_telemetry
-from app.core.redis import close_redis, init_redis
+from app.core.redis import close_redis, init_blocking_redis, init_redis
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -71,6 +72,9 @@ async def initialize_app_state(app: FastAPI) -> None:
     app.state.email_checker = await init_email_checker(app.state.redis)
     init_fastapi_cache(app.state.redis)
 
+    app.state.blocking_redis = await init_blocking_redis()
+    set_blocking_redis(app.state.blocking_redis)
+
     camera_manager = CameraConnectionManager()
     app.state.camera_connection_manager = camera_manager
     set_connection_manager(camera_manager)
@@ -104,6 +108,12 @@ async def shutdown_redis_and_cache(app: FastAPI) -> None:
             await close_redis(app.state.redis)
         except (ConnectionError, OSError) as e:
             logger.warning("Error closing Redis: %s", e)
+
+    if getattr(app.state, "blocking_redis", None) is not None:
+        try:
+            await close_redis(app.state.blocking_redis)
+        except (ConnectionError, OSError) as e:
+            logger.warning("Error closing blocking Redis: %s", e)
 
     try:
         await close_fastapi_cache()

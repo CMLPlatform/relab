@@ -47,6 +47,7 @@ async def test_fetch_from_camera_url_delegates_to_relay(monkeypatch: pytest.Monk
         body=None,
         error_msg=None,
         expect_binary=False,
+        redis=None,
     )
 
 
@@ -76,6 +77,7 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
         body={"key": "val"},
         error_msg="Failed",
         expect_binary=True,
+        redis=None,
     )
 
 

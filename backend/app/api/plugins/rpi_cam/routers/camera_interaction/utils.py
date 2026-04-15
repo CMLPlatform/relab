@@ -43,6 +43,7 @@ async def fetch_from_camera_url(
     body: dict | None = None,
     *,
     expect_binary: bool = False,
+    redis: Redis | None = None,
 ) -> RelayResponse:
     """Send a request to the camera through its active WebSocket relay."""
     return await relay_via_websocket(
@@ -52,13 +53,19 @@ async def fetch_from_camera_url(
         body=body,
         error_msg=error_msg,
         expect_binary=expect_binary,
+        redis=redis,
     )
 
 
 def build_camera_request(
     camera: Camera,
+    redis: Redis | None = None,
 ) -> Callable[..., Awaitable[RelayResponse]]:
-    """Build a reusable request callable bound to one camera and shared client."""
+    """Build a reusable request callable bound to one camera.
+
+    Pass ``redis`` so the relay can fall back to the cross-worker bridge when
+    the camera's WebSocket is registered in a different Uvicorn worker process.
+    """
 
     async def request(
         endpoint: str,
@@ -75,6 +82,7 @@ def build_camera_request(
             error_msg=error_msg,
             body=body,
             expect_binary=expect_binary,
+            redis=redis,
         )
 
     return request

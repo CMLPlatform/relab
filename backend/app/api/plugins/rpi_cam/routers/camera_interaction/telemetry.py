@@ -60,7 +60,7 @@ async def get_camera_telemetry(
     # and forward to the Pi. ``get_user_owned_camera`` raises 503 if the camera
     # is offline, which is the right behaviour — no point hitting a dead relay.
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
     response = await camera_request(
         endpoint=_TELEMETRY_ENDPOINT,
         method=HttpMethod.GET,

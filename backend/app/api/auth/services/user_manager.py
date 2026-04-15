@@ -65,6 +65,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         super().__init__(user_db)
         self.http_client = http_client
         self.skip_breach_check = False
+        self.skip_password_validation = False
 
     # Set up token secrets and lifetimes
     reset_password_token_secret: SecretType = SECRET.get_secret_value()
@@ -96,6 +97,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         user: UserCreate | User,
     ) -> None:
         """Delegate password validation to the dedicated service."""
+        if self.skip_password_validation:
+            return
         await _validate_password(
             password,
             email=user.email,

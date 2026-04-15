@@ -55,7 +55,7 @@ async def proxy_hls(
 ) -> Response:
     """Proxy an LL-HLS URL through the camera's WebSocket relay."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
     relay_response = await camera_request(
         endpoint=f"/hls/{hls_path}",
         method=HttpMethod.GET,

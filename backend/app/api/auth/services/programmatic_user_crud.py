@@ -50,11 +50,13 @@ async def create_user(
     *,
     send_registration_email: bool = False,
     skip_breach_check: bool = False,
+    skip_password_validation: bool = False,
 ) -> User:
     """Programmatically create a new user in the database."""
     try:
         async with get_chained_async_user_manager_context(async_session) as user_manager:
             user_manager.skip_breach_check = skip_breach_check
+            user_manager.skip_password_validation = skip_password_validation
             user: User = await user_manager.create(user_create)
 
             if send_registration_email:

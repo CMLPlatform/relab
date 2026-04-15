@@ -259,10 +259,3 @@
     [tool.ruff.lint.pylint]
       allow-magic-value-types = ["int"]
       max-args                = 10
-
-[tool.uv.sources]
-  # Source the shared camera models from the sibling rpi-cam-plugin monorepo during
-  # local dev so ty/pyright resolve ``ImageCaptureStatus`` and other 0.2.0-era symbols
-  # before the package is published to PyPI.
-  # TODO: Switch back to a plain PyPI install once the models.tag CI workflow ships 0.2.0.
-  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }

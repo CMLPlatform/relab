@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,15 +8,10 @@ import { Controller, useForm } from 'react-hook-form';
 import { Keyboard, Platform, View } from 'react-native';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import { useDialog } from '@/components/common/DialogProvider';
-import { API_URL, GOOGLE_WEB_CLIENT_ID } from '@/config';
+import { API_URL } from '@/config';
 import { useAuth } from '@/context/AuthProvider';
 import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
-import {
-  getUser,
-  login,
-  markWebSessionActive,
-  oauthLoginWithGoogleToken,
-} from '@/services/api/authentication';
+import { getUser, login, markWebSessionActive } from '@/services/api/authentication';
 import { apiFetch } from '@/services/api/client';
 import { type LoginFormValues, loginSchema } from '@/services/api/validation/userSchema';
 
@@ -162,11 +156,6 @@ export default function Login() {
   const theme = useTheme();
   const postLoginRedirect = getSafeRedirectTarget(redirectTo);
 
-  // expo-auth-session Google PKCE hook (web only — native uses backend-mediated flow)
-  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-  });
-
   // Form
   const { control, handleSubmit } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -292,36 +281,6 @@ export default function Login() {
     [completeSuccessfulLogin, dialog],
   );
 
-  // Handle Google PKCE response on web (set by expo-auth-session after popup/redirect completes)
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !googleResponse) return;
-
-    if (googleResponse.type === 'error') {
-      dialog.alert({
-        title: 'Login Failed',
-        message: googleResponse.error?.message || 'Google login failed. Please try again.',
-      });
-      return;
-    }
-
-    if (googleResponse.type !== 'success') return;
-
-    const { authentication } = googleResponse;
-    if (!authentication?.idToken) {
-      dialog.alert({ title: 'Login Failed', message: 'Google login failed. Please try again.' });
-      return;
-    }
-
-    oauthLoginWithGoogleToken(authentication.idToken, authentication.accessToken ?? null)
-      .then(() => finalizeOAuthLogin({ success: true }))
-      .catch((error: unknown) => {
-        dialog.alert({
-          title: 'Login Failed',
-          message: getErrorMessage(error, 'Google login failed.'),
-        });
-      });
-  }, [googleResponse, finalizeOAuthLogin, dialog]);
-
   useEffect(() => {
     if (handledOAuthCallbackRef.current) {
       return;
@@ -400,13 +359,6 @@ export default function Login() {
 
   const handleOAuthLogin = async (provider: 'google' | 'github') => {
     try {
-      // On web, Google uses client-side PKCE via expo-auth-session.
-      // The googleResponse effect above handles the result.
-      if (Platform.OS === 'web' && provider === 'google') {
-        await promptGoogleAsync();
-        return;
-      }
-
       const transport = 'session';
       const redirectUri = Linking.createURL('/login');
       const authUrl = `${API_URL}/auth/oauth/${provider}/${transport}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;

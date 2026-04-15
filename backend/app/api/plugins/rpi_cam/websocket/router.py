@@ -18,6 +18,7 @@ from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.services import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
+from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
 from app.api.plugins.rpi_cam.websocket.protocol import MSG_PING, MSG_PONG, MSG_RESPONSE
 from app.core.database import get_async_session
 from app.core.logging import sanitize_log_value
@@ -62,6 +63,14 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
         _heartbeat_loop(websocket, camera_id, last_pong_at),
         name=f"ws-heartbeat-{camera_id}",
     )
+    # Cross-worker relay listener: allows other Uvicorn worker processes to
+    # dispatch relay commands to this worker (the one holding the WebSocket).
+    relay_listener: asyncio.Task | None = None
+    if redis is not None:
+        relay_listener = asyncio.create_task(
+            run_relay_listener(redis, camera_id, manager),
+            name=f"ws-relay-listener-{camera_id}",
+        )
     try:
         await _receive_loop(websocket, camera_id, manager, last_pong_at, redis)
     except WebSocketDisconnect:
@@ -72,6 +81,10 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
         heartbeat.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await heartbeat
+        if relay_listener is not None:
+            relay_listener.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await relay_listener
         manager.unregister(camera_id)
         if redis:
             await mark_camera_offline(redis, camera_id)

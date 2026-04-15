@@ -32,7 +32,7 @@ async def create_superuser() -> None:
             try:
                 await create_user(
                     async_session=async_session,
-                    user_create=UserCreate(
+                    user_create=UserCreate.model_construct(
                         email=superuser_email,
                         username=superuser_name,
                         password=superuser_password.get_secret_value(),
@@ -42,6 +42,7 @@ async def create_superuser() -> None:
                     ),
                     send_registration_email=False,
                     skip_breach_check=True,
+                    skip_password_validation=True,
                 )
                 logger.info("Superuser %s created successfully.", superuser_email)
             except (UserAlreadyExists, InvalidPasswordException) as e:

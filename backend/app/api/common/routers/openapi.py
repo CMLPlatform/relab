@@ -45,9 +45,9 @@ def mark_router_routes_public(router: APIRouter) -> None:
 
 
 ### OpenAPI schema generation ###
-def get_filtered_openapi_schema(app: FastAPI) -> dict[str, Any]:
-    """Generate OpenAPI schema with only public endpoints."""
-    openapi_schema: dict[str, Any] = get_openapi(
+def _build_public_openapi(app: FastAPI) -> dict[str, Any]:
+    """Generate the public OpenAPI schema, keeping only routes marked with x-public."""
+    schema: dict[str, Any] = get_openapi(
         title=api_settings.public_docs.title,
         version=api_settings.public_docs.version,
         description=api_settings.public_docs.description,
@@ -55,34 +55,32 @@ def get_filtered_openapi_schema(app: FastAPI) -> dict[str, Any]:
         license_info=api_settings.public_docs.license_info,
     )
 
-    paths = openapi_schema["paths"]
-    filtered_paths = {}
-
-    # Only include paths marked as public
-    for path, path_item in paths.items():
+    filtered_paths: dict[str, Any] = {}
+    for path, path_item in schema["paths"].items():
         for method, operation in path_item.items():
             if operation.get(OPENAPI_PUBLIC_INCLUSION_EXTENSION, False):
-                if path not in filtered_paths:
-                    filtered_paths[path] = {}
-                filtered_paths[path][method] = operation
-
-    openapi_schema["paths"] = filtered_paths
-
-    # Add tag groups for better organization in Redoc
-    openapi_schema["x-tagGroups"] = api_settings.public_docs.x_tag_groups
-
-    return openapi_schema
+                filtered_paths.setdefault(path, {})[method] = operation
+    schema["paths"] = filtered_paths
+    schema["x-tagGroups"] = api_settings.public_docs.x_tag_groups
+    return schema
 
 
 def init_openapi_docs(app: FastAPI) -> FastAPI:
-    """Initialize OpenAPI documentation endpoints."""
+    """Initialize OpenAPI documentation endpoints.
+
+    Overrides app.openapi() so the public filtered schema is the canonical schema
+    for the app (the standard FastAPI integration point for tooling and middleware).
+    The /openapi.json endpoint simply delegates to app.openapi().
+    """
+    app.openapi = lambda: _build_public_openapi(app)  # type: ignore  # noqa: PGH003
+
     public_docs_router = APIRouter(prefix="", include_in_schema=False)
 
     # Public documentation
     @public_docs_router.get("/openapi.json")
     @cache(expire=settings.cache.ttls[CacheNamespace.DOCS])
     async def get_openapi_schema() -> dict:
-        return get_filtered_openapi_schema(app)
+        return app.openapi()
 
     @public_docs_router.get("/docs")
     @cache(expire=settings.cache.ttls[CacheNamespace.DOCS], coder=HTMLCoder)

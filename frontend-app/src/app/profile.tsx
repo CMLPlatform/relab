@@ -72,7 +72,7 @@ export default function ProfileTab() {
     setIsLoggingOut(true);
     logout()
       .then(() => {
-        refetch();
+        void refetch(false);
         router.replace('/products');
       })
       .finally(() => setIsLoggingOut(false));
@@ -112,7 +112,7 @@ export default function ProfileTab() {
     try {
       await unlinkOAuth(providerToUnlink);
       setUnlinkDialogVisible(false);
-      refetch();
+      void refetch();
     } catch (error: unknown) {
       setUnlinkDialogVisible(false);
       alert(`Failed to disconnect: ${getErrorMessage(error, 'Unknown error')}`);

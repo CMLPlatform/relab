@@ -65,7 +65,7 @@ async def get_camera_stream_status(
 ) -> StreamView:
     """Fetch the current remote camera stream status from the device plugin."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
     response = await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.GET,
@@ -91,7 +91,7 @@ async def stop_all_streams(
 ) -> None:
     """Stop the currently active remote camera stream."""
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
     await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.DELETE,
@@ -172,7 +172,7 @@ async def start_recording(
 
     # Fetch user camera
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
 
     # Start Youtube stream
     response = await camera_request(
@@ -255,7 +255,7 @@ async def stop_recording(
         raise GoogleOAuthAssociationRequiredError
 
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
 
     await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,
@@ -294,7 +294,7 @@ async def get_recording_monitor_stream(
     redis_client = require_redis(redis)
     recording_session = await load_recording_session(redis_client, camera_id)
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera)
+    camera_request = build_camera_request(camera, redis)
 
     stream_status_response = await camera_request(
         endpoint=PLUGIN_STREAM_ENDPOINT,

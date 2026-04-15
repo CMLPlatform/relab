@@ -11,6 +11,7 @@ from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.core.redis import OptionalRedisDep
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud import create_image
 from app.api.file_storage.models import Image, MediaParentType
@@ -45,6 +46,7 @@ async def capture_image(
     camera_id: UUID4,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
+    redis: OptionalRedisDep,
     *,
     product_id: Annotated[
         PositiveInt,
@@ -63,8 +65,8 @@ async def capture_image(
     ] = None,
 ) -> Image:
     """Capture a still image with a remote Raspberry Pi Camera."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id)
-    camera_request = build_camera_request(camera)
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
+    camera_request = build_camera_request(camera, redis)
 
     return await capture_and_store_image(
         session,
