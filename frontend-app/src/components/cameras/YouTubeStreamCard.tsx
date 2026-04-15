@@ -1,11 +1,10 @@
-import { Alert, Linking } from 'react-native';
-import { useEffect, useState } from 'react';
-import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Linking, View } from 'react-native';
+import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import { useStreamSession } from '@/context/StreamSessionContext';
-import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/useRpiCameras';
+import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 
 interface YouTubeStreamCardProps {
   cameraId: string;

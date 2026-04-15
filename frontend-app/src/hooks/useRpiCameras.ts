@@ -154,8 +154,16 @@ export function useCaptureImageMutation(connectionInfo?: CameraConnectionInfo) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ cameraId, productId }: { cameraId: string; productId: number }) => {
-      if (connectionInfo?.mode === 'local' && connectionInfo.localBaseUrl && connectionInfo.localApiKey) {
-        return captureImageLocally(connectionInfo.localBaseUrl, connectionInfo.localApiKey, productId);
+      if (
+        connectionInfo?.mode === 'local' &&
+        connectionInfo.localBaseUrl &&
+        connectionInfo.localApiKey
+      ) {
+        return captureImageLocally(
+          connectionInfo.localBaseUrl,
+          connectionInfo.localApiKey,
+          productId,
+        );
       }
       return captureImageFromCamera(cameraId, productId);
     },

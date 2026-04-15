@@ -22,8 +22,8 @@ import {
 import darkTheme from '@/assets/themes/dark';
 import lightTheme from '@/assets/themes/light';
 import { Text } from '@/components/base/Text';
-import { DialogProvider } from '@/components/common/DialogProvider';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
+import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider, useAuth } from '@/context/AuthProvider';
 import { StreamSessionProvider } from '@/context/StreamSessionContext';
 import { ThemeModeProvider, useEffectiveColorScheme } from '@/context/ThemeModeProvider';

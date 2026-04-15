@@ -1,14 +1,17 @@
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { useStreamSession } from '@/context/StreamSessionContext';
-import { useRouter } from 'expo-router';
 import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
 
 function useElapsed(startedAt: string | null): string {
   const [elapsed, setElapsed] = useState('');
   useEffect(() => {
-    if (!startedAt) { setElapsed(''); return; }
+    if (!startedAt) {
+      setElapsed('');
+      return;
+    }
     const tick = () => {
       const s = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
       setElapsed(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
@@ -58,10 +61,7 @@ export function ActiveStreamBanner() {
 
   return (
     <View
-      style={[
-        styles.container,
-        { bottom: Platform.OS === 'web' ? 16 : 88 },
-      ]}
+      style={[styles.container, { bottom: Platform.OS === 'web' ? 16 : 88 }]}
       pointerEvents="box-none"
     >
       <Pressable style={styles.banner} onPress={handleTap} accessibilityRole="button">

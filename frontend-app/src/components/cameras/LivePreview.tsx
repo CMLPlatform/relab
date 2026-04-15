@@ -132,7 +132,7 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
       cancelled = true;
       if (cleanup) cleanup();
     };
-  }, [src]);
+  }, [src, withCredentials]);
 
   return (
     <View style={styles.videoFrame}>

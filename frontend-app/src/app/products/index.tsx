@@ -368,6 +368,14 @@ export default function Products() {
     sortBy,
     { brands: activeBrands, createdAfter, productTypeNames: activeProductTypes },
   );
+  const resetAccumulationKey = JSON.stringify([
+    searchQueryURL,
+    filterMode,
+    activeDatePreset,
+    params.brands,
+    params.types,
+    params.sort,
+  ]);
 
   // ─── Timeout for slow loading ────────────────────────────────────────────────
   useEffect(() => {
@@ -384,9 +392,10 @@ export default function Products() {
 
   // Reset single-column accumulation when any filter/search/sort changes
   useEffect(() => {
+    void resetAccumulationKey;
     setMobilePage(1);
     setAccumulatedProducts([]);
-  }, [searchQueryURL, filterMode, activeDatePreset, params.brands, params.types, params.sort]);
+  }, [resetAccumulationKey]);
 
   useEffect(() => {
     if (!data?.items) return;

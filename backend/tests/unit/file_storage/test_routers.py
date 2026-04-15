@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 # Constants to avoid magic values
 IMAGE_WIDTH = 200
 IMAGE_HEIGHT = 150
+
+
 def _make_request() -> MagicMock:
     return MagicMock()
 

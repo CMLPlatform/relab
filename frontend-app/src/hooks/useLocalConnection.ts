@@ -174,6 +174,7 @@ export function useLocalConnection(
   // Track whether we've already attempted (or successfully completed) a relay
   // bootstrap so we don't repeat the fetch on every isOnline change.
   const relayBootstrapDoneRef = useRef(false);
+  const lastBootstrapCameraIdRef = useRef(cameraId);
   // Keep a ref so the interval callback always has the current values without
   // triggering extra re-renders.
   const stateRef = useRef({ localBaseUrl, localApiKey });
@@ -251,6 +252,11 @@ export function useLocalConnection(
 
   // ── Relay bootstrap: auto-fetch key + candidate URLs when camera is online ─
   useEffect(() => {
+    if (lastBootstrapCameraIdRef.current !== cameraId) {
+      relayBootstrapDoneRef.current = false;
+      lastBootstrapCameraIdRef.current = cameraId;
+    }
+
     if (!isOnline) return;
     // Only attempt once per mount (or when isOnline transitions true the first time).
     // Re-runs if cameraId changes.
@@ -259,13 +265,12 @@ export function useLocalConnection(
 
     async function bootstrap() {
       const info = await fetchLocalAccessInfo(cameraId);
-      if (!info || !info.local_api_key) return;
+      if (!info?.local_api_key) return;
 
       // Build candidate list: Pi-reported IPs + USB gadget default
-      const candidates = [
-        ...info.candidate_urls,
-        USB_GADGET_DEFAULT,
-      ].filter((u, i, arr) => arr.indexOf(u) === i); // deduplicate
+      const candidates = [...info.candidate_urls, USB_GADGET_DEFAULT].filter(
+        (u, i, arr) => arr.indexOf(u) === i,
+      ); // deduplicate
 
       // Probe all in parallel — use the key from the Pi
       const reachableUrl = await probeAll(candidates, info.local_api_key);
@@ -283,11 +288,6 @@ export function useLocalConnection(
 
     void bootstrap();
   }, [cameraId, isOnline, activateLocalMode]);
-
-  // Reset relay bootstrap guard when camera changes
-  useEffect(() => {
-    relayBootstrapDoneRef.current = false;
-  }, [cameraId]);
 
   // ── Periodic re-probe when a URL is configured ──────────────────────────
   useEffect(() => {

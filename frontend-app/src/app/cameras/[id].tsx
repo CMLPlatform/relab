@@ -147,7 +147,6 @@ export default function CameraDetailScreen() {
 
   const updateMutation = useUpdateCameraMutation(id ?? '');
   const deleteMutation = useDeleteCameraMutation();
-  const localConnection = useLocalConnection(id ?? '', { isOnline });
 
   const [editNameVisible, setEditNameVisible] = useState(false);
   const [editDescVisible, setEditDescVisible] = useState(false);
@@ -158,6 +157,7 @@ export default function CameraDetailScreen() {
   const [localSetupSaving, setLocalSetupSaving] = useState(false);
 
   const isOnline = camera?.status?.connection === 'online';
+  const localConnection = useLocalConnection(id ?? '', { isOnline });
 
   useEffect(() => {
     if (!user) {
@@ -239,28 +239,35 @@ export default function CameraDetailScreen() {
                 <>
                   <ActivityIndicator size={14} style={{ marginRight: 4 }} />
                   <Text variant="titleSmall" style={{ opacity: 0.6, flex: 1 }}>
-                    {isOnline
-                      ? 'Searching for direct connection…'
-                      : 'Checking connection…'}
+                    {isOnline ? 'Searching for direct connection…' : 'Checking connection…'}
                   </Text>
                 </>
               ) : localConnection.mode === 'local' ? (
                 <>
-                  <MaterialCommunityIcons name="ethernet" size={18} color="#2e7d32" style={{ marginRight: 4 }} />
+                  <MaterialCommunityIcons
+                    name="ethernet"
+                    size={18}
+                    color="#2e7d32"
+                    style={{ marginRight: 4 }}
+                  />
                   <Text variant="titleSmall" style={{ color: '#2e7d32', flex: 1 }}>
                     Connected — Direct · &lt;1 s
                   </Text>
                 </>
               ) : isOnline ? (
                 <>
-                  <View style={[styles.statusDot, { backgroundColor: statusColor, marginRight: 4 }]} />
+                  <View
+                    style={[styles.statusDot, { backgroundColor: statusColor, marginRight: 4 }]}
+                  />
                   <Text variant="titleSmall" style={{ color: statusColor, flex: 1 }}>
                     Connected — Remote · ~2 s
                   </Text>
                 </>
               ) : (
                 <>
-                  <View style={[styles.statusDot, { backgroundColor: statusColor, marginRight: 4 }]} />
+                  <View
+                    style={[styles.statusDot, { backgroundColor: statusColor, marginRight: 4 }]}
+                  />
                   <Text variant="titleSmall" style={{ color: statusColor, flex: 1 }}>
                     {statusLabel}
                   </Text>
@@ -276,7 +283,11 @@ export default function CameraDetailScreen() {
                 style={{ margin: 0 }}
               />
               {localConnection.mode === 'local' && (
-                <Button compact mode="text" onPress={() => void localConnection.clearLocalConnection()}>
+                <Button
+                  compact
+                  mode="text"
+                  onPress={() => void localConnection.clearLocalConnection()}
+                >
                   Disconnect
                 </Button>
               )}

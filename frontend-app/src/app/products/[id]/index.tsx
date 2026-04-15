@@ -3,8 +3,8 @@ import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { type JSX, useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   ActivityIndicator,
+  Alert,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -136,10 +136,7 @@ export default function ProductPage(): JSX.Element {
                 title: 'Discard changes?',
                 message:
                   'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
-                buttons: [
-                  { text: "Don't leave" },
-                  { text: 'Discard', onPress: navigate },
-                ],
+                buttons: [{ text: "Don't leave" }, { text: 'Discard', onPress: navigate }],
               });
             } else {
               navigate();
@@ -391,78 +388,94 @@ export default function ProductPage(): JSX.Element {
           <ProductMetaData product={product} />
         </DetailCard>
         <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
-        {rpiEnabled && !isNew && !editMode && !isProductComponent && product.ownedBy === 'me' && streamingOtherProduct && (
-          <Pressable
+        {rpiEnabled &&
+          !isNew &&
+          !editMode &&
+          !isProductComponent &&
+          product.ownedBy === 'me' &&
+          streamingOtherProduct && (
+            <Pressable
+              onPress={() => {
+                if (!activeStream) return;
+                router.push({ pathname: '/cameras/[id]', params: { id: activeStream.cameraId } });
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginHorizontal: 14,
+                marginBottom: 8,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                backgroundColor: 'rgba(229,57,53,0.1)',
+              }}
+              accessibilityRole="button"
+            >
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#e53935' }} />
+              <Text variant="bodySmall" style={{ flex: 1, color: '#e53935' }}>
+                Streaming {activeStream?.productName}
+              </Text>
+              <Icon source="chevron-right" size={16} color="#e53935" />
+            </Pressable>
+          )}
+        {rpiEnabled &&
+          !isNew &&
+          !editMode &&
+          !isProductComponent &&
+          product.ownedBy === 'me' &&
+          !youtubeEnabled && (
+            <Pressable
+              onPress={() => router.push('/profile')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                marginHorizontal: 14,
+                marginBottom: 8,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                backgroundColor: theme.colors.surfaceVariant,
+                opacity: 0.7,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Set up YouTube Live"
+            >
+              <Icon source="youtube" size={16} color={theme.colors.onSurfaceVariant} />
+              <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
+                {isGoogleLinked
+                  ? 'Enable YouTube Live in Integrations to stream this product'
+                  : 'Link your Google account to stream this product live'}
+              </Text>
+              <Icon source="chevron-right" size={16} color={theme.colors.onSurfaceVariant} />
+            </Pressable>
+          )}
+      </KeyboardAwareScrollView>
+      {rpiEnabled &&
+        youtubeEnabled &&
+        isGoogleLinked &&
+        !isNew &&
+        !editMode &&
+        !isProductComponent &&
+        product.ownedBy === 'me' &&
+        typeof product.id === 'number' &&
+        !streamingOtherProduct && (
+          <AnimatedFAB
+            icon="youtube"
+            label="Go Live"
+            extended={fabExtended}
             onPress={() =>
-              router.push({ pathname: '/cameras/[id]', params: { id: activeStream!.cameraId } })
+              router.push({ pathname: '/cameras', params: { stream: String(product.id) } })
             }
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              marginHorizontal: 14,
-              marginBottom: 8,
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              backgroundColor: 'rgba(229,57,53,0.1)',
+              position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
+              left: 0,
+              bottom: 0,
+              margin: 19,
             }}
-            accessibilityRole="button"
-          >
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#e53935' }} />
-            <Text variant="bodySmall" style={{ flex: 1, color: '#e53935' }}>
-              Streaming {activeStream!.productName}
-            </Text>
-            <Icon source="chevron-right" size={16} color="#e53935" />
-          </Pressable>
+          />
         )}
-        {rpiEnabled && !isNew && !editMode && !isProductComponent && product.ownedBy === 'me' && !youtubeEnabled && (
-          <Pressable
-            onPress={() => router.push('/profile')}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              marginHorizontal: 14,
-              marginBottom: 8,
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-              borderRadius: 8,
-              backgroundColor: theme.colors.surfaceVariant,
-              opacity: 0.7,
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Set up YouTube Live"
-          >
-            <Icon source="youtube" size={16} color={theme.colors.onSurfaceVariant} />
-            <Text
-              variant="bodySmall"
-              style={{ flex: 1, color: theme.colors.onSurfaceVariant }}
-            >
-              {isGoogleLinked
-                ? 'Enable YouTube Live in Integrations to stream this product'
-                : 'Link your Google account to stream this product live'}
-            </Text>
-            <Icon source="chevron-right" size={16} color={theme.colors.onSurfaceVariant} />
-          </Pressable>
-        )}
-      </KeyboardAwareScrollView>
-      {rpiEnabled && youtubeEnabled && isGoogleLinked && !isNew && !editMode && !isProductComponent && product.ownedBy === 'me' && typeof product.id === 'number' && !streamingOtherProduct && (
-        <AnimatedFAB
-          icon="youtube"
-          label="Go Live"
-          extended={fabExtended}
-          onPress={() =>
-            router.push({ pathname: '/cameras', params: { stream: String(product.id) } })
-          }
-          style={{
-            position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
-            left: 0,
-            bottom: 0,
-            margin: 19,
-          }}
-        />
-      )}
       {editMode && validationResult.error ? (
         <Tooltip title={validationResult.error} enterTouchDelay={0} leaveTouchDelay={1500}>
           <AnimatedFAB

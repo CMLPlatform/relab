@@ -53,7 +53,12 @@ function streamDialogReducer(
 ): StreamDialogState {
   switch (action.type) {
     case 'open':
-      return { cameraId: action.cameraId, cameraName: action.cameraName, title: action.defaultTitle, privacy: 'private' };
+      return {
+        cameraId: action.cameraId,
+        cameraName: action.cameraName,
+        title: action.defaultTitle,
+        privacy: 'private',
+      };
     case 'close':
       return STREAM_DIALOG_INITIAL;
     case 'set_title':
@@ -96,7 +101,10 @@ export default function CamerasScreen() {
   }, [streamParam]);
   const streamModeEnabled = streamProductId !== null;
 
-  const [streamDialog, dispatchStreamDialog] = useReducer(streamDialogReducer, STREAM_DIALOG_INITIAL);
+  const [streamDialog, dispatchStreamDialog] = useReducer(
+    streamDialogReducer,
+    STREAM_DIALOG_INITIAL,
+  );
   const [isStartingStream, setIsStartingStream] = useState(false);
 
   const { data: streamProduct } = useProductQuery(streamProductId ?? 'new');

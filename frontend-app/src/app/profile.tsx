@@ -325,17 +325,15 @@ export default function ProfileTab() {
             onPress={() => router.push('/cameras')}
           />
         )}
-        {rpiEnabled && (
-          isGoogleLinked ? (
+        {rpiEnabled &&
+          (isGoogleLinked ? (
             <View style={styles.rpiRow}>
               <View style={styles.rpiIcon}>
                 <Icon source="youtube" size={22} color="#555" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitle}>YouTube Live</Text>
-                <Text style={styles.actionSubtitle}>
-                  Stream product sessions live to YouTube.
-                </Text>
+                <Text style={styles.actionSubtitle}>Stream product sessions live to YouTube.</Text>
               </View>
               <Switch
                 value={youtubeEnabled}
@@ -355,8 +353,7 @@ export default function ProfileTab() {
                 </Text>
               </View>
             </View>
-          )
-        )}
+          ))}
       </View>
 
       {/* ── Appearance section ── */}
