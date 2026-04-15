@@ -138,7 +138,7 @@ async def test_ignores_images_with_no_camera_id_in_metadata(session: AsyncSessio
     legacy = Image(
         filename="legacy.jpg",
         file="legacy.jpg",
-        description="legacy capture from before Phase 10B",
+        description="legacy capture with no camera_id in metadata",
         image_metadata={},
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,

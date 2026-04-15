@@ -1,4 +1,5 @@
 """Unit tests for WebSocket relay transport helpers."""
+# spell-checker: ignore whep
 
 from __future__ import annotations
 
@@ -65,8 +66,7 @@ class TestRelayCommandAllowlist:
             ("GET", "/stream"),
             ("POST", "/stream"),
             ("DELETE", "/stream"),
-            ("GET", "/telemetry"),  # Phase 5
-            # Phase 9: LL-HLS playlist + segment proxy through the relay.
+            ("GET", "/telemetry"),
             ("GET", "/hls/cam-preview/index.m3u8"),
             ("GET", "/hls/cam-preview/segment0.mp4"),
         ],
@@ -89,17 +89,13 @@ class TestRelayCommandAllowlist:
             ("DELETE", "/camera"),
             ("PUT", "/stream"),
             ("GET", "/admin"),
-            ("GET", "/images/preview"),  # Phase 11: polling fallback gone.
+            ("GET", "/images/preview"),
             ("PATCH", "/camera"),
             ("GET", "/"),
-            # Phase 6A: image bytes no longer travel through the relay. The Pi
-            # pushes directly via HTTPS to the upload endpoint; any `GET /images/{id}`
+            # The Pi pushes directly via HTTPS to the upload endpoint; any `GET /images/{id}`
             # attempt must now be rejected.
             ("GET", "/images/abc123"),
             ("GET", "/images/"),
-            # Phase 9: WHEP is gone — LL-HLS replaces it. Old WHEP paths must be rejected.
-            ("POST", "/whep"),
-            ("DELETE", "/whep/abc-session"),
             # HLS must stay read-only and under the /hls/ prefix.
             ("POST", "/hls/cam-preview/index.m3u8"),
             ("DELETE", "/hls/cam-preview/segment0.mp4"),

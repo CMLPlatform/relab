@@ -15,6 +15,7 @@ every segment/part URL the player dereferences (``cam-preview/segment0.mp4``,
 ``cam-preview/part0.mp4``, etc.) since LL-HLS resolves segments relative to
 the playlist URL.
 """
+# spell-checker: ignore mpegurl
 
 from __future__ import annotations
 

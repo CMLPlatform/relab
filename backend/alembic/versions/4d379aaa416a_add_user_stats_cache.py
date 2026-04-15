@@ -6,6 +6,8 @@ Create Date: 2026-04-14 12:01:46.778801
 
 """
 
+# spell-checker: ignore astext
+
 from collections.abc import Sequence
 from typing import Union
 

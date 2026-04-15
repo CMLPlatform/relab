@@ -76,13 +76,13 @@ class TestAdminUserRouters:
     @pytest.mark.asyncio
     async def test_get_all_users_by_email(self, superuser_client: AsyncClient, session: AsyncSession) -> None:
         """Can retrieve user by email via admin endpoint."""
-        user = await UserFactory.create_async(session, email="byemail@example.com", username="byemail_user")
+        user = await UserFactory.create_async(session, email="by_email@example.com", username="by_email_user")
 
         # Get the user to verify email is present
         response = await superuser_client.get(f"/admin/users/{user.id}")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["email"] == "byemail@example.com"
+        assert data["email"] == "by_email@example.com"
 
     @pytest.mark.asyncio
     async def test_get_all_users_by_username(self, superuser_client: AsyncClient, session: AsyncSession) -> None:
@@ -166,7 +166,7 @@ class TestAdminOrganizationRouters:
         """Superuser can retrieve organization with members."""
         org = await OrganizationFactory.create_async(session, name="TestOrg", location="TestLoc", owner_id=superuser.id)
         member = await UserFactory.create_async(
-            session, email="orgmember@example.com", username="orgmember", organization_id=org.id
+            session, email="org_member@example.com", username="org_member", organization_id=org.id
         )
 
         response = await superuser_client.get(f"/admin/organizations/{org.id}")
@@ -178,7 +178,7 @@ class TestAdminOrganizationRouters:
         assert "members" in data
         member_emails = [m["email"] for m in data["members"]]
         assert member.email in member_emails
-        assert "orgmember@example.com" in member_emails
+        assert "org_member@example.com" in member_emails
 
     @pytest.mark.asyncio
     async def test_admin_organizations_requires_superuser(self, async_client: AsyncClient) -> None:

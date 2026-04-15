@@ -1,4 +1,5 @@
 """Configuration settings for the FastAPI app."""
+# spell-checker: ignore PGSSL
 
 from __future__ import annotations
 

@@ -1,4 +1,5 @@
 """Camera interaction services."""
+# spell-checker: ignore astext
 
 from __future__ import annotations
 

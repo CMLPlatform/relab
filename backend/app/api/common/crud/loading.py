@@ -1,4 +1,5 @@
 """Relationship loading helpers for SQLAlchemy CRUD queries."""
+# spell-checker: ignore joinedload
 
 from enum import StrEnum
 from typing import Any, Self, cast

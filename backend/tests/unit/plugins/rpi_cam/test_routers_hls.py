@@ -1,4 +1,5 @@
 """Unit tests for the RPi Cam LL-HLS proxy router."""
+# spell-checker: ignore ftypmp, EXTM, mpegurl
 
 from __future__ import annotations
 

@@ -1,4 +1,5 @@
 """Filtering integration boundary for CRUD queries."""
+# spell-checker: ignore isouter
 
 from __future__ import annotations
 

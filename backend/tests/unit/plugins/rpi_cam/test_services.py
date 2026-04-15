@@ -1,4 +1,5 @@
 """Unit tests for RPi Cam plugin services."""
+# spell-checker: ignore excinfo
 
 from __future__ import annotations
 
@@ -100,11 +101,9 @@ def mock_oauth_account() -> OAuthAccountStub:
 class TestCaptureAndStoreImage:
     """Test standard image capture and storage functionality.
 
-    As of Phase 6A this is a pure push flow: the Pi captures + pushes directly
-    to the backend's upload endpoint, and ``capture_and_store_image`` just
-    validates the product, triggers the capture over the relay, parses the
-    Pi's ``ImageCaptureResponse``, and returns the stored ``Image`` fetched
-    from the DB by id.
+    The Pi captures + pushes directly to the backend's upload endpoint, and ``capture_and_store_image`` just validates
+    the product, triggers the capture over the relay, parses the  Pi's ``ImageCaptureResponse``, and returns the stored
+    ``Image`` fetched from the DB by id.
     """
 
     async def test_capture_and_store_image_success(self, mock_session: SessionStub) -> None:
