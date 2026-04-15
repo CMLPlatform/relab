@@ -38,7 +38,7 @@
     "sqlalchemy >=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.2.0",
+    "relab-rpi-cam-models>=0.3.0",
     # Password strength and breach checking
     "zxcvbn>=4.4.28",
     # Configuration, validation, and utility types
@@ -153,6 +153,8 @@
   markers = [
     "api: API endpoint tests (E2E, full stack)",
     "auth: Authentication/authorization tests",
+    "db: Database-backed persistence and ORM tests",
+    "flow: Multi-step cross-boundary scenario tests",
     "integration: Tests requiring database (schema, relationships)",
     "migration: Database migration tests",
     "slow: Tests that take >1s",
