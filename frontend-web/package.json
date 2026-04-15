@@ -30,7 +30,8 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
-    "astro": "^6.1.6"
+    "@astrojs/sitemap": "3.7.2",
+    "astro": "^6.1.7"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.8",

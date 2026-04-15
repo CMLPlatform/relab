@@ -12,59 +12,69 @@ const { title, apiUrl, loadingMessage, successMessage, noTokenMessage, defaultEr
   Astro.props;
 ---
 
-<div class="card">
+<token-action
+  class="card stack-md"
+  data-api-url={apiUrl}
+  data-success-message={successMessage}
+  data-no-token-message={noTokenMessage}
+  data-default-error-message={defaultErrorMessage}
+>
   <h1>{title}</h1>
-  <div
-    id="status"
-    class="status status-loading"
-    data-api-url={apiUrl}
-    data-success-message={successMessage}
-    data-no-token-message={noTokenMessage}
-    data-default-error-message={defaultErrorMessage}
-  >
+  <div id="status" class="status status-loading" role="status" aria-live="polite">
     <div class="spinner" aria-hidden="true"></div>
     <p>{loadingMessage}</p>
   </div>
-</div>
+</token-action>
 
 <script>
-  const statusEl = document.getElementById('status')!;
-  const { apiUrl, successMessage, noTokenMessage, defaultErrorMessage } = statusEl.dataset;
+  class TokenAction extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.initialized === 'true') {
+        return;
+      }
 
-  function show(message: string, state: string) {
-    const p = document.createElement('p');
-    p.textContent = message;
-    statusEl.className = `status status-${state}`;
-    statusEl.replaceChildren(p);
-  }
+      this.dataset.initialized = 'true';
 
-  const token = new URLSearchParams(window.location.search).get('token');
+      const statusEl = this.querySelector<HTMLElement>('#status');
+      if (!statusEl) {
+        return;
+      }
 
-  if (!token) {
-    show(noTokenMessage!, 'error');
-  } else {
-    fetch(apiUrl!, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(token),
-    })
-      .then(async (res) => {
-        if (res.ok) {
-          show(successMessage!, 'success');
-          setTimeout(() => (window.location.href = '/'), 3000);
-        } else {
-          const data = await res.json();
-          show(data.detail || defaultErrorMessage, 'error');
-        }
+      const show = (message: string, state: 'success' | 'error') => {
+        const text = document.createElement('p');
+        text.textContent = message;
+        statusEl.className = `status status-${state}`;
+        statusEl.replaceChildren(text);
+      };
+
+      const token = new URLSearchParams(window.location.search).get('token');
+      if (!token) {
+        show(this.dataset.noTokenMessage ?? 'No token provided.', 'error');
+        return;
+      }
+
+      fetch(this.dataset.apiUrl ?? '', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(token),
       })
-      .catch(() => show('An error occurred. Please try again later.', 'error'));
-  }
-</script>
+        .then(async (response) => {
+          if (response.ok) {
+            show(this.dataset.successMessage ?? 'Success!', 'success');
+            window.setTimeout(() => {
+              window.location.href = '/';
+            }, 3000);
+            return;
+          }
 
-<style>
-  h1 {
-    font-size: 1.6rem;
-    font-weight: 600;
-    margin: 0 0 1.25rem;
+          const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
+          show(payload?.detail ?? this.dataset.defaultErrorMessage ?? 'Request failed.', 'error');
+        })
+        .catch(() => {
+          show('An error occurred. Please try again later.', 'error');
+        });
+    }
   }
-</style>
+
+  customElements.define('token-action', TokenAction);
+</script>

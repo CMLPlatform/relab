@@ -99,6 +99,11 @@ test-all:
 ci: check test-ci
     @echo "✓ Frontend-web CI pipeline passed"
 
+# Print a simple static output budget for local review
+size:
+    du -sh dist
+    find dist -type f | sort | xargs du -h
+
 # ============================================================================
 # Security
 # ============================================================================

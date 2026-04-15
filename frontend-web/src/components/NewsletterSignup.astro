@@ -1,0 +1,30 @@
+---
+import EmailForm from '@/components/EmailForm.astro';
+import { homeContent } from '@/content/site';
+
+interface Props {
+  apiUrl: string;
+}
+
+const { apiUrl } = Astro.props;
+---
+
+<section class="newsletter-shell card content-section content-reveal">
+  <div class="newsletter-copy">
+    <h2>Get project updates by email</h2>
+    <p>{homeContent.newsletterBody}</p>
+  </div>
+
+  <div class="newsletter-form-shell">
+    <EmailForm
+      apiUrl={apiUrl}
+      buttonText="Subscribe"
+      submittingText="Subscribing…"
+      successMessage="Thanks for subscribing! Please check your email for confirmation."
+    >
+      <p class="muted-text">
+        By subscribing, you agree to our <a href="/privacy">Privacy Policy</a>.
+      </p>
+    </EmailForm>
+  </div>
+</section>

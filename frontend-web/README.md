@@ -19,8 +19,11 @@ just test       # Vitest unit tests
 just test-ci    # unit tests with coverage
 just test-e2e   # Playwright browser tests
 just format     # format code
+just size       # inspect built output size locally
 ```
 
 ## More
 
 For local setup, testing patterns, and accessibility expectations, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
+
+For a lightweight local performance budget, build the site and run `just size`. Treat unexpected jumps in built HTML, CSS, and image output as a regression worth reviewing.

@@ -18,68 +18,117 @@ const {
 } = Astro.props;
 ---
 
-<div
+<newsletter-form
   class="email-form"
   data-api-url={apiUrl}
   data-button-text={buttonText}
   data-submitting-text={submittingText}
   data-success-message={successMessage}
 >
-  <div class="input-row">
-    <input type="email" placeholder={placeholder} autocomplete="email" aria-label="Email address" />
-    <button class={`btn ${buttonVariant}`}>{buttonText}</button>
-  </div>
+  <form class="stack-sm" novalidate>
+    <div class="input-row">
+      <label class="sr-only" for="newsletter-email">Email address</label>
+      <input
+        id="newsletter-email"
+        type="email"
+        name="email"
+        placeholder={placeholder}
+        autocomplete="email"
+        inputmode="email"
+        aria-describedby="newsletter-message"
+        required
+      />
+      <button type="submit" class={`btn ${buttonVariant}`}>{buttonText}</button>
+    </div>
 
-  <slot />
+    <slot />
 
-  <div id="message" class="message" role="alert" aria-live="polite"></div>
-</div>
+    <p id="newsletter-message" class="message" role="status" aria-live="polite"></p>
+  </form>
+</newsletter-form>
 
 <script>
-  document.querySelectorAll<HTMLDivElement>('.email-form').forEach((form) => {
-    const input = form.querySelector<HTMLInputElement>('input[type="email"]')!;
-    const btn = form.querySelector<HTMLButtonElement>('button')!;
-    const messageEl = form.querySelector<HTMLDivElement>('.message')!;
-    const { apiUrl, buttonText, submittingText, successMessage } = form.dataset;
-
-    function showMessage(text: string, isError: boolean) {
-      messageEl.textContent = text;
-      messageEl.className = 'message ' + (isError ? 'message-error' : 'message-success');
-    }
-
-    btn.addEventListener('click', async () => {
-      const email = input.value.trim();
-      if (!email.includes('@')) {
-        showMessage('Please enter a valid email address.', true);
+  class NewsletterForm extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.initialized === 'true') {
         return;
       }
 
-      btn.disabled = true;
-      btn.textContent = submittingText!;
+      this.dataset.initialized = 'true';
 
-      try {
-        const res = await fetch(apiUrl!, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(email),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          showMessage(successMessage || data.message || 'Success!', false);
-          input.value = '';
-        } else {
-          showMessage(data.detail || 'An error occurred. Please try again.', true);
-        }
-      } catch {
-        showMessage('An error occurred. Please try again later.', true);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = buttonText!;
+      const form = this.querySelector<HTMLFormElement>('form');
+      const input = this.querySelector<HTMLInputElement>('input[type="email"]');
+      const button = this.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const messageEl = this.querySelector<HTMLParagraphElement>('.message');
+
+      if (!(form && input && button && messageEl)) {
+        return;
       }
-    });
 
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') btn.click();
-    });
-  });
+      const setMessage = (text: string, state: 'success' | 'error' | 'idle') => {
+        messageEl.textContent = text;
+        messageEl.className = `message${state === 'idle' ? '' : ` message-${state}`}`;
+      };
+
+      const getValidationMessage = () => {
+        if (input.validity.valueMissing) {
+          return 'Please enter your email address.';
+        }
+
+        if (input.validity.typeMismatch) {
+          return 'Please enter a valid email address.';
+        }
+
+        return input.validationMessage;
+      };
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (!input.checkValidity()) {
+          input.focus();
+          setMessage(getValidationMessage(), 'error');
+          return;
+        }
+
+        const defaultButtonText = this.dataset.buttonText ?? button.textContent ?? 'Submit';
+        const submittingText = this.dataset.submittingText ?? 'Sending…';
+
+        button.disabled = true;
+        input.disabled = true;
+        button.textContent = submittingText;
+        setMessage('Submitting…', 'idle');
+
+        try {
+          const response = await fetch(this.dataset.apiUrl ?? '', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(input.value.trim()),
+          });
+
+          const payload = (await response.json().catch(() => null)) as
+            | { detail?: string; message?: string }
+            | null;
+
+          if (response.ok) {
+            setMessage(
+              this.dataset.successMessage ?? payload?.message ?? 'Success!',
+              'success',
+            );
+            form.reset();
+          } else {
+            setMessage(payload?.detail ?? 'An error occurred. Please try again.', 'error');
+          }
+        } catch {
+          setMessage('An error occurred. Please try again later.', 'error');
+        } finally {
+          button.disabled = false;
+          input.disabled = false;
+          button.textContent = defaultButtonText;
+        }
+      });
+    }
+  }
+
+  customElements.define('newsletter-form', NewsletterForm);
 </script>

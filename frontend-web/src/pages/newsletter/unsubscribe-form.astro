@@ -1,17 +1,22 @@
 ---
 import EmailForm from '@/components/EmailForm.astro';
+import { getPublicSiteConfig } from '@/config/public';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
-const apiUrl = import.meta.env.PUBLIC_API_URL;
-const newsletterRequestUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/request-unsubscribe');
+const newsletterRequestUnsubscribeUrl = joinApiUrl(
+  getPublicSiteConfig().apiUrl,
+  '/newsletter/request-unsubscribe',
+);
 ---
 
 <Layout title="Unsubscribe from Newsletter — RELab">
-  <div class="card">
-    <h1>Unsubscribe from Newsletter</h1>
-    <p>Please enter your email address to unsubscribe from our newsletter.</p>
+  <section class="page-intro content-reveal">
+    <h1>Unsubscribe</h1>
+    <p>Enter your email address and we’ll send a confirmation link to complete the unsubscribe request.</p>
+  </section>
 
+  <div class="card narrow-card content-reveal">
     <EmailForm
       apiUrl={newsletterRequestUnsubscribeUrl}
       placeholder="Your email address"
@@ -19,17 +24,8 @@ const newsletterRequestUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/request-
       buttonVariant="btn-primary"
     >
       <p class="muted-text">
-        You will receive a confirmation email with a link to complete the unsubscription. This step ensures only the
-        account owner can unsubscribe.
+        This confirmation step makes sure only the owner of the address can unsubscribe it.
       </p>
     </EmailForm>
   </div>
 </Layout>
-
-<style>
-  h1 {
-    font-size: 1.6rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem;
-  }
-</style>

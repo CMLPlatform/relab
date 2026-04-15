@@ -1,10 +1,10 @@
 ---
 import TokenAction from '@/components/TokenAction.astro';
+import { getPublicSiteConfig } from '@/config/public';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
-const apiUrl = import.meta.env.PUBLIC_API_URL;
-const newsletterConfirmUrl = joinApiUrl(apiUrl, '/newsletter/confirm');
+const newsletterConfirmUrl = joinApiUrl(getPublicSiteConfig().apiUrl, '/newsletter/confirm');
 ---
 
 <Layout title="Confirm Newsletter Subscription — RELab">

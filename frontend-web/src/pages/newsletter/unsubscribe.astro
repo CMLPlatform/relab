@@ -1,10 +1,13 @@
 ---
 import TokenAction from '@/components/TokenAction.astro';
+import { getPublicSiteConfig } from '@/config/public';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
-const apiUrl = import.meta.env.PUBLIC_API_URL;
-const newsletterUnsubscribeUrl = joinApiUrl(apiUrl, '/newsletter/unsubscribe');
+const newsletterUnsubscribeUrl = joinApiUrl(
+  getPublicSiteConfig().apiUrl,
+  '/newsletter/unsubscribe',
+);
 ---
 
 <Layout title="Unsubscribe from Newsletter — RELab">
