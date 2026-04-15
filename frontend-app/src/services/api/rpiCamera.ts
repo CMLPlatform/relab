@@ -1,5 +1,8 @@
+import { Buffer } from 'node:buffer';
+
 import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/authentication';
+import { resolveApiMediaUrl } from '@/services/api/media';
 
 export type CameraConnectionStatus = 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error';
 export type CameraCredentialStatus = 'active' | 'revoked';
@@ -80,6 +83,13 @@ export interface StartYouTubeStreamParams {
 const BASE = `${API_URL}/plugins/rpi-cam/cameras`;
 const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
 
+function normalizeCameraReadWithStatus<T extends { last_image_url?: string | null }>(camera: T): T {
+  return {
+    ...camera,
+    last_image_url: resolveApiMediaUrl(camera.last_image_url) ?? camera.last_image_url ?? null,
+  };
+}
+
 export async function fetchCameras(
   includeStatus = false,
   { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
@@ -89,7 +99,8 @@ export async function fetchCameras(
   if (includeTelemetry) url.searchParams.set('include_telemetry', 'true');
   const resp = await fetchWithAuth(url, { method: 'GET', headers: { Accept: 'application/json' } });
   if (!resp.ok) throw new Error(`Failed to fetch cameras (${resp.status})`);
-  return resp.json() as Promise<CameraReadWithStatus[]>;
+  const data = (await resp.json()) as CameraReadWithStatus[];
+  return data.map((camera) => normalizeCameraReadWithStatus(camera));
 }
 
 export async function fetchCamera(
@@ -102,7 +113,8 @@ export async function fetchCamera(
   if (includeTelemetry) url.searchParams.set('include_telemetry', 'true');
   const resp = await fetchWithAuth(url, { method: 'GET', headers: { Accept: 'application/json' } });
   if (!resp.ok) throw new Error(`Failed to fetch camera (${resp.status})`);
-  return resp.json() as Promise<CameraReadWithStatus>;
+  const data = (await resp.json()) as CameraReadWithStatus;
+  return normalizeCameraReadWithStatus(data);
 }
 
 export async function fetchCameraTelemetry(cameraId: string): Promise<CameraTelemetry> {
@@ -112,6 +124,19 @@ export async function fetchCameraTelemetry(cameraId: string): Promise<CameraTele
   });
   if (!resp.ok) throw new Error(`Failed to fetch camera telemetry (${resp.status})`);
   return resp.json() as Promise<CameraTelemetry>;
+}
+
+export async function fetchCameraSnapshot(cameraId: string, signal?: AbortSignal): Promise<string> {
+  const resp = await fetchWithAuth(`${BASE}/${cameraId}/snapshot`, {
+    method: 'GET',
+    headers: { Accept: 'image/jpeg' },
+    signal,
+  });
+  if (!resp.ok) throw new Error(`Failed to fetch camera snapshot (${resp.status})`);
+
+  const contentType = resp.headers.get('content-type')?.split(';')[0] ?? 'image/jpeg';
+  const bytes = await resp.arrayBuffer();
+  return `data:${contentType};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
 export async function updateCamera(id: string, data: CameraUpdate): Promise<CameraRead> {

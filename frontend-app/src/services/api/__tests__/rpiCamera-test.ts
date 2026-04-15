@@ -8,6 +8,7 @@ import {
   fetchCamera,
   fetchCameras,
   fetchCameraTelemetry,
+  fetchCameraSnapshot,
   updateCamera,
 } from '../rpiCamera';
 
@@ -25,6 +26,17 @@ function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
   } as Response);
 }
 
+function mockImageResponse(bytes: Uint8Array, contentType = 'image/jpeg') {
+  mockFetchWithAuth.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    headers: {
+      get: (name: string) => (name.toLowerCase() === 'content-type' ? contentType : null),
+    },
+    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+  } as Response);
+}
+
 describe('rpiCamera API service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,7 +47,7 @@ describe('rpiCamera API service', () => {
 
     const result = await fetchCameras(true);
 
-    expect(result).toEqual([{ id: 'cam-1', name: 'Desk Cam' }]);
+    expect(result).toEqual([{ id: 'cam-1', name: 'Desk Cam', last_image_url: null }]);
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
         href: expect.stringContaining('/plugins/rpi-cam/cameras?include_status=true'),
@@ -52,7 +64,7 @@ describe('rpiCamera API service', () => {
 
     const result = await fetchCamera('cam-1', true);
 
-    expect(result).toEqual({ id: 'cam-1', name: 'Desk Cam' });
+    expect(result).toEqual({ id: 'cam-1', name: 'Desk Cam', last_image_url: null });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
         href: expect.stringContaining('/plugins/rpi-cam/cameras/cam-1?include_status=true'),
@@ -228,6 +240,37 @@ describe('rpiCamera API service', () => {
         method: 'GET',
         headers: expect.objectContaining({ Accept: 'application/json' }),
       }),
+    );
+  });
+
+  it('fetches a camera snapshot as a data URI via the shared auth fetcher', async () => {
+    mockImageResponse(new TextEncoder().encode('preview'));
+
+    const result = await fetchCameraSnapshot('cam-snapshot');
+
+    expect(result).toBe('data:image/jpeg;base64,cHJldmlldw==');
+    expect(mockFetchWithAuth).toHaveBeenCalledWith(
+      expect.stringContaining('/plugins/rpi-cam/cameras/cam-snapshot/snapshot'),
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Accept: 'image/jpeg' }),
+      }),
+    );
+  });
+
+  it('resolves relative last_image_url values against the API base', async () => {
+    mockJsonResponse([
+      {
+        id: 'cam-1',
+        name: 'Bench Cam',
+        last_image_url: '/uploads/cameras/cam-1/latest.jpg',
+      },
+    ]);
+
+    const result = await fetchCameras(true);
+
+    expect(result[0]?.last_image_url).toBe(
+      'http://localhost:8000/api/uploads/cameras/cam-1/latest.jpg',
     );
   });
 

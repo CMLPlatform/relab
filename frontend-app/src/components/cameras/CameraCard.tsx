@@ -1,8 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
+import { useCameraSnapshotQuery } from '@/hooks/useRpiCameras';
 import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
 
 const STATUS_COLOR: Record<CameraConnectionStatus, string> = {
@@ -75,9 +77,15 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  */
 export function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
   const theme = useTheme();
+  const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const connection = camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
-  const hasThumbnail = isOnline && !!camera.last_image_url;
+  const snapshotQuery = useCameraSnapshotQuery(isOnline ? camera.id : null, {
+    enabled: isOnline,
+  });
+  const resolvedThumbnailUrl = snapshotQuery.data ?? null;
+  const hasThumbnail =
+    isOnline && !!resolvedThumbnailUrl && failedThumbnailUrl !== resolvedThumbnailUrl;
 
   return (
     <Card
@@ -92,22 +100,39 @@ export function CameraCard({ camera }: { camera: CameraReadWithStatus }) {
       <View style={styles.thumbnailFrame}>
         {hasThumbnail ? (
           <Image
-            source={{ uri: camera.last_image_url ?? undefined }}
+            source={{ uri: resolvedThumbnailUrl }}
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
+            onError={() => setFailedThumbnailUrl(resolvedThumbnailUrl)}
           />
         ) : (
           <View style={styles.thumbnailPlaceholder}>
-            <MaterialCommunityIcons
-              name={isOnline ? 'image-outline' : 'camera-off'}
-              size={40}
-              color={theme.colors.onSurfaceVariant}
-              style={{ opacity: 0.4 }}
-            />
-            <Text variant="bodySmall" style={styles.thumbnailCaption}>
-              {isOnline ? 'No captures yet' : 'Offline'}
-            </Text>
+            {isOnline ? (
+              <>
+                <MaterialCommunityIcons
+                  name="image-outline"
+                  size={40}
+                  color={theme.colors.onSurfaceVariant}
+                  style={{ opacity: 0.4 }}
+                />
+                <Text variant="bodySmall" style={styles.thumbnailCaption}>
+                  {snapshotQuery.isLoading ? 'Loading preview…' : 'No preview available'}
+                </Text>
+              </>
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="camera-off"
+                  size={40}
+                  color={theme.colors.onSurfaceVariant}
+                  style={{ opacity: 0.4 }}
+                />
+                <Text variant="bodySmall" style={styles.thumbnailCaption}>
+                  Offline
+                </Text>
+              </>
+            )}
           </View>
         )}
       </View>

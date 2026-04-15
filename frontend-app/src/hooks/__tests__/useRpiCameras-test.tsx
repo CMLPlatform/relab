@@ -7,6 +7,7 @@ import {
   claimPairingCode,
   deleteCamera,
   fetchCamera,
+  fetchCameraSnapshot,
   fetchCameras,
   updateCamera,
 } from '@/services/api/rpiCamera';
@@ -15,6 +16,7 @@ import {
   camerasQueryOptions,
   useCameraLivePreview,
   useCameraQuery,
+  useCameraSnapshotQuery,
   useCamerasQuery,
   useCameraTelemetryQuery,
   useCaptureImageMutation,
@@ -27,6 +29,7 @@ jest.mock('@/services/api/rpiCamera', () => ({
   fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
   fetchCameraTelemetry: jest.fn(),
+  fetchCameraSnapshot: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
   claimPairingCode: jest.fn(),
@@ -36,6 +39,7 @@ jest.mock('@/services/api/rpiCamera', () => ({
 
 const mockedFetchCameras = jest.mocked(fetchCameras);
 const mockedFetchCamera = jest.mocked(fetchCamera);
+const mockedFetchCameraSnapshot = jest.mocked(fetchCameraSnapshot);
 const mockedUpdateCamera = jest.mocked(updateCamera);
 const mockedDeleteCamera = jest.mocked(deleteCamera);
 const mockedClaimPairingCode = jest.mocked(claimPairingCode);
@@ -197,6 +201,36 @@ describe('RPi camera query hooks', () => {
     act(() => {
       unmount();
     });
+  });
+});
+
+describe('useCameraSnapshotQuery', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    queryClient.clear();
+  });
+
+  it('fetches a snapshot when the camera is online and caches the data URI', async () => {
+    mockedFetchCameraSnapshot.mockResolvedValue('data:image/jpeg;base64,c2hvdA==');
+
+    const { result } = renderHook(
+      () => useCameraSnapshotQuery('cam-10', { enabled: true, refetchInterval: 60_000 }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toBe('data:image/jpeg;base64,c2hvdA=='));
+    expect(mockedFetchCameraSnapshot).toHaveBeenCalledWith('cam-10', expect.any(Object));
+  });
+
+  it('stays idle when disabled or when the camera id is missing', () => {
+    const { result: disabledResult } = renderHook(
+      () => useCameraSnapshotQuery('cam-11', { enabled: false }),
+      { wrapper },
+    );
+    expect(disabledResult.current.fetchStatus).toBe('idle');
+
+    const { result: missingResult } = renderHook(() => useCameraSnapshotQuery(null), { wrapper });
+    expect(missingResult.current.fetchStatus).toBe('idle');
   });
 });
 

@@ -179,7 +179,10 @@ async def start_recording(
         endpoint=PLUGIN_STREAM_ENDPOINT,
         method=HttpMethod.POST,
         error_msg="Failed to start stream",
-        body=youtube_config.model_dump(exclude={"stream_id"}),
+        body={
+            "stream_key": youtube_config.stream_key.get_secret_value(),
+            "broadcast_key": youtube_config.broadcast_key.get_secret_value(),
+        },
     )
     try:
         stream_info = StreamView.model_validate(response.json())

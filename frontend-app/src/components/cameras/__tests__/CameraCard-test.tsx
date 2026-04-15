@@ -14,6 +14,12 @@ jest.mock('expo-image', () => {
   };
 });
 
+const mockUseCameraSnapshotQuery = jest.fn();
+
+jest.mock('@/hooks/useRpiCameras', () => ({
+  useCameraSnapshotQuery: (...args: unknown[]) => mockUseCameraSnapshotQuery(...args),
+}));
+
 // TelemetryBadge makes an unrelated network hook call; stub it out.
 jest.mock('@/components/cameras/TelemetryBadge', () => {
   const React = jest.requireActual<typeof import('react')>('react');
@@ -47,17 +53,22 @@ function secsAgo(seconds: number): string {
 describe('CameraCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseCameraSnapshotQuery.mockReturnValue({ data: null, isLoading: false });
   });
 
   // ── Three-state visual distinction ────────────────────────────────────────
 
   it('online + last_image_url: renders thumbnail, full opacity, "Online" chip', () => {
+    mockUseCameraSnapshotQuery.mockReturnValue({
+      data: 'data:image/jpeg;base64,preview',
+      isLoading: false,
+    });
     const camera = makeCamera({ last_image_url: 'https://example.com/shot.jpg' });
 
     const { UNSAFE_getByProps } = renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
-    expect(screen.getByText('img:https://example.com/shot.jpg')).toBeOnTheScreen();
+    expect(screen.getByText('img:data:image/jpeg;base64,preview')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
 
     // Card must NOT have the opacity:0.6 offline style
@@ -68,17 +79,22 @@ describe('CameraCard', () => {
     expect(flatStyle.opacity).not.toBe(0.6);
   });
 
-  it('online + no last_image_url: renders placeholder icon and "No captures yet" caption', () => {
+  it('online + no snapshot: renders placeholder icon and preview caption', () => {
+    mockUseCameraSnapshotQuery.mockReturnValue({ data: null, isLoading: false });
     const camera = makeCamera({ last_image_url: null });
 
     renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();
-    expect(screen.getByText('No captures yet')).toBeOnTheScreen();
+    expect(screen.getByText('No preview available')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
   });
 
   it('offline: card has opacity 0.6, "Offline" chip, "Last seen" text; no thumbnail even with last_image_url', () => {
+    mockUseCameraSnapshotQuery.mockReturnValue({
+      data: 'data:image/jpeg;base64,preview',
+      isLoading: false,
+    });
     const camera = makeCamera({
       last_image_url: 'https://example.com/stale.jpg',
       status: { connection: 'offline', last_seen_at: secsAgo(120), details: null },

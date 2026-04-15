@@ -15,8 +15,9 @@ import {
   claimPairingCode,
   deleteCamera,
   fetchCamera,
-  fetchCameras,
+  fetchCameraSnapshot,
   fetchCameraTelemetry,
+  fetchCameras,
   getStreamStatus,
   startYouTubeStream,
   stopYouTubeStream,
@@ -80,6 +81,26 @@ export function useCameraTelemetryQuery(
     enabled: enabled && !!cameraId,
     refetchInterval: enabled ? refetchInterval : false,
     staleTime: refetchInterval,
+  });
+}
+
+export function useCameraSnapshotQuery(
+  cameraId: string | null,
+  {
+    enabled = true,
+    refetchInterval = 30_000,
+  }: { enabled?: boolean; refetchInterval?: number } = {},
+) {
+  return useQuery({
+    queryKey: ['rpiCameraSnapshot', cameraId] as const,
+    queryFn: ({ signal }) => {
+      if (!cameraId) throw new Error('cameraId is required');
+      return fetchCameraSnapshot(cameraId, signal);
+    },
+    enabled: enabled && !!cameraId,
+    refetchInterval: enabled ? refetchInterval : false,
+    staleTime: refetchInterval,
+    retry: false,
   });
 }
 
