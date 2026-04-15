@@ -1,16 +1,24 @@
-# Development Dockerfile for Astro Starlight
-FROM node:22-bookworm-slim@sha256:ef5d50c59a5eed0fa793b8390a88a298f30e438f56ce4488d9d8df7f93e7abdf
+# Development Dockerfile for Astro Starlight docs
+# Note: Source is kept in image; use `docker compose watch` for hot reload
+FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8
 
 WORKDIR /opt/relab/docs
 
-RUN corepack enable
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
 
+# Install dependencies first (cached layer)
 COPY package.json pnpm-lock.yaml ./
+RUN corepack enable
 RUN --mount=type=cache,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --prefer-offline
 
+# Copy source files
 COPY . .
 
 EXPOSE 8000
 
+# Start the Astro dev server
 CMD ["pnpm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8000"]

@@ -17,19 +17,24 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Reverse Engineering Lab',
-      description:
-        'Technical documentation for the Reverse Engineering Lab research platform.',
+      description: 'Technical documentation for the Reverse Engineering Lab research platform.',
+      logo: {
+        src: './public/images/logo.png',
+        alt: 'Reverse Engineering Lab logo',
+      },
       favicon: '/images/favicon.ico',
       titleDelimiter: '·',
       lastUpdated: true,
       pagefind: true,
-      social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
-      ],
+      social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
       editLink: {
         baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
       },
-      customCss: ['./src/styles/custom.css'],
+      customCss: [
+        './src/styles/tokens.css',
+        './src/styles/base.css',
+        './src/styles/components.css',
+      ],
       head: [
         {
           tag: 'link',
@@ -108,6 +113,7 @@ export default defineConfig({
       ],
       components: {
         Head: './src/components/Head.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
       },
     }),
     mdx(),

@@ -19,7 +19,6 @@ The source-of-truth files are:
 
 - root `pyproject.toml`
 - root `.python-version`
-- root `.nvmrc`
 - per-project manifests in `backend/`, `docs/`, `frontend-app/`, and `frontend-web/`
 
 ## Manifest Ownership

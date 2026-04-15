@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": "22.x",
+    "node": "24.x",
     "pnpm": "10.x"
   },
   "license": "AGPL-3.0-or-later",
@@ -35,7 +35,7 @@
   "dependencies": {
     "@astrojs/mdx": "^5.0.3",
     "@astrojs/starlight": "^0.38.3",
-    "astro": "^6.1.6",
+    "astro": "6.1.7",
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
@@ -45,8 +45,8 @@
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.5.0",
     "chrome-launcher": "^1.2.1",
-    "linkinator": "^6.1.2",
     "lighthouse": "^13.1.0",
+    "linkinator": "^6.1.2",
     "markdown-link-extractor": "^3.0.2",
     "markdownlint-cli2": "^0.22.0",
     "playwright": "^1.59.1",
