@@ -1,69 +1,16 @@
 {
-	"name": "relab-fullstack",
-	"dockerComposeFile": ["../compose.yml", "../compose.dev.yml"],
-	"service": "frontend-app",
-	"workspaceFolder": "/opt/relab",
-	"mounts": [
-		"source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
-	],
-	"features": {
-		"ghcr.io/devcontainers/features/git:1": {},
-		"ghcr.io/devcontainers-extra/features/expo-cli:1": {},
-		"ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
-	},
-	"postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n📦 If node_modules/.venv are missing, run pnpm install --frozen-lockfile and uv sync in the relevant subrepo\\n💡 Web frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012\\n💡 App frontend: http://localhost:8013'",
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				// Frontend
-				"astro-build.astro-vscode",
-				"biomejs.biome",
-				"christian-kohler.npm-intellisense",
-				// Backend
-				"astral-sh.ty",
-				"charliermarsh.ruff",
-				"ms-python.python",
-				// Docs
-				"bierner.markdown-mermaid",
-				"bierner.markdown-preview-github-styles",
-				"DavidAnson.vscode-markdownlint",
-				"shd101wyy.markdown-preview-enhanced",
-				"yzhang.markdown-all-in-one"
-			],
-			"settings": {
-				// Frontend
-				"[javascript][typescript][javascriptreact][typescriptreact]": {
-					"editor.codeActionsOnSave": {
-						"source.fixAll.biome": "always",
-						"source.organizeImports": "explicit"
-					},
-					"editor.defaultFormatter": "biomejs.biome"
-				},
-				// Backend
-				"[python][notebook]": {
-					"editor.codeActionsOnSave": {
-						"source.fixAll": "explicit",
-						"source.organizeImports": "explicit"
-					},
-					"editor.defaultFormatter": "charliermarsh.ruff"
-				},
-				"python.analysis.typeCheckingMode": "standard",
-				"python.terminal.activateEnvInCurrentTerminal": true,
-				"python.terminal.activateEnvironment": true,
-				"python.testing.pytestEnabled": true,
-				// Docs
-				"[markdown]": {
-					"editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
-				},
-				"editor.formatOnSave": true,
-				"github.copilot.enable": {
-					"markdown": true
-				},
-				"markdown.extension.completion.enabled": true,
-				"markdown.extension.orderedList.marker": "one",
-				"markdown.extension.tableFormatter.normalizeIndentation": true,
-				"markdown.extension.theming.decoration.renderTrailingSpace": true
-			}
-		}
-	}
+  "name": "relab-fullstack",
+  "dockerComposeFile": ["../compose.yml", "../compose.dev.yml"],
+  "service": "app-site",
+  "runServices": ["api", "redis", "postgres", "docs-site", "web-site", "app-site"],
+  "workspaceFolder": "/opt/relab",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers-extra/features/expo-cli:1": {},
+    "ghcr.io/jsburckhardt/devcontainer-features/uv:1": {}
+  },
+  "postAttachCommand": "echo '🚀 Fullstack dev container ready!\\n📦 If node_modules/.venv are missing, run pnpm install --frozen-lockfile and uv sync in the relevant subrepo\\n💡 Web frontend: http://localhost:8010\\n💡 Backend: http://localhost:8011\\n💡 Docs: http://localhost:8012\\n💡 App frontend: http://localhost:8013'"
 }

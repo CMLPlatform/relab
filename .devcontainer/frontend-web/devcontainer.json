@@ -1,36 +1,15 @@
 {
-	"name": "relab-frontend-web",
-	"dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
-	"service": "frontend-web",
-	"runServices": ["frontend-web"],
-	"workspaceFolder": "/opt/relab/frontend-web",
-	// The local workspace is mounted in /opt/relab for git integration
-	"mounts": [
-		"source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
-	],
-	"overrideCommand": true,
-	"postAttachCommand": "echo '🚀 Web frontend dev container ready!\\n📦 If node_modules is missing, run: pnpm install --frozen-lockfile\\n💡 To start the Astro dev server, run: pnpm exec astro dev\\n🌐 The server will be available at http://localhost:8010 (forwarded port)'",
-	"features": {
-		"ghcr.io/devcontainers/features/git:1": {}
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"astro-build.astro-vscode",
-				"biomejs.biome",
-				"christian-kohler.npm-intellisense"
-			],
-			"settings": {
-				"editor.formatOnSave": true,
-				"biome.requireConfiguration": true,
-				"[astro][javascript][typescript][javascriptreact][typescriptreact][json][jsonc]": {
-					"editor.defaultFormatter": "biomejs.biome",
-					"editor.codeActionsOnSave": {
-						"source.fixAll.biome": "always",
-						"source.organizeImports.biome": "always"
-					}
-				}
-			}
-		}
-	}
+  "name": "relab-frontend-web",
+  "dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
+  "service": "web-site",
+  "runServices": ["web-site"],
+  "workspaceFolder": "/opt/relab/frontend-web",
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
+  ],
+  "overrideCommand": true,
+  "postAttachCommand": "echo '🚀 Web frontend dev container ready!\\n📦 If node_modules is missing, run: pnpm install --frozen-lockfile\\n💡 To start the Astro dev server, run: pnpm exec astro dev\\n🌐 The server will be available at http://localhost:8010 (forwarded port)'",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  }
 }
