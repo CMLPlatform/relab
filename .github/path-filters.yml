@@ -49,6 +49,6 @@ containers:
   - 'compose*.yml'
   - '**/Dockerfile*'
   - 'backend/uv.lock'
-  - 'docs/uv.lock'
+  - 'docs/pnpm-lock.yaml'
   - 'frontend-app/pnpm-lock.yaml'
   - 'frontend-web/pnpm-lock.yaml'

@@ -10,9 +10,9 @@ outputs:
   run-backend-python:
     description: Whether the backend Python audit should run.
     value: ${{ steps.decide.outputs.run-backend-python }}
-  run-docs-python:
-    description: Whether the docs Python audit should run.
-    value: ${{ steps.decide.outputs.run-docs-python }}
+  run-docs-node:
+    description: Whether the docs Node audit should run.
+    value: ${{ steps.decide.outputs.run-docs-node }}
   run-frontend-app-node:
     description: Whether the frontend-app Node audit should run.
     value: ${{ steps.decide.outputs.run-frontend-app-node }}
@@ -49,7 +49,7 @@ runs:
         if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
           echo "run-root-python=true" >> "$GITHUB_OUTPUT"
           echo "run-backend-python=true" >> "$GITHUB_OUTPUT"
-          echo "run-docs-python=true" >> "$GITHUB_OUTPUT"
+          echo "run-docs-node=true" >> "$GITHUB_OUTPUT"
           echo "run-frontend-app-node=true" >> "$GITHUB_OUTPUT"
           echo "run-frontend-web-node=true" >> "$GITHUB_OUTPUT"
           echo "run-container-images=true" >> "$GITHUB_OUTPUT"
@@ -58,7 +58,7 @@ runs:
 
         echo "run-root-python=$([[ "$SHARED" == "true" || "$ROOT_PYTHON" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-backend-python=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-        echo "run-docs-python=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-docs-node=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-container-images=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"

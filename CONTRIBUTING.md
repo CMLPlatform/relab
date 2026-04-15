@@ -6,13 +6,13 @@ This page is for code and documentation changes. If you mainly want to run or de
 
 ## Start Here
 
-| I want to...                         | Start here                                                                  |
-| ------------------------------------ | --------------------------------------------------------------------------- |
-| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                |
-| run the full stack locally in Docker | [Docker Development](#docker-development)                                   |
-| work on one subrepo directly         | [Local Development](#local-development)                                     |
-| understand the system first          | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/) |
-| understand config ownership          | [engineering configuration](https://docs.cml-relab.org/architecture/engineering-config/) |
+| I want to...                            | Start here                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                                |
+| run the full stack locally in Docker    | [Docker Development](#docker-development)                                                |
+| work on one subrepo directly            | [Local Development](#local-development)                                                  |
+| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/)              |
+| understand config ownership             | [engineering configuration](https://docs.cml-relab.org/architecture/engineering-config/) |
 
 ## Code of Conduct
 
@@ -59,13 +59,13 @@ This is the recommended path into the repo if you use VS Code.
 
 ### Available Configurations
 
-| Configuration     | Purpose                                             |
-| ----------------- | --------------------------------------------------- |
-| `relab-fullstack` | primary onboarding path for full stack development  |
-| `relab-backend`   | focused backend work                                |
-| `relab-frontend-app` | focused Expo app work                            |
-| `relab-frontend-web` | focused public site work                         |
-| `relab-docs`      | focused docs work                                   |
+| Configuration        | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| `relab-fullstack`    | primary onboarding path for full stack development |
+| `relab-backend`      | focused backend work                               |
+| `relab-frontend-app` | focused Expo app work                              |
+| `relab-frontend-web` | focused public site work                           |
+| `relab-docs`         | focused docs work                                  |
 
 ### Forwarded Ports
 
@@ -254,11 +254,13 @@ The Astro dev server runs on <http://localhost:8081>.
 
 ```bash
 cd docs
-uv sync --all-groups --frozen
+pnpm install --frozen-lockfile
 just dev
 ```
 
 The docs site runs on <http://localhost:8000>.
+
+The docs app is the canonical home for public guides, architecture reference, and project context. Keep repo-level setup text in this file short and link back to the docs site when deeper explanation belongs there.
 
 ## Development Workflow
 

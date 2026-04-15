@@ -30,6 +30,8 @@ ignorePaths:
   - "frontend-app/src/types/api.generated.ts"
 language: en_us,nl
 words:
+  - anchore
+  - aquasecurity
   - categorymateriallink
   - categoryproducttypelink
   - circularityproperties
@@ -38,6 +40,7 @@ words:
   - Donati
   - ERD
   - fileparenttype
+  - GOMAXPROCS
   - imageparenttype
   - instrumentor
   - instrumentors
@@ -58,6 +61,7 @@ words:
   - remanufacturability
   - remanufacturable
   - repairability
+  - refetches
   - selectinload
   - shellcheck
   - subcomponent
@@ -82,10 +86,13 @@ words:
   - justfile
   - mdformat
   - mjml
+  - mypi
   - rclone
+  - rhysd
   - Zensical
 
 ignoreWords:
+  - Jldmlldw
   - ellipsize
   - hibp
   - htmlcov
@@ -93,6 +100,9 @@ ignoreWords:
   - otelcol
   - otlphttp
   - piexif
+  - PYTHONDONTWRITEBYTECODE
+  - PYTHONUNBUFFERED
+  - USEPOLLING
   - uninstrument
   - worklets
   - xdist

@@ -65,7 +65,6 @@ jobs:
             pyproject.toml
             uv.lock
             backend/uv.lock
-            docs/uv.lock
 
       - name: Run repository policy checks
         run: just _check-root
@@ -249,8 +248,9 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          uv-cache-dependency-glob: docs/uv.lock
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: docs/pnpm-lock.yaml
 
       - name: Install dependencies
         run: just docs/install

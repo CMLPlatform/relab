@@ -57,14 +57,14 @@ services:
           path: ./docs
           target: /opt/relab/docs
           ignore:
-            - .venv/
-            - __pycache__/
-            - "*.pyc"
+            - node_modules/
+            - .astro/
+            - dist/
             - site/
         - action: rebuild
-          path: ./docs/uv.lock
+          path: ./docs/pnpm-lock.yaml
         - action: rebuild
-          path: ./docs/pyproject.toml
+          path: ./docs/package.json
 
   app-site:
     build:

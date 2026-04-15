@@ -42,6 +42,7 @@ services:
     build:
       args:
         BUILD_MODE: staging
+        PUBLIC_SITE_URL: https://docs-test.cml-relab.org
 
   web-site:
     image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:staging-local}

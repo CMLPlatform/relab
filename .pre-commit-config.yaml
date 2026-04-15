@@ -31,27 +31,33 @@ repos:
       - id: mixed-line-ending
       - id: no-commit-to-branch
       - id: trailing-whitespace
-        args: ["--markdown-linebreak-ext", "md"]
+        args: [ "--markdown-linebreak-ext", "md" ]
         exclude: ^.*/build/.*\.html$
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
     hooks:
       - id: shellcheck
-        args: ["--external-sources", "--source-path=SCRIPTDIR:."]
+        args: [ "--external-sources", "--source-path=SCRIPTDIR:." ]
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.13.9
     hooks:
       - id: commitizen
-        stages: [commit-msg]
+        stages: [ commit-msg ]
 
   - repo: https://github.com/simonvanlierde/check-json5
     rev: v1.1.0
     hooks:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
+
+  - repo: https://github.com/streetsidesoftware/cspell-cli
+    rev: v9.7.0
+    hooks:
+      - id: cspell
+        args: [ "--config", ".cspell.yml", "--dot", "--gitignore" ]
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.1
