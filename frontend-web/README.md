@@ -27,3 +27,12 @@ just size       # inspect built output size locally
 For local setup, testing patterns, and accessibility expectations, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
 
 For a lightweight local performance budget, build the site and run `just size`. Treat unexpected jumps in built HTML, CSS, and image output as a regression worth reviewing.
+
+## Repo Structure
+
+- `src/layouts`: shared document shell and page chrome
+- `src/components`: presentational Astro components
+- `src/scripts`: small client-side DOM initializers
+- `src/content`: structured metadata and page copy
+- `src/styles`: layered CSS split by tokens, layout, header, forms, and shared components
+- `e2e`: functional and visual Playwright coverage

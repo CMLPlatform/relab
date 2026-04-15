@@ -3,7 +3,7 @@ import '../styles/fonts.css';
 import '../styles/global.css';
 
 import { getPublicSiteConfig } from '@/config/public';
-import { siteLinks, siteMeta } from '@/content/site';
+import { siteLinks, siteMeta } from '@/content';
 import SiteFooter from '@/components/SiteFooter.astro';
 import SiteHeader from '@/components/SiteHeader.astro';
 import { getThemeBootstrapScript } from '@/scripts/theme';
@@ -75,5 +75,11 @@ const themeBootstrapScript = getThemeBootstrapScript();
       githubUrl={siteLinks.github}
       linkedInUrl={publicSiteConfig.linkedInUrl}
     />
+
+    <script>
+      import { initClient } from '@/scripts/init';
+
+      initClient();
+    </script>
   </body>
 </html>

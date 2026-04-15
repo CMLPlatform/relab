@@ -1,19 +1,20 @@
 ---
 import TokenAction from '@/components/TokenAction.astro';
 import { getPublicSiteConfig } from '@/config/public';
+import { newsletterContent } from '@/content';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
 const newsletterConfirmUrl = joinApiUrl(getPublicSiteConfig().apiUrl, '/newsletter/confirm');
 ---
 
-<Layout title="Confirm Newsletter Subscription — RELab">
+<Layout title={newsletterContent.confirmToken.documentTitle}>
   <TokenAction
-    title="Newsletter Subscription"
+    title={newsletterContent.confirmToken.title}
     apiUrl={newsletterConfirmUrl}
-    loadingMessage="Confirming your newsletter subscription…"
-    successMessage="Newsletter subscription confirmed! Redirecting to the homepage…"
-    noTokenMessage="No confirmation token provided. Please check your confirmation email."
-    defaultErrorMessage="Confirmation failed. Please try registering again."
+    loadingMessage={newsletterContent.confirmToken.loadingMessage}
+    successMessage={newsletterContent.confirmToken.successMessage}
+    noTokenMessage={newsletterContent.confirmToken.noTokenMessage}
+    defaultErrorMessage={newsletterContent.confirmToken.defaultErrorMessage}
   />
 </Layout>

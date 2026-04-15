@@ -1,6 +1,7 @@
 ---
 import TokenAction from '@/components/TokenAction.astro';
 import { getPublicSiteConfig } from '@/config/public';
+import { newsletterContent } from '@/content';
 import Layout from '@/layouts/Layout.astro';
 import { joinApiUrl } from '@/utils/url';
 
@@ -10,13 +11,13 @@ const newsletterUnsubscribeUrl = joinApiUrl(
 );
 ---
 
-<Layout title="Unsubscribe from Newsletter — RELab">
+<Layout title={newsletterContent.unsubscribeToken.documentTitle}>
   <TokenAction
-    title="Unsubscribe from Newsletter"
+    title={newsletterContent.unsubscribeToken.title}
     apiUrl={newsletterUnsubscribeUrl}
-    loadingMessage="Unsubscribing from the newsletter…"
-    successMessage="Successfully unsubscribed. Redirecting to the homepage…"
-    noTokenMessage="No token provided. Please check your email."
-    defaultErrorMessage="Unsubscription failed. Please try again."
+    loadingMessage={newsletterContent.unsubscribeToken.loadingMessage}
+    successMessage={newsletterContent.unsubscribeToken.successMessage}
+    noTokenMessage={newsletterContent.unsubscribeToken.noTokenMessage}
+    defaultErrorMessage={newsletterContent.unsubscribeToken.defaultErrorMessage}
   />
 </Layout>

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectContentPage } from '../helpers';
 
 test.describe('Newsletter unsubscribe form', () => {
   const message = '#newsletter-message';
@@ -8,7 +9,7 @@ test.describe('Newsletter unsubscribe form', () => {
     await expect(
       page.getByRole('heading', { name: 'Unsubscribe from Newsletter', level: 1 }),
     ).toBeVisible();
-    await expect(page.locator('.content-page.content-page-compact')).toBeVisible();
+    await expectContentPage(page);
     await expect(page.getByLabel('Email address')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unsubscribe' })).toBeVisible();
   });

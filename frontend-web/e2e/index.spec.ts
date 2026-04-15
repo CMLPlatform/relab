@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectCanonicalUrl, expectThemeToggle } from './helpers';
 
 test.describe('Landing page', () => {
   test('renders with correct title and core links', async ({ page }) => {
@@ -18,8 +19,8 @@ test.describe('Landing page', () => {
   test('renders the header brand and theme control', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
-    await expect(page.locator('.brand-mark img')).toBeVisible();
-    await expect(page.locator('[data-theme-toggle]')).toBeVisible();
+    await expect(page.locator('.brand-mark')).toBeVisible();
+    await expectThemeToggle(page);
   });
 
   test('renders the hero support links', async ({ page }) => {
@@ -45,10 +46,7 @@ test.describe('Landing page', () => {
 
   test('publishes canonical and social metadata', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-      'href',
-      /https?:\/\/(localhost:8081|cml-relab\.org)\/$/,
-    );
+    await expectCanonicalUrl(page, '/');
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       'content',
       'Reverse Engineering Lab',
