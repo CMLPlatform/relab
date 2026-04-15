@@ -68,18 +68,8 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
   const [retryKey, setRetryKey] = useState(0);
   const retryCount = useRef(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Reset retry count whenever the source URL changes (new connection attempt).
-  useEffect(() => {
-    retryCount.current = 0;
-  }, [src]);
-
-  const scheduleRetry = () => {
-    const delay = Math.min(3000 * 2 ** retryCount.current, 30_000);
-    retryCount.current += 1;
-    setState('loading');
-    retryTimer.current = setTimeout(() => setRetryKey((k) => k + 1), delay);
-  };
+  // Track previous src to reset retry count only on URL changes, not on retries.
+  const prevSrc = useRef(src);
 
   const retryNow = () => {
     retryCount.current = 0;
@@ -87,8 +77,24 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
     setRetryKey((k) => k + 1);
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is intentionally listed to re-run this effect on each retry without being read inside
   useEffect(() => {
     retryTimer.current && clearTimeout(retryTimer.current);
+
+    // Reset retry count when the URL changes (not when retrying the same URL).
+    if (prevSrc.current !== src) {
+      prevSrc.current = src;
+      retryCount.current = 0;
+    }
+
+    // Defined inside the effect so it closes over the stable refs/setters
+    // without needing to be listed as an external dependency.
+    const scheduleRetry = () => {
+      const delay = Math.min(3000 * 2 ** retryCount.current, 30_000);
+      retryCount.current += 1;
+      setState('loading');
+      retryTimer.current = setTimeout(() => setRetryKey((k) => k + 1), delay);
+    };
 
     const video = videoRef.current;
     if (!video) return;
@@ -175,8 +181,6 @@ function WebHlsVideo({ src, withCredentials = true }: { src: string; withCredent
       retryTimer.current && clearTimeout(retryTimer.current);
       if (cleanup) cleanup();
     };
-    // retryKey intentionally included to re-run the effect on each retry attempt.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, withCredentials, retryKey]);
 
   return (
