@@ -43,8 +43,8 @@ docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
 
 This starts:
 
-- `backend-user-upload-backups` for user uploads
-- `database-backups` for PostgreSQL dumps
+- `uploads-backup` for user uploads
+- `postgres-backup` for PostgreSQL dumps
 
 Schedules and retention settings live in [compose.prod.yml](../../../compose.prod.yml).
 

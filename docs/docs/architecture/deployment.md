@@ -21,8 +21,8 @@ graph LR
     end
 
     subgraph Operational ["Operational Services (staging / prod)"]
-        Migrations[backend-migrations\none-shot on deploy]
-        DBBackups[database-backups\ndaily pg_dump + zstd]
+        Migrations[migrator\none-shot on deploy]
+        DBBackups[postgres-backup\ndaily pg_dump + zstd]
         UploadBackups[user-upload-backups\ndaily file archives]
         Cloudflared[cloudflared\noutbound tunnel]
         OTel[otel-collector\nOTLP traces]
@@ -53,7 +53,7 @@ For formal architecture views of the platform as a whole, see [C4 Architecture D
 - frontend-web: Vitest and Playwright coverage for the public site
 - docs: formatting, spelling checks, and build smoke tests
 
-The repository also includes dependency maintenance, image publishing, protected deploy operations, and repository-level checks through GitHub Actions.
+The repository also includes dependency maintenance, container scanning, performance baselines, and repository-level checks through GitHub Actions.
 
 ## Operational Considerations
 

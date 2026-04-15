@@ -195,19 +195,19 @@ compose-config:
 
 # Start backend + its infrastructure (database, cache) with hot reload
 dev-backend:
-    {{ dev_compose }} up --watch backend
+    {{ dev_compose }} up --watch api
 
 # Start docs server with hot reload
 dev-docs:
-    {{ dev_compose }} up --watch docs
+    {{ dev_compose }} up --watch docs-site
 
 # Start frontend-app + backend with hot reload
 dev-frontend-app:
-    {{ dev_compose }} up --watch backend frontend-app
+    {{ dev_compose }} up --watch api app-site
 
 # Start frontend-web + backend with hot reload
 dev-frontend-web:
-    {{ dev_compose }} up --watch backend frontend-web
+    {{ dev_compose }} up --watch api web-site
 
 # ============================================================================
 # Docker: Development
@@ -235,7 +235,7 @@ dev-logs:
 
 # Run database migrations (dev); required on first start and after schema changes
 dev-migrate:
-    {{ dev_compose }} --profile migrations up backend-migrations
+    {{ dev_compose }} --profile migrations up migrator
 
 # Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
 dev-reset confirm='':
@@ -291,7 +291,7 @@ prod-logs:
 # Run database migrations (prod); required on first deploy and after schema changes
 prod-migrate confirm='':
     @just _require-confirm "run production database migrations" "just prod-migrate YES" "FORCE=1 just prod-migrate" "{{ confirm }}"
-    {{ prod_compose }} --profile migrations up backend-migrations
+    {{ prod_compose }} --profile migrations up migrator
 
 # Enable automated database + upload backups (prod)
 prod-backups-up confirm='':
@@ -347,7 +347,7 @@ staging-logs:
 # Run database migrations and seed dummy data (staging)
 staging-migrate confirm='':
     @just _require-confirm "run staging database migrations" "just staging-migrate YES" "FORCE=1 just staging-migrate" "{{ confirm }}"
-    {{ staging_compose }} --profile migrations up backend-migrations
+    {{ staging_compose }} --profile migrations up migrator
 
 # ============================================================================
 # Docker: Test / CI
@@ -378,32 +378,32 @@ _docker-smoke-down services:
 docker-smoke-backend:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down backend' EXIT
-    just _docker-smoke-up backend 120
+    trap 'just _docker-smoke-down api' EXIT
+    just _docker-smoke-up api 120
     echo "✅ Backend smoke test passed"
 
 # Smoke test: docs static server
 docker-smoke-docs:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down docs' EXIT
-    just _docker-smoke-up docs 60
+    trap 'just _docker-smoke-down docs-site' EXIT
+    just _docker-smoke-up docs-site 60
     echo "✅ Docs smoke test passed"
 
 # Smoke test: frontend-web static server
 docker-smoke-frontend-web:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down frontend-web' EXIT
-    just _docker-smoke-up frontend-web 60
+    trap 'just _docker-smoke-down web-site' EXIT
+    just _docker-smoke-up web-site 60
     echo "✅ Frontend-web smoke test passed"
 
 # Smoke test: frontend-app static server (slow: expo export runs during build)
 docker-smoke-frontend-app:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down frontend-app' EXIT
-    just _docker-smoke-up frontend-app 300
+    trap 'just _docker-smoke-down app-site' EXIT
+    just _docker-smoke-up app-site 300
     echo "✅ Frontend-app smoke test passed"
 
 # Smoke test: user-upload backups image can create a backup archive from a sample uploads tree
@@ -434,9 +434,9 @@ docker-smoke-user-upload-backups:
 docker-orchestration-smoke:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down "database cache backend backend-migrations"' EXIT
-    just _docker-smoke-up "database cache backend backend-migrations" 120
-    {{ test_compose }} exec -T backend python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
+    trap 'just _docker-smoke-down "postgres redis api migrator"' EXIT
+    just _docker-smoke-up "postgres redis api migrator" 120
+    {{ test_compose }} exec -T api python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
     echo "✅ Docker orchestration smoke test passed"
 
 # Run all smoke tests sequentially (CI runs them in parallel per-service)
@@ -458,16 +458,16 @@ docker-ci-build:
     {{ test_compose }} --profile migrations build --no-cache
 
 # Start CI services and wait for readiness
-docker-ci-up services="database cache backend":
+docker-ci-up services="postgres redis api":
     {{ test_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
 
 # Start the CI backend subset (database, cache, backend) and wait for readiness
 docker-ci-backend-up:
-    @just docker-ci-up "database cache backend"
+    @just docker-ci-up "postgres redis api"
 
 # Run CI migrations and seed dummy data for repeatable backend perf tests
 docker-ci-migrate-dummy:
-    {{ test_compose }} run --rm -e SEED_DUMMY_DATA=true backend-migrations
+    {{ test_compose }} run --rm -e SEED_DUMMY_DATA=true migrator
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':

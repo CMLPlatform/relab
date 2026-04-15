@@ -187,16 +187,16 @@ k6_docker_image := "grafana/k6:latest"
 # Run the backend k6 baseline suite against the Docker CI stack.
 
 # Assumes the CI backend stack is already up and seeded with dummy data.
-perf-ci IMAGE_ID="" BASE_URL="http://backend:8000":
+perf-ci IMAGE_ID="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
     image_id="{{ IMAGE_ID }}"
     if [ -z "$image_id" ]; then
-        image_id=$({{ ci_compose }} exec -T backend python -c 'import json, sys, urllib.request; data = json.load(urllib.request.urlopen("http://localhost:8000/products?include=images&size=100", timeout=10)); image_id = next((img["id"] for item in data.get("items", []) for img in item.get("images", [])), ""); print(image_id); sys.exit(0 if image_id else 1)')
+        image_id=$({{ ci_compose }} exec -T api python -c 'import json, sys, urllib.request; data = json.load(urllib.request.urlopen("http://localhost:8000/products?include=images&size=100", timeout=10)); image_id = next((img["id"] for item in data.get("items", []) for img in item.get("images", [])), ""); print(image_id); sys.exit(0 if image_id else 1)')
     fi
     mkdir -p reports/performance
     docker run --rm \
-        --network relab_ci_default \
+        --network relab_test_default \
         -v "$PWD/perf:/perf:ro" \
         -v "$PWD/reports/performance:/reports" \
         -e BASE_URL="{{ BASE_URL }}" \
@@ -206,7 +206,7 @@ perf-ci IMAGE_ID="" BASE_URL="http://backend:8000":
         {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
 
 # Write a dated CI baseline report from the latest k6 JSON summary export.
-perf-report-ci DATE="" BASE_URL="http://backend:8000":
+perf-report-ci DATE="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
     report_date="{{ DATE }}"

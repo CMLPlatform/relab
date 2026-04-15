@@ -47,7 +47,7 @@ Self-hosting makes sense for evaluation, institutional deployment, offline use, 
    If you also need CPV or HS taxonomy seeding in the migration container:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose --profile migrations up --build backend-migrations
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose --profile migrations up --build migrator
    ```
 
 1. Start the stack.
@@ -85,7 +85,7 @@ Production deployments are Docker Compose based. Cloudflare Tunnel remains the s
 1. Configure a Cloudflare tunnel.
 
    - Set up a domain and a remotely managed tunnel in Cloudflare.
-   - Forward traffic to `frontend-app:8081`, `frontend-web:8081`, `backend:8000`, and `docs:8000`.
+   - Forward traffic to `app-site:8081`, `web-site:8081`, `api:8000`, and `docs-site:8000`.
    - Set `TUNNEL_TOKEN_PROD` in the root `.env`.
 
 1. Configure the backend production environment.
@@ -120,7 +120,7 @@ Production deployments are Docker Compose based. Cloudflare Tunnel remains the s
    If you also need taxonomy seeding in the migration container:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.prod.yml --profile migrations up --build backend-migrations
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.prod.yml --profile migrations up --build migrator
    ```
 
 1. Optionally enable backups.
