@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Button,
@@ -291,7 +291,7 @@ export default function CameraDetailScreen() {
                   Disconnect
                 </Button>
               )}
-              {localConnection.mode === 'relay' && (
+              {localConnection.mode === 'relay' && Platform.OS !== 'web' && (
                 <Button
                   compact
                   mode="text"
@@ -310,9 +310,11 @@ export default function CameraDetailScreen() {
               {localConnection.mode === 'local'
                 ? `Via Ethernet · ${localConnection.localBaseUrl ?? ''}`
                 : localConnection.mode === 'probing' && isOnline
-                  ? 'Camera online — checking local network for direct connection'
+                  ? 'Camera online — checking local network for a faster direct connection'
                   : isOnline
-                    ? 'Via WebSocket relay · no public IP required'
+                    ? Platform.OS === 'web'
+                      ? 'Via WebSocket relay · direct Ethernet mode requires the native app'
+                      : 'Via WebSocket relay · connect Ethernet for ~0.4 s latency instead of ~2 s'
                     : camera.status?.connection === 'offline'
                       ? 'Waiting for camera to connect via WebSocket relay'
                       : statusLabel}
@@ -405,9 +407,10 @@ export default function CameraDetailScreen() {
           <Dialog.Title>Manual direct connection</Dialog.Title>
           <Dialog.Content style={{ gap: 12 }}>
             <Text variant="bodySmall" style={{ opacity: 0.7 }}>
-              Connect an Ethernet cable (or USB-C to Ethernet adapter) between the Pi and this
-              device. If auto-detection didn&apos;t find the Pi, enter its IP and the local API key
-              from the Pi&apos;s /setup page.
+              Direct connection bypasses the WebSocket relay, cutting preview latency from ~2 s
+              to ~0.4 s. Connect an Ethernet cable between the Pi and this device — the app
+              detects it automatically. Use this form only if auto-detection didn&apos;t find the Pi;
+              the local API key is on the Pi&apos;s /setup page.
             </Text>
             <TextInput
               mode="outlined"
