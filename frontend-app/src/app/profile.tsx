@@ -369,35 +369,26 @@ export default function ProfileTab() {
             onPress={() => router.push('/cameras')}
           />
         )}
-        {rpiEnabled &&
-          (isGoogleLinked ? (
-            <View style={styles.rpiRow}>
-              <View style={styles.rpiIcon}>
-                <Icon source="youtube" size={22} color="#555" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.actionTitle}>YouTube Live</Text>
-                <Text style={styles.actionSubtitle}>Stream product sessions live to YouTube.</Text>
-              </View>
-              <Switch
-                value={youtubeEnabled}
-                onValueChange={(v) => void handleYouTubeToggle(v)}
-                disabled={youtubeLoading || youtubeAuthPending}
-              />
+        {rpiEnabled && (
+          <View style={styles.rpiRow}>
+            <View style={styles.rpiIcon}>
+              <Icon source="youtube" size={22} color="#555" />
             </View>
-          ) : (
-            <View style={styles.rpiRow}>
-              <View style={styles.rpiIcon}>
-                <Icon source="youtube" size={22} color="#999" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.actionTitle, { opacity: 0.5 }]}>YouTube Live</Text>
-                <Text style={styles.actionSubtitle}>
-                  Link your Google account below to enable live streaming.
-                </Text>
-              </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionTitle}>YouTube Live</Text>
+              <Text style={styles.actionSubtitle}>
+                {youtubeAuthPending
+                  ? 'Connecting to Google…'
+                  : 'Stream product sessions live to YouTube.'}
+              </Text>
             </View>
-          ))}
+            <Switch
+              value={youtubeEnabled}
+              onValueChange={(v) => void handleYouTubeToggle(v)}
+              disabled={youtubeLoading || youtubeAuthPending}
+            />
+          </View>
+        )}
       </View>
 
       {/* ── Appearance section ── */}
