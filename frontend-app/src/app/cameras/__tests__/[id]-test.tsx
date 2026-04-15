@@ -8,6 +8,7 @@ const mockUseAuth = jest.fn();
 const mockUseCameraQuery = jest.fn();
 const mockUseUpdateCameraMutation = jest.fn();
 const mockUseDeleteCameraMutation = jest.fn();
+const mockUseLocalConnection = jest.fn();
 const mockUpdateMutate = jest.fn();
 const mockDeleteMutate = jest.fn<(_id: string, options?: { onSuccess?: () => void }) => void>();
 
@@ -19,6 +20,18 @@ jest.mock('@/hooks/useRpiCameras', () => ({
   useCameraQuery: (...args: unknown[]) => mockUseCameraQuery(...args),
   useUpdateCameraMutation: () => mockUseUpdateCameraMutation(),
   useDeleteCameraMutation: () => mockUseDeleteCameraMutation(),
+}));
+
+jest.mock('@/hooks/useLocalConnection', () => ({
+  useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
+}));
+
+jest.mock('@/components/cameras/YouTubeStreamCard', () => ({
+  YouTubeStreamCard: () => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    const React = jest.requireActual<typeof import('react')>('react');
+    return React.createElement(Text, null, 'youtube-stream-stub');
+  },
 }));
 
 // LivePreview pulls in expo-video / hls.js — both noisy under jest-expo's
@@ -71,6 +84,15 @@ describe('Camera detail screen', () => {
     });
     mockUseUpdateCameraMutation.mockReturnValue({ mutate: mockUpdateMutate, isPending: false });
     mockUseDeleteCameraMutation.mockReturnValue({ mutate: mockDeleteMutate, isPending: false });
+    mockUseLocalConnection.mockReturnValue({
+      mode: 'relay',
+      localBaseUrl: null,
+      localMediaUrl: null,
+      localApiKey: null,
+      configure: jest.fn(),
+      clearLocalConnection: jest.fn(),
+      isInitializing: false,
+    });
   });
 
   it('renders the live preview component for an online camera and sets the screen title', async () => {
@@ -99,7 +121,7 @@ describe('Camera detail screen', () => {
     renderWithProviders(<CameraDetailScreen />);
 
     expect(
-      await screen.findByText('Waiting for camera to connect via WebSocket relay.'),
+      await screen.findByText('Waiting for camera to connect via WebSocket relay'),
     ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByLabelText('Refresh status'));
@@ -214,7 +236,7 @@ describe('Camera detail screen', () => {
 
     renderWithProviders(<CameraDetailScreen />);
 
-    expect(await screen.findByText('Offline')).toBeOnTheScreen();
+    expect(screen.getAllByText('Offline').length).toBeGreaterThan(0);
   });
 
   it('dismisses the edit-name dialog when Cancel is pressed', async () => {

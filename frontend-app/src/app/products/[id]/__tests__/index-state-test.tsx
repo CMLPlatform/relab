@@ -338,7 +338,6 @@ describe('ProductPage state handling', () => {
         name: longProductName,
         parentID: 17,
       },
-      editMode: true,
       isProductComponent: true,
     } as never);
     mockUseProductQuery.mockReturnValue({
@@ -382,9 +381,11 @@ describe('ProductPage state handling', () => {
     });
 
     fireEvent.press(screen.getByLabelText('header-back'));
-    expect(mockReplace).toHaveBeenCalledWith({
-      pathname: '/products/[id]',
-      params: { id: '17' },
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/products/[id]',
+        params: { id: '17' },
+      });
     });
   });
 

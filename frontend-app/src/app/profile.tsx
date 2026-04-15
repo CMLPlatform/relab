@@ -160,7 +160,9 @@ export default function ProfileTab() {
       } else if (result.type === 'success') {
         // Browser returned but backend signalled failure (e.g. user denied scope).
         const detail = result.url.match(/[?&]detail=([^&]*)/)?.[1];
-        alert(`YouTube authorization failed: ${detail ? decodeURIComponent(detail) : 'Access was denied.'}`);
+        alert(
+          `YouTube authorization failed: ${detail ? decodeURIComponent(detail) : 'Access was denied.'}`,
+        );
       }
     } catch (error: unknown) {
       alert(`Failed to start YouTube authorization: ${getErrorMessage(error, 'Unknown error')}`);
