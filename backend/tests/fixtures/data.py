@@ -1,15 +1,11 @@
 """Data fixtures for pre-populating test database."""
 
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.background_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
-from tests.factories.models import (
-    CategoryFactory,
-    MaterialFactory,
-    ProductTypeFactory,
-    TaxonomyFactory,
-)
+from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory, TaxonomyFactory
 
 
 @pytest.fixture

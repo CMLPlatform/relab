@@ -29,6 +29,7 @@ from app.api.plugins.rpi_cam.websocket.cross_worker_relay import set_blocking_re
 from app.core.cache import close_fastapi_cache, init_fastapi_cache
 from app.core.clients import create_http_client
 from app.core.config import settings
+from app.core.config.models import Environment
 from app.core.database import async_engine, async_sessionmaker_factory
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.middleware import register_request_id_middleware, register_request_size_limit_middleware
@@ -38,8 +39,6 @@ from app.core.redis import close_redis, init_blocking_redis, init_redis
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-# Initialize logging
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -150,6 +149,11 @@ def shutdown_app_telemetry(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Manage application lifespan: startup and shutdown events."""
+    logging_configured = False
+    if settings.environment != Environment.TESTING:
+        setup_logging()
+        logging_configured = True
+
     log_startup_configuration()
     await initialize_app_state(app)
     logger.info("Application startup complete")
@@ -163,51 +167,58 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     await shutdown_http_client(app)
     shutdown_app_telemetry(app)
     logger.info("Application shutdown complete")
-    await cleanup_logging()
+    if logging_configured:
+        await cleanup_logging()
+
+
+def create_app() -> FastAPI:
+    """Create and configure a FastAPI application instance."""
+    app = FastAPI(
+        openapi_url=None,
+        docs_url=None,
+        redoc_url=None,
+        lifespan=lifespan,
+    )
+
+    # Add request ID propagation and request access logging
+    register_request_id_middleware(app)
+
+    # Add global non-multipart request body size limits
+    register_request_size_limit_middleware(app)
+
+    # Add host header validation middleware
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=settings.allowed_hosts,
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins,
+        allow_origin_regex=settings.cors_origin_regex,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
+        expose_headers=["X-Request-ID"],
+    )
+
+    # Include health check routes (liveness and readiness probes)
+    app.include_router(health_router)
+
+    # Include main API routes
+    app.include_router(router)
+
+    # Initialize OpenAPI documentation
+    init_openapi_docs(app)
+
+    # Initialize exception handling
+    register_exception_handlers(app)
+
+    # Add pagination
+    add_pagination(app)
+    return app
 
 
 # Initialize FastAPI application with lifespan
-app = FastAPI(
-    openapi_url=None,
-    docs_url=None,
-    redoc_url=None,
-    lifespan=lifespan,
-)
-
-# Add request ID propagation and request access logging
-register_request_id_middleware(app)
-
-# Add global non-multipart request body size limits
-register_request_size_limit_middleware(app)
-
-# Add host header validation middleware
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=settings.allowed_hosts,
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_origin_regex=settings.cors_origin_regex,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
-    expose_headers=["X-Request-ID"],
-)
-
-# Include health check routes (liveness and readiness probes)
-app.include_router(health_router)
-
-# Include main API routes
-app.include_router(router)
-
-# Initialize OpenAPI documentation
-init_openapi_docs(app)
-
-# Initialize exception handling
-register_exception_handlers(app)
-
-# Add pagination
-add_pagination(app)
+app = create_app()

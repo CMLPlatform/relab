@@ -35,7 +35,6 @@ async def mock_redis_dependency(test_app: FastAPI, redis_client: Redis) -> Async
 
     This allows tests to use the fake Redis client instead of connecting to a real Redis instance.
     """
-
     async def override_get_redis() -> Redis:
         return redis_client
 

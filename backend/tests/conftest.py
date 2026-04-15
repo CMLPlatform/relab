@@ -12,10 +12,10 @@ Key Fixtures:
 - session: Isolated async database session with transaction rollback
 
 Architecture:
-- Testcontainers starts before pytest collection via pytest_configure hook
+- Testcontainers starts lazily when a DB-backed fixture is first requested
 - Container coordinates are written to environment variables
-- Application settings load from these env vars at import time
-- This ensures consistent URL usage across fixtures and application code
+- Application settings load from these env vars when DB fixtures build URLs
+- This keeps pure unit test runs from paying the Docker startup cost
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ import logging
 import os
 import re
 import sys
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
@@ -78,14 +79,7 @@ _POSTGRES_CONTAINER_STATE = _PostgresContainerState()
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Start Testcontainers and configure environment before test collection.
-
-    This hook runs before pytest imports test modules, ensuring that when
-    app.core.config.settings loads, it uses the container coordinates.
-
-    Skipped during collection-only mode (e.g. VS Code test discovery) to avoid
-    spinning up containers that would never be cleaned up.
-    """
+    """Configure logging before test collection."""
     if config.option.collectonly:
         return
 
@@ -97,6 +91,12 @@ def pytest_configure(config: pytest.Config) -> None:
     # If -s (no capture) is active, add back a stderr sink for live output
     if config.getoption("capture") == "no":
         loguru_logger.add(sys.stderr, format=LOG_FORMAT, level="INFO")
+
+
+def _ensure_testcontainers_postgres() -> None:
+    """Start Testcontainers Postgres once and publish its coordinates."""
+    if _POSTGRES_CONTAINER_STATE.container is not None:
+        return
 
     logger.info("Starting Testcontainers Postgres...")
     _POSTGRES_CONTAINER_STATE.container = PostgresContainer(
@@ -206,11 +206,12 @@ def get_alembic_config(test_database_name: str) -> Config:
 @pytest.fixture(scope="session", name="test_database_name")
 def _test_database_name_fixture() -> str:
     """Get worker-specific test database name."""
+    _ensure_testcontainers_postgres()
     return _get_worker_test_db_name()
 
 
 @pytest.fixture(scope="session")
-def relab_alembic_config(test_database_name: str) -> Config:
+def relab_alembic_config(_setup_test_database: None, test_database_name: str) -> Config:
     """Provide Alembic config for integration tests in this repository."""
     return get_alembic_config(test_database_name)
 
@@ -230,7 +231,7 @@ def async_engine(test_database_name: str) -> Generator[AsyncEngine]:
     asyncio.run(engine.dispose())
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def _setup_test_database(test_database_name: str) -> Generator[None]:
     """Create test database and run migrations once per test session."""
     create_test_database(test_database_name)
@@ -301,4 +302,5 @@ def caplog_loguru(caplog: pytest.LogCaptureFixture) -> Generator[None]:
         filter=lambda record: record["level"].no >= caplog.handler.level,
     )
     yield
-    loguru_logger.remove(sink_id)
+    with suppress(ValueError):
+        loguru_logger.remove(sink_id)

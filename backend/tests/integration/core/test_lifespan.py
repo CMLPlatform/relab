@@ -8,12 +8,14 @@ are mocked so these tests run without any real infrastructure.
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import CloseError
 
+from app.core.config import settings
 from app.core.database import async_engine
 from app.main import app, lifespan
 
@@ -22,8 +24,16 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture(autouse=True)
-def _reset_app_state() -> Generator[None]:
+def _reset_app_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
     """Start each lifespan test with a clean app.state."""
+    uploads_path = tmp_path / "uploads"
+    file_storage_path = uploads_path / "files"
+    image_storage_path = uploads_path / "images"
+
+    monkeypatch.setattr(settings, "uploads_path", uploads_path)
+    monkeypatch.setattr(settings, "file_storage_path", file_storage_path)
+    monkeypatch.setattr(settings, "image_storage_path", image_storage_path)
+
     app.state.redis = None
     app.state.email_checker = None
     app.state.blocking_redis = None
