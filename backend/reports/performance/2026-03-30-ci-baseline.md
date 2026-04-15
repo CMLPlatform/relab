@@ -1,6 +1,6 @@
 # 2026-03-30 CI Baseline
 
-- environment: Docker CI backend at `http://backend:8000`
+- environment: Docker CI backend at `http://api:8000`
 - source summary: `reports/performance/latest-k6-summary.json`
 - enabled scenarios: `product_tree_read`, `bearer_login`, `resized_image`
 

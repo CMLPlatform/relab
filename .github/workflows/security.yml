@@ -203,22 +203,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: backend
+          - service: api
             context: ./backend
             dockerfile: ./backend/Dockerfile
-            image_ref: relab/backend:${{ github.sha }}
-          - service: docs
+            image_ref: relab/api:${{ github.sha }}
+          - service: docs-site
             context: ./docs
             dockerfile: ./docs/Dockerfile
-            image_ref: relab/docs:${{ github.sha }}
-          - service: frontend-app
+            image_ref: relab/docs-site:${{ github.sha }}
+          - service: app-site
             context: ./frontend-app
             dockerfile: ./frontend-app/Dockerfile
-            image_ref: relab/frontend-app:${{ github.sha }}
-          - service: frontend-web
+            image_ref: relab/app-site:${{ github.sha }}
+          - service: web-site
             context: ./frontend-web
             dockerfile: ./frontend-web/Dockerfile
-            image_ref: relab/frontend-web:${{ github.sha }}
+            image_ref: relab/web-site:${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
