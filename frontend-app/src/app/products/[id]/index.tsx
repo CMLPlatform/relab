@@ -121,13 +121,28 @@ export default function ProductPage(): JSX.Element {
         <HeaderBackButton
           {...props}
           onPress={() => {
-            if (isProductComponent && product.parentID) {
-              router.replace({
-                pathname: '/products/[id]',
-                params: { id: product.parentID.toString() },
+            const navigate = () => {
+              if (isProductComponent && product.parentID) {
+                router.replace({
+                  pathname: '/products/[id]',
+                  params: { id: product.parentID.toString() },
+                });
+              } else {
+                router.replace('/products');
+              }
+            };
+            if (editMode) {
+              dialog.alert({
+                title: 'Discard changes?',
+                message:
+                  'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
+                buttons: [
+                  { text: "Don't leave" },
+                  { text: 'Discard', onPress: navigate },
+                ],
               });
             } else {
-              router.replace('/products');
+              navigate();
             }
           }}
         />
@@ -166,6 +181,7 @@ export default function ProductPage(): JSX.Element {
     router,
     onProductNameChange,
     theme.colors.onSurfaceVariant,
+    dialog,
   ]);
 
   // ─── Active stream prompt for new base products ───────────────────────────────

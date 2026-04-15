@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import os
 import re
 from abc import ABC, abstractmethod
+from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from anyio import open_file, to_thread
 from sqlalchemy.engine.interfaces import Dialect
@@ -30,12 +32,28 @@ if TYPE_CHECKING:
     class _S3Client(Protocol):
         """Narrow protocol for the boto3 S3 client methods used by S3Storage."""
 
-        def head_object(self, *, Bucket: str, Key: str) -> dict: ...  # noqa: N803
-        def get_object(self, *, Bucket: str, Key: str) -> dict: ...  # noqa: N803
-        def upload_fileobj(self, Fileobj: BinaryIO, Bucket: str, Key: str) -> None: ...  # noqa: N803
+        def head_object(self, *, bucket: str, key: str) -> dict: ...
+        def get_object(self, *, bucket: str, key: str) -> dict: ...
+        def upload_fileobj(self, fileobj: BinaryIO, *, bucket: str, key: str) -> None: ...
 
 
 _FILENAME_ASCII_STRIP_RE = re.compile(r"[^A-Za-z0-9_.-]")
+
+
+def _import_boto3() -> object:
+    """Import boto3 lazily so the optional dependency stays optional."""
+    return import_module("boto3")
+
+
+def _client_error_type() -> type[Exception]:
+    """Return botocore's ClientError type, or a local fallback when unavailable."""
+    try:
+        return import_module("botocore.exceptions").ClientError
+    except ImportError:
+        class ClientError(Exception):
+            """Fallback exception used when botocore is not installed."""
+
+        return ClientError
 
 
 def secure_filename(filename: str) -> str:
@@ -258,7 +276,7 @@ class S3Storage(BaseStorage):
         """Return a cached boto3 S3 client, importing boto3 lazily."""
         if self._client is None:
             try:
-                import boto3  # noqa: PLC0415
+                boto3 = cast("Any", _import_boto3())
             except ImportError:
                 msg = "boto3 is required for S3 storage. Install it with: uv sync --group s3"
                 raise ImportError(msg) from None
@@ -292,20 +310,20 @@ class S3Storage(BaseStorage):
 
     def get_size(self, name: str) -> int:
         """Return the object size in bytes via a HEAD request."""
-        response = self._get_client().head_object(Bucket=self._bucket, Key=self._s3_key(name))  # type: ignore[union-attr]
+        client = cast("Any", self._get_client())
+        response = client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
         return response["ContentLength"]
 
     def open(self, name: str) -> BinaryIO:
         """Download and return the object body as a BytesIO buffer."""
-        import io  # noqa: PLC0415
-
-        from botocore.exceptions import ClientError  # noqa: PLC0415
-
+        client_error = _client_error_type()
+        client = cast("Any", self._get_client())
         try:
-            response = self._get_client().get_object(Bucket=self._bucket, Key=self._s3_key(name))  # type: ignore[union-attr]
+            response = client.get_object(Bucket=self._bucket, Key=self._s3_key(name))
             return io.BytesIO(response["Body"].read())
-        except ClientError as e:
-            if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+        except client_error as e:
+            error_response = cast("dict[str, Any]", getattr(e, "response", {}))
+            if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
                 details = str(e) if settings.debug else None
                 raise FastAPIStorageFileNotFoundError(name, details=details) from e
             raise
@@ -314,21 +332,23 @@ class S3Storage(BaseStorage):
         """Upload a binary file to S3 and return the stored name."""
         filename = self.get_name(name)
         file.seek(0)
-        self._get_client().upload_fileobj(file, self._bucket, self._s3_key(name))  # type: ignore[union-attr]
+        client = cast("Any", self._get_client())
+        client.upload_fileobj(file, Bucket=self._bucket, Key=self._s3_key(name))
         return filename
 
     def generate_new_filename(self, filename: str) -> str:
         """Return a collision-free key name by probing S3 with HEAD requests."""
-        from botocore.exceptions import ClientError  # noqa: PLC0415
-
+        client_error = _client_error_type()
+        client = cast("Any", self._get_client())
         counter = 0
         stem, extension = Path(filename).stem, Path(filename).suffix
         name = filename
         while True:
             try:
-                self._get_client().head_object(Bucket=self._bucket, Key=self._s3_key(name))  # type: ignore[union-attr]
-            except ClientError as e:
-                if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+                client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
+            except client_error as e:
+                error_response = cast("dict[str, Any]", getattr(e, "response", {}))
+                if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
                     break
                 raise
             counter += 1
@@ -339,10 +359,10 @@ class S3Storage(BaseStorage):
         """Upload a file to S3 using a background thread and return the stored name."""
         filename = self.get_name(name)
         await upload_file.seek(0)
-        client = self._get_client()
+        client = cast("Any", self._get_client())
         bucket, key = self._bucket, self._s3_key(name)
         file_obj = upload_file.file
-        await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, bucket, key))  # type: ignore[union-attr]
+        await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, Bucket=bucket, Key=key))
         await upload_file.close()
         return filename
 

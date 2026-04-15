@@ -11,10 +11,12 @@ Two levels:
    self-contained and which still depend on the registry.
 """
 
-import subprocess
-import sys
+import importlib
+import multiprocessing as mp
+import traceback
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import configure_mappers
 
 from app.core.model_registry import load_models
@@ -23,30 +25,51 @@ from app.core.model_registry import load_models
 # Helpers
 # ---------------------------------------------------------------------------
 
-_CONFIGURE_SNIPPET = """\
-import sys, importlib
-mod = importlib.import_module(sys.argv[1])
-from sqlalchemy.orm import configure_mappers
-configure_mappers()
-"""
-
-
 def _run_isolated(module: str) -> tuple[bool, str]:
     """Import *module* in a subprocess, then call ``configure_mappers()``.
 
     Returns ``(True, "")`` on success or ``(False, last_stderr_line)`` on failure.
     """
-    result = subprocess.run(  # noqa: S603
-        [sys.executable, "-c", _CONFIGURE_SNIPPET, module],
-        capture_output=True,
-        text=True,
-        timeout=15,
-        check=False,
-    )
-    if result.returncode == 0:
+    ctx = mp.get_context("spawn")
+    result_queue: mp.Queue = ctx.Queue()
+
+    process = ctx.Process(target=_worker, args=(module, result_queue))
+    process.start()
+    process.join(timeout=15)
+    if process.is_alive():
+        process.terminate()
+        process.join()
+        return False, "Timed out while configuring mappers"
+
+    if not result_queue.empty():
+        return result_queue.get()
+
+    if process.exitcode == 0:
         return True, ""
-    lines = [line for line in result.stderr.splitlines() if line.strip()]
-    return False, lines[-1] if lines else result.stderr
+
+    return False, f"worker exited with code {process.exitcode}"
+
+
+def _worker(import_path: str, queue: mp.Queue) -> None:
+    try:
+        importlib.import_module(import_path)
+
+        configure_mappers()
+    except (
+        ImportError,
+        AttributeError,
+        NameError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+        AssertionError,
+        SQLAlchemyError,
+    ) as exc:  # pragma: no cover - exercised in subprocess
+        lines = [line for line in traceback.format_exc().splitlines() if line.strip()]
+        message = lines[-1] if lines else str(exc)
+        queue.put((False, message))
+    else:
+        queue.put((True, ""))
 
 
 # ---------------------------------------------------------------------------

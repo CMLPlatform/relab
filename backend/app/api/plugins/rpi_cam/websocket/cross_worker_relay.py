@@ -52,18 +52,17 @@ logger = logging.getLogger(__name__)
 # socket_timeout=5 which causes TimeoutError mid-wait.  main.py calls
 # set_blocking_redis() at startup with a dedicated client.
 
-_blocking_redis: Redis | None = None
+_blocking_redis_state: dict[str, Redis | None] = {"client": None}
 
 
 def set_blocking_redis(client: Redis | None) -> None:
     """Register the blocking Redis client (called once at startup)."""
-    global _blocking_redis  # noqa: PLW0603
-    _blocking_redis = client
+    _blocking_redis_state["client"] = client
 
 
 def get_blocking_redis() -> Redis | None:
     """Return the blocking Redis client, or None if unavailable."""
-    return _blocking_redis
+    return _blocking_redis_state["client"]
 
 
 # ── Redis key templates ────────────────────────────────────────────────────────

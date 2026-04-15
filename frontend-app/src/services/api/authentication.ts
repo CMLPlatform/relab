@@ -20,7 +20,6 @@ let authGeneration = 0;
 // Suppress noisy error logs during tests; error paths are exercised intentionally.
 function logError(...args: unknown[]) {
   if (process.env.NODE_ENV === 'test') return;
-  // eslint-disable-next-line no-console
   console.error(...(args as [unknown, ...unknown[]]));
 }
 

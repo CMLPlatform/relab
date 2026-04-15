@@ -13,6 +13,7 @@ from app.api.auth.filters import UserFilter
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
+from app.api.plugins.rpi_cam.services import get_cached_telemetry, get_camera_status
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -97,12 +98,6 @@ class CameraReadWithStatus(CameraRead):
         last_image_url: str | None = None,
     ) -> Self:
         """Create CameraReadWithStatus instance from Camera database model, fetching online status."""
-        # Lazy import to break the services <-> schemas cycle.
-        from app.api.plugins.rpi_cam.services import (  # noqa: PLC0415
-            get_cached_telemetry,
-            get_camera_status,
-        )
-
         telemetry = await get_cached_telemetry(redis, db_model.id) if include_telemetry else None
         return cls(
             **db_model.model_dump(exclude={"status", "relay_public_key_jwk"}),

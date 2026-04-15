@@ -112,7 +112,7 @@ async def get_category_trees(
         statement = statement.where(Category.taxonomy_id == taxonomy_id)
 
     if category_filter:
-        statement = category_filter.filter(statement)
+        statement = cast("Select[tuple[Category]]", category_filter.filter(statement))
 
     statement = statement.options(
         selectinload(cast("QueryableAttribute[Any]", Category.subcategories), recursion_depth=recursion_depth)

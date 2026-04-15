@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import pandas as pd  # type: ignore[import-not-found]
+import pandas as pd
 from sqlalchemy import func, select
 
 from app.api.background_data.models import Category, TaxonomyDomain

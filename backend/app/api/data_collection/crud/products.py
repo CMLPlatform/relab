@@ -65,7 +65,7 @@ async def get_product_trees(
     )
 
     if product_filter:
-        statement = product_filter.filter(statement)
+        statement = cast("Select[tuple[Product]]", product_filter.filter(statement))
 
     return list((await db.execute(statement)).scalars().all())
 

@@ -26,7 +26,7 @@ def _sql(clause: ClauseElement) -> str:
     return str(clause.compile(dialect=postgresql.dialect()))
 
 
-# ruff: noqa : SLF001 # We are testing the _search_vector_col and _trigram_cols methods directly.
+# ruff: noqa : SLF001, ARG002 # We are testing the _search_vector_col and _trigram_cols methods directly and in a parameterized way
 @pytest.mark.unit
 @pytest.mark.parametrize(
     ("filter_cls", "table_name"),
@@ -44,15 +44,15 @@ class TestFilterSearchVector:
         sql = _sql(filter_cls._search_vector_col())
         assert table_name in sql.lower()
 
-    def test_trigram_cols_contains_name(self, filter_cls: type[TSVectorSearchMixin], table_name: str) -> None:  # noqa: ARG002
+    def test_trigram_cols_contains_name(self, filter_cls: type[TSVectorSearchMixin], table_name: str) -> None:
         """The trigram columns must include a 'name' field."""
         cols = filter_cls._trigram_cols()
         assert len(cols) >= 1
         assert "name" in _sql(cols[0]).lower()
 
-    def test_filter_has_no_search_model_fields(self, filter_cls: type[TSVectorSearchMixin], table_name: str) -> None:  # noqa: ARG002
+    def test_filter_has_no_search_model_fields(self, filter_cls: type[TSVectorSearchMixin], table_name: str) -> None:
         """search_model_fields must be absent so fastapi-filter doesn't generate ILIKE queries."""
-        assert not getattr(filter_cls.Constants, "search_model_fields", None)  # type: ignore[unresolved-attribute]
+        assert not getattr(filter_cls.Constants, "search_model_fields", None)
 
 
 @pytest.mark.unit
@@ -67,7 +67,7 @@ class TestFilterSearchVector:
 class TestSearchVectorModel:
     """Verify each model declares a computed search_vector covering the expected fields."""
 
-    def test_search_vector_is_computed(self, model_cls: type, expected_fields: list[str]) -> None:  # noqa: ARG002
+    def test_search_vector_is_computed(self, model_cls: type, expected_fields: list[str]) -> None:
         """The search_vector column must be a computed (generated) column."""
         col = _table(model_cls).c.search_vector
         assert col.computed is not None

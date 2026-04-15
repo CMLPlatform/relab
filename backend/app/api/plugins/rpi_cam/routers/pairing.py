@@ -72,11 +72,12 @@ def _build_ws_url() -> str:
 )
 @limiter.limit(REGISTER_RATE_LIMIT)
 async def register_pairing_code(
-    request: Request,  # noqa: ARG001
+    request: Request,
     body: PairingRegisterRequest,
     redis: RedisDep,
 ) -> PairingRegisterResponse:
     """Register a short-lived pairing code and the camera's public device key."""
+    del request
     key = _pairing_key(body.code)
     existing = await get_redis_value(redis, key)
     if existing is not None:
@@ -159,12 +160,13 @@ async def claim_pairing_code(
 )
 @limiter.limit(POLL_RATE_LIMIT)
 async def poll_pairing_status(
-    request: Request,  # noqa: ARG001
+    request: Request,
     redis: RedisDep,
     code: str = Query(min_length=6, max_length=6, pattern=r"^[A-Z0-9]{6}$"),
     fingerprint: str = Query(min_length=8, max_length=64),
 ) -> PairingPollResponse:
     """Poll for pairing completion. Returns non-secret relay metadata once claimed."""
+    del request
     key = _pairing_key(code)
     raw = await get_redis_value(redis, key)
     if raw is None:

@@ -1,7 +1,5 @@
 """Refresh-token endpoint integration tests."""
 
-# ruff: noqa: D102
-
 from __future__ import annotations
 
 from http.cookies import SimpleCookie
@@ -28,11 +26,13 @@ class TestRefreshTokenEndpoint:
     async def test_cookie_refresh_token_requires_cookie(
         self, async_client: AsyncClient, mock_redis_dependency: Redis
     ) -> None:
+        """Test that the cookie refresh endpoint requires a refresh token cookie."""
         del mock_redis_dependency
         response = await async_client.post("/auth/cookie/refresh")
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
 
     async def test_bearer_refresh_token_invalid(self, async_client: AsyncClient, mock_redis_dependency: Redis) -> None:
+        """Test that the bearer refresh endpoint rejects invalid refresh tokens."""
         del mock_redis_dependency
         response = await async_client.post("/auth/refresh", json={"refresh_token": INVALID_REFRESH_TOKEN})
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
@@ -43,6 +43,7 @@ class TestRefreshTokenEndpoint:
         mock_redis_dependency: Redis,
         session: AsyncSession,
     ) -> None:
+        """Test that the bearer refresh endpoint rotates refresh tokens and prevents replay."""
         user = await UserFactory.create_async(
             session,
             email="refresh-rotation@example.com",
@@ -76,6 +77,7 @@ class TestRefreshTokenEndpoint:
         mock_redis_dependency: Redis,
         session: AsyncSession,
     ) -> None:
+        """Test that the cookie refresh endpoint rotates refresh tokens and prevents replay."""
         user = await UserFactory.create_async(
             session,
             email="cookie-refresh-rotation@example.com",

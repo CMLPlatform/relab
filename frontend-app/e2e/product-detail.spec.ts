@@ -129,10 +129,6 @@ test.describe('Product detail: edit mode', () => {
   });
 
   test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
-    test.skip(
-      true,
-      'The current web back navigation uses link/replace behavior that bypasses the beforeRemove guard.',
-    );
     await loginAndReachProducts(page);
     const productName = `E2E Guard Test ${Date.now()}`;
     await createProductViaDialog(page, productName);

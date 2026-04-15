@@ -34,7 +34,7 @@ def _stub_image_url_builder(monkeypatch: pytest.MonkeyPatch) -> None:
             self.image_url = image_url
 
         @classmethod
-        def model_validate(cls, image: Image) -> _FakeImageRead:  # type: ignore[name-defined]
+        def model_validate(cls, image: Image) -> _FakeImageRead:
             return cls(image_url=f"/fake/images/{image.id.hex}.jpg")
 
     # Patch the symbol in the file_storage.schemas module since the

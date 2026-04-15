@@ -47,12 +47,12 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     )
 
     @declared_attr
-    def first_image_id(cls) -> MappedSQLExpression[UUID4 | None]:  # noqa: N805
+    def first_image_id(self) -> MappedSQLExpression[UUID4 | None]:
         """Column property that exposes the first image ID for thumbnails."""
         return column_property(
             select(Image.id)
             .where(Image.parent_type == MediaParentType.PRODUCT)
-            .where(Image.parent_id == cls.id)
+            .where(Image.parent_id == self.id)
             .correlate_except(Image)
             .order_by(asc(Image.created_at))
             .limit(1)

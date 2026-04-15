@@ -8,7 +8,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import pandas as pd  # type: ignore[import-not-found]
+import pandas as pd
 import requests
 from sqlalchemy import func, select
 

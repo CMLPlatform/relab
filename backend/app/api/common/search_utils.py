@@ -32,6 +32,7 @@ Example:
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import ColumnElement, Select, desc, func, or_
+from sqlalchemy.orm import Query
 
 if TYPE_CHECKING:
     from fastapi_filter.contrib.sqlalchemy import Filter as _FilterBase
@@ -104,7 +105,7 @@ class TSVectorSearchMixin(_FilterBase):
         """Append ``ts_rank`` ordering to *query*. Override to change the behaviour."""
         return query.order_by(ts_rank_expr(self._search_vector_col(), search))
 
-    def filter(self, query: Any) -> Any:  # noqa: ANN401
+    def filter(self, query: Query | Select[Any]) -> Query | Select[Any]:
         """Apply tsvector + trigram search, replacing fastapi-filter's default ILIKE logic."""
         search: str | None = getattr(self, "search", None)
         # Temporarily suppress self.search so fastapi-filter's super().filter()

@@ -17,6 +17,8 @@ from app.api.auth.services.programmatic_user_crud import create_user
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 # Constants for test values
@@ -111,7 +113,7 @@ class TestEmailChecker:
 
         mock_redis.hset.assert_not_awaited()
 
-    def test_load_local_disposable_domains(self, tmp_path: Any) -> None:  # noqa: ANN401
+    def test_load_local_disposable_domains(self, tmp_path: Path) -> None:
         """Local fallback files should ignore comments and blank lines."""
         domains_file = tmp_path / "domains.txt"
         domains_file.write_text("# comment\nTemp-Mail.org\n\nmailinator.com\n", encoding="utf-8")

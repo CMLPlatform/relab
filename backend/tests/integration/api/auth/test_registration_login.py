@@ -1,7 +1,5 @@
 """Registration, login, logout, and auth rate-limit tests."""
 
-# ruff: noqa: D102
-
 from __future__ import annotations
 
 import json
@@ -48,6 +46,7 @@ class TestRegistrationEndpoint:
     """Tests for the /auth/register endpoint."""
 
     async def test_register_success(self, async_client: AsyncClient) -> None:
+        """Test successful user registration."""
         user_data = {"email": TEST_EMAIL, "password": TEST_PASSWORD, "username": TEST_USERNAME}
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
@@ -66,6 +65,7 @@ class TestRegistrationEndpoint:
         assert "hashed_password" not in data
 
     async def test_register_duplicate_email(self, async_client: AsyncClient) -> None:
+        """Test registering with a duplicate email."""
         user_data = {"email": DUPLICATE_EMAIL, "password": TEST_PASSWORD, "username": UNIQUE_USERNAME}
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
@@ -97,6 +97,7 @@ class TestRegistrationEndpoint:
         assert "already exists" in response.json()["detail"].lower()
 
     async def test_register_duplicate_username(self, async_client: AsyncClient) -> None:
+        """Test registering with a duplicate username."""
         user_data = {"email": DIFFERENT_EMAIL, "password": TEST_PASSWORD, "username": EXISTING_USERNAME}
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
@@ -107,6 +108,7 @@ class TestRegistrationEndpoint:
         assert "username" in response.json()["detail"].lower()
 
     async def test_register_disposable_email(self, async_client: AsyncClient) -> None:
+        """Test registering with a disposable email."""
         user_data = {"email": DISPOSABLE_EMAIL, "password": TEST_PASSWORD, "username": "tempuser"}
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
@@ -117,11 +119,13 @@ class TestRegistrationEndpoint:
         assert "disposable" in response.json()["detail"].lower()
 
     async def test_register_weak_password(self, async_client: AsyncClient) -> None:
+        """Test registering with a weak password."""
         user_data = {"email": "user@example.com", "password": WEAK_PASSWORD, "username": "user"}
         response = await async_client.post("/auth/register", json=user_data)
         assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT]
 
     async def test_register_with_organization(self, async_client: AsyncClient) -> None:
+        """Test registering with an organization."""
         user_data = {
             "email": OWNER_EMAIL,
             "password": TEST_PASSWORD,
@@ -150,6 +154,7 @@ class TestLoginEndpoint:
     """Tests for FastAPI-Users login endpoints."""
 
     async def test_bearer_login_with_email(self, async_client: AsyncClient) -> None:
+        """Test logging in with email and password to get bearer tokens."""
         user_data = {"email": LOGIN_EMAIL, "password": TEST_PASSWORD, "username": LOGIN_USERNAME}
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
@@ -175,6 +180,7 @@ class TestLoginEndpoint:
             assert "refresh_token" in response.cookies or "set-cookie" in response.headers
 
     async def test_bearer_login_invalid_credentials(self, async_client: AsyncClient) -> None:
+        """Test logging in with invalid credentials."""
         response = await async_client.post(
             "/auth/bearer/login",
             data={"username": INVALID_EMAIL, "password": INVALID_PASSWORD},
@@ -182,6 +188,7 @@ class TestLoginEndpoint:
         assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR]
 
     async def test_cookie_login(self, async_client: AsyncClient) -> None:
+        """Test logging in with email and password to get session cookies."""
         user_data = {"email": COOKIE_EMAIL, "password": TEST_PASSWORD, "username": COOKIE_USERNAME}
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
@@ -206,10 +213,12 @@ class TestLogoutEndpoint:
     """Tests for FastAPI-Users logout endpoints."""
 
     async def test_bearer_logout_unauthenticated(self, async_client: AsyncClient) -> None:
+        """Test logging out of bearer auth without credentials."""
         response = await async_client.post("/auth/bearer/logout")
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_500_INTERNAL_SERVER_ERROR]
 
     async def test_cookie_logout(self, async_client: AsyncClient) -> None:
+        """Test logging out of cookie auth."""
         response = await async_client.post("/auth/cookie/logout")
         assert response.status_code in [
             status.HTTP_200_OK,
@@ -224,6 +233,7 @@ class TestRateLimiting:
     """Tests for rate limiting on auth endpoints."""
 
     async def test_login_rate_limit_disabled_in_tests(self, async_client: AsyncClient) -> None:
+        """Test that the login endpoint does not enforce rate limits in the test environment."""
         responses = []
         for _ in range(10):
             response = await async_client.post(

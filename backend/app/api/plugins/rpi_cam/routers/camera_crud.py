@@ -1,7 +1,7 @@
 """Camera CRUD operations for Raspberry Pi Camera plugin."""
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import BackgroundTasks, HTTPException, Query
 from pydantic import UUID4
@@ -13,6 +13,7 @@ from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
 from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, CameraTransferOwnerIDDep, UserOwnedCameraDep
+from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
@@ -24,7 +25,6 @@ from app.api.plugins.rpi_cam.services import (
 from app.api.plugins.rpi_cam.services import (
     get_last_image_url_per_camera,
 )
-from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
 
@@ -215,7 +215,7 @@ async def self_unpair_camera(
 async def get_camera_local_access(
     db_camera: UserOwnedCameraDep,
     redis: OptionalRedisDep,
-) -> dict:
+) -> dict[str, Any] | list[Any]:
     """Relay local-access-info from the Pi to the authenticated frontend user."""
     response = await relay_via_websocket(
         db_camera.id,
@@ -224,7 +224,7 @@ async def get_camera_local_access(
         redis=redis,
         error_msg="Could not retrieve local access info from camera",
     )
-    return response.json()  # type: ignore[return-value]
+    return response.json()
 
 
 async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:

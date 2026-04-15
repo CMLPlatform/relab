@@ -1,7 +1,5 @@
 """User update validation and endpoint tests."""
 
-# ruff: noqa: D102
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -28,6 +26,7 @@ class TestUpdateUserValidation:
 
     @pytest.mark.asyncio
     async def test_update_username_to_available_name_succeeds(self, session: AsyncSession) -> None:
+        """Updating to an available username should succeed."""
         user = await UserFactory.create_async(
             session,
             email=USER1_EMAIL,
@@ -41,6 +40,7 @@ class TestUpdateUserValidation:
 
     @pytest.mark.asyncio
     async def test_update_username_to_same_name_succeeds(self, session: AsyncSession) -> None:
+        """Updating to the same username should succeed."""
         user = await UserFactory.create_async(
             session,
             email=USER1_EMAIL,
@@ -54,6 +54,7 @@ class TestUpdateUserValidation:
 
     @pytest.mark.asyncio
     async def test_update_username_to_taken_name_raises(self, session: AsyncSession) -> None:
+        """Updating to a taken username should raise an error."""
         await UserFactory.create_async(session, email=USER1_EMAIL, username=TAKEN_USERNAME, hashed_password="pw")
         user2 = await UserFactory.create_async(
             session,
@@ -69,6 +70,7 @@ class TestUpdateUserValidation:
 
     @pytest.mark.asyncio
     async def test_update_without_username_change_passes_through(self, session: AsyncSession) -> None:
+        """Updating without changing the username should pass through."""
         user = await UserFactory.create_async(
             session,
             email=USER1_EMAIL,
@@ -87,9 +89,11 @@ class TestUpdateUserEndpoint:
     """Integration tests for the user update API endpoint."""
 
     async def test_update_user_unauthenticated_returns_401(self, async_client: AsyncClient) -> None:
+        """Test that updating a user without authentication returns 401."""
         response = await async_client.patch("/users/me", json={"username": "any_name"})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_get_me_unauthenticated_returns_401(self, async_client: AsyncClient) -> None:
+        """Test that getting user info without authentication returns 401."""
         response = await async_client.get("/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED

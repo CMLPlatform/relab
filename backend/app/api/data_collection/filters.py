@@ -133,7 +133,7 @@ class ProductFilter(TSVectorSearchMixin, Filter):
             return query.order_by(ts_rank_expr(self._search_vector_col(), search))
         return query
 
-    def sort(self, query: Any) -> Any:  # noqa: ANN401
+    def sort(self, query: Any) -> Any:  # noqa: ANN401 # Any-type expected by fastapi-filter
         """Override of fastapi-filter's sort method.
 
         'rank' is already stripped at construction time, so this override is a no-op
@@ -141,7 +141,7 @@ class ProductFilter(TSVectorSearchMixin, Filter):
         """
         if not self.order_by:
             return query
-        return super().sort(query)  # type: ignore[misc]
+        return super().sort(query)
 
     class Constants(Filter.Constants):
         """FilterAPI class configuration."""

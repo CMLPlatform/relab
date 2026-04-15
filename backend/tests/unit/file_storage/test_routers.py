@@ -17,16 +17,14 @@ if TYPE_CHECKING:
 # Constants to avoid magic values
 IMAGE_WIDTH = 200
 IMAGE_HEIGHT = 150
-FAKE_IMAGE_PATH = "/tmp/test_image.jpg"  # noqa: S108 - This is a safe path for testing purposes.
-
-
 def _make_request() -> MagicMock:
     return MagicMock()
 
 
-def _make_db_image(path: str | None = FAKE_IMAGE_PATH) -> MagicMock:
+def _make_db_image(path: str | None = None) -> MagicMock:
     db_image = MagicMock()
     if path is not None:
+        db_image.file = MagicMock()
         db_image.file.path = path
     else:
         db_image.file = None

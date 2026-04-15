@@ -23,6 +23,7 @@ from app.api.common.exceptions import APIError
 from app.api.common.schemas.base import serialize_datetime_with_z
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image
+from app.api.file_storage.schemas import ImageRead
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import (
     GoogleOAuthAssociationRequiredError,
@@ -160,11 +161,6 @@ async def get_last_image_url_per_camera(
     """
     if not camera_ids:
         return {}
-
-    # Lazy import to avoid circular-import issues — ``ImageRead`` pulls in
-    # FastAPI/Pydantic plumbing that can't be loaded at module-import time
-    # in some test configurations.
-    from app.api.file_storage.schemas import ImageRead  # noqa: PLC0415
 
     camera_id_strings = [str(camera_id) for camera_id in camera_ids]
     camera_id_expr = Image.image_metadata["camera_id"].astext

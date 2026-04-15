@@ -77,7 +77,7 @@ class EmailChecker(PeriodicBackgroundTask):
         try:
             domain = email.rsplit("@", 1)[-1].lower()
             if self.redis_client is not None:
-                return bool(await self.redis_client.hget(_REDIS_DOMAINS_HASH, domain))  # ty: ignore[invalid-await]
+                return bool(await self.redis_client.hget(_REDIS_DOMAINS_HASH, domain))  # ty: ignore[invalid-await] # Async Redis returns awaitable, this is an upstream typing issue in the Redis client library
         except _RECOVERABLE_ERRORS:
             logger.exception("Failed to check if email is disposable: %s. Allowing registration.", email)
             return False

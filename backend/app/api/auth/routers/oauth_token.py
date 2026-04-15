@@ -12,7 +12,7 @@ a client secret and cannot be done client-side).
 """
 
 import logging
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -40,6 +40,9 @@ from app.api.auth.services.user_manager import (
 from app.api.common.routers.openapi import mark_router_routes_public
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 _GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 _GOOGLE_ISSUERS = frozenset({"https://accounts.google.com", "accounts.google.com"})
@@ -110,7 +113,11 @@ async def _user_from_google_token(
     # ty false positive: User satisfies UserOAuthProtocol structurally but ty's
     # generic Protocol-inheritance checker mishandles multi-level generic Protocols.
     # Tracked upstream: https://github.com/astral-sh/ty/issues (invalid-argument-type)
-    user = await user_manager.oauth_callback(  # type: ignore[attr-defined]  # ty: ignore[invalid-argument-type]
+    oauth_callback = cast(
+        "Callable[..., Awaitable[User]]",
+        user_manager.oauth_callback,
+    )
+    user = await oauth_callback(
         google_oauth_client.name,
         body.access_token or body.id_token,  # real access_token preferred for API storage
         account_id,

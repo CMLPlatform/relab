@@ -4,7 +4,6 @@ export function logError(...args: unknown[]) {
   } catch {
     /* ignore */
   }
-  // eslint-disable-next-line no-console
   console.error(...(args as [unknown, ...unknown[]]));
 }
 

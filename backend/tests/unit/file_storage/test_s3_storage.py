@@ -1,6 +1,7 @@
 """Test S3-compatible storage backend."""
 # spell-checker: ignore AKIAIOSFODNN7EXAMPLE
 
+import importlib
 import io
 import sys
 from typing import TYPE_CHECKING
@@ -122,10 +123,11 @@ class TestS3StorageSyncOperations:
 
         assert result == "document.txt"
         mock_client.upload_fileobj.assert_called_once()
-        # Verify upload was called with correct bucket and key (positional args)
-        args = mock_client.upload_fileobj.call_args[0]
-        assert args[1] == "my-bucket"
-        assert args[2] == "files/document.txt"
+        # Verify upload was called with correct bucket and key.
+        assert mock_client.upload_fileobj.call_args.kwargs == {
+            "Bucket": "my-bucket",
+            "Key": "files/document.txt",
+        }
 
     def test_open_returns_file_contents(self, mock_boto3: MagicMock) -> None:
         """Test open() returns BytesIO with object contents."""
@@ -203,12 +205,10 @@ class TestS3StorageSyncOperations:
         # Ensure boto3 is not available for import
         monkeypatch.delitem(sys.modules, "boto3", raising=False)
         monkeypatch.setattr(
-            "builtins.__import__",
-            lambda name, *args, **kw: (
-                (_ for _ in ()).throw(ImportError(f"No module named '{name}'"))
-                if name == "boto3"
-                else __import__(name, *args, **kw)
-            ),
+            "app.api.file_storage.models.storage.import_module",
+            lambda name: (_ for _ in ()).throw(ImportError(f"No module named '{name}'"))
+            if name == "boto3"
+            else importlib.import_module(name),
         )
 
         storage = S3Storage(bucket="my-bucket", prefix="files")
@@ -255,8 +255,8 @@ class TestS3StorageAsyncOperations:
         # Mock the upload_fileobj to track it was called
         upload_called = []
 
-        def mock_upload(_fileobj: object, bucket: str, key: str) -> None:
-            upload_called.append((bucket, key))
+        def mock_upload(_fileobj: object, **kwargs: object) -> None:
+            upload_called.append((str(kwargs["Bucket"]), str(kwargs["Key"])))
 
         mock_client.upload_fileobj = mock_upload
 

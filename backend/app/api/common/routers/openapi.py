@@ -1,6 +1,7 @@
 """Utilities for including or excluding endpoints in the public OpenAPI schema and documentation."""
 
-from typing import TYPE_CHECKING, Any
+from types import MethodType
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import APIRouter, FastAPI, Security
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
@@ -72,7 +73,11 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:
     for the app (the standard FastAPI integration point for tooling and middleware).
     The /openapi.json endpoint simply delegates to app.openapi().
     """
-    app.openapi = lambda: _build_public_openapi(app)  # type: ignore  # noqa: PGH003
+    def _public_openapi(_: FastAPI) -> dict[str, Any]:
+        return _build_public_openapi(app)
+
+    openapi_app = cast("Any", app)
+    openapi_app.openapi = MethodType(_public_openapi, app)
 
     public_docs_router = APIRouter(prefix="", include_in_schema=False)
 

@@ -53,13 +53,13 @@ class BaseReadSchema(BaseModel):
 class IntIdReadSchema(BaseReadSchema):
     """Read schema for models with integer primary keys."""
 
-    id: PositiveInt  # type: ignore[assignment]
+    id: PositiveInt
 
 
 class UUIDIdReadSchema(BaseReadSchema):
     """Read schema for models with UUID primary keys."""
 
-    id: UUID4  # type: ignore[assignment]
+    id: UUID4
 
 
 class TimestampReadSchemaMixin(BaseModel):

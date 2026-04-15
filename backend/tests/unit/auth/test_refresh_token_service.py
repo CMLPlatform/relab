@@ -151,8 +151,6 @@ class TestRefreshTokenService:
 
 
 # ruff: noqa: SLF001 # Private method access is needed for testing in-memory fallback behavior
-
-
 @pytest.mark.asyncio
 class TestRefreshTokenServiceInMemory:
     """Tests for refresh token service in-memory fallback (redis=None)."""

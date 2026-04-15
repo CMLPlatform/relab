@@ -122,12 +122,13 @@ def key_builder_excluding_dependencies(
     func: Callable[..., Any],
     namespace: str = "",
     *,
-    request: Request | None = None,  # noqa: ARG001
-    response: Response | None = None,  # noqa: ARG001
+    request: Request | None = None,
+    response: Response | None = None,
     args: tuple[Any, ...] = (),
     kwargs: dict[str, Any] | None = None,
 ) -> str:
     """Build cache key excluding dependency injection objects."""
+    del request, response
     if kwargs is None:
         kwargs = {}
 

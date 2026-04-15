@@ -112,21 +112,21 @@ class CameraConnectionManager:
 
 # ── Module-level singleton ────────────────────────────────────────────────────
 
-_manager: CameraConnectionManager | None = None
+_manager_state: dict[str, CameraConnectionManager | None] = {"manager": None}
 
 
 def get_connection_manager() -> CameraConnectionManager:
     """Return the global CameraConnectionManager (must be initialised at startup)."""
-    if _manager is None:
+    manager = _manager_state["manager"]
+    if manager is None:
         msg = "CameraConnectionManager is not initialised."
         raise RuntimeError(msg)
-    return _manager
+    return manager
 
 
 def set_connection_manager(manager: CameraConnectionManager) -> None:
     """Set the global CameraConnectionManager (called during app startup)."""
-    global _manager  # noqa: PLW0603
-    _manager = manager
+    _manager_state["manager"] = manager
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

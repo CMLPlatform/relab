@@ -386,7 +386,7 @@ export default function Products() {
   useEffect(() => {
     setMobilePage(1);
     setAccumulatedProducts([]);
-  }, []);
+  }, [searchQueryURL, filterMode, activeDatePreset, params.brands, params.types, params.sort]);
 
   useEffect(() => {
     if (!data?.items) return;

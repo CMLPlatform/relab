@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
+import base64
+import secrets
+import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import jwt
+import pytest
+from cryptography.hazmat.primitives.asymmetric import ec
+
+from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
     _handle_text_frame,
@@ -99,15 +107,6 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
 
 # ── Device assertion verification ────────────────────────────────────────────
 
-import secrets  # noqa: E402 — grouped below other block-level imports for clarity
-import time  # noqa: E402
-
-import jwt  # noqa: E402
-import pytest  # noqa: E402
-from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402
-
-from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion  # noqa: E402
-
 _ALG = "ES256"
 _AUD = "relab-rpi-cam-relay"
 
@@ -116,7 +115,6 @@ def _make_key() -> tuple[ec.EllipticCurvePrivateKey, dict]:
     """Generate an EC P-256 key pair and return (private_key, public_jwk)."""
     private_key = ec.generate_private_key(ec.SECP256R1())
     pub = private_key.public_key().public_numbers()
-    import base64  # noqa: PLC0415
 
     def _b64(n: int) -> str:
         return base64.urlsafe_b64encode(n.to_bytes(32, "big")).rstrip(b"=").decode()
