@@ -24,6 +24,7 @@ from app.api.plugins.rpi_cam.services import (
 from app.api.plugins.rpi_cam.services import (
     get_last_image_url_per_camera,
 )
+from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
 
@@ -178,6 +179,52 @@ async def delete_user_camera(
     await db.delete(camera)
     await db.commit()
     background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
+
+
+@camera_router.delete(
+    "/{camera_id}/self",
+    summary="Pi-initiated self-unpair",
+    status_code=204,
+    description=(
+        "Called by the Pi when the user triggers unpair from the local /setup page. "
+        "Authenticates via the device's ES256 assertion. Deletes the camera from the "
+        "database so the backend no longer shows it as offline. Does NOT send a relay "
+        "message back to the Pi — the Pi is already unpairing itself."
+    ),
+)
+async def self_unpair_camera(
+    camera: AuthenticatedCameraDep,
+    db: AsyncSessionDep,
+) -> None:
+    """Device-initiated self-deletion. Pi calls this on local unpair."""
+    logger.info("Camera %s self-unpaired via device assertion", camera.id)
+    await db.delete(camera)
+    await db.commit()
+
+
+@camera_router.get(
+    "/{camera_id}/local-access",
+    summary="Get local direct-connection info for a camera",
+    description=(
+        "Relays GET /local-access-info to the Pi via the WebSocket connection. "
+        "Returns the local API key and candidate IP addresses so the frontend can "
+        "auto-configure Ethernet/USB-C direct access without manual key copying. "
+        "Returns 503 when the camera is offline."
+    ),
+)
+async def get_camera_local_access(
+    db_camera: UserOwnedCameraDep,
+    redis: OptionalRedisDep,
+) -> dict:
+    """Relay local-access-info from the Pi to the authenticated frontend user."""
+    response = await relay_via_websocket(
+        db_camera.id,
+        "GET",
+        "/local-access-info",
+        redis=redis,
+        error_msg="Could not retrieve local access info from camera",
+    )
+    return response.json()  # type: ignore[return-value]
 
 
 async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:

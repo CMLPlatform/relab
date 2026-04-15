@@ -147,7 +147,7 @@ export default function CameraDetailScreen() {
 
   const updateMutation = useUpdateCameraMutation(id ?? '');
   const deleteMutation = useDeleteCameraMutation();
-  const localConnection = useLocalConnection(id ?? '');
+  const localConnection = useLocalConnection(id ?? '', { isOnline });
 
   const [editNameVisible, setEditNameVisible] = useState(false);
   const [editDescVisible, setEditDescVisible] = useState(false);
@@ -297,7 +297,7 @@ export default function CameraDetailScreen() {
                 <>
                   <ActivityIndicator size={16} />
                   <Text variant="titleSmall" style={{ opacity: 0.6 }}>
-                    Checking for direct connection…
+                    {isOnline ? 'Auto-configuring direct connection…' : 'Checking for direct connection…'}
                   </Text>
                 </>
               ) : (
@@ -402,8 +402,8 @@ export default function CameraDetailScreen() {
           <Dialog.Content style={{ gap: 12 }}>
             <Text variant="bodySmall" style={{ opacity: 0.7 }}>
               Connect an Ethernet cable (or USB-C to Ethernet adapter) between the Pi and this
-              device. Enable LOCAL_MODE_ENABLED=true on the Pi, then copy the API key from the
-              Pi&apos;s /setup page.
+              device. If auto-detection didn&apos;t find the Pi, enter its IP and the local API key
+              from the Pi&apos;s /setup page.
             </Text>
             <TextInput
               mode="outlined"

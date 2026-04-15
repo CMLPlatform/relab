@@ -41,6 +41,9 @@ _ALLOWED_COMMANDS = {
     # Sent by the backend when a camera is deleted so the Pi clears its
     # credentials and re-enters pairing mode automatically.
     ("DELETE", "/pairing/credentials"),
+    # Fetched by the backend on behalf of the frontend to deliver the local
+    # API key and candidate IP addresses for Ethernet/USB-C direct-connect setup.
+    ("GET", "/local-access-info"),
 }
 
 # Dynamic prefixes. Requests where `path.startswith(prefix)` are permitted for

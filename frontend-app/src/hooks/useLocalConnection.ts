@@ -13,20 +13,29 @@
  * The relay connection on the Pi keeps running in parallel, so remote users
  * accessing the same camera via the backend continue to work unchanged.
  *
- * Usage:
- *   const { mode, connectionInfo, configure, clearLocalConnection } = useLocalConnection(cameraId);
+ * ## Auto-configuration (medium-term / zero-copy setup)
  *
- * Setup flow (one-time per camera):
- *   1. User plugs Ethernet / USB-C cable
- *   2. App probes the stored local URL (or default link-local address)
- *   3. If reachable → prompts for the local API key (copy from Pi's /setup page)
- *   4. Stores URL + key in SecureStore; subsequent plug-ins auto-activate
+ * When the camera is online, the hook fetches local access info through the
+ * relay (GET /cameras/{id}/local-access → Pi's /local-access-info). The Pi
+ * returns its API key and all its LAN IP addresses. The hook probes each
+ * candidate URL in parallel; the first that responds activates local mode
+ * automatically — no manual key copying required.
+ *
+ * If the camera is offline or the relay call fails, the hook falls back to
+ * any previously-stored URL/key or the USB gadget default address. Users can
+ * still configure manually via the returned `configure()` function.
+ *
+ * Usage:
+ *   const conn = useLocalConnection(cameraId, { isOnline });
+ *   // conn.mode: 'probing' | 'local' | 'relay'
+ *   // conn.localBaseUrl, conn.localApiKey populated when mode === 'local'
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +48,7 @@ export interface CameraConnectionInfo {
   localBaseUrl: string | null;
   /** Base URL of the Pi's MediaMTX server, e.g. "http://192.168.1.100:8888" */
   localMediaUrl: string | null;
-  /** API key for direct calls to the Pi (from Pi's /setup page). */
+  /** API key for direct calls to the Pi. */
   localApiKey: string | null;
 }
 
@@ -98,6 +107,26 @@ async function probeLocalUrl(baseUrl: string, apiKey: string | null): Promise<bo
   }
 }
 
+/** Probe all candidate URLs in parallel; resolve with the first that responds. */
+async function probeAll(candidates: string[], apiKey: string | null): Promise<string | null> {
+  if (candidates.length === 0) return null;
+  return new Promise((resolve) => {
+    let resolved = false;
+    let pending = candidates.length;
+    for (const url of candidates) {
+      void probeLocalUrl(url, apiKey).then((ok) => {
+        pending -= 1;
+        if (ok && !resolved) {
+          resolved = true;
+          resolve(url);
+        } else if (pending === 0 && !resolved) {
+          resolve(null);
+        }
+      });
+    }
+  });
+}
+
 // ─── SecureStore / AsyncStorage wrappers ─────────────────────────────────────
 // SecureStore is not available on web; fall back to AsyncStorage.
 
@@ -126,7 +155,15 @@ async function deleteApiKey(cameraId: string): Promise<void> {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
+interface UseLocalConnectionOptions {
+  /** Pass the relay online status so the hook knows when to try relay bootstrap. */
+  isOnline?: boolean;
+}
+
+export function useLocalConnection(
+  cameraId: string,
+  { isOnline = false }: UseLocalConnectionOptions = {},
+): UseLocalConnectionResult {
   const [mode, setMode] = useState<ConnectionMode>('probing');
   const [localBaseUrl, setLocalBaseUrl] = useState<string | null>(null);
   const [localApiKey, setLocalApiKey] = useState<string | null>(null);
@@ -134,6 +171,9 @@ export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
 
   const consecutiveFailures = useRef(0);
   const probeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Track whether we've already attempted (or successfully completed) a relay
+  // bootstrap so we don't repeat the fetch on every isOnline change.
+  const relayBootstrapDoneRef = useRef(false);
   // Keep a ref so the interval callback always has the current values without
   // triggering extra re-renders.
   const stateRef = useRef({ localBaseUrl, localApiKey });
@@ -152,6 +192,22 @@ export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
       }
     }
   }, []);
+
+  // ── activateLocalMode: store and switch state ───────────────────────────
+  const activateLocalMode = useCallback(
+    async (url: string, apiKey: string) => {
+      const normalised = url.replace(/\/$/, '');
+      await Promise.all([
+        AsyncStorage.setItem(urlKey(cameraId), normalised),
+        storeApiKey(cameraId, apiKey),
+      ]);
+      setLocalBaseUrl(normalised);
+      setLocalApiKey(apiKey);
+      consecutiveFailures.current = 0;
+      setMode('local');
+    },
+    [cameraId],
+  );
 
   // ── Initialise from storage ─────────────────────────────────────────────
   useEffect(() => {
@@ -177,11 +233,8 @@ export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
         // No URL configured — try the USB gadget default silently
         const ok = await probeLocalUrl(USB_GADGET_DEFAULT, key);
         if (!cancelled && ok) {
-          // Auto-discovered the Pi at the USB gadget address.
-          // Don't auto-enable: mode stays 'probing' until user confirms with
-          // the API key. Surface this via mode='probing' + localBaseUrl hint.
           setLocalBaseUrl(USB_GADGET_DEFAULT);
-          setMode('probing');
+          setMode('probing'); // reachable but no key yet — wait for relay bootstrap
         } else if (!cancelled) {
           setMode('relay');
         }
@@ -195,6 +248,46 @@ export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
       cancelled = true;
     };
   }, [cameraId, runProbe]);
+
+  // ── Relay bootstrap: auto-fetch key + candidate URLs when camera is online ─
+  useEffect(() => {
+    if (!isOnline) return;
+    // Only attempt once per mount (or when isOnline transitions true the first time).
+    // Re-runs if cameraId changes.
+    if (relayBootstrapDoneRef.current) return;
+    relayBootstrapDoneRef.current = true;
+
+    async function bootstrap() {
+      const info = await fetchLocalAccessInfo(cameraId);
+      if (!info || !info.local_api_key) return;
+
+      // Build candidate list: Pi-reported IPs + USB gadget default
+      const candidates = [
+        ...info.candidate_urls,
+        USB_GADGET_DEFAULT,
+      ].filter((u, i, arr) => arr.indexOf(u) === i); // deduplicate
+
+      // Probe all in parallel — use the key from the Pi
+      const reachableUrl = await probeAll(candidates, info.local_api_key);
+      if (!reachableUrl) return;
+
+      // Persist and activate — don't overwrite a currently-active local connection
+      // with a different URL from the same camera unless we've confirmed reachability.
+      const { localBaseUrl: currentUrl } = stateRef.current;
+      if (currentUrl && currentUrl !== reachableUrl) {
+        // Already in local mode at a different URL; keep it.
+        return;
+      }
+      await activateLocalMode(reachableUrl, info.local_api_key);
+    }
+
+    void bootstrap();
+  }, [cameraId, isOnline, activateLocalMode]);
+
+  // Reset relay bootstrap guard when camera changes
+  useEffect(() => {
+    relayBootstrapDoneRef.current = false;
+  }, [cameraId]);
 
   // ── Periodic re-probe when a URL is configured ──────────────────────────
   useEffect(() => {
@@ -213,7 +306,7 @@ export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
     };
   }, [localBaseUrl, runProbe]);
 
-  // ── configure: store and activate ──────────────────────────────────────
+  // ── configure: manual store and activate ───────────────────────────────
   const configure = useCallback(
     async (baseUrl: string, apiKey: string) => {
       const normalised = baseUrl.replace(/\/$/, '');
@@ -237,6 +330,7 @@ export function useLocalConnection(cameraId: string): UseLocalConnectionResult {
     setLocalApiKey(null);
     setMode('relay');
     consecutiveFailures.current = 0;
+    relayBootstrapDoneRef.current = false;
     if (probeIntervalRef.current) {
       clearInterval(probeIntervalRef.current);
       probeIntervalRef.current = null;

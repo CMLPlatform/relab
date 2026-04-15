@@ -219,6 +219,35 @@ export async function captureImageLocally(
   };
 }
 
+export interface LocalAccessInfo {
+  /** Local API key accepted by the Pi for direct-connect requests. */
+  local_api_key: string;
+  /** FastAPI base URLs to probe, e.g. ["http://192.168.1.100:8018"]. */
+  candidate_urls: string[];
+  /** mDNS hostname, e.g. "relab-rpi-cam-mypi.local", or null. */
+  mdns_name: string | null;
+}
+
+/**
+ * Fetch local direct-connection info for a camera via the relay.
+ *
+ * The backend relays GET /local-access-info to the Pi, which returns the
+ * local API key and candidate IP addresses. Returns null when the camera is
+ * offline (relay not connected) or on any network/auth error.
+ */
+export async function fetchLocalAccessInfo(cameraId: string): Promise<LocalAccessInfo | null> {
+  try {
+    const resp = await apiFetch(`${BASE}/${cameraId}/local-access`, {
+      method: 'GET',
+      headers: await authHeaders(),
+    });
+    if (!resp.ok) return null;
+    return resp.json() as Promise<LocalAccessInfo>;
+  } catch {
+    return null;
+  }
+}
+
 export async function claimPairingCode(data: PairingClaimRequest): Promise<CameraRead> {
   const resp = await apiFetch(`${PAIRING_BASE}/claim`, {
     method: 'POST',
