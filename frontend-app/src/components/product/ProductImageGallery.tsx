@@ -21,10 +21,10 @@ import {
   Button,
   Dialog,
   Icon,
-  Text as PaperText,
   Portal,
 } from 'react-native-paper';
 
+import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
 import ZoomableImage from '@/components/common/ZoomableImage';
@@ -574,85 +574,16 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
         )
       )}
 
-      <Portal>
-        {/* Camera picker — shown when user has multiple cameras */}
-        <Dialog visible={cameraPickerVisible} onDismiss={() => setCameraPickerVisible(false)}>
-          <Dialog.Title>Select camera</Dialog.Title>
-          <Dialog.Content style={{ gap: 8 }}>
-            {(() => {
-              const sorted = [...(rpiCameras ?? [])].sort((a, b) => {
-                const aOnline = a.status?.connection === 'online' ? 0 : 1;
-                const bOnline = b.status?.connection === 'online' ? 0 : 1;
-                return aOnline - bOnline;
-              });
-              if (sorted.length === 0) {
-                return (
-                  <View style={{ padding: 16, alignItems: 'center', gap: 8 }}>
-                    <Icon source="camera-off" size={32} color="#999" />
-                    <PaperText style={{ color: '#999', textAlign: 'center' }}>
-                      No cameras registered
-                    </PaperText>
-                  </View>
-                );
-              }
-              return sorted.map((cam) => {
-                const isOnline = cam.status?.connection === 'online';
-                return (
-                  <Pressable
-                    key={cam.id}
-                    onPress={() => {
-                      if (!isOnline) return;
-                      setCameraPickerVisible(false);
-                      setPreviewCamera(cam);
-                    }}
-                    accessibilityRole="button"
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: 12,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: '#e0e0e0',
-                      opacity: isOnline ? 1 : 0.4,
-                    }}
-                  >
-                    <View
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: isOnline ? '#2e7d32' : '#999',
-                      }}
-                    />
-                    <Icon source="access-point" size={20} />
-                    <PaperText style={{ flex: 1 }}>{cam.name}</PaperText>
-                    {!isOnline && (
-                      <PaperText variant="labelSmall" style={{ color: '#999' }}>
-                        Offline
-                      </PaperText>
-                    )}
-                  </Pressable>
-                );
-              });
-            })()}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button
-              onPress={() => {
-                setCameraPickerVisible(false);
-                router.push('/cameras');
-              }}
-              icon="cog"
-              compact
-            >
-              Manage
-            </Button>
-            <View style={{ flex: 1 }} />
-            <Button onPress={() => setCameraPickerVisible(false)}>Cancel</Button>
-          </Dialog.Actions>
-        </Dialog>
+      <CameraPickerDialog
+        visible={cameraPickerVisible}
+        onDismiss={() => setCameraPickerVisible(false)}
+        onSelect={(cam) => {
+          setCameraPickerVisible(false);
+          setPreviewCamera(cam);
+        }}
+      />
 
+      <Portal>
         {/* Preview modal — shown after a camera is selected */}
         <Dialog
           visible={previewCamera !== null}

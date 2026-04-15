@@ -33,6 +33,7 @@ _RELAY_RETRY_AFTER_SECONDS = "2"
 # through this allowlist.
 _ALLOWED_COMMANDS = {
     ("GET", "/camera"),
+    ("GET", "/snapshot"),
     ("POST", "/images"),
     ("GET", "/stream"),
     ("POST", "/stream"),

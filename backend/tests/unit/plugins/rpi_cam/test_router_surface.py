@@ -10,3 +10,4 @@ def test_camera_interaction_router_does_not_expose_open_close_routes() -> None:
     paths = {route.path for route in router.routes if isinstance(route, APIRoute)}
     assert "/plugins/rpi-cam/cameras/{camera_id}/open" not in paths
     assert "/plugins/rpi-cam/cameras/{camera_id}/close" not in paths
+    assert "/plugins/rpi-cam/cameras/{camera_id}/snapshot" in paths

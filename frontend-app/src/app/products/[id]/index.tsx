@@ -14,6 +14,7 @@ import {
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AnimatedFAB, Button, Card, Icon, Text, Tooltip, useTheme } from 'react-native-paper';
 
+import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import DetailCard from '@/components/common/DetailCard';
 import { useDialog } from '@/components/common/DialogProvider';
 import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
@@ -63,6 +64,7 @@ export default function ProductPage(): JSX.Element {
   const [fabExtended, setFabExtended] = useState(true);
   const [slowLoading, setSlowLoading] = useState(false);
   const [showSavedIcon, setShowSavedIcon] = useState(false);
+  const [streamPickerVisible, setStreamPickerVisible] = useState(false);
 
   const {
     product,
@@ -475,9 +477,7 @@ export default function ProductPage(): JSX.Element {
             icon="youtube"
             label="Go Live"
             extended={fabExtended}
-            onPress={() =>
-              router.push({ pathname: '/cameras', params: { stream: String(product.id) } })
-            }
+            onPress={() => setStreamPickerVisible(true)}
             style={{
               position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute',
               left: 0,
@@ -517,6 +517,14 @@ export default function ProductPage(): JSX.Element {
           extended={fabExtended}
           label={editMode ? 'Save Product' : 'Edit Product'}
           visible={product.ownedBy === 'me'}
+        />
+      )}
+      {typeof product.id === 'number' && (
+        <CameraStreamPicker
+          productId={product.id}
+          productName={product.name ?? ''}
+          visible={streamPickerVisible}
+          onDismiss={() => setStreamPickerVisible(false)}
         />
       )}
     </>
