@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from enum import StrEnum
-from typing import Any  # noqa: TC003
+from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
 from pydantic import BaseModel
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint

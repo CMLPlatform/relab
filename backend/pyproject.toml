@@ -114,14 +114,6 @@
   ]
 
 ### Tool configuration
-[tool.uv.sources]
-  # Source the shared camera models from the sibling rpi-cam-plugin monorepo during
-  # local dev so ty/pyright resolve ``ImageCaptureStatus`` and other 0.2.0-era symbols
-  # before the package is published to PyPI.
-  # TODO: Switch back to a plain PyPI install once
-  # the models.tag CI workflow ships 0.2.0.
-  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
-
 [tool.alembic]
   path_separator   = "os"
   prepend_sys_path = ["."]
@@ -228,7 +220,15 @@
 
     [tool.ruff.lint.flake8-type-checking]
       # Allow runtime imports for FastAPI dependency injection and Pydantic validation
-      exempt-modules                 = ["app", "fastapi", "fastapi_users", "pydantic", "sqlalchemy", "typing.Annotated"]
+      exempt-modules = [
+        "app",
+        "fastapi",
+        "fastapi_users",
+        "pydantic",
+        "sqlalchemy",
+        "typing.Annotated",
+        "relab_rpi_cam_models",
+      ]
       runtime-evaluated-base-classes = ["fastapi_filter.contrib.sqlalchemy.FilterSet", "pydantic.BaseModel"]
 
     [tool.ruff.lint.per-file-ignores]
@@ -259,3 +259,10 @@
     [tool.ruff.lint.pylint]
       allow-magic-value-types = ["int"]
       max-args                = 10
+
+[tool.uv.sources]
+  # Source the shared camera models from the sibling rpi-cam-plugin monorepo during
+  # local dev so ty/pyright resolve ``ImageCaptureStatus`` and other 0.2.0-era symbols
+  # before the package is published to PyPI.
+  # TODO: Switch back to a plain PyPI install once the models.tag CI workflow ships 0.2.0.
+  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
 from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
-from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # noqa: TC002
+from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # noqa: TC002 # Used at runtime for FastAPI validation
 from pydantic import UUID4
 
 from app.api.auth.exceptions import (

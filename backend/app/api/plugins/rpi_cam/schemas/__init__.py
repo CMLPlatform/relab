@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Self
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
+from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.filters import UserFilter
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
@@ -15,7 +16,6 @@ from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialS
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
-    from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 
 class CameraFilter(Filter):

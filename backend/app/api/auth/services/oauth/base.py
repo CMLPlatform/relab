@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any  # noqa: TC003
+from typing import Any  # noqa: TC003 # Used at runtime for FastAPI validation
 from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse, urlunparse
 
 import jwt
 from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi_users.jwt import SecretType, decode_jwt
-from httpx_oauth.oauth2 import BaseOAuth2  # noqa: TC002
+from httpx_oauth.oauth2 import BaseOAuth2  # noqa: TC002 # Used at runtime for FastAPI validation
 
 from app.api.auth.config import settings
 from app.api.auth.exceptions import (

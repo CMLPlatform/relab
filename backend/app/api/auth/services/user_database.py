@@ -75,7 +75,7 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
         self.user_model = user_model
         self.oauth_account_model = oauth_account_model
 
-    async def get(self, id: ID) -> UP | None:  # noqa: A002
+    async def get(self, id: ID) -> UP | None:  # noqa: A002 # Reuse FastAPI Users' "id" parameter name for compatibility
         """Get a single user by ID."""
         return await self.session.get(self.user_model, id)
 

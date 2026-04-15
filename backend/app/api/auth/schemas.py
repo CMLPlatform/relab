@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime  # noqa: TC003
+from datetime import datetime  # noqa: TC003 # Used at runtime for Pydantic model annotations
 from typing import Annotated
 
 from fastapi_users import schemas as fastapi_users_schemas
