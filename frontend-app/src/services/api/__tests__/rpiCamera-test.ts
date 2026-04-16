@@ -267,7 +267,6 @@ describe('rpiCamera API service', () => {
     );
   });
 
-
   it('resolves relative last-image URLs against the API base', async () => {
     mockJsonResponse([
       {

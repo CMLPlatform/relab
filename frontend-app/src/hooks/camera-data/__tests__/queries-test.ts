@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import {
-  cameraListStaleTime,
-  streamStatusQueryOptions,
-} from '@/hooks/camera-data/queries';
+import { cameraListStaleTime, streamStatusQueryOptions } from '@/hooks/camera-data/queries';
 import { getStreamStatus } from '@/services/api/rpiCamera';
 
 jest.mock('@/services/api/rpiCamera', () => ({
