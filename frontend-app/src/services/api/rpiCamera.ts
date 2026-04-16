@@ -1,6 +1,7 @@
 import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/authentication';
 import { resolveApiMediaUrl } from '@/services/api/media';
+import { createRequestId } from '@/services/api/request';
 import type {
   ApiCameraConnectionStatus,
   ApiCameraCredentialStatus,

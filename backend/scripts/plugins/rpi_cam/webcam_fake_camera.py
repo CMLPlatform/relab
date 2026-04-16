@@ -233,22 +233,7 @@ async def _handle_command(ws: websockets.ClientConnection, msg_id: str, method: 
     """Dispatch a relay command and send the response back over WebSocket."""
     loop = asyncio.get_running_loop()
 
-    if method == _METHOD_GET and path == _PATH_PREVIEW:
-        jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=70))
-        await ws.send(
-            json.dumps(
-                {
-                    "id": msg_id,
-                    "type": "response",
-                    "status": 200,
-                    "has_binary": True,
-                    "data": {},
-                }
-            )
-        )
-        await ws.send(jpeg)
-
-    elif method == _METHOD_POST and path == _PATH_IMAGES:
+    if method == _METHOD_POST and path == _PATH_IMAGES:
         jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=92))
         image_id = str(uuid.uuid4())
         _ws_captured_images[image_id] = jpeg
