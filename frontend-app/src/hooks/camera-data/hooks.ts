@@ -16,7 +16,6 @@ import {
 } from '@/hooks/camera-data/previews';
 import {
   cameraQueryOptions,
-  cameraSnapshotQueryOptions,
   camerasQueryOptions,
   cameraTelemetryQueryOptions,
   streamStatusQueryOptions,
@@ -58,23 +57,6 @@ export function useCameraTelemetryQuery(
   { enabled = true, refetchInterval = 5_000 }: { enabled?: boolean; refetchInterval?: number } = {},
 ) {
   return useQuery(cameraTelemetryQueryOptions(cameraId, { enabled, refetchInterval }));
-}
-
-export function useCameraSnapshotQuery(
-  cameraId: string | null,
-  {
-    enabled = true,
-    connectionInfo,
-    refetchInterval = 30_000,
-  }: {
-    enabled?: boolean;
-    connectionInfo?: CameraConnectionInfo;
-    refetchInterval?: number;
-  } = {},
-) {
-  return useQuery(
-    cameraSnapshotQueryOptions(cameraId, { enabled, connectionInfo, refetchInterval }),
-  );
 }
 
 export function useUpdateCameraMutation(id: string) {

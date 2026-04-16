@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 
     from redis.asyncio import Redis
 
+    from app.api.plugins.rpi_cam.service_runtime import LastCameraImageUrls
+
 logger = logging.getLogger(__name__)
 
 camera_router = PublicAPIRouter(tags=["rpi-cam-management"])
@@ -41,15 +43,14 @@ router = PublicAPIRouter()
 
 
 def _camera_last_image_fields(
-    last_image_urls: dict[UUID4, object],
+    last_image_urls: dict[UUID4, LastCameraImageUrls],
     camera_id: UUID4,
 ) -> tuple[str | None, str | None]:
     """Return the last image URLs for one camera when available."""
     last_image = last_image_urls.get(camera_id)
     if last_image is None:
         return None, None
-    image_payload = last_image
-    return image_payload.image_url, image_payload.thumbnail_url
+    return last_image.image_url, last_image.thumbnail_url
 
 
 @camera_router.get(
@@ -94,18 +95,19 @@ async def get_user_cameras(
         camera_ids = [camera.id for camera in db_cameras]
         last_image_urls = await get_last_image_urls_per_camera(session, camera_ids)
 
-    return [
-        (
-            lambda last_image_url, last_image_thumbnail_url: CameraReadWithStatus.from_db_model_with_status(
+    results: list[CameraReadWithStatus] = []
+    for camera in db_cameras:
+        last_image_url, last_image_thumbnail_url = _camera_last_image_fields(last_image_urls, camera.id)
+        results.append(
+            await CameraReadWithStatus.from_db_model_with_status(
                 camera,
                 redis,
                 include_telemetry=include_telemetry,
                 last_image_url=last_image_url,
                 last_image_thumbnail_url=last_image_thumbnail_url,
             )
-        )(*_camera_last_image_fields(last_image_urls, camera.id))
-        for camera in db_cameras
-    ]
+        )
+    return results
 
 
 @camera_router.get(

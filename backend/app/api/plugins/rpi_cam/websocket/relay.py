@@ -144,7 +144,6 @@ async def _attempt_cross_worker_relay(
 # through this allowlist.
 _ALLOWED_COMMANDS = {
     ("GET", "/camera"),
-    ("GET", "/preview/snapshot"),
     ("POST", "/captures"),
     ("GET", "/streams/youtube"),
     ("POST", "/streams/youtube"),

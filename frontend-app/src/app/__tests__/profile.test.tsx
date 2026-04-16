@@ -9,6 +9,7 @@ const mockRouterReplace = jest.fn();
 const mockLogout = jest.fn();
 const mockUpdateUser = jest.fn();
 const mockVerify = jest.fn();
+const mockStopStreamMutate = jest.fn();
 
 jest.mock('expo-router', () => {
   const React = require('react');
@@ -38,6 +39,13 @@ jest.mock('@/context/AuthProvider', () => ({
 
 jest.mock('@/hooks/useRpiIntegration', () => ({
   useRpiIntegration: () => ({ enabled: false, loading: false, setEnabled: jest.fn() }),
+}));
+
+jest.mock('@/hooks/useRpiCameras', () => ({
+  useStopYouTubeStreamMutation: () => ({
+    mutate: (...args: unknown[]) => mockStopStreamMutate(...args),
+    isPending: false,
+  }),
 }));
 
 jest.mock('@/context/ThemeModeProvider', () => ({
@@ -115,6 +123,10 @@ describe('ProfileTab', () => {
     mockUpdateUser.mockResolvedValue({});
     mockVerify.mockResolvedValue(true);
     mockLogout.mockResolvedValue(undefined);
+    mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
+      const options = args[1] as { onSuccess?: () => void } | undefined;
+      options?.onSuccess?.();
+    });
 
     const { getNewsletterPreference, setNewsletterPreference } =
       require('@/services/api/newsletter');

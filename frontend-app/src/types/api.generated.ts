@@ -1668,26 +1668,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/plugins/rpi-cam/cameras/{camera_id}/snapshot': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get a low-res JPEG snapshot for viewfinder preview
-     * @description Fetch a single low-resolution frame from the camera without saving it. Returns 409 while the camera is actively streaming to YouTube.
-     */
-    get: operations['get_camera_snapshot_plugins_rpi_cam_cameras__camera_id__snapshot_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/plugins/rpi-cam/cameras/{camera_id}/stream/status': {
     parameters: {
       query?: never;
@@ -8606,37 +8586,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['DeviceImageUploadAck'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_camera_snapshot_plugins_rpi_cam_cameras__camera_id__snapshot_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        camera_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
         };
       };
       /** @description Validation Error */

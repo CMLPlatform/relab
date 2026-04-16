@@ -1,9 +1,6 @@
-import { Buffer } from 'node:buffer';
-
 import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/authentication';
 import { resolveApiMediaUrl } from '@/services/api/media';
-import { createRequestId } from '@/services/api/request';
 import type {
   ApiCameraConnectionStatus,
   ApiCameraCredentialStatus,
@@ -105,40 +102,6 @@ export async function fetchCameraTelemetry(cameraId: string): Promise<CameraTele
   });
   if (!resp.ok) throw new Error(`Failed to fetch camera telemetry (${resp.status})`);
   return resp.json() as Promise<CameraTelemetry>;
-}
-
-export async function fetchCameraSnapshot(cameraId: string, signal?: AbortSignal): Promise<string> {
-  const resp = await fetchWithAuth(`${BASE}/${cameraId}/snapshot`, {
-    method: 'GET',
-    headers: { Accept: 'image/jpeg' },
-    signal,
-  });
-  if (!resp.ok) throw new Error(`Failed to fetch camera snapshot (${resp.status})`);
-
-  const contentType = resp.headers.get('content-type')?.split(';')[0] ?? 'image/jpeg';
-  const bytes = await resp.arrayBuffer();
-  return `data:${contentType};base64,${Buffer.from(bytes).toString('base64')}`;
-}
-
-export async function fetchCameraSnapshotLocally(
-  localBaseUrl: string,
-  localApiKey: string,
-  signal?: AbortSignal,
-): Promise<string> {
-  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/preview/snapshot`, {
-    method: 'GET',
-    headers: {
-      Accept: 'image/jpeg',
-      'X-API-Key': localApiKey,
-      'X-Request-ID': createRequestId(),
-    },
-    signal,
-  });
-  if (!resp.ok) throw new Error(`Failed to fetch local camera snapshot (${resp.status})`);
-
-  const contentType = resp.headers.get('content-type')?.split(';')[0] ?? 'image/jpeg';
-  const bytes = await resp.arrayBuffer();
-  return `data:${contentType};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
 export async function updateCamera(id: string, data: CameraUpdate): Promise<CameraRead> {

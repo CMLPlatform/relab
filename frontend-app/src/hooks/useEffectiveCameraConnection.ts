@@ -15,13 +15,13 @@ export interface EffectiveCameraConnection {
   localConnection: CameraConnectionInfo;
   /** User-facing status after merging relay and local direct reachability. */
   status: CameraConnectionStatus;
-  /** Which path should be used for live preview/capture/snapshot when reachable. */
+  /** Which path should be used for live preview/capture when reachable. */
   transport: EffectiveCameraTransport;
   /** True when either relay or direct-local transport can reach the camera. */
   isReachable: boolean;
-  /** True when backend relay endpoints such as backend /snapshot should be used. */
+  /** True when backend relay endpoints should be used. */
   canUseRelay: boolean;
-  /** True when direct Pi endpoints such as /preview/snapshot should be used. */
+  /** True when direct Pi endpoints should be used. */
   canUseDirect: boolean;
   /** Secondary card/status text, if the effective status needs an explanation. */
   detailLabel: string | null;

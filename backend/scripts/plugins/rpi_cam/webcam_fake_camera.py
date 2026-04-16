@@ -53,7 +53,6 @@ _MSG_TYPE_REQUEST = "request"
 _METHOD_GET = "GET"
 _METHOD_POST = "POST"
 
-_PATH_PREVIEW = "/preview/snapshot"
 _PATH_IMAGES = "/captures"
 _PATH_IMAGES_PREFIX = "/captures/"
 
@@ -118,12 +117,6 @@ def _create_http_app() -> FastAPI:
         release_camera()
 
     app = FastAPI(title="Webcam Fake RPi Camera (HTTP)", lifespan=lifespan)
-
-    @app.get("/preview/snapshot")
-    async def preview() -> Response:
-        loop = asyncio.get_running_loop()
-        jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=70))
-        return Response(content=jpeg, media_type="image/jpeg")
 
     @app.post("/captures")
     async def capture() -> JSONResponse:

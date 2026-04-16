@@ -213,7 +213,6 @@ class TestRelayCommandAllowlist:
         ("method", "path"),
         [
             ("GET", "/camera"),
-            ("GET", "/preview/snapshot"),
             ("POST", "/captures"),
             ("GET", "/streams/youtube"),
             ("POST", "/streams/youtube"),

@@ -8,8 +8,6 @@ import {
   claimPairingCode,
   deleteCamera,
   fetchCamera,
-  fetchCameraSnapshot,
-  fetchCameraSnapshotLocally,
   fetchCameras,
   fetchCameraTelemetry,
   fetchLocalAccessInfo,
@@ -27,18 +25,6 @@ function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
     ok,
     status,
     json: async () => body,
-  } as Response);
-}
-
-function mockImageResponse(bytes: Uint8Array, contentType = 'image/jpeg') {
-  mockFetchWithAuth.mockResolvedValueOnce({
-    ok: true,
-    status: 200,
-    headers: {
-      get: (name: string) => (name.toLowerCase() === 'content-type' ? contentType : null),
-    },
-    arrayBuffer: async () =>
-      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   } as Response);
 }
 
@@ -281,48 +267,6 @@ describe('rpiCamera API service', () => {
     );
   });
 
-  it('fetches a camera snapshot as a data URI via the shared auth fetcher', async () => {
-    mockImageResponse(new TextEncoder().encode('preview'));
-
-    const result = await fetchCameraSnapshot('cam-snapshot');
-
-    expect(result).toBe('data:image/jpeg;base64,cHJldmlldw==');
-    expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-snapshot/snapshot'),
-      expect.objectContaining({
-        method: 'GET',
-        headers: expect.objectContaining({ Accept: 'image/jpeg' }),
-      }),
-    );
-  });
-
-  it('fetches a local camera snapshot directly from the Pi', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'image/jpeg' : null),
-      },
-      arrayBuffer: async () => new TextEncoder().encode('local-preview').buffer,
-    } as Response);
-
-    const result = await fetchCameraSnapshotLocally('http://192.168.7.1:8018/', 'local-key');
-
-    expect(result).toBe('data:image/jpeg;base64,bG9jYWwtcHJldmlldw==');
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'http://192.168.7.1:8018/preview/snapshot',
-      expect.objectContaining({
-        method: 'GET',
-        headers: expect.objectContaining({
-          Accept: 'image/jpeg',
-          'X-API-Key': 'local-key',
-          'X-Request-ID': expect.any(String),
-        }),
-      }),
-    );
-
-    fetchSpy.mockRestore();
-  });
 
   it('resolves relative last-image URLs against the API base', async () => {
     mockJsonResponse([

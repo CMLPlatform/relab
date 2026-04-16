@@ -4,7 +4,6 @@ export {
   camerasQueryOptions,
   useCameraLivePreview,
   useCameraQuery,
-  useCameraSnapshotQuery,
   useCamerasQuery,
   useCameraTelemetryQuery,
   useCaptureAllMutation,

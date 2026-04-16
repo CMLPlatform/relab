@@ -6,3 +6,5 @@ Use this tier for request/response behavior against the ASGI app with real routi
 - Keep each test focused on one endpoint behavior
 - Avoid multi-step CRUD stories here; move those to `tests/integration/flows/`
 - Move multi-step scenarios to `tests/integration/flows/`
+- Prefer small behavior-focused files such as `*_public_*`, `*_membership_*`, `*_callbacks_*` over one large endpoint catch-all module
+- Keep fixture/plugin modules separate from pure helper modules so pytest plugin loading stays explicit and warning-free

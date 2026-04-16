@@ -20,7 +20,7 @@ This directory contains a small `k6` baseline suite for the RELab backend.
   - enabled only when `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` are set
   - exercises the auth login path
 - `resized_image`
-  - enabled only when `PERF_IMAGE_ID` is explicitly set
+  - enabled only when `PERF_IMAGE_ID` is explicitly set or discovered by the Docker CI perf helper
   - exercises the image resize hot path
 
 ## Thresholds
@@ -113,7 +113,8 @@ just perf-baseline
 ## Recommended Baseline Inputs
 
 - Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products before the k6 run starts.
-- The CI baseline skips `resized_image` by default; include it only when you explicitly provide `PERF_IMAGE_ID` or `IMAGE_ID`.
+- `live_probe` and `product_tree_read` are the baseline scenarios and should always remain runnable.
+- `resized_image` is opportunistic rather than required. The Docker CI helper will try to discover a usable image automatically, but the baseline must still run cleanly if no image is available.
 - Use `/products/tree?recursion_depth=2` as the default product-read baseline unless you intentionally want a deeper tree.
 - Reuse the CI superuser from `backend/.env.test` for login measurements unless you explicitly need another account.
 
@@ -144,6 +145,12 @@ Then use GitHub Actions as the calibration source of truth:
 1. Commit the new dated CI report and the updated thresholds in `perf/k6-baseline.js`.
 
 Treat that new CI report as the canonical baseline and keep older docker-dev reports only as historical context.
+
+## Notes On What We Measure
+
+- `/products/tree` is intentionally part of the baseline because it is a supported public hierarchical read, not just an internal implementation detail.
+- Tree performance should reflect the explicit bounded tree loader, not ORM lazy-loading side effects.
+- Do not make the perf workflow depend on embedded image data in `/products`; the baseline must stay useful even when no seeded image is present.
 
 ## Maintainer Note
 

@@ -6,7 +6,6 @@ import CamerasScreen from '../index';
 
 const mockUseAuth = jest.fn();
 const mockUseCamerasQuery = jest.fn();
-const mockUseCameraSnapshotQuery = jest.fn();
 const mockUseLocalConnection = jest.fn();
 const mockCaptureMutate = jest.fn();
 const mockUseIsDesktop = jest.fn<() => boolean>(() => false);
@@ -17,7 +16,6 @@ jest.mock('@/context/AuthProvider', () => ({
 
 jest.mock('@/hooks/useRpiCameras', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
-  useCameraSnapshotQuery: (...args: unknown[]) => mockUseCameraSnapshotQuery(...args),
   useCaptureAllMutation: () => ({
     mutate: mockCaptureMutate,
     isPending: false,
@@ -61,7 +59,6 @@ describe('CamerasScreen', () => {
       error: null,
       refetch: mockRefetch,
     });
-    mockUseCameraSnapshotQuery.mockReturnValue({ data: null, isLoading: false });
     mockUseLocalConnection.mockReturnValue({
       mode: 'relay',
       localBaseUrl: null,

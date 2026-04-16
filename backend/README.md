@@ -35,6 +35,20 @@ Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The 
 
 Taxonomy imports are intentionally opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
 
+## Current Backend Shape
+
+The backend is intentionally moving toward explicit, domain-owned seams instead of broad internal registries.
+
+- Routers should stay thin orchestration layers.
+- Domain read paths should prefer small local `select(...).where(...)` helpers over generic query-builder indirection.
+- The shared CRUD/query kernel is intentionally small: keep `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers. Older convenience helpers such as `QueryOptions`, `build_query`, and `list_models` are retired.
+- Recursive endpoints such as `/products/tree` and `/categories/tree` remain supported public APIs, but they should use bounded tree loaders plus pure serialization, never lazy ORM traversal during response assembly.
+
+Two examples of the preferred shape:
+
+- `app/api/data_collection/crud/products.py` is now the stable product-domain entrypoint, with tree reads in `product_tree_queries.py` and mutations in `product_commands.py`.
+- `app/api/file_storage/crud/` is split by concern; avoid reintroducing a broad `file_storage.crud` compatibility surface.
+
 ## RPi Camera Contract Boundary
 
 The Raspberry Pi camera integration has two intentional contract layers:

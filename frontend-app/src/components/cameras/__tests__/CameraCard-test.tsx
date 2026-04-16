@@ -70,7 +70,7 @@ describe('CameraCard', () => {
     expect(flatStyle.opacity).not.toBe(0.6);
   });
 
-  it('online + no snapshot: renders placeholder icon and preview caption', () => {
+  it('online + no stored preview: renders placeholder icon and preview caption', () => {
     const camera = makeCamera({ last_image_url: null });
 
     renderWithProviders(<CameraCard camera={camera} />);
