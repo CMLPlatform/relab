@@ -144,18 +144,18 @@ async def _attempt_cross_worker_relay(
 # through this allowlist.
 _ALLOWED_COMMANDS = {
     ("GET", "/camera"),
-    ("GET", "/snapshot"),
-    ("POST", "/images"),
-    ("GET", "/stream"),
-    ("POST", "/stream"),
-    ("DELETE", "/stream"),
-    ("GET", "/telemetry"),
+    ("GET", "/preview/snapshot"),
+    ("POST", "/captures"),
+    ("GET", "/streams/youtube"),
+    ("POST", "/streams/youtube"),
+    ("DELETE", "/streams/youtube"),
+    ("GET", "/system/telemetry"),
     # Sent by the backend when a camera is deleted so the Pi clears its
     # credentials and re-enters pairing mode automatically.
-    ("DELETE", "/pairing/credentials"),
+    ("DELETE", "/pairing"),
     # Fetched by the backend on behalf of the frontend to deliver the local
     # API key and candidate IP addresses for Ethernet/USB-C direct-connect setup.
-    ("GET", "/local-access-info"),
+    ("GET", "/system/local-access"),
 }
 
 # Dynamic prefixes. Requests where `path.startswith(prefix)` are permitted for
@@ -166,7 +166,7 @@ _ALLOWED_PATH_PREFIXES: tuple[tuple[str, str], ...] = (
     # on :8888 and returns playlist + segment bytes. Every segment fetch is
     # one relay round-trip — at ~500kbps lores / 200ms parts that's ~12.5 KB
     # per request, which the WebSocket carries fine.
-    ("GET", "/hls/"),
+    ("GET", "/preview/hls/"),
 )
 
 

@@ -1,4 +1,4 @@
-"""Tests for ``get_last_image_url_per_camera`` — the mosaic thumbnail query."""
+"""Tests for ``get_last_image_urls_per_camera`` — the mosaic thumbnail query."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import pytest
 
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.plugins.rpi_cam import service_runtime as rpi_cam_service_runtime
-from app.api.plugins.rpi_cam.services import get_last_image_url_per_camera
+from app.api.plugins.rpi_cam.services import get_last_image_urls_per_camera
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -24,7 +24,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.db]
 def _stub_image_url_builder(monkeypatch: pytest.MonkeyPatch) -> None:
     """Stub ``ImageRead.model_validate`` so the query doesn't need real files on disk.
 
-    ``get_last_image_url_per_camera`` calls ``ImageRead.model_validate(image)``
+    ``get_last_image_urls_per_camera`` calls ``ImageRead.model_validate(image)``
     to compute each URL, which walks the storage filesystem under the real
     implementation. For unit tests we swap it for a deterministic fake that
     echoes the image id — that way the ``newest wins`` assertion can check
@@ -32,12 +32,16 @@ def _stub_image_url_builder(monkeypatch: pytest.MonkeyPatch) -> None:
     """
 
     class _FakeImageRead:
-        def __init__(self, image_url: str | None) -> None:
+        def __init__(self, image_url: str | None, thumbnail_url: str | None) -> None:
             self.image_url = image_url
+            self.thumbnail_url = thumbnail_url
 
         @classmethod
         def model_validate(cls, image: Image) -> _FakeImageRead:
-            return cls(image_url=f"/fake/images/{image.id.hex}.jpg")
+            return cls(
+                image_url=f"/fake/images/{image.id.hex}.jpg",
+                thumbnail_url=f"/fake/images/{image.id.hex}-thumb.webp",
+            )
 
     # Patch the name as it is bound in the services module — the top-level
     # ``from ... import ImageRead`` creates a local reference there, so we must
@@ -79,7 +83,7 @@ async def _persist_image(
 @pytest.mark.asyncio
 async def test_empty_input_returns_empty_dict(db_session: AsyncSession) -> None:
     """An empty ``camera_ids`` list should short-circuit to ``{}``."""
-    result = await get_last_image_url_per_camera(db_session, [])
+    result = await get_last_image_urls_per_camera(db_session, [])
     assert result == {}
 
 
@@ -96,20 +100,24 @@ async def test_returns_most_recent_image_per_camera(db_session: AsyncSession) ->
     newest_b = await _persist_image(db_session, camera_id=cam_b, product_id=2, created_at=now - timedelta(minutes=10))
     await db_session.commit()
 
-    result = await get_last_image_url_per_camera(db_session, [cam_a, cam_b])
+    result = await get_last_image_urls_per_camera(db_session, [cam_a, cam_b])
 
     # Every camera in the request list is present in the response, even if
     # some don't have any images yet.
     assert set(result.keys()) == {cam_a, cam_b}
     # URLs come from ImageRead.model_validate — shape-check only; the exact
     # path is a ``file_storage`` concern, not ours.
-    assert result[cam_a] is not None
-    assert result[cam_b] is not None
+    assert result[cam_a].image_url is not None
+    assert result[cam_a].thumbnail_url is not None
+    assert result[cam_b].image_url is not None
+    assert result[cam_b].thumbnail_url is not None
     # The newest capture (not the older one) should win per camera. The
     # ImageRead stub encodes the image's UUID hex into the URL so we can
     # verify exactly which row came back.
-    assert newest_a.id.hex in (result[cam_a] or "")
-    assert newest_b.id.hex in (result[cam_b] or "")
+    assert newest_a.id.hex in (result[cam_a].image_url or "")
+    assert newest_a.id.hex in (result[cam_a].thumbnail_url or "")
+    assert newest_b.id.hex in (result[cam_b].image_url or "")
+    assert newest_b.id.hex in (result[cam_b].thumbnail_url or "")
 
 
 @pytest.mark.asyncio
@@ -126,10 +134,11 @@ async def test_camera_with_no_images_gets_none(db_session: AsyncSession) -> None
     )
     await db_session.commit()
 
-    result = await get_last_image_url_per_camera(db_session, [cam_with_image, cam_without_image])
+    result = await get_last_image_urls_per_camera(db_session, [cam_with_image, cam_without_image])
 
-    assert result[cam_with_image] is not None
-    assert result[cam_without_image] is None
+    assert result[cam_with_image].image_url is not None
+    assert result[cam_without_image].image_url is None
+    assert result[cam_without_image].thumbnail_url is None
 
 
 @pytest.mark.asyncio
@@ -149,6 +158,7 @@ async def test_ignores_images_with_no_camera_id_in_metadata(db_session: AsyncSes
     db_session.add(legacy)
     await db_session.commit()
 
-    result = await get_last_image_url_per_camera(db_session, [cam])
+    result = await get_last_image_urls_per_camera(db_session, [cam])
 
-    assert result == {cam: None}
+    assert result[cam].image_url is None
+    assert result[cam].thumbnail_url is None

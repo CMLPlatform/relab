@@ -5,7 +5,7 @@ The browser/native video player asks for:
     GET /plugins/rpi-cam/cameras/{camera_id}/hls/cam-preview/index.m3u8
 
 and the backend forwards it through the WebSocket relay to the Pi's own
-``GET /hls/{rest}`` endpoint, which proxies to its local MediaMTX LL-HLS
+``GET /preview/hls/{rest}`` endpoint, which proxies to its local MediaMTX LL-HLS
 listener on port 8888. Segment fetches (``.mp4``) follow the same path and
 come back as binary relay frames. The frontend constructs the URL itself from
 the camera id; no signed-URL dance needed.
@@ -78,7 +78,7 @@ async def proxy_hls(
             await asyncio.sleep(_MANIFEST_RETRY_BACKOFF_S[attempt - 1])
         try:
             relay_response = await camera_request(
-                endpoint=f"/hls/{hls_path}",
+                endpoint=f"/preview/hls/{hls_path}",
                 method=HttpMethod.GET,
                 error_msg="Failed to fetch HLS data",
                 expect_binary=True,

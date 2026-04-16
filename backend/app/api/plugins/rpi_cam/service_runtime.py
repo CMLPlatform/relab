@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
@@ -119,11 +120,19 @@ async def get_cached_telemetry(
         return None
 
 
-async def get_last_image_url_per_camera(
+@dataclass(frozen=True)
+class LastCameraImageUrls:
+    """Public image URLs for the most recent capture of one camera."""
+
+    image_url: str | None = None
+    thumbnail_url: str | None = None
+
+
+async def get_last_image_urls_per_camera(
     session: AsyncSession,
     camera_ids: list[UUID4],
-) -> dict[UUID, str | None]:
-    """Return the most recent captured image URL for each camera in one query."""
+) -> dict[UUID, LastCameraImageUrls]:
+    """Return the most recent captured image and thumbnail URLs for each camera in one query."""
     if not camera_ids:
         return {}
 
@@ -139,7 +148,7 @@ async def get_last_image_url_per_camera(
     result = await session.execute(stmt)
     rows = result.scalars().all()
 
-    urls: dict[UUID, str | None] = dict.fromkeys(camera_ids)
+    urls: dict[UUID, LastCameraImageUrls] = {camera_id: LastCameraImageUrls() for camera_id in camera_ids}
     for image in rows:
         stored_camera_id = (image.image_metadata or {}).get("camera_id")
         if not stored_camera_id:
@@ -151,7 +160,10 @@ async def get_last_image_url_per_camera(
         if camera_uuid not in urls:
             continue
         image_read = ImageRead.model_validate(image)
-        urls[camera_uuid] = image_read.image_url
+        urls[camera_uuid] = LastCameraImageUrls(
+            image_url=image_read.image_url,
+            thumbnail_url=image_read.thumbnail_url,
+        )
     return urls
 
 
@@ -314,7 +326,7 @@ async def capture_and_store_image(
         upload_metadata["filename"] = filename
 
     capture_response = await camera_request(
-        endpoint="/images",
+        endpoint="/captures",
         method=HttpMethod.POST,
         body=upload_metadata,
         error_msg="Failed to capture image",
@@ -324,7 +336,7 @@ async def capture_and_store_image(
     except json.JSONDecodeError as e:
         body_preview = getattr(capture_response, "content", b"")[:200]
         logger.exception(
-            "Camera returned non-JSON response for POST /images (%d bytes): %r",
+            "Camera returned non-JSON response for POST /captures (%d bytes): %r",
             len(getattr(capture_response, "content", b"")),
             body_preview,
         )

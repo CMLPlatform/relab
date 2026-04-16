@@ -3,8 +3,8 @@
 from enum import StrEnum
 
 PLUGIN_CAMERA_STATUS_ENDPOINT = "/camera"
-PLUGIN_STREAM_ENDPOINT = "/stream"
-PLUGIN_IMAGES_ENDPOINT = "/images"
+PLUGIN_STREAM_ENDPOINT = "/streams/youtube"
+PLUGIN_IMAGES_ENDPOINT = "/captures"
 
 
 class HttpMethod(StrEnum):

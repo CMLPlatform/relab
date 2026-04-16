@@ -79,6 +79,7 @@ class CameraReadWithStatus(CameraRead):
     status: CameraStatus
     telemetry: TelemetrySnapshot | None = None
     last_image_url: str | None = None
+    last_image_thumbnail_url: str | None = None
 
     @classmethod
     async def from_db_model_with_status(
@@ -88,6 +89,7 @@ class CameraReadWithStatus(CameraRead):
         *,
         include_telemetry: bool = False,
         last_image_url: str | None = None,
+        last_image_thumbnail_url: str | None = None,
     ) -> Self:
         """Create CameraReadWithStatus instance from Camera database model, fetching online status."""
         telemetry = await get_cached_telemetry(redis, db_model.id) if include_telemetry else None
@@ -96,6 +98,7 @@ class CameraReadWithStatus(CameraRead):
             status=await get_camera_status(redis, db_model.id),
             telemetry=telemetry,
             last_image_url=last_image_url,
+            last_image_thumbnail_url=last_image_thumbnail_url,
         )
 
 

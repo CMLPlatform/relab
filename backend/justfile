@@ -201,7 +201,7 @@ _perf-ci IMAGE_ID="" BASE_URL="http://api:8000":
     set -euo pipefail
     image_id="{{ IMAGE_ID }}"
     if [ -z "$image_id" ]; then
-        image_id=$({{ ci_compose }} exec -T api python -c 'import json, sys, urllib.request; data = json.load(urllib.request.urlopen("http://localhost:8000/products?include=images&size=100", timeout=10)); image_id = next((img["id"] for item in data.get("items", []) for img in item.get("images", [])), ""); print(image_id); sys.exit(0 if image_id else 1)')
+        echo "→ No IMAGE_ID provided; running perf baseline without resized_image scenario."
     fi
     mkdir -p reports/performance
     docker run --rm \

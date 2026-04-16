@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
@@ -15,8 +15,10 @@ from app.api.auth.models import User
 from app.api.auth.services.privacy import redact_product_owner, should_redact_owner
 from app.api.background_data.routers.public import RecursionDepthQueryParam
 from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.pagination import paginate_select
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
@@ -68,6 +70,7 @@ def assign_owner_to_components(components: list[Product], owner: User | None) ->
     """Assign the shared owner to direct component rows only."""
     for component in components:
         assign_shared_owner(component, owner)
+
 
 def _visible_owner(owner: User | None, viewer: User | None) -> User | None:
     """Return the owner when privacy rules allow it, otherwise ``None``."""
@@ -227,6 +230,27 @@ async def _list_direct_components(
     return list((await session.execute(statement)).scalars().unique().all())
 
 
+async def _page_products(
+    session: AsyncSessionDep,
+    *,
+    statement: Select[tuple[Product]],
+    product_filter: ProductFilterWithRelationshipsDep,
+    current_user: User | None,
+) -> Page[Product]:
+    """Page products from an explicit product read query."""
+    statement = cast("Select[tuple[Product]]", apply_filter(statement, Product, product_filter))
+    statement = cast(
+        "Select[tuple[Product]]",
+        apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS),
+    )
+    return await paginate_select(
+        session,
+        statement,
+        model=Product,
+        mutate_items=lambda items: redact_product_owners(items, current_user),
+    )
+
+
 async def _load_product_component(
     session: AsyncSessionDep,
     *,
@@ -287,13 +311,11 @@ async def get_user_products(
     if not include_components_as_base_products:
         statement = statement.where(Product.parent_id.is_(None))
 
-    payload = await page_models(
+    payload = await _page_products(
         session,
-        Product,
-        loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-        filters=product_filter,
         statement=statement,
-        mutate_items=lambda items: redact_product_owners(items, current_user),
+        product_filter=product_filter,
+        current_user=current_user,
     )
     return conditional_json_response(request, payload)
 
@@ -317,13 +339,11 @@ async def get_products(
     else:
         statement = select(Product).where(Product.parent_id.is_(None))
 
-    payload = await page_models(
+    payload = await _page_products(
         session,
-        Product,
-        loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-        filters=product_filter,
         statement=statement,
-        mutate_items=lambda items: redact_product_owners(items, current_user),
+        product_filter=product_filter,
+        current_user=current_user,
     )
     return conditional_json_response(request, payload)
 

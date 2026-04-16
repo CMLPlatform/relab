@@ -13,8 +13,12 @@ def scenario_metrics(metrics: dict[str, Any], name: str) -> tuple[float, float, 
     """Return average, p95, and failed-request rate for one scenario."""
     duration = cast("dict[str, Any]", metrics[f"http_req_duration{{scenario:{name}}}"])
     failed = cast("dict[str, Any]", metrics[f"http_req_failed{{scenario:{name}}}"])
-    total = float(max(failed["passes"] + failed["fails"], 1))
-    return float(duration["avg"]), float(duration["p(95)"]), float(failed["fails"]) / total
+    return float(duration["avg"]), float(duration["p(95)"]), float(failed["value"])
+
+
+def has_scenario(metrics: dict[str, Any], name: str) -> bool:
+    """Return whether a scenario is present in the summary export."""
+    return f"http_req_duration{{scenario:{name}}}" in metrics and f"http_req_failed{{scenario:{name}}}" in metrics
 
 
 def fmt_ms(value: float) -> str:
@@ -46,23 +50,16 @@ def main() -> None:
     report_path = Path(f"reports/performance/{args.date}-ci-baseline.md")
     data = json.loads(summary_path.read_text())
     metrics = cast("dict[str, Any]", data["metrics"])
-
-    product_avg, product_p95, product_fail = scenario_metrics(metrics, "product_tree_read")
-    login_avg, login_p95, login_fail = scenario_metrics(metrics, "bearer_login")
-    image_avg, image_p95, image_fail = scenario_metrics(metrics, "resized_image")
     overall = cast("dict[str, Any]", metrics["http_req_duration"])
-    product_line = (
-        f"- `product_tree_read`: avg `{fmt_ms(product_avg)}`, "
-        f"p95 `{fmt_ms(product_p95)}`, failed requests `{fmt_rate(product_fail)}`"
-    )
-    login_line = (
-        f"- `bearer_login`: avg `{fmt_ms(login_avg)}`, "
-        f"p95 `{fmt_ms(login_p95)}`, failed requests `{fmt_rate(login_fail)}`"
-    )
-    image_line = (
-        f"- `resized_image`: avg `{fmt_ms(image_avg)}`, "
-        f"p95 `{fmt_ms(image_p95)}`, failed requests `{fmt_rate(image_fail)}`"
-    )
+    scenario_names = ("live_probe", "product_tree_read", "bearer_login", "resized_image")
+    enabled_scenarios = [name for name in scenario_names if has_scenario(metrics, name)]
+    scenario_lines = []
+    for scenario in enabled_scenarios:
+        avg, p95, fail_rate = scenario_metrics(metrics, scenario)
+        scenario_lines.append(
+            f"- `{scenario}`: avg `{fmt_ms(avg)}`, "
+            f"p95 `{fmt_ms(p95)}`, failed requests `{fmt_rate(fail_rate)}`"
+        )
     overall_line = (
         f"- overall HTTP: avg `{fmt_ms(float(overall['avg']))}`, "
         f"p95 `{fmt_ms(float(overall['p(95)']))}`"
@@ -75,18 +72,17 @@ def main() -> None:
                 "",
                 f"- environment: Docker CI backend at `{args.base_url}`",
                 "- source summary: `reports/performance/latest-k6-summary.json`",
-                "- enabled scenarios: `product_tree_read`, `bearer_login`, `resized_image`",
+                "- enabled scenarios: " + ", ".join(f"`{name}`" for name in enabled_scenarios),
                 "",
                 "## Results",
                 "",
-                product_line,
-                login_line,
-                image_line,
+                *scenario_lines,
                 overall_line,
                 "",
                 "## Notes",
                 "",
                 "- This file was generated from the latest CI-stack `k6` summary export.",
+                "- `resized_image` is optional and only runs when a sample image is available.",
                 "- If these numbers replace the prior baseline, keep older reports as historical context only.",
                 "- Threshold refresh remains a maintainer-only follow-up step.",
                 "",

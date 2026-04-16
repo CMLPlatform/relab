@@ -24,7 +24,7 @@ from app.api.plugins.rpi_cam.services import (
     get_camera_status as fetch_camera_status,
 )
 from app.api.plugins.rpi_cam.services import (
-    get_last_image_url_per_camera,
+    get_last_image_urls_per_camera,
 )
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
@@ -79,14 +79,17 @@ async def get_user_cameras(
     last_image_urls: dict = {}
     if include_telemetry:
         camera_ids = [camera.id for camera in db_cameras]
-        last_image_urls = await get_last_image_url_per_camera(session, camera_ids)
+        last_image_urls = await get_last_image_urls_per_camera(session, camera_ids)
 
     return [
         await CameraReadWithStatus.from_db_model_with_status(
             camera,
             redis,
             include_telemetry=include_telemetry,
-            last_image_url=last_image_urls.get(camera.id),
+            last_image_url=last_image_urls.get(camera.id).image_url if camera.id in last_image_urls else None,
+            last_image_thumbnail_url=(
+                last_image_urls.get(camera.id).thumbnail_url if camera.id in last_image_urls else None
+            ),
         )
         for camera in db_cameras
     ]
@@ -116,14 +119,18 @@ async def get_user_camera(
     if not (include_status or include_telemetry):
         return db_camera
     last_image_url: str | None = None
+    last_image_thumbnail_url: str | None = None
     if include_telemetry:
-        urls = await get_last_image_url_per_camera(session, [db_camera.id])
-        last_image_url = urls.get(db_camera.id)
+        urls = await get_last_image_urls_per_camera(session, [db_camera.id])
+        last_image = urls.get(db_camera.id)
+        last_image_url = last_image.image_url if last_image is not None else None
+        last_image_thumbnail_url = last_image.thumbnail_url if last_image is not None else None
     return await CameraReadWithStatus.from_db_model_with_status(
         db_camera,
         redis,
         include_telemetry=include_telemetry,
         last_image_url=last_image_url,
+        last_image_thumbnail_url=last_image_thumbnail_url,
     )
 
 
@@ -208,7 +215,7 @@ async def self_unpair_camera(
     response_model=LocalAccessInfo,
     summary="Get local direct-connection info for a camera",
     description=(
-        "Relays GET /local-access-info to the Pi via the WebSocket connection. "
+        "Relays GET /system/local-access to the Pi via the WebSocket connection. "
         "Returns the local API key and candidate IP addresses so the frontend can "
         "auto-configure Ethernet/USB-C direct access without manual key copying. "
         "Returns 503 when the camera is offline."
@@ -218,11 +225,11 @@ async def get_camera_local_access(
     db_camera: UserOwnedCameraDep,
     redis: OptionalRedisDep,
 ) -> LocalAccessInfo:
-    """Relay local-access-info from the Pi to the authenticated frontend user."""
+    """Relay local access info from the Pi to the authenticated frontend user."""
     response = await relay_via_websocket(
         db_camera.id,
         "GET",
-        "/local-access-info",
+        "/system/local-access",
         redis=redis,
         error_msg="Could not retrieve local access info from camera",
     )
@@ -230,13 +237,13 @@ async def get_camera_local_access(
 
 
 async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
-    """Best-effort relay of DELETE /pairing/credentials to the camera.
+    """Best-effort relay of DELETE /pairing to the camera.
 
     Logs a warning and continues if the camera is offline or unresponsive —
     deletion should never be blocked by camera connectivity.
     """
     try:
-        await relay_via_websocket(camera_id, "DELETE", "/pairing/credentials", redis=redis)
+        await relay_via_websocket(camera_id, "DELETE", "/pairing", redis=redis)
     except HTTPException as exc:
         logger.warning(
             "Could not notify camera %s to unpair (HTTP %d) — deleting anyway.",

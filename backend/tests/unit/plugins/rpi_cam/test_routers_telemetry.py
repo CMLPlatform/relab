@@ -148,7 +148,7 @@ class TestTelemetryRouter:
         mock_camera_request.assert_awaited_once()
         assert mock_camera_request.await_args is not None
         kwargs = mock_camera_request.await_args.kwargs
-        assert kwargs["endpoint"] == "/telemetry"
+        assert kwargs["endpoint"] == "/system/telemetry"
         assert kwargs["method"] == HttpMethod.GET
         mock_store.assert_awaited_once()
         assert mock_store.await_args is not None

@@ -63,7 +63,7 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
 
     await fetch_from_camera_url(
         camera,
-        endpoint="/images",
+        endpoint="/captures",
         method=HttpMethod.POST,
         error_msg="Failed",
         body={"key": "val"},
@@ -73,7 +73,7 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
     mock_relay.assert_awaited_once_with(
         camera.id,
         "POST",
-        "/images",
+        "/captures",
         body={"key": "val"},
         error_msg="Failed",
         expect_binary=True,

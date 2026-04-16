@@ -10,6 +10,9 @@ This directory contains a small `k6` baseline suite for the RELab backend.
 
 ## Covered Scenarios
 
+- `live_probe`
+  - always enabled
+  - exercises the liveness path via `/live`
 - `product_tree_read`
   - always enabled
   - exercises the public recursive product read path via `/products/tree`
@@ -17,13 +20,14 @@ This directory contains a small `k6` baseline suite for the RELab backend.
   - enabled only when `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` are set
   - exercises the auth login path
 - `resized_image`
-  - enabled only when `PERF_IMAGE_ID` is set
+  - enabled only when `PERF_IMAGE_ID` is explicitly set
   - exercises the image resize hot path
 
 ## Thresholds
 
 These thresholds are intentionally conservative and serve as a regression tripwire, not a capacity target.
 
+- `live_probe`: `p(95) < 1200ms`
 - `product_tree_read`: `p(95) < 3800ms`
 - `bearer_login`: `p(95) < 3400ms`
 - `resized_image`: `p(95) < 3400ms`
@@ -65,7 +69,7 @@ PERF_USER_PASSWORD=secret \
 just perf-baseline
 ```
 
-Enable image resize coverage:
+Enable image resize coverage when you have a sample image id:
 
 ```bash
 PERF_IMAGE_ID=123 \
@@ -92,12 +96,15 @@ just perf-baseline
 
 - `BASE_URL`
 - `PERF_PRODUCT_TREE_PATH`
+- `PERF_LIVE_PATH`
 - `PERF_USER_EMAIL`
 - `PERF_USER_PASSWORD`
 - `PERF_IMAGE_ID`
 - `PERF_IMAGE_WIDTH`
 - `PERF_PRODUCT_TREE_VUS`
 - `PERF_PRODUCT_TREE_DURATION`
+- `PERF_LIVE_VUS`
+- `PERF_LIVE_DURATION`
 - `PERF_LOGIN_VUS`
 - `PERF_LOGIN_DURATION`
 - `PERF_IMAGE_VUS`
@@ -105,7 +112,8 @@ just perf-baseline
 
 ## Recommended Baseline Inputs
 
-- Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products and images before the k6 run starts.
+- Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products before the k6 run starts.
+- The CI baseline skips `resized_image` by default; include it only when you explicitly provide `PERF_IMAGE_ID` or `IMAGE_ID`.
 - Use `/products/tree?recursion_depth=2` as the default product-read baseline unless you intentionally want a deeper tree.
 - Reuse the CI superuser from `backend/.env.test` for login measurements unless you explicitly need another account.
 

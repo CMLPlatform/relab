@@ -3,12 +3,19 @@ import { check, sleep } from "k6";
 
 const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8000";
 const productTreePath = __ENV.PERF_PRODUCT_TREE_PATH || "/products/tree?recursion_depth=2";
+const livePath = __ENV.PERF_LIVE_PATH || "/live";
 const loginEmail = __ENV.PERF_USER_EMAIL;
 const loginPassword = __ENV.PERF_USER_PASSWORD;
 const imageId = __ENV.PERF_IMAGE_ID;
 const imageWidth = __ENV.PERF_IMAGE_WIDTH || "200";
 
 const scenarios = {
+  live_probe: {
+    executor: "constant-vus",
+    exec: "liveProbe",
+    vus: Number(__ENV.PERF_LIVE_VUS || 2),
+    duration: __ENV.PERF_LIVE_DURATION || "30s",
+  },
   product_tree_read: {
     executor: "constant-vus",
     exec: "productTreeRead",
@@ -18,6 +25,8 @@ const scenarios = {
 };
 
 const thresholds = {
+  "http_req_failed{scenario:live_probe}": ["rate<0.01"],
+  "http_req_duration{scenario:live_probe}": ["p(95)<1200"],
   "http_req_failed{scenario:product_tree_read}": ["rate<0.01"],
   "http_req_duration{scenario:product_tree_read}": ["p(95)<1800"],
 };
@@ -48,6 +57,19 @@ export const options = {
   scenarios,
   thresholds,
 };
+
+export function liveProbe() {
+  const response = http.get(`${baseUrl}${livePath}`, {
+    tags: { scenario: "live_probe" },
+  });
+
+  check(response, {
+    "live probe returned 200": (res) => res.status === 200,
+    "live probe returned alive": (res) => res.json("status") === "alive",
+  });
+
+  sleep(1);
+}
 
 export function productTreeRead() {
   const response = http.get(`${baseUrl}${productTreePath}`, {

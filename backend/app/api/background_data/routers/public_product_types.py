@@ -24,8 +24,10 @@ from app.api.background_data.dependencies import CategoryFilterDep, ProductTypeF
 from app.api.background_data.models import Category, CategoryProductTypeLink, ProductType
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, ProductTypeReadWithRelationships
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.pagination import paginate_select
+from app.api.common.crud.query import require_model
 from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
@@ -46,6 +48,26 @@ async def _require_product_type(session: AsyncSessionDep, product_type_id: Posit
         loaders={"categories", "images", "files"},
         read_schema=ProductTypeReadWithRelationships,
     )
+
+
+async def _page_product_types(
+    session: AsyncSessionDep,
+    *,
+    product_type_filter: ProductTypeFilterWithRelationshipsDep,
+) -> Page[ProductType]:
+    """Page public product types from an explicit product-type query."""
+    statement: Select[tuple[ProductType]] = select(ProductType)
+    statement = cast("Select[tuple[ProductType]]", apply_filter(statement, ProductType, product_type_filter))
+    statement = cast(
+        "Select[tuple[ProductType]]",
+        apply_loader_profile(
+            statement,
+            ProductType,
+            {"categories", "images", "files"},
+            read_schema=ProductTypeReadWithRelationships,
+        ),
+    )
+    return await paginate_select(session, statement, model=ProductType)
 
 
 async def _get_linked_product_type_category(
@@ -100,13 +122,7 @@ async def get_product_types(
     product_type_filter: ProductTypeFilterWithRelationshipsDep,
 ) -> Page[ProductType]:
     """Get a list of all product types with all relationships loaded."""
-    return await page_models(
-        session,
-        ProductType,
-        loaders={"categories", "images", "files"},
-        filters=product_type_filter,
-        read_schema=ProductTypeReadWithRelationships,
-    )
+    return await _page_product_types(session, product_type_filter=product_type_filter)
 
 
 @router.get(

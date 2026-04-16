@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Path, Request
 from fastapi_pagination import Page
@@ -22,14 +22,17 @@ from app.api.background_data.schemas import (
     CategoryReadWithRelationshipsAndFlatSubCategories,
 )
 from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.pagination import paginate_select
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from sqlalchemy import Select
     from starlette.responses import Response
 
 router = BackgroundDataAPIRouter(prefix="/categories", tags=["categories"])
@@ -46,6 +49,47 @@ async def _require_category_with_relationships(session: AsyncSessionDep, categor
     )
 
 
+async def _page_categories_with_relationships(
+    session: AsyncSessionDep,
+    *,
+    category_filter: CategoryFilterWithRelationshipsDep,
+) -> Page[Category]:
+    """Page categories using an explicit public read query."""
+    statement = cast("Select[tuple[Category]]", select(Category))
+    statement = cast("Select[tuple[Category]]", apply_filter(statement, Category, category_filter))
+    statement = cast(
+        "Select[tuple[Category]]",
+        apply_loader_profile(
+            statement,
+            Category,
+            {"taxonomy", "subcategories", "materials", "product_types"},
+            read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
+        ),
+    )
+    return await paginate_select(session, statement, model=Category)
+
+
+async def _page_subcategories(
+    session: AsyncSessionDep,
+    *,
+    category_id: PositiveInt,
+    category_filter: CategoryFilterDep,
+) -> Page[Category]:
+    """Page direct subcategories for one parent category."""
+    statement = cast("Select[tuple[Category]]", select(Category).where(Category.supercategory_id == category_id))
+    statement = cast("Select[tuple[Category]]", apply_filter(statement, Category, category_filter))
+    statement = cast(
+        "Select[tuple[Category]]",
+        apply_loader_profile(
+            statement,
+            Category,
+            {"taxonomy", "subcategories", "materials", "product_types"},
+            read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
+        ),
+    )
+    return await paginate_select(session, statement, model=Category)
+
+
 @router.get(
     "",
     response_model=Page[CategoryReadWithRelationshipsAndFlatSubCategories],
@@ -57,13 +101,7 @@ async def get_categories(
     category_filter: CategoryFilterWithRelationshipsDep,
 ) -> Page[Category] | Response:
     """Get all categories with all relationships loaded."""
-    payload = await page_models(
-        session,
-        Category,
-        loaders={"taxonomy", "subcategories", "materials", "product_types"},
-        filters=category_filter,
-        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
-    )
+    payload = await _page_categories_with_relationships(session, category_filter=category_filter)
     return conditional_json_response(request, payload)
 
 
@@ -114,15 +152,7 @@ async def get_subcategories(
 ) -> Page[Category]:
     """Get paginated subcategories of a category with all relationships loaded."""
     await require_model(session, Category, category_id)
-    statement = select(Category).where(Category.supercategory_id == category_id)
-    return await page_models(
-        session,
-        Category,
-        loaders={"taxonomy", "subcategories", "materials", "product_types"},
-        filters=category_filter,
-        statement=statement,
-        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
-    )
+    return await _page_subcategories(session, category_id=category_id, category_filter=category_filter)
 
 
 @router.get(

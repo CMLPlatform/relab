@@ -34,7 +34,7 @@ async def get_camera_snapshot(
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera, redis)
     relay_response = await camera_request(
-        endpoint="/snapshot",
+        endpoint="/preview/snapshot",
         method=HttpMethod.GET,
         error_msg="Failed to fetch camera snapshot",
         expect_binary=True,

@@ -41,5 +41,5 @@ class TestSnapshotRouter:
         mock_camera_request.assert_awaited_once()
         assert mock_camera_request.await_args is not None
         kwargs = mock_camera_request.await_args.kwargs
-        assert kwargs["endpoint"] == "/snapshot"
+        assert kwargs["endpoint"] == "/preview/snapshot"
         assert kwargs["expect_binary"] is True

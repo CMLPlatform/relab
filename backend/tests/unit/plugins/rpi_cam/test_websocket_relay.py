@@ -213,14 +213,15 @@ class TestRelayCommandAllowlist:
         ("method", "path"),
         [
             ("GET", "/camera"),
-            ("POST", "/images"),
-            ("GET", "/stream"),
-            ("POST", "/stream"),
-            ("DELETE", "/stream"),
-            ("GET", "/telemetry"),
-            ("GET", "/hls/cam-preview/index.m3u8"),
-            ("GET", "/hls/cam-preview/segment0.mp4"),
-            ("DELETE", "/pairing/credentials"),
+            ("GET", "/preview/snapshot"),
+            ("POST", "/captures"),
+            ("GET", "/streams/youtube"),
+            ("POST", "/streams/youtube"),
+            ("DELETE", "/streams/youtube"),
+            ("GET", "/system/telemetry"),
+            ("GET", "/preview/hls/cam-preview/index.m3u8"),
+            ("GET", "/preview/hls/cam-preview/segment0.mp4"),
+            ("DELETE", "/pairing"),
         ],
     )
     @pytest.mark.asyncio
@@ -239,22 +240,22 @@ class TestRelayCommandAllowlist:
         ("method", "path"),
         [
             ("DELETE", "/camera"),
-            ("PUT", "/stream"),
+            ("PUT", "/streams/youtube"),
             ("GET", "/admin"),
-            ("GET", "/images/preview"),
+            ("GET", "/captures/preview"),
             ("PATCH", "/camera"),
             ("GET", "/"),
-            # The Pi pushes directly via HTTPS to the upload endpoint; any `GET /images/{id}`
+            # The Pi pushes directly via HTTPS to the upload endpoint; any `GET /captures/{id}`
             # attempt must now be rejected.
-            ("GET", "/images/abc123"),
-            ("GET", "/images/"),
-            # HLS must stay read-only and under the /hls/ prefix.
-            ("POST", "/hls/cam-preview/index.m3u8"),
-            ("DELETE", "/hls/cam-preview/segment0.mp4"),
-            ("GET", "/hls"),  # bare /hls without trailing slash
+            ("GET", "/captures/abc123"),
+            ("GET", "/captures/"),
+            # HLS must stay read-only and under the /preview/hls/ prefix.
+            ("POST", "/preview/hls/cam-preview/index.m3u8"),
+            ("DELETE", "/preview/hls/cam-preview/segment0.mp4"),
+            ("GET", "/preview/hls"),  # bare /hls without trailing slash
             # Telemetry must stay read-only.
-            ("POST", "/telemetry"),
-            ("DELETE", "/telemetry"),
+            ("POST", "/system/telemetry"),
+            ("DELETE", "/system/telemetry"),
         ],
     )
     @pytest.mark.asyncio

@@ -24,8 +24,10 @@ from app.api.background_data.dependencies import CategoryFilterDep, MaterialFilt
 from app.api.background_data.models import Category, CategoryMaterialLink, Material
 from app.api.background_data.routers.public_support import BackgroundDataAPIRouter
 from app.api.background_data.schemas import CategoryRead, MaterialReadWithRelationships
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.pagination import paginate_select
+from app.api.common.crud.query import require_model
 from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.filters import FileFilter, ImageFilter
@@ -49,6 +51,26 @@ async def _require_material(session: AsyncSessionDep, material_id: PositiveInt) 
         loaders={"categories", "images", "files"},
         read_schema=MaterialReadWithRelationships,
     )
+
+
+async def _page_materials(
+    session: AsyncSessionDep,
+    *,
+    material_filter: MaterialFilterWithRelationshipsDep,
+) -> Page[Material]:
+    """Page public materials from an explicit material query."""
+    statement: Select[tuple[Material]] = select(Material)
+    statement = cast("Select[tuple[Material]]", apply_filter(statement, Material, material_filter))
+    statement = cast(
+        "Select[tuple[Material]]",
+        apply_loader_profile(
+            statement,
+            Material,
+            {"categories", "images", "files"},
+            read_schema=MaterialReadWithRelationships,
+        ),
+    )
+    return await paginate_select(session, statement, model=Material)
 
 
 async def _get_linked_material_category(
@@ -104,13 +126,7 @@ async def get_materials(
     material_filter: MaterialFilterWithRelationshipsDep,
 ) -> Page[Material] | Response:
     """Get all materials with all relationships loaded."""
-    payload = await page_models(
-        session,
-        Material,
-        loaders={"categories", "images", "files"},
-        filters=material_filter,
-        read_schema=MaterialReadWithRelationships,
-    )
+    payload = await _page_materials(session, material_filter=material_filter)
     return conditional_json_response(request, payload)
 
 

@@ -53,9 +53,9 @@ _MSG_TYPE_REQUEST = "request"
 _METHOD_GET = "GET"
 _METHOD_POST = "POST"
 
-_PATH_PREVIEW = "/images/preview"
-_PATH_IMAGES = "/images"
-_PATH_IMAGES_PREFIX = "/images/"
+_PATH_PREVIEW = "/preview/snapshot"
+_PATH_IMAGES = "/captures"
+_PATH_IMAGES_PREFIX = "/captures/"
 
 _MODE_WS = "ws"
 
@@ -119,20 +119,20 @@ def _create_http_app() -> FastAPI:
 
     app = FastAPI(title="Webcam Fake RPi Camera (HTTP)", lifespan=lifespan)
 
-    @app.get("/images/preview")
+    @app.get("/preview/snapshot")
     async def preview() -> Response:
         loop = asyncio.get_running_loop()
         jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=70))
         return Response(content=jpeg, media_type="image/jpeg")
 
-    @app.post("/images")
+    @app.post("/captures")
     async def capture() -> JSONResponse:
         loop = asyncio.get_running_loop()
         jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=92))
         image_id = str(uuid.uuid4())
         captured_images[image_id] = jpeg
         data = {
-            "image_url": f"/images/{image_id}",
+            "image_url": f"/captures/{image_id}",
             "metadata": {
                 "image_properties": {
                     "capture_time": datetime.now(UTC).isoformat(),
@@ -143,7 +143,7 @@ def _create_http_app() -> FastAPI:
         logger.info("Captured image %s (%d bytes)", image_id[:8], len(jpeg))
         return JSONResponse(content=data)
 
-    @app.get("/images/{image_id}")
+    @app.get("/captures/{image_id}")
     async def get_image(image_id: str) -> Response:
         jpeg = captured_images.pop(image_id, None)
         if jpeg is None:

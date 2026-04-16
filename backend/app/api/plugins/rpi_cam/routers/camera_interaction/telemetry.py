@@ -2,7 +2,7 @@
 
 The mosaic dashboard polls one camera's telemetry every ~5s; with the cache,
 those polls cost a Redis GET and no relay round-trip. The first poll (cold
-cache) forwards to the Pi's ``GET /telemetry`` endpoint, caches the snapshot
+cache) forwards to the Pi's ``GET /system/telemetry`` endpoint, caches the snapshot
 for 120s, and returns it. Subsequent polls within 120s hit the cache.
 
 The backend telemetry contract lives in ``app.api.plugins.rpi_cam.telemetry``
@@ -30,7 +30,7 @@ from app.core.redis import OptionalRedisDep
 router = PublicAPIRouter()
 logger = logging.getLogger(__name__)
 
-_TELEMETRY_ENDPOINT = "/telemetry"
+_TELEMETRY_ENDPOINT = "/system/telemetry"
 
 
 @router.get(

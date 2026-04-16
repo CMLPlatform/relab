@@ -19,12 +19,16 @@ from app.api.background_data.routers.public_support import (
 )
 from app.api.background_data.schemas import CategoryRead, CategoryReadWithRecursiveSubCategories, TaxonomyRead
 from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import page_models, require_model
+from app.api.common.crud.pagination import paginate_select
+from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from sqlalchemy import Select
 
 router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 
@@ -60,21 +64,28 @@ async def _page_taxonomy_categories(
     category_filter: CategoryFilterDep,
 ) -> Page[CategoryRead]:
     """Page categories scoped to one taxonomy."""
-    statement = select(Category).where(Category.taxonomy_id == taxonomy_id)
-    return await page_models(
-        session,
-        Category,
-        filters=category_filter,
-        statement=statement,
-        read_schema=CategoryRead,
-    )
+    statement = cast("Select[tuple[Category]]", select(Category).where(Category.taxonomy_id == taxonomy_id))
+    statement = cast("Select[tuple[Category]]", apply_filter(statement, Category, category_filter))
+    statement = cast("Select[tuple[Category]]", apply_loader_profile(statement, Category, read_schema=CategoryRead))
+    return cast("Page[CategoryRead]", await paginate_select(session, statement, model=Category))
+
+
+async def _page_taxonomies(
+    session: AsyncSessionDep,
+    *,
+    taxonomy_filter: TaxonomyFilterDep,
+) -> Page[TaxonomyRead]:
+    """Page public taxonomies from an explicit taxonomy query."""
+    statement = cast("Select[tuple[Taxonomy]]", select(Taxonomy))
+    statement = cast("Select[tuple[Taxonomy]]", apply_filter(statement, Taxonomy, taxonomy_filter))
+    statement = cast("Select[tuple[Taxonomy]]", apply_loader_profile(statement, Taxonomy, read_schema=TaxonomyRead))
+    return cast("Page[TaxonomyRead]", await paginate_select(session, statement, model=Taxonomy))
 
 
 @router.get("", response_model=Page[TaxonomyRead])
 async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[TaxonomyRead]:
     """Get all taxonomies with optional filtering."""
-    page = await page_models(session, Taxonomy, filters=taxonomy_filter, read_schema=TaxonomyRead)
-    return cast("Page[TaxonomyRead]", page)
+    return await _page_taxonomies(session, taxonomy_filter=taxonomy_filter)
 
 
 @router.get("/{taxonomy_id}", response_model=TaxonomyRead)

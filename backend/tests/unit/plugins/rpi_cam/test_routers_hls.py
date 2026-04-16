@@ -93,7 +93,7 @@ class TestProxyHls:
         mock_camera_request.assert_awaited_once()
         assert mock_camera_request.await_args is not None
         kwargs = mock_camera_request.await_args.kwargs
-        assert kwargs["endpoint"] == "/hls/cam-preview/index.m3u8"
+        assert kwargs["endpoint"] == "/preview/hls/cam-preview/index.m3u8"
         assert kwargs["method"] == HttpMethod.GET
         assert kwargs["expect_binary"] is True
 
