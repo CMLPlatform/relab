@@ -59,10 +59,11 @@ describe('StreamingContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(Linking, 'openURL').mockResolvedValueOnce();
-    mockStopMutate.mockImplementation(
-      (_vars: unknown, options?: { onSuccess?: () => void }) => options?.onSuccess?.(),
-    );
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    mockStopMutate.mockImplementation((...args: unknown[]) => {
+      const options = args[1] as { onSuccess?: () => void } | undefined;
+      options?.onSuccess?.();
+    });
   });
 
   it('renders live state, elapsed time, and the optional product link', () => {
@@ -106,10 +107,10 @@ describe('StreamingContent', () => {
   });
 
   it('shows an error when stopping the stream fails', () => {
-    mockStopMutate.mockImplementation(
-      (_vars: unknown, options?: { onError?: (error: unknown) => void }) =>
-        options?.onError?.(new Error('stop failed hard')),
-    );
+    mockStopMutate.mockImplementation((...args: unknown[]) => {
+      const options = args[1] as { onError?: (error: unknown) => void } | undefined;
+      options?.onError?.(new Error('stop failed hard'));
+    });
 
     renderWithProviders(<StreamingContent session={session} />, {
       withDialog: true,

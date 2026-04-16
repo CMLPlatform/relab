@@ -128,11 +128,10 @@ describe('useProfileScreen', () => {
     mockVerify.mockImplementation(async () => true);
     mockUpdateUser.mockImplementation(async () => undefined);
     mockLogout.mockImplementation(async () => undefined);
-    mockStopStreamMutate.mockImplementation(
-      (_vars: unknown, options?: { onSuccess?: () => void }) => {
-        options?.onSuccess?.();
-      },
-    );
+    mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
+      const options = args[1] as { onSuccess?: () => void } | undefined;
+      options?.onSuccess?.();
+    });
   });
 
   it('shows a toast when verification email is sent successfully', async () => {
@@ -184,11 +183,10 @@ describe('useProfileScreen', () => {
   });
 
   it('shows an error and aborts logout when stopping the active stream fails', async () => {
-    mockStopStreamMutate.mockImplementation(
-      (_vars: unknown, options?: { onError?: (error: unknown) => void }) => {
-        options?.onError?.(new Error('stop failed'));
-      },
-    );
+    mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
+      const options = args[1] as { onError?: (error: unknown) => void } | undefined;
+      options?.onError?.(new Error('stop failed'));
+    });
 
     const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 

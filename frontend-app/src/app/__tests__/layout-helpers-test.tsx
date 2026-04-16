@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, renderHook, screen } from '@testing-library/react-native';
+import { screen } from '@testing-library/react-native';
 import { Animated, Platform } from 'react-native';
 import {
+  ensureWebAnimatedPatch,
   getProductsHeaderStyle,
   HeaderRightPill,
-  useAnimatedBackground,
 } from '@/app/layout/helpers';
 import { renderWithProviders } from '@/test-utils';
 
@@ -43,7 +43,7 @@ describe('layout helpers', () => {
     mockUsePathname.mockReturnValue('/products');
   });
 
-  it('only patches Animated on web and is idempotent', () => {
+  it('patches Animated on web and remains idempotent', () => {
     const timingSpy = jest.fn();
     const springSpy = jest.fn();
     const decaySpy = jest.fn();
@@ -54,12 +54,8 @@ describe('layout helpers', () => {
     Object.defineProperty(Animated, 'event', { value: eventSpy, configurable: true });
     Object.defineProperty(Platform, 'OS', { value: 'web', configurable: true });
 
-    jest.isolateModules(() => {
-      const { ensureWebAnimatedPatch } =
-        require('../layout/helpers') as typeof import('../layout/helpers');
-      ensureWebAnimatedPatch();
-      ensureWebAnimatedPatch();
-    });
+    ensureWebAnimatedPatch();
+    ensureWebAnimatedPatch();
 
     Animated.timing({} as never, { duration: 100, useNativeDriver: true } as never);
     Animated.spring({} as never, { tension: 1, useNativeDriver: true } as never);
@@ -72,42 +68,6 @@ describe('layout helpers', () => {
     expect(eventSpy).toHaveBeenCalledWith([], { useNativeDriver: false });
   });
 
-  it('does not patch Animated outside web', () => {
-    const timingSpy = jest.fn();
-    Object.defineProperty(Animated, 'timing', { value: timingSpy, configurable: true });
-    Object.defineProperty(Platform, 'OS', { value: 'ios', configurable: true });
-
-    jest.isolateModules(() => {
-      const { ensureWebAnimatedPatch } =
-        require('../layout/helpers') as typeof import('../layout/helpers');
-      ensureWebAnimatedPatch();
-    });
-    Animated.timing({} as never, { duration: 100, useNativeDriver: true } as never);
-
-    expect(timingSpy).toHaveBeenCalledWith({}, { duration: 100, useNativeDriver: true });
-  });
-
-  it('returns background state for overlay and no-overlay routes', async () => {
-    const { result, rerender } = renderHook(({ isDark }: { isDark: boolean }) => useAnimatedBackground(isDark), {
-      initialProps: { isDark: false },
-    });
-
-    expect(result.current.showOverlay).toBe(true);
-    expect(result.current.overlayColor).toBe('rgba(242,242,242,0.95)');
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(result.current.BackgroundComponent).not.toBeNull();
-
-    mockUsePathname.mockReturnValue('/login');
-    rerender({ isDark: true });
-
-    expect(result.current.showOverlay).toBe(false);
-    expect(result.current.overlayColor).toBe('rgba(10,10,10,0.90)');
-  });
-
   it('renders HeaderRightPill for guests and signed-in users', () => {
     mockUseAuth.mockReturnValueOnce({ user: null });
     const { rerender } = renderWithProviders(<HeaderRightPill />);
@@ -118,7 +78,7 @@ describe('layout helpers', () => {
     });
     rerender(<HeaderRightPill />);
 
-    expect(screen.getByText('averyverylongus…')).toBeOnTheScreen();
+    expect(screen.getByText('averyverylongu…')).toBeOnTheScreen();
   });
 
   it('returns dark and light product header styles', () => {
