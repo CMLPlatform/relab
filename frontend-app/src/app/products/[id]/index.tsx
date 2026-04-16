@@ -53,6 +53,7 @@ export default function ProductPage() {
         justCreated={capabilities.justCreated}
         onScroll={editing.onScroll}
         onNavigateToProfile={actions.goToProfileForYouTubeSetup}
+        onNavigateToActiveStream={actions.goToActiveStreamProduct}
         onImagesChange={actions.onImagesChange}
         onChangeDescription={actions.onChangeDescription}
         onBrandChange={actions.onBrandChange}
@@ -67,6 +68,7 @@ export default function ProductPage() {
         youtubeEnabled={capabilities.youtubeEnabled}
         isGoogleLinked={capabilities.isGoogleLinked}
         streamingThisProduct={streaming.streamingThisProduct}
+        streamingOtherProduct={streaming.streamingOtherProduct}
         activeStream={streaming.activeStream}
         onGoLivePress={streaming.openStreamPicker}
         themeColors={{
@@ -77,12 +79,7 @@ export default function ProductPage() {
         }}
       />
       <ProductFabControls
-        rpiEnabled={capabilities.rpiEnabled}
-        youtubeEnabled={capabilities.youtubeEnabled}
-        isGoogleLinked={capabilities.isGoogleLinked}
-        isNew={capabilities.isNew}
         editMode={editing.editMode}
-        isProductComponent={capabilities.isProductComponent}
         ownedByMe={capabilities.ownedByMe}
         productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
         productName={screen.product.name ?? ''}
@@ -91,10 +88,8 @@ export default function ProductPage() {
         validationValid={editing.validationResult.isValid}
         isSaving={editing.isSaving}
         onPrimaryFabPress={actions.toggleEditMode}
-        onOpenStreamPicker={streaming.openStreamPicker}
         streamPickerVisible={streaming.streamPickerVisible}
         onDismissStreamPicker={streaming.closeStreamPicker}
-        showGoLiveFab={!streaming.streamingOtherProduct && !streaming.streamingThisProduct}
         primaryFabIcon={editing.primaryFabIcon}
       />
     </>

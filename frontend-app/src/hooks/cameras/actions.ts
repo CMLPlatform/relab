@@ -90,10 +90,6 @@ export function useCameraCaptureActions({
     [captureAll, captureAllProductId, clearSelection, setSnackbar],
   );
 
-  const handleSelectAll = useCallback(() => {
-    // selectAll lives in the parent hook because it is a state controller concern.
-  }, []);
-
   const handleCaptureSelected = useCallback(() => {
     runCapture([...selectedIds]);
   }, [runCapture, selectedIds]);
@@ -122,7 +118,6 @@ export function useCameraCaptureActions({
   );
 
   return {
-    handleSelectAll,
     handleCaptureSelected,
     handleCardLongPress,
     runCapture,

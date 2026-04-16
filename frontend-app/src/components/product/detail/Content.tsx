@@ -41,8 +41,10 @@ type ProductPageContentProps = {
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
   streamingThisProduct: boolean;
+  streamingOtherProduct: boolean;
   activeStream: StreamSession | null;
   onGoLivePress: () => void;
+  onNavigateToActiveStream: () => void;
   themeColors: {
     secondaryContainer: string;
     onSecondaryContainer: string;
@@ -73,8 +75,10 @@ export function ProductPageContent({
   youtubeEnabled,
   isGoogleLinked,
   streamingThisProduct,
+  streamingOtherProduct,
   activeStream,
   onGoLivePress,
+  onNavigateToActiveStream,
   themeColors,
 }: ProductPageContentProps) {
   return (
@@ -121,6 +125,8 @@ export function ProductPageContent({
           isProductComponent={isProductComponent}
           onGoLivePress={onGoLivePress}
           onNavigateToProfile={onNavigateToProfile}
+          streamingOtherProduct={streamingOtherProduct}
+          onNavigateToActiveStream={onNavigateToActiveStream}
         />
       </DetailCard>
       <DetailCard>

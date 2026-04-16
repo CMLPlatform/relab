@@ -7,6 +7,7 @@ import { useNewsletterPreference } from '@/hooks/profile/useNewsletterPreference
 import { useOAuthAssociations } from '@/hooks/profile/useOAuthAssociations';
 import { useOwnProfileStats } from '@/hooks/profile/useOwnProfileStats';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 import { logout, unlinkOAuth, updateUser, verify } from '@/services/api/authentication';
@@ -39,6 +40,7 @@ export function useProfileScreen() {
   } = useYouTubeIntegration();
   const { themeMode, setThemeMode } = useThemeMode();
   const { activeStream, setActiveStream } = useStreamSession();
+  const stopStreamMutation = useStopYouTubeStreamMutation(activeStream?.cameraId ?? '');
   const [visibilitySaving, setVisibilitySaving] = useState(false);
   const closeDeleteDialog = () => setDeleteDialogVisible(false);
   const openDeleteDialog = () => setDeleteDialogVisible(true);
@@ -61,8 +63,8 @@ export function useProfileScreen() {
     if (activeStream) {
       feedback.alert({
         title: 'Stream still active',
-        message: `You're live for "${activeStream.productName}". Logging out won't stop the stream.`,
-        buttons: [{ text: 'Cancel' }, { text: 'Log out anyway', onPress: openLogoutDialog }],
+        message: `You're live for "${activeStream.productName}". Logging out will stop the stream and save the recording.`,
+        buttons: [{ text: 'Cancel' }, { text: 'Stop & log out', onPress: openLogoutDialog }],
       });
       return;
     }
@@ -72,13 +74,31 @@ export function useProfileScreen() {
   const confirmLogout = () => {
     closeLogoutDialog();
     setIsLoggingOut(true);
-    setActiveStream(null);
-    logout()
-      .then(() => {
-        void refetch(false);
-        router.replace('/products');
-      })
-      .finally(() => setIsLoggingOut(false));
+
+    const performLogout = () => {
+      setActiveStream(null);
+      logout()
+        .then(() => {
+          void refetch(false);
+          router.replace('/products');
+        })
+        .finally(() => setIsLoggingOut(false));
+    };
+
+    if (activeStream) {
+      stopStreamMutation.mutate(undefined, {
+        onSuccess: performLogout,
+        onError: () => {
+          feedback.error(
+            'Failed to stop the stream. Please stop it manually before logging out.',
+            'Stream error',
+          );
+          setIsLoggingOut(false);
+        },
+      });
+    } else {
+      performLogout();
+    }
   };
 
   const onVerifyAccount = () => {

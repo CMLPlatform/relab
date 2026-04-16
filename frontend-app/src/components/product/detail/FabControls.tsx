@@ -4,12 +4,7 @@ import { AnimatedFAB, Tooltip } from 'react-native-paper';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 
 type ProductFabControlsProps = {
-  rpiEnabled: boolean;
-  youtubeEnabled: boolean;
-  isGoogleLinked: boolean;
-  isNew: boolean;
   editMode: boolean;
-  isProductComponent: boolean;
   ownedByMe: boolean;
   productId?: number;
   productName: string;
@@ -18,20 +13,13 @@ type ProductFabControlsProps = {
   validationValid: boolean;
   isSaving: boolean;
   onPrimaryFabPress: () => void;
-  onOpenStreamPicker: () => void;
   streamPickerVisible: boolean;
   onDismissStreamPicker: () => void;
-  showGoLiveFab: boolean;
   primaryFabIcon: ComponentProps<typeof AnimatedFAB>['icon'];
 };
 
 export function ProductFabControls({
-  rpiEnabled,
-  youtubeEnabled,
-  isGoogleLinked,
-  isNew,
   editMode,
-  isProductComponent,
   ownedByMe,
   productId,
   productName,
@@ -40,61 +28,31 @@ export function ProductFabControls({
   validationValid,
   isSaving,
   onPrimaryFabPress,
-  onOpenStreamPicker,
   streamPickerVisible,
   onDismissStreamPicker,
-  showGoLiveFab,
   primaryFabIcon,
 }: ProductFabControlsProps) {
-  if (showGoLiveFab && productId) {
-    return (
-      <>
-        {rpiEnabled &&
-        youtubeEnabled &&
-        isGoogleLinked &&
-        !isNew &&
-        !editMode &&
-        !isProductComponent &&
-        ownedByMe ? (
-          <AnimatedFAB
-            icon="youtube"
-            label="Go Live"
-            extended={fabExtended}
-            onPress={onOpenStreamPicker}
-            style={styles.leftFab}
-          />
-        ) : null}
-        <PrimaryProductFab
-          icon={primaryFabIcon}
-          onPress={onPrimaryFabPress}
-          fabExtended={fabExtended}
-          validationError={validationError}
-          validationValid={validationValid}
-          isSaving={isSaving}
-          ownedByMe={ownedByMe}
-          editMode={editMode}
-        />
+  return (
+    <>
+      <PrimaryProductFab
+        icon={primaryFabIcon}
+        onPress={onPrimaryFabPress}
+        fabExtended={fabExtended}
+        validationError={validationError}
+        validationValid={validationValid}
+        isSaving={isSaving}
+        ownedByMe={ownedByMe}
+        editMode={editMode}
+      />
+      {productId ? (
         <CameraStreamPicker
           productId={productId}
           productName={productName}
           visible={streamPickerVisible}
           onDismiss={onDismissStreamPicker}
         />
-      </>
-    );
-  }
-
-  return (
-    <PrimaryProductFab
-      icon={primaryFabIcon}
-      onPress={onPrimaryFabPress}
-      fabExtended={fabExtended}
-      validationError={validationError}
-      validationValid={validationValid}
-      isSaving={isSaving}
-      ownedByMe={ownedByMe}
-      editMode={editMode}
-    />
+      ) : null}
+    </>
   );
 }
 
@@ -147,10 +105,6 @@ const baseFabStyle: ViewStyle = {
 };
 
 const styles = {
-  leftFab: {
-    ...baseFabStyle,
-    left: 0,
-  } satisfies ViewStyle,
   rightFab: {
     ...baseFabStyle,
     right: 0,

@@ -1,10 +1,12 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Linking, StyleSheet, View } from 'react-native';
-import { Button, Chip, Icon, Text, useTheme } from 'react-native-paper';
+import { Button, Chip, Text, useTheme } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import type { StreamSession } from '@/context/StreamSessionContext';
 import { useStreamSession } from '@/context/StreamSessionContext';
+import { invalidateProductQuery } from '@/hooks/camera-data/mutations';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
@@ -24,6 +26,7 @@ export function StreamingContent({
 }: StreamingContentProps) {
   const theme = useTheme();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { setActiveStream } = useStreamSession();
   const feedback = useAppFeedback();
   const elapsed = useElapsed(session.startedAt);
@@ -35,6 +38,7 @@ export function StreamingContent({
     stopMutation.mutate(undefined, {
       onSuccess: () => {
         setActiveStream(null);
+        invalidateProductQuery(queryClient, session.productId);
         onStop?.();
       },
       onError: (err) => showStreamStopFailed(feedback, err),
@@ -50,9 +54,6 @@ export function StreamingContent({
     <View style={styles.root}>
       {/* Header: LIVE chip + elapsed */}
       <View style={styles.header}>
-        <View style={styles.youtubeIcon}>
-          <Icon source="youtube" size={20} color="#e53935" />
-        </View>
         <Chip compact style={styles.liveChip} textStyle={styles.liveChipText}>
           LIVE
         </Chip>
@@ -61,13 +62,15 @@ export function StreamingContent({
         </Text>
       </View>
 
-      {/* Live camera preview */}
-      <LivePreview camera={{ id: session.cameraId }} />
+      {/* Live camera preview (compact) */}
+      <View style={styles.previewContainer}>
+        <LivePreview camera={{ id: session.cameraId }} />
+      </View>
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Button mode="outlined" onPress={handleWatch} style={styles.actionBtn} icon="youtube">
-          Watch
+        <Button mode="outlined" onPress={handleWatch} style={styles.actionBtn} icon="open-in-new">
+          Watch on YouTube
         </Button>
         <Button
           mode="outlined"
@@ -108,9 +111,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 4,
   },
-  youtubeIcon: {
-    marginRight: 2,
-  },
   liveChip: {
     backgroundColor: '#e53935',
     height: 24,
@@ -125,6 +125,12 @@ const styles = StyleSheet.create({
     flex: 1,
     opacity: 0.6,
     fontVariant: ['tabular-nums'],
+  },
+  previewContainer: {
+    maxHeight: 180,
+    overflow: 'hidden',
+    marginHorizontal: 16,
+    borderRadius: 8,
   },
   actions: {
     flexDirection: 'row',

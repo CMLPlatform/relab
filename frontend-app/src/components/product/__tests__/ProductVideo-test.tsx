@@ -25,6 +25,7 @@ const defaultProps: ProductVideoProps = {
   product: baseProduct,
   editMode: false,
   streamingThisProduct: false,
+  streamingOtherProduct: false,
   activeStream: null,
   rpiEnabled: false,
   youtubeEnabled: false,
@@ -34,6 +35,7 @@ const defaultProps: ProductVideoProps = {
   isProductComponent: false,
   onGoLivePress: jest.fn(),
   onNavigateToProfile: jest.fn(),
+  onNavigateToActiveStream: jest.fn(),
 };
 
 function renderProductVideo(overrides: Partial<ProductVideoProps> = {}) {

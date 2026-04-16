@@ -215,7 +215,6 @@ describe('Profile screen actions', () => {
 
     const verifyBtn = await screen.findByText('Verify email address');
     fireEvent.press(verifyBtn);
-
     await waitFor(() => {
       expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('Verification email sent'));
     });
@@ -236,6 +235,7 @@ describe('Profile screen actions', () => {
 
     await waitFor(() => {
       expect(mockedUnlink).toHaveBeenCalledWith('google');
+      expect(screen.queryByText('Disconnect google?')).toBeNull();
     });
   });
 
@@ -395,14 +395,11 @@ describe('Profile screen actions', () => {
     const linkBtn = await screen.findByText('Link Google Account');
     fireEvent.press(linkBtn);
 
-    await waitFor(
-      () => {
-        expect(global.alert).toHaveBeenCalledWith(
-          expect.stringContaining('Failed to start link flow'),
-        );
-      },
-      { timeout: 5000 },
-    );
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to start link flow'),
+      );
+    });
   });
 
   it('handles unlinking GitHub accounts', async () => {
@@ -427,6 +424,7 @@ describe('Profile screen actions', () => {
 
     await waitFor(() => {
       expect(mockedUnlink).toHaveBeenCalledWith('github');
+      expect(screen.queryByText('Disconnect github?')).toBeNull();
     });
   });
 

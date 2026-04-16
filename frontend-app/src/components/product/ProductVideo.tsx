@@ -1,8 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
 import { Button, Icon } from 'react-native-paper';
-import { WebView } from 'react-native-webview';
 import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/DialogProvider';
@@ -24,6 +23,7 @@ interface Props {
   editMode: boolean;
   onVideoChange?: (videos: Video[]) => void;
   streamingThisProduct: boolean;
+  streamingOtherProduct: boolean;
   activeStream: StreamSession | null;
   rpiEnabled: boolean;
   youtubeEnabled: boolean;
@@ -33,6 +33,7 @@ interface Props {
   isProductComponent: boolean;
   onGoLivePress: () => void;
   onNavigateToProfile: () => void;
+  onNavigateToActiveStream: () => void;
 }
 
 export default function ProductVideo({
@@ -40,6 +41,7 @@ export default function ProductVideo({
   editMode,
   onVideoChange,
   streamingThisProduct,
+  streamingOtherProduct,
   activeStream,
   rpiEnabled,
   youtubeEnabled,
@@ -49,13 +51,13 @@ export default function ProductVideo({
   isProductComponent,
   onGoLivePress,
   onNavigateToProfile,
+  onNavigateToActiveStream,
 }: Props) {
   const [videos, setVideos] = useState<Video[]>(product.videos || []);
   const [expanded, setExpanded] = useState(false);
   const dialog = useDialog();
   const darkMode = useEffectiveColorScheme() === 'dark';
 
-  // Auto-expand when this product goes live
   useEffect(() => {
     if (streamingThisProduct) setExpanded(true);
   }, [streamingThisProduct]);
@@ -97,8 +99,20 @@ export default function ProductVideo({
     });
   };
 
+  const handleGoLivePress = () => {
+    if (streamingOtherProduct && activeStream) {
+      dialog.alert({
+        title: 'Already streaming',
+        message: `You're currently live on "${activeStream.productName}". Stop that stream before starting a new one.`,
+        buttons: [{ text: 'OK' }, { text: 'Go to stream', onPress: onNavigateToActiveStream }],
+      });
+      return;
+    }
+    onGoLivePress();
+  };
+
   const showGoLiveCta =
-    !editMode && !isNew && ownedByMe && rpiEnabled && !streamingThisProduct && !isProductComponent;
+    !isNew && ownedByMe && rpiEnabled && !streamingThisProduct && !isProductComponent;
 
   const showExpandToggle = !editMode && videos.length > 0;
 
@@ -122,23 +136,20 @@ export default function ProductVideo({
         }
       />
 
-      {/* Zone 1: Active stream — always shown when streaming this product */}
       {streamingThisProduct && activeStream ? (
         <StreamingContent session={activeStream} showProductLink={false} />
       ) : null}
 
-      {/* Zone 2: Go Live CTA */}
       {showGoLiveCta ? (
         <GoLiveCTA
           youtubeEnabled={youtubeEnabled}
           isGoogleLinked={isGoogleLinked}
-          onGoLivePress={onGoLivePress}
+          onGoLivePress={handleGoLivePress}
           onNavigateToProfile={onNavigateToProfile}
           darkMode={darkMode}
         />
       ) : null}
 
-      {/* Zone 3: Recorded videos — collapsible in view mode */}
       {(editMode || expanded) &&
         videos.map((video, idx) => (
           <View
@@ -205,7 +216,6 @@ export default function ProductVideo({
           </View>
         ))}
 
-      {/* Empty state when collapsed, not streaming, no CTA */}
       {!editMode && !expanded && !streamingThisProduct && !showGoLiveCta && videos.length === 0 && (
         <Text style={{ opacity: 0.7, marginBottom: 8, color: darkMode ? '#c0c8cd' : '#666666' }}>
           This product has no associated videos.
@@ -315,6 +325,31 @@ function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
     );
   }
   const embedUri = `https://www.youtube-nocookie.com/embed/${videoId}`;
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        style={{
+          height: 200,
+          marginHorizontal: 14,
+          marginVertical: 8,
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
+        {/* eslint-disable-next-line react-native/no-raw-text */}
+        {
+          <iframe
+            src={embedUri}
+            title="Embedded product video"
+            style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        }
+      </View>
+    );
+  }
+  const { WebView } = require('react-native-webview');
   return (
     <WebView
       source={{ uri: embedUri }}

@@ -93,6 +93,32 @@ export function useStreamDialogController() {
   };
 }
 
+export function useCameraStreamingController() {
+  const {
+    streamDialog,
+    isStartingStream,
+    setIsStartingStream,
+    openStreamDialog,
+    closeStreamDialog,
+    setStreamTitle,
+    setStreamPrivacy,
+  } = useStreamDialogController();
+  const { snackbarMessage, setSnackbarMessage, dismissSnackbar } = useCameraSnackbar();
+
+  return {
+    streamDialog,
+    isStartingStream,
+    setIsStartingStream,
+    openStreamDialog,
+    closeStreamDialog,
+    setStreamTitle,
+    setStreamPrivacy,
+    snackbarMessage,
+    setSnackbarMessage,
+    dismissSnackbar,
+  };
+}
+
 export function useCameraSelectionController() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -152,6 +178,32 @@ export function useCameraSelectionActions({
   }, [onlineCameraIds, selectAll]);
 
   return { handleSelectAll };
+}
+
+export function useCameraScreenData<T extends { id: string }>({
+  cameras,
+  isDesktop,
+  isCameraReachable,
+  captureModeEnabled,
+  streamModeEnabled,
+}: {
+  cameras: T[] | undefined;
+  isDesktop: boolean;
+  isCameraReachable: (camera: T) => boolean;
+  captureModeEnabled: boolean;
+  streamModeEnabled: boolean;
+}) {
+  const rows = cameras ?? [];
+  const onlineCameras = rows.filter(isCameraReachable);
+
+  return {
+    rows,
+    onlineCameras,
+    onlineCount: onlineCameras.length,
+    numColumns: getCameraGridColumns(isDesktop),
+    captureModeEnabled,
+    streamModeEnabled,
+  };
 }
 
 export function getCameraGridColumns(isDesktop: boolean) {

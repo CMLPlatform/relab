@@ -76,6 +76,15 @@ jest.mock('@/hooks/useYouTubeIntegration', () => ({
   useYouTubeIntegration: () => mockYoutubeIntegrationState,
 }));
 
+jest.mock('@/hooks/useRpiCameras', () => ({
+  useStopYouTubeStreamMutation: () => ({
+    mutate: (_vars: unknown, options?: { onSuccess?: () => void }) => {
+      options?.onSuccess?.();
+    },
+    isPending: false,
+  }),
+}));
+
 jest.mock('@/services/api/authentication', () => ({
   getToken: jest.fn(),
   logout: (...args: unknown[]) => mockLogout(...args),

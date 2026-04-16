@@ -233,10 +233,7 @@ describe('Products screen', () => {
     await screen.findByPlaceholderText('Search products');
 
     fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
-
-    await waitFor(() => {
-      expect(screen.getByText('No products found matching your search.')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('No products found matching your search.')).toBeOnTheScreen();
   });
 
   it('resets page to 1 when search text changes (colocated in onChangeText)', async () => {
@@ -657,9 +654,7 @@ describe('Mine filter chip', () => {
   it('is shown for authenticated users', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByText('Mine')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('Mine')).toBeOnTheScreen();
   });
 
   it('sets filterMode=mine when pressed while in all-products mode', async () => {
@@ -713,9 +708,7 @@ describe('Date filter dropdown', () => {
   it('shows the active preset label on the chip when days param is set', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '90' });
     renderWithProviders(<Products />, { withDialog: true });
-    await waitFor(() => {
-      expect(screen.getByText('Last 90d')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('Last 90d')).toBeOnTheScreen();
   });
 });
 
@@ -775,9 +768,7 @@ describe('Sort — Relevance default when searching', () => {
     renderWithProviders(<Products />, { withDialog: true });
     await screen.findByLabelText('Sort products');
     fireEvent.press(screen.getByLabelText('Sort products'));
-    await waitFor(() => {
-      expect(screen.getByText('Relevance')).toBeOnTheScreen();
-    });
+    expect(await screen.findByText('Relevance')).toBeOnTheScreen();
   });
 
   it('hides Relevance option in the sort menu when there is no search', async () => {

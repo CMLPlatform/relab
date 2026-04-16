@@ -6,7 +6,7 @@ import { login as loginFlow, logout as logoutFlow } from './authLogin';
 import {
   clearCachedAuthState,
   fetchWithAuth as fetchWithAuthFlow,
-  getToken,
+  getToken as getTokenFlow,
   persistAccessToken,
   refreshAuthToken as refreshAuthTokenFlow,
 } from './authRefresh';
@@ -31,7 +31,9 @@ export function hasWebSessionFlag(): boolean {
   return readWebSessionFlag();
 }
 
-export { getToken };
+export async function getToken(): Promise<string | undefined> {
+  return getTokenFlow();
+}
 
 export async function refreshAuthToken(): Promise<boolean> {
   return refreshAuthTokenFlow(apiURL);

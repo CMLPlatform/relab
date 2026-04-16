@@ -7,13 +7,12 @@ import {
   useCameraStreamActions,
 } from '@/hooks/cameras/actions';
 import {
-  getCameraGridColumns,
   useCameraRouteModes,
+  useCameraScreenData,
   useCameraSelectionActions,
   useCameraSelectionController,
-  useCameraSnackbar,
+  useCameraStreamingController,
   useCamerasHeader,
-  useStreamDialogController,
 } from '@/hooks/cameras/helpers';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
@@ -38,8 +37,10 @@ export function useCamerasScreen() {
     closeStreamDialog,
     setStreamTitle,
     setStreamPrivacy,
-  } = useStreamDialogController();
-  const { snackbarMessage, setSnackbarMessage, dismissSnackbar } = useCameraSnackbar();
+    snackbarMessage,
+    setSnackbarMessage,
+    dismissSnackbar,
+  } = useCameraStreamingController();
   const { effectiveConnectionByCameraId, handleEffectiveConnectionChange } =
     useCameraConnectionSnapshots();
   const {
@@ -79,19 +80,22 @@ export function useCamerasScreen() {
     streamModeEnabled,
   });
 
-  const rows = cameras ?? [];
   const isCameraReachable = useCallback(
     (camera: CameraReadWithStatus) =>
       effectiveConnectionByCameraId[camera.id]?.isReachable ??
       resolveEffectiveCameraConnection(camera).isReachable,
     [effectiveConnectionByCameraId],
   );
-  const onlineCameras = rows.filter(isCameraReachable);
-  const onlineCount = onlineCameras.length;
-  const numColumns = getCameraGridColumns(isDesktop);
+  const screenData = useCameraScreenData({
+    cameras,
+    isDesktop,
+    isCameraReachable,
+    captureModeEnabled,
+    streamModeEnabled,
+  });
 
   const { handleSelectAll } = useCameraSelectionActions({
-    onlineCameraIds: onlineCameras.map((camera) => camera.id),
+    onlineCameraIds: screenData.onlineCameras.map((camera) => camera.id),
     selectAll,
   });
 
@@ -127,16 +131,16 @@ export function useCamerasScreen() {
   return {
     screen: {
       user,
-      rows,
+      rows: screenData.rows,
       isLoading,
       isFetching,
       isError,
       error,
       refetch,
-      numColumns,
-      onlineCount,
-      captureModeEnabled,
-      streamModeEnabled,
+      numColumns: screenData.numColumns,
+      onlineCount: screenData.onlineCount,
+      captureModeEnabled: screenData.captureModeEnabled,
+      streamModeEnabled: screenData.streamModeEnabled,
     },
     selection: {
       selectionMode,
