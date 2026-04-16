@@ -1,11 +1,9 @@
-"""Composable query helpers for common SQLAlchemy CRUD operations."""
+"""Small query helpers for common SQLAlchemy CRUD operations."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,61 +20,12 @@ if TYPE_CHECKING:
 
     from fastapi_filter.contrib.sqlalchemy import Filter
     from fastapi_pagination import Page
-
-
-@dataclass(frozen=True, slots=True)
-class QueryOptions:
-    """Options for building an ORM entity select."""
-
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None
-    filters: Filter | None = None
-    statement: Select[tuple[Any]] | None = None
-    read_schema: type[BaseModel] | None = None
-
-
-def build_query(model: type[MT], options: QueryOptions | None = None) -> Select[tuple[MT]]:
-    """Build a SQLAlchemy select for a model."""
-    options = options or QueryOptions()
-    statement = cast("Select[tuple[MT]]", options.statement if options.statement is not None else select(model))
-    statement = apply_filter(statement, model, options.filters)
-    return apply_loader_profile(statement, model, options.loaders, read_schema=options.read_schema)
-
-
-def _merge_options(
-    options: QueryOptions | None,
-    *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
-    filters: Filter | None = None,
-    statement: Select[tuple[Any]] | None = None,
-    read_schema: type[BaseModel] | None = None,
-) -> QueryOptions | None:
-    if options is not None:
-        return options
-    if loaders is None and filters is None and statement is None and read_schema is None:
-        return None
-    return QueryOptions(loaders=loaders, filters=filters, statement=statement, read_schema=read_schema)
-
-
-async def list_models(
-    db: AsyncSession,
-    model: type[MT],
-    options: QueryOptions | None = None,
-    *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
-    filters: Filter | None = None,
-    statement: Select[tuple[Any]] | None = None,
-    read_schema: type[BaseModel] | None = None,
-) -> list[MT]:
-    """Return all models matching a query."""
-    options = _merge_options(options, loaders=loaders, filters=filters, statement=statement, read_schema=read_schema)
-    statement = build_query(model, options)
-    return list((await db.execute(statement)).scalars().unique().all())
+    from pydantic import BaseModel
 
 
 async def page_models(
     db: AsyncSession,
     model: type[MT],
-    options: QueryOptions | None = None,
     *,
     loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
     filters: Filter | None = None,
@@ -85,8 +34,9 @@ async def page_models(
     mutate_items: Callable[[list[Any]], None] | None = None,
 ) -> Page[Any]:
     """Return a page of models matching a query."""
-    options = _merge_options(options, loaders=loaders, filters=filters, statement=statement, read_schema=read_schema)
-    statement = build_query(model, options)
+    statement = cast("Select[tuple[MT]]", statement if statement is not None else select(model))
+    statement = apply_filter(statement, model, filters)
+    statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
     return await paginate_select(db, statement, model=model, mutate_items=mutate_items)
 
 
@@ -103,7 +53,8 @@ async def get_model(
         err_msg = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
 
-    statement = build_query(model, QueryOptions(loaders=loaders, read_schema=read_schema)).filter_by(id=model_id)
+    statement = cast("Select[tuple[MT]]", select(model).filter_by(id=model_id))
+    statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
     return (await db.execute(statement)).scalars().unique().one_or_none()
 
 

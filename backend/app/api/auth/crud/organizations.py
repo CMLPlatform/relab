@@ -53,9 +53,52 @@ def _organization_members_statement(organization_id: UUID4) -> Select[tuple[User
     return select(User).where(User.organization_id == organization_id)
 
 
+async def get_organization(
+    db: AsyncSession,
+    organization_id: UUID4,
+    *,
+    loaders: set[str] | None = None,
+    read_schema: type[BaseModel] | None = None,
+) -> Organization:
+    """Load one organization with optional relationships."""
+    return await require_model(db, Organization, organization_id, loaders=loaders, read_schema=read_schema)
+
+
 async def _load_org_for_transfer(db: AsyncSession, organization_id: UUID4) -> Organization:
     """Load an organization with members and owner for ownership transfer flows."""
-    return await require_model(db, Organization, organization_id, loaders={"members", "owner"})
+    return await get_organization(db, organization_id, loaders={"members", "owner"})
+
+
+async def _require_joinable_current_owner_org(db: AsyncSession, user: User) -> Organization:
+    """Load the organization currently owned by the user during join flows."""
+    db_organization = user.organization
+    if db_organization is None or db_organization.id != user.organization_id:
+        return await get_organization(
+            db,
+            user.organization_id,
+            loaders={"members"},
+        )
+    return db_organization
+
+
+async def _delete_empty_owned_organization_for_join(db: AsyncSession, user: User) -> None:
+    """Delete a user's current organization when they are its last remaining owner/member."""
+    if user.organization_id is None:
+        err_msg = "Owned organization must exist before deleting it during join flow."
+        raise InternalServerError(details=err_msg, log_message=err_msg)
+
+    db_organization = await _require_joinable_current_owner_org(db, user)
+    if len(db_organization.members) > 1:
+        raise UserOwnsOrgError(
+            details=" You cannot join another organization until you transfer ownership or remove all members."
+        )
+
+    user.organization_id = None
+    user.organization_role = None
+    user.organization = None
+    db.add(user)
+    await db.flush()
+    await db.execute(delete(Organization).where(Organization.id == db_organization.id))
 
 
 def _require_transfer_member(db_organization: Organization, transfer_owner_id: UUID4) -> User:
@@ -176,7 +219,7 @@ async def delete_organization_as_owner(db: AsyncSession, owner: User) -> None:
 
 async def force_delete_organization(db: AsyncSession, organization_id: UUID4) -> None:
     """Force delete a organization from the database."""
-    db_organization = await require_model(db, Organization, organization_id)
+    db_organization = await get_organization(db, organization_id)
 
     await delete_and_commit(db, db_organization)
 
@@ -191,27 +234,7 @@ async def user_join_organization(
     # Check if user already owns an organization
     if user.organization_id:
         if user.organization_role == OrganizationRole.OWNER:
-            db_organization = user.organization
-            if db_organization is None or db_organization.id != user.organization_id:
-                db_organization = await require_model(
-                    db,
-                    Organization,
-                    user.organization_id,
-                    loaders={"members"},
-                )
-
-            if len(db_organization.members) > 1:
-                raise UserOwnsOrgError(
-                    details=" You cannot join another organization until you transfer ownership or remove all members."
-                )
-
-            # The owner is the only member, so we can delete the empty organization first.
-            user.organization_id = None
-            user.organization_role = None
-            user.organization = None
-            db.add(user)
-            await db.flush()
-            await db.execute(delete(Organization).where(Organization.id == db_organization.id))
+            await _delete_empty_owned_organization_for_join(db, user)
         else:
             raise AlreadyMemberError(details="Leave your current organization before joining a new one.")
 
@@ -240,10 +263,10 @@ async def get_organization_members(
         raise UserIsNotMemberError
 
     if paginate:
-        await require_model(db, Organization, organization_id)
+        await get_organization(db, organization_id)
         return await page_organization_members(db, organization_id, read_schema=read_schema)
 
-    organization = await require_model(db, Organization, organization_id, loaders={"members"})
+    organization = await get_organization(db, organization_id, loaders={"members"})
 
     return organization.members
 

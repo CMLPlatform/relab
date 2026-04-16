@@ -318,7 +318,13 @@ class TestGetOrganizationMembers:
             )
 
         assert result == sentinel.page
-        mock_require_model.assert_awaited_once_with(mock_session, Organization, org_id)
+        mock_require_model.assert_awaited_once_with(
+            mock_session,
+            Organization,
+            org_id,
+            loaders=None,
+            read_schema=None,
+        )
         mock_get_paginated.assert_awaited_once_with(
             mock_session,
             org_id,

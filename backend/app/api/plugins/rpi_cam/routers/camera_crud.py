@@ -9,7 +9,7 @@ from relab_rpi_cam_models import LocalAccessInfo
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.common.crud.query import list_models
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
@@ -67,7 +67,8 @@ async def get_user_cameras(
 ) -> Sequence[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
     statement = select(Camera).where(Camera.owner_id == current_user.id)
-    db_cameras = await list_models(session, Camera, filters=camera_filter, statement=statement)
+    statement = apply_filter(statement, Camera, camera_filter)
+    db_cameras = list((await session.execute(statement)).scalars().unique().all())
 
     if not (include_status or include_telemetry):
         return list(db_cameras)

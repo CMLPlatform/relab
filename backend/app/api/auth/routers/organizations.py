@@ -10,6 +10,9 @@ from app.api.auth.crud.organizations import (
     create_organization as create_organization_record,
 )
 from app.api.auth.crud.organizations import (
+    get_organization as get_organization_record,
+)
+from app.api.auth.crud.organizations import (
     get_organization_members as get_org_members,
 )
 from app.api.auth.crud.organizations import (
@@ -28,7 +31,6 @@ from app.api.auth.schemas import (
     UserReadPublic,
     UserReadWithOrganization,
 )
-from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 
@@ -54,7 +56,7 @@ async def get_organizations(
 )
 async def get_organization(organization_id: UUID4, session: AsyncSessionDep) -> Organization:
     """Get an organization by ID."""
-    return await require_model(session, Organization, organization_id)
+    return await get_organization_record(session, organization_id)
 
 
 @router.post("", response_model=OrganizationRead, status_code=201, summary="Create new organization")
@@ -95,5 +97,5 @@ async def join_organization(
     organization_id: UUID4, session: AsyncSessionDep, current_user: CurrentActiveVerifiedUserDep
 ) -> User:
     """Join an organization as a member."""
-    organization = await require_model(session, Organization, organization_id)
+    organization = await get_organization_record(session, organization_id)
     return await user_join_organization(session, organization, current_user)

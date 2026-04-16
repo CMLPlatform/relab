@@ -12,7 +12,7 @@ from app.api.background_data.models import Material
 from app.api.common.crud.exceptions import CRUDConfigurationError
 from app.api.common.crud.filtering import filter_has_values
 from app.api.common.crud.loading import apply_loader_profile
-from app.api.common.crud.query import QueryOptions, build_query, require_model
+from app.api.common.crud.query import require_model
 
 
 @pytest.mark.unit
@@ -62,9 +62,9 @@ class TestQueryConstruction:
         assert str(updated_statement) == str(statement)
 
     def test_accepts_explicit_base_statement(self) -> None:
-        """Explicit SQLAlchemy statements should not be evaluated as booleans."""
+        """Explicit SQLAlchemy statements should remain stable through loader application."""
         statement = select(Material).where(Material.id == 1)
 
-        updated_statement = build_query(Material, QueryOptions(statement=statement))
+        updated_statement = apply_loader_profile(statement, Material)
 
         assert str(updated_statement) == str(statement)

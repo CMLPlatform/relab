@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pydantic import UUID4
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.common.crud.query import list_models
+from app.api.common.crud.filtering import apply_filter
 from app.api.file_storage.filters import FileFilter, ImageFilter
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.schemas import FileCreate, FileUpdate, ImageCreateFromForm, ImageCreateInternal, ImageUpdate
@@ -27,7 +28,9 @@ if TYPE_CHECKING:
 
 async def get_files(db: AsyncSession, *, file_filter: FileFilter | None = None) -> Sequence[File]:
     """Get all files from the database."""
-    return await list_models(db, File, filters=file_filter)
+    statement: Select[tuple[File]] = select(File)
+    statement = cast("Select[tuple[File]]", apply_filter(statement, File, file_filter))
+    return list((await db.execute(statement)).scalars().unique().all())
 
 
 async def get_file(db: AsyncSession, file_id: UUID4) -> File:
@@ -52,7 +55,9 @@ async def delete_file(db: AsyncSession, file_id: UUID4) -> None:
 
 async def get_images(db: AsyncSession, *, image_filter: ImageFilter | None = None) -> Sequence[Image]:
     """Get all images from the database."""
-    return await list_models(db, Image, filters=image_filter)
+    statement: Select[tuple[Image]] = select(Image)
+    statement = cast("Select[tuple[Image]]", apply_filter(statement, Image, image_filter))
+    return list((await db.execute(statement)).scalars().unique().all())
 
 
 async def get_image(db: AsyncSession, image_id: UUID4) -> Image:

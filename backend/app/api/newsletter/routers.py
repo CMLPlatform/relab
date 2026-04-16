@@ -130,9 +130,40 @@ async def _set_newsletter_preference(
     return _newsletter_preference_read(email=email, subscriber=None)
 
 
+async def _request_unsubscribe(
+    db: AsyncSessionDep,
+    *,
+    email: str,
+    background_tasks: BackgroundTasks,
+) -> dict[str, str]:
+    """Send an unsubscribe email when the subscriber exists, otherwise return the safe message."""
+    existing_subscriber = await _get_subscriber_by_email(db, email)
+    if existing_subscriber is None:
+        return _safe_unsubscribe_message()
+
+    token = create_jwt_token(email, JWTType.NEWSLETTER_UNSUBSCRIBE)
+    await send_newsletter_unsubscription_request_email(email, token, background_tasks=background_tasks)
+    return _safe_unsubscribe_message()
+
+
+async def _load_newsletter_preference(
+    db: AsyncSessionDep,
+    *,
+    email: str,
+) -> NewsletterPreferenceRead:
+    """Load the preference state for one email address."""
+    existing_subscriber = await _get_subscriber_by_email(db, email)
+    return _newsletter_preference_read(email=email, subscriber=existing_subscriber)
+
+
 def _subscribers_statement() -> Select[tuple[NewsletterSubscriber]]:
     """Build the admin subscriber listing query."""
     return select(NewsletterSubscriber).order_by(NewsletterSubscriber.created_at.desc())
+
+
+async def _page_subscribers(db: AsyncSessionDep) -> Page[NewsletterSubscriber]:
+    """Page newsletter subscribers for the admin view."""
+    return await paginate_select(db, _subscribers_statement(), model=NewsletterSubscriber)
 
 
 @backend_router.post("/subscribe", status_code=201, response_model=NewsletterSubscriberRead)
@@ -173,15 +204,7 @@ async def request_unsubscribe(
     background_tasks: BackgroundTasks,
 ) -> dict:
     """Request to unsubscribe by sending an email with unsubscribe link."""
-    existing_subscriber = await _get_subscriber_by_email(db, email)
-
-    if not existing_subscriber:
-        return _safe_unsubscribe_message()
-
-    token = create_jwt_token(email, JWTType.NEWSLETTER_UNSUBSCRIBE)
-    await send_newsletter_unsubscription_request_email(email, token, background_tasks=background_tasks)
-
-    return _safe_unsubscribe_message()
+    return await _request_unsubscribe(db, email=email, background_tasks=background_tasks)
 
 
 @backend_router.post("/unsubscribe", status_code=204)
@@ -208,8 +231,7 @@ async def get_newsletter_preference(
     current_user: CurrentActiveUserDep, db: AsyncSessionDep
 ) -> NewsletterPreferenceRead:
     """Return the logged-in user's newsletter preference."""
-    existing_subscriber = await _get_subscriber_by_email(db, current_user.email)
-    return _newsletter_preference_read(email=current_user.email, subscriber=existing_subscriber)
+    return await _load_newsletter_preference(db, email=current_user.email)
 
 
 @private_router.put("/me", response_model=NewsletterPreferenceRead)
@@ -229,7 +251,7 @@ admin_router = APIRouter(prefix="/admin/newsletter", dependencies=[Security(curr
 @admin_router.get("/subscribers", response_model=Page[NewsletterSubscriberRead])
 async def get_subscribers(db: AsyncSessionDep) -> Page[NewsletterSubscriber]:
     """Get all newsletter subscribers. Only accessible by superusers."""
-    return await paginate_select(db, _subscribers_statement(), model=NewsletterSubscriber)
+    return await _page_subscribers(db)
 
 
 ### Router registration ###
