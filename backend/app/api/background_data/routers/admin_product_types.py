@@ -63,6 +63,40 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/product-types", tags=["product-types"])
 
 
+def _product_type_file_create(
+    product_type_id: int,
+    *,
+    file: UploadFile,
+    description: str | None,
+) -> FileCreate:
+    """Build the canonical product-type file create payload."""
+    return FileCreate(
+        file=file,
+        description=description,
+        parent_id=product_type_id,
+        parent_type=MediaParentType.PRODUCT_TYPE,
+    )
+
+
+def _product_type_image_create(
+    product_type_id: int,
+    *,
+    file: UploadFile,
+    description: str | None,
+    image_metadata: str | None,
+) -> ImageCreateFromForm:
+    """Build the canonical product-type image create payload."""
+    return ImageCreateFromForm.model_validate(
+        {
+            "file": file,
+            "description": description,
+            "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
+            "parent_id": product_type_id,
+            "parent_type": MediaParentType.PRODUCT_TYPE,
+        }
+    )
+
+
 @router.post(
     "",
     response_model=ProductTypeRead,
@@ -191,12 +225,7 @@ async def upload_product_type_file(
     item = await create_product_type_file(
         session,
         product_type_id,
-        FileCreate(
-            file=file,
-            description=description,
-            parent_id=product_type_id,
-            parent_type=MediaParentType.PRODUCT_TYPE,
-        ),
+        _product_type_file_create(product_type_id, file=file, description=description),
     )
     return FileReadWithinParent.model_validate(item)
 
@@ -241,14 +270,11 @@ async def upload_product_type_image(
     item = await create_product_type_image(
         session,
         product_type_id,
-        ImageCreateFromForm.model_validate(
-            {
-                "file": file,
-                "description": description,
-                "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
-                "parent_id": product_type_id,
-                "parent_type": MediaParentType.PRODUCT_TYPE,
-            }
+        _product_type_image_create(
+            product_type_id,
+            file=file,
+            description=description,
+            image_metadata=image_metadata,
         ),
     )
     return ImageReadWithinParent.model_validate(item)

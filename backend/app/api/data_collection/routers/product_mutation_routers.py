@@ -9,17 +9,14 @@ from fastapi import Body, Depends, Form, Path, UploadFile
 from fastapi import File as FastAPIFile
 from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator, PositiveInt
-from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.services.stats import recompute_user_stats
-from app.api.common.crud.exceptions import DependentModelOwnershipError
-from app.api.common.crud.query import require_model
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.common.schemas.base import ProductRead
-from app.api.data_collection.crud.products import create_component
+from app.api.data_collection.crud.products import create_component, get_owned_component
 from app.api.data_collection.crud.products import create_product as create_product_record
 from app.api.data_collection.crud.products import delete_product as delete_product_record
 from app.api.data_collection.crud.products import update_product as update_product_record
@@ -64,6 +61,42 @@ from app.api.file_storage.schemas import (
 )
 
 product_mutation_router = PublicAPIRouter(prefix="/products", tags=["products"])
+
+
+def _parse_optional_json(value: str | None) -> dict[str, object] | None:
+    """Parse optional JSON form payloads only when provided."""
+    if value is None:
+        return None
+    return dict(json.loads(value))
+
+
+def _product_file_create(parent_id: int, *, file: UploadFile, description: str | None) -> FileCreate:
+    """Build the canonical product file create payload."""
+    return FileCreate(
+        file=file,
+        description=description,
+        parent_id=parent_id,
+        parent_type=MediaParentType.PRODUCT,
+    )
+
+
+def _product_image_create(
+    parent_id: int,
+    *,
+    file: UploadFile,
+    description: str | None,
+    image_metadata: str | None,
+) -> ImageCreateFromForm:
+    """Build the canonical product image create payload."""
+    return ImageCreateFromForm.model_validate(
+        {
+            "file": file,
+            "description": description,
+            "image_metadata": _parse_optional_json(image_metadata),
+            "parent_id": parent_id,
+            "parent_type": MediaParentType.PRODUCT,
+        }
+    )
 
 
 @product_mutation_router.post(
@@ -138,15 +171,8 @@ async def delete_product_component(
     db_product: UserOwnedProductDep, component_id: PositiveInt, session: AsyncSessionDep
 ) -> None:
     """Delete a component in a product, including subcomponents."""
-    component = await require_model(session, Product, component_id)
-    if component.parent_id != db_product.id:
-        raise DependentModelOwnershipError(Product, component_id, Product, db_product.id)
-    exists = await session.scalar(
-        select(Product.id).where(Product.id == component_id, Product.parent_id == db_product.id)
-    )
-    if exists is None:
-        raise DependentModelOwnershipError(Product, component_id, Product, db_product.id)
-    await delete_product_record(session, component_id)
+    component = await get_owned_component(session, parent_product_id=db_product.id, component_id=component_id)
+    await delete_product_record(session, component.id)
 
 
 @product_mutation_router.get(
@@ -195,7 +221,7 @@ async def upload_product_file(
     item = await create_product_file(
         session,
         parent_id,
-        FileCreate(file=file, description=description, parent_id=parent_id, parent_type=MediaParentType.PRODUCT),
+        _product_file_create(parent_id, file=file, description=description),
     )
     return FileReadWithinParent.model_validate(item)
 
@@ -269,15 +295,7 @@ async def upload_product_image(
     item = await create_product_image(
         session,
         parent_id,
-        ImageCreateFromForm.model_validate(
-            {
-                "file": file,
-                "description": description,
-                "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
-                "parent_id": parent_id,
-                "parent_type": MediaParentType.PRODUCT,
-            }
-        ),
+        _product_image_create(parent_id, file=file, description=description, image_metadata=image_metadata),
     )
     await recompute_user_stats(session, current_user.id)
     await session.commit()

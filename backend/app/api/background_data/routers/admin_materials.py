@@ -58,6 +58,35 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/materials", tags=["materials"])
 
 
+def _material_file_create(material_id: int, *, file: UploadFile, description: str | None) -> FileCreate:
+    """Build the canonical material file create payload."""
+    return FileCreate(
+        file=file,
+        description=description,
+        parent_id=material_id,
+        parent_type=MediaParentType.MATERIAL,
+    )
+
+
+def _material_image_create(
+    material_id: int,
+    *,
+    file: UploadFile,
+    description: str | None,
+    image_metadata: str | None,
+) -> ImageCreateFromForm:
+    """Build the canonical material image create payload."""
+    return ImageCreateFromForm.model_validate(
+        {
+            "file": file,
+            "description": description,
+            "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
+            "parent_id": material_id,
+            "parent_type": MediaParentType.MATERIAL,
+        }
+    )
+
+
 @router.post(
     "",
     response_model=MaterialRead,
@@ -186,7 +215,7 @@ async def upload_material_file(
     item = await create_material_file(
         session,
         material_id,
-        FileCreate(file=file, description=description, parent_id=material_id, parent_type=MediaParentType.MATERIAL),
+        _material_file_create(material_id, file=file, description=description),
     )
     return FileReadWithinParent.model_validate(item)
 
@@ -231,15 +260,7 @@ async def upload_material_image(
     item = await create_material_image(
         session,
         material_id,
-        ImageCreateFromForm.model_validate(
-            {
-                "file": file,
-                "description": description,
-                "image_metadata": json.loads(image_metadata) if image_metadata is not None else None,
-                "parent_id": material_id,
-                "parent_type": MediaParentType.MATERIAL,
-            }
-        ),
+        _material_image_create(material_id, file=file, description=description, image_metadata=image_metadata),
     )
     return ImageReadWithinParent.model_validate(item)
 

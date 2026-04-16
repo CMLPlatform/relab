@@ -79,8 +79,8 @@ class TestProductCrud:
         )
 
         with (
-            patch("app.api.data_collection.crud.products.require_models"),
-            patch("app.api.data_collection.crud.products.recompute_user_stats"),
+            patch("app.api.data_collection.crud.product_commands.require_models"),
+            patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
         ):
             result = await create_product(mock_session, product_create, owner_id)
 
@@ -93,7 +93,7 @@ class TestProductCrud:
 
     async def test_get_product_trees(self, mock_session: AsyncMock) -> None:
         """Test retrieving product trees."""
-        with patch("app.api.data_collection.crud.products.require_model"):
+        with patch("app.api.data_collection.crud.product_tree_queries.require_model"):
             # Setup mock_session to return results for exec().all()
             mock_scalars = MagicMock()
             mock_scalars.all.return_value = ["Product 1"]
@@ -112,9 +112,9 @@ class TestProductCrud:
         db_product = ProductFactory.build(id=product_id, name="Bosch PSR 1800 LI-2")
 
         with (
-            patch("app.api.data_collection.crud.products.require_model", return_value=db_product),
-            patch("app.api.data_collection.crud.products.require_models", return_value=[]),
-            patch("app.api.data_collection.crud.products.recompute_user_stats"),
+            patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
+            patch("app.api.data_collection.crud.product_commands.require_models", return_value=[]),
+            patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
         ):
             result = await update_product(mock_session, product_id, product_update)
             assert result.name == "Bosch GSR 18V-90 C"
@@ -127,10 +127,10 @@ class TestProductCrud:
         db_product = ProductFactory.build(id=product_id)
 
         with (
-            patch("app.api.data_collection.crud.products.require_model", return_value=db_product),
-            patch("app.api.data_collection.crud.products.delete_all_product_files"),
-            patch("app.api.data_collection.crud.products.delete_all_product_images"),
-            patch("app.api.data_collection.crud.products.recompute_user_stats"),
+            patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
+            patch("app.api.data_collection.crud.product_commands.delete_all_product_files"),
+            patch("app.api.data_collection.crud.product_commands.delete_all_product_images"),
+            patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
         ):
             await delete_product(mock_session, product_id)
             mock_session.delete.assert_called_once_with(db_product)
@@ -158,7 +158,7 @@ class TestProductCrud:
             bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
         )
 
-        with patch("app.api.data_collection.crud.products.require_models"):
+        with patch("app.api.data_collection.crud.product_commands.require_models"):
             res = await create_component(mock_session, comp_create, parent_product)
             assert res.name == "Comp"
             assert res.owner_id == owner_id
