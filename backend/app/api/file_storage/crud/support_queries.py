@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from pydantic import UUID4
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.persistence import SupportsModelDump, update_and_commit
 from app.api.common.crud.query import require_model
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
+from app.api.file_storage.exceptions import (
+    FastAPIStorageFileNotFoundError,
+    ModelFileNotFoundError,
+    ParentStorageOwnershipError,
+)
 from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.parents import parent_model_for_type
 
 from .support_types import StorageModel
+
+if TYPE_CHECKING:
+    from fastapi_filter.contrib.sqlalchemy import Filter
+
+    from app.api.common.models.custom_types import MT
 
 
 async def ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
@@ -65,3 +75,42 @@ def ensure_storage_item_found[StorageModelT: StorageModel](
     if db_item is None:
         raise ModelNotFoundError(model, item_id)
     return db_item
+
+
+async def get_parent_owned_storage_item[StorageModelT: StorageModel, ParentModelT: MT](
+    db: AsyncSession,
+    *,
+    parent_model: type[ParentModelT],
+    model: type[StorageModelT],
+    parent_id: int,
+    item_id: UUID4,
+) -> StorageModelT:
+    """Fetch a storage item and verify that it belongs to the scoped parent."""
+    await require_model(db, parent_model, parent_id)
+    try:
+        db_item = await db.get(model, item_id)
+    except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
+        raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
+
+    db_item = ensure_storage_item_found(model, item_id, cast("StorageModelT | None", db_item))
+    if db_item.parent_id != parent_id:
+        raise ParentStorageOwnershipError(model, item_id, parent_model, parent_id)
+    return db_item
+
+
+async def list_parent_storage_items[StorageModelT: StorageModel](
+    db: AsyncSession,
+    *,
+    model: type[StorageModelT],
+    parent_type: MediaParentType,
+    parent_id: int,
+    filter_params: Filter | None = None,
+) -> list[StorageModelT]:
+    """List storage items owned by one parent/type scope."""
+    statement: Select[tuple[StorageModelT]] = select(model).where(
+        model.parent_type == parent_type,
+        model.parent_id == parent_id,
+    )
+    if filter_params is not None:
+        statement = cast("Select[tuple[StorageModelT]]", filter_params.filter(statement))
+    return list((await db.execute(statement)).scalars().all())
