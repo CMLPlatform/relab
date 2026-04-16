@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI
@@ -15,7 +15,9 @@ from tests.factories.models import UserFactory
 from tests.fixtures.client import override_authenticated_user
 from tests.integration.api._newsletter_support import HTTP_OK
 
-if False:  # pragma: no cover
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -23,7 +23,7 @@ from app.api.auth.exceptions import (
     UserDoesNotOwnOrgError,
     UserIsNotMemberError,
 )
-from app.api.auth.models import Organization
+from app.api.auth.models import Organization, OrganizationRole
 from app.api.auth.schemas import OrganizationCreate, OrganizationReadPublic, OrganizationUpdate
 from tests.factories.models import OrganizationFactory
 from tests.unit.auth._org_crud_support import make_user

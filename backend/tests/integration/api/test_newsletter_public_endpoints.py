@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -26,7 +26,9 @@ from tests.integration.api._newsletter_support import (
     detail_text,
 )
 
-if False:  # pragma: no cover
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 

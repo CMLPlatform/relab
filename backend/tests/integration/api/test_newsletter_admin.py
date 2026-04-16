@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from app.api.newsletter.models import NewsletterSubscriber
 from tests.integration.api._newsletter_support import HTTP_OK
 
-if False:  # pragma: no cover
+if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
