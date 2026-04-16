@@ -3,6 +3,13 @@ import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import {
+  extractApiErrorDetail,
+  getAuthLoginPath,
+  getAuthRefreshPath,
+  mapApiUserToUser,
+  shouldSkipUserFetch,
+} from './authHelpers';
+import {
   clearStoredAccessToken,
   isWeb,
   loadStoredAccessToken,
@@ -76,7 +83,7 @@ export async function refreshAuthToken(): Promise<boolean> {
   // On native the server will reject the request if no valid session exists.
   if (isWeb() && !hasWebSessionFlag()) return false;
 
-  const authPath = isWeb() ? '/auth/cookie/refresh' : '/auth/refresh';
+  const authPath = getAuthRefreshPath(isWeb());
   const url = new URL(apiURL + authPath);
 
   refreshPromise = (async () => {
@@ -154,7 +161,7 @@ export async function fetchWithAuth(
 }
 
 export async function login(username: string, password: string): Promise<string | undefined> {
-  const authPath = isWeb() ? '/auth/cookie/login' : '/auth/bearer/login';
+  const authPath = getAuthLoginPath(isWeb());
   const url = new URL(apiURL + authPath);
   const headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -197,7 +204,7 @@ export async function login(username: string, password: string): Promise<string 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
       throw new Error(
-        `HTTP ${response.status}: ${errorData?.detail || JSON.stringify(errorData) || 'Login failed.'}`,
+        `HTTP ${response.status}: ${extractApiErrorDetail(errorData, 'Login failed.')}`,
       );
     }
 
@@ -241,8 +248,16 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
     // this as an unauthenticated state.
     // forceRefresh bypasses the logged-out guard on native so that a fresh
     // token obtained after login/refresh can immediately hydrate the cache.
-    if (!forceRefresh && explicitlyLoggedOut) return undefined;
-    if (isWeb() && !forceRefresh && !hasWebSessionFlag()) return undefined;
+    if (
+      shouldSkipUserFetch({
+        forceRefresh,
+        explicitlyLoggedOut,
+        web: isWeb(),
+        hasWebSession: hasWebSessionFlag(),
+      })
+    ) {
+      return undefined;
+    }
 
     if (getUserPromise && !forceRefresh) {
       return await getUserPromise;
@@ -276,16 +291,7 @@ export async function getUser(forceRefresh = false): Promise<User | undefined> {
         })) as ApiUserRead | undefined;
         if (!data) return undefined;
 
-        user = {
-          id: data.id,
-          email: data.email,
-          isActive: data.is_active,
-          isSuperuser: data.is_superuser,
-          isVerified: data.is_verified,
-          username: data.username ?? 'Username not defined',
-          oauth_accounts: data.oauth_accounts ?? [],
-          preferences: data.preferences ?? {},
-        };
+        user = mapApiUserToUser(data);
 
         // successful user fetch; mark web session flag
         setWebSessionFlag(true);
@@ -326,9 +332,8 @@ export async function register(
 
     if (response.ok) return { success: true };
 
-    const errorData = await response.json();
-    const errorMessage =
-      errorData.detail?.reason || errorData.detail || 'Registration failed. Please try again.';
+    const errorData = await response.json().catch(() => null);
+    const errorMessage = extractApiErrorDetail(errorData, 'Registration failed. Please try again.');
 
     return { success: false, error: errorMessage };
   } catch (error) {
@@ -396,7 +401,7 @@ export async function oauthLoginWithGoogleToken(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.detail || 'Google login failed. Please try again.');
+    throw new Error(extractApiErrorDetail(errorData, 'Google login failed. Please try again.'));
   }
 }
 
@@ -411,7 +416,7 @@ export async function unlinkOAuth(provider: string): Promise<boolean> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.detail || `Failed to unlink ${provider} account`);
+      throw new Error(extractApiErrorDetail(errorData, `Failed to unlink ${provider} account`));
     }
 
     user = undefined;
