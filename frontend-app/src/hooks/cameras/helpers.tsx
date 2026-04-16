@@ -130,6 +130,30 @@ export function useCameraSelectionController() {
   };
 }
 
+export function useCameraSnackbar() {
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+
+  return {
+    snackbarMessage,
+    setSnackbarMessage,
+    dismissSnackbar: useCallback(() => setSnackbarMessage(null), []),
+  };
+}
+
+export function useCameraSelectionActions({
+  onlineCameraIds,
+  selectAll,
+}: {
+  onlineCameraIds: string[];
+  selectAll: (ids: string[]) => void;
+}) {
+  const handleSelectAll = useCallback(() => {
+    selectAll(onlineCameraIds);
+  }, [onlineCameraIds, selectAll]);
+
+  return { handleSelectAll };
+}
+
 export function getCameraGridColumns(isDesktop: boolean) {
   return isDesktop ? DESKTOP_COLUMNS : MOBILE_COLUMNS;
 }

@@ -1,31 +1,26 @@
-import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import {
-  showGoogleAccountRequired,
-  showStreamStartFailed,
-} from '@/components/cameras/streamingFeedback';
+import { useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthProvider';
-import { useStreamSession } from '@/context/StreamSessionContext';
+import {
+  useCameraCaptureActions,
+  useCameraConnectionSnapshots,
+  useCameraStreamActions,
+} from '@/hooks/cameras/actions';
 import {
   getCameraGridColumns,
   useCameraRouteModes,
+  useCameraSelectionActions,
   useCameraSelectionController,
+  useCameraSnackbar,
   useCamerasHeader,
   useStreamDialogController,
 } from '@/hooks/cameras/helpers';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import {
-  type EffectiveCameraConnection,
-  resolveEffectiveCameraConnection,
-} from '@/hooks/useEffectiveCameraConnection';
+import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
-import { addProductVideo } from '@/services/api/products';
-import { type CameraReadWithStatus, startYouTubeStream } from '@/services/api/rpiCamera';
-
-type EffectiveConnectionSnapshot = Pick<EffectiveCameraConnection, 'isReachable' | 'transport'>;
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
 export function useCamerasScreen() {
   const router = useRouter();
@@ -33,8 +28,6 @@ export function useCamerasScreen() {
   const { user } = useAuth();
   const feedback = useAppFeedback();
   const isDesktop = useIsDesktop();
-  const queryClient = useQueryClient();
-  const { setActiveStream } = useStreamSession();
   const { captureAllProductId, captureModeEnabled, streamProductId, streamModeEnabled } =
     useCameraRouteModes();
   const {
@@ -46,10 +39,9 @@ export function useCamerasScreen() {
     setStreamTitle,
     setStreamPrivacy,
   } = useStreamDialogController();
-  const [snackbar, setSnackbar] = useState<string | null>(null);
-  const [effectiveConnectionByCameraId, setEffectiveConnectionByCameraId] = useState<
-    Record<string, EffectiveConnectionSnapshot>
-  >({});
+  const { snackbarMessage, setSnackbarMessage, dismissSnackbar } = useCameraSnackbar();
+  const { effectiveConnectionByCameraId, handleEffectiveConnectionChange } =
+    useCameraConnectionSnapshots();
   const {
     selectionMode,
     selectedIds,
@@ -98,148 +90,39 @@ export function useCamerasScreen() {
   const onlineCount = onlineCameras.length;
   const numColumns = getCameraGridColumns(isDesktop);
 
-  const handleEffectiveConnectionChange = useCallback(
-    (cameraId: string, connection: EffectiveConnectionSnapshot) => {
-      setEffectiveConnectionByCameraId((prev) => {
-        const current = prev[cameraId];
-        if (
-          current?.isReachable === connection.isReachable &&
-          current.transport === connection.transport
-        ) {
-          return prev;
-        }
-        return { ...prev, [cameraId]: connection };
-      });
-    },
-    [],
-  );
+  const { handleSelectAll } = useCameraSelectionActions({
+    onlineCameraIds: onlineCameras.map((camera) => camera.id),
+    selectAll,
+  });
 
-  const runCapture = useCallback(
-    (cameraIds: string[]) => {
-      if (captureAllProductId === null || cameraIds.length === 0) return;
-      captureAll.mutate(
-        { cameraIds, productId: captureAllProductId },
-        {
-          onSuccess: ({ total, succeeded, failed }) => {
-            setSnackbar(
-              failed === 0
-                ? `Captured ${succeeded}/${total} cameras`
-                : `Captured ${succeeded}/${total} · ${failed} failed`,
-            );
-            clearSelection();
-          },
-          onError: (err) => setSnackbar(`Capture failed: ${String(err)}`),
-        },
-      );
-    },
-    [captureAll, captureAllProductId, clearSelection],
-  );
+  const { handleCaptureSelected, handleCardLongPress } = useCameraCaptureActions({
+    captureAll,
+    captureAllProductId,
+    clearSelection,
+    selectedIds,
+    captureModeEnabled,
+    selectionMode,
+    enterSelectionMode,
+    toggleSelected,
+    isCameraReachable,
+    setSnackbar: setSnackbarMessage,
+  });
 
-  const handleSelectAll = useCallback(() => {
-    selectAll(onlineCameras.map((camera) => camera.id));
-  }, [onlineCameras, selectAll]);
-
-  const handleCaptureSelected = useCallback(() => {
-    runCapture([...selectedIds]);
-  }, [runCapture, selectedIds]);
-
-  const handleCardTap = useCallback(
-    (camera: CameraReadWithStatus) => {
-      if (streamModeEnabled) {
-        if (!isCameraReachable(camera)) {
-          setSnackbar(`${camera.name} is offline — can't stream.`);
-          return;
-        }
-        openStreamDialog(camera.id, camera.name, streamProduct?.name ?? '');
-        return;
-      }
-
-      if (selectionMode) {
-        if (isCameraReachable(camera)) {
-          toggleSelected(camera.id);
-        } else {
-          setSnackbar(`${camera.name} is offline — can't capture.`);
-        }
-        return;
-      }
-
-      router.push({ pathname: '/cameras/[id]', params: { id: camera.id } });
-    },
-    [
-      isCameraReachable,
-      openStreamDialog,
-      router,
-      selectionMode,
-      streamModeEnabled,
-      streamProduct?.name,
-      toggleSelected,
-    ],
-  );
-
-  const handleCardLongPress = useCallback(
-    (camera: CameraReadWithStatus) => {
-      if (!captureModeEnabled) return;
-      if (!isCameraReachable(camera)) {
-        setSnackbar(`${camera.name} is offline — can't capture.`);
-        return;
-      }
-      if (!selectionMode) {
-        enterSelectionMode(camera.id);
-      } else {
-        toggleSelected(camera.id);
-      }
-    },
-    [captureModeEnabled, enterSelectionMode, isCameraReachable, selectionMode, toggleSelected],
-  );
-
-  const handleStartStream = useCallback(async () => {
-    if (!streamDialog.cameraId || !streamProductId) return;
-    setIsStartingStream(true);
-    try {
-      const result = await startYouTubeStream(streamDialog.cameraId, {
-        product_id: streamProductId,
-        title: streamDialog.title.trim() || undefined,
-        privacy_status: streamDialog.privacy,
-      });
-      setActiveStream({
-        cameraId: streamDialog.cameraId,
-        cameraName: streamDialog.cameraName,
-        productId: streamProductId,
-        productName: streamProduct?.name ?? (streamDialog.title || `Product ${streamProductId}`),
-        startedAt: result.started_at,
-        youtubeUrl: result.url,
-      });
-      closeStreamDialog();
-      addProductVideo(streamProductId, {
-        url: result.url,
-        title: streamDialog.title.trim() || 'Live stream',
-        description: '',
-      }).catch(() => {});
-      void queryClient.invalidateQueries({ queryKey: ['product', streamProductId] });
-      setSnackbar(`Now live: ${streamDialog.cameraName}`);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      router.back();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (message === 'GOOGLE_OAUTH_REQUIRED') {
-        showGoogleAccountRequired(feedback);
-      } else {
-        showStreamStartFailed(feedback, err);
-      }
-    } finally {
-      setIsStartingStream(false);
-    }
-  }, [
-    closeStreamDialog,
-    feedback,
-    queryClient,
-    router,
-    setActiveStream,
-    setIsStartingStream,
+  const { handleCardTap, handleStartStream } = useCameraStreamActions({
+    streamModeEnabled,
+    selectionMode,
+    isCameraReachable,
+    openStreamDialog,
+    streamProductName: streamProduct?.name ?? '',
+    toggleSelected,
+    setSnackbar: setSnackbarMessage,
     streamDialog,
-    streamProduct?.name,
     streamProductId,
-  ]);
+    streamProductNameForSession: streamProduct?.name,
+    closeStreamDialog,
+    setIsStartingStream,
+    feedback,
+  });
 
   return {
     screen: {
@@ -267,8 +150,8 @@ export function useCamerasScreen() {
     streaming: {
       streamDialog,
       isStartingStream,
-      snackbarMessage: snackbar,
-      dismissSnackbar: () => setSnackbar(null),
+      snackbarMessage,
+      dismissSnackbar,
       closeStreamDialog,
       setStreamTitle,
       setStreamPrivacy,

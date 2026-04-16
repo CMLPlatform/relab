@@ -1,4 +1,4 @@
-type FeedbackApi = {
+export type FeedbackApi = {
   alert: (options: {
     title?: string;
     message?: string;
