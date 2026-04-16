@@ -1,73 +1,29 @@
 import { API_URL } from '@/config';
-import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
+import { extractApiErrorDetail } from './authHelpers';
+import { login as loginFlow, logout as logoutFlow } from './authLogin';
 import {
-  extractApiErrorDetail,
-  getAuthLoginPath,
-  getAuthRefreshPath,
-  mapApiUserToUser,
-  shouldSkipUserFetch,
-} from './authHelpers';
-import {
-  clearStoredAccessToken,
-  isWeb,
-  loadStoredAccessToken,
-  persistStoredAccessToken,
-  hasWebSessionFlag as readWebSessionFlag,
-  setWebSessionFlag,
-} from './authSession';
-import { createRequestId, fetchWithTimeout } from './request';
+  clearCachedAuthState,
+  fetchWithAuth as fetchWithAuthFlow,
+  getToken,
+  persistAccessToken,
+  refreshAuthToken as refreshAuthTokenFlow,
+} from './authRefresh';
+import { authRuntime } from './authRuntime';
+import { isWeb, hasWebSessionFlag as readWebSessionFlag, setWebSessionFlag } from './authSession';
+import { getUser as getUserFlow } from './authUser';
+import { fetchWithTimeout } from './request';
 
 const apiURL = API_URL;
-let token: string | undefined;
-let user: User | undefined;
-let refreshPromise: Promise<boolean> | null = null;
-let getUserPromise: Promise<User | undefined> | null = null;
-// When true, network auth requests should be suppressed (set on explicit logout)
-let explicitlyLoggedOut = false;
-// Incremented on every logout so in-flight getUser requests can detect they raced with a logout
-let authGeneration = 0;
-
-async function persistAccessToken(nextToken: string): Promise<void> {
-  token = nextToken;
-  explicitlyLoggedOut = false;
-  await persistStoredAccessToken(nextToken);
-}
-
-async function clearCachedAuthState(): Promise<void> {
-  token = undefined;
-  user = undefined;
-  getUserPromise = null;
-  authGeneration++;
-  explicitlyLoggedOut = true;
-  await clearStoredAccessToken();
-  setWebSessionFlag(false);
-}
 
 // ─────────────────────────────────────────────
 // Core auth helpers
 // ─────────────────────────────────────────────
 
-export async function getToken(): Promise<string | undefined> {
-  if (token) return token;
-  if (isWeb()) return undefined;
-
-  try {
-    const storedToken = await loadStoredAccessToken();
-    if (storedToken) {
-      token = storedToken;
-      return token;
-    }
-  } catch (err) {
-    logError('[GetToken Error]:', err);
-  }
-  return undefined;
-}
-
 export function markWebSessionActive(): void {
   if (!isWeb()) return;
-  explicitlyLoggedOut = false;
+  authRuntime.explicitlyLoggedOut = false;
   setWebSessionFlag(true);
 }
 
@@ -75,243 +31,38 @@ export function hasWebSessionFlag(): boolean {
   return readWebSessionFlag();
 }
 
+export { getToken };
+
 export async function refreshAuthToken(): Promise<boolean> {
-  // If a refresh is already in progress, wait for it instead of starting another.
-  if (refreshPromise) return refreshPromise;
-
-  // On web, skip refresh when there is no client-visible session flag.
-  // On native the server will reject the request if no valid session exists.
-  if (isWeb() && !hasWebSessionFlag()) return false;
-
-  const authPath = getAuthRefreshPath(isWeb());
-  const url = new URL(apiURL + authPath);
-
-  refreshPromise = (async () => {
-    try {
-      const response = await fetchWithTimeout(url, {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        // failed refresh; clear the web-visible session flag
-        setWebSessionFlag(false);
-        explicitlyLoggedOut = true;
-        return false;
-      }
-      if (isWeb()) {
-        // refresh succeeded (cookie valid)
-        setWebSessionFlag(true);
-        explicitlyLoggedOut = false;
-        return true;
-      }
-
-      const data = await response.json().catch(() => null);
-      if (typeof data?.access_token === 'string') {
-        await persistAccessToken(data.access_token);
-        return true;
-      }
-      return false;
-    } catch (err) {
-      logError('[Refresh Token Error]:', err);
-      return false;
-    } finally {
-      // clear the shared promise so future refreshes can start
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
+  return refreshAuthTokenFlow(apiURL);
 }
 
 export async function fetchWithAuth(
   url: URL | string,
   options: RequestInit = {},
 ): Promise<Response> {
-  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) };
-  headers['X-Request-ID'] ||= createRequestId();
-
-  const authToken = await getToken();
-  if (authToken) {
-    headers.Authorization = `Bearer ${authToken}`;
-  }
-
-  const makeRequest = () =>
-    fetchWithTimeout(url, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
-
-  let response = await makeRequest();
-
-  if (response.status === 401 && !explicitlyLoggedOut) {
-    const refreshed = await refreshAuthToken();
-    if (refreshed) {
-      const newToken = await getToken();
-      if (newToken) headers.Authorization = `Bearer ${newToken}`;
-      response = await makeRequest();
-    } else {
-      await clearCachedAuthState();
-    }
-  }
-
-  return response;
+  return fetchWithAuthFlow(apiURL, url, options);
 }
 
 export async function login(username: string, password: string): Promise<string | undefined> {
-  const authPath = getAuthLoginPath(isWeb());
-  const url = new URL(apiURL + authPath);
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    Accept: 'application/json',
-  };
-  const body = new URLSearchParams({ username, password }).toString();
-  const fetchOptions: RequestInit = { method: 'POST', headers, body, credentials: 'include' };
-
-  try {
-    const response = await fetchWithTimeout(url, fetchOptions);
-
-    if (response.status === 204) {
-      if (isWeb()) {
-        setWebSessionFlag(true);
-        explicitlyLoggedOut = false;
-        // Try to confirm the cookie/session by attempting a refresh first;
-        // some browsers/servers may not make the cookie available to the next
-        // immediate request, so prefer refresh then a guarded getUser retry.
-        try {
-          const refreshed = await refreshAuthToken();
-          if (refreshed) {
-            await getUser(true);
-          } else {
-            // small delay and one final attempt to populate cache
-            await new Promise<void>((resolve) => setTimeout(resolve, 150));
-            await getUser(true).catch(() => {
-              /* ignore */
-            });
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      return 'success';
-    }
-    if (response.status === 400) {
-      token = undefined;
-      return undefined;
-    }
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(
-        `HTTP ${response.status}: ${extractApiErrorDetail(errorData, 'Login failed.')}`,
-      );
-    }
-
-    if (isWeb()) {
-      setWebSessionFlag(true);
-      return 'success';
-    }
-
-    const data = await response.json().catch(() => null);
-    if (typeof data?.access_token === 'string') {
-      await persistAccessToken(data.access_token);
-      return data.access_token;
-    }
-
-    return 'success';
-  } catch (err) {
-    logError('[Login Fetch Error]:', err);
-    throw new Error('Unable to reach server. Please try again later.');
-  }
+  return loginFlow(apiURL, username, password, {
+    persistAccessToken,
+    getUser: (forceRefresh = false) => getUser(forceRefresh),
+    refreshAuthToken: () => refreshAuthToken(),
+  });
 }
 
 export async function logout(): Promise<void> {
-  await clearCachedAuthState();
-  try {
-    await fetchWithTimeout(new URL(`${apiURL}/auth/logout`), {
-      method: 'POST',
-      credentials: 'include',
-    });
-  } catch (err) {
-    logError('[Logout Fetch Error]:', err);
-  }
+  await logoutFlow(apiURL, clearCachedAuthState);
 }
 
 export async function getUser(forceRefresh = false): Promise<User | undefined> {
-  try {
-    // Return cached user without any network call when data is fresh.
-    if (user && !forceRefresh) return user;
-
-    // If we've explicitly logged out, or (on web) there is no client-visible
-    // session flag, avoid making any network requests; callers should treat
-    // this as an unauthenticated state.
-    // forceRefresh bypasses the logged-out guard on native so that a fresh
-    // token obtained after login/refresh can immediately hydrate the cache.
-    if (
-      shouldSkipUserFetch({
-        forceRefresh,
-        explicitlyLoggedOut,
-        web: isWeb(),
-        hasWebSession: hasWebSessionFlag(),
-      })
-    ) {
-      return undefined;
-    }
-
-    if (getUserPromise && !forceRefresh) {
-      return await getUserPromise;
-    }
-
-    // create a shared in-flight promise so concurrent callers reuse the same request
-    getUserPromise = (async (): Promise<User | undefined> => {
-      const capturedGeneration = authGeneration;
-      try {
-        const url = new URL(`${apiURL}/users/me`);
-        const response = await fetchWithAuth(url, {
-          method: 'GET',
-          headers: { Accept: 'application/json' },
-        });
-
-        if (!response.ok) {
-          // 401 is expected for guests; log unexpected errors
-          if (response.status !== 401) {
-            logError('[GetUser] HTTP', response.status);
-          }
-          setWebSessionFlag(false);
-          return undefined;
-        }
-
-        // Discard result if logout happened while request was in flight
-        if (authGeneration !== capturedGeneration) return undefined;
-
-        const data = (await response.json().catch((err: unknown) => {
-          logError('[GetUser] Failed to parse response:', err);
-          return undefined;
-        })) as ApiUserRead | undefined;
-        if (!data) return undefined;
-
-        user = mapApiUserToUser(data);
-
-        // successful user fetch; mark web session flag
-        setWebSessionFlag(true);
-
-        return user;
-      } finally {
-        getUserPromise = null;
-      }
-    })();
-
-    return await getUserPromise;
-  } catch (error) {
-    logError('[GetUser Fetch Error]:', error);
-    return undefined;
-  }
+  return getUserFlow(apiURL, fetchWithAuthFlow, forceRefresh);
 }
 
 // Return the locally-cached user without making a network request.
 export function getCachedUser(): User | undefined {
-  return user;
+  return authRuntime.user;
 }
 
 export async function register(
@@ -419,7 +170,7 @@ export async function unlinkOAuth(provider: string): Promise<boolean> {
       throw new Error(extractApiErrorDetail(errorData, `Failed to unlink ${provider} account`));
     }
 
-    user = undefined;
+    authRuntime.user = undefined;
     return true;
   } catch (error) {
     logError('[UnlinkOAuth Error]:', error);

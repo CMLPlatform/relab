@@ -107,20 +107,6 @@ export function ProductPageContent({
         <ProductType product={product} editMode={editMode} onTypeChange={onTypeChange} />
       </DetailCard>
       <DetailCard>
-        <ProductPhysicalProperties
-          product={product}
-          editMode={editMode}
-          onChangePhysicalProperties={onChangePhysicalProperties as never}
-        />
-      </DetailCard>
-      <DetailCard>
-        <ProductCircularityProperties
-          product={product}
-          editMode={editMode}
-          onChangeCircularityProperties={onChangeCircularityProperties as never}
-        />
-      </DetailCard>
-      <DetailCard>
         <ProductVideo
           product={product}
           editMode={editMode}
@@ -135,6 +121,20 @@ export function ProductPageContent({
           isProductComponent={isProductComponent}
           onGoLivePress={onGoLivePress}
           onNavigateToProfile={onNavigateToProfile}
+        />
+      </DetailCard>
+      <DetailCard>
+        <ProductPhysicalProperties
+          product={product}
+          editMode={editMode}
+          onChangePhysicalProperties={onChangePhysicalProperties as never}
+        />
+      </DetailCard>
+      <DetailCard>
+        <ProductCircularityProperties
+          product={product}
+          editMode={editMode}
+          onChangeCircularityProperties={onChangeCircularityProperties as never}
         />
       </DetailCard>
       {!isNew ? (
