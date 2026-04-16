@@ -265,6 +265,17 @@ function GoLiveCTA({
   );
 }
 
+const embedContainerStyle = {
+  maxWidth: 480,
+  aspectRatio: 16 / 9,
+  width: '100%' as const,
+  alignSelf: 'center' as const,
+  marginHorizontal: 14,
+  marginVertical: 8,
+  borderRadius: 8,
+  overflow: 'hidden' as const,
+};
+
 function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
   const videoId = extractYouTubeVideoId(url);
   if (!videoId) {
@@ -287,25 +298,14 @@ function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
   const embedUri = `https://www.youtube-nocookie.com/embed/${videoId}`;
   if (Platform.OS === 'web') {
     return (
-      <View
-        style={{
-          height: 200,
-          marginHorizontal: 14,
-          marginVertical: 8,
-          borderRadius: 8,
-          overflow: 'hidden',
-        }}
-      >
-        {/* eslint-disable-next-line react-native/no-raw-text */}
-        {
-          <iframe
-            src={embedUri}
-            title="Embedded product video"
-            style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        }
+      <View style={embedContainerStyle}>
+        <iframe
+          src={embedUri}
+          title="Embedded product video"
+          style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
       </View>
     );
   }
@@ -313,7 +313,7 @@ function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
   return (
     <WebView
       source={{ uri: embedUri }}
-      style={{ height: 200, marginHorizontal: 14, marginVertical: 8, borderRadius: 8 }}
+      style={embedContainerStyle}
       allowsInlineMediaPlayback
       mediaPlaybackRequiresUserAction={false}
       javaScriptEnabled

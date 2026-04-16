@@ -127,10 +127,9 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   previewContainer: {
-    maxHeight: 180,
-    overflow: 'hidden',
-    marginHorizontal: 16,
-    borderRadius: 8,
+    maxWidth: 480,
+    alignSelf: 'center' as const,
+    width: '100%',
   },
   actions: {
     flexDirection: 'row',

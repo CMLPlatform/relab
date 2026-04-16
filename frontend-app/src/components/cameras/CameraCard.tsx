@@ -174,6 +174,9 @@ export function CameraCard({
 
 const styles = StyleSheet.create({
   card: {
+    width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
     borderRadius: 12,
   },
   cardOffline: {
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
   },
   thumbnailFrame: {
     width: '100%',
-    aspectRatio: 4 / 3,
+    aspectRatio: 16 / 10,
     backgroundColor: '#000',
     overflow: 'hidden',
     borderTopLeftRadius: 12,

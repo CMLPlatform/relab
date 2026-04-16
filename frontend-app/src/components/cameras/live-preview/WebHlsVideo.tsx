@@ -2,6 +2,7 @@ import { createElement, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { PreviewErrorOverlay, PreviewLoadingOverlay, livePreviewStyles as styles } from './shared';
 import { useWebHlsPlayback } from './useWebHlsPlayback';
+import { setupWebHlsVideo } from './webHlsVideoHelpers';
 
 export function WebHlsVideo({
   src,
@@ -33,71 +34,21 @@ export function WebHlsVideo({
 
     let cancelled = false;
     let cleanup: (() => void) | null = null;
-
-    const onPlaying = () => {
-      if (!cancelled) markLive();
-    };
-    video.addEventListener('playing', onPlaying);
-
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.crossOrigin = withCredentials ? 'use-credentials' : 'anonymous';
-      video.src = src;
-      video.play().catch(() => {});
-      const onError = () => {
-        if (cancelled) return;
-        handleFatalError('HLS playback failed');
-      };
-      video.addEventListener('error', onError);
-      cleanup = () => {
-        video.removeEventListener('playing', onPlaying);
-        video.removeEventListener('error', onError);
-        video.removeAttribute('src');
-        video.load();
-      };
-    } else {
-      void import('hls.js')
-        .then(({ default: Hls }) => {
-          if (cancelled) return;
-          if (!Hls.isSupported()) {
-            markError('Live preview is not supported in this browser.');
-            return;
-          }
-          const hls = new Hls({
-            lowLatencyMode: true,
-            backBufferLength: 4,
-            maxBufferLength: 4,
-            xhrSetup: withCredentials
-              ? (xhr) => {
-                  xhr.withCredentials = true;
-                }
-              : undefined,
-          });
-          hls.loadSource(src);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.ERROR, (_event, data) => {
-            if (data.fatal && !cancelled) {
-              handleFatalError(data.details ?? 'HLS playback failed');
-            }
-          });
-          cleanup = () => {
-            video.removeEventListener('playing', onPlaying);
-            hls.destroy();
-          };
-        })
-        .catch(() => {
-          if (!cancelled) {
-            markError('Live preview unavailable');
-          }
-        })
-        .finally(() => {
-          if (cleanup || cancelled) {
-            return;
-          }
-          cleanup = () => {
-            video.removeEventListener('playing', onPlaying);
-          };
-        });
-    }
+    void setupWebHlsVideo({
+      video,
+      src,
+      withCredentials,
+      markLive,
+      markError,
+      handleFatalError,
+      isCancelled: () => cancelled,
+    }).then((nextCleanup) => {
+      if (cancelled) {
+        nextCleanup();
+        return;
+      }
+      cleanup = nextCleanup;
+    });
 
     return () => {
       cancelled = true;

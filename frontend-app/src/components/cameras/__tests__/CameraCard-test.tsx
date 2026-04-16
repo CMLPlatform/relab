@@ -68,6 +68,7 @@ describe('CameraCard', () => {
       ? Object.assign({}, ...card.props.style)
       : (card.props.style ?? {});
     expect(flatStyle.opacity).not.toBe(0.6);
+    expect(flatStyle.maxWidth).toBe(420);
   });
 
   it('online + no stored preview: renders placeholder icon and preview caption', () => {
