@@ -198,4 +198,21 @@ describe('ProductVideo', () => {
     fireEvent.press(screen.getByText('Go Live'));
     expect(onGoLivePress).toHaveBeenCalled();
   });
+
+  it('shows Go Live button even when YouTube is not set up, with setup prompt on press', async () => {
+    const onGoLivePress = jest.fn();
+
+    renderProductVideo({
+      rpiEnabled: true,
+      ownedByMe: true,
+      isGoogleLinked: false,
+      youtubeEnabled: false,
+      onGoLivePress,
+    });
+
+    expect(screen.getByText('Go Live')).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Go Live'));
+    expect(onGoLivePress).not.toHaveBeenCalled();
+    expect(await screen.findByText('Set up YouTube Live')).toBeOnTheScreen();
+  });
 });

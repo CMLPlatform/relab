@@ -14,6 +14,15 @@ import {
 } from '../products';
 import { allProductTypes, searchProductTypes } from '../productTypes';
 
+jest.mock('../authentication', () => {
+  const actual = jest.requireActual<typeof import('../authentication')>('../authentication');
+  return {
+    ...actual,
+    getToken: jest.fn(),
+    getUser: jest.fn(),
+  };
+});
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 function makePage<T>(
@@ -68,7 +77,7 @@ const rawProductData = {
 describe('Fetching API Service logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(auth, 'getUser').mockResolvedValue(mockUser({ id: 'me-user-id', username: 'me' }));
+    jest.mocked(auth.getUser).mockResolvedValue(mockUser({ id: 'me-user-id', username: 'me' }));
   });
 
   afterEach(() => {
@@ -337,7 +346,7 @@ describe('Fetching API Service logic', () => {
 
   describe('myProducts', () => {
     it('returns an empty paginated response when no token is available', async () => {
-      jest.spyOn(auth, 'getToken').mockResolvedValueOnce(undefined);
+      jest.mocked(auth.getToken).mockResolvedValueOnce(undefined);
 
       const products = await myProducts();
 
@@ -351,7 +360,7 @@ describe('Fetching API Service logic', () => {
     });
 
     it('returns an empty paginated response on 401 response', async () => {
-      jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
+      jest.mocked(auth.getToken).mockResolvedValueOnce('test-token');
       server.use(
         http.get(`${API_URL}/users/me/products`, () =>
           HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
@@ -370,7 +379,7 @@ describe('Fetching API Service logic', () => {
     });
 
     it('fetches and returns mapped products in a paginated response', async () => {
-      jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
+      jest.mocked(auth.getToken).mockResolvedValueOnce('test-token');
       server.use(
         http.get(`${API_URL}/users/me/products`, () =>
           HttpResponse.json(makePage([rawProductData])),
@@ -388,7 +397,7 @@ describe('Fetching API Service logic', () => {
     });
 
     it('sends multiple brands as a single comma-separated brand__in param', async () => {
-      jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
+      jest.mocked(auth.getToken).mockResolvedValueOnce('test-token');
       let capturedUrl: URL | undefined;
       server.use(
         http.get(`${API_URL}/users/me/products`, ({ request }) => {
@@ -404,7 +413,7 @@ describe('Fetching API Service logic', () => {
     });
 
     it('throws on non-401 HTTP error', async () => {
-      jest.spyOn(auth, 'getToken').mockResolvedValueOnce('test-token');
+      jest.mocked(auth.getToken).mockResolvedValueOnce('test-token');
       server.use(
         http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({}, { status: 500 })),
       );

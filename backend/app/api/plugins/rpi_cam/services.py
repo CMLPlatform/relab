@@ -37,6 +37,7 @@ from app.api.plugins.rpi_cam.service_runtime import (
     TELEMETRY_CACHE_TTL_SECONDS,
     YOUTUBE_RECORDING_SESSION_CACHE_PREFIX,
     YOUTUBE_RECORDING_SESSION_TTL_SECONDS,
+    LastCameraImageUrls,
     YouTubeRecordingSession,
     build_recording_text,
     capture_and_store_image,
@@ -45,7 +46,6 @@ from app.api.plugins.rpi_cam.service_runtime import (
     get_camera_last_seen_cache_key,
     get_camera_online_cache_key,
     get_camera_status,
-    LastCameraImageUrls,
     get_last_image_urls_per_camera,
     get_recording_session_cache_key,
     get_telemetry_cache_key,
@@ -284,9 +284,13 @@ class YouTubeService:
             raise YouTubeAPIError(details=f"Invalid YouTube stream status response: {e}") from e
 
     async def end_livestream(self, broadcast_key: str) -> None:
-        """End a YouTube livestream."""
+        """End a YouTube livestream by transitioning to 'complete', preserving the recording."""
         await self.refresh_token_if_needed()
-        await self.request_youtube_api("DELETE", "liveBroadcasts", params={"id": broadcast_key})
+        await self.request_youtube_api(
+            "POST",
+            "liveBroadcasts/transition",
+            params={"broadcastStatus": "complete", "id": broadcast_key, "part": "status"},
+        )
 
     async def get_broadcast_monitor_stream(self, broadcast_key: str) -> YouTubeMonitorStreamResponse:
         """Get the monitor stream configuration for a YouTube livestream."""
@@ -319,6 +323,7 @@ __all__ = [
     "YOUTUBE_API_BASE_URL",
     "YOUTUBE_RECORDING_SESSION_CACHE_PREFIX",
     "YOUTUBE_RECORDING_SESSION_TTL_SECONDS",
+    "LastCameraImageUrls",
     "YouTubeAPIError",
     "YouTubePrivacyStatus",
     "YouTubeRecordingSession",
@@ -331,7 +336,6 @@ __all__ = [
     "get_camera_last_seen_cache_key",
     "get_camera_online_cache_key",
     "get_camera_status",
-    "LastCameraImageUrls",
     "get_last_image_urls_per_camera",
     "get_recording_session_cache_key",
     "get_telemetry_cache_key",

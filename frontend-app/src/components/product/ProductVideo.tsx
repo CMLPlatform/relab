@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
-import { Button, Icon } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/DialogProvider';
@@ -146,7 +146,6 @@ export default function ProductVideo({
           isGoogleLinked={isGoogleLinked}
           onGoLivePress={handleGoLivePress}
           onNavigateToProfile={onNavigateToProfile}
-          darkMode={darkMode}
         />
       ) : null}
 
@@ -230,78 +229,39 @@ function GoLiveCTA({
   isGoogleLinked,
   onGoLivePress,
   onNavigateToProfile,
-  darkMode,
 }: {
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
   onGoLivePress: () => void;
   onNavigateToProfile: () => void;
-  darkMode: boolean;
 }) {
-  if (!isGoogleLinked) {
-    return (
-      <NudgeRow
-        icon="google"
-        text="Link your Google account to stream this product live"
-        onPress={onNavigateToProfile}
-        darkMode={darkMode}
-      />
-    );
-  }
-  if (!youtubeEnabled) {
-    return (
-      <NudgeRow
-        icon="youtube"
-        text="Enable YouTube Live in Integrations to stream this product"
-        onPress={onNavigateToProfile}
-        darkMode={darkMode}
-      />
-    );
-  }
+  const dialog = useDialog();
+  const ready = isGoogleLinked && youtubeEnabled;
+
+  const handlePress = () => {
+    if (!ready) {
+      const message = !isGoogleLinked
+        ? 'Link your Google account in your profile to enable live streaming.'
+        : 'Enable YouTube Live in your profile integrations to start streaming.';
+      dialog.alert({
+        title: 'Set up YouTube Live',
+        message,
+        buttons: [{ text: 'Cancel' }, { text: 'Go to profile', onPress: onNavigateToProfile }],
+      });
+      return;
+    }
+    onGoLivePress();
+  };
+
   return (
     <Button
       mode="outlined"
       icon="youtube"
-      onPress={onGoLivePress}
-      style={{ marginHorizontal: 14, marginBottom: 8 }}
+      onPress={handlePress}
+      style={{ marginHorizontal: 14, marginBottom: 8, opacity: ready ? 1 : 0.5 }}
     >
       Go Live
     </Button>
-  );
-}
-
-function NudgeRow({
-  icon,
-  text,
-  onPress,
-  darkMode,
-}: {
-  icon: string;
-  text: string;
-  onPress: () => void;
-  darkMode: boolean;
-}) {
-  const color = darkMode ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginHorizontal: 14,
-        marginBottom: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        opacity: 0.7,
-      }}
-    >
-      <Icon source={icon} size={16} color={color} />
-      <Text style={{ flex: 1, fontSize: 13, color }}>{text}</Text>
-      <Icon source="chevron-right" size={16} color={color} />
-    </Pressable>
   );
 }
 

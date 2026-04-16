@@ -1,8 +1,8 @@
-"""Shared helpers and fixtures for organization integration tests."""
+"""Pytest fixtures for organization integration tests."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI
@@ -16,17 +16,6 @@ if TYPE_CHECKING:
 
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
-
-
-def detail_text(payload: dict[str, object]) -> str:
-    """Return a comparable error-detail string across supported error shapes."""
-    detail = payload["detail"]
-    if isinstance(detail, dict):
-        detail_dict = cast("dict[str, object]", detail)
-        return str(detail_dict.get("message") or "")
-    return str(detail)
-
-
 @pytest.fixture
 async def verified_user(db_session: AsyncSession) -> User:
     """Non-superuser verified active user."""

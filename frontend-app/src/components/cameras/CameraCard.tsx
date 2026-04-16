@@ -5,7 +5,6 @@ import { StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
 import type { EffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
-import { useCameraSnapshotQuery } from '@/hooks/useRpiCameras';
 import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
 
 const STATUS_COLOR: Record<CameraConnectionStatus, string> = {
@@ -70,8 +69,8 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  *     caption, telemetry chip. Full opacity.
  *   - **Offline:** whole card dimmed to 60% opacity, status chip in the
  *     offline colour, "Last seen X ago" caption replaces telemetry. No
- *     thumbnail. Online cards prefer a fresh snapshot, then fall back to the
- *     latest stored capture thumbnail when the live preview path is unavailable.
+ *     thumbnail. Online cards use the latest stored capture thumbnail instead
+ *     of issuing live snapshot requests from the mosaic.
  *
  * Tapping the card navigates to the camera detail screen regardless of
  * state so users can still see history / dialog / settings when offline.
@@ -87,19 +86,7 @@ export function CameraCard({
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
-  const hasDirectSnapshotCredentials =
-    effectiveConnection?.canUseDirect &&
-    !!effectiveConnection.localConnection.localBaseUrl &&
-    !!effectiveConnection.localConnection.localApiKey;
-  const canUseRelaySnapshot =
-    effectiveConnection?.canUseRelay ?? camera.status?.connection === 'online';
-  const shouldFetchSnapshot = isOnline && (canUseRelaySnapshot || !!hasDirectSnapshotCredentials);
-  const snapshotQuery = useCameraSnapshotQuery(isOnline ? camera.id : null, {
-    enabled: shouldFetchSnapshot,
-    connectionInfo: effectiveConnection?.localConnection,
-  });
-  const fallbackThumbnailUrl = camera.last_image_thumbnail_url ?? camera.last_image_url ?? null;
-  const resolvedThumbnailUrl = snapshotQuery.data ?? fallbackThumbnailUrl;
+  const resolvedThumbnailUrl = camera.last_image_thumbnail_url ?? camera.last_image_url ?? null;
   const hasThumbnail =
     isOnline && !!resolvedThumbnailUrl && failedThumbnailUrl !== resolvedThumbnailUrl;
 
@@ -133,7 +120,7 @@ export function CameraCard({
                   style={{ opacity: 0.4 }}
                 />
                 <Text variant="bodySmall" style={styles.thumbnailCaption}>
-                  {snapshotQuery.isLoading ? 'Loading preview…' : 'No preview available'}
+                  No preview available
                 </Text>
               </>
             ) : (

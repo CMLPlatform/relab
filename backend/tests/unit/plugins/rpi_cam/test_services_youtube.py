@@ -115,13 +115,13 @@ async def test_end_livestream_success(
     mock_request_youtube_api: AsyncMock,
     youtube_service: YouTubeService,
 ) -> None:
-    """Ending a livestream should call the delete endpoint once."""
+    """Ending a livestream should transition to 'complete' to preserve the recording."""
     del mock_refresh
     await youtube_service.end_livestream(FAKE_BROADCAST_ID)
     mock_request_youtube_api.assert_awaited_once_with(
-        "DELETE",
-        "liveBroadcasts",
-        params={"id": FAKE_BROADCAST_ID},
+        "POST",
+        "liveBroadcasts/transition",
+        params={"broadcastStatus": "complete", "id": FAKE_BROADCAST_ID, "part": "status"},
     )
 
 

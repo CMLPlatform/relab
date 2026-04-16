@@ -11,7 +11,7 @@ from fastapi import status
 
 from app.api.auth.models import OrganizationRole
 from tests.factories.models import OrganizationFactory, UserFactory
-from tests.integration.api._organization_support import detail_text
+from tests.integration.api._organization_helpers import detail_text
 
 if TYPE_CHECKING:
     from httpx import AsyncClient

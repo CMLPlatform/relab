@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
+import type React from 'react';
 import { useProfileScreen } from '@/hooks/useProfileScreen';
 
 const mockReplace: jest.Mock = jest.fn();
@@ -16,6 +18,7 @@ const mockSetThemeMode: jest.Mock = jest.fn();
 const mockVerify: jest.Mock = jest.fn();
 const mockUpdateUser: jest.Mock = jest.fn();
 const mockLogout: jest.Mock = jest.fn();
+const mockStopStreamMutate: jest.Mock = jest.fn();
 const mockProfile = {
   id: 'user-1',
   username: 'tester',
@@ -78,9 +81,7 @@ jest.mock('@/hooks/useYouTubeIntegration', () => ({
 
 jest.mock('@/hooks/useRpiCameras', () => ({
   useStopYouTubeStreamMutation: () => ({
-    mutate: (_vars: unknown, options?: { onSuccess?: () => void }) => {
-      options?.onSuccess?.();
-    },
+    mutate: (...args: unknown[]) => mockStopStreamMutate(...args),
     isPending: false,
   }),
 }));
@@ -112,15 +113,30 @@ jest.mock('@/services/api/profiles', () => ({
 }));
 
 describe('useProfileScreen', () => {
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+        mutations: { retry: false, gcTime: 0 },
+      },
+    });
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockVerify.mockImplementation(async () => true);
     mockUpdateUser.mockImplementation(async () => undefined);
     mockLogout.mockImplementation(async () => undefined);
+    mockStopStreamMutate.mockImplementation(
+      (_vars: unknown, options?: { onSuccess?: () => void }) => {
+        options?.onSuccess?.();
+      },
+    );
   });
 
   it('shows a toast when verification email is sent successfully', async () => {
-    const { result } = renderHook(() => useProfileScreen());
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.onVerifyAccount();
@@ -134,7 +150,7 @@ describe('useProfileScreen', () => {
   });
 
   it('rejects too-short usernames before calling updateUser', async () => {
-    const { result } = renderHook(() => useProfileScreen());
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.dialogs.editUsername.setValue('a');
@@ -152,7 +168,7 @@ describe('useProfileScreen', () => {
   });
 
   it('logs out, clears the active stream, refetches auth, and redirects', async () => {
-    const { result } = renderHook(() => useProfileScreen());
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.dialogs.logoutDialog.open();
@@ -165,5 +181,27 @@ describe('useProfileScreen', () => {
     expect(mockLogout).toHaveBeenCalled();
     expect(mockRefetch).toHaveBeenCalledWith(false);
     expect(mockReplace).toHaveBeenCalledWith('/products');
+  });
+
+  it('shows an error and aborts logout when stopping the active stream fails', async () => {
+    mockStopStreamMutate.mockImplementation(
+      (_vars: unknown, options?: { onError?: (error: unknown) => void }) => {
+        options?.onError?.(new Error('stop failed'));
+      },
+    );
+
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+
+    await act(async () => {
+      result.current.actions.confirmLogout();
+      await Promise.resolve();
+    });
+
+    expect(mockLogout).not.toHaveBeenCalled();
+    expect(mockSetActiveStream).not.toHaveBeenCalledWith(null);
+    expect(mockFeedback.error).toHaveBeenCalledWith(
+      'Failed to stop the stream. Please stop it manually before logging out.',
+      'Stream error',
+    );
   });
 });
