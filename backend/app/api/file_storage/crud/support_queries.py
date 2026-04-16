@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.persistence import SupportsModelDump, update_and_commit
 from app.api.common.crud.query import require_model
+from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
     FastAPIStorageFileNotFoundError,
     ModelFileNotFoundError,
@@ -23,8 +24,6 @@ from .support_types import StorageModel
 
 if TYPE_CHECKING:
     from fastapi_filter.contrib.sqlalchemy import Filter
-
-    from app.api.common.models.custom_types import MT
 
 
 async def ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
@@ -62,8 +61,7 @@ async def get_optional_storage_item[StorageModelT: StorageModel](
     item_id: UUID4,
 ) -> StorageModelT | None:
     """Return a storage item directly from SQLAlchemy or None when missing."""
-    db_item = await db.get(model, item_id)
-    return cast("StorageModelT | None", db_item) if db_item is not None else None
+    return await db.get(model, item_id)
 
 
 def ensure_storage_item_found[StorageModelT: StorageModel](
@@ -77,10 +75,10 @@ def ensure_storage_item_found[StorageModelT: StorageModel](
     return db_item
 
 
-async def get_parent_owned_storage_item[StorageModelT: StorageModel, ParentModelT: MT](
+async def get_parent_owned_storage_item[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[ParentModelT],
+    parent_model: type[Base],
     model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -92,7 +90,7 @@ async def get_parent_owned_storage_item[StorageModelT: StorageModel, ParentModel
     except (FastAPIStorageFileNotFoundError, ModelFileNotFoundError) as e:
         raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
 
-    db_item = ensure_storage_item_found(model, item_id, cast("StorageModelT | None", db_item))
+    db_item = ensure_storage_item_found(model, item_id, db_item)
     if db_item.parent_id != parent_id:
         raise ParentStorageOwnershipError(model, item_id, parent_model, parent_id)
     return db_item

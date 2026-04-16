@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4
 from sqlalchemy import Select, select
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 async def get_files(db: AsyncSession, *, file_filter: FileFilter | None = None) -> Sequence[File]:
     """Get all files from the database."""
     statement: Select[tuple[File]] = select(File)
-    statement = cast("Select[tuple[File]]", apply_filter(statement, File, file_filter))
+    statement = apply_filter(statement, File, file_filter)
     return list((await db.execute(statement)).scalars().unique().all())
 
 
@@ -56,7 +56,7 @@ async def delete_file(db: AsyncSession, file_id: UUID4) -> None:
 async def get_images(db: AsyncSession, *, image_filter: ImageFilter | None = None) -> Sequence[Image]:
     """Get all images from the database."""
     statement: Select[tuple[Image]] = select(Image)
-    statement = cast("Select[tuple[Image]]", apply_filter(statement, Image, image_filter))
+    statement = apply_filter(statement, Image, image_filter)
     return list((await db.execute(statement)).scalars().unique().all())
 
 

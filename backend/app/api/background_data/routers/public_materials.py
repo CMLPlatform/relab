@@ -60,15 +60,12 @@ async def _page_materials(
 ) -> Page[Material]:
     """Page public materials from an explicit material query."""
     statement: Select[tuple[Material]] = select(Material)
-    statement = cast("Select[tuple[Material]]", apply_filter(statement, Material, material_filter))
-    statement = cast(
-        "Select[tuple[Material]]",
-        apply_loader_profile(
-            statement,
-            Material,
-            {"categories", "images", "files"},
-            read_schema=MaterialReadWithRelationships,
-        ),
+    statement = apply_filter(statement, Material, material_filter)
+    statement = apply_loader_profile(
+        statement,
+        Material,
+        {"categories", "images", "files"},
+        read_schema=MaterialReadWithRelationships,
     )
     return await paginate_select(session, statement, model=Material)
 

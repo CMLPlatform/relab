@@ -34,7 +34,7 @@ async def page_models(
     mutate_items: Callable[[list[Any]], None] | None = None,
 ) -> Page[Any]:
     """Return a page of models matching a query."""
-    statement = cast("Select[tuple[MT]]", statement if statement is not None else select(model))
+    statement = statement if statement is not None else select(model)
     statement = apply_filter(statement, model, filters)
     statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
     return await paginate_select(db, statement, model=model, mutate_items=mutate_items)
@@ -53,7 +53,7 @@ async def get_model(
         err_msg = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
 
-    statement = cast("Select[tuple[MT]]", select(model).filter_by(id=model_id))
+    statement: Select[tuple[MT]] = select(model).filter_by(id=model_id)
     statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
     return (await db.execute(statement)).scalars().unique().one_or_none()
 

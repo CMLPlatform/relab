@@ -57,15 +57,12 @@ async def _page_product_types(
 ) -> Page[ProductType]:
     """Page public product types from an explicit product-type query."""
     statement: Select[tuple[ProductType]] = select(ProductType)
-    statement = cast("Select[tuple[ProductType]]", apply_filter(statement, ProductType, product_type_filter))
-    statement = cast(
-        "Select[tuple[ProductType]]",
-        apply_loader_profile(
-            statement,
-            ProductType,
-            {"categories", "images", "files"},
-            read_schema=ProductTypeReadWithRelationships,
-        ),
+    statement = apply_filter(statement, ProductType, product_type_filter)
+    statement = apply_loader_profile(
+        statement,
+        ProductType,
+        {"categories", "images", "files"},
+        read_schema=ProductTypeReadWithRelationships,
     )
     return await paginate_select(session, statement, model=ProductType)
 

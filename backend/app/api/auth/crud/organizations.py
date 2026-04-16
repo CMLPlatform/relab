@@ -73,6 +73,9 @@ async def _require_joinable_current_owner_org(db: AsyncSession, user: User) -> O
     """Load the organization currently owned by the user during join flows."""
     db_organization = user.organization
     if db_organization is None or db_organization.id != user.organization_id:
+        if user.organization_id is None:
+            err_msg = "Owned organization must exist before loading it during join flow."
+            raise InternalServerError(details=err_msg, log_message=err_msg)
         return await get_organization(
             db,
             user.organization_id,

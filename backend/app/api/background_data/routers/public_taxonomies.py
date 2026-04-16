@@ -64,9 +64,9 @@ async def _page_taxonomy_categories(
     category_filter: CategoryFilterDep,
 ) -> Page[CategoryRead]:
     """Page categories scoped to one taxonomy."""
-    statement = cast("Select[tuple[Category]]", select(Category).where(Category.taxonomy_id == taxonomy_id))
-    statement = cast("Select[tuple[Category]]", apply_filter(statement, Category, category_filter))
-    statement = cast("Select[tuple[Category]]", apply_loader_profile(statement, Category, read_schema=CategoryRead))
+    statement: Select[tuple[Category]] = select(Category).where(Category.taxonomy_id == taxonomy_id)
+    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
     return cast("Page[CategoryRead]", await paginate_select(session, statement, model=Category))
 
 
@@ -76,9 +76,9 @@ async def _page_taxonomies(
     taxonomy_filter: TaxonomyFilterDep,
 ) -> Page[TaxonomyRead]:
     """Page public taxonomies from an explicit taxonomy query."""
-    statement = cast("Select[tuple[Taxonomy]]", select(Taxonomy))
-    statement = cast("Select[tuple[Taxonomy]]", apply_filter(statement, Taxonomy, taxonomy_filter))
-    statement = cast("Select[tuple[Taxonomy]]", apply_loader_profile(statement, Taxonomy, read_schema=TaxonomyRead))
+    statement: Select[tuple[Taxonomy]] = select(Taxonomy)
+    statement = apply_filter(statement, Taxonomy, taxonomy_filter)
+    statement = apply_loader_profile(statement, Taxonomy, read_schema=TaxonomyRead)
     return cast("Page[TaxonomyRead]", await paginate_select(session, statement, model=Taxonomy))
 
 

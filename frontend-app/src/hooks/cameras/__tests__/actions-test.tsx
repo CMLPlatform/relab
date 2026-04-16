@@ -43,11 +43,11 @@ jest.mock('@/services/api/rpiCamera', () => ({
 describe('camera action hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockAddProductVideo.mockResolvedValue(undefined);
-    mockStartYouTubeStream.mockResolvedValue({
+    mockAddProductVideo.mockImplementation(async () => undefined);
+    mockStartYouTubeStream.mockImplementation(async () => ({
       started_at: '2026-01-01T00:00:00.000Z',
       url: 'https://youtube.test/watch?v=abc',
-    });
+    }));
   });
 
   it('stores effective connection snapshots without rewriting identical values', () => {
@@ -70,7 +70,12 @@ describe('camera action hooks', () => {
   });
 
   it('handles capture selection, offline warnings, and success messaging', () => {
-    const mutate = jest.fn((_params, options) => options.onSuccess({ total: 2, succeeded: 1, failed: 1 }));
+    const mutate = jest.fn((...args: unknown[]) => {
+      const options = args[1] as {
+        onSuccess: (result: { total: number; succeeded: number; failed: number }) => void;
+      };
+      options.onSuccess({ total: 2, succeeded: 1, failed: 1 });
+    });
     const setSnackbar = jest.fn();
     const clearSelection = jest.fn();
     const enterSelectionMode = jest.fn();
@@ -168,28 +173,27 @@ describe('camera action hooks', () => {
     const setSnackbar = jest.fn();
     const feedback = { alert: jest.fn(), error: jest.fn() };
 
-    const { result } = renderHook(
-      () =>
-        useCameraStreamActions({
-          streamModeEnabled: true,
-          selectionMode: false,
-          isCameraReachable: () => true,
-          openStreamDialog: jest.fn(),
-          streamProductName: 'Desk Radio',
-          toggleSelected: jest.fn(),
-          setSnackbar,
-          streamDialog: {
-            cameraId: 'cam-1',
-            cameraName: 'Camera 1',
-            title: ' Desk Radio Live ',
-            privacy: 'unlisted',
-          },
-          streamProductId: 42,
-          streamProductNameForSession: 'Desk Radio',
-          closeStreamDialog,
-          setIsStartingStream,
-          feedback,
-        }),
+    const { result } = renderHook(() =>
+      useCameraStreamActions({
+        streamModeEnabled: true,
+        selectionMode: false,
+        isCameraReachable: () => true,
+        openStreamDialog: jest.fn(),
+        streamProductName: 'Desk Radio',
+        toggleSelected: jest.fn(),
+        setSnackbar,
+        streamDialog: {
+          cameraId: 'cam-1',
+          cameraName: 'Camera 1',
+          title: ' Desk Radio Live ',
+          privacy: 'unlisted',
+        },
+        streamProductId: 42,
+        streamProductNameForSession: 'Desk Radio',
+        closeStreamDialog,
+        setIsStartingStream,
+        feedback,
+      }),
     );
 
     await act(async () => {
@@ -220,13 +224,17 @@ describe('camera action hooks', () => {
     expect(mockBack).toHaveBeenCalled();
     expect(setIsStartingStream).toHaveBeenLastCalledWith(false);
 
-    mockStartYouTubeStream.mockRejectedValueOnce(new Error('GOOGLE_OAUTH_REQUIRED'));
+    mockStartYouTubeStream.mockImplementationOnce(async () => {
+      throw new Error('GOOGLE_OAUTH_REQUIRED');
+    });
     await act(async () => {
       await result.current.handleStartStream();
     });
     expect(feedback.alert).toHaveBeenCalled();
 
-    mockStartYouTubeStream.mockRejectedValueOnce(new Error('camera exploded'));
+    mockStartYouTubeStream.mockImplementationOnce(async () => {
+      throw new Error('camera exploded');
+    });
     await act(async () => {
       await result.current.handleStartStream();
     });

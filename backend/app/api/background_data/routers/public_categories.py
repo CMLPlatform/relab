@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Path, Request
 from fastapi_pagination import Page
@@ -55,16 +55,13 @@ async def _page_categories_with_relationships(
     category_filter: CategoryFilterWithRelationshipsDep,
 ) -> Page[Category]:
     """Page categories using an explicit public read query."""
-    statement = cast("Select[tuple[Category]]", select(Category))
-    statement = cast("Select[tuple[Category]]", apply_filter(statement, Category, category_filter))
-    statement = cast(
-        "Select[tuple[Category]]",
-        apply_loader_profile(
-            statement,
-            Category,
-            {"taxonomy", "subcategories", "materials", "product_types"},
-            read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
-        ),
+    statement: Select[tuple[Category]] = select(Category)
+    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_loader_profile(
+        statement,
+        Category,
+        {"taxonomy", "subcategories", "materials", "product_types"},
+        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
     return await paginate_select(session, statement, model=Category)
 
@@ -76,16 +73,13 @@ async def _page_subcategories(
     category_filter: CategoryFilterDep,
 ) -> Page[Category]:
     """Page direct subcategories for one parent category."""
-    statement = cast("Select[tuple[Category]]", select(Category).where(Category.supercategory_id == category_id))
-    statement = cast("Select[tuple[Category]]", apply_filter(statement, Category, category_filter))
-    statement = cast(
-        "Select[tuple[Category]]",
-        apply_loader_profile(
-            statement,
-            Category,
-            {"taxonomy", "subcategories", "materials", "product_types"},
-            read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
-        ),
+    statement: Select[tuple[Category]] = select(Category).where(Category.supercategory_id == category_id)
+    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_loader_profile(
+        statement,
+        Category,
+        {"taxonomy", "subcategories", "materials", "product_types"},
+        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
     )
     return await paginate_select(session, statement, model=Category)
 

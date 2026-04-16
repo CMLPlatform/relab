@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
@@ -238,11 +238,8 @@ async def _page_products(
     current_user: User | None,
 ) -> Page[Product]:
     """Page products from an explicit product read query."""
-    statement = cast("Select[tuple[Product]]", apply_filter(statement, Product, product_filter))
-    statement = cast(
-        "Select[tuple[Product]]",
-        apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS),
-    )
+    statement = apply_filter(statement, Product, product_filter)
+    statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
     return await paginate_select(
         session,
         statement,
