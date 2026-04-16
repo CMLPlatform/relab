@@ -10,7 +10,13 @@ from app.api.common.crud.associations import add_links
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_model, require_models
 from app.api.common.exceptions import InternalServerError
-from app.api.file_storage.crud.parent_media import ParentMediaCrud
+from app.api.file_storage.crud.parent_media import (
+    create_parent_media,
+    delete_all_parent_media,
+    delete_parent_media,
+    get_parent_media,
+    list_parent_media,
+)
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.models import File, Image, MediaParentType
 
@@ -112,66 +118,117 @@ async def remove_categories_from_material(db: AsyncSession, material_id: int, ca
     await db.commit()
 
 
-_material_files = ParentMediaCrud(
-    parent_model=Material,
-    parent_type=MediaParentType.MATERIAL,
-    storage_model=File,
-    storage_service=file_storage_service,
-)
-
-_material_images = ParentMediaCrud(
-    parent_model=Material,
-    parent_type=MediaParentType.MATERIAL,
-    storage_model=Image,
-    storage_service=image_storage_service,
-)
-
-
 async def list_material_files(db: AsyncSession, material_id: int, *, filter_params: FileFilter) -> Sequence[File]:
     """List files attached to a material."""
-    return await _material_files.get_all(db, material_id, filter_params=filter_params)
+    return await list_parent_media(
+        db,
+        parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
+        storage_model=File,
+        parent_id=material_id,
+        filter_params=filter_params,
+    )
 
 
 async def get_material_file(db: AsyncSession, material_id: int, file_id: UUID4) -> File:
     """Load one file attached to a material."""
-    return await _material_files.get_by_id(db, material_id, file_id)
+    return await get_parent_media(
+        db,
+        parent_model=Material,
+        storage_model=File,
+        parent_id=material_id,
+        item_id=file_id,
+    )
 
 
 async def create_material_file(db: AsyncSession, material_id: int, payload: FileCreate) -> File:
     """Create a file attached to a material."""
-    return await _material_files.create(db, material_id, payload)
+    return await create_parent_media(
+        db,
+        parent_id=material_id,
+        parent_type=MediaParentType.MATERIAL,
+        storage_service=file_storage_service,
+        item_data=payload,
+    )
 
 
 async def delete_material_file(db: AsyncSession, material_id: int, file_id: UUID4) -> None:
     """Delete a file attached to a material."""
-    await _material_files.delete(db, material_id, file_id)
+    await delete_parent_media(
+        db,
+        parent_model=Material,
+        storage_model=File,
+        parent_id=material_id,
+        item_id=file_id,
+        storage_service=file_storage_service,
+    )
 
 
 async def delete_all_material_files(db: AsyncSession, material_id: int) -> None:
     """Delete all files attached to a material."""
-    await _material_files.delete_all(db, material_id)
+    await delete_all_parent_media(
+        db,
+        parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
+        storage_model=File,
+        parent_id=material_id,
+        storage_service=file_storage_service,
+    )
 
 
 async def list_material_images(db: AsyncSession, material_id: int, *, filter_params: ImageFilter) -> Sequence[Image]:
     """List images attached to a material."""
-    return await _material_images.get_all(db, material_id, filter_params=filter_params)
+    return await list_parent_media(
+        db,
+        parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
+        storage_model=Image,
+        parent_id=material_id,
+        filter_params=filter_params,
+    )
 
 
 async def get_material_image(db: AsyncSession, material_id: int, image_id: UUID4) -> Image:
     """Load one image attached to a material."""
-    return await _material_images.get_by_id(db, material_id, image_id)
+    return await get_parent_media(
+        db,
+        parent_model=Material,
+        storage_model=Image,
+        parent_id=material_id,
+        item_id=image_id,
+    )
 
 
 async def create_material_image(db: AsyncSession, material_id: int, payload: ImageCreateFromForm) -> Image:
     """Create an image attached to a material."""
-    return await _material_images.create(db, material_id, payload)
+    return await create_parent_media(
+        db,
+        parent_id=material_id,
+        parent_type=MediaParentType.MATERIAL,
+        storage_service=image_storage_service,
+        item_data=payload,
+    )
 
 
 async def delete_material_image(db: AsyncSession, material_id: int, image_id: UUID4) -> None:
     """Delete an image attached to a material."""
-    await _material_images.delete(db, material_id, image_id)
+    await delete_parent_media(
+        db,
+        parent_model=Material,
+        storage_model=Image,
+        parent_id=material_id,
+        item_id=image_id,
+        storage_service=image_storage_service,
+    )
 
 
 async def delete_all_material_images(db: AsyncSession, material_id: int) -> None:
     """Delete all images attached to a material."""
-    await _material_images.delete_all(db, material_id)
+    await delete_all_parent_media(
+        db,
+        parent_model=Material,
+        parent_type=MediaParentType.MATERIAL,
+        storage_model=Image,
+        parent_id=material_id,
+        storage_service=image_storage_service,
+    )
