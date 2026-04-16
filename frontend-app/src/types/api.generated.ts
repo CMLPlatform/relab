@@ -1501,7 +1501,7 @@ export interface paths {
     };
     /**
      * Get local direct-connection info for a camera
-     * @description Relays GET /local-access-info to the Pi via the WebSocket connection. Returns the local API key and candidate IP addresses so the frontend can auto-configure Ethernet/USB-C direct access without manual key copying. Returns 503 when the camera is offline.
+     * @description Relays GET /system/local-access to the Pi via the WebSocket connection. Returns the local API key and candidate IP addresses so the frontend can auto-configure Ethernet/USB-C direct access without manual key copying. Returns 503 when the camera is offline.
      */
     get: operations['get_camera_local_access_plugins_rpi_cam_cameras__camera_id__local_access_get'];
     put?: never;
@@ -1617,7 +1617,7 @@ export interface paths {
     };
     /**
      * Get local direct-connection info for a camera
-     * @description Relays GET /local-access-info to the Pi via the WebSocket connection. Returns the local API key and candidate IP addresses so the frontend can auto-configure Ethernet/USB-C direct access without manual key copying. Returns 503 when the camera is offline.
+     * @description Relays GET /system/local-access to the Pi via the WebSocket connection. Returns the local API key and candidate IP addresses so the frontend can auto-configure Ethernet/USB-C direct access without manual key copying. Returns 503 when the camera is offline.
      */
     get: operations['get_camera_local_access_users_me_cameras__camera_id__local_access_get'];
     put?: never;
@@ -2252,6 +2252,8 @@ export interface components {
       telemetry?: components['schemas']['TelemetrySnapshot'] | null;
       /** Last Image Url */
       last_image_url?: string | null;
+      /** Last Image Thumbnail Url */
+      last_image_thumbnail_url?: string | null;
     };
     /**
      * CameraStatus

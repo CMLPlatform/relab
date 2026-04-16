@@ -12,8 +12,8 @@ import ProductPhysicalProperties from '@/components/product/ProductPhysicalPrope
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
+import type { StreamSession } from '@/context/StreamSessionContext';
 import type { Product } from '@/types/Product';
-import { ProductActiveStreamBanner, ProductYouTubeSetupBanner } from './Banners';
 
 type ProductPageContentProps = {
   product: Product;
@@ -22,7 +22,6 @@ type ProductPageContentProps = {
   isProductComponent: boolean;
   justCreated: boolean;
   onScroll: ComponentProps<typeof KeyboardAwareScrollView>['onScroll'];
-  onNavigateToActiveStream: () => void;
   onNavigateToProfile: () => void;
   onImagesChange: ComponentProps<typeof ProductImageGallery>['onImagesChange'];
   onChangeDescription: ComponentProps<typeof ProductDescription>['onChangeDescription'];
@@ -41,8 +40,9 @@ type ProductPageContentProps = {
   rpiEnabled: boolean;
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
-  streamingOtherProduct: boolean;
-  activeStreamProductName?: string;
+  streamingThisProduct: boolean;
+  activeStream: StreamSession | null;
+  onGoLivePress: () => void;
   themeColors: {
     secondaryContainer: string;
     onSecondaryContainer: string;
@@ -58,7 +58,6 @@ export function ProductPageContent({
   isProductComponent,
   justCreated,
   onScroll,
-  onNavigateToActiveStream,
   onNavigateToProfile,
   onImagesChange,
   onChangeDescription,
@@ -73,8 +72,9 @@ export function ProductPageContent({
   rpiEnabled,
   youtubeEnabled,
   isGoogleLinked,
-  streamingOtherProduct,
-  activeStreamProductName,
+  streamingThisProduct,
+  activeStream,
+  onGoLivePress,
   themeColors,
 }: ProductPageContentProps) {
   return (
@@ -83,18 +83,6 @@ export function ProductPageContent({
       onScroll={onScroll as never}
       scrollEventThrottle={16}
     >
-      {rpiEnabled &&
-      !isNew &&
-      !editMode &&
-      !isProductComponent &&
-      product.ownedBy === 'me' &&
-      streamingOtherProduct &&
-      activeStreamProductName ? (
-        <ProductActiveStreamBanner
-          productName={activeStreamProductName}
-          onPress={onNavigateToActiveStream}
-        />
-      ) : null}
       <ProductImageGallery
         product={product}
         editMode={editMode}
@@ -133,7 +121,21 @@ export function ProductPageContent({
         />
       </DetailCard>
       <DetailCard>
-        <ProductVideo product={product} editMode={editMode} onVideoChange={onVideoChange} />
+        <ProductVideo
+          product={product}
+          editMode={editMode}
+          onVideoChange={onVideoChange}
+          streamingThisProduct={streamingThisProduct}
+          activeStream={activeStream}
+          rpiEnabled={rpiEnabled}
+          youtubeEnabled={youtubeEnabled}
+          isGoogleLinked={isGoogleLinked}
+          ownedByMe={product.ownedBy === 'me'}
+          isNew={isNew}
+          isProductComponent={isProductComponent}
+          onGoLivePress={onGoLivePress}
+          onNavigateToProfile={onNavigateToProfile}
+        />
       </DetailCard>
       {!isNew ? (
         <>
@@ -159,19 +161,6 @@ export function ProductPageContent({
         <ProductMetaData product={product} />
       </DetailCard>
       <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
-      {rpiEnabled &&
-      !isNew &&
-      !editMode &&
-      !isProductComponent &&
-      product.ownedBy === 'me' &&
-      !youtubeEnabled ? (
-        <ProductYouTubeSetupBanner
-          isGoogleLinked={isGoogleLinked}
-          onPress={onNavigateToProfile}
-          surfaceVariant={themeColors.surfaceVariant}
-          onSurfaceVariant={themeColors.onSurfaceVariant}
-        />
-      ) : null}
     </KeyboardAwareScrollView>
   );
 }

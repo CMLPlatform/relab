@@ -21,7 +21,7 @@ export interface EffectiveCameraConnection {
   isReachable: boolean;
   /** True when backend relay endpoints such as backend /snapshot should be used. */
   canUseRelay: boolean;
-  /** True when direct Pi endpoints such as /camera/snapshot should be used. */
+  /** True when direct Pi endpoints such as /preview/snapshot should be used. */
   canUseDirect: boolean;
   /** Secondary card/status text, if the effective status needs an explanation. */
   detailLabel: string | null;

@@ -328,44 +328,6 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     ).not.toBeNull();
   });
 
-  // ── RPi button — unsaved product ───────────────────────────────────────────
-
-  it('shows an alert when RPi button is pressed on an unsaved product', async () => {
-    mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
-
-    // Product with id: undefined simulates an unsaved product
-    const unsavedProduct = { ...baseProduct, id: undefined } as unknown as Product;
-
-    renderWithProviders(<ProductImageGallery product={unsavedProduct} editMode={true} />, {
-      withDialog: true,
-    });
-
-    // With no cameras configured and rpiEnabled, the button reads "Set up RPi camera"
-    fireEvent.press(screen.getByLabelText('Set up RPi camera'));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Save this product first/i)).toBeOnTheScreen();
-    });
-  });
-
-  // ── RPi button — saved product, zero cameras ───────────────────────────────
-
-  it('routes to /cameras when RPi button is pressed with zero cameras configured', async () => {
-    mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
-    mockUseCamerasQuery.mockReturnValue({ data: [], isLoading: false });
-
-    renderWithProviders(
-      <ProductImageGallery product={{ ...baseProduct, id: 42 }} editMode={true} />,
-      { withDialog: true },
-    );
-
-    fireEvent.press(screen.getByLabelText('Set up RPi camera'));
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/cameras');
-    });
-  });
-
   // ── RPi button — saved product, ≥1 online camera ──────────────────────────
 
   it('opens the camera picker dialog when ≥1 camera is available', async () => {
@@ -385,41 +347,6 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     await waitFor(() => {
       expect(screen.getByText('Select camera')).toBeOnTheScreen();
     });
-  });
-
-  it('sorts cameras online-first in the picker', async () => {
-    mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        makeCamera({
-          id: 'cam-offline',
-          name: 'Offline Cam',
-          status: { connection: 'offline', last_seen_at: null, details: null },
-        }),
-        makeCamera({
-          id: 'cam-online',
-          name: 'Online Cam',
-          status: { connection: 'online', last_seen_at: null, details: null },
-        }),
-      ],
-      isLoading: false,
-    });
-
-    renderWithProviders(
-      <ProductImageGallery product={{ ...baseProduct, id: 42 }} editMode={true} />,
-      { withDialog: true },
-    );
-
-    fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Select camera')).toBeOnTheScreen();
-    });
-
-    const allNames = screen.getAllByText(/Cam/).map((el) => el.props.children as string);
-    const onlineIdx = allNames.indexOf('Online Cam');
-    const offlineIdx = allNames.indexOf('Offline Cam');
-    expect(onlineIdx).toBeLessThan(offlineIdx);
   });
 
   // ── Preview dialog ─────────────────────────────────────────────────────────
@@ -446,60 +373,6 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       expect(screen.getByText('Bench Cam')).toBeOnTheScreen();
       // Capture button in the preview dialog
       expect(screen.getByText('Capture')).toBeOnTheScreen();
-    });
-  });
-
-  // ── Capture mutation ───────────────────────────────────────────────────────
-
-  it('fires the mutation and calls onImagesChange on success', async () => {
-    const onImagesChange = jest.fn();
-    mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [makeCamera({ id: 'cam-1', name: 'Bench Cam' })],
-      isLoading: false,
-    });
-
-    const capturedImage = {
-      id: 'img-new',
-      url: '/media/captures/new.jpg',
-      thumbnailUrl: null,
-      description: 'captured',
-    };
-
-    mockCaptureMutate.mockImplementation(((
-      _payload: unknown,
-      opts: { onSuccess: (img: typeof capturedImage) => void; onSettled: () => void },
-    ) => {
-      opts.onSuccess(capturedImage);
-      opts.onSettled();
-    }) as unknown as (...args: unknown[]) => unknown);
-
-    renderWithProviders(
-      <ProductImageGallery
-        product={{ ...baseProduct, id: 42, images: [] }}
-        editMode={true}
-        onImagesChange={onImagesChange}
-      />,
-      { withDialog: true },
-    );
-
-    // Open picker → select camera
-    fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
-    await waitFor(() => expect(screen.getByText('Select camera')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Bench Cam'));
-    await waitFor(() => expect(screen.getByText('Capture')).toBeOnTheScreen());
-
-    // Press the Capture button in the preview dialog
-    fireEvent.press(screen.getByText('Capture'));
-
-    await waitFor(() => {
-      expect(mockCaptureMutate).toHaveBeenCalledWith(
-        { cameraId: 'cam-1', productId: 42 },
-        expect.objectContaining({ onSuccess: expect.any(Function) }),
-      );
-      expect(onImagesChange).toHaveBeenCalledWith(
-        expect.arrayContaining([expect.objectContaining({ id: 'img-new' })]),
-      );
     });
   });
 

@@ -9,18 +9,18 @@ import {
   invalidateProductQuery,
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
-} from '@/hooks/rpi-cameras/mutations';
+} from '@/hooks/camera-data/mutations';
 import {
   type CameraLivePreviewResult,
   resolveCameraLivePreview,
-} from '@/hooks/rpi-cameras/previews';
+} from '@/hooks/camera-data/previews';
 import {
   cameraQueryOptions,
   cameraSnapshotQueryOptions,
   camerasQueryOptions,
   cameraTelemetryQueryOptions,
   streamStatusQueryOptions,
-} from '@/hooks/rpi-cameras/queries';
+} from '@/hooks/camera-data/queries';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import type {
   CameraUpdate,
@@ -171,8 +171,8 @@ export function useCaptureAllMutation(connectionInfoMap?: Record<string, CameraC
   });
 }
 
-export type { CaptureAllResult } from '@/hooks/rpi-cameras/mutations';
+export type { CaptureAllResult } from '@/hooks/camera-data/mutations';
 export {
   cameraQueryOptions,
   camerasQueryOptions,
-} from '@/hooks/rpi-cameras/queries';
+} from '@/hooks/camera-data/queries';

@@ -15,4 +15,4 @@ export {
   useStopYouTubeStreamMutation,
   useStreamStatusQuery,
   useUpdateCameraMutation,
-} from '@/hooks/rpi-cameras/hooks';
+} from '@/hooks/camera-data/hooks';

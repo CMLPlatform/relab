@@ -5,7 +5,7 @@ import {
   fetchSnapshotForConnection,
   resolveSnapshotTransport,
   streamStatusQueryOptions,
-} from '@/hooks/rpi-cameras/queries';
+} from '@/hooks/camera-data/queries';
 import {
   fetchCameraSnapshot,
   fetchCameraSnapshotLocally,

@@ -9,7 +9,6 @@ import {
   ProductImageThumbnails,
 } from '@/components/product/gallery/ProductImageGallerySections';
 import { ProductImageLightbox } from '@/components/product/gallery/ProductImageLightbox';
-import type { ScrollEvent } from '@/components/product/gallery/shared';
 import { useProductImageGallery } from '@/hooks/useProductImageGallery';
 import type { Product } from '@/types/Product';
 
@@ -20,133 +19,87 @@ interface Props {
 }
 
 export default function ProductImageGallery({ product, editMode, onImagesChange }: Props) {
-  const {
-    width,
-    imageCount,
-    thumbnailUrls,
-    mediumUrls,
-    largeUrls,
-    showCameraOption,
-    showRpiButton,
-    hasCamerasConfigured,
-    rpiCamerasLoading,
-    cameraPickerVisible,
-    setCameraPickerVisible,
-    previewCamera,
-    setPreviewCamera,
-    isCapturing,
-    selectedIndex,
-    lightboxOpen,
-    setLightboxOpen,
-    galleryRef,
-    thumbsRef,
-    updateCurrentIndex,
-    scrollToIndex,
-    captureFromCamera,
-    handleRpiCapture,
-    handlePickImage,
-    handleTakePhoto,
-    handleDeleteImage,
-  } = useProductImageGallery({
+  const { media, viewer, capture, actions } = useProductImageGallery({
     product,
     editMode,
     onImagesChange,
   });
 
-  if (imageCount === 0 && !editMode) {
-    return <ProductImagePlaceholder width={width} label={product.name} />;
+  if (media.imageCount === 0 && !editMode) {
+    return <ProductImagePlaceholder width={media.width} label={product.name} />;
   }
 
   return (
     <View style={{ marginBottom: 16 }}>
-      {imageCount > 0 ? (
+      {media.imageCount > 0 ? (
         <ProductImageGalleryContent
-          width={width}
-          imageCount={imageCount}
-          selectedIndex={selectedIndex}
-          mediumUrls={mediumUrls}
-          onSelectIndex={(index) => updateCurrentIndex(index)}
-          onOpenLightbox={(index) => {
-            void updateCurrentIndex(index);
-            setLightboxOpen(true);
-          }}
-          onPrev={() => {
-            const next = Math.max(0, selectedIndex - 1);
-            void updateCurrentIndex(next);
-            scrollToIndex(next);
-          }}
-          onNext={() => {
-            const next = Math.min(imageCount - 1, selectedIndex + 1);
-            void updateCurrentIndex(next);
-            scrollToIndex(next);
-          }}
-          galleryRef={galleryRef}
-          onScrollEnd={(event: ScrollEvent) => {
-            const index = Math.round(event.nativeEvent.contentOffset.x / width);
-            void updateCurrentIndex(index);
-          }}
+          width={media.width}
+          imageCount={media.imageCount}
+          selectedIndex={viewer.selectedIndex}
+          mediumUrls={media.mediumUrls}
+          galleryRef={media.galleryRef}
+          onSelectIndex={actions.selectIndex}
+          onOpenLightbox={actions.openLightbox}
+          onPrev={actions.showPreviousImage}
+          onNext={actions.showNextImage}
+          onScrollEnd={actions.syncIndexFromScroll}
           editMode={editMode}
-          showCameraOption={showCameraOption}
-          showRpiButton={showRpiButton}
-          hasCamerasConfigured={hasCamerasConfigured}
-          isCapturing={isCapturing}
-          rpiCamerasLoading={rpiCamerasLoading}
+          showCameraOption={capture.showCameraOption}
+          showRpiButton={capture.showRpiButton}
+          hasCamerasConfigured={capture.hasCamerasConfigured}
+          isCapturing={capture.isCapturing}
+          rpiCamerasLoading={capture.rpiCamerasLoading}
           onTakePhoto={() => {
-            void handleTakePhoto();
+            void actions.takePhoto();
           }}
           onPickImage={() => {
-            void handlePickImage();
+            void actions.pickImage();
           }}
-          onRpiCapture={handleRpiCapture}
-          onDeleteImage={() => handleDeleteImage(selectedIndex)}
+          onRpiCapture={actions.requestRpiCapture}
+          onDeleteImage={() => actions.deleteImage(viewer.selectedIndex)}
         />
       ) : editMode ? (
         <ProductImageEmptyEditState
-          showCameraOption={showCameraOption}
-          showRpiButton={showRpiButton}
-          hasCamerasConfigured={hasCamerasConfigured}
-          isCapturing={isCapturing}
-          rpiCamerasLoading={rpiCamerasLoading}
+          showCameraOption={capture.showCameraOption}
+          showRpiButton={capture.showRpiButton}
+          hasCamerasConfigured={capture.hasCamerasConfigured}
+          isCapturing={capture.isCapturing}
+          rpiCamerasLoading={capture.rpiCamerasLoading}
           onTakePhoto={() => {
-            void handleTakePhoto();
+            void actions.takePhoto();
           }}
           onPickImage={() => {
-            void handlePickImage();
+            void actions.pickImage();
           }}
-          onRpiCapture={handleRpiCapture}
+          onRpiCapture={actions.requestRpiCapture}
         />
       ) : null}
 
       <ProductImageCameraDialogs
-        cameraPickerVisible={cameraPickerVisible}
-        onDismissCameraPicker={() => setCameraPickerVisible(false)}
-        onSelectCamera={(camera) => {
-          setCameraPickerVisible(false);
-          setPreviewCamera(camera);
-        }}
-        previewCamera={previewCamera}
-        onDismissPreview={() => setPreviewCamera(null)}
-        isCapturing={isCapturing}
-        onCapturePreview={() => {
-          if (previewCamera) captureFromCamera(previewCamera);
-        }}
+        cameraPickerVisible={viewer.cameraPickerVisible}
+        onDismissCameraPicker={actions.dismissCameraPicker}
+        onSelectCamera={actions.selectPreviewCamera}
+        previewCamera={viewer.previewCamera}
+        onDismissPreview={actions.dismissPreview}
+        isCapturing={capture.isCapturing}
+        onCapturePreview={actions.capturePreview}
       />
 
       <ProductImageThumbnails
-        imageCount={imageCount}
-        thumbnailUrls={thumbnailUrls}
-        selectedIndex={selectedIndex}
-        thumbsRef={thumbsRef}
-        onSelectIndex={(index) => updateCurrentIndex(index)}
-        onScrollToIndex={scrollToIndex}
+        imageCount={media.imageCount}
+        thumbnailUrls={media.thumbnailUrls}
+        selectedIndex={viewer.selectedIndex}
+        thumbsRef={media.thumbsRef}
+        onSelectIndex={actions.selectIndex}
+        onScrollToIndex={actions.scrollToIndex}
       />
 
       <ProductImageLightbox
-        visible={lightboxOpen}
-        images={largeUrls}
-        startIndex={selectedIndex}
-        onIndexChange={updateCurrentIndex}
-        onClose={() => setLightboxOpen(false)}
+        visible={viewer.lightboxOpen}
+        images={media.largeUrls}
+        startIndex={viewer.selectedIndex}
+        onIndexChange={actions.selectIndex}
+        onClose={actions.closeLightbox}
       />
     </View>
   );

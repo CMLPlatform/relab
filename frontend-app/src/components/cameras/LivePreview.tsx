@@ -21,7 +21,7 @@ import type { CameraRead } from '@/services/api/rpiCamera';
  *
  * Web: renders a ``<video>`` element with [hls.js](https://github.com/video-dev/hls.js/)
  * attached to the playlist URL. When ``connectionInfo.mode`` is ``"local"``, the
- * URL routes through the Pi's FastAPI HLS proxy (``/hls/`` on port 8018) which
+ * URL routes through the Pi's FastAPI HLS proxy (``/preview/hls/`` on port 8018) which
  * forwards to MediaMTX internally — this lets FastAPI attach CORS and Private
  * Network Access headers to every response, including HLS segments. Latency is
  * ~0.4–0.8 s. Otherwise the backend HLS proxy is used (~1.5–3 s via relay).

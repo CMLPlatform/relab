@@ -5,7 +5,7 @@ import {
   clearOptimisticStreamStatus,
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
-} from '@/hooks/rpi-cameras/mutations';
+} from '@/hooks/camera-data/mutations';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera';
 

@@ -16,7 +16,7 @@
  * ## Auto-configuration (medium-term / zero-copy setup)
  *
  * When the camera is online, the hook fetches local access info through the
- * relay (GET /cameras/{id}/local-access → Pi's /local-access-info). The Pi
+ * relay (GET /cameras/{id}/local-access → Pi's /system/local-access). The Pi
  * returns its API key and all its LAN IP addresses. The hook probes each
  * candidate URL in parallel; the first that responds activates local mode
  * automatically — no manual key copying required.

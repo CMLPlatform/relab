@@ -52,7 +52,6 @@ export default function ProductPage() {
         isProductComponent={capabilities.isProductComponent}
         justCreated={capabilities.justCreated}
         onScroll={editing.onScroll}
-        onNavigateToActiveStream={actions.goToActiveStreamProduct}
         onNavigateToProfile={actions.goToProfileForYouTubeSetup}
         onImagesChange={actions.onImagesChange}
         onChangeDescription={actions.onChangeDescription}
@@ -67,8 +66,9 @@ export default function ProductPage() {
         rpiEnabled={capabilities.rpiEnabled}
         youtubeEnabled={capabilities.youtubeEnabled}
         isGoogleLinked={capabilities.isGoogleLinked}
-        streamingOtherProduct={streaming.streamingOtherProduct}
-        activeStreamProductName={streaming.activeStream?.productName}
+        streamingThisProduct={streaming.streamingThisProduct}
+        activeStream={streaming.activeStream}
+        onGoLivePress={streaming.openStreamPicker}
         themeColors={{
           secondaryContainer: theme.colors.secondaryContainer,
           onSecondaryContainer: theme.colors.onSecondaryContainer,

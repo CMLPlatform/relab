@@ -38,6 +38,7 @@ function makeCamera(overrides: Partial<CameraReadWithStatus> = {}): CameraReadWi
     name: 'Test Camera',
     description: '',
     last_image_url: null,
+    last_image_thumbnail_url: null,
     status: { connection: 'online', last_seen_at: null, details: null },
     telemetry: undefined,
     ...overrides,
@@ -89,6 +90,19 @@ describe('CameraCard', () => {
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();
     expect(screen.getByText('No preview available')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
+  });
+
+  it('online + snapshot missing: falls back to the last stored thumbnail', () => {
+    mockUseCameraSnapshotQuery.mockReturnValue({ data: null, isLoading: false });
+    const camera = makeCamera({
+      last_image_url: 'https://example.com/shot.jpg',
+      last_image_thumbnail_url: 'https://example.com/shot-thumb.webp',
+    });
+
+    renderWithProviders(<CameraCard camera={camera} />);
+
+    expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
+    expect(screen.getByText('img:https://example.com/shot-thumb.webp')).toBeOnTheScreen();
   });
 
   it('does not call the backend snapshot endpoint for direct-only cards without a local key', () => {

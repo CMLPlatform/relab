@@ -52,7 +52,9 @@ describe('rpiCamera API service', () => {
 
     const result = await fetchCameras(true);
 
-    expect(result).toEqual([{ id: 'cam-1', name: 'Desk Cam', last_image_url: null }]);
+    expect(result).toEqual([
+      { id: 'cam-1', name: 'Desk Cam', last_image_url: null, last_image_thumbnail_url: null },
+    ]);
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
         href: expect.stringContaining('/plugins/rpi-cam/cameras?include_status=true'),
@@ -69,7 +71,12 @@ describe('rpiCamera API service', () => {
 
     const result = await fetchCamera('cam-1', true);
 
-    expect(result).toEqual({ id: 'cam-1', name: 'Desk Cam', last_image_url: null });
+    expect(result).toEqual({
+      id: 'cam-1',
+      name: 'Desk Cam',
+      last_image_url: null,
+      last_image_thumbnail_url: null,
+    });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
         href: expect.stringContaining('/plugins/rpi-cam/cameras/cam-1?include_status=true'),
@@ -198,7 +205,7 @@ describe('rpiCamera API service', () => {
 
   it('builds the local LL-HLS playlist URL through the Pi FastAPI proxy', () => {
     expect(buildLocalHlsUrl('http://192.168.1.20:8018/')).toBe(
-      'http://192.168.1.20:8018/hls/cam-preview/index.m3u8',
+      'http://192.168.1.20:8018/preview/hls/cam-preview/index.m3u8',
     );
   });
 
@@ -303,7 +310,7 @@ describe('rpiCamera API service', () => {
 
     expect(result).toBe('data:image/jpeg;base64,bG9jYWwtcHJldmlldw==');
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://192.168.7.1:8018/camera/snapshot',
+      'http://192.168.7.1:8018/preview/snapshot',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -317,12 +324,13 @@ describe('rpiCamera API service', () => {
     fetchSpy.mockRestore();
   });
 
-  it('resolves relative last_image_url values against the API base', async () => {
+  it('resolves relative last-image URLs against the API base', async () => {
     mockJsonResponse([
       {
         id: 'cam-1',
         name: 'Bench Cam',
         last_image_url: '/uploads/cameras/cam-1/latest.jpg',
+        last_image_thumbnail_url: '/images/cam-1-thumb/resized?width=200',
       },
     ]);
 
@@ -330,6 +338,9 @@ describe('rpiCamera API service', () => {
 
     expect(result[0]?.last_image_url).toBe(
       'http://localhost:8000/api/uploads/cameras/cam-1/latest.jpg',
+    );
+    expect(result[0]?.last_image_thumbnail_url).toBe(
+      'http://localhost:8000/api/images/cam-1-thumb/resized?width=200',
     );
   });
 
@@ -361,7 +372,7 @@ describe('rpiCamera API service', () => {
       description: 'test image',
     });
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://192.168.7.1:8018/images',
+      'http://192.168.7.1:8018/captures',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

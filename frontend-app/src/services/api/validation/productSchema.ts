@@ -22,6 +22,26 @@ export function isValidUrl(value: string | undefined): boolean {
 }
 
 /**
+ * Extracts the YouTube video ID from common YouTube URL formats.
+ * Handles youtube.com/watch?v=ID, youtu.be/ID, and youtube.com/live/ID.
+ * Returns null for non-YouTube URLs or invalid inputs.
+ */
+export function extractYouTubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com')) {
+      return u.searchParams.get('v') ?? u.pathname.split('/').pop() ?? null;
+    }
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1) || null;
+    }
+  } catch {
+    // not a valid URL
+  }
+  return null;
+}
+
+/**
  * Helper text describing the allowed name length for product names.
  * Used in form validation feedback.
  */

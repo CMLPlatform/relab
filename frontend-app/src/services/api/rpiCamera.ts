@@ -23,7 +23,9 @@ export type CameraStatus = ApiCameraStatus;
 export type CameraRead = ApiCameraRead;
 export type ThermalState = ApiThermalState;
 export type CameraTelemetry = ApiCameraTelemetry;
-export type CameraReadWithStatus = ApiCameraReadWithStatus;
+export type CameraReadWithStatus = ApiCameraReadWithStatus & {
+  last_image_thumbnail_url?: string | null;
+};
 
 export interface CameraUpdate {
   name?: string | null;
@@ -53,10 +55,19 @@ export interface StartYouTubeStreamParams {
 const BASE = `${API_URL}/plugins/rpi-cam/cameras`;
 const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
 
-function normalizeCameraReadWithStatus<T extends { last_image_url?: string | null }>(camera: T): T {
+function normalizeCameraReadWithStatus<
+  T extends {
+    last_image_url?: string | null;
+    last_image_thumbnail_url?: string | null;
+  },
+>(camera: T): T {
   return {
     ...camera,
     last_image_url: resolveApiMediaUrl(camera.last_image_url) ?? camera.last_image_url ?? null,
+    last_image_thumbnail_url:
+      resolveApiMediaUrl(camera.last_image_thumbnail_url) ??
+      camera.last_image_thumbnail_url ??
+      null,
   };
 }
 
@@ -114,7 +125,7 @@ export async function fetchCameraSnapshotLocally(
   localApiKey: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/camera/snapshot`, {
+  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/preview/snapshot`, {
     method: 'GET',
     headers: {
       Accept: 'image/jpeg',
@@ -178,14 +189,14 @@ export function buildCameraHlsUrl(cameraId: string): string {
 
 /**
  * LL-HLS playlist URL served by the Pi's FastAPI HLS proxy in local mode.
- * Routes through port 8018 (/hls/ → MediaMTX on localhost:8888) so FastAPI
+ * Routes through port 8018 (/preview/hls/ → MediaMTX on localhost:8888) so FastAPI
  * can attach CORS and Private Network Access headers. No API key required —
- * the /hls/ route uses an IP-locality check instead.
+ * the /preview/hls/ route uses an IP-locality check instead.
  *
  * @param localBaseUrl - Base URL of the Pi's FastAPI server, e.g. "http://192.168.1.100:8018"
  */
 export function buildLocalHlsUrl(localBaseUrl: string): string {
-  return `${localBaseUrl.replace(/\/$/, '')}/hls/cam-preview/index.m3u8`;
+  return `${localBaseUrl.replace(/\/$/, '')}/preview/hls/cam-preview/index.m3u8`;
 }
 
 /**
@@ -205,7 +216,7 @@ export async function captureImageLocally(
   localApiKey: string,
   productId: number,
 ): Promise<CapturedImage> {
-  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/images`, {
+  const resp = await fetch(`${localBaseUrl.replace(/\/$/, '')}/captures`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -241,7 +252,7 @@ function isLocalAccessInfo(value: unknown): value is LocalAccessInfo {
 /**
  * Fetch local direct-connection info for a camera via the relay.
  *
- * The backend relays GET /local-access-info to the Pi, which returns the
+ * The backend relays GET /system/local-access to the Pi, which returns the
  * local API key and candidate IP addresses. Returns null when the camera is
  * offline (relay not connected) or on any network/auth error.
  */

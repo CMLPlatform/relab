@@ -70,9 +70,8 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  *     caption, telemetry chip. Full opacity.
  *   - **Offline:** whole card dimmed to 60% opacity, status chip in the
  *     offline colour, "Last seen X ago" caption replaces telemetry. No
- *     thumbnail. The preview is a cached low-res snapshot so it stays
- *     visually close to the live feed without depending on the stored still
- *     capture.
+ *     thumbnail. Online cards prefer a fresh snapshot, then fall back to the
+ *     latest stored capture thumbnail when the live preview path is unavailable.
  *
  * Tapping the card navigates to the camera detail screen regardless of
  * state so users can still see history / dialog / settings when offline.
@@ -99,7 +98,8 @@ export function CameraCard({
     enabled: shouldFetchSnapshot,
     connectionInfo: effectiveConnection?.localConnection,
   });
-  const resolvedThumbnailUrl = snapshotQuery.data ?? null;
+  const fallbackThumbnailUrl = camera.last_image_thumbnail_url ?? camera.last_image_url ?? null;
+  const resolvedThumbnailUrl = snapshotQuery.data ?? fallbackThumbnailUrl;
   const hasThumbnail =
     isOnline && !!resolvedThumbnailUrl && failedThumbnailUrl !== resolvedThumbnailUrl;
 
