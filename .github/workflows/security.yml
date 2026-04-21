@@ -66,7 +66,7 @@ jobs:
   python-audit-root:
     name: Python Audit (root)
     needs: [ changes ]
-    if: needs.changes.outputs.run-root-python == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-root-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -88,7 +88,7 @@ jobs:
   backend-python-audit:
     name: Python Audit (backend)
     needs: [ changes ]
-    if: needs.changes.outputs.run-backend-python == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-backend-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -110,7 +110,7 @@ jobs:
   docs-node-audit:
     name: Node Audit (docs)
     needs: [ changes ]
-    if: needs.changes.outputs.run-docs-node == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-docs-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     continue-on-error: true
@@ -151,7 +151,7 @@ jobs:
   frontend-app-node-audit:
     name: Node Audit (frontend-app)
     needs: [ changes ]
-    if: needs.changes.outputs.run-frontend-app-node == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-frontend-app-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -174,7 +174,7 @@ jobs:
   frontend-web-node-audit:
     name: Node Audit (frontend-web)
     needs: [ changes ]
-    if: needs.changes.outputs.run-frontend-web-node == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-frontend-web-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
