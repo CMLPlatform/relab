@@ -2,6 +2,16 @@ let mermaidRenderPromise: Promise<void> | undefined;
 let activeMermaidTheme = '';
 let themeObserver: MutationObserver | undefined;
 let mermaidModulePromise: Promise<typeof import('mermaid')> | undefined;
+const BOM_PATTERN = /^\uFEFF/;
+const FRONTMATTER_PATTERN = /^[\s\u200b]*---\s*\n[\s\S]*?\n---\s*(?:\n|$)/;
+const FONT_AWESOME_PATTERN = /\s+fa:[a-z0-9-]+/gi;
+const TRAILING_WHITESPACE_PATTERN = /[ \t]+$/g;
+
+const reportMermaidError = (error: unknown) => {
+  if (typeof reportError === 'function') {
+    reportError(error instanceof Error ? error : new Error(String(error)));
+  }
+};
 
 const mermaidThemeVariables = {
   light: {
@@ -25,10 +35,10 @@ const mermaidThemeVariables = {
 const normalizeMermaidSource = (source: string) => {
   let text = source
     .replace(/\r\n?/g, '\n')
-    .replace(/^\uFEFF/, '')
+    .replace(BOM_PATTERN, '')
     .trim();
 
-  const frontmatterMatch = text.match(/^[\s\u200b]*---\s*\n[\s\S]*?\n---\s*(?:\n|$)/);
+  const frontmatterMatch = text.match(FRONTMATTER_PATTERN);
   if (frontmatterMatch) {
     text = text.slice(frontmatterMatch[0].length).trimStart();
   }
@@ -45,9 +55,9 @@ const normalizeMermaidSource = (source: string) => {
   }
 
   return text
-    .replace(/\s+fa:[a-z0-9-]+/gi, '')
+    .replace(FONT_AWESOME_PATTERN, '')
     .split('\n')
-    .map((line) => line.replace(/[ \t]+$/g, ''))
+    .map((line) => line.replace(TRAILING_WHITESPACE_PATTERN, ''))
     .join('\n')
     .trim();
 };
@@ -134,7 +144,7 @@ const renderMermaid = async (force = false) => {
     try {
       await mermaid.run({ nodes: diagrams });
     } catch (error) {
-      console.error('Failed to render Mermaid diagram.', error);
+      reportMermaidError(error);
     }
   })();
 
@@ -157,7 +167,7 @@ const bindThemeObserver = () => {
   themeObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-        void renderMermaid(true);
+        renderMermaid(true).catch(reportMermaidError);
       }
     }
   });
@@ -170,5 +180,5 @@ const bindThemeObserver = () => {
 
 export const initMermaidChrome = () => {
   bindThemeObserver();
-  void renderMermaid();
+  renderMermaid().catch(reportMermaidError);
 };

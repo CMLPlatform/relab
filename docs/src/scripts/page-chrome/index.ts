@@ -1,5 +1,5 @@
-import { initMermaidChrome } from './mermaid';
-import { initTocChrome } from './toc';
+import { initMermaidChrome } from './mermaid.ts';
+import { initTocChrome } from './toc.ts';
 
 const initPageChrome = () => {
   initTocChrome();

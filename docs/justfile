@@ -6,32 +6,89 @@
 default:
     @just --list
 
+# Install dependencies
+install:
+    pnpm install --frozen-lockfile
+    @echo "✓ Docs dependencies installed"
+
+# Regenerate the lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+    @echo "✓ Docs lockfile refreshed"
+
 # Update dependencies (Astro upgrade + pnpm latest)
 update:
     pnpm dlx @astrojs/upgrade
     pnpm up --latest
+    @echo "✓ Docs dependencies updated"
 
 # Start development server with live reload
 dev PORT="8000":
     pnpm run dev -- --port {{ PORT }}
+
+# Run lint checks
+lint:
+    pnpm run lint
+    @echo "✓ Docs lint passed"
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+    @echo "✓ Docs type checks passed"
+
+# Build the static docs site
+build:
+    pnpm run build
+    @echo "✓ Docs built"
 
 # Print a simple static output budget for local review
 size:
     du -sh dist
     find dist -type f | sort | xargs du -h
 
-# Run all quality checks (lint + typecheck + build + tests + link check)
-check:
-    pnpm run check
+# Run fast quality checks (lint + typecheck)
+check: lint typecheck
+    @echo "✓ Docs checks passed"
+
+# Auto-format docs code and markdown
+format:
+    pnpm run format
+    @echo "✓ Docs formatted"
+
+# Auto-fix what the formatter can fix
+fix: format
+    @echo "✓ Docs code formatted"
 
 # Smoke + a11y + visual + theme (requires `just build` first)
 test:
     pnpm run test
+    @echo "✓ Docs tests passed"
 
 # Visual and theme regression checks only (requires `just build` first)
 test-visual:
     pnpm run test:visual
+    @echo "✓ Docs visual tests passed"
+
+# Check built docs links
+test-links:
+    pnpm run test:links
+    @echo "✓ Docs link checks passed"
+
+# Run the docs CI test suite
+test-ci: check
+    pnpm run test:ci
+    @echo "✓ Docs CI test suite passed"
+
+# Run the full docs CI pipeline locally
+ci: check test-ci
+    @echo "✓ Docs CI pipeline passed"
+
+# Scan dependencies for known vulnerabilities
+audit:
+    pnpm run audit
+    @echo "✓ Docs dependency audit complete"
 
 # Clean caches and generated site output
 clean:
     rm -rf .astro dist node_modules playwright-report test-results site
+    @echo "✓ Cleaned docs caches and build artifacts"
