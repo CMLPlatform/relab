@@ -10,7 +10,6 @@ setupFetchMock();
 const secureStoreMock = SecureStore as jest.Mocked<typeof SecureStore>;
 const fetchMock = () => global.fetch as jest.MockedFunction<typeof fetch>;
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this long-lived service suite intentionally keeps shared auth API fixtures together.
 describe('Authentication API Service', () => {
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
 
@@ -256,7 +255,6 @@ describe('Authentication API Service', () => {
 
   // ─── getUser ────────────────────────────────────────────
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: getUser coverage reuses one shared raw-user fixture matrix.
   describe('getUser', () => {
     const rawUser = {
       id: 1,
@@ -562,7 +560,6 @@ describe('Authentication API Service', () => {
   // lightweight test environment). We install a simple in-memory mock once
   // and share it across all web-platform describe blocks.
 
-  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: web-platform behavior is easier to compare with one shared mocked storage harness.
   describe('web platform', () => {
     const mockStore: Record<string, string> = {};
     const mockSessionStorage = {

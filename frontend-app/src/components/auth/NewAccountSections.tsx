@@ -5,6 +5,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import { WEBSITE_URL } from '@/config';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
+import { useAppTheme } from '@/theme';
 
 const styles = StyleSheet.create({
   welcomeText: {
@@ -41,7 +42,6 @@ const styles = StyleSheet.create({
   },
   arrowButtonText: {
     fontSize: 28,
-    color: '#222',
     lineHeight: 28,
   },
   textInput: {
@@ -58,13 +58,11 @@ const styles = StyleSheet.create({
   },
   backButtonArrow: {
     fontSize: 18,
-    color: '#999',
     marginRight: 4,
     lineHeight: 18,
   },
   backButtonText: {
     fontSize: 13,
-    color: '#999',
     marginLeft: 4,
   },
   bottomContainer: {
@@ -84,9 +82,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: 'underline',
   },
-  privacyLinkDark: {
-    color: '#F5F5F5',
-  },
   registerButton: {
     minWidth: 140,
   },
@@ -99,18 +94,16 @@ type SharedStepProps = {
   mutedColor: string;
 };
 
-export function PrivacyPolicy({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
+export function PrivacyPolicy() {
+  const theme = useAppTheme();
   const url = WEBSITE_URL ? `${WEBSITE_URL}/privacy` : '/privacy';
-  const textColor = colorScheme === 'dark' ? '#F5F5F5' : '#111111';
+  const textColor = theme.colors.onBackground;
 
   return (
     <Text style={[styles.privacyText, { color: textColor }]}>
       By creating an account, you agree to our{' '}
       <Text
-        style={[
-          styles.privacyLink,
-          colorScheme === 'dark' ? styles.privacyLinkDark : { color: textColor },
-        ]}
+        style={[styles.privacyLink, { color: textColor }]}
         onPress={() => Linking.openURL(url)}
         accessibilityRole="link"
       >
@@ -319,14 +312,12 @@ export function NewAccountPasswordStep({
 
 type NewAccountLayoutProps = {
   overlayColor: string;
-  colorScheme: 'light' | 'dark';
   children: ReactNode;
   onNavigateToLogin: () => void;
 };
 
 export function NewAccountLayout({
   overlayColor,
-  colorScheme,
   children,
   onNavigateToLogin,
 }: NewAccountLayoutProps) {
@@ -351,7 +342,7 @@ export function NewAccountLayout({
       </ScrollView>
 
       <View style={styles.bottomContainer}>
-        <PrivacyPolicy colorScheme={colorScheme} />
+        <PrivacyPolicy />
         <Button onPress={onNavigateToLogin}>I already have an account</Button>
       </View>
     </View>

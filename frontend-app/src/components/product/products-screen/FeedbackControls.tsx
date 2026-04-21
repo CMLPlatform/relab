@@ -1,11 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { View } from 'react-native';
-import { AnimatedFAB, Button, Text, useTheme } from 'react-native-paper';
+import { Platform, View } from 'react-native';
+import { AnimatedFAB, Button, Text } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 import { productsScreenStyles as styles } from './shared';
 import type { ProductsErrorBannerProps, ProductsFabProps } from './types';
 
 export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   if (!error) return null;
 
@@ -40,7 +41,7 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
 }
 
 export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: ProductsFabProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <AnimatedFAB
@@ -54,9 +55,15 @@ export function ProductsFab({ extended, isAuthenticated, highlight, onPress }: P
           opacity: isAuthenticated ? 1 : 0.65,
           borderWidth: highlight ? 1 : 0,
           borderColor: highlight ? theme.colors.primaryContainer : 'transparent',
-          shadowColor: highlight ? theme.colors.primary : undefined,
-          shadowOpacity: highlight ? 0.22 : 0,
-          shadowRadius: highlight ? 10 : 0,
+          ...(Platform.OS === 'web'
+            ? highlight
+              ? { boxShadow: `0px 0px 10px ${theme.colors.primary}` }
+              : {}
+            : {
+                shadowColor: highlight ? theme.colors.primary : undefined,
+                shadowOpacity: highlight ? 0.22 : 0,
+                shadowRadius: highlight ? 10 : 0,
+              }),
         },
       ]}
       accessibilityLabel={isAuthenticated ? 'Create new product' : 'Sign in to create products'}

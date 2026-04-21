@@ -145,7 +145,6 @@ describe('ProductTags', () => {
   });
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: amount-chip coverage reuses one component-product fixture across all edge cases.
 describe('AmountChip (isComponent=true)', () => {
   const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
 

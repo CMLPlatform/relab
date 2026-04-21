@@ -15,8 +15,8 @@ import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/dialogContext';
 import { StreamingContent } from '@/components/common/StreamingContent';
 import type { StreamSession } from '@/context/streamSession';
-import { useEffectiveColorScheme } from '@/context/themeMode';
 import { extractYouTubeVideoId, isValidUrl } from '@/services/api/validation/productSchema';
+import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
 interface Video {
@@ -64,9 +64,9 @@ export default function ProductVideo({
   const [videos, setVideos] = useState<Video[]>(product.videos || []);
   const [expanded, setExpanded] = useState(false);
   const dialog = useDialog();
-  const darkMode = useEffectiveColorScheme() === 'dark';
-  const linkColor = darkMode ? '#6dd5ed' : '#0062cc';
-  const textColor = darkMode ? '#e1e2e4' : '#000000';
+  const theme = useAppTheme();
+  const linkColor = theme.tokens.text.link;
+  const textColor = theme.colors.onBackground;
 
   const handleVideoChange = (
     idx: number,
@@ -172,7 +172,7 @@ export default function ProductVideo({
         />
       ) : null}
 
-      {showEmptyState ? <EmptyVideoState darkMode={darkMode} /> : null}
+      {showEmptyState ? <EmptyVideoState mutedColor={theme.tokens.text.muted} /> : null}
     </View>
   );
 }
@@ -394,9 +394,9 @@ function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
   );
 }
 
-function EmptyVideoState({ darkMode }: { darkMode: boolean }) {
+function EmptyVideoState({ mutedColor }: { mutedColor: string }) {
   return (
-    <Text style={[styles.emptyState, { color: darkMode ? '#c0c8cd' : '#666666' }]}>
+    <Text style={[styles.emptyState, { color: mutedColor }]}>
       This product has no associated videos.
     </Text>
   );

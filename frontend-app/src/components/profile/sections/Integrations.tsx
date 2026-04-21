@@ -2,9 +2,10 @@ import { openURL } from 'expo-linking';
 import { View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
+import { createProfileSectionStyles } from '@/components/profile/sections/styles';
 import { DOCS_URL } from '@/config';
+import { useAppTheme } from '@/theme';
 import { ProfileAction, ProfileSectionHeader } from './shared';
-import { profileSectionStyles as styles } from './styles';
 
 type ProfileIntegrationsSectionProps = {
   rpiEnabled: boolean;
@@ -27,13 +28,15 @@ export function ProfileIntegrationsSection({
   youtubeAuthPending,
   onToggleYouTube,
 }: ProfileIntegrationsSectionProps) {
+  const theme = useAppTheme();
+  const styles = createProfileSectionStyles(theme);
   return (
     <>
       <ProfileSectionHeader title="Integrations" />
       <View style={styles.section}>
         <View style={styles.integrationRow}>
           <View style={styles.integrationIcon}>
-            <Icon source="camera-wireless" size={22} color="#555" />
+            <Icon source="camera-wireless" size={22} color={theme.colors.onSurfaceVariant} />
           </View>
           <View style={styles.integrationCopy}>
             <Text style={styles.actionTitle}>RPi Camera</Text>
@@ -61,7 +64,7 @@ export function ProfileIntegrationsSection({
         {rpiEnabled ? (
           <View style={styles.integrationRow}>
             <View style={styles.integrationIcon}>
-              <Icon source="youtube" size={22} color="#555" />
+              <Icon source="youtube" size={22} color={theme.colors.onSurfaceVariant} />
             </View>
             <View style={styles.integrationCopy}>
               <Text style={styles.actionTitle}>YouTube Live</Text>

@@ -30,7 +30,6 @@ function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
   } as Response);
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: RPi camera service coverage uses one shared fetch spy and payload matrix.
 describe('rpiCamera API service', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -2,11 +2,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Divider, Portal, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Dialog, Divider, Portal, Text, TextInput } from 'react-native-paper';
+import { MutedText } from '@/components/base/MutedText';
 import { useAuth } from '@/context/auth';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useClaimPairingMutation } from '@/hooks/useRpiCameras';
 import { ApiError } from '@/services/api/rpiCamera/shared';
+import { useAppTheme } from '@/theme';
 
 const PAIRING_CODE_PATTERN = /^[A-Z0-9]{6}$/;
 const NON_ALPHANUMERIC_PAIRING_CODE_PATTERN = /[^A-Z0-9]/g;
@@ -37,15 +39,20 @@ function PairingCodeInput({
 }
 
 function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
+  const theme = useAppTheme();
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss}>
         <Dialog.Content style={{ alignItems: 'center', gap: 12, paddingTop: 24 }}>
-          <MaterialCommunityIcons name="check-circle" size={56} color="#2e7d32" />
+          <MaterialCommunityIcons
+            name="check-circle"
+            size={56}
+            color={theme.tokens.status.success}
+          />
           <Text variant="titleMedium">Camera paired</Text>
-          <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
+          <MutedText style={{ textAlign: 'center', opacity: 0.7 }}>
             Your camera should come online within a few seconds.
-          </Text>
+          </MutedText>
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismiss}>Done</Button>
@@ -57,7 +64,7 @@ function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDism
 
 export default function AddCameraScreen() {
   const router = useRouter();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { user } = useAuth();
   const feedback = useAppFeedback();
   const claimMutation = useClaimPairingMutation();
@@ -116,10 +123,10 @@ export default function AddCameraScreen() {
       <Text variant="labelMedium" style={styles.sectionLabel}>
         PAIRING CODE
       </Text>
-      <Text variant="bodySmall" style={{ opacity: 0.6, marginBottom: 8 }}>
+      <MutedText style={styles.sectionHelp}>
         Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed `PAIRING
         READY` banner over SSH if the device is headless.
-      </Text>
+      </MutedText>
       <PairingCodeInput pairingCode={pairingCode} setPairingCode={setPairingCode} />
 
       <Divider style={styles.divider} />
@@ -146,7 +153,7 @@ export default function AddCameraScreen() {
         style={styles.input}
       />
 
-      <View style={styles.infoBox}>
+      <View style={[styles.infoBox, { backgroundColor: theme.tokens.surface.accent }]}>
         <MaterialCommunityIcons name="information-outline" size={18} color={theme.colors.primary} />
         <Text variant="bodySmall" style={{ flex: 1, color: theme.colors.onSurfaceVariant }}>
           Make sure your Raspberry Pi is powered on and has{' '}
@@ -182,6 +189,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginBottom: 4,
   },
+  sectionHelp: {
+    marginBottom: 8,
+    opacity: 0.6,
+  },
   divider: {
     marginVertical: 4,
   },
@@ -194,7 +205,6 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(100,100,255,0.07)',
   },
   submitButton: {
     marginTop: 8,

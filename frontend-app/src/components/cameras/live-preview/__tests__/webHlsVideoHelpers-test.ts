@@ -21,7 +21,6 @@ function createVideoMock(canPlayType = '') {
   };
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: playback-helper coverage shares one synthetic video harness across scenarios.
 describe('setupWebHlsVideo', () => {
   const markLive = jest.fn();
   const markError = jest.fn();
@@ -105,8 +104,9 @@ describe('setupWebHlsVideo', () => {
     expect(Hls).toHaveBeenCalledWith(
       expect.objectContaining({
         lowLatencyMode: true,
-        backBufferLength: 4,
-        maxBufferLength: 4,
+        backBufferLength: 6,
+        maxBufferLength: 20,
+        xhrSetup: expect.any(Function),
       }),
     );
     expect(hlsInstance.loadSource).toHaveBeenCalledWith('https://cam.test/live.m3u8');

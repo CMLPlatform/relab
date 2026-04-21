@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Chip, Text } from 'react-native-paper';
 import type { CameraTelemetry, ThermalState } from '@/services/api/rpiCamera';
+import { getStatusTone, useAppTheme } from '@/theme';
 
 /**
  * Compact thermal-state chip for a camera card.
@@ -10,9 +11,10 @@ import type { CameraTelemetry, ThermalState } from '@/services/api/rpiCamera';
  * yet — absence of data is not itself a warning.
  */
 export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | null | undefined }) {
+  const theme = useAppTheme();
   if (!telemetry) return null;
 
-  const color = STATE_COLOR[telemetry.thermal_state];
+  const color = STATE_COLOR[telemetry.thermal_state](theme);
   const label =
     telemetry.cpu_temp_c != null
       ? `${telemetry.cpu_temp_c.toFixed(0)}°C · ${STATE_LABEL[telemetry.thermal_state]}`
@@ -23,7 +25,7 @@ export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | nul
       <Chip
         mode="flat"
         compact
-        style={[styles.chip, { backgroundColor: `${color}22`, borderColor: color }]}
+        style={[styles.chip, { backgroundColor: getStatusTone(theme, color), borderColor: color }]}
         textStyle={{ color, fontSize: 11 }}
       >
         {label}
@@ -37,11 +39,11 @@ export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | nul
   );
 }
 
-const STATE_COLOR: Record<ThermalState, string> = {
-  normal: '#757575',
-  warm: '#1976d2',
-  throttle: '#f57c00',
-  critical: '#c62828',
+const STATE_COLOR: Record<ThermalState, (theme: ReturnType<typeof useAppTheme>) => string> = {
+  normal: (theme) => theme.tokens.status.offline,
+  warm: (theme) => theme.tokens.status.info,
+  throttle: (theme) => theme.tokens.status.warning,
+  critical: (theme) => theme.tokens.status.danger,
 };
 
 const STATE_LABEL: Record<ThermalState, string> = {

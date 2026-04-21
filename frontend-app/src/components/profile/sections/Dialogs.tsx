@@ -2,7 +2,8 @@ import { Link } from 'expo-router';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import LogoutConfirm from '@/components/common/LogoutConfirm';
-import { profileSectionStyles as styles } from './styles';
+import { useAppTheme } from '@/theme';
+import { createProfileSectionStyles } from './styles';
 
 type ProfileDialogsProps = {
   editUsernameVisible: boolean;
@@ -37,6 +38,8 @@ export function ProfileDialogs({
   deleteDialogVisible,
   onDismissDeleteDialog,
 }: ProfileDialogsProps) {
+  const theme = useAppTheme();
+  const styles = createProfileSectionStyles(theme);
   return (
     <Portal>
       <Dialog visible={editUsernameVisible} onDismiss={onDismissEditUsername}>
@@ -64,7 +67,7 @@ export function ProfileDialogs({
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismissUnlink}>Cancel</Button>
-          <Button onPress={onConfirmUnlink} textColor="#d32f2f">
+          <Button onPress={onConfirmUnlink} textColor={theme.tokens.status.danger}>
             Unlink
           </Button>
         </Dialog.Actions>

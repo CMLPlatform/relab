@@ -1,4 +1,5 @@
 import { Button, Dialog, Portal, Text } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 
 export default function LogoutConfirm({
   visible,
@@ -9,6 +10,7 @@ export default function LogoutConfirm({
   onDismiss: () => void;
   onConfirm: () => void;
 }) {
+  const theme = useAppTheme();
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss}>
@@ -18,7 +20,7 @@ export default function LogoutConfirm({
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismiss}>Cancel</Button>
-          <Button onPress={onConfirm} textColor="#d32f2f">
+          <Button onPress={onConfirm} textColor={theme.tokens.status.danger}>
             Logout
           </Button>
         </Dialog.Actions>

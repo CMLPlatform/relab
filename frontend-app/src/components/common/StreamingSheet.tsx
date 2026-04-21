@@ -1,6 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { IconButton, Portal, Surface, Text } from 'react-native-paper';
+import { OverlaySurface } from '@/components/common/OverlaySurface';
 import type { StreamSession } from '@/context/streamSession';
+import { useAppTheme } from '@/theme';
 import { getFloatingPosition, getStreamingSheetBottomPadding } from '@/utils/platformLayout';
 import { StreamingContent } from './StreamingContent';
 
@@ -11,15 +13,19 @@ interface StreamingSheetProps {
 }
 
 export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetProps) {
+  const theme = useAppTheme();
   if (!(visible && session)) return null;
 
   return (
     <Portal>
-      <Pressable style={styles.backdrop} onPress={onDismiss} />
+      <Pressable
+        style={[styles.backdrop, { backgroundColor: theme.tokens.overlay.scrim }]}
+        onPress={onDismiss}
+      />
 
       <Surface style={styles.sheet} elevation={4}>
         <View style={styles.headerRow}>
-          <View style={styles.handle} />
+          <OverlaySurface style={styles.handle} tone="glass" />
           <IconButton
             icon="close"
             size={20}
@@ -44,7 +50,6 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
     position: getFloatingPosition(),
@@ -67,7 +72,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(128,128,128,0.4)',
   },
   closeButton: {
     position: 'absolute',

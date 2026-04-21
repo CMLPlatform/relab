@@ -1,9 +1,10 @@
 import { Pressable, View } from 'react-native';
-import { Icon, useTheme } from 'react-native-paper';
+import { Icon } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
+import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { useAppTheme } from '@/theme';
 import type { ThemeMode, User } from '@/types/User';
 import { ProfileSectionHeader } from './shared';
-import { profileSectionStyles as styles } from './styles';
 
 type ProfileAppearanceSectionProps = {
   themeMode: ThemeMode;
@@ -14,6 +15,7 @@ export function ProfileAppearanceSection({
   themeMode,
   onSetThemeMode,
 }: ProfileAppearanceSectionProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
       <ProfileSectionHeader title="Appearance" />
@@ -55,7 +57,8 @@ export function ProfileVisibilitySection({
   visibilitySaving,
   onChangeVisibility,
 }: ProfileVisibilitySectionProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
+  const styles = createProfileSectionStyles(theme);
   const activeVisibility = profile.preferences?.profile_visibility || 'public';
 
   return (
@@ -99,7 +102,7 @@ export function ProfileVisibilitySection({
                 <Icon
                   source={option.icon}
                   size={24}
-                  color={isActive ? theme.colors.primary : '#666'}
+                  color={isActive ? theme.colors.primary : theme.tokens.text.muted}
                 />
               </View>
               <View style={styles.actionCopy}>

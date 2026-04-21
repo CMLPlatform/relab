@@ -13,11 +13,7 @@ export default function NewAccount() {
   const handleCreateAccount = async () => actions.createAccount();
 
   return (
-    <NewAccountLayout
-      overlayColor={ui.overlayColor}
-      colorScheme={ui.colorScheme}
-      onNavigateToLogin={actions.goToLogin}
-    >
+    <NewAccountLayout overlayColor={ui.overlayColor} onNavigateToLogin={actions.goToLogin}>
       {flow.section === 'username' ? (
         <NewAccountUsernameStep
           control={form.control}

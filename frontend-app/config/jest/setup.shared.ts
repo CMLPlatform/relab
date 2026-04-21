@@ -1,4 +1,5 @@
-import { afterAll, afterEach, beforeAll, jest } from '@jest/globals';
+import { afterAll, afterEach, beforeEach, jest } from '@jest/globals';
+import { cleanup } from '@testing-library/react-native';
 import type React from 'react';
 import { server } from '../../src/test-utils/server';
 
@@ -23,13 +24,20 @@ if (typeof window !== 'undefined' && typeof window.history?.replaceState !== 'fu
 }
 
 // ── MSW server lifecycle ───────────────────────────────────────────────────
-// Start the server before all tests, reset per-test overrides after each
-// test, and clean up after the full suite.
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+// Open a fresh interceptor layer per test so worker processes don't keep
+// long-lived network hooks around until suite teardown.
+beforeEach(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => {
+  server.resetHandlers();
+  server.close();
+  cleanup();
   jest.clearAllTimers();
+});
+afterAll(() => {
+  cleanup();
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  server.close();
 });
 
 // Mock vector icons as static functional components to avoid act() warnings

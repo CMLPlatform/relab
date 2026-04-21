@@ -2,9 +2,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { RefObject } from 'react';
 import type { Control } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import { Keyboard, View } from 'react-native';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
+import type { TextStyle } from 'react-native';
+import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Button, Text, TextInput } from 'react-native-paper';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
+import { useAppTheme } from '@/theme';
 
 type LoginLayoutProps = {
   colorScheme: 'light' | 'dark';
@@ -14,68 +16,42 @@ type LoginLayoutProps = {
 };
 
 export function LoginLayout({ colorScheme, keyboardShown, children, onBrowse }: LoginLayoutProps) {
+  const theme = useAppTheme();
+  void colorScheme;
+  const keyboardHeight = keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0;
   return (
-    <View style={{ flex: 1 }}>
-      <Button
-        mode="text"
-        icon="arrow-left"
-        onPress={onBrowse}
-        style={{ position: 'absolute', top: 16, left: 8, zIndex: 10 }}
-        compact
-      >
+    <View style={styles.root}>
+      <Button mode="text" icon="arrow-left" onPress={onBrowse} style={styles.browseButton} compact>
         Browse
       </Button>
 
-      <View
-        style={{
-          padding: 20,
-          gap: 10,
-          position: 'absolute',
-          bottom: keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0,
-          width: '100%',
-        }}
-      >
+      <View style={[styles.overlayContent, { bottom: keyboardHeight }]}>
         <LinearGradient
-          colors={['transparent', colorScheme === 'light' ? 'white' : 'black']}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
+          colors={['transparent', theme.colors.background]}
+          style={StyleSheet.absoluteFillObject}
         />
         {children}
       </View>
 
       <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          height: keyboardShown && Keyboard.metrics() ? Keyboard.metrics()?.height : 0,
-          width: '100%',
-          backgroundColor: colorScheme === 'light' ? 'white' : 'black',
-        }}
+        style={[
+          styles.keyboardFill,
+          { height: keyboardHeight, backgroundColor: theme.colors.background },
+        ]}
       />
     </View>
   );
 }
 
 export function LoginBrandHero({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
-  return (
-    <Text
-      style={{
-        fontSize: 48,
-        fontWeight: 'bold',
-        textAlign: 'left',
-        textShadowColor: colorScheme === 'light' ? 'white' : 'black',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-      }}
-    >
-      RELab
-    </Text>
-  );
+  const theme = useAppTheme();
+  const shadowColor = colorScheme === 'light' ? theme.colors.background : theme.colors.scrim;
+  const shadowStyle = (
+    Platform.OS === 'web'
+      ? { textShadow: `0px 0px 10px ${shadowColor}` }
+      : { textShadowColor: shadowColor }
+  ) as TextStyle;
+  return <Text style={[styles.brandHero, shadowStyle]}>RELab</Text>;
 }
 
 type LoginFormSectionProps = {
@@ -136,11 +112,12 @@ export function LoginFormSection({
 }
 
 export function LoginDivider() {
+  const theme = useAppTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 4 }}>
-      <View style={{ flex: 1, height: 1, backgroundColor: 'grey', opacity: 0.3 }} />
-      <Text style={{ marginHorizontal: 10, opacity: 0.5 }}>or</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: 'grey', opacity: 0.3 }} />
+    <View style={styles.dividerRow}>
+      <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
+      <Text style={styles.dividerText}>or</Text>
+      <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
     </View>
   );
 }
@@ -164,7 +141,7 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
 }
 
 export function LoginSecondaryAction({ onCreateAccount }: { onCreateAccount: () => void }) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <Button
@@ -172,9 +149,61 @@ export function LoginSecondaryAction({ onCreateAccount }: { onCreateAccount: () 
       buttonColor={theme.colors.secondaryContainer}
       textColor={theme.colors.onSecondaryContainer}
       onPress={onCreateAccount}
-      style={{ width: '100%', marginTop: 4 }}
+      style={styles.secondaryAction}
     >
       Create a new account
     </Button>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  browseButton: {
+    position: 'absolute',
+    top: 16,
+    left: 8,
+    zIndex: 10,
+  },
+  overlayContent: {
+    padding: 20,
+    gap: 10,
+    position: 'absolute',
+    width: '100%',
+  },
+  keyboardFill: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+  },
+  brandHero: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    textAlign: 'left',
+    ...(Platform.OS === 'web'
+      ? {}
+      : {
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 10,
+        }),
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    opacity: 0.3,
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    opacity: 0.5,
+  },
+  secondaryAction: {
+    width: '100%',
+    marginTop: 4,
+  },
+});

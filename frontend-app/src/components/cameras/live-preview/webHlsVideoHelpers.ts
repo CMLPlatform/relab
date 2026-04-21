@@ -105,8 +105,7 @@ export async function setupWebHlsVideo({
       // typical jitter without pushing latency past ~2s. Back buffer stays
       // short to keep memory bounded on long-running sessions.
       backBufferLength: 6,
-      maxBufferLength: 8,
-      maxMaxBufferLength: 20,
+      maxBufferLength: 20,
       xhrSetup: withCredentials
         ? (xhr) => {
             xhr.withCredentials = true;

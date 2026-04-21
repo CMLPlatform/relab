@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Button, Card, Text, useTheme } from 'react-native-paper';
+import { Button, Card, Text } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 import { NewProductPill, ProfilePill } from './InlinePills';
 import { productsScreenStyles as styles } from './shared';
 import type { ProductsWelcomeCardProps } from './types';
@@ -13,7 +14,7 @@ export function ProductsWelcomeCard({
   onSignIn,
   onGoToProfile,
 }: ProductsWelcomeCardProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   if (visible !== true) return null;
 

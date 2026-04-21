@@ -6,9 +6,8 @@ import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-pap
 
 import CPVCard from '@/components/common/CPVCard';
 import { useAuth } from '@/context/auth';
-
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { loadCPV } from '@/services/cpv';
+import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 type searchParams = {

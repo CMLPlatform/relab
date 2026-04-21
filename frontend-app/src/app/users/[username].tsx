@@ -1,16 +1,18 @@
 import { HeaderBackButton } from '@react-navigation/elements';
 import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Card, Icon, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Card, Icon } from 'react-native-paper';
 
 import { Text } from '@/components/base/Text';
 import { getPublicProfile, type PublicProfileView } from '@/services/api/profiles';
+import { alpha, useAppTheme } from '@/theme';
 
 export default function UserProfileScreen() {
   const { username } = useGlobalSearchParams();
   const router = useRouter();
-  const theme = useTheme();
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const usernameValue = typeof username === 'string' ? username : null;
 
   const [profileState, setProfileState] = useState<{
@@ -138,7 +140,7 @@ export default function UserProfileScreen() {
 
               <Card style={styles.statCard} mode="outlined">
                 <Card.Content style={styles.statContent}>
-                  <Icon source="image-multiple" size={32} color="#4caf50" />
+                  <Icon source="image-multiple" size={32} color={theme.tokens.status.success} />
                   <Text style={styles.statValue}>{profile.image_count}</Text>
                   <Text style={styles.statLabel}>Photos</Text>
                 </Card.Content>
@@ -146,7 +148,7 @@ export default function UserProfileScreen() {
 
               <Card style={styles.statCard} mode="outlined">
                 <Card.Content style={styles.statContent}>
-                  <Icon source="tag-outline" size={32} color="#ff9800" />
+                  <Icon source="tag-outline" size={32} color={theme.tokens.status.warning} />
                   <Text style={styles.statValue} numberOfLines={1}>
                     {profile.top_category || 'None'}
                   </Text>
@@ -161,82 +163,88 @@ export default function UserProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 16,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 64,
-  },
-  errorText: {
-    marginTop: 16,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  profileContainer: {
-    marginTop: 32,
-    alignItems: 'center',
-  },
-  heroSection: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  avatarPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  avatarText: {
-    fontSize: 48,
-    fontWeight: 'bold',
-  },
-  usernameText: {
-    fontSize: 32,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  joinedText: {
-    fontSize: 15,
-    opacity: 0.6,
-  },
-  statsSection: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  statCard: {
-    flex: 1,
-    minWidth: 140,
-    maxWidth: 200,
-    alignItems: 'center',
-  },
-  statContent: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 13,
-    opacity: 0.7,
-    textAlign: 'center',
-  },
-});
+function createStyles(theme: ReturnType<typeof useAppTheme>) {
+  return StyleSheet.create({
+    container: {
+      flexGrow: 1,
+      padding: 16,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 64,
+    },
+    errorText: {
+      marginTop: 16,
+      fontSize: 16,
+      textAlign: 'center',
+    },
+    profileContainer: {
+      marginTop: 32,
+      alignItems: 'center',
+    },
+    heroSection: {
+      alignItems: 'center',
+      marginBottom: 48,
+    },
+    avatarPlaceholder: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 24,
+      elevation: 4,
+      ...(Platform.OS === 'web'
+        ? { boxShadow: `0px 2px 8px ${alpha(theme.colors.shadow, 0.1)}` }
+        : {
+            shadowColor: theme.colors.shadow,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+          }),
+    },
+    avatarText: {
+      fontSize: 48,
+      fontWeight: 'bold',
+    },
+    usernameText: {
+      fontSize: 32,
+      fontWeight: '800',
+      marginBottom: 8,
+    },
+    joinedText: {
+      fontSize: 15,
+      opacity: 0.6,
+    },
+    statsSection: {
+      width: '100%',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 16,
+      flexWrap: 'wrap',
+    },
+    statCard: {
+      flex: 1,
+      minWidth: 140,
+      maxWidth: 200,
+      alignItems: 'center',
+    },
+    statContent: {
+      alignItems: 'center',
+      paddingVertical: 16,
+    },
+    statValue: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginTop: 12,
+      marginBottom: 4,
+    },
+    statLabel: {
+      fontSize: 13,
+      opacity: 0.7,
+      textAlign: 'center',
+    },
+  });
+}

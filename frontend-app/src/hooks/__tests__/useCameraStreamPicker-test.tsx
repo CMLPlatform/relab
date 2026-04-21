@@ -45,7 +45,6 @@ jest.mock('@/services/api/rpiCamera', () => ({
   startYouTubeStream: jest.fn(),
 }));
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this hook suite shares one stream-picker harness across many flow permutations.
 describe('useCameraStreamPicker', () => {
   const startYouTubeStreamMock = jest.mocked(startYouTubeStream);
   const addProductVideoMock = jest.mocked(addProductVideo);

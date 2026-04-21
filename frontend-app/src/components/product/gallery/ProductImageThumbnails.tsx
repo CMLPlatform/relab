@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
 import { GalleryFlatList, type ScrollableListHandle } from '@/components/product/gallery/shared';
-import { galleryStyles } from '@/components/product/gallery/styles';
+import { createGalleryStyles } from '@/components/product/gallery/styles';
+import { useAppTheme } from '@/theme';
 
 type Props = {
   imageCount: number;
@@ -20,10 +21,12 @@ export function ProductImageThumbnails({
   onSelectIndex,
   onScrollToIndex,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   if (imageCount <= 1) return null;
 
   return (
-    <View style={galleryStyles.thumbnailContainer}>
+    <View style={styles.thumbnailContainer}>
       <GalleryFlatList
         ref={(instance: ScrollableListHandle | null) => {
           thumbsRef.current = instance;
@@ -41,8 +44,10 @@ export function ProductImageThumbnails({
             accessibilityRole="button"
             accessibilityLabel={`Select image ${index + 1}`}
             style={[
-              galleryStyles.thumbnailItem,
-              { borderColor: selectedIndex === index ? '#2196F3' : 'transparent' },
+              styles.thumbnailItem,
+              {
+                borderColor: selectedIndex === index ? theme.tokens.border.selected : 'transparent',
+              },
             ]}
           >
             <Image source={{ uri: item }} style={{ width: 60, height: 60 }} />

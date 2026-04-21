@@ -9,9 +9,10 @@ import {
 } from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type React from 'react';
-import { View, type ViewProps } from 'react-native';
+import { StyleSheet, View, type ViewProps } from 'react-native';
 import { processImage } from '@/services/media/imageProcessing';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
+import { lightTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import ProductImages from '../ProductImageGallery';
 
@@ -32,6 +33,7 @@ type GestureCallback = (...args: unknown[]) => unknown;
 const mockFlatListCalls: Array<Record<string, unknown> & FlatListCallProps> = [];
 const mockZoomableImageCalls: ZoomableImageMockProps[] = [];
 const SLASH_SEPARATOR_PATTERN = /\/ /;
+const THUMBNAIL_LABEL_PATTERN = /Select image \d/;
 let keydownHandler: ((event: { key: string }) => void) | null = null;
 
 jest.mock('expo-image', () => ({
@@ -215,7 +217,6 @@ function setWindowEventListeners() {
   });
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this suite intentionally keeps one large image-interaction harness together.
 describe('ProductImages', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -585,7 +586,7 @@ describe('ProductImages', () => {
       ],
     } as Product;
 
-    const { UNSAFE_getAllByType } = renderWithProviders(
+    const { getAllByLabelText } = renderWithProviders(
       <ProductImages product={productWithImages} editMode={false} />,
       { withDialog: true },
     );
@@ -609,11 +610,9 @@ describe('ProductImages', () => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
 
-    const highlightedThumbs = UNSAFE_getAllByType(View).filter((node) => {
-      const style = Array.isArray(node.props.style)
-        ? Object.assign({}, ...node.props.style)
-        : node.props.style;
-      return style?.borderColor === '#2196F3';
+    const highlightedThumbs = getAllByLabelText(THUMBNAIL_LABEL_PATTERN).filter((node) => {
+      const style = StyleSheet.flatten(node.props.style);
+      return style?.borderColor === lightTheme.tokens.border.selected;
     });
 
     expect(highlightedThumbs.length).toBe(1);

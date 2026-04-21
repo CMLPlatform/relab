@@ -7,12 +7,7 @@ import { type ReactNode, useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
-import {
-  PaperProvider,
-} from 'react-native-paper';
-import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/app/layout/background';
-import { HeaderRightPill } from '@/app/layout/HeaderRightPill';
-import { getProductsHeaderStyle } from '@/app/layout/styles';
+import { PaperProvider } from 'react-native-paper';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
@@ -20,6 +15,9 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/lib/router/background';
+import { HeaderRightPill } from '@/lib/router/HeaderRightPill';
+import { getProductsHeaderStyle } from '@/lib/router/styles';
 import { createNavigationThemes, getAppTheme } from '@/theme';
 
 ensureWebAnimatedPatch();
@@ -129,6 +127,7 @@ function AppShell() {
   const colorScheme = useEffectiveColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
+  const theme = getAppTheme(colorScheme);
   const { activeStream } = useStreamSession();
   const { BackgroundComponent, overlayColor, showBackground, showOverlay } =
     useAnimatedBackground(isDark);
@@ -144,10 +143,10 @@ function AppShell() {
   }, [activeStream]);
 
   useEffect(() => {
-    setBackgroundColorAsync(isDark ? 'black' : 'white').catch(() => {
+    setBackgroundColorAsync(theme.colors.background).catch(() => {
       // Best-effort only; the app can render fine without this on unsupported targets.
     });
-  }, [isDark]);
+  }, [theme.colors.background]);
 
   return (
     <View style={{ flex: 1 }}>

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Icon } from 'react-native-paper';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/theme';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {

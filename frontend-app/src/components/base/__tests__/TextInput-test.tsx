@@ -1,7 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { render, screen } from '@testing-library/react-native';
-import DarkTheme from '@/assets/themes/dark';
+import { screen } from '@testing-library/react-native';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { renderWithProviders } from '@/test-utils/index';
+import { getAppTheme } from '@/theme';
 import { TextInput } from '../TextInput';
 
 jest.mock('@/context/themeMode', () => ({
@@ -10,46 +11,48 @@ jest.mock('@/context/themeMode', () => ({
 
 describe('<TextInput />', () => {
   it('renders placeholder correctly', () => {
-    render(<TextInput placeholder="Enter text" />);
+    renderWithProviders(<TextInput placeholder="Enter text" />);
     expect(screen.getByPlaceholderText('Enter text')).toBeOnTheScreen();
   });
 
   it('applies error style (background + text color) when errorOnEmpty is set and value is empty', () => {
-    render(<TextInput testID="test-input" errorOnEmpty={true} value="" />);
+    renderWithProviders(<TextInput testID="test-input" errorOnEmpty={true} value="" />);
     const input = screen.getByTestId('test-input');
-    expect(input).toHaveStyle({ backgroundColor: 'rgb(255, 218, 214)' });
-    expect(input).toHaveStyle({ color: 'rgb(65, 0, 2)' });
+    expect(input).toHaveStyle({ backgroundColor: getAppTheme('light').colors.errorContainer });
+    expect(input).toHaveStyle({ color: getAppTheme('light').colors.onErrorContainer });
   });
 
   it('applies error style when customValidation returns false', () => {
     const failValidation = (val: string) => val.includes('valid');
-    render(<TextInput testID="validation-input" value="bad" customValidation={failValidation} />);
+    renderWithProviders(
+      <TextInput testID="validation-input" value="bad" customValidation={failValidation} />,
+    );
     const input = screen.getByTestId('validation-input');
-    expect(input).toHaveStyle({ backgroundColor: 'rgb(255, 218, 214)' });
-    expect(input).toHaveStyle({ color: 'rgb(65, 0, 2)' });
+    expect(input).toHaveStyle({ backgroundColor: getAppTheme('light').colors.errorContainer });
+    expect(input).toHaveStyle({ color: getAppTheme('light').colors.onErrorContainer });
   });
 
   it('applies default text color when there is no error', () => {
-    render(<TextInput testID="normal-input" value="valid" />);
+    renderWithProviders(<TextInput testID="normal-input" value="valid" />);
     const input = screen.getByTestId('normal-input');
-    expect(input).toHaveStyle({ color: 'rgb(25, 28, 30)' });
+    expect(input).toHaveStyle({ color: getAppTheme('light').colors.onSurface });
   });
 
   it('applies dark mode placeholder and text colors when there is no error', () => {
     jest.mocked(useEffectiveColorScheme).mockReturnValue('dark');
 
-    render(<TextInput testID="dark-input" value="valid" placeholder="Dark mode" />);
+    renderWithProviders(<TextInput testID="dark-input" value="valid" placeholder="Dark mode" />);
 
     const input = screen.getByTestId('dark-input');
-    expect(input).toHaveStyle({ color: DarkTheme.colors.onSurface });
-    expect(input).toHaveProp('placeholderTextColor', DarkTheme.colors.onSurface);
+    expect(input).toHaveStyle({ color: getAppTheme('dark').colors.onSurface });
+    expect(input).toHaveProp('placeholderTextColor', getAppTheme('dark').colors.onSurface);
 
     jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
   });
 
   it('does not treat a passing customValidation function as an error', () => {
     const passValidation = (val: string) => val.length >= 3;
-    render(
+    renderWithProviders(
       <TextInput testID="passing-validation" value="okay" customValidation={passValidation} />,
     );
     expect(screen.getByTestId('passing-validation')).toBeOnTheScreen();

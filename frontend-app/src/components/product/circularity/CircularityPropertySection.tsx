@@ -8,7 +8,7 @@ import type {
 } from '@/components/product/circularity/config';
 import { getCircularityValues, hasContent } from '@/components/product/circularity/helpers';
 import { styles } from '@/components/product/circularity/styles';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/theme';
 import type { CircularityProperties } from '@/types/Product';
 
 type Props = {

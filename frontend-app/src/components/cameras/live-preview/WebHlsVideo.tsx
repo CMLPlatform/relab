@@ -1,7 +1,8 @@
 import { createElement, useEffect, useRef } from 'react';
 import { View } from 'react-native';
+import { useAppTheme } from '@/theme';
 import { PreviewErrorOverlay, PreviewLoadingOverlay } from './shared';
-import { livePreviewStyles as styles } from './styles';
+import { createLivePreviewStyles } from './styles';
 import { useWebHlsPlayback } from './useWebHlsPlayback';
 import { setupWebHlsVideo } from './webHlsVideoHelpers';
 
@@ -12,6 +13,8 @@ export function WebHlsVideo({
   src: string;
   withCredentials?: boolean;
 }) {
+  const theme = useAppTheme();
+  const styles = createLivePreviewStyles(theme);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const {
     state,
@@ -78,7 +81,7 @@ export function WebHlsVideo({
           height: '100%',
           borderRadius: 8,
           objectFit: 'contain',
-          backgroundColor: '#000',
+          backgroundColor: theme.colors.scrim,
         },
       })}
       {state === 'loading' ? <PreviewLoadingOverlay /> : null}

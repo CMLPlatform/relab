@@ -9,8 +9,9 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
-import { cameraScreenStyles as styles } from '@/components/cameras/screen/styles';
+import { createCameraScreenStyles } from '@/components/cameras/screen/styles';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 
 type StreamDialogState = {
   cameraId: string | null;
@@ -58,6 +59,8 @@ type CamerasFabProps = {
 };
 
 export function CamerasFab({ visible, onPress }: CamerasFabProps) {
+  const theme = useAppTheme();
+  const styles = createCameraScreenStyles(theme);
   if (!visible) return null;
 
   return (
@@ -102,6 +105,8 @@ export function CamerasStreamDialog({
   onChangePrivacy,
   onStart,
 }: CamerasStreamDialogProps) {
+  const theme = useAppTheme();
+  const styles = createCameraScreenStyles(theme);
   return (
     <Portal>
       <Dialog visible={state.cameraId !== null} onDismiss={onDismiss}>

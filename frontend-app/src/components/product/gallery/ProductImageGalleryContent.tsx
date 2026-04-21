@@ -7,7 +7,8 @@ import {
   type ScrollableListHandle,
   type ScrollEvent,
 } from '@/components/product/gallery/shared';
-import { galleryStyles } from '@/components/product/gallery/styles';
+import { createGalleryStyles } from '@/components/product/gallery/styles';
+import { useAppTheme } from '@/theme';
 
 type Props = {
   width: number;
@@ -54,8 +55,10 @@ export function ProductImageGalleryContent({
   onRpiCapture,
   onDeleteImage,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   return (
-    <View style={galleryStyles.galleryContainer}>
+    <View style={styles.galleryContainer}>
       <GalleryFlatList
         ref={(instance: ScrollableListHandle | null) => {
           galleryRef.current = instance;
@@ -106,8 +109,8 @@ export function ProductImageGalleryContent({
             disabled={selectedIndex === imageCount - 1}
             style={{ right: 8 }}
           />
-          <View style={galleryStyles.counterBadge}>
-            <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+          <View style={styles.counterBadge}>
+            <Text style={{ color: theme.colors.onPrimary, fontSize: 12, fontWeight: 'bold' }}>
               {selectedIndex + 1} / {imageCount}
             </Text>
           </View>
@@ -116,7 +119,7 @@ export function ProductImageGalleryContent({
 
       {editMode ? (
         <>
-          <View style={galleryStyles.overlayActionRow}>
+          <View style={styles.overlayActionRow}>
             {showCameraOption ? (
               <OverlayActionButton onPress={onTakePhoto} label="Take photo" icon="camera" />
             ) : null}
@@ -133,14 +136,14 @@ export function ProductImageGalleryContent({
                   hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
                 }
                 style={[
-                  galleryStyles.overlayIconButton,
+                  styles.overlayIconButton,
                   { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
                 ]}
               >
                 {isCapturing || rpiCamerasLoading ? (
-                  <ActivityIndicator size={18} color="white" />
+                  <ActivityIndicator size={18} color={theme.colors.onPrimary} />
                 ) : (
-                  <Icon source="camera-wireless" size={20} color="white" />
+                  <Icon source="camera-wireless" size={20} color={theme.colors.onPrimary} />
                 )}
               </Pressable>
             ) : null}
@@ -149,9 +152,9 @@ export function ProductImageGalleryContent({
           <Pressable
             onPress={onDeleteImage}
             accessibilityLabel="Delete photo"
-            style={galleryStyles.deleteButton}
+            style={styles.deleteButton}
           >
-            <Icon source="delete" size={20} color="white" />
+            <Icon source="delete" size={20} color={theme.colors.onPrimary} />
           </Pressable>
         </>
       ) : null}
@@ -168,9 +171,11 @@ function OverlayActionButton({
   label: string;
   icon: string;
 }) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   return (
-    <Pressable onPress={onPress} accessibilityLabel={label} style={galleryStyles.overlayIconButton}>
-      <Icon source={icon} size={20} color="white" />
+    <Pressable onPress={onPress} accessibilityLabel={label} style={styles.overlayIconButton}>
+      <Icon source={icon} size={20} color={theme.colors.onPrimary} />
     </Pressable>
   );
 }
@@ -188,18 +193,20 @@ function GalleryNavButton({
   disabled: boolean;
   style: { left?: number; right?: number };
 }) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   return (
     <Pressable
       onPress={onPress}
       accessibilityLabel={label}
       disabled={disabled}
       hitSlop={15}
-      style={[galleryStyles.navButton, style, { opacity: disabled ? 0.3 : 1 }]}
+      style={[styles.navButton, style, { opacity: disabled ? 0.3 : 1 }]}
     >
       <Icon
         source={direction === 'left' ? 'chevron-left' : 'chevron-right'}
         size={32}
-        color="white"
+        color={theme.colors.onPrimary}
       />
     </Pressable>
   );

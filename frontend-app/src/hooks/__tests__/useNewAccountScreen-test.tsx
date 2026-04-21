@@ -41,6 +41,19 @@ jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: () => 'light',
 }));
 
+jest.mock('@/theme', () => ({
+  useAppTheme: () => ({
+    scheme: 'light',
+    colors: {
+      onBackground: '#111111',
+    },
+    tokens: {
+      overlay: { glass: 'rgba(0,0,0,0.07)' },
+      text: { muted: '#999999' },
+    },
+  }),
+}));
+
 jest.mock('@/services/api/authentication', () => ({
   login: (...args: unknown[]) => mockLogin(...args),
   register: (...args: unknown[]) => mockRegister(...args),

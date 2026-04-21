@@ -8,7 +8,6 @@ const MONTHS_AGO_PATTERN = /months? ago/i;
 const AGO_PATTERN = /ago/i;
 const OWNER_PATTERN = /you|alice/;
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: product-card cases share one compact fixture matrix for readability.
 describe('ProductCard', () => {
   const user = setupUser();
   it('renders name and description', () => {

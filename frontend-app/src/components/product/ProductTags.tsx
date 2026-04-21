@@ -6,8 +6,8 @@ import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { Text } from '@/components/base/Text';
 import { useDialog } from '@/components/common/dialogContext';
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
-import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSearchBrandsQuery } from '@/hooks/useProductQueries';
+import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
 interface Props {

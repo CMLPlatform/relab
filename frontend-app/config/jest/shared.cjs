@@ -5,7 +5,10 @@ const expoPreset = require('jest-expo/jest-preset');
 const sharedConfig = {
   ...expoPreset,
   rootDir: path.resolve(__dirname, '../..'),
-  fakeTimers: { enableGlobally: true },
+  fakeTimers: {
+    enableGlobally: true,
+    doNotFake: ['nextTick', 'queueMicrotask', 'setImmediate'],
+  },
   maxWorkers: '50%',
   testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   testTimeout: 15_000,

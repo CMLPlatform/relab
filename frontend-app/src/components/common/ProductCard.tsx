@@ -1,10 +1,12 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { View } from 'react-native';
-import { Card, Icon, useTheme } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Card, Icon } from 'react-native-paper';
+import { MutedText } from '@/components/base/MutedText';
 import { Text } from '@/components/base/Text';
 import ImagePlaceholder from '@/components/common/ImagePlaceholder';
+import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
 const rtf = new Intl.RelativeTimeFormat('en-US', { numeric: 'auto' });
@@ -29,7 +31,7 @@ interface Props {
 
 function ProductCardComponent({ product, enabled = true, showOwner = false }: Props) {
   const router = useRouter();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [hadError, setHadError] = useState(false);
 
   const hasThumbnail = !hadError && !!product.thumbnailUrl;
@@ -58,26 +60,14 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   }, [product.ownerUsername, router]);
 
   return (
-    <Card
-      elevation={2}
-      onPress={enabled ? navigateToProduct : undefined}
-      style={{ marginHorizontal: 10, marginVertical: 5 }}
-    >
-      <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }}>
-        <View style={{ marginRight: 16 }}>
+    <Card elevation={2} onPress={enabled ? navigateToProduct : undefined} style={styles.card}>
+      <View style={styles.row}>
+        <View style={styles.thumbnailWrap}>
           {hasThumbnail ? (
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 12,
-                backgroundColor: theme.colors.surfaceVariant,
-                overflow: 'hidden',
-              }}
-            >
+            <View style={[styles.thumbnailFrame, { backgroundColor: theme.colors.surfaceVariant }]}>
               <Image
                 source={{ uri: product.thumbnailUrl }}
-                style={{ width: '100%', height: '100%' }}
+                style={styles.thumbnailImage}
                 contentFit="cover"
                 onError={() => setHadError(true)}
                 testID="product-thumbnail"
@@ -89,44 +79,31 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
         </View>
 
         {/* Content */}
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: '700',
-              color: theme.colors.onSurface,
-              marginBottom: 2,
-            }}
-          >
+        <View style={styles.content}>
+          <Text style={[styles.title, { color: theme.colors.onSurface }]}>
             {product.name || 'Unnamed Product'}
           </Text>
-          <Text
-            style={{ fontSize: 13, color: theme.colors.onSurfaceVariant, marginBottom: 4 }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          <MutedText style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
             {detailList.join(' • ')}
-          </Text>
-          <Text
-            style={{ fontSize: 14, color: theme.colors.onSurfaceVariant, lineHeight: 20 }}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+          </MutedText>
+          <MutedText style={styles.description} numberOfLines={1} ellipsizeMode="tail">
             {product.description}
-          </Text>
+          </MutedText>
           {hasMetadata && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
+            <View style={styles.metadataRow}>
               {createdAgo && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <View style={styles.metadataItem}>
                   <Icon source="clock-outline" size={12} color={theme.colors.outline} />
-                  <Text style={{ fontSize: 11, color: theme.colors.outline }}>{createdAgo}</Text>
+                  <Text style={[styles.metadataText, { color: theme.colors.outline }]}>
+                    {createdAgo}
+                  </Text>
                 </View>
               )}
               {ownerLabel && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <View style={styles.metadataItem}>
                   <Icon source="account-outline" size={12} color={theme.colors.outline} />
                   <Text
-                    style={{ fontSize: 11, color: theme.colors.primary }}
+                    style={[styles.metadataText, { color: theme.colors.primary }]}
                     numberOfLines={1}
                     onPress={navigateToOwner}
                   >
@@ -145,3 +122,58 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 const ProductCard = memo(ProductCardComponent);
 
 export default ProductCard;
+
+const styles = StyleSheet.create({
+  card: {
+    marginHorizontal: 10,
+    marginVertical: 5,
+  },
+  row: {
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  thumbnailWrap: {
+    marginRight: 16,
+  },
+  thumbnailFrame: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  content: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  detailText: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 6,
+  },
+  metadataItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  metadataText: {
+    fontSize: 11,
+  },
+});

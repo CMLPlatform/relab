@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { loadAnimatedBackground } from '@/app/layout/backgroundLoader';
+import { loadAnimatedBackground } from '@/lib/router/backgroundLoader';
 
 describe('backgroundLoader', () => {
   it('returns the AnimatedBackground export from the loaded module', async () => {

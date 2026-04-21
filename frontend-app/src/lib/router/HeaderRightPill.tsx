@@ -1,9 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
-import { createHeaderRightPillStyles } from '@/app/layout/styles';
 import { Text } from '@/components/base/Text';
 import { useAuth } from '@/context/auth';
+import { createHeaderRightPillStyles } from '@/lib/router/styles';
 import { useAppTheme } from '@/theme';
 
 function truncateUsername(username: string) {

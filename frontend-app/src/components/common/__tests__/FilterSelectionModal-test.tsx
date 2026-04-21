@@ -3,7 +3,6 @@ import { screen } from '@testing-library/react-native';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
 import FilterSelectionModal from '../FilterSelectionModal';
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: modal interaction coverage is clearer with one shared user-event setup.
 describe('FilterSelectionModal', () => {
   const user = setupUser();
   it('shows a loading indicator while items are being fetched', () => {

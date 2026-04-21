@@ -1,7 +1,7 @@
 import { usePathname } from 'expo-router';
 import { type ComponentType, useEffect, useState } from 'react';
-import { ensureWebAnimatedPatch as ensureWebAnimatedPatchInternal } from '@/app/layout/animatedPatch';
-import { loadAnimatedBackground } from '@/app/layout/backgroundLoader';
+import { ensureWebAnimatedPatch as ensureWebAnimatedPatchInternal } from '@/lib/router/animatedPatch';
+import { loadAnimatedBackground } from '@/lib/router/backgroundLoader';
 import { getAppTheme } from '@/theme';
 
 const NO_OVERLAY_PATHS = ['/login', '/new-account', '/onboarding'];

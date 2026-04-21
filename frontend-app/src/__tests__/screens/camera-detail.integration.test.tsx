@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { renderWithProviders } from '@/test-utils/index';
 import CameraDetailScreen from '@/app/cameras/[id]';
+import { renderWithProviders } from '@/test-utils/index';
 
 const FAILED_TO_LOAD_CAMERA_PATTERN = /Failed to load camera/;
 
@@ -53,7 +53,6 @@ jest.mock('@/components/cameras/LivePreview', () => ({
   },
 }));
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this integration-style suite shares one camera-detail harness and grouped flows.
 describe('Camera detail screen', () => {
   const mockReplace = jest.fn();
   const mockNavigationSetOptions = jest.fn();

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
-import { mockUser, server } from '@/test-utils/index';
 import { getToken, getUser } from '@/services/api/authentication';
 import { allBrands, searchBrands } from '@/services/api/brands';
 import {
@@ -13,6 +12,7 @@ import {
   productComponents,
 } from '@/services/api/products';
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
+import { mockUser, server } from '@/test-utils/index';
 
 jest.mock('@/services/api/authentication', () => {
   const actual = jest.requireActual<typeof import('@/services/api/authentication')>(
@@ -76,7 +76,6 @@ const rawProductData = {
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
 };
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: fetch-service coverage intentionally shares one broad request/response harness.
 describe('Fetching API Service logic', () => {
   beforeEach(() => {
     jest.clearAllMocks();

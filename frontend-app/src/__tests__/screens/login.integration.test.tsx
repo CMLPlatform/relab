@@ -3,26 +3,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openAuthSessionAsync, WebBrowserResultType } from 'expo-web-browser';
+import Login from '@/app/(auth)/login';
 import { getToken, getUser, login, markWebSessionActive } from '@/services/api/authentication';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
   openOAuthBrowserSession,
 } from '@/services/api/oauthFlow';
-import {
-  mockPlatform,
-  mockUser,
-  renderWithProviders,
-  restorePlatform,
-} from '@/test-utils/index';
-import Login from '@/app/(auth)/login';
+import { mockPlatform, mockUser, renderWithProviders, restorePlatform } from '@/test-utils/index';
 
 const mockDialogApi = {
   alert: jest.fn(),
   input: jest.fn(),
   toast: jest.fn(),
 };
-const mockAuthRefetch = jest.fn();
+const mockAuthRefetch = jest.fn<() => Promise<void>>();
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
@@ -43,13 +38,7 @@ jest.mock('@/components/auth/LoginSections', () => {
   const { Controller } = require('react-hook-form');
 
   return {
-    LoginLayout: ({
-      children,
-      onBrowse,
-    }: {
-      children: React.ReactNode;
-      onBrowse: () => void;
-    }) =>
+    LoginLayout: ({ children, onBrowse }: { children: React.ReactNode; onBrowse: () => void }) =>
       React.createElement(
         View,
         null,
@@ -113,13 +102,7 @@ jest.mock('@/components/auth/LoginSections', () => {
           React.createElement(Text, null, 'Forgot password?'),
         ),
       ),
-    LoginOAuthSection: ({
-      onGoogle,
-      onGithub,
-    }: {
-      onGoogle: () => void;
-      onGithub: () => void;
-    }) =>
+    LoginOAuthSection: ({ onGoogle, onGithub }: { onGoogle: () => void; onGithub: () => void }) =>
       React.createElement(
         View,
         null,
@@ -201,7 +184,6 @@ const mockedFetchOAuthAuthorizationUrl = jest.mocked(fetchOAuthAuthorizationUrl)
 const mockedOpenOAuthBrowserSession = jest.mocked(openOAuthBrowserSession);
 type AuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this integration-style suite intentionally shares a single auth setup.
 describe('Login screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -273,7 +255,11 @@ describe('Login screen', () => {
   it('redirects to onboarding when user has no username', async () => {
     const { useAuth } = require('@/context/auth.ts');
     (useAuth as jest.Mock).mockReturnValue({
-      user: mockUser({ username: 'Username not defined', email: 'e@example.com', isVerified: false }),
+      user: mockUser({
+        username: 'Username not defined',
+        email: 'e@example.com',
+        isVerified: false,
+      }),
       isLoading: false,
       refetch: mockAuthRefetch,
     });

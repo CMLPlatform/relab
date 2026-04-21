@@ -60,7 +60,6 @@ const baseProduct = {
   ownedBy: 'me',
 } as unknown as Product;
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: gallery-hook coverage intentionally shares one media fixture matrix.
 describe('useProductImageGallery', () => {
   beforeEach(() => {
     jest.clearAllMocks();

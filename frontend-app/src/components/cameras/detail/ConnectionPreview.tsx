@@ -4,9 +4,10 @@ import { ActivityIndicator, Button, Card, IconButton, Text } from 'react-native-
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 import {
+  createCameraDetailStatusColors,
   type EffectiveConnection,
-  STATUS_COLOR,
   STATUS_LABEL,
   cameraDetailStyles as styles,
 } from './styles';
@@ -28,9 +29,11 @@ export function CameraConnectionCard({
   onOpenManualSetup,
   onDisconnectLocal,
 }: CameraConnectionCardProps) {
+  const theme = useAppTheme();
+  const statusColors = createCameraDetailStatusColors(theme);
   const { localConnection, relayStatus } = effectiveConnection;
   const isOnline = relayStatus === 'online';
-  const statusColor = camera.status ? STATUS_COLOR[camera.status.connection] : STATUS_COLOR.offline;
+  const statusColor = camera.status ? statusColors[camera.status.connection] : statusColors.offline;
   const statusLabel = camera.status ? STATUS_LABEL[camera.status.connection] : STATUS_LABEL.offline;
 
   return (
@@ -49,10 +52,13 @@ export function CameraConnectionCard({
               <MaterialCommunityIcons
                 name="ethernet"
                 size={18}
-                color="#2e7d32"
+                color={theme.tokens.status.success}
                 style={styles.inlineIcon}
               />
-              <Text variant="titleSmall" style={styles.statusTextLocal}>
+              <Text
+                variant="titleSmall"
+                style={[styles.statusTextLocal, { color: theme.tokens.status.success }]}
+              >
                 Connected - Direct · &lt;1 s
               </Text>
             </>

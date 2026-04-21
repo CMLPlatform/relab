@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { Button, IconButton, Text } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 
 /**
  * Sticky top bar shown while the mosaic is in multi-select mode.
@@ -24,9 +25,10 @@ export function SelectionBar({
   onCaptureAll: () => void;
   isCapturing: boolean;
 }) {
+  const theme = useAppTheme();
   const canCapture = selectedCount > 0 && !isCapturing;
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { backgroundColor: theme.tokens.surface.accent }]}>
       <IconButton icon="close" onPress={onClear} accessibilityLabel="Clear selection" />
       <Text variant="titleMedium" style={styles.label}>
         {selectedCount} selected
@@ -60,7 +62,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
   },
   label: {
     marginLeft: 4,

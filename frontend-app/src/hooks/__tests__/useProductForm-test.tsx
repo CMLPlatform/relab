@@ -80,7 +80,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: form-hook coverage uses one shared mocked form environment for readability.
 describe('useProductForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();

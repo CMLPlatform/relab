@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { renderWithProviders } from '@/test-utils/index';
 import CamerasScreen from '../index';
 
@@ -38,18 +39,16 @@ jest.mock('@/components/cameras/screen/States', () => {
 
   return {
     CamerasLoadingState: () => React.createElement(View, { testID: 'cameras-loading-state' }),
-    CamerasErrorState: ({
-      message,
-      onRetry,
-    }: {
-      message: string;
-      onRetry: () => void;
-    }) =>
+    CamerasErrorState: ({ message, onRetry }: { message: string; onRetry: () => void }) =>
       React.createElement(
         View,
         null,
         React.createElement(Text, null, message),
-        React.createElement(Pressable, { accessibilityRole: 'button', onPress: onRetry }, React.createElement(Text, null, 'Retry')),
+        React.createElement(
+          Pressable,
+          { accessibilityRole: 'button', onPress: onRetry },
+          React.createElement(Text, null, 'Retry'),
+        ),
       ),
   };
 });
@@ -89,7 +88,11 @@ jest.mock('@/components/cameras/screen/Chrome', () => {
             React.createElement(Text, null, `${selectedCount} selected`),
             React.createElement(
               Pressable,
-              { accessibilityLabel: 'Select all online cameras', accessibilityRole: 'button', onPress: onSelectAll },
+              {
+                accessibilityLabel: 'Select all online cameras',
+                accessibilityRole: 'button',
+                onPress: onSelectAll,
+              },
               React.createElement(Text, null, `Select all (${onlineCount})`),
             ),
             React.createElement(
@@ -104,13 +107,7 @@ jest.mock('@/components/cameras/screen/Chrome', () => {
             ),
           )
         : null,
-    CamerasSnackbar: ({
-      message,
-      onDismiss,
-    }: {
-      message: string | null;
-      onDismiss: () => void;
-    }) =>
+    CamerasSnackbar: ({ message, onDismiss }: { message: string | null; onDismiss: () => void }) =>
       message
         ? React.createElement(
             Pressable,
@@ -155,51 +152,52 @@ jest.mock('@/components/cameras/screen/Grid', () => {
               View,
               null,
               React.createElement(Text, null, 'No cameras yet'),
-              React.createElement(Text, null, 'Tap the + button to register your first RPi camera.'),
+              React.createElement(
+                Text,
+                null,
+                'Tap the + button to register your first RPi camera.',
+              ),
             )
-          : rows.map((row) =>
-              {
-                const localConnection = mockUseLocalConnection();
-                const isLocallyReachable =
-                  localConnection?.mode === 'local' && Boolean(localConnection?.localBaseUrl);
-                const statusLabel =
-                  isLocallyReachable || row.status?.connection === 'online' ? 'Online' : 'Offline';
-                const subtitle = isLocallyReachable ? 'Direct connection' : row.description;
+          : rows.map((row) => {
+              const localConnection = mockUseLocalConnection() as Partial<CameraConnectionInfo>;
+              const isLocallyReachable =
+                localConnection?.mode === 'local' && Boolean(localConnection?.localBaseUrl);
+              const statusLabel =
+                isLocallyReachable || row.status?.connection === 'online' ? 'Online' : 'Offline';
+              const subtitle = isLocallyReachable ? 'Direct connection' : row.description;
 
-                return React.createElement(
+              return React.createElement(
+                Pressable,
+                {
+                  key: row.id,
+                  accessibilityLabel: `Camera: ${row.name}`,
+                  accessibilityRole: 'button',
+                  onPress: () => onCardPress(row),
+                  onLongPress: () => onCardLongPress(row),
+                },
+                React.createElement(Text, null, row.name),
+                React.createElement(Text, null, statusLabel),
+                subtitle ? React.createElement(Text, null, subtitle) : null,
+                React.createElement(
                   Pressable,
                   {
-                    key: row.id,
-                    accessibilityLabel: `Camera: ${row.name}`,
+                    accessibilityLabel: `Mark ${row.name} reachable`,
                     accessibilityRole: 'button',
-                    onPress: () => onCardPress(row),
-                    onLongPress: () => onCardLongPress(row),
+                    onPress: () =>
+                      onEffectiveConnectionChange(row.id, {
+                        isReachable: true,
+                        mode: 'local',
+                        localBaseUrl: 'http://192.168.7.1:8018',
+                      }),
                   },
-                  React.createElement(Text, null, row.name),
-                  React.createElement(Text, null, statusLabel),
-                  subtitle ? React.createElement(Text, null, subtitle) : null,
-                  React.createElement(
-                    Pressable,
-                    {
-                      accessibilityLabel: `Mark ${row.name} reachable`,
-                      accessibilityRole: 'button',
-                      onPress: () =>
-                        onEffectiveConnectionChange(row.id, {
-                          isReachable: true,
-                          mode: 'local',
-                          localBaseUrl: 'http://192.168.7.1:8018',
-                        }),
-                    },
-                    React.createElement(Text, null, 'Mark reachable'),
-                  ),
-                );
-              }
-            ),
+                  React.createElement(Text, null, 'Mark reachable'),
+                ),
+              );
+            }),
       ),
   };
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this screen suite intentionally keeps one shared mocked cameras environment.
 describe('CamerasScreen', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();

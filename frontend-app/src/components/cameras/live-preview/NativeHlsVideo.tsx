@@ -1,9 +1,12 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { livePreviewStyles as styles } from './styles';
+import { useAppTheme } from '@/theme';
+import { createLivePreviewStyles } from './styles';
 
 export function NativeHlsVideo({ src }: { src: string }) {
+  const theme = useAppTheme();
+  const styles = createLivePreviewStyles(theme);
   const player = useVideoPlayer(src, (instance) => {
     instance.muted = true;
     instance.loop = false;
@@ -20,7 +23,12 @@ export function NativeHlsVideo({ src }: { src: string }) {
     <View style={styles.videoFrame}>
       <VideoView
         player={player}
-        style={{ width: '100%', height: '100%', borderRadius: 8, backgroundColor: '#000' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: 8,
+          backgroundColor: theme.colors.scrim,
+        }}
         contentFit="contain"
         nativeControls={false}
       />

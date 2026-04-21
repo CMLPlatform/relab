@@ -52,7 +52,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: camera query-hook coverage shares one broad mocked camera API harness.
 describe('RPi camera query hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -52,7 +52,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: query-hook coverage relies on one shared API mocking harness.
 describe('useProductQueries', () => {
   const mockedAllProducts = jest.mocked(allProducts);
   const mockedMyProducts = jest.mocked(myProducts);

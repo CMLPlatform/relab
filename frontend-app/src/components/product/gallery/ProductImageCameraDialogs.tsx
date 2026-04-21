@@ -1,8 +1,9 @@
 import { Button, Dialog, Portal } from 'react-native-paper';
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
-import { galleryStyles } from '@/components/product/gallery/styles';
+import { createGalleryStyles } from '@/components/product/gallery/styles';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 
 type Props = {
   cameraPickerVisible: boolean;
@@ -23,6 +24,8 @@ export function ProductImageCameraDialogs({
   onDismissPreview,
   onCapturePreview,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   return (
     <>
       <CameraPickerDialog
@@ -35,10 +38,10 @@ export function ProductImageCameraDialogs({
         <Dialog
           visible={previewCamera !== null}
           onDismiss={onDismissPreview}
-          style={galleryStyles.previewDialog}
+          style={styles.previewDialog}
         >
           <Dialog.Title>{previewCamera?.name ?? 'Camera preview'}</Dialog.Title>
-          <Dialog.Content style={galleryStyles.previewDialogContent}>
+          <Dialog.Content style={styles.previewDialogContent}>
             <LivePreview camera={previewCamera} enabled={previewCamera !== null} />
           </Dialog.Content>
           <Dialog.Actions>

@@ -1,14 +1,16 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Snackbar, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Snackbar, Text, TextInput } from 'react-native-paper';
 import {
   type DialogButton,
   DialogContext,
   type DialogContextType,
   type DialogOptions,
 } from '@/components/common/dialogContext';
+import { useAppTheme } from '@/theme';
 
 export function DialogProvider({ children }: { children: ReactNode }) {
+  const theme = useAppTheme();
   const [options, setOptions] = useState<DialogOptions | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
@@ -42,7 +44,10 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       {children}
 
       <Modal visible={Boolean(options)} transparent onRequestClose={clear}>
-        <Pressable style={styles.backdrop} onPress={clear}>
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: theme.tokens.overlay.scrim }]}
+          onPress={clear}
+        >
           <Dialog key={dialogVersion} options={options} onDismiss={clear} />
         </Pressable>
       </Modal>
@@ -54,7 +59,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 }
 
 function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismiss?: () => void }) {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [inputValue, setInputValue] = useState(options?.defaultValue || '');
 
   const handleClose = useCallback(
@@ -125,7 +130,6 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -153,11 +157,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 15,
     marginLeft: 8,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
   },
   helperText: {
     fontSize: 12,

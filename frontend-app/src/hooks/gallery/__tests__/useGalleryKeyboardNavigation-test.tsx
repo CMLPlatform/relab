@@ -3,7 +3,6 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { useGalleryKeyboardNavigation } from '@/hooks/gallery/useGalleryKeyboardNavigation';
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: keyboard-navigation coverage shares one platform-aware harness across many paths.
 describe('useGalleryKeyboardNavigation', () => {
   const originalPlatform = Platform.OS;
   const addEventListener = jest.fn();

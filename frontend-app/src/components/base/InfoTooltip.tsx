@@ -1,8 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { type JSX, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Text, Tooltip, useTheme } from 'react-native-paper';
+import { Text, Tooltip } from 'react-native-paper';
+import { OverlaySurface } from '@/components/common/OverlaySurface';
 import { radius, spacing } from '@/constants/layout';
+import { alpha, useAppTheme } from '@/theme';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
 
@@ -12,8 +14,11 @@ const getIsMobileWeb = () =>
   MOBILE_USER_AGENT_PATTERN.test(navigator.userAgent);
 
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [visible, setVisible] = useState(false);
+  const tooltipShadowStyle = {
+    boxShadow: `0px 2px 4px ${alpha(theme.colors.shadow, 0.25)}`,
+  };
 
   // Settings
   const exitDelay = 1500; // milliseconds
@@ -49,12 +54,22 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           animationType="fade"
           onRequestClose={() => setVisible(false)}
         >
-          <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
-            <View style={[styles.tooltip, { backgroundColor: theme.colors.inverseSurface }]}>
+          <Pressable
+            style={[styles.overlay, { backgroundColor: theme.tokens.overlay.scrim }]}
+            onPress={() => setVisible(false)}
+          >
+            <OverlaySurface
+              style={[
+                styles.tooltip,
+                tooltipShadowStyle,
+                { backgroundColor: theme.colors.inverseSurface },
+              ]}
+              tone="scrim"
+            >
               <Text variant="labelLarge" style={{ color: theme.colors.inverseOnSurface }}>
                 {title}
               </Text>
-            </View>
+            </OverlaySurface>
           </Pressable>
         </Modal>
       </View>
@@ -82,7 +97,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   tooltip: {
     padding: 12,
@@ -91,6 +105,5 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
     minWidth: 200,
     elevation: 3,
-    boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
   },
 });

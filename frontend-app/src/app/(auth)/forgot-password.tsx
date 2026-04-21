@@ -2,14 +2,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { View } from 'react-native';
-import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
 import { API_URL } from '@/config';
 import { apiFetch } from '@/services/api/client';
 import {
   type ForgotPasswordFormValues,
   forgotPasswordSchema,
 } from '@/services/api/validation/userSchema';
+import { useAppTheme } from '@/theme';
 import { logError } from '@/utils/logging';
 
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
@@ -28,7 +29,7 @@ function ForgotPasswordSuccess({
   onBackToLogin: () => void;
 }) {
   return (
-    <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
+    <View style={styles.successContainer}>
       <Text variant="bodyLarge" style={{ color, textAlign: 'center' }}>
         If an account exists with this email, you will receive password reset instructions.
       </Text>
@@ -170,7 +171,7 @@ function ForgotPasswordCardContent({
 }
 
 export default function ForgotPasswordScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const router = useRouter();
   const {
     control,
@@ -209,9 +210,9 @@ export default function ForgotPasswordScreen() {
   });
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.screen}>
       <Card>
-        <Card.Content style={{ gap: 16 }}>
+        <Card.Content style={styles.cardContent}>
           <Text variant="headlineMedium">Forgot Password</Text>
           <ForgotPasswordCardContent
             success={success}
@@ -230,3 +231,17 @@ export default function ForgotPasswordScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  cardContent: {
+    gap: 16,
+  },
+  successContainer: {
+    gap: 12,
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+});

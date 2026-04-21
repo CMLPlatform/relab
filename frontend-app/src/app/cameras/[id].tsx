@@ -21,11 +21,14 @@ function CameraDetailContent({
   dialogs,
   actions,
 }: ReturnType<typeof useCameraDetailScreen>) {
+  const camera = screen.camera;
+  if (!camera) return null;
+
   return (
     <>
       <CameraDetailLayout>
         <CameraConnectionCard
-          camera={screen.camera}
+          camera={camera}
           effectiveConnection={screen.effectiveConnection}
           isFetching={screen.isFetching}
           onRefresh={actions.refresh}
@@ -34,17 +37,17 @@ function CameraDetailContent({
         />
 
         <CameraPreviewSection
-          camera={screen.camera}
+          camera={camera}
           canPreview={screen.canPreview}
           previewEnabled={preview.enabled}
           onTogglePreview={actions.togglePreview}
           connectionInfo={screen.localConnection}
         />
 
-        <CameraStreamingSection cameraId={screen.camera.id} isOnline={screen.isOnline} />
+        <CameraStreamingSection cameraId={camera.id} isOnline={screen.isOnline} />
 
         <CameraDetailsCard
-          camera={screen.camera}
+          camera={camera}
           onEditName={actions.openEditName}
           onEditDescription={actions.openEditDescription}
         />
@@ -53,7 +56,7 @@ function CameraDetailContent({
       </CameraDetailLayout>
 
       <CameraDetailDialogs
-        camera={screen.camera}
+        camera={camera}
         editNameVisible={dialogs.editNameVisible}
         editDescriptionVisible={dialogs.editDescriptionVisible}
         deleteVisible={dialogs.deleteVisible}

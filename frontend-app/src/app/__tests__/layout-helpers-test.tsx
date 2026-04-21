@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, screen } from '@testing-library/react-native';
 import type { ComponentType } from 'react';
 import { Animated, Platform } from 'react-native';
-import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/app/layout/background';
-import { loadAnimatedBackground } from '@/app/layout/backgroundLoader';
-import { HeaderRightPill } from '@/app/layout/HeaderRightPill';
-import { getProductsHeaderStyle } from '@/app/layout/styles';
+import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/lib/router/background';
+import { loadAnimatedBackground } from '@/lib/router/backgroundLoader';
+import { HeaderRightPill } from '@/lib/router/HeaderRightPill';
+import { getProductsHeaderStyle } from '@/lib/router/styles';
 import { renderWithProviders } from '@/test-utils/index';
+import { getAppTheme } from '@/theme';
+
+// spell-checker: ignore averyverylongu
 
 const mockPush = jest.fn();
 const mockUseAuth = jest.fn();
@@ -25,7 +28,7 @@ jest.mock('@/components/common/AnimatedBackground', () => ({
   AnimatedBackground: () => null,
 }));
 
-jest.mock('@/app/layout/backgroundLoader', () => ({
+jest.mock('@/lib/router/backgroundLoader', () => ({
   loadAnimatedBackground: jest.fn(),
 }));
 
@@ -90,10 +93,10 @@ describe('layout helpers rendering', () => {
   });
 
   it('returns dark and light product header styles', () => {
-    expect(getProductsHeaderStyle(false).headerTitleStyle.color).toBeDefined();
-    expect(getProductsHeaderStyle(true).headerTitleStyle.color).toBeDefined();
-    expect(getProductsHeaderStyle(false).headerStyle.backgroundColor).not.toBe(
-      getProductsHeaderStyle(true).headerStyle.backgroundColor,
+    expect(getProductsHeaderStyle(getAppTheme('light')).headerTitleStyle.color).toBeDefined();
+    expect(getProductsHeaderStyle(getAppTheme('dark')).headerTitleStyle.color).toBeDefined();
+    expect(getProductsHeaderStyle(getAppTheme('light')).headerStyle.backgroundColor).not.toBe(
+      getProductsHeaderStyle(getAppTheme('dark')).headerStyle.backgroundColor,
     );
   });
 

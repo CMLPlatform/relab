@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { Pressable, ScrollView, type TextStyle, View } from 'react-native';
 import { Divider, Icon } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import { profileSectionStyles } from '@/components/profile/sections/styles';
+import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { useAppTheme } from '@/theme';
 
 export type OAuthAccount = {
   account_email?: string | null;
@@ -13,6 +14,7 @@ type ProfileSectionHeaderProps = {
 };
 
 export function ProfileSectionHeader({ title }: ProfileSectionHeaderProps) {
+  const styles = useStyles();
   return (
     <>
       <Divider style={styles.divider} />
@@ -36,6 +38,7 @@ export function ProfileAction({
   titleStyle,
   hideChevron = false,
 }: ProfileActionProps) {
+  const styles = useStyles();
   return (
     <Pressable
       style={styles.action}
@@ -57,7 +60,10 @@ type ProfileLayoutProps = {
 };
 
 export function ProfileLayout({ children }: ProfileLayoutProps) {
+  const styles = useStyles();
   return <ScrollView contentContainerStyle={styles.container}>{children}</ScrollView>;
 }
 
-const styles = profileSectionStyles;
+function useStyles() {
+  return createProfileSectionStyles(useAppTheme());
+}

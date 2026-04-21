@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
-import { useEffectiveColorScheme } from '@/context/themeMode';
 import { login, register } from '@/services/api/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
+import { useAppTheme } from '@/theme';
 import { logError } from '@/utils/logging';
 
 export type NewAccountSection = 'username' | 'email' | 'password';
@@ -15,7 +15,7 @@ export function useNewAccountScreen() {
   const router = useRouter();
   const { refetch, user, isLoading: authLoading } = useAuth();
   const dialog = useDialog();
-  const colorScheme = useEffectiveColorScheme();
+  const theme = useAppTheme();
   const [section, setSection] = useState<NewAccountSection>('username');
 
   useEffect(() => {
@@ -78,10 +78,10 @@ export function useNewAccountScreen() {
 
   return {
     ui: {
-      colorScheme,
-      overlayColor: colorScheme === 'light' ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.78)',
-      headlineColor: colorScheme === 'light' ? '#111111' : '#F5F5F5',
-      mutedColor: colorScheme === 'light' ? '#999999' : '#B7B7B7',
+      colorScheme: theme.scheme,
+      overlayColor: theme.tokens.overlay.glass,
+      headlineColor: theme.colors.onBackground,
+      mutedColor: theme.tokens.text.muted,
     },
     flow: {
       section,

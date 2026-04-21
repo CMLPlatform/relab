@@ -17,7 +17,6 @@ function renderAlertTrigger(onPress: () => void) {
 // context to be available to the components under test; which renderWithProviders
 // provides when withDialog: true is set.
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: dialog-provider integration coverage relies on one shared interactive harness.
 describe('DialogProvider', () => {
   const user = setupUser();
 

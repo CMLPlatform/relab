@@ -1,12 +1,12 @@
 import type React from 'react';
 import { Text as NativeText, StyleSheet, type TextProps } from 'react-native';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/theme';
 
 export const Text: React.FC<TextProps> = ({ style, children, ...props }) => {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
 
   return (
-    <NativeText style={[styles.base, { color: colors.onSurface }, style]} {...props}>
+    <NativeText style={[styles.base, { color: theme.colors.onSurface }, style]} {...props}>
       {children}
     </NativeText>
   );

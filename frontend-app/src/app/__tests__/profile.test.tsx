@@ -109,7 +109,11 @@ jest.mock('@/components/profile/sections/HeroStats', () => {
         React.createElement(Text, null, profile.email),
         React.createElement(
           Pressable,
-          { accessibilityLabel: 'Edit username', accessibilityRole: 'button', onPress: onEditUsername },
+          {
+            accessibilityLabel: 'Edit username',
+            accessibilityRole: 'button',
+            onPress: onEditUsername,
+          },
           React.createElement(Text, null, 'Edit username'),
         ),
       ),
@@ -123,7 +127,11 @@ jest.mock('@/components/profile/sections/HeroStats', () => {
       React.createElement(
         View,
         null,
-        React.createElement(Text, null, statsLoading ? '...' : String(ownStats?.product_count ?? 0)),
+        React.createElement(
+          Text,
+          null,
+          statsLoading ? '...' : String(ownStats?.product_count ?? 0),
+        ),
       ),
   };
 });
@@ -143,17 +151,29 @@ jest.mock('@/components/profile/sections/Preferences', () => {
         null,
         React.createElement(
           Pressable,
-          { accessibilityLabel: 'Dark theme', accessibilityRole: 'button', onPress: () => onSetThemeMode('dark') },
+          {
+            accessibilityLabel: 'Dark theme',
+            accessibilityRole: 'button',
+            onPress: () => onSetThemeMode('dark'),
+          },
           React.createElement(Text, null, 'Dark theme'),
         ),
         React.createElement(
           Pressable,
-          { accessibilityLabel: 'Light theme', accessibilityRole: 'button', onPress: () => onSetThemeMode('light') },
+          {
+            accessibilityLabel: 'Light theme',
+            accessibilityRole: 'button',
+            onPress: () => onSetThemeMode('light'),
+          },
           React.createElement(Text, null, 'Light theme'),
         ),
         React.createElement(
           Pressable,
-          { accessibilityLabel: 'Auto theme', accessibilityRole: 'button', onPress: () => onSetThemeMode('auto') },
+          {
+            accessibilityLabel: 'Auto theme',
+            accessibilityRole: 'button',
+            onPress: () => onSetThemeMode('auto'),
+          },
           React.createElement(Text, null, 'Auto theme'),
         ),
       ),
@@ -212,7 +232,11 @@ jest.mock('@/components/profile/sections/AccountSections', () => {
     ProfileDangerZoneSection: ({ onDeleteAccount }: { onDeleteAccount: () => void }) =>
       React.createElement(
         Pressable,
-        { accessibilityLabel: 'Delete Account?', accessibilityRole: 'button', onPress: onDeleteAccount },
+        {
+          accessibilityLabel: 'Delete Account?',
+          accessibilityRole: 'button',
+          onPress: onDeleteAccount,
+        },
         React.createElement(Text, null, 'Delete Account?'),
       ),
     ProfileLinkedAccountsSection: ({
@@ -232,7 +256,11 @@ jest.mock('@/components/profile/sections/AccountSections', () => {
         isGoogleLinked
           ? React.createElement(
               Pressable,
-              { accessibilityLabel: 'Unlink Google', accessibilityRole: 'button', onPress: () => onRequestUnlink('google') },
+              {
+                accessibilityLabel: 'Unlink Google',
+                accessibilityRole: 'button',
+                onPress: () => onRequestUnlink('google'),
+              },
               React.createElement(Text, null, 'Unlink Google'),
             )
           : React.createElement(
@@ -243,7 +271,11 @@ jest.mock('@/components/profile/sections/AccountSections', () => {
         isGithubLinked
           ? React.createElement(
               Pressable,
-              { accessibilityLabel: 'Unlink GitHub', accessibilityRole: 'button', onPress: () => onRequestUnlink('github') },
+              {
+                accessibilityLabel: 'Unlink GitHub',
+                accessibilityRole: 'button',
+                onPress: () => onRequestUnlink('github'),
+              },
               React.createElement(Text, null, 'Unlink GitHub'),
             )
           : React.createElement(
@@ -328,75 +360,78 @@ jest.mock('@/components/profile/sections/Dialogs', () => {
       deleteDialogVisible: boolean;
       onDismissDeleteDialog: () => void;
     }) =>
-        React.createElement(
-          View,
-          null,
-          editUsernameVisible
-            ? React.createElement(
-                View,
-                null,
-                React.createElement(Text, null, 'Edit Username'),
-                React.createElement(TextInput, { value: newUsername, onChangeText: onChangeUsername }),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onSaveUsername },
-                  React.createElement(Text, null, 'Save'),
-                ),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onDismissEditUsername },
-                  React.createElement(Text, null, 'Cancel'),
-                ),
-              )
-            : null,
-          unlinkDialogVisible
-            ? React.createElement(
-                View,
-                null,
-                React.createElement(Text, null, 'Unlink Account'),
-                React.createElement(Text, null, providerToUnlink),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onConfirmUnlink },
-                  React.createElement(Text, null, 'Unlink'),
-                ),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onDismissUnlink },
-                  React.createElement(Text, null, 'Cancel'),
-                ),
-              )
-            : null,
-          logoutDialogVisible
-            ? React.createElement(
-                View,
-                null,
-                React.createElement(Text, null, 'Are you sure you want to log out?'),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onConfirmLogout },
-                  React.createElement(Text, null, 'Logout'),
-                ),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onDismissLogout },
-                  React.createElement(Text, null, 'Cancel'),
-                ),
-              )
-            : null,
-          deleteDialogVisible
-            ? React.createElement(
-                View,
-                null,
-                React.createElement(Text, null, 'Delete Account'),
-                React.createElement(
-                  Pressable,
-                  { accessibilityRole: 'button', onPress: onDismissDeleteDialog },
-                  React.createElement(Text, null, 'Cancel'),
-                ),
-              )
-            : null,
-        ),
+      React.createElement(
+        View,
+        null,
+        editUsernameVisible
+          ? React.createElement(
+              View,
+              null,
+              React.createElement(Text, null, 'Edit Username'),
+              React.createElement(TextInput, {
+                value: newUsername,
+                onChangeText: onChangeUsername,
+              }),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onSaveUsername },
+                React.createElement(Text, null, 'Save'),
+              ),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onDismissEditUsername },
+                React.createElement(Text, null, 'Cancel'),
+              ),
+            )
+          : null,
+        unlinkDialogVisible
+          ? React.createElement(
+              View,
+              null,
+              React.createElement(Text, null, 'Unlink Account'),
+              React.createElement(Text, null, providerToUnlink),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onConfirmUnlink },
+                React.createElement(Text, null, 'Unlink'),
+              ),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onDismissUnlink },
+                React.createElement(Text, null, 'Cancel'),
+              ),
+            )
+          : null,
+        logoutDialogVisible
+          ? React.createElement(
+              View,
+              null,
+              React.createElement(Text, null, 'Are you sure you want to log out?'),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onConfirmLogout },
+                React.createElement(Text, null, 'Logout'),
+              ),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onDismissLogout },
+                React.createElement(Text, null, 'Cancel'),
+              ),
+            )
+          : null,
+        deleteDialogVisible
+          ? React.createElement(
+              View,
+              null,
+              React.createElement(Text, null, 'Delete Account'),
+              React.createElement(
+                Pressable,
+                { accessibilityRole: 'button', onPress: onDismissDeleteDialog },
+                React.createElement(Text, null, 'Cancel'),
+              ),
+            )
+          : null,
+      ),
   };
 });
 
@@ -438,7 +473,6 @@ async function renderProfile() {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this file is a broad integration-style suite with one common profile harness.
 describe('ProfileTab', () => {
   beforeEach(() => {
     jest.clearAllMocks();

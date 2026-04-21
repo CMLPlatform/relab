@@ -1,14 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { memo, useCallback, useEffect } from 'react';
 import { FlatList, Pressable, RefreshControl, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import { MutedText } from '@/components/base/MutedText';
 import { CameraCard } from '@/components/cameras/CameraCard';
-import { cameraScreenStyles as styles } from '@/components/cameras/screen/styles';
+import { createCameraScreenStyles } from '@/components/cameras/screen/styles';
 import {
   type EffectiveCameraConnection,
   useEffectiveCameraConnection,
 } from '@/hooks/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 
 type EffectiveConnectionSnapshot = Pick<EffectiveCameraConnection, 'isReachable' | 'transport'>;
 
@@ -33,7 +35,8 @@ export function CamerasGrid({
   onCardLongPress,
   onEffectiveConnectionChange,
 }: CamerasGridProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
+  const styles = createCameraScreenStyles(theme);
   const renderCameraCell = useCallback(
     ({ item }: { item: CameraReadWithStatus }) => (
       <CameraGridCell
@@ -69,9 +72,9 @@ export function CamerasGrid({
           <Text variant="titleMedium" style={styles.emptyTitle}>
             No cameras yet
           </Text>
-          <Text variant="bodySmall" style={styles.emptyBody}>
+          <MutedText style={styles.emptyBody}>
             Tap the + button to register your first RPi camera.
-          </Text>
+          </MutedText>
         </View>
       }
     />
@@ -91,6 +94,8 @@ const CameraGridCell = memo(function CameraGridCell({
   onLongPress: (camera: CameraReadWithStatus) => void;
   onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
 }) {
+  const theme = useAppTheme();
+  const styles = createCameraScreenStyles(theme);
   const effectiveConnection = useEffectiveCameraConnection(camera);
 
   useEffect(() => {

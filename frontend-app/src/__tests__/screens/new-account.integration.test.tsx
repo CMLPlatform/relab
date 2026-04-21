@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import NewAccount from '@/app/(auth)/new-account';
 import { login, register } from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
-import NewAccount from '@/app/(auth)/new-account';
 
 const mockDialogApi = {
   alert: jest.fn(),

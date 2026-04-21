@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import ForgotPasswordScreen from '@/app/(auth)/forgot-password';
 import { apiFetch } from '@/services/api/client';
 import { renderWithProviders } from '@/test-utils/index';
-import ForgotPasswordScreen from '@/app/(auth)/forgot-password';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),

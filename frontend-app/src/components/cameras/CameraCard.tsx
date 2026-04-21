@@ -2,18 +2,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { memo, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Text, useTheme } from 'react-native-paper';
+import { Card, Text } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
 import type { EffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
-
-const STATUS_COLOR: Record<CameraConnectionStatus, string> = {
-  online: '#2e7d32',
-  offline: '#757575',
-  unauthorized: '#f57c00',
-  forbidden: '#f57c00',
-  error: '#c62828',
-};
+import { getStatusColor, getStatusTone, useAppTheme } from '@/theme';
 
 const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
   online: 'Online',
@@ -24,16 +17,10 @@ const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
 };
 
 function StatusBadge({ status }: { status: CameraConnectionStatus }) {
-  const color = STATUS_COLOR[status];
+  const theme = useAppTheme();
+  const color = getStatusColor(theme, status);
   return (
-    <View
-      style={{
-        backgroundColor: `${color}22`,
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-      }}
-    >
+    <View style={[styles.statusBadge, { backgroundColor: getStatusTone(theme, color) }]}>
       <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{STATUS_LABEL[status]}</Text>
     </View>
   );
@@ -83,7 +70,7 @@ function CameraCardComponent({
   camera: CameraReadWithStatus;
   effectiveConnection?: EffectiveCameraConnection;
 }) {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
@@ -108,10 +95,10 @@ function CameraCardComponent({
       accessibilityLabel={`Camera: ${camera.name}`}
     >
       {/* Thumbnail (online only) or placeholder */}
-      <View style={styles.thumbnailFrame}>
+      <View style={[styles.thumbnailFrame, { backgroundColor: theme.colors.scrim }]}>
         {hasThumbnail ? (
           <Image
-            source={{ uri: resolvedThumbnailUrl }}
+            source={{ uri: resolvedThumbnailUrl ?? undefined }}
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
@@ -125,9 +112,12 @@ function CameraCardComponent({
                   name="image-outline"
                   size={40}
                   color={theme.colors.onSurfaceVariant}
-                  style={{ opacity: 0.4 }}
+                  style={styles.placeholderIcon}
                 />
-                <Text variant="bodySmall" style={styles.thumbnailCaption}>
+                <Text
+                  variant="bodySmall"
+                  style={[styles.thumbnailCaption, { color: theme.tokens.text.muted }]}
+                >
                   No preview available
                 </Text>
               </>
@@ -137,9 +127,12 @@ function CameraCardComponent({
                   name="camera-off"
                   size={40}
                   color={theme.colors.onSurfaceVariant}
-                  style={{ opacity: 0.4 }}
+                  style={styles.placeholderIcon}
                 />
-                <Text variant="bodySmall" style={styles.thumbnailCaption}>
+                <Text
+                  variant="bodySmall"
+                  style={[styles.thumbnailCaption, { color: theme.tokens.text.muted }]}
+                >
                   Offline
                 </Text>
               </>
@@ -192,10 +185,14 @@ const styles = StyleSheet.create({
   cardOffline: {
     opacity: 0.6,
   },
+  statusBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
   thumbnailFrame: {
     width: '100%',
     aspectRatio: 16 / 10,
-    backgroundColor: '#000',
     overflow: 'hidden',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
@@ -210,9 +207,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  thumbnailCaption: {
-    color: '#999',
+  placeholderIcon: {
+    opacity: 0.4,
   },
+  thumbnailCaption: {},
   cardContent: {
     paddingVertical: 12,
   },

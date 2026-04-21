@@ -5,6 +5,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -17,6 +18,9 @@ import {
   type ScrollableListHandle,
   type ScrollEvent,
 } from '@/components/product/gallery/shared';
+import { useAppTheme } from '@/theme';
+
+// spell-checker: ignore Zoomable
 
 type Props = {
   visible: boolean;
@@ -34,6 +38,8 @@ export function ProductImageLightbox({
   onIndexChange,
   onClose,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   const [isZoomed, setIsZoomed] = useState(false);
   const scrollRef = useRef<ScrollableListHandle | null>(null);
@@ -184,25 +190,14 @@ export function ProductImageLightbox({
       onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' }}>
+      <GestureHandlerRootView style={styles.root}>
         <Pressable
           onPress={handleClose}
           hitSlop={20}
           accessibilityLabel="Close lightbox"
-          style={{
-            position: 'absolute',
-            top: 40,
-            right: 20,
-            zIndex: 10,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            borderRadius: 20,
-            width: 44,
-            height: 44,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
+          style={styles.closeButton}
         >
-          <Icon source="close" size={28} color="white" />
+          <Icon source="close" size={28} color={theme.colors.inverseOnSurface} />
         </Pressable>
 
         <GalleryFlatList
@@ -215,7 +210,7 @@ export function ProductImageLightbox({
           disableIntervalMomentum={true}
           bounces={false}
           scrollEnabled={!(isZoomed || isTouchWeb)}
-          style={{ flex: 1 }}
+          style={styles.list}
           snapToInterval={screenWidth}
           snapToAlignment="center"
           decelerationRate="fast"
@@ -233,12 +228,7 @@ export function ProductImageLightbox({
             <View
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
-              style={{
-                width: screenWidth,
-                height: screenHeight,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
+              style={[styles.slide, { width: screenWidth, height: screenHeight }]}
             >
               <ZoomableImage
                 uri={item}
@@ -253,49 +243,32 @@ export function ProductImageLightbox({
         />
 
         {images.length > 1 ? (
-          <View style={{ position: 'absolute', bottom: 40, width: '100%', alignItems: 'center' }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                borderRadius: 24,
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-              }}
-            >
+          <View style={styles.footerWrap}>
+            <View style={styles.footerBar}>
               <Pressable
                 onPress={() => navigateBy(-1)}
                 hitSlop={15}
-                style={{ opacity: index === 0 ? 0.3 : 1, padding: 8 }}
+                style={[styles.navButton, index === 0 && styles.navButtonDisabled]}
                 disabled={index === 0}
                 accessibilityRole="button"
                 accessibilityLabel="Previous image"
               >
-                <Icon source="chevron-left" size={32} color="white" />
+                <Icon source="chevron-left" size={32} color={theme.colors.inverseOnSurface} />
               </Pressable>
 
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  marginHorizontal: 20,
-                  minWidth: 60,
-                  textAlign: 'center',
-                }}
-              >
+              <Text style={[styles.counterText, { color: theme.colors.inverseOnSurface }]}>
                 {index + 1} / {images.length}
               </Text>
 
               <Pressable
                 onPress={() => navigateBy(1)}
                 hitSlop={15}
-                style={{ opacity: index === images.length - 1 ? 0.3 : 1, padding: 8 }}
+                style={[styles.navButton, index === images.length - 1 && styles.navButtonDisabled]}
                 disabled={index === images.length - 1}
                 accessibilityRole="button"
                 accessibilityLabel="Next image"
               >
-                <Icon source="chevron-right" size={32} color="white" />
+                <Icon source="chevron-right" size={32} color={theme.colors.inverseOnSurface} />
               </Pressable>
             </View>
           </View>
@@ -303,4 +276,58 @@ export function ProductImageLightbox({
       </GestureHandlerRootView>
     </Modal>
   );
+}
+
+function createStyles(theme: ReturnType<typeof useAppTheme>) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: theme.tokens.overlay.media,
+    },
+    closeButton: {
+      position: 'absolute',
+      top: 40,
+      right: 20,
+      zIndex: 10,
+      backgroundColor: theme.tokens.overlay.media,
+      borderRadius: 20,
+      width: 44,
+      height: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    list: {
+      flex: 1,
+    },
+    slide: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    footerWrap: {
+      position: 'absolute',
+      bottom: 40,
+      width: '100%',
+      alignItems: 'center',
+    },
+    footerBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.tokens.overlay.media,
+      borderRadius: 24,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    navButton: {
+      padding: 8,
+    },
+    navButtonDisabled: {
+      opacity: 0.3,
+    },
+    counterText: {
+      fontSize: 16,
+      marginHorizontal: 20,
+      minWidth: 60,
+      textAlign: 'center',
+    },
+  });
 }

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import { ActivityIndicator, Button, IconButton, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Button, IconButton, Text } from 'react-native-paper';
 import { cameraDetailStyles } from '@/components/cameras/detail/styles';
+import { useAppTheme } from '@/theme';
 
 type CameraDetailLayoutProps = {
   children: ReactNode;
@@ -25,7 +26,7 @@ type CameraDetailErrorStateProps = {
 };
 
 export function CameraDetailErrorState({ message, onRetry }: CameraDetailErrorStateProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <View style={styles.center}>
@@ -49,7 +50,7 @@ export function DetailRow({
   onEdit?: () => void;
   mono?: boolean;
 }) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <View style={styles.detailRow}>
@@ -94,7 +95,7 @@ export function ActionRow({
   danger?: boolean;
   loading?: boolean;
 }) {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const color = danger ? theme.colors.error : theme.colors.onSurface;
 
   return (

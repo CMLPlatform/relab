@@ -21,7 +21,6 @@ jest.mock('@/services/cpv', () => ({
 const mockDismissTo = jest.fn();
 const mockReplace = jest.fn();
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: category selection behavior is easier to follow with one shared navigation and CPV setup.
 describe('CategorySelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();

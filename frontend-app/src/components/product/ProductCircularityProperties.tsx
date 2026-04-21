@@ -19,7 +19,7 @@ import {
   updateCircularityField,
 } from '@/components/product/circularity/helpers';
 import { styles } from '@/components/product/circularity/styles';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
 
 interface Props {

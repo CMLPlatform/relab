@@ -1,7 +1,8 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 import { ActivityIndicator, Card, Text } from 'react-native-paper';
-import { livePreviewStyles } from '@/components/cameras/live-preview/styles';
+import { createLivePreviewStyles } from '@/components/cameras/live-preview/styles';
+import { useAppTheme } from '@/theme';
 
 export function PreviewShell({
   children,
@@ -10,6 +11,8 @@ export function PreviewShell({
   children: React.ReactNode;
   caption: string;
 }) {
+  const theme = useAppTheme();
+  const styles = createLivePreviewStyles(theme);
   return (
     <Card style={styles.card}>
       <Card.Content style={styles.content}>
@@ -23,6 +26,8 @@ export function PreviewShell({
 }
 
 export function PreviewLoadingOverlay() {
+  const theme = useAppTheme();
+  const styles = createLivePreviewStyles(theme);
   return (
     <View style={styles.overlay}>
       <ActivityIndicator size={24} />
@@ -38,9 +43,11 @@ export function PreviewErrorOverlay({
   message: string;
   onRetry: () => void;
 }) {
+  const theme = useAppTheme();
+  const styles = createLivePreviewStyles(theme);
   return (
     <View style={styles.overlay}>
-      <MaterialCommunityIcons name="video-off" size={32} color="#999" />
+      <MaterialCommunityIcons name="video-off" size={32} color={theme.tokens.text.muted} />
       <Text style={styles.overlayText}>{message}</Text>
       <Pressable onPress={onRetry}>
         <Text style={styles.retryText}>Tap to retry</Text>
@@ -48,5 +55,3 @@ export function PreviewErrorOverlay({
     </View>
   );
 }
-
-const styles = livePreviewStyles;

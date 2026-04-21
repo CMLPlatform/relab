@@ -49,7 +49,6 @@ function secsAgo(seconds: number): string {
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this suite compares multiple camera-card states using one common fixture setup.
 describe('CameraCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -2,7 +2,7 @@ import type React from 'react';
 import { Pressable, type PressableProps, StyleSheet } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { radius, spacing } from '@/constants/layout';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/theme';
 
 interface Props extends PressableProps {
   children?: string;
@@ -12,26 +12,30 @@ interface Props extends PressableProps {
 }
 
 export const Chip: React.FC<Props> = ({ style, children, title, icon, error, ...props }) => {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
 
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.container,
-        { backgroundColor: error ? colors.surfaceVariant : colors.primaryContainer },
-        pressed && { opacity: 0.5 },
-      ]}
+      style={(state) => {
+        const resolvedStyle = typeof style === 'function' ? style(state) : style;
+        return [
+          styles.container,
+          { backgroundColor: error ? theme.colors.surfaceVariant : theme.colors.primaryContainer },
+          state.pressed && { opacity: 0.5 },
+          resolvedStyle,
+        ];
+      }}
       {...props}
     >
       {title && (
-        <Text style={[styles.titleText, { color: colors.onPrimaryContainer }]}>{title}</Text>
+        <Text style={[styles.titleText, { color: theme.colors.onPrimaryContainer }]}>{title}</Text>
       )}
       <Text
         style={[
           styles.text,
           {
-            backgroundColor: error ? colors.errorContainer : colors.primary,
-            color: error ? colors.onErrorContainer : colors.onPrimary,
+            backgroundColor: error ? theme.colors.errorContainer : theme.colors.primary,
+            color: error ? theme.colors.onErrorContainer : theme.colors.onPrimary,
           },
         ]}
       >

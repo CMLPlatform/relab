@@ -1,6 +1,7 @@
 import { View } from 'react-native';
-import { Icon, useTheme } from 'react-native-paper';
+import { Icon } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
+import { useAppTheme } from '@/theme';
 
 interface Props {
   width: number;
@@ -17,7 +18,7 @@ export default function ImagePlaceholder({
   borderRadius = 8,
   testID,
 }: Props) {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const iconSize = Math.min(width, height) * 0.3;
 
   return (

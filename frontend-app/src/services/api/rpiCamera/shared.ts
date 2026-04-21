@@ -64,7 +64,7 @@ export class ApiError extends Error {
 }
 
 export async function throwFromResponse(resp: Response, fallback: string): Promise<never> {
-  const body = await resp.json().catch(() => null);
+  const body = typeof resp.json === 'function' ? await resp.json().catch(() => null) : null;
   const detail = body?.detail;
   const message =
     (typeof detail === 'string' ? detail : detail?.message) ?? `${fallback} (${resp.status})`;

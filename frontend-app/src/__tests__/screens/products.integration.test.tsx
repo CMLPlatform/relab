@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { mockUser, renderWithProviders } from '@/test-utils/index';
 import Products from '@/app/products';
+import { mockUser, renderWithProviders } from '@/test-utils/index';
 
 const NETWORK_FAILURE_PATTERN = /Network failure/;
 const PAGE_ONE_OF_THREE_PATTERN = /Page 1 of 3/;
@@ -266,7 +266,6 @@ function renderProducts() {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: product-list screen coverage intentionally shares one broad mocked environment.
 describe('Products screen', () => {
   it('renders the search bar and sort button', async () => {
     renderProducts();
@@ -281,7 +280,9 @@ describe('Products screen', () => {
 
   it('shows empty state when no products match', async () => {
     renderProducts();
-    expect(screen.getByText('No products available yet. Sign in to add your own.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('No products available yet. Sign in to add your own.'),
+    ).toBeOnTheScreen();
   });
 
   it('shows search-specific empty state when searching', async () => {

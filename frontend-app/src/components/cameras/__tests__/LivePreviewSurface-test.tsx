@@ -68,7 +68,9 @@ describe('LivePreview', () => {
 
     it('renders the preview player with the HLS URL', () => {
       const { getByTestId } = render(<LivePreview camera={{ id: '1' }} />);
-      expect(getByTestId('preview-player').props.children).toBe('player:http://example/stream.m3u8');
+      expect(getByTestId('preview-player').props.children).toBe(
+        'player:http://example/stream.m3u8',
+      );
     });
 
     it('passes enabled=false to useCameraLivePreview', () => {

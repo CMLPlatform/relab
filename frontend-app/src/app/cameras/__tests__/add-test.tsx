@@ -85,7 +85,7 @@ describe('AddCameraScreen', () => {
       claimMutate.mock.calls[0]?.[1] as { onError?: (err: unknown) => void } | undefined
     )?.onError;
     pairOnError?.(new Error('pairing failed'));
-    expect(alertSpy).toHaveBeenCalledWith('Error: pairing failed');
+    expect(alertSpy).toHaveBeenCalledWith('pairing failed');
   });
 
   it('dismisses the pairing success dialog and navigates to the camera list', async () => {

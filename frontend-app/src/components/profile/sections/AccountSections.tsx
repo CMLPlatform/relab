@@ -1,8 +1,9 @@
 import { View } from 'react-native';
 import { Button, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
+import { createProfileSectionStyles } from '@/components/profile/sections/styles';
+import { useAppTheme } from '@/theme';
 import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared';
-import { profileSectionStyles as styles } from './styles';
 
 type ProfileAccountSectionProps = {
   isVerified: boolean;
@@ -15,6 +16,7 @@ export function ProfileAccountSection({
   onLogout,
   onVerifyAccount,
 }: ProfileAccountSectionProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
       <ProfileSectionHeader title="Account" />
@@ -54,6 +56,7 @@ export function ProfileNewsletterSection({
   onToggleNewsletter,
   onReloadNewsletterPreference,
 }: ProfileNewsletterSectionProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
       <ProfileSectionHeader title="Email updates" />
@@ -114,6 +117,7 @@ export function ProfileLinkedAccountsSection({
   onLinkOAuth,
   onRequestUnlink,
 }: ProfileLinkedAccountsSectionProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
       <ProfileSectionHeader title="Linked Accounts" />
@@ -157,6 +161,7 @@ type ProfileDangerZoneSectionProps = {
 };
 
 export function ProfileDangerZoneSection({ onDeleteAccount }: ProfileDangerZoneSectionProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
       <ProfileSectionHeader title="Danger Zone" />

@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { useTheme } from 'react-native-paper';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
@@ -18,6 +17,7 @@ import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
+import { useAppTheme } from '@/theme';
 
 type SearchParams = {
   id: string;
@@ -30,7 +30,7 @@ export function useProductPageScreen() {
   const router = useRouter();
   const dialog = useDialog();
   const feedback = useAppFeedback();
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { user: profile } = useAuth();
   const { enabled: rpiEnabled } = useRpiIntegration();
   const { enabled: youtubeEnabled } = useYouTubeIntegration();

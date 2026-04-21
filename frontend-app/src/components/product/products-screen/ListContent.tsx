@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useMemo } from 'react';
 import { type DimensionValue, FlatList, RefreshControl, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 import ProductCard from '@/components/common/ProductCard';
 import ProductCardSkeleton from '@/components/common/ProductCardSkeleton';
+import { useAppTheme } from '@/theme';
 import { NewProductPill } from './InlinePills';
 import { PAGE_SIZE, productsScreenStyles as styles } from './shared';
 import type {
@@ -170,7 +171,7 @@ export function ProductsListContent({
   onRefresh,
   onSetPage,
 }: ProductsListContentProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const showOwner = filterMode === 'all';
 
   const renderSkeleton = useCallback(() => <ProductCardSkeleton />, []);

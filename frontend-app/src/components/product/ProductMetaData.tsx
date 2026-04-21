@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
+import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export default function ProductMetaData({ product }: Props) {
-  // Render
+  const theme = useAppTheme();
   return (
     <View>
       <DetailSectionHeader title="Metadata" tooltipTitle="Auto-generated metadata of the product" />
@@ -30,7 +31,7 @@ export default function ProductMetaData({ product }: Props) {
           {product.ownerUsername ? (
             <Link
               href={`/users/${product.ownerUsername}`}
-              style={{ color: '#1565C0', textDecorationLine: 'underline' }}
+              style={{ color: theme.tokens.text.link, textDecorationLine: 'underline' }}
             >
               {product.ownerUsername}
             </Link>

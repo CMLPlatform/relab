@@ -1,10 +1,11 @@
 import { Platform, Pressable, View } from 'react-native';
 import { Chip } from '@/components/base/Chip';
 import { Text } from '@/components/base/Text';
+import { createProfileSectionStyles } from '@/components/profile/sections/styles';
 import type { PublicProfileView } from '@/services/api/profiles';
+import { useAppTheme } from '@/theme';
 import type { User } from '@/types/User';
 import { ProfileSectionHeader } from './shared';
-import { profileSectionStyles as styles } from './styles';
 
 type ProfileHeroProps = {
   profile: User;
@@ -12,6 +13,7 @@ type ProfileHeroProps = {
 };
 
 export function ProfileHero({ profile, onEditUsername }: ProfileHeroProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View style={styles.hero}>
       <Text style={styles.hiText}>Hi,</Text>
@@ -60,6 +62,7 @@ function StatCard({
   value: string | number;
   singleLine?: boolean;
 }) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <View style={styles.statItem}>
       <Text style={styles.statValue} numberOfLines={singleLine ? 1 : undefined}>
@@ -71,6 +74,7 @@ function StatCard({
 }
 
 export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSectionProps) {
+  const styles = createProfileSectionStyles(useAppTheme());
   return (
     <>
       <ProfileSectionHeader title="Your Stats" />

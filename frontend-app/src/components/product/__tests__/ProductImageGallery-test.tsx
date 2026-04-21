@@ -166,7 +166,6 @@ const productWithImages = (count: number): Product => ({
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: gallery integration coverage shares one async storage and capture harness.
 describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
   beforeEach(() => {
     jest.clearAllMocks();

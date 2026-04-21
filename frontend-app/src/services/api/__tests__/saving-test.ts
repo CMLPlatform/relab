@@ -63,7 +63,6 @@ function mockApiFetchError(status = 400, body: unknown = { detail: 'Error' }) {
   } as Response);
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: saving-service coverage intentionally keeps one shared upload harness.
 describe('Saving API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();

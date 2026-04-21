@@ -1,7 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
+import { Button, Card, Chip, Text } from 'react-native-paper';
+import { MutedText } from '@/components/base/MutedText';
 import type { StreamView } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 
 type YouTubeStreamCardViewProps = {
   isLive: boolean;
@@ -22,13 +24,13 @@ export function YouTubeStreamCardView({
   onWatch,
   onStop,
 }: YouTubeStreamCardViewProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <Card
       style={{
         borderRadius: 12,
-        ...(isLive && { borderLeftWidth: 3, borderLeftColor: '#e53935' }),
+        ...(isLive && { borderLeftWidth: 3, borderLeftColor: theme.tokens.status.live }),
       }}
     >
       <Card.Content style={{ gap: 8 }}>
@@ -36,7 +38,7 @@ export function YouTubeStreamCardView({
           <MaterialCommunityIcons
             name="youtube"
             size={20}
-            color={isLive ? '#e53935' : theme.colors.onSurfaceVariant}
+            color={isLive ? theme.tokens.status.live : theme.colors.onSurfaceVariant}
           />
           <Text variant="titleSmall" style={{ flex: 1 }}>
             YouTube Live
@@ -44,8 +46,8 @@ export function YouTubeStreamCardView({
           {isLive ? (
             <Chip
               compact
-              style={{ backgroundColor: '#e53935' }}
-              textStyle={{ color: '#fff', fontSize: 11, fontWeight: '700' }}
+              style={{ backgroundColor: theme.tokens.status.live }}
+              textStyle={{ color: theme.colors.onError, fontSize: 11, fontWeight: '700' }}
             >
               LIVE
             </Chip>
@@ -53,16 +55,10 @@ export function YouTubeStreamCardView({
         </View>
 
         {isLoading && !streamStatus ? (
-          <Text variant="bodySmall" style={{ opacity: 0.5 }}>
-            Checking stream status…
-          </Text>
+          <MutedText style={{ opacity: 0.5 }}>Checking stream status…</MutedText>
         ) : isLive && streamStatus ? (
           <>
-            {elapsed ? (
-              <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                Live for {elapsed}
-              </Text>
-            ) : null}
+            {elapsed ? <MutedText style={{ opacity: 0.6 }}>Live for {elapsed}</MutedText> : null}
             <Text
               variant="bodySmall"
               style={{ color: theme.colors.primary }}
@@ -84,9 +80,9 @@ export function YouTubeStreamCardView({
             </Button>
           </>
         ) : (
-          <Text variant="bodySmall" style={{ opacity: 0.5 }}>
+          <MutedText style={{ opacity: 0.5 }}>
             Not streaming — start a live stream from a product page.
-          </Text>
+          </MutedText>
         )}
       </Card.Content>
     </Card>

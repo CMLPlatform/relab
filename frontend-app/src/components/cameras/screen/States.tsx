@@ -1,9 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { ActivityIndicator, Button, Text, useTheme } from 'react-native-paper';
-import { cameraScreenStyles as styles } from '@/components/cameras/screen/styles';
+import { ActivityIndicator, Button, Text } from 'react-native-paper';
+import { createCameraScreenStyles } from '@/components/cameras/screen/styles';
+import { useAppTheme } from '@/theme';
 
 export function CamerasLoadingState() {
+  const theme = useAppTheme();
+  const styles = createCameraScreenStyles(theme);
   return (
     <View style={styles.center}>
       <ActivityIndicator size="large" />
@@ -17,7 +20,8 @@ type CamerasErrorStateProps = {
 };
 
 export function CamerasErrorState({ message, onRetry }: CamerasErrorStateProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
+  const styles = createCameraScreenStyles(theme);
 
   return (
     <View style={styles.center}>

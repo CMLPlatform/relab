@@ -22,7 +22,6 @@ const emptyCircularity: CircularityProperties = {
 const baseProduct: Product = { ..._base, circularityProperties: emptyCircularity };
 const CIRCULARITY_PROPERTIES_PATTERN = /Circularity Properties/;
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this suite intentionally keeps one large circularity-fixture matrix together.
 describe('ProductCircularityProperties', () => {
   it('renders the section heading', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);

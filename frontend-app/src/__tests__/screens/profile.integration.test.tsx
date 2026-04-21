@@ -47,7 +47,6 @@ const mockedOpenAuthSessionAsync = jest.mocked(openAuthSessionAsync);
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: newsletter integration coverage shares one mock server/auth fixture.
 describe('Profile screen newsletter preference', () => {
   beforeEach(() => {
     mockedGetToken.mockResolvedValue('token');
@@ -167,7 +166,6 @@ describe('Profile screen newsletter preference', () => {
   });
 });
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: profile action integration coverage intentionally shares one authenticated harness.
 describe('Profile screen actions', () => {
   jest.setTimeout(10_000);
 

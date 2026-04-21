@@ -6,10 +6,11 @@ import { Text } from 'react-native-paper';
 import { getLivePreviewCaption } from '@/components/cameras/live-preview/caption';
 import { PreviewPlayer } from '@/components/cameras/live-preview/PreviewPlayer';
 import { PreviewShell } from '@/components/cameras/live-preview/shared';
-import { livePreviewStyles as styles } from '@/components/cameras/live-preview/styles';
+import { createLivePreviewStyles } from '@/components/cameras/live-preview/styles';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
 import type { CameraRead } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 // spell-checker: ignore mpegurl
 
 /**
@@ -67,15 +68,22 @@ export class PreviewErrorBoundary extends Component<
 
   render() {
     if (this.state.hasError) {
-      return (
-        <View style={styles.videoFrame}>
-          <View style={styles.overlay}>
-            <MaterialCommunityIcons name="video-off" size={32} color="#999" />
-            <Text style={styles.overlayText}>Live preview unavailable</Text>
-          </View>
-        </View>
-      );
+      return <PreviewErrorState />;
     }
     return this.props.children;
   }
+}
+
+export function PreviewErrorState() {
+  const theme = useAppTheme();
+  const styles = createLivePreviewStyles(theme);
+
+  return (
+    <View style={styles.videoFrame}>
+      <View style={styles.overlay}>
+        <MaterialCommunityIcons name="video-off" size={32} color={theme.tokens.text.muted} />
+        <Text style={styles.overlayText}>Live preview unavailable</Text>
+      </View>
+    </View>
+  );
 }

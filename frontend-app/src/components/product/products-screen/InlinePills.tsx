@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import { useAppTheme } from '@/theme';
 import { productsScreenStyles as styles } from './shared';
 
 type NewProductPillProps = {
@@ -8,7 +9,7 @@ type NewProductPillProps = {
 };
 
 export function NewProductPill({ label = 'New Product' }: NewProductPillProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <View
@@ -27,14 +28,14 @@ export function NewProductPill({ label = 'New Product' }: NewProductPillProps) {
 }
 
 export function ProfilePill() {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <View
       style={[
         styles.inlineProfilePill,
         {
-          backgroundColor: theme.dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.07)',
+          backgroundColor: theme.tokens.overlay.glass,
         },
       ]}
     >

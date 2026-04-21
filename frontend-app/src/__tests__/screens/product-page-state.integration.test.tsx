@@ -3,11 +3,11 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
+import ProductPage from '@/app/products/[id]';
 import { useProductForm } from '@/hooks/useProductForm';
 import { useProductQuery } from '@/hooks/useProductQueries';
 import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
-import ProductPage from '@/app/products/[id]';
 
 const SLOW_LOADING_PATTERN = /taking longer than usual/i;
 const PARENT_PRODUCT_PATTERN = /A parent product/;
@@ -180,7 +180,6 @@ jest.mock('@/components/product/ProductTags', () => mockCreateSectionStub('Produ
 jest.mock('@/components/product/ProductType', () => mockCreateSectionStub('ProductType'));
 jest.mock('@/components/product/ProductVideo', () => mockCreateSectionStub('ProductVideo'));
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this state-focused suite shares a large mocked product-page harness by design.
 describe('ProductPage state handling', () => {
   type HeaderOptions = {
     headerRight?: () => ReactNode;

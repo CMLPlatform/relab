@@ -117,7 +117,6 @@ describe('initEmailForms submission', () => {
     expect(message.className).toContain('message-success');
     expect(input.value).toBe('');
   });
-
 });
 
 describe('initEmailForms error paths', () => {

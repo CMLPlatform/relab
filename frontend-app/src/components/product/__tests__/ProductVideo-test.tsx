@@ -45,7 +45,6 @@ function renderProductVideo(overrides: Partial<ProductVideoProps> = {}) {
   });
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: product-video coverage keeps one end-to-end fixture set for the whole feature surface.
 describe('ProductVideo', () => {
   it('renders the Video heading', () => {
     renderProductVideo();

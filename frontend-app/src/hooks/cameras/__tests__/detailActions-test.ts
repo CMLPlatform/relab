@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { createCameraDetailActions } from '@/hooks/cameras/detailActions';
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: detail-action coverage keeps one cohesive action matrix together.
 describe('camera detail actions', () => {
   const refetch = jest.fn();
   const replace = jest.fn();

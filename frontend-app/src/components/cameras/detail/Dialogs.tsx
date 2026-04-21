@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Button, Dialog, Portal, TextInput, useTheme } from 'react-native-paper';
+import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 import { cameraDetailStyles as styles } from './styles';
 
 function EditNameDialog({
@@ -167,7 +168,7 @@ function CameraDeleteDialog({
   onDismiss,
   onConfirmDelete,
 }: CameraDeleteDialogProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <Dialog visible={visible} onDismiss={onDismiss}>

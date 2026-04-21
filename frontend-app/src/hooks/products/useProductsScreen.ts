@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDebounce } from 'use-debounce';
@@ -198,37 +199,21 @@ function useProductsListQuery({
   };
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: products-screen state is intentionally centralized in one hook for the screen layer.
-export function useProductsScreen(numColumns: number) {
-  const dialog = useDialog();
-  const router = useRouter();
-  const { user: currentUser, refetch: refetchUser } = useAuth();
-  const params = useLocalSearchParams<ProductsSearchParams>();
-  const {
-    filterMode,
-    searchQueryURL,
-    page,
-    sortBy,
-    activeDatePreset,
-    activeBrands,
-    activeProductTypes,
-    createdAfter,
-  } = useMemo(() => normalizeProductsParams(params), [params]);
-
-  const [searchQuery, setSearchQuery] = useState(searchQueryURL);
-  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
-  const filterUi = useProductsFilterUiState();
-  const header = useProductsHeaderState();
-  const isAuthenticated = !!currentUser;
-  const newProduct = useNewProductAction({ dialog, router, currentUser });
-
-  const updateParams = useCallback(
-    (newParams: RouterSetParams) => {
-      router.setParams(newParams);
-    },
-    [router],
-  );
-
+function useProductsParamsSync({
+  currentUser,
+  debouncedSearchQuery,
+  filterMode,
+  paramsSort,
+  searchQueryURL,
+  updateParams,
+}: {
+  currentUser: ReturnType<typeof useAuth>['user'];
+  debouncedSearchQuery: string;
+  filterMode: ProductFilter;
+  paramsSort?: string;
+  searchQueryURL: string;
+  updateParams: (newParams: RouterSetParams) => void;
+}) {
   useEffect(() => {
     if (debouncedSearchQuery !== searchQueryURL) {
       updateParams({ q: debouncedSearchQuery || undefined, page: '1' });
@@ -236,48 +221,27 @@ export function useProductsScreen(numColumns: number) {
   }, [debouncedSearchQuery, searchQueryURL, updateParams]);
 
   useEffect(() => {
-    if (!searchQueryURL && params.sort === 'rank') {
+    if (!searchQueryURL && paramsSort === 'rank') {
       updateParams({ sort: undefined });
     }
-  }, [searchQueryURL, params.sort, updateParams]);
-
-  const { effectivePage, setPage } = useProductsPaging({
-    numColumns,
-    page,
-    updateParams,
-  });
-
-  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(
-    filterUi.brandSearch,
-  );
-  const { data: typeResults, isLoading: typesLoading } = useSearchProductTypesQuery(
-    filterUi.typeSearch,
-  );
+  }, [paramsSort, searchQueryURL, updateParams]);
 
   useEffect(() => {
     if (!currentUser && filterMode === 'mine') {
       updateParams({ filterMode: 'all', page: '1' });
     }
   }, [currentUser, filterMode, updateParams]);
+}
 
-  const { data, isFetching, isLoading, error, refetch, productList } = useProductsListQuery({
-    numColumns,
-    filterMode,
-    effectivePage,
-    searchQueryURL,
-    sortBy,
-    activeBrands,
-    createdAfter,
-    activeProductTypes,
-  });
-  const slowLoading = useSlowLoadingState(isLoading);
-
-  const { showInfoCard, dismissInfoCard } = useProductsWelcomeCard({
-    isAuthenticated,
-    currentUser,
-    refetchUser,
-  });
-
+function useProductsActions({
+  filterMode,
+  router,
+  updateParams,
+}: {
+  filterMode: ProductFilter;
+  router: ReturnType<typeof useRouter>;
+  updateParams: (newParams: RouterSetParams) => void;
+}) {
   const clearQuery = useCallback(() => updateParams({ q: undefined, page: '1' }), [updateParams]);
   const applySort = useCallback(
     (sort: readonly string[]) => updateParams({ sort: sort.join(','), page: '1' }),
@@ -319,141 +283,264 @@ export function useProductsScreen(numColumns: number) {
   const goToProfile = useCallback(() => {
     router.push('/profile');
   }, [router]);
+
+  return {
+    clearQuery,
+    applySort,
+    toggleMine,
+    clearMine,
+    applyDatePreset,
+    applyBrandSelection,
+    clearBrands,
+    applyTypeSelection,
+    clearTypes,
+    goToLogin,
+    goToProfile,
+    updateParams,
+  };
+}
+
+function buildProductsScreenState({
+  params,
+  filterMode,
+  activeDatePreset,
+  activeBrands,
+  activeProductTypes,
+  isAuthenticated,
+  currentUser,
+  header,
+  showInfoCard,
+  slowLoading,
+  searchQuery,
+  searchQueryURL,
+  debouncedSearchQuery,
+  sortBy,
+  filterUi,
+  setSearchQuery,
+  actions,
+  brandResults,
+  brandsLoading,
+  typeResults,
+  typesLoading,
+  data,
+  productList,
+  effectivePage,
+  totalPages,
+  total,
+  hasMore,
+  isFetching,
+  isLoading,
+  error,
+  refetch,
+  setPage,
+  dismissInfoCard,
+  newProduct,
+}: {
+  params: ProductsSearchParams;
+  filterMode: ProductFilter;
+  activeDatePreset: number | null;
+  activeBrands: string[];
+  activeProductTypes: string[];
+  isAuthenticated: boolean;
+  currentUser: ReturnType<typeof useAuth>['user'];
+  header: ReturnType<typeof useProductsHeaderState>;
+  showInfoCard: boolean | null;
+  slowLoading: boolean;
+  searchQuery: string;
+  searchQueryURL: string;
+  debouncedSearchQuery: string;
+  sortBy: string[];
+  filterUi: ReturnType<typeof useProductsFilterUiState>;
+  setSearchQuery: Dispatch<SetStateAction<string>>;
+  actions: ReturnType<typeof useProductsActions>;
+  brandResults: ReturnType<typeof useSearchBrandsQuery>['data'];
+  brandsLoading: boolean;
+  typeResults: ReturnType<typeof useSearchProductTypesQuery>['data'];
+  typesLoading: boolean;
+  data: ReturnType<typeof useProductsListQuery>['data'];
+  productList: Product[];
+  effectivePage: number;
+  totalPages: number;
+  total: number;
+  hasMore: boolean;
+  isFetching: boolean;
+  isLoading: boolean;
+  error: ReturnType<typeof useProductsListQuery>['error'];
+  refetch: ReturnType<typeof useProductsListQuery>['refetch'];
+  setPage: (nextPage: number) => void;
+  dismissInfoCard: () => void;
+  newProduct: ReturnType<typeof useNewProductAction>;
+}) {
+  return {
+    screen: {
+      params,
+      filterMode,
+      activeDatePreset,
+      activeBrands,
+      activeProductTypes,
+      isAuthenticated,
+      currentUser,
+      headerBottom: header.headerBottom,
+      fabExtended: header.fabExtended,
+      showWelcomeCard: Boolean(showInfoCard),
+      slowLoading,
+    },
+    search: {
+      query: searchQuery,
+      queryFromUrl: searchQueryURL,
+      debouncedQuery: debouncedSearchQuery,
+      sortBy,
+      sortMenuVisible: filterUi.sortMenuVisible,
+      setQuery: setSearchQuery,
+      setSortMenuVisible: filterUi.setSortMenuVisible,
+      clearQuery: actions.clearQuery,
+      applySort: actions.applySort,
+    },
+    filters: {
+      brandResults,
+      brandsLoading,
+      typeResults,
+      typesLoading,
+      dateMenuVisible: filterUi.dateMenuVisible,
+      brandModalVisible: filterUi.brandModalVisible,
+      typeModalVisible: filterUi.typeModalVisible,
+      brandSearch: filterUi.brandSearch,
+      typeSearch: filterUi.typeSearch,
+      setDateMenuVisible: filterUi.setDateMenuVisible,
+      setBrandModalVisible: filterUi.setBrandModalVisible,
+      setTypeModalVisible: filterUi.setTypeModalVisible,
+      setBrandSearch: filterUi.setBrandSearch,
+      setTypeSearch: filterUi.setTypeSearch,
+      toggleMine: actions.toggleMine,
+      clearMine: actions.clearMine,
+      applyDatePreset: actions.applyDatePreset,
+      applyBrandSelection: actions.applyBrandSelection,
+      clearBrands: actions.clearBrands,
+      applyTypeSelection: actions.applyTypeSelection,
+      clearTypes: actions.clearTypes,
+    },
+    list: {
+      data,
+      productList,
+      effectivePage,
+      totalPages,
+      total,
+      hasMore,
+      isFetching,
+      isLoading,
+      error,
+      refetch,
+      onScroll: header.onScroll,
+      setHeaderBottom: header.setHeaderBottom,
+      setPage,
+    },
+    actions: {
+      dismissWelcomeCard: dismissInfoCard,
+      createProduct: newProduct,
+      goToLogin: actions.goToLogin,
+      goToProfile: actions.goToProfile,
+      updateParams: actions.updateParams,
+    },
+  };
+}
+
+export function useProductsScreen(numColumns: number) {
+  const dialog = useDialog();
+  const router = useRouter();
+  const { user: currentUser, refetch: refetchUser } = useAuth();
+  const params = useLocalSearchParams<ProductsSearchParams>();
+  const {
+    filterMode,
+    searchQueryURL,
+    page,
+    sortBy,
+    activeDatePreset,
+    activeBrands,
+    activeProductTypes,
+    createdAfter,
+  } = useMemo(() => normalizeProductsParams(params), [params]);
+  const [searchQuery, setSearchQuery] = useState(searchQueryURL);
+  const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+  const filterUi = useProductsFilterUiState();
+  const header = useProductsHeaderState();
+  const isAuthenticated = !!currentUser;
+  const newProduct = useNewProductAction({ dialog, router, currentUser });
+  const updateParams = useCallback(
+    (newParams: RouterSetParams) => router.setParams(newParams),
+    [router],
+  );
+
+  useProductsParamsSync({
+    currentUser,
+    debouncedSearchQuery,
+    filterMode,
+    paramsSort: params.sort,
+    searchQueryURL,
+    updateParams,
+  });
+
+  const { effectivePage, setPage } = useProductsPaging({ numColumns, page, updateParams });
+  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(
+    filterUi.brandSearch,
+  );
+  const { data: typeResults, isLoading: typesLoading } = useSearchProductTypesQuery(
+    filterUi.typeSearch,
+  );
+  const { data, isFetching, isLoading, error, refetch, productList } = useProductsListQuery({
+    numColumns,
+    filterMode,
+    effectivePage,
+    searchQueryURL,
+    sortBy,
+    activeBrands,
+    createdAfter,
+    activeProductTypes,
+  });
+  const slowLoading = useSlowLoadingState(isLoading);
+  const { showInfoCard, dismissInfoCard } = useProductsWelcomeCard({
+    isAuthenticated,
+    currentUser,
+    refetchUser,
+  });
+  const actions = useProductsActions({ filterMode, router, updateParams });
   const totalPages = data?.pages ?? 0;
   const total = data?.total ?? 0;
   const hasMore = (data?.page ?? 0) < (data?.pages ?? 0);
 
-  return useMemo(
-    () => ({
-      screen: {
-        params,
-        filterMode,
-        activeDatePreset,
-        activeBrands,
-        activeProductTypes,
-        isAuthenticated,
-        currentUser,
-        headerBottom: header.headerBottom,
-        fabExtended: header.fabExtended,
-        showWelcomeCard: showInfoCard,
-        slowLoading,
-      },
-      search: {
-        query: searchQuery,
-        queryFromUrl: searchQueryURL,
-        debouncedQuery: debouncedSearchQuery,
-        sortBy,
-        sortMenuVisible: filterUi.sortMenuVisible,
-        setQuery: setSearchQuery,
-        setSortMenuVisible: filterUi.setSortMenuVisible,
-        clearQuery,
-        applySort,
-      },
-      filters: {
-        brandResults,
-        brandsLoading,
-        typeResults,
-        typesLoading,
-        dateMenuVisible: filterUi.dateMenuVisible,
-        brandModalVisible: filterUi.brandModalVisible,
-        typeModalVisible: filterUi.typeModalVisible,
-        brandSearch: filterUi.brandSearch,
-        typeSearch: filterUi.typeSearch,
-        setDateMenuVisible: filterUi.setDateMenuVisible,
-        setBrandModalVisible: filterUi.setBrandModalVisible,
-        setTypeModalVisible: filterUi.setTypeModalVisible,
-        setBrandSearch: filterUi.setBrandSearch,
-        setTypeSearch: filterUi.setTypeSearch,
-        toggleMine,
-        clearMine,
-        applyDatePreset,
-        applyBrandSelection,
-        clearBrands,
-        applyTypeSelection,
-        clearTypes,
-      },
-      list: {
-        data,
-        productList,
-        effectivePage,
-        totalPages,
-        total,
-        hasMore,
-        isFetching,
-        isLoading,
-        error,
-        refetch,
-        onScroll: header.onScroll,
-        setHeaderBottom: header.setHeaderBottom,
-        setPage,
-      },
-      actions: {
-        dismissWelcomeCard: dismissInfoCard,
-        createProduct: newProduct,
-        goToLogin,
-        goToProfile,
-        updateParams,
-      },
-    }),
-    [
-      activeBrands,
-      activeDatePreset,
-      activeProductTypes,
-      applyBrandSelection,
-      applyDatePreset,
-      applySort,
-      applyTypeSelection,
-      brandResults,
-      brandsLoading,
-      clearBrands,
-      clearMine,
-      clearQuery,
-      clearTypes,
-      currentUser,
-      data,
-      debouncedSearchQuery,
-      dismissInfoCard,
-      error,
-      effectivePage,
-      filterUi.brandModalVisible,
-      filterUi.brandSearch,
-      filterUi.dateMenuVisible,
-      filterUi.setBrandModalVisible,
-      filterUi.setBrandSearch,
-      filterUi.setDateMenuVisible,
-      filterUi.setSortMenuVisible,
-      filterUi.setTypeModalVisible,
-      filterUi.setTypeSearch,
-      filterUi.sortMenuVisible,
-      filterUi.typeModalVisible,
-      filterUi.typeSearch,
-      header.fabExtended,
-      header.headerBottom,
-      header.onScroll,
-      header.setHeaderBottom,
-      filterMode,
-      goToLogin,
-      goToProfile,
-      hasMore,
-      isAuthenticated,
-      isFetching,
-      isLoading,
-      newProduct,
-      params,
-      productList,
-      refetch,
-      searchQuery,
-      searchQueryURL,
-      setPage,
-      showInfoCard,
-      slowLoading,
-      sortBy,
-      toggleMine,
-      total,
-      totalPages,
-      typeResults,
-      typesLoading,
-      updateParams,
-    ],
-  );
+  return buildProductsScreenState({
+    params,
+    filterMode,
+    activeDatePreset,
+    activeBrands,
+    activeProductTypes,
+    isAuthenticated,
+    currentUser,
+    header,
+    showInfoCard: showInfoCard ?? false,
+    slowLoading,
+    searchQuery,
+    searchQueryURL,
+    debouncedSearchQuery,
+    sortBy,
+    filterUi,
+    setSearchQuery,
+    actions,
+    brandResults,
+    brandsLoading,
+    typeResults,
+    typesLoading,
+    data,
+    productList,
+    effectivePage,
+    totalPages,
+    total,
+    hasMore,
+    isFetching,
+    isLoading,
+    error,
+    refetch,
+    setPage,
+    dismissInfoCard,
+    newProduct,
+  });
 }

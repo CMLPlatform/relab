@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 import { ActivityIndicator, Icon } from 'react-native-paper';
-import { galleryStyles } from '@/components/product/gallery/styles';
+import { createGalleryStyles } from '@/components/product/gallery/styles';
+import { useAppTheme } from '@/theme';
 
 type Props = {
   showCameraOption: boolean;
@@ -23,8 +24,10 @@ export function ProductImageEmptyEditState({
   onPickImage,
   onRpiCapture,
 }: Props) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   return (
-    <View style={galleryStyles.emptyStateRow}>
+    <View style={styles.emptyStateRow}>
       {showCameraOption ? (
         <EmptyActionCard
           onPress={onTakePhoto}
@@ -49,17 +52,14 @@ export function ProductImageEmptyEditState({
           accessibilityLabel={
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
           }
-          style={[
-            galleryStyles.emptyActionCard,
-            { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
-          ]}
+          style={[styles.emptyActionCard, { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 }]}
         >
           {isCapturing || rpiCamerasLoading ? (
             <ActivityIndicator size={32} />
           ) : (
-            <Icon source="camera-wireless" size={48} color="#999" />
+            <Icon source="camera-wireless" size={48} color={theme.tokens.text.muted} />
           )}
-          <Text style={galleryStyles.emptyActionText}>
+          <Text style={styles.emptyActionText}>
             {hasCamerasConfigured ? 'RPi Camera' : 'Connect Camera'}
           </Text>
         </Pressable>
@@ -79,15 +79,17 @@ function EmptyActionCard({
   accessibilityLabel: string;
   icon: string;
 }) {
+  const theme = useAppTheme();
+  const styles = createGalleryStyles(theme);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={galleryStyles.emptyActionCard}
+      style={styles.emptyActionCard}
     >
-      <Icon source={icon} size={48} color="#999" />
-      <Text style={galleryStyles.emptyActionText}>{label}</Text>
+      <Icon source={icon} size={48} color={theme.tokens.text.muted} />
+      <Text style={styles.emptyActionText}>{label}</Text>
     </Pressable>
   );
 }

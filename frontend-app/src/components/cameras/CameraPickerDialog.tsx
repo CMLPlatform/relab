@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
+import { MutedText } from '@/components/base/MutedText';
 import {
   resolveEffectiveCameraConnection,
   useEffectiveCameraConnection,
 } from '@/hooks/useEffectiveCameraConnection';
 import { useCamerasQuery } from '@/hooks/useRpiCameras';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { useAppTheme } from '@/theme';
 
 interface CameraPickerDialogProps {
   visible: boolean;
@@ -27,6 +29,7 @@ export function CameraPickerDialog({
   onSelect,
   title = 'Select camera',
 }: CameraPickerDialogProps) {
+  const theme = useAppTheme();
   const router = useRouter();
   const { data: cameras, isLoading } = useCamerasQuery(true, { enabled: visible });
 
@@ -40,13 +43,13 @@ export function CameraPickerDialog({
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss}>
         <Dialog.Title>{title}</Dialog.Title>
-        <Dialog.Content style={{ gap: 8 }}>
+        <Dialog.Content style={styles.content}>
           {isLoading ? (
-            <ActivityIndicator style={{ padding: 16 }} />
+            <ActivityIndicator style={styles.loading} />
           ) : sorted.length === 0 ? (
-            <View style={{ padding: 16, alignItems: 'center', gap: 8 }}>
-              <Icon source="camera-off" size={32} color="#999" />
-              <Text style={{ color: '#999', textAlign: 'center' }}>No cameras registered</Text>
+            <View style={styles.emptyState}>
+              <Icon source="camera-off" size={32} color={theme.tokens.text.muted} />
+              <MutedText style={styles.emptyText}>No cameras registered</MutedText>
             </View>
           ) : (
             sorted.map((cam) => <CameraPickerRow key={cam.id} camera={cam} onSelect={onSelect} />)
@@ -63,7 +66,7 @@ export function CameraPickerDialog({
           >
             Manage
           </Button>
-          <View style={{ flex: 1 }} />
+          <View style={styles.spacer} />
           <Button onPress={onDismiss}>Cancel</Button>
         </Dialog.Actions>
       </Dialog>
@@ -78,6 +81,7 @@ function CameraPickerRow({
   camera: CameraReadWithStatus;
   onSelect: (camera: CameraReadWithStatus) => void;
 }) {
+  const theme = useAppTheme();
   const effectiveConnection = useEffectiveCameraConnection(camera);
   const isReachable = effectiveConnection.isReachable;
 
@@ -88,37 +92,65 @@ function CameraPickerRow({
         onSelect(camera);
       }}
       accessibilityRole="button"
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        opacity: isReachable ? 1 : 0.4,
-      }}
+      style={[
+        styles.row,
+        { borderColor: theme.colors.outlineVariant, opacity: isReachable ? 1 : 0.4 },
+      ]}
     >
       <View
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: 4,
-          backgroundColor: isReachable ? '#2e7d32' : '#999',
-        }}
+        style={[
+          styles.dot,
+          { backgroundColor: isReachable ? theme.tokens.status.success : theme.tokens.text.muted },
+        ]}
       />
       <Icon source="access-point" size={20} />
-      <Text style={{ flex: 1 }}>{camera.name}</Text>
+      <Text style={styles.rowTitle}>{camera.name}</Text>
       {effectiveConnection.detailLabel ? (
-        <Text variant="labelSmall" style={{ color: '#2e7d32' }}>
+        <Text variant="labelSmall" style={{ color: theme.tokens.status.success }}>
           Direct
         </Text>
       ) : null}
       {!isReachable && (
-        <Text variant="labelSmall" style={{ color: '#999' }}>
+        <Text variant="labelSmall" style={{ color: theme.tokens.text.muted }}>
           Offline
         </Text>
       )}
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    gap: 8,
+  },
+  loading: {
+    padding: 16,
+  },
+  emptyState: {
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+  },
+  spacer: {
+    flex: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  rowTitle: {
+    flex: 1,
+  },
+});

@@ -1,10 +1,11 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
-import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
+import { Platform, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Card, Text } from 'react-native-paper';
 import { API_URL } from '@/config';
 import { useAuth } from '@/context/auth';
 import { apiFetch } from '@/services/api/client';
+import { useAppTheme } from '@/theme';
 import { logError } from '@/utils/logging';
 
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
@@ -120,7 +121,7 @@ function useVerifyToken({
 }
 
 export default function VerifyEmailScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const router = useRouter();
   const { user, refetch } = useAuth();
   const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
@@ -140,20 +141,20 @@ export default function VerifyEmailScreen() {
   useVerifyToken({ token, setError, setIsLoading, setSuccess });
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.screen}>
       <Card>
-        <Card.Content style={{ gap: 16, alignItems: 'center', paddingVertical: 32 }}>
+        <Card.Content style={styles.cardContent}>
           <Text variant="headlineMedium">Verify Email</Text>
 
           {isLoading && (
-            <View style={{ gap: 12, alignItems: 'center' }}>
+            <View style={styles.centeredState}>
               <ActivityIndicator size="large" />
               <Text variant="bodyLarge">Verifying your email...</Text>
             </View>
           )}
 
           {error && !isLoading && (
-            <View style={{ gap: 12, alignItems: 'center' }}>
+            <View style={styles.centeredState}>
               <Text variant="bodyLarge" style={{ color: theme.colors.error, textAlign: 'center' }}>
                 {error}
               </Text>
@@ -164,7 +165,7 @@ export default function VerifyEmailScreen() {
           )}
 
           {success && !isLoading && (
-            <View style={{ gap: 12, alignItems: 'center' }}>
+            <View style={styles.centeredState}>
               <Text
                 variant="bodyLarge"
                 style={{ color: theme.colors.primary, textAlign: 'center' }}
@@ -179,3 +180,18 @@ export default function VerifyEmailScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  cardContent: {
+    gap: 16,
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  centeredState: {
+    gap: 12,
+    alignItems: 'center',
+  },
+});
