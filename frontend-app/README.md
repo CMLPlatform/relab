@@ -97,6 +97,23 @@ We intentionally keep only the two explicit timing commands. They cover the comm
 
 For emulator and device setup, testing patterns, and app-specific development notes, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
 
+## Styling And Theming
+
+Styling in `frontend-app` now follows a single-theme setup built on React Native Paper MD3.
+
+- Import theme values from `@/theme`, not from `src/assets/themes/*`
+- Use `useAppTheme()` as the default hook for theme access
+- Prefer semantic tokens like `theme.tokens.status.live`, `theme.tokens.text.muted`, and `theme.tokens.surface.accent` over raw hex or `rgba(...)` literals
+- Keep static layout in `StyleSheet.create()`
+- For theme-dependent styles, use small colocated factories like `createStyles(theme)`
+- Keep `src/app/` route-only; router helpers belong under `src/lib/router/`
+
+In practice, that means:
+
+- `src/theme/` is the only supported theme entrypoint
+- shared visual primitives should live under `src/components/base/` or `src/components/common/`
+- new hard-coded color literals in app code should be treated as regressions unless they belong in the theme layer, generated assets, or tests
+
 ## React Performance Profiling
 
 Memoization changes in this app should be validated in a release-like build, not only in Metro dev mode.

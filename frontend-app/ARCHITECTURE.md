@@ -46,11 +46,11 @@ products, profile, users live directly under `src/app/`.
 ## Data flow
 
 1. Backend exposes OpenAPI at `$EXPO_PUBLIC_API_URL/openapi_full.json`.
-2. `just codegen` regenerates [src/types/api.generated.ts](src/types/api.generated.ts)
+1. `just codegen` regenerates [src/types/api.generated.ts](src/types/api.generated.ts)
    and runs `scripts/redact_api.js` to strip JWT examples before commit.
-3. Request helpers live in [src/services/api](src/services/api); feature hooks
+1. Request helpers live in [src/services/api](src/services/api); feature hooks
    wrap them with TanStack Query, returning typed data.
-4. MSW handlers in `src/test-utils/` mock the same surface in unit/integration
+1. MSW handlers in `src/test-utils/` mock the same surface in unit/integration
    tests so component code is identical in prod and test.
 
 Client-only state (wizard progress, transient UI) lives in Zustand stores
@@ -59,11 +59,11 @@ stays in TanStack Query — don't mirror it into Zustand.
 
 ## Testing layers
 
-| Layer | Tool | Location | What it covers |
-|---|---|---|---|
-| Unit | Jest + jest-expo | `src/**/*.test.ts(x)` | Pure logic, single component, MSW-mocked. |
-| Integration | Jest + jest-expo | `src/**/*.integration.test.ts(x)` | Multiple components wired together, realistic nav. |
-| E2E | Playwright | `e2e/` | Full-stack against the built web export + docker-compose backend. |
+| Layer       | Tool             | Location                          | What it covers                                                    |
+| ----------- | ---------------- | --------------------------------- | ----------------------------------------------------------------- |
+| Unit        | Jest + jest-expo | `src/**/*.test.ts(x)`             | Pure logic, single component, MSW-mocked.                         |
+| Integration | Jest + jest-expo | `src/**/*.integration.test.ts(x)` | Multiple components wired together, realistic nav.                |
+| E2E         | Playwright       | `e2e/`                            | Full-stack against the built web export + docker-compose backend. |
 
 Run via `just test-unit`, `just test-integration`, `just test-e2e`. See
 [README.md](README.md) for profiling tips.
