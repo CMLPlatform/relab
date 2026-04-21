@@ -6,69 +6,32 @@
 default:
     @just --list
 
-# Install dependencies
-install:
-    pnpm install --frozen-lockfile
-    @echo "✓ Docs dependencies installed"
-
-# Regenerate the lockfile without installing dependencies
-lockfile:
-    pnpm install --lockfile-only --ignore-scripts
-    @echo "✓ Docs lockfile refreshed"
-
-# Update dependencies
+# Update dependencies (Astro upgrade + pnpm latest)
 update:
-    npx @astrojs/upgrade
-    @echo "✓ Docs dependencies updated"
-
-# Check source quality
-lint:
-    pnpm run lint
-    @echo "✓ Docs linting passed"
-
-# Format documentation
-format:
-    pnpm run format
-    @echo "✓ Docs formatted"
-
-# Automatically fix formatting issues
-fix: format
-
-# Run all quality checks (linting + build smoke test)
-check:
-    pnpm run check
-    @echo "✓ Docs checks passed"
+    pnpm dlx @astrojs/upgrade
+    pnpm up --latest
 
 # Start development server with live reload
 dev PORT="8000":
-    pnpm run dev -- --port {{PORT}}
-
-# Build the documentation site locally
-build:
-    pnpm run build
-    @echo "✓ Docs built successfully"
+    pnpm run dev -- --port {{ PORT }}
 
 # Print a simple static output budget for local review
 size:
     du -sh dist
     find dist -type f | sort | xargs du -h
 
-# Smoke-test the build
+# Run all quality checks (lint + typecheck + build + tests + link check)
+check:
+    pnpm run check
+
+# Smoke + a11y + visual + theme (requires `just build` first)
 test:
     pnpm run test
-    @echo "✓ Docs tests passed"
 
-# Run visual and theme regression checks
+# Visual and theme regression checks only (requires `just build` first)
 test-visual:
     pnpm run test:visual
-    @echo "✓ Docs visual tests passed"
-
-# Scan Node dependencies for known CVEs
-audit:
-    pnpm run audit
-    @echo "✓ Docs dependency audit complete"
 
 # Clean caches and generated site output
 clean:
     rm -rf .astro dist node_modules playwright-report test-results site
-    @echo "✓ Docs: Cleaned caches and build artifacts"

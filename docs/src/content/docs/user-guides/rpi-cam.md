@@ -37,13 +37,11 @@ This is the quickest way to add a camera. No manual credential exchange is neede
 
 ### Option B: Manual Registration
 
-Use this when automatic pairing is not available.
+Use this when automatic pairing is unavailable.
 
 1. **Add a camera in the app.** Go to Cameras > Add Camera > Manual setup. The platform generates relay credentials.
-
-1. **Copy credentials to the Raspberry Pi.** Save the displayed JSON to `~/.config/relab/relay_credentials.json` on the Pi, or set the individual `RELAY_*` environment variables.
-
-1. **Restart the RPi plugin** if it is already running.
+1. **Copy credentials to the Pi.** Save the displayed JSON to `~/.config/relab/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
+1. **Restart the plugin** if it was already running.
 
 ### Verify the Registration
 

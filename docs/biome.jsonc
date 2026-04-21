@@ -1,0 +1,64 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "extends": "//",
+  "files": {
+    "includes": [
+      // Keep docs linting focused on checked-in source and config files.
+      "astro.config.mjs",
+      "playwright.config.ts",
+      "package.json",
+      "tsconfig.json",
+      "scripts/**/*.mjs",
+      "src/components/**",
+      "src/styles/**",
+      "!.astro",
+      "!dist",
+      "!node_modules",
+      "!playwright-report",
+      "!site",
+      "!test-results",
+
+      // This wrapper re-exports Starlight's default head component.
+      "!src/components/Head.astro"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "complexity": "on",
+      "correctness": {
+        "noNodejsModules": "off"
+      },
+      "style": "on",
+      "suspicious": "on"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          }
+        }
+      }
+    },
+    {
+      // Build and test config files run in Node and keep conventional exports.
+      "includes": ["astro.config.mjs", "playwright.config.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noProcessGlobal": "off"
+          },
+          "style": {
+            "noDefaultExport": "off",
+            "noProcessEnv": "off",
+            "useNamingConvention": "off"
+          }
+        }
+      }
+    }
+  ]
+}
