@@ -46,6 +46,11 @@ backups/*
 reports/coverage/*
 !reports/coverage/badge.svg
 
+# Performance artifacts (k6 summaries + dated baselines)
+reports/performance/*.json
+reports/performance/*.md
+!reports/performance/README.md
+
 # Ignore all .env files except for the example files and .env.test (which is used in CI)
 .env
 .env.*

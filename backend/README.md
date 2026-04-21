@@ -24,7 +24,7 @@ just test          # run all tests
 just test-unit     # fast unit tests
 just test-cov      # tests with coverage
 just refresh-disposable-email-domains # update the committed disposable-email fallback list
-just perf-baseline # run the k6 baseline suite and export a JSON summary
+just perf-baseline # run the k6 baseline suite and export a JSON summary (output under reports/performance/ is gitignored)
 just migrate       # apply migrations
 just fix           # lint autofix + format
 ```
@@ -34,6 +34,8 @@ The disposable-email validator now seeds itself from the committed runtime fallb
 Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The migrations image includes that directory, while generated uploads stay excluded from Docker build contexts.
 
 Taxonomy imports are intentionally opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
+
+The main [`backend/Dockerfile`](Dockerfile) is multi-target: the default `runtime` stage builds the slim production image, and `--target dev` produces the hot-reload dev image used by `compose.dev.yml`.
 
 ## Current Backend Shape
 
@@ -54,7 +56,7 @@ Two examples of the preferred shape:
 The Raspberry Pi camera integration has two intentional contract layers:
 
 - **Public/frontend contract**: backend routes and OpenAPI remain the only app-facing API surface
-- **Private device seam**: `relab-rpi-cam-models` owns the backend<->plugin transport DTOs for pairing, relay envelopes, local-access bootstrap, and direct upload acknowledgements
+- **Private device seam**: `relab-rpi-cam-models` owns the backend\<->plugin transport DTOs for pairing, relay envelopes, local-access bootstrap, and direct upload acknowledgements
 
 Frontend code should keep consuming backend-generated OpenAPI types rather than importing private device-seam DTOs directly.
 

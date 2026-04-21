@@ -42,7 +42,6 @@
     # Password strength and breach checking
     "zxcvbn>=4.4.28",
     # Configuration, validation, and utility types
-    "cachetools>=5.5.2",
     "loguru>=0.7.3",
     "pydantic >=2.12",
     "pydantic-extra-types >=2.10.5",
@@ -152,13 +151,9 @@
   log_cli_level = "INFO"
   markers = [
     "api: API endpoint tests (E2E, full stack)",
-    "auth: Authentication/authorization tests",
     "db: Database-backed persistence and ORM tests",
-    "flow: Multi-step cross-boundary scenario tests",
-    "integration: Tests requiring database (schema, relationships)",
     "migration: Database migration tests",
     "slow: Tests that take >1s",
-    "unit: Fast unit tests without database (schemas, utilities)",
   ]
   python_classes = ["Test*"]
   python_files = ["test_*.py"]
@@ -261,3 +256,9 @@
     [tool.ruff.lint.pylint]
       allow-magic-value-types = ["int"]
       max-args                = 10
+
+[tool.uv.sources]
+  # Use the sibling plugin repo's copy of relab-rpi-cam-models during development so
+  # the backend can pick up new DTOs before they are published to PyPI. Requires
+  # /Users/simon/code/relab-rpi-cam-plugin to be checked out alongside this repo.
+  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
