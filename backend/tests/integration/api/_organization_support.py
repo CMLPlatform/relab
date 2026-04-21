@@ -21,7 +21,13 @@ if TYPE_CHECKING:
 @pytest.fixture
 async def verified_user(db_session: AsyncSession) -> User:
     """Non-superuser verified active user."""
-    return await UserFactory.create_async(session=db_session, is_superuser=False, is_active=True, is_verified=True)
+    return await UserFactory.create_async(
+        session=db_session,
+        is_superuser=False,
+        is_active=True,
+        is_verified=True,
+        refresh_instance=True,
+    )
 
 
 @pytest.fixture
@@ -38,8 +44,10 @@ async def create_org_for_user(db_session: AsyncSession, owner: User) -> Organiza
     org = await OrganizationFactory.create_async(session=db_session, owner_id=owner.id)
     owner.organization_id = org.id
     owner.organization_role = OrganizationRole.OWNER
+    owner.organization = org
     db_session.add(owner)
     await db_session.flush()
+    await db_session.refresh(org, attribute_names=["members"])
     return org
 
 

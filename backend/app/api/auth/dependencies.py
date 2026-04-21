@@ -4,6 +4,8 @@ from typing import Annotated
 
 from fastapi import Depends, Security
 from pydantic import UUID4
+from sqlalchemy import inspect
+from sqlalchemy.orm.attributes import NO_VALUE
 
 from app.api.auth.exceptions import UserDoesNotOwnOrgError, UserHasNoOrgError
 from app.api.auth.models import Organization, OrganizationRole, User
@@ -27,11 +29,31 @@ CurrentActiveSuperUserDep = Annotated[User, Security(current_active_superuser)]
 OptionalCurrentActiveUserDep = Annotated[User | None, Security(optional_current_active_user)]
 
 
-async def get_current_user_organization(current_user: CurrentActiveVerifiedUserDep) -> Organization:
+def _loaded_user_organization(current_user: User) -> Organization | None:
+    """Return a loaded organization relationship without triggering async lazy loading."""
+    loaded_value = inspect(current_user).attrs.organization.loaded_value
+    if loaded_value is NO_VALUE:
+        return None
+    return loaded_value
+
+
+async def get_current_user_organization(
+    current_user: CurrentActiveVerifiedUserDep,
+    session: AsyncSessionDep,
+) -> Organization:
     """Return the current user's organization or raise a stable not-found error."""
-    if current_user.organization is None:
+    if current_user.organization_id is None:
         raise UserHasNoOrgError(user_id=current_user.id)
-    return current_user.organization
+
+    organization = _loaded_user_organization(current_user)
+    if organization is not None:
+        return organization
+
+    return await require_model(
+        session,
+        Organization,
+        current_user.organization_id,
+    )
 
 
 async def get_current_user_owned_organization(
@@ -42,8 +64,9 @@ async def get_current_user_owned_organization(
     if current_user.organization_role != OrganizationRole.OWNER or current_user.organization_id is None:
         raise UserDoesNotOwnOrgError(user_id=current_user.id)
 
-    if current_user.organization is not None:
-        return current_user.organization
+    organization = _loaded_user_organization(current_user)
+    if organization is not None:
+        return organization
 
     return await require_model(
         session,

@@ -3,9 +3,10 @@
 from typing import TYPE_CHECKING, cast
 
 from pydantic import UUID4, BaseModel
-from sqlalchemy import Select, delete, select
+from sqlalchemy import Select, delete, inspect, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import NO_VALUE
 
 from app.api.auth.exceptions import (
     AlreadyMemberError,
@@ -31,6 +32,14 @@ if TYPE_CHECKING:
 
 ### Constants ###
 OWNER_ID_FIELD = "owner_id"
+
+
+def _loaded_user_organization(user: User) -> Organization | None:
+    """Return a loaded organization relationship without triggering async lazy loading."""
+    loaded_value = inspect(user).attrs.organization.loaded_value
+    if loaded_value is NO_VALUE:
+        return None
+    return cast("Organization | None", loaded_value)
 
 
 def _organization_statement(
@@ -66,12 +75,14 @@ async def get_organization(
 
 async def _load_org_for_transfer(db: AsyncSession, organization_id: UUID4) -> Organization:
     """Load an organization with members and owner for ownership transfer flows."""
-    return await get_organization(db, organization_id, loaders={"members", "owner"})
+    organization = await get_organization(db, organization_id, loaders={"members", "owner"})
+    await db.refresh(organization, attribute_names=["members", "owner"])
+    return organization
 
 
 async def _require_joinable_current_owner_org(db: AsyncSession, user: User) -> Organization:
     """Load the organization currently owned by the user during join flows."""
-    db_organization = user.organization
+    db_organization = _loaded_user_organization(user)
     if db_organization is None or db_organization.id != user.organization_id:
         if user.organization_id is None:
             err_msg = "Owned organization must exist before loading it during join flow."
@@ -81,6 +92,7 @@ async def _require_joinable_current_owner_org(db: AsyncSession, user: User) -> O
             user.organization_id,
             loaders={"members"},
         )
+    await db.refresh(db_organization, attribute_names=["members"])
     return db_organization
 
 
