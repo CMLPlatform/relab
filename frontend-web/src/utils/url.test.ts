@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { joinApiUrl } from './url';
+import { joinApiUrl } from './url.ts';
 
 describe('joinApiUrl', () => {
   it('joins a base URL and absolute path', () => {

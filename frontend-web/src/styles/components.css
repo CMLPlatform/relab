@@ -12,13 +12,25 @@
   overflow: hidden;
   display: block;
   background:
-    linear-gradient(110deg, rgba(184, 220, 234, 0.24) 0%, rgba(255, 255, 255, 0.86) 34%, rgba(255, 255, 255, 0.93) 68%, rgba(191, 223, 236, 0.22) 100%),
+    linear-gradient(
+      110deg,
+      rgba(184, 220, 234, 0.24) 0%,
+      rgba(255, 255, 255, 0.86) 34%,
+      rgba(255, 255, 255, 0.93) 68%,
+      rgba(191, 223, 236, 0.22) 100%
+    ),
     color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
 }
 
 :root[data-theme="dark"] .hero-panel {
   background:
-    linear-gradient(110deg, rgba(39, 81, 101, 0.18) 0%, rgba(14, 29, 38, 0.84) 34%, rgba(14, 29, 38, 0.9) 68%, rgba(67, 111, 130, 0.18) 100%),
+    linear-gradient(
+      110deg,
+      rgba(39, 81, 101, 0.18) 0%,
+      rgba(14, 29, 38, 0.84) 34%,
+      rgba(14, 29, 38, 0.9) 68%,
+      rgba(67, 111, 130, 0.18) 100%
+    ),
     color-mix(in srgb, var(--color-surface-raised) 96%, transparent);
 }
 
@@ -263,7 +275,6 @@
   .newsletter-copy h2 {
     max-width: 12ch;
   }
-
 }
 
 @media (max-width: 480px) {

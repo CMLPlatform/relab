@@ -1,9 +1,9 @@
 ---
 import TokenAction from '@/components/TokenAction.astro';
-import { getPublicSiteConfig } from '@/config/public';
-import { newsletterContent } from '@/content';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { newsletterContent } from '@/content/newsletter-content.ts';
 import Layout from '@/layouts/Layout.astro';
-import { joinApiUrl } from '@/utils/url';
+import { joinApiUrl } from '@/utils/url.ts';
 
 const newsletterConfirmUrl = joinApiUrl(getPublicSiteConfig().apiUrl, '/newsletter/confirm');
 ---

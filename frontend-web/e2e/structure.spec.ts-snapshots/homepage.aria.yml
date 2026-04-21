@@ -1,0 +1,42 @@
+- banner:
+  - link "Home":
+    - /url: /
+    - strong: RELab
+  - 'button "Theme: system. Switch theme"'
+- main:
+  - heading "Reverse Engineering Lab" [level=1]
+  - paragraph: RELab is a research platform for bottom-up product data collection, teardown documentation, and circularity analysis.
+  - paragraph: Open the app to work with product data, or use the links below for documentation and source.
+  - link "Open the App":
+    - /url: https://app.cml-relab.org
+  - paragraph: Need more context?
+  - list "Supporting links":
+    - listitem:
+      - link "Read the Docs":
+        - /url: https://docs.cml-relab.org
+    - listitem:
+      - link "Browse GitHub":
+        - /url: https://github.com/CMLPlatform/relab
+  - heading "Stay in the loop" [level=2]
+  - paragraph: Get occasional updates about the project and platform. You can unsubscribe at any time.
+  - text: Email address
+  - textbox "Email address":
+    - /placeholder: you@institution.edu
+  - button "Subscribe"
+  - paragraph:
+    - text: By subscribing, you agree to our
+    - link "Privacy Policy":
+      - /url: /privacy
+    - text: .
+  - status
+- contentinfo:
+  - link "Privacy Policy":
+    - /url: /privacy
+  - paragraph: /© \d+ CML, Leiden University/
+  - navigation "Footer":
+    - link "relab@cml.leidenuniv.nl":
+      - /url: mailto:relab@cml.leidenuniv.nl
+    - link "GitHub":
+      - /url: https://github.com/CMLPlatform/relab
+    - link "LinkedIn":
+      - /url: https://www.linkedin.com/groups/15671021

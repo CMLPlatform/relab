@@ -1,0 +1,85 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+	"extends": "//",
+	"files": {
+		"includes": [
+			"**",
+			"!.astro",
+			"!coverage",
+			"!dist",
+			"!node_modules",
+			"!test-results"
+		]
+	},
+	"linter": {
+		"rules": {
+			"complexity": "on",
+			"correctness": "on",
+			"style": "on",
+			"suspicious": "on"
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.astro"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnresolvedImports": "off",
+						"noUnusedImports": "off",
+						"noUnusedVariables": "off"
+					},
+					"style": {
+						// Astro components follow PascalCase by convention.
+						"useFilenamingConvention": {
+							"level": "on",
+							"options": {
+								"filenameCases": [
+									"camelCase",
+									"kebab-case",
+									"snake_case",
+									"export",
+									"PascalCase"
+								]
+							}
+						}
+					},
+					"suspicious": {
+						"noEmptySource": "off"
+					}
+				}
+			}
+		},
+		{
+			// Build and test config files run in Node and keep conventional exports.
+			"includes": [
+				"astro.config.ts",
+				"playwright.config.ts",
+				"vitest.config.ts",
+				"config/**/*.ts"
+			],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noNodejsModules": "off"
+					},
+					"style": {
+						"noDefaultExport": "off",
+						"useNamingConvention": "off"
+					}
+				}
+			}
+		},
+		{
+			// Test fixtures can include placeholders that look like secrets.
+			"includes": ["e2e/**/*.ts", "src/**/*.test.ts"],
+			"linter": {
+				"rules": {
+					"security": {
+						"noSecrets": "off"
+					}
+				}
+			}
+		}
+	]
+}

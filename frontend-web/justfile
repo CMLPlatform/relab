@@ -1,6 +1,7 @@
 # Frontend Web Task Runner
-# Run `just --list` to see all available commands
-# Run from root: `just frontend-web/<recipe>` or from frontend-web/: `just <recipe>`
+# Run `just --list` to see all available commands.
+# For day-to-day work, `pnpm run <script>` works too — see package.json.
+# This file holds composite recipes and anything called from the root justfile.
 
 # Show available recipes
 default:
@@ -16,40 +17,9 @@ lockfile:
 
 # Upgrade Astro and official integrations using Astro's upgrade tool
 update:
-    npx @astrojs/upgrade
-    @echo "✓ Frontend-web Astro dependencies updated"
-
-# ============================================================================
-# Development
-# ============================================================================
-
-# Start development server
-dev PORT="8081":
-    pnpm run dev -- --port {{PORT}}
-
-# ============================================================================
-# Building
-# ============================================================================
-
-# Build for production
-build:
-    pnpm run build
-
-# Build for staging (loads .env.staging via --mode staging)
-build-staging:
-    pnpm run build:staging
-
-# ============================================================================
-# Quality Checks
-# ============================================================================
-
-# Run Astro's project validation
-typecheck:
-    pnpm run typecheck
-
-# Lint with Biome (read-only)
-lint:
-    pnpm run lint
+    pnpm dlx @astrojs/upgrade
+    pnpm up -D
+    @echo "✓ Frontend-web dependencies updated"
 
 # Auto-format code with Biome
 format:
@@ -59,14 +29,10 @@ format:
 fix: format
     @echo "✓ Frontend-web code formatted"
 
-# Run all frontend-web checks
+# Run lint + typecheck
 check:
     pnpm run check
     @echo "✓ Frontend-web checks passed"
-
-# ============================================================================
-# Testing
-# ============================================================================
 
 # Run unit tests
 test:
@@ -80,16 +46,9 @@ test-cov:
 test-ci: test-cov
     @echo "✓ Frontend-web CI test suite passed"
 
-# Run browser end-to-end tests for the standalone frontend-web site (requires a prior `just build`)
+# Run browser end-to-end tests (requires a prior build)
 test-e2e:
     pnpm run test:e2e
-
-# Alias for explicit CI naming
-test-e2e-browser: test-e2e
-
-# Open Playwright UI for interactive e2e test development
-test-e2e-ui:
-    pnpm run test:e2e:ui
 
 # Run all tests (unit + e2e)
 test-all:
@@ -103,10 +62,6 @@ ci: check test-ci
 size:
     du -sh dist
     find dist -type f | sort | xargs du -h
-
-# ============================================================================
-# Security
-# ============================================================================
 
 # Scan dependencies for known vulnerabilities
 audit:

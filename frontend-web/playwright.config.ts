@@ -1,14 +1,23 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { getNodeRuntimeConfig } from './config/runtime.ts';
+
+const runtimeConfig = getNodeRuntimeConfig();
+const localBaseUrl = 'http://localhost:8081';
+
+// Structural (ARIA) snapshots only run on desktop Chromium — one baseline
+// is enough to catch landmark/heading regressions. Other projects ignore it.
+const structureSpec = /structure\.spec\.ts/;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? 'github' : 'list',
+  forbidOnly: runtimeConfig.isCi,
+  retries: runtimeConfig.isCi ? 2 : 0,
+  workers: runtimeConfig.isCi ? 1 : undefined,
+  reporter: runtimeConfig.isCi ? 'github' : 'list',
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost:8081',
+    baseURL: runtimeConfig.baseUrl ?? localBaseUrl,
     trace: 'on-first-retry',
   },
   projects: [
@@ -19,26 +28,35 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      testIgnore: structureSpec,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      testIgnore: structureSpec,
     },
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 5'] },
+      testIgnore: structureSpec,
     },
     {
       name: 'mobile-safari',
       use: { ...devices['iPhone 12'] },
+      testIgnore: structureSpec,
+    },
+    {
+      name: 'tablet',
+      use: { ...devices['iPad Pro 11'] },
+      testIgnore: structureSpec,
     },
   ],
   // Skip the dev server when BASE_URL is set; the stack is already running (e.g. via docker compose)
-  webServer: process.env.BASE_URL
+  webServer: runtimeConfig.baseUrl
     ? undefined
     : {
         command: 'pnpm run preview',
-        url: 'http://localhost:8081',
-        reuseExistingServer: !process.env.CI,
+        url: localBaseUrl,
+        reuseExistingServer: !runtimeConfig.isCi,
       },
 });

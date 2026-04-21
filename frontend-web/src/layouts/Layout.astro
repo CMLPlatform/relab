@@ -1,12 +1,12 @@
 ---
-import '../styles/fonts.css';
-import '../styles/global.css';
+import '@/styles/fonts.css';
+import '@/styles/global.css';
 
-import { getPublicSiteConfig } from '@/config/public';
-import { siteLinks, siteMeta } from '@/content';
 import SiteFooter from '@/components/SiteFooter.astro';
 import SiteHeader from '@/components/SiteHeader.astro';
-import { getThemeBootstrapScript } from '@/scripts/theme';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { siteLinks, siteMeta } from '@/content/site-meta.ts';
+import { getThemeBootstrapScript } from '@/scripts/theme.ts';
 
 interface Props {
   title: string;
@@ -77,7 +77,7 @@ const themeBootstrapScript = getThemeBootstrapScript();
     />
 
     <script>
-      import { initClient } from '@/scripts/init';
+      import { initClient } from '@/scripts/init.ts';
 
       initClient();
     </script>

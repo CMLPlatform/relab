@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+const NOT_FOUND_STATUS = 404;
+const NOT_FOUND_TITLE = /Page Not Found/;
+
 test('unknown route returns 404', async ({ page }) => {
   const response = await page.goto('/this-page-does-not-exist');
-  expect(response?.status()).toBe(404);
-  await expect(page).toHaveTitle(/Page Not Found/);
+  expect(response?.status()).toBe(NOT_FOUND_STATUS);
+  await expect(page).toHaveTitle(NOT_FOUND_TITLE);
   await expect(page.getByRole('heading', { name: 'That page is not here.' })).toBeVisible();
 });

@@ -1,6 +1,7 @@
 ---
-import EmailForm from '@/components/EmailForm.astro';
-import { homeContent, newsletterContent } from '@/content';
+import { homeContent } from '@/content/home-content.ts';
+import { newsletterContent } from '@/content/newsletter-content.ts';
+import EmailForm from './EmailForm.astro';
 
 interface Props {
   apiUrl: string;

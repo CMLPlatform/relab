@@ -8,10 +8,12 @@ export const newsletterContent = {
   },
   unsubscribeForm: {
     pageTitle: 'Unsubscribe from Newsletter',
-    intro: 'Enter your email address and we’ll send a confirmation link to complete the unsubscribe request.',
+    intro:
+      'Enter your email address and we’ll send a confirmation link to complete the unsubscribe request.',
     placeholder: 'Your email address',
     buttonText: 'Unsubscribe',
-    helperText: 'This confirmation step makes sure only the owner of the address can unsubscribe it.',
+    helperText:
+      'This confirmation step makes sure only the owner of the address can unsubscribe it.',
   },
   unsubscribeToken: {
     documentTitle: 'Unsubscribe from Newsletter — RELab',

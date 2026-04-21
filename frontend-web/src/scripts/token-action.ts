@@ -1,8 +1,7 @@
-function showStatus(
-  statusEl: HTMLElement,
-  message: string,
-  state: 'success' | 'error',
-) {
+const HOME_PATH = '/';
+const REDIRECT_DELAY_MS = 3000;
+
+function showStatus(statusEl: HTMLElement, message: string, state: 'success' | 'error') {
   const text = document.createElement('p');
   text.textContent = message;
   statusEl.className = `status status-${state}`;
@@ -12,16 +11,16 @@ function showStatus(
 export function initTokenActions() {
   const actions = document.querySelectorAll<HTMLElement>('[data-token-action]');
 
-  actions.forEach((actionRoot) => {
+  for (const actionRoot of actions) {
     if (actionRoot.dataset.initialized === 'true') {
-      return;
+      continue;
     }
 
     actionRoot.dataset.initialized = 'true';
 
     const statusEl = actionRoot.querySelector<HTMLElement>('[data-token-status]');
     if (!statusEl) {
-      return;
+      continue;
     }
 
     const token = new URLSearchParams(window.location.search).get('token');
@@ -39,8 +38,8 @@ export function initTokenActions() {
         if (response.ok) {
           showStatus(statusEl, actionRoot.dataset.successMessage ?? 'Success!', 'success');
           window.setTimeout(() => {
-            window.location.href = '/';
-          }, 3000);
+            window.location.href = HOME_PATH;
+          }, REDIRECT_DELAY_MS);
           return;
         }
 
@@ -54,5 +53,5 @@ export function initTokenActions() {
       .catch(() => {
         showStatus(statusEl, 'An error occurred. Please try again later.', 'error');
       });
-  });
+  }
 }

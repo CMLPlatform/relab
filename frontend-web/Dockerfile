@@ -1,45 +1,63 @@
 # syntax=docker/dockerfile:1.10
 
-# Production Dockerfile for Web Frontend
-# --- Build stage ---
-FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS build
+# Multi-target Dockerfile for the Astro web frontend
+#   - `dev`     → hot-reload dev server (use with `docker compose watch`)
+#   - `runtime` → caddy-served static build (default)
 
-WORKDIR /opt/relab/frontend-web
+ARG WORKDIR=/opt/relab/frontend-web
 
-ENV CI=1 \
-    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+# --- Shared deps stage ---
+FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
     PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
 
 RUN corepack enable
 
-# Copy package files
 COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 
-# Copy config files
-COPY biome.json tsconfig.json ./
+# --- Dev stage (hot reload) ---
+FROM deps AS dev
 
-# Copy source code and build
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+COPY . .
+
+EXPOSE 8081
+
+CMD ["pnpm", "run", "dev"]
+
+# --- Build stage (prod static build) ---
+FROM deps AS build
+
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+ENV CI=1
+
+COPY tsconfig.json astro.config.ts ./
 COPY public/ ./public/
 COPY src/ ./src/
 
-# Accept BUILD_MODE argument
 ARG BUILD_MODE=prod
-
 COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
 
 RUN pnpm run build:$BUILD_MODE
 
+# --- Runtime stage (default) ---
+FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa AS runtime
 
-# --- Runtime stage ---
-FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa
+ARG WORKDIR
 
-COPY --link --from=build /opt/relab/frontend-web/dist /srv
+COPY --link --from=build ${WORKDIR}/dist /srv
 COPY --link Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 8081

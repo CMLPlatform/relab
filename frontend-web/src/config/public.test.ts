@@ -1,18 +1,47 @@
 import { describe, expect, it } from 'vitest';
 
-import { readPublicSiteConfig } from './public';
+import { readPublicSiteConfig, readSiteUrl } from './public.ts';
+
+function envFixture(entries: [string, string][]) {
+  return Object.fromEntries(entries) as Record<string, string>;
+}
+
+describe('readSiteUrl', () => {
+  it('prefers SITE_URL, then PUBLIC_SITE_URL, then fallback when reading the site URL', () => {
+    expect(
+      readSiteUrl(
+        envFixture([
+          ['PUBLIC_SITE_URL', 'https://public.example.com'],
+          ['SITE_URL', 'https://site.example.com'],
+        ]),
+        'https://fallback.example.com',
+      ),
+    ).toBe('https://site.example.com');
+
+    expect(
+      readSiteUrl(
+        envFixture([['PUBLIC_SITE_URL', 'https://public.example.com']]),
+        'https://fallback.example.com',
+      ),
+    ).toBe('https://public.example.com');
+
+    expect(readSiteUrl({}, 'https://fallback.example.com')).toBe('https://fallback.example.com');
+  });
+});
 
 describe('readPublicSiteConfig', () => {
   it('reads all required public configuration', () => {
     expect(
-      readPublicSiteConfig({
-        PUBLIC_API_URL: 'https://api.example.com',
-        PUBLIC_APP_URL: 'https://app.example.com',
-        PUBLIC_CONTACT_EMAIL: 'team@example.com',
-        PUBLIC_DOCS_URL: 'https://docs.example.com',
-        PUBLIC_LINKEDIN_URL: 'https://linkedin.example.com/group',
-        PUBLIC_SITE_URL: 'https://example.com',
-      }),
+      readPublicSiteConfig(
+        envFixture([
+          ['PUBLIC_API_URL', 'https://api.example.com'],
+          ['PUBLIC_APP_URL', 'https://app.example.com'],
+          ['PUBLIC_CONTACT_EMAIL', 'team@example.com'],
+          ['PUBLIC_DOCS_URL', 'https://docs.example.com'],
+          ['PUBLIC_LINKEDIN_URL', 'https://linkedin.example.com/group'],
+          ['PUBLIC_SITE_URL', 'https://example.com'],
+        ]),
+      ),
     ).toEqual({
       apiUrl: 'https://api.example.com',
       appUrl: 'https://app.example.com',
@@ -25,14 +54,16 @@ describe('readPublicSiteConfig', () => {
 
   it('falls back to the default contact email and strips empty optional values', () => {
     expect(
-      readPublicSiteConfig({
-        PUBLIC_API_URL: 'https://api.example.com',
-        PUBLIC_APP_URL: 'https://app.example.com',
-        PUBLIC_CONTACT_EMAIL: '   ',
-        PUBLIC_DOCS_URL: 'https://docs.example.com',
-        PUBLIC_LINKEDIN_URL: ' ',
-        PUBLIC_SITE_URL: 'https://example.com',
-      }),
+      readPublicSiteConfig(
+        envFixture([
+          ['PUBLIC_API_URL', 'https://api.example.com'],
+          ['PUBLIC_APP_URL', 'https://app.example.com'],
+          ['PUBLIC_CONTACT_EMAIL', '   '],
+          ['PUBLIC_DOCS_URL', 'https://docs.example.com'],
+          ['PUBLIC_LINKEDIN_URL', ' '],
+          ['PUBLIC_SITE_URL', 'https://example.com'],
+        ]),
+      ),
     ).toEqual({
       apiUrl: 'https://api.example.com',
       appUrl: 'https://app.example.com',
@@ -45,11 +76,13 @@ describe('readPublicSiteConfig', () => {
 
   it('throws when a required env var is missing', () => {
     expect(() =>
-      readPublicSiteConfig({
-        PUBLIC_APP_URL: 'https://app.example.com',
-        PUBLIC_DOCS_URL: 'https://docs.example.com',
-        PUBLIC_SITE_URL: 'https://example.com',
-      }),
+      readPublicSiteConfig(
+        envFixture([
+          ['PUBLIC_APP_URL', 'https://app.example.com'],
+          ['PUBLIC_DOCS_URL', 'https://docs.example.com'],
+          ['PUBLIC_SITE_URL', 'https://example.com'],
+        ]),
+      ),
     ).toThrow('Missing required public env var: PUBLIC_API_URL');
   });
 });
