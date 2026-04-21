@@ -199,9 +199,7 @@ async function updateProductImages(
   );
 
   // Uploads run sequentially to avoid overwhelming the server with large payloads
-  for (const img of imagesToAdd) {
-    await addImage(product, img, token);
-  }
+  await runSequentially(imagesToAdd, (img) => addImage(product, img, token));
 }
 
 async function deleteImage(product: Product, image: { id: string }, token: string | undefined) {
@@ -213,6 +211,13 @@ async function deleteImage(product: Product, image: { id: string }, token: strin
 }
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+async function runSequentially<T>(items: T[], runItem: (item: T) => Promise<void>): Promise<void> {
+  await items.reduce<Promise<void>>(async (previous, item) => {
+    await previous;
+    await runItem(item);
+  }, Promise.resolve());
+}
 
 async function addImage(
   product: Product,
@@ -342,13 +347,13 @@ async function updateProductVideos(
   ]);
 
   // Adds run sequentially
-  for (const vid of videosToAdd) {
+  await runSequentially(videosToAdd, async (vid) => {
     await apiFetch(new URL(`${baseUrl}/products/${product.id}/videos`), {
       method: 'POST',
       headers,
       body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
     });
-  }
+  });
 }
 
 export async function deleteProduct(product: Product): Promise<void> {

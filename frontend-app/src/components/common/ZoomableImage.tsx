@@ -2,12 +2,8 @@ import { Image } from 'expo-image';
 import { useCallback, useState } from 'react';
 import { Dimensions, Platform, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -42,13 +38,13 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
   );
 
   const resetZoom = useCallback(() => {
-    scale.value = withTiming(1);
-    translateX.value = withTiming(0);
-    translateY.value = withTiming(0);
-    savedScale.value = 1;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
-    runOnJS(updateZoomState)(1);
+    scale.set(withTiming(1));
+    translateX.set(withTiming(0));
+    translateY.set(withTiming(0));
+    savedScale.set(1);
+    savedTranslateX.set(0);
+    savedTranslateY.set(0);
+    scheduleOnRN(updateZoomState, 1);
   }, [
     scale,
     savedScale,
@@ -61,26 +57,27 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
-      scale.value = Math.max(1, savedScale.value * e.scale);
-      runOnJS(updateZoomState)(scale.value);
+      const nextScale = Math.max(1, savedScale.get() * e.scale);
+      scale.set(nextScale);
+      scheduleOnRN(updateZoomState, nextScale);
     })
     .onEnd(() => {
-      if (scale.value < 1.1) {
+      if (scale.get() < 1.1) {
         resetZoom();
       } else {
-        savedScale.value = scale.value;
+        savedScale.set(scale.get());
       }
     });
 
   const panGesture = Gesture.Pan()
     .enabled(isZoomedInternal)
     .onUpdate((e) => {
-      translateX.value = savedTranslateX.value + e.translationX;
-      translateY.value = savedTranslateY.value + e.translationY;
+      translateX.set(savedTranslateX.get() + e.translationX);
+      translateY.set(savedTranslateY.get() + e.translationY);
     })
     .onEnd(() => {
-      const horizontal = translateX.value;
-      const vertical = translateY.value;
+      const horizontal = translateX.get();
+      const vertical = translateY.get();
       const swipeThreshold = SCREEN_WIDTH * 0.15;
       if (
         Math.abs(horizontal) > Math.abs(vertical) &&
@@ -89,23 +86,23 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
       ) {
         const direction: -1 | 1 = horizontal > 0 ? -1 : 1;
         resetZoom();
-        onSwipe(direction);
+        scheduleOnRN(onSwipe, direction);
         return;
       }
 
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      savedTranslateX.set(translateX.get());
+      savedTranslateY.set(translateY.get());
     });
 
   const doubleTapGesture = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      if (scale.value > 1.1) {
+      if (scale.get() > 1.1) {
         resetZoom();
       } else {
-        scale.value = withTiming(2);
-        savedScale.value = 2;
-        runOnJS(updateZoomState)(2);
+        scale.set(withTiming(2));
+        savedScale.set(2);
+        scheduleOnRN(updateZoomState, 2);
       }
     });
 
@@ -113,9 +110,9 @@ export default function ZoomableImage({ uri, onScaleChange, setIsZoomed, onSwipe
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
+      { translateX: translateX.get() },
+      { translateY: translateY.get() },
+      { scale: scale.get() },
     ],
   }));
 

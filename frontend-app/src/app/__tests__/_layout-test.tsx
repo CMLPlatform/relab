@@ -2,8 +2,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { Text, View } from 'react-native';
-import { useAuth } from '@/context/AuthProvider';
-import { renderWithProviders } from '@/test-utils';
+import { useAuth } from '@/context/auth';
+import { renderWithProviders } from '@/test-utils/index';
 import { HeaderRight, Providers } from '../_layout';
 
 jest.mock('expo-router', () => ({
@@ -14,8 +14,11 @@ jest.mock('expo-router', () => ({
   usePathname: jest.fn(() => '/products'),
 }));
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(() => ({ user: null, refetch: jest.fn() })),
+}));
+
+jest.mock('@/context/AuthProvider', () => ({
   AuthProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 

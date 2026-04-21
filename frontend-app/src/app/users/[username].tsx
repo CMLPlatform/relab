@@ -1,6 +1,6 @@
 import { HeaderBackButton } from '@react-navigation/elements';
 import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Icon, useTheme } from 'react-native-paper';
 
@@ -11,28 +11,59 @@ export default function UserProfileScreen() {
   const { username } = useGlobalSearchParams();
   const router = useRouter();
   const theme = useTheme();
+  const usernameValue = typeof username === 'string' ? username : null;
 
-  const [profile, setProfile] = useState<PublicProfileView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchProfile = useCallback(async () => {
-    if (!username || typeof username !== 'string') return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getPublicProfile(username);
-      setProfile(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch profile.');
-    } finally {
-      setLoading(false);
-    }
-  }, [username]);
+  const [profileState, setProfileState] = useState<{
+    loadedUsername: string | null;
+    profile: PublicProfileView | null;
+    error: string | null;
+  }>({
+    loadedUsername: null,
+    profile: null,
+    error: null,
+  });
 
   useEffect(() => {
-    void fetchProfile();
-  }, [fetchProfile]);
+    if (!usernameValue) {
+      return;
+    }
+    const nextUsername = usernameValue;
+
+    let cancelled = false;
+
+    async function loadProfile() {
+      try {
+        const data = await getPublicProfile(nextUsername);
+        if (!cancelled) {
+          setProfileState({
+            loadedUsername: nextUsername,
+            profile: data,
+            error: null,
+          });
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setProfileState({
+            loadedUsername: nextUsername,
+            profile: null,
+            error: err instanceof Error ? err.message : 'Failed to fetch profile.',
+          });
+        }
+      }
+    }
+    const loadProfileTask = async () => {
+      await loadProfile();
+    };
+    loadProfileTask().catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [usernameValue]);
+
+  const loading = Boolean(usernameValue) && profileState.loadedUsername !== usernameValue;
+  const profile = profileState.loadedUsername === usernameValue ? profileState.profile : null;
+  const error = profileState.loadedUsername === usernameValue ? profileState.error : null;
 
   return (
     <>
@@ -64,7 +95,7 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {!loading && !error && profile && (
+        {!(loading || error) && profile && (
           <View style={styles.profileContainer}>
             <View style={styles.heroSection}>
               <View

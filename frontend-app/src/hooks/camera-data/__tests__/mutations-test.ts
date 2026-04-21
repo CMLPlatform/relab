@@ -38,14 +38,14 @@ describe('rpi camera mutation helpers', () => {
   });
 
   it('routes single-image capture through the local path when direct connection info is available', async () => {
-    await resolveCaptureImageRequest({ cameraId: 'cam-1', productId: 42 }, localConnectionInfo);
+    resolveCaptureImageRequest({ cameraId: 'cam-1', productId: 42 }, localConnectionInfo);
 
     expect(captureImageLocally).toHaveBeenCalledWith('http://192.168.7.1:8018', 'local-key', 42);
     expect(captureImageFromCamera).not.toHaveBeenCalled();
   });
 
   it('falls back to relay capture when no local connection is available', async () => {
-    await resolveCaptureImageRequest({ cameraId: 'cam-2', productId: 51 });
+    resolveCaptureImageRequest({ cameraId: 'cam-2', productId: 51 });
 
     expect(captureImageFromCamera).toHaveBeenCalledWith('cam-2', 51);
   });

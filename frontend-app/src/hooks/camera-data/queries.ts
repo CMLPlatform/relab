@@ -6,7 +6,7 @@ import {
   getStreamStatus,
 } from '@/services/api/rpiCamera';
 
-export const cameraListStaleTime = (includeStatus: boolean, includeTelemetry: boolean): number => {
+export const cameraListStaleTime = (includeStatus: boolean, includeTelemetry: boolean) => {
   if (includeTelemetry) {
     return 5_000;
   }

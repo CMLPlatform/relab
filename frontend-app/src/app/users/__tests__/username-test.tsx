@@ -2,7 +2,7 @@ import { screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { getPublicProfile } from '@/services/api/profiles';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 import UserProfileScreen from '../[username]';
 
 jest.mock('@/services/api/profiles');

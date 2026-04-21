@@ -1,5 +1,9 @@
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+} from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Platform } from 'react-native';
@@ -17,45 +21,71 @@ import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import type { Product } from '@/types/Product';
 
-export function useProductImageGallery({
-  product,
-  editMode,
-  onImagesChange,
-}: {
-  product: Product;
-  editMode: boolean;
-  onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
-}) {
-  const { width } = Dimensions.get('window');
-  const router = useRouter();
-  const feedback = useAppFeedback();
+function useProductGalleryMedia(product: Product) {
   const { images, thumbnailUrls, mediumUrls, largeUrls } = useMemo(
     () => buildGalleryMedia(product),
     [product],
   );
   const imageCount = images.length;
+  const { width } = Dimensions.get('window');
+
+  return {
+    width,
+    images,
+    thumbnailUrls,
+    mediumUrls,
+    largeUrls,
+    imageCount,
+  };
+}
+
+function useProductGalleryCaptureState({
+  productId,
+  editMode,
+}: {
+  productId: number | null;
+  editMode: boolean;
+}) {
+  const router = useRouter();
+  const feedback = useAppFeedback();
   const isWeb = Platform.OS === 'web';
   const showCameraOption =
     Platform.OS !== 'web' ||
     (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
-
-  const productId = typeof product.id === 'number' ? product.id : null;
   const { enabled: rpiEnabled } = useRpiIntegration();
   const { data: rpiCameras, isLoading: rpiCamerasLoading } = useCamerasQuery(true, {
     enabled: rpiEnabled && editMode,
   });
-  const captureMutation = useCaptureImageMutation();
-  const [previewCamera, setPreviewCamera] = useState<CameraReadWithStatus | null>(null);
-  const [cameraPickerVisible, setCameraPickerVisible] = useState(false);
-  const [isCapturing, setIsCapturing] = useState(false);
   const showRpiButton = rpiEnabled;
   const hasCamerasConfigured = hasRpiCamerasConfigured(rpiCameras?.length);
   const isNewProduct = productId === null;
 
+  return {
+    router,
+    feedback,
+    isWeb,
+    showCameraOption,
+    rpiCamerasLoading,
+    showRpiButton,
+    hasCamerasConfigured,
+    isNewProduct,
+  };
+}
+
+function useProductGalleryViewer({
+  width,
+  imageCount,
+  mediumUrls,
+  productId,
+}: {
+  width: number;
+  imageCount: number;
+  mediumUrls: string[];
+  productId: number | null;
+}) {
   const galleryRef = useRef<ScrollableListHandle | null>(null);
   const thumbsRef = useRef<ScrollableListHandle | null>(null);
   const previousLightboxOpenRef = useRef(false);
-
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const { pendingIndex, consumePendingIndex, persistIndex } = useGalleryIndexPersistence({
@@ -104,6 +134,34 @@ export function useProductImageGallery({
     }
   }, [mediumUrls]);
 
+  return {
+    galleryRef,
+    thumbsRef,
+    selectedIndex,
+    lightboxOpen,
+    setLightboxOpen,
+    persistIndex,
+    setSelectedIndex,
+    scrollToIndex,
+    updateCurrentIndex,
+  };
+}
+
+function useProductGalleryKeyboardShortcuts({
+  isWeb,
+  lightboxOpen,
+  imageCount,
+  selectedIndex,
+  updateCurrentIndex,
+  scrollToIndex,
+}: {
+  isWeb: boolean;
+  lightboxOpen: boolean;
+  imageCount: number;
+  selectedIndex: number;
+  updateCurrentIndex: (index: number) => Promise<void>;
+  scrollToIndex: (index: number) => void;
+}) {
   useGalleryKeyboardNavigation({
     enabled: isWeb && !lightboxOpen,
     imageCount,
@@ -119,51 +177,82 @@ export function useProductImageGallery({
       scrollToIndex(next);
     },
   });
+}
 
-  const captureFromCamera = useCallback(
-    (camera: CameraReadWithStatus) => {
-      if (!productId) return;
-      setPreviewCamera(null);
-      setCameraPickerVisible(false);
-      setIsCapturing(true);
-      captureMutation.mutate(
-        { cameraId: camera.id, productId },
-        {
-          onSuccess: (captured) => {
-            onImagesChange?.(appendCapturedImage(images, captured));
-          },
-          onError: (error) =>
-            feedback.alert({
-              title: 'Capture failed',
-              message: String(error),
-              buttons: [{ text: 'OK' }],
-            }),
-          onSettled: () => setIsCapturing(false),
-        },
-      );
-    },
-    [captureMutation, feedback, images, onImagesChange, productId],
-  );
+function useProductGalleryCaptureActions({
+  productId,
+  captureState,
+}: {
+  productId: number | null;
+  captureState: ReturnType<typeof useProductGalleryCaptureState>;
+}) {
+  const [previewCamera, setPreviewCamera] = useState<CameraReadWithStatus | null>(null);
+  const [cameraPickerVisible, setCameraPickerVisible] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
 
   const handleRpiCapture = useCallback(() => {
-    if (isNewProduct) {
-      feedback.alert({
+    if (captureState.isNewProduct) {
+      captureState.feedback.alert({
         title: 'Save required',
         message: 'Save this product first before capturing from an RPi camera.',
         buttons: [{ text: 'OK' }],
       });
       return;
     }
-    if (rpiCamerasLoading) return;
-    if (!hasCamerasConfigured) {
-      router.push('/cameras');
+    if (captureState.rpiCamerasLoading) return;
+    if (!captureState.hasCamerasConfigured) {
+      captureState.router.push('/cameras');
       return;
     }
     setCameraPickerVisible(true);
-  }, [feedback, hasCamerasConfigured, isNewProduct, rpiCamerasLoading, router]);
+  }, [captureState]);
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+  const captureFromCamera = useCallback(
+    (camera: CameraReadWithStatus, runCapture: (cameraId: string, productId: number) => void) => {
+      if (!productId) return;
+      setPreviewCamera(null);
+      setCameraPickerVisible(false);
+      setIsCapturing(true);
+      runCapture(camera.id, productId);
+    },
+    [productId],
+  );
+
+  const dismissCameraPicker = useCallback(() => {
+    setCameraPickerVisible(false);
+  }, []);
+  const selectPreviewCamera = useCallback((camera: CameraReadWithStatus) => {
+    setCameraPickerVisible(false);
+    setPreviewCamera(camera);
+  }, []);
+  const dismissPreview = useCallback(() => {
+    setPreviewCamera(null);
+  }, []);
+
+  return {
+    previewCamera,
+    cameraPickerVisible,
+    isCapturing,
+    setIsCapturing,
+    handleRpiCapture,
+    captureFromCamera,
+    dismissCameraPicker,
+    selectPreviewCamera,
+    dismissPreview,
+  };
+}
+
+function useProductGalleryImageActions({
+  media,
+  viewerState,
+  onImagesChange,
+}: {
+  media: ReturnType<typeof useProductGalleryMedia>;
+  viewerState: ReturnType<typeof useProductGalleryViewer>;
+  onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
+}) {
+  const handlePickImage = useCallback(async () => {
+    const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
@@ -171,88 +260,260 @@ export function useProductImageGallery({
 
     if (!result.canceled) {
       const newImages = await buildImportedImages(result.assets);
-      onImagesChange?.([...images, ...newImages]);
+      onImagesChange?.([...media.images, ...newImages]);
     }
-  };
+  }, [media.images, onImagesChange]);
 
-  const handleTakePhoto = async () => {
+  const handleTakePhoto = useCallback(async () => {
     if (Platform.OS !== 'web') {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      const permission = await requestCameraPermissionsAsync();
       if (permission.status !== 'granted') return;
     }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    const result = await launchCameraAsync({ quality: 0.8 });
     if (!result.canceled) {
       const [newImage] = await buildImportedImages([result.assets[0]]);
-      onImagesChange?.([...images, newImage]);
+      onImagesChange?.([...media.images, newImage]);
     }
-  };
+  }, [media.images, onImagesChange]);
 
-  const handleDeleteImage = (index: number) => {
-    const newImages = [...images];
-    newImages.splice(index, 1);
-    onImagesChange?.(newImages);
-    void updateCurrentIndex(Math.max(0, Math.min(index, newImages.length - 1)));
-  };
+  const handleDeleteImage = useCallback(
+    (index: number) => {
+      const newImages = [...media.images];
+      newImages.splice(index, 1);
+      onImagesChange?.(newImages);
+      void viewerState.updateCurrentIndex(Math.max(0, Math.min(index, newImages.length - 1)));
+    },
+    [media.images, onImagesChange, viewerState],
+  );
 
   return {
-    media: {
-      width,
-      imageCount,
-      images,
-      thumbnailUrls,
-      mediumUrls,
-      largeUrls,
-      galleryRef,
-      thumbsRef,
-    },
-    viewer: {
-      selectedIndex,
-      lightboxOpen,
-      cameraPickerVisible,
-      previewCamera,
-    },
-    capture: {
-      showCameraOption,
-      showRpiButton,
-      hasCamerasConfigured,
-      rpiCamerasLoading,
-      isCapturing,
-    },
-    actions: {
-      selectIndex: updateCurrentIndex,
-      openLightbox: (index: number) => {
-        void updateCurrentIndex(index);
-        setLightboxOpen(true);
-      },
-      closeLightbox: () => setLightboxOpen(false),
-      showPreviousImage: () => {
-        const next = Math.max(0, selectedIndex - 1);
-        void updateCurrentIndex(next);
-        scrollToIndex(next);
-      },
-      showNextImage: () => {
-        const next = Math.min(imageCount - 1, selectedIndex + 1);
-        void updateCurrentIndex(next);
-        scrollToIndex(next);
-      },
-      syncIndexFromScroll: (event: { nativeEvent: { contentOffset: { x: number } } }) => {
-        const index = Math.round(event.nativeEvent.contentOffset.x / width);
-        void updateCurrentIndex(index);
-      },
-      requestRpiCapture: handleRpiCapture,
-      pickImage: handlePickImage,
-      takePhoto: handleTakePhoto,
-      deleteImage: handleDeleteImage,
-      dismissCameraPicker: () => setCameraPickerVisible(false),
-      selectPreviewCamera: (camera: CameraReadWithStatus) => {
-        setCameraPickerVisible(false);
-        setPreviewCamera(camera);
-      },
-      dismissPreview: () => setPreviewCamera(null),
-      capturePreview: () => {
-        if (previewCamera) captureFromCamera(previewCamera);
-      },
-      scrollToIndex,
-    },
+    handlePickImage,
+    handleTakePhoto,
+    handleDeleteImage,
   };
+}
+
+function useProductGalleryViewerActions({
+  media,
+  viewerState,
+  captureFromCamera,
+  previewCamera,
+}: {
+  media: ReturnType<typeof useProductGalleryMedia>;
+  viewerState: ReturnType<typeof useProductGalleryViewer>;
+  captureFromCamera: (camera: CameraReadWithStatus) => void;
+  previewCamera: CameraReadWithStatus | null;
+}) {
+  const openLightbox = useCallback(
+    (index: number) => {
+      void viewerState.updateCurrentIndex(index);
+      viewerState.setLightboxOpen(true);
+    },
+    [viewerState],
+  );
+  const closeLightbox = useCallback(() => {
+    viewerState.setLightboxOpen(false);
+  }, [viewerState]);
+  const showPreviousImage = useCallback(() => {
+    const next = Math.max(0, viewerState.selectedIndex - 1);
+    void viewerState.updateCurrentIndex(next);
+    viewerState.scrollToIndex(next);
+  }, [viewerState]);
+  const showNextImage = useCallback(() => {
+    const next = Math.min(media.imageCount - 1, viewerState.selectedIndex + 1);
+    void viewerState.updateCurrentIndex(next);
+    viewerState.scrollToIndex(next);
+  }, [media.imageCount, viewerState]);
+  const syncIndexFromScroll = useCallback(
+    (event: { nativeEvent: { contentOffset: { x: number } } }) => {
+      const index = Math.round(event.nativeEvent.contentOffset.x / media.width);
+      void viewerState.updateCurrentIndex(index);
+    },
+    [media.width, viewerState],
+  );
+  const capturePreview = useCallback(() => {
+    if (previewCamera) {
+      captureFromCamera(previewCamera);
+    }
+  }, [captureFromCamera, previewCamera]);
+
+  return {
+    openLightbox,
+    closeLightbox,
+    showPreviousImage,
+    showNextImage,
+    syncIndexFromScroll,
+    capturePreview,
+  };
+}
+
+function useProductGalleryActions({
+  media,
+  captureState,
+  viewerState,
+  productId,
+  onImagesChange,
+}: {
+  media: ReturnType<typeof useProductGalleryMedia>;
+  captureState: ReturnType<typeof useProductGalleryCaptureState>;
+  viewerState: ReturnType<typeof useProductGalleryViewer>;
+  productId: number | null;
+  onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
+}) {
+  const captureMutation = useCaptureImageMutation();
+  const captureActions = useProductGalleryCaptureActions({
+    productId,
+    captureState,
+  });
+  const imageActions = useProductGalleryImageActions({
+    media,
+    viewerState,
+    onImagesChange,
+  });
+  const runCameraCapture = useCallback(
+    (cameraId: string, nextProductId: number) => {
+      captureMutation.mutate(
+        { cameraId, productId: nextProductId },
+        {
+          onSuccess: (captured) => {
+            onImagesChange?.(appendCapturedImage(media.images, captured));
+          },
+          onError: (error) =>
+            captureState.feedback.alert({
+              title: 'Capture failed',
+              message: String(error),
+              buttons: [{ text: 'OK' }],
+            }),
+          onSettled: () => captureActions.setIsCapturing(false),
+        },
+      );
+    },
+    [captureActions, captureMutation, captureState.feedback, media.images, onImagesChange],
+  );
+  const viewerActions = useProductGalleryViewerActions({
+    media,
+    viewerState,
+    captureFromCamera: (camera) => captureActions.captureFromCamera(camera, runCameraCapture),
+    previewCamera: captureActions.previewCamera,
+  });
+
+  return {
+    ...captureActions,
+    ...imageActions,
+    ...viewerActions,
+  };
+}
+
+export function useProductImageGallery({
+  product,
+  editMode,
+  onImagesChange,
+}: {
+  product: Product;
+  editMode: boolean;
+  onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
+}) {
+  const media = useProductGalleryMedia(product);
+  const productId = typeof product.id === 'number' ? product.id : null;
+  const captureState = useProductGalleryCaptureState({ productId, editMode });
+  const viewerState = useProductGalleryViewer({
+    width: media.width,
+    imageCount: media.imageCount,
+    mediumUrls: media.mediumUrls,
+    productId,
+  });
+  useProductGalleryKeyboardShortcuts({
+    isWeb: captureState.isWeb,
+    lightboxOpen: viewerState.lightboxOpen,
+    imageCount: media.imageCount,
+    selectedIndex: viewerState.selectedIndex,
+    updateCurrentIndex: viewerState.updateCurrentIndex,
+    scrollToIndex: viewerState.scrollToIndex,
+  });
+  const actions = useProductGalleryActions({
+    media,
+    captureState,
+    viewerState,
+    productId,
+    onImagesChange,
+  });
+
+  return useMemo(
+    () => ({
+      media: {
+        width: media.width,
+        imageCount: media.imageCount,
+        images: media.images,
+        thumbnailUrls: media.thumbnailUrls,
+        mediumUrls: media.mediumUrls,
+        largeUrls: media.largeUrls,
+        galleryRef: viewerState.galleryRef,
+        thumbsRef: viewerState.thumbsRef,
+      },
+      viewer: {
+        selectedIndex: viewerState.selectedIndex,
+        lightboxOpen: viewerState.lightboxOpen,
+        cameraPickerVisible: actions.cameraPickerVisible,
+        previewCamera: actions.previewCamera,
+      },
+      capture: {
+        showCameraOption: captureState.showCameraOption,
+        showRpiButton: captureState.showRpiButton,
+        hasCamerasConfigured: captureState.hasCamerasConfigured,
+        rpiCamerasLoading: captureState.rpiCamerasLoading,
+        isCapturing: actions.isCapturing,
+      },
+      actions: {
+        selectIndex: viewerState.updateCurrentIndex,
+        openLightbox: actions.openLightbox,
+        closeLightbox: actions.closeLightbox,
+        showPreviousImage: actions.showPreviousImage,
+        showNextImage: actions.showNextImage,
+        syncIndexFromScroll: actions.syncIndexFromScroll,
+        requestRpiCapture: actions.handleRpiCapture,
+        pickImage: actions.handlePickImage,
+        takePhoto: actions.handleTakePhoto,
+        deleteImage: actions.handleDeleteImage,
+        dismissCameraPicker: actions.dismissCameraPicker,
+        selectPreviewCamera: actions.selectPreviewCamera,
+        dismissPreview: actions.dismissPreview,
+        capturePreview: actions.capturePreview,
+        scrollToIndex: viewerState.scrollToIndex,
+      },
+    }),
+    [
+      actions.cameraPickerVisible,
+      actions.capturePreview,
+      actions.closeLightbox,
+      actions.dismissCameraPicker,
+      actions.dismissPreview,
+      actions.handleDeleteImage,
+      actions.handlePickImage,
+      actions.handleRpiCapture,
+      actions.handleTakePhoto,
+      actions.isCapturing,
+      actions.openLightbox,
+      actions.previewCamera,
+      actions.selectPreviewCamera,
+      actions.showNextImage,
+      actions.showPreviousImage,
+      actions.syncIndexFromScroll,
+      captureState.hasCamerasConfigured,
+      captureState.rpiCamerasLoading,
+      captureState.showCameraOption,
+      captureState.showRpiButton,
+      media.imageCount,
+      media.images,
+      media.largeUrls,
+      media.mediumUrls,
+      media.thumbnailUrls,
+      media.width,
+      viewerState.galleryRef,
+      viewerState.lightboxOpen,
+      viewerState.scrollToIndex,
+      viewerState.selectedIndex,
+      viewerState.thumbsRef,
+      viewerState.updateCurrentIndex,
+    ],
+  );
 }

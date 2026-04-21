@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button, Dialog, Portal, TextInput, useTheme } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { cameraDetailStyles as styles } from './shared';
+import { cameraDetailStyles as styles } from './styles';
 
 function EditNameDialog({
   initialName,
@@ -143,7 +143,7 @@ function ManualSetupDialog({
         <Button
           onPress={onConnect}
           loading={saving}
-          disabled={!localUrlInput.trim() || !localKeyInput.trim() || saving}
+          disabled={!(localUrlInput.trim() && localKeyInput.trim()) || saving}
         >
           Connect
         </Button>

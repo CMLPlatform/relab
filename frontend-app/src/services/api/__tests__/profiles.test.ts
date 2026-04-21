@@ -1,12 +1,12 @@
-import * as auth from '../authentication';
-import * as client from '../client';
+import { getToken } from '../authentication';
+import { apiFetch } from '../client';
 import { getPublicProfile } from '../profiles';
 
 jest.mock('../authentication');
 jest.mock('../client');
 
-const mockedGetToken = auth.getToken as jest.MockedFunction<typeof auth.getToken>;
-const mockedApiFetch = client.apiFetch as jest.MockedFunction<typeof client.apiFetch>;
+const mockedGetToken = jest.mocked(getToken);
+const mockedApiFetch = jest.mocked(apiFetch);
 
 describe('getPublicProfile', () => {
   beforeEach(() => {

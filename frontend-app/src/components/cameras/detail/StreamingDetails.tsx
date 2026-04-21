@@ -1,7 +1,8 @@
 import { Card, Divider, Text } from 'react-native-paper';
 import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { ActionRow, DetailRow, cameraDetailStyles as styles } from './shared';
+import { ActionRow, DetailRow } from './shared';
+import { cameraDetailStyles as styles } from './styles';
 
 type CameraStreamingSectionProps = {
   cameraId: string;

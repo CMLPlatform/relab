@@ -3,7 +3,8 @@ import { Chip } from '@/components/base/Chip';
 import { Text } from '@/components/base/Text';
 import type { PublicProfileView } from '@/services/api/profiles';
 import type { User } from '@/types/User';
-import { ProfileSectionHeader, profileSectionStyles as styles } from './shared';
+import { ProfileSectionHeader } from './shared';
+import { profileSectionStyles as styles } from './styles';
 
 type ProfileHeroProps = {
   profile: User;

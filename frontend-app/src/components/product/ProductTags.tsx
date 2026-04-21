@@ -1,11 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { type JSX, useEffect, useState } from 'react';
+import { type JSX, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/base/Chip';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { Text } from '@/components/base/Text';
-import { useDialog } from '@/components/common/DialogProvider';
-
+import { useDialog } from '@/components/common/dialogContext';
 import FilterSelectionModal from '@/components/common/FilterSelectionModal';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useSearchBrandsQuery } from '@/hooks/useProductQueries';
@@ -48,13 +47,13 @@ export default function ProductTags({
     dialog.input({
       title: 'Set Model',
       placeholder: 'Model Name',
-      defaultValue: product.model || '',
+      defaultValue: product.model ?? '',
       buttons: [
         { text: 'Cancel', onPress: () => undefined },
         {
           text: 'OK',
           onPress: (modelName) => {
-            onModelChange?.(modelName || '');
+            onModelChange?.(modelName ?? '');
           },
         },
       ],
@@ -77,7 +76,7 @@ export default function ProductTags({
         icon={editMode && <MaterialCommunityIcons name={'pencil'} />}
         error={isBrandRequired && !product.brand}
       >
-        {product.brand || 'Unknown'}
+        {product.brand ?? 'Unknown'}
       </Chip>
       <Chip
         title={'Model'}
@@ -85,7 +84,7 @@ export default function ProductTags({
         icon={editMode && <MaterialCommunityIcons name={'pencil'} />}
         error={isModelRequired && !product.model}
       >
-        {product.model || 'Unknown'}
+        {product.model ?? 'Unknown'}
       </Chip>
       {isComponent && (
         <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />
@@ -121,26 +120,27 @@ function AmountChip({
 }): JSX.Element {
   const { colors } = useAppTheme();
   const amount = product.amountInParent ?? 1;
-  const [inputValue, setInputValue] = useState(String(amount));
-
-  useEffect(() => {
-    setInputValue(String(amount));
-  }, [amount]);
+  const [draftValue, setDraftValue] = useState<string | null>(null);
+  const inputValue = draftValue ?? String(amount);
 
   const commit = (n: number) => {
     const clamped = Math.min(Math.max(n, 1), 10000);
     onAmountChange?.(clamped);
-    setInputValue(String(clamped));
+    setDraftValue(null);
   };
 
   const handleTextChange = (text: string) => {
     const numeric = text.replace(/[^0-9]/g, '');
-    setInputValue(numeric);
+    setDraftValue(numeric);
     if (numeric !== '') commit(parseInt(numeric, 10));
   };
 
   const handleBlur = () => {
-    if (inputValue === '' || inputValue === '0') commit(1);
+    if (inputValue === '' || inputValue === '0') {
+      commit(1);
+      return;
+    }
+    setDraftValue(null);
   };
 
   return (

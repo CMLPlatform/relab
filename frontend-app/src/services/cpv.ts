@@ -1,4 +1,4 @@
-import cpvData from '@/assets/data/cpv.json';
+import cpvData from '@/assets/data/cpv.json' with { type: 'json' };
 import type { CPVCategory } from '@/types/CPVCategory';
 
 type CPVMap = Record<string, CPVCategory>;

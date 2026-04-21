@@ -147,7 +147,7 @@ export function NewAccountUsernameStep({
                 placeholder="Username"
                 returnKeyType="next"
                 onSubmitEditing={onAdvance}
-                error={!!errors.username}
+                error={Boolean(errors.username)}
               />
             )}
           />
@@ -155,7 +155,7 @@ export function NewAccountUsernameStep({
             testID="username-next"
             accessibilityRole="button"
             accessibilityLabel="Continue to email"
-            disabled={!!errors.username}
+            disabled={Boolean(errors.username)}
             onPress={onAdvance}
             style={({ pressed }) => [
               styles.arrowButton,
@@ -211,7 +211,7 @@ export function NewAccountEmailStep({
                 placeholder="Email address"
                 returnKeyType="next"
                 onSubmitEditing={onAdvance}
-                error={!!errors.email}
+                error={Boolean(errors.email)}
               />
             )}
           />
@@ -219,7 +219,7 @@ export function NewAccountEmailStep({
             testID="email-next"
             accessibilityRole="button"
             accessibilityLabel="Continue to password"
-            disabled={!!errors.email}
+            disabled={Boolean(errors.email)}
             onPress={onAdvance}
             style={({ pressed }) => [
               styles.arrowButton,
@@ -285,7 +285,7 @@ export function NewAccountPasswordStep({
                 placeholder="Password"
                 returnKeyType="done"
                 onSubmitEditing={onSubmit}
-                error={!!errors.password}
+                error={Boolean(errors.password)}
               />
             )}
           />

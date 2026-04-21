@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { Dimensions } from 'react-native';
 import { breakpoints } from '@/constants/layout';
-import { mockPlatform, restorePlatform } from '@/test-utils';
+import { mockPlatform, restorePlatform } from '@/test-utils/index';
 import { useIsDesktop } from '../useIsDesktop';
 
 const originalWindow = Dimensions.get('window');

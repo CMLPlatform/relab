@@ -21,7 +21,7 @@ export async function getUser(
         hasWebSession: hasWebSessionFlag(),
       })
     ) {
-      return undefined;
+      return;
     }
 
     if (authRuntime.getUserPromise && !forceRefresh) {
@@ -42,16 +42,16 @@ export async function getUser(
             logError('[GetUser] HTTP', response.status);
           }
           setWebSessionFlag(false);
-          return undefined;
+          return;
         }
 
-        if (authRuntime.authGeneration !== capturedGeneration) return undefined;
+        if (authRuntime.authGeneration !== capturedGeneration) return;
 
         const data = (await response.json().catch((err: unknown) => {
           logError('[GetUser] Failed to parse response:', err);
-          return undefined;
+          return;
         })) as ApiUserRead | undefined;
-        if (!data) return undefined;
+        if (!data) return;
 
         authRuntime.user = mapApiUserToUser(data);
         setWebSessionFlag(true);
@@ -64,6 +64,6 @@ export async function getUser(
     return await authRuntime.getUserPromise;
   } catch (error) {
     logError('[GetUser Fetch Error]:', error);
-    return undefined;
+    return;
   }
 }

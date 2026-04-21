@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 import {
   clearStoredLocalConnection,
   loadLocalConnection,
@@ -34,6 +34,14 @@ jest.mock('@/services/api/rpiCamera', () => ({
 }));
 
 describe('useLocalConnection', () => {
+  async function settleConnectionHook() {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(loadLocalConnection).mockImplementation(async () => ({ url: null, apiKey: null }));
@@ -53,7 +61,7 @@ describe('useLocalConnection', () => {
 
     const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
 
-    await waitFor(() => expect(result.current.isInitializing).toBe(false));
+    await settleConnectionHook();
 
     expect(result.current.mode).toBe('local');
     expect(result.current.localBaseUrl).toBe('http://10.0.0.5:8018');
@@ -66,7 +74,7 @@ describe('useLocalConnection', () => {
   it('falls back to relay mode when no stored URL or USB gadget probe succeeds', async () => {
     const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
 
-    await waitFor(() => expect(result.current.isInitializing).toBe(false));
+    await settleConnectionHook();
 
     expect(probeLocalUrl).toHaveBeenCalledWith(USB_GADGET_DEFAULT, null);
     expect(result.current.mode).toBe('relay');
@@ -85,7 +93,7 @@ describe('useLocalConnection', () => {
 
     const { result, unmount } = renderHook(() => useLocalConnection('cam-1', { isOnline: true }));
 
-    await waitFor(() => expect(result.current.mode).toBe('local'));
+    await settleConnectionHook();
 
     expect(fetchLocalAccessInfo).toHaveBeenCalledWith('cam-1');
     expect(storeLocalConnection).toHaveBeenCalledWith('cam-1', 'http://10.0.0.8:8018', 'relay-key');
@@ -98,7 +106,7 @@ describe('useLocalConnection', () => {
   it('configures and probes a manual direct connection immediately', async () => {
     const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
 
-    await waitFor(() => expect(result.current.isInitializing).toBe(false));
+    await settleConnectionHook();
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
     await act(async () => {
@@ -125,7 +133,7 @@ describe('useLocalConnection', () => {
 
     const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
 
-    await waitFor(() => expect(result.current.mode).toBe('local'));
+    await settleConnectionHook();
 
     await act(async () => {
       await result.current.clearLocalConnection();

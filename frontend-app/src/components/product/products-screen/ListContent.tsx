@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback, useMemo } from 'react';
 import { type DimensionValue, FlatList, RefreshControl, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
 import ProductCard from '@/components/common/ProductCard';
@@ -170,6 +171,42 @@ export function ProductsListContent({
   onSetPage,
 }: ProductsListContentProps) {
   const theme = useTheme();
+  const showOwner = filterMode === 'all';
+
+  const renderSkeleton = useCallback(() => <ProductCardSkeleton />, []);
+  const renderProduct = useCallback(
+    ({ item }: { item: (typeof productList)[number] }) => (
+      <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
+        <ProductCard product={item} showOwner={showOwner} />
+      </View>
+    ),
+    [numColumns, showOwner],
+  );
+
+  const listFooter = useMemo(
+    () => (
+      <ProductsListFooter
+        isDesktopWeb={numColumns > 1}
+        hasMore={hasMore}
+        productCount={productList.length}
+        total={total}
+        isFetching={isFetching}
+        page={effectivePage}
+        totalPages={totalPages}
+        setPage={onSetPage}
+      />
+    ),
+    [
+      effectivePage,
+      hasMore,
+      isFetching,
+      numColumns,
+      onSetPage,
+      productList.length,
+      total,
+      totalPages,
+    ],
+  );
 
   if (isLoading && productList.length === 0) {
     return (
@@ -177,7 +214,7 @@ export function ProductsListContent({
         <FlatList
           data={Array.from({ length: 8 })}
           keyExtractor={(_, index) => `skeleton-${index}`}
-          renderItem={() => <ProductCardSkeleton />}
+          renderItem={renderSkeleton}
           scrollEnabled={false}
         />
         {slowLoading ? (
@@ -201,24 +238,10 @@ export function ProductsListContent({
       scrollEventThrottle={16}
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
       data={productList}
+      extraData={showOwner}
       keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
-        <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
-          <ProductCard product={item} showOwner={filterMode === 'all'} />
-        </View>
-      )}
-      ListFooterComponent={
-        <ProductsListFooter
-          isDesktopWeb={numColumns > 1}
-          hasMore={hasMore}
-          productCount={productList.length}
-          total={total}
-          isFetching={isFetching}
-          page={effectivePage}
-          totalPages={totalPages}
-          setPage={onSetPage}
-        />
-      }
+      renderItem={renderProduct}
+      ListFooterComponent={listFooter}
       ListEmptyComponent={
         <View style={styles.emptyStateContainer}>
           {searchQuery ? (

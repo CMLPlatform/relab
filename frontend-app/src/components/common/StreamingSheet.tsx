@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { IconButton, Portal, Surface, Text } from 'react-native-paper';
-import type { StreamSession } from '@/context/StreamSessionContext';
+import type { StreamSession } from '@/context/streamSession';
 import { getFloatingPosition, getStreamingSheetBottomPadding } from '@/utils/platformLayout';
 import { StreamingContent } from './StreamingContent';
 
@@ -11,7 +11,7 @@ interface StreamingSheetProps {
 }
 
 export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetProps) {
-  if (!visible || !session) return null;
+  if (!(visible && session)) return null;
 
   return (
     <Portal>

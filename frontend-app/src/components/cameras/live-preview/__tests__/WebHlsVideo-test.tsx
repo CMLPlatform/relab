@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { WebHlsVideo } from '@/components/cameras/live-preview/WebHlsVideo';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 
 const mockPlaybackState = {
   state: 'loading' as 'loading' | 'live' | 'error',

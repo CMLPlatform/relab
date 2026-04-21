@@ -1,7 +1,7 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { livePreviewStyles as styles } from './shared';
+import { livePreviewStyles as styles } from './styles';
 
 export function NativeHlsVideo({ src }: { src: string }) {
   const player = useVideoPlayer(src, (instance) => {

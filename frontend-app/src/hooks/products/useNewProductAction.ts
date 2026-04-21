@@ -1,5 +1,5 @@
 import type { Router } from 'expo-router';
-import type { DialogContextType } from '@/components/common/DialogProvider';
+import type { DialogContextType } from '@/components/common/dialogContext';
 import { setNewProductIntent } from '@/services/newProductStore';
 
 type CurrentUser = {

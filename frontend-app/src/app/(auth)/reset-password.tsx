@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 import { Button, Card, HelperText, Text, TextInput } from 'react-native-paper';
@@ -12,13 +12,165 @@ import {
 } from '@/services/api/validation/userSchema';
 import { logError } from '@/utils/logging';
 
+type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
+
+function unrefTimer(timer: ReturnType<typeof setTimeout>) {
+  if (timer && typeof timer === 'object' && 'unref' in timer) {
+    (timer as TimerWithUnref).unref();
+  }
+}
+
+function ResetPasswordSuccess() {
+  return (
+    <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
+      <Text variant="bodyLarge" style={{ textAlign: 'center' }}>
+        Password reset successful! You can now login on the app.
+      </Text>
+      <Text variant="bodyMedium">Redirecting to login...</Text>
+    </View>
+  );
+}
+
+function ResetPasswordForm({
+  control,
+  showPassword,
+  setShowPassword,
+  isSubmitting,
+  error,
+  passwordError,
+  isValid,
+  onSubmit,
+  onBackToLogin,
+}: {
+  control: ReturnType<typeof useForm<ResetPasswordFormValues>>['control'];
+  showPassword: boolean;
+  setShowPassword: (value: boolean) => void;
+  isSubmitting: boolean;
+  error: string | null;
+  passwordError?: string;
+  isValid: boolean;
+  onSubmit: () => void;
+  onBackToLogin: () => void;
+}) {
+  return (
+    <>
+      <Controller
+        control={control}
+        name="password"
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            label="New Password"
+            testID="password-input"
+            value={value}
+            onChangeText={onChange}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            disabled={isSubmitting}
+            right={
+              <TextInput.Icon
+                icon={showPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
+          />
+        )}
+      />
+
+      {error && (
+        <HelperText type="error" visible={Boolean(error)}>
+          {error}
+        </HelperText>
+      )}
+
+      {!error && passwordError && (
+        <HelperText type="error" visible>
+          {passwordError}
+        </HelperText>
+      )}
+
+      <Button
+        mode="contained"
+        onPress={onSubmit}
+        loading={isSubmitting}
+        disabled={isSubmitting || !isValid}
+      >
+        Reset Password
+      </Button>
+
+      <View style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}>
+        <Button mode="text" onPress={onBackToLogin}>
+          Back to Login
+        </Button>
+      </View>
+    </>
+  );
+}
+
+function useResetPasswordFormState() {
+  return useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: 'onChange',
+    defaultValues: { password: '' },
+  });
+}
+
+function useResetPasswordRedirect(success: boolean, router: ReturnType<typeof useRouter>) {
+  useEffect(() => {
+    if (!success) return;
+
+    const timer = setTimeout(() => {
+      router.push('/login');
+    }, 3000);
+    unrefTimer(timer);
+
+    return () => clearTimeout(timer);
+  }, [success, router]);
+}
+
+function ResetPasswordCardContent({
+  success,
+  control,
+  showPassword,
+  setShowPassword,
+  isSubmitting,
+  error,
+  passwordError,
+  isValid,
+  onSubmit,
+  onBackToLogin,
+}: {
+  success: boolean;
+  control: ReturnType<typeof useForm<ResetPasswordFormValues>>['control'];
+  showPassword: boolean;
+  setShowPassword: (value: boolean) => void;
+  isSubmitting: boolean;
+  error: string | null;
+  passwordError?: string;
+  isValid: boolean;
+  onSubmit: () => void;
+  onBackToLogin: () => void;
+}) {
+  if (success) return <ResetPasswordSuccess />;
+
+  return (
+    <ResetPasswordForm
+      control={control}
+      showPassword={showPassword}
+      setShowPassword={setShowPassword}
+      isSubmitting={isSubmitting}
+      error={error}
+      passwordError={passwordError}
+      isValid={isValid}
+      onSubmit={onSubmit}
+      onBackToLogin={onBackToLogin}
+    />
+  );
+}
+
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
-
-  // Capture the token from the URL into a ref immediately, then strip it from
-  // the address bar so it doesn't persist in browser history.
-  const tokenRef = useRef(tokenParam);
+  const token = typeof tokenParam === 'string' ? tokenParam : undefined;
   useEffect(() => {
     if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
       window.history.replaceState({}, '', window.location.pathname);
@@ -29,32 +181,16 @@ export default function ResetPasswordScreen() {
     control,
     handleSubmit,
     formState: { errors, isValid, isSubmitting },
-  } = useForm<ResetPasswordFormValues>({
-    resolver: zodResolver(resetPasswordSchema),
-    mode: 'onChange',
-    defaultValues: { password: '' },
-  });
+  } = useResetPasswordFormState();
 
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        router.push('/login');
-      }, 3000);
-
-      if (timer && typeof timer === 'object' && 'unref' in timer) {
-        (timer as { unref(): void }).unref();
-      }
-
-      return () => clearTimeout(timer);
-    }
-  }, [success, router]);
+  useResetPasswordRedirect(success, router);
   const [showPassword, setShowPassword] = useState(false);
+  const handleBackToLogin = () => router.push('/login');
 
   const handleResetPassword = handleSubmit(async (data: ResetPasswordFormValues) => {
-    const token = tokenRef.current;
     if (!token) {
       setError('No reset token provided');
       return;
@@ -87,68 +223,18 @@ export default function ResetPasswordScreen() {
       <Card>
         <Card.Content style={{ gap: 16 }}>
           <Text variant="headlineMedium">Reset Password</Text>
-
-          {!success ? (
-            <>
-              <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    label="New Password"
-                    testID="password-input"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    disabled={isSubmitting}
-                    right={
-                      <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword(!showPassword)}
-                      />
-                    }
-                  />
-                )}
-              />
-
-              {error && (
-                <HelperText type="error" visible={!!error}>
-                  {error}
-                </HelperText>
-              )}
-
-              {!error && errors.password && (
-                <HelperText type="error" visible>
-                  {errors.password.message}
-                </HelperText>
-              )}
-
-              <Button
-                mode="contained"
-                onPress={handleResetPassword}
-                loading={isSubmitting}
-                disabled={isSubmitting || !isValid}
-              >
-                Reset Password
-              </Button>
-
-              <View
-                style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}
-              >
-                <Button mode="text" onPress={() => router.push('/login')}>
-                  Back to Login
-                </Button>
-              </View>
-            </>
-          ) : (
-            <View style={{ gap: 12, alignItems: 'center', paddingVertical: 16 }}>
-              <Text variant="bodyLarge" style={{ textAlign: 'center' }}>
-                Password reset successful! You can now login on the app.
-              </Text>
-              <Text variant="bodyMedium">Redirecting to login...</Text>
-            </View>
-          )}
+          <ResetPasswordCardContent
+            success={success}
+            control={control}
+            showPassword={showPassword}
+            setShowPassword={setShowPassword}
+            isSubmitting={isSubmitting}
+            error={error}
+            passwordError={errors.password?.message}
+            isValid={isValid}
+            onSubmit={handleResetPassword}
+            onBackToLogin={handleBackToLogin}
+          />
         </Card.Content>
       </Card>
     </View>

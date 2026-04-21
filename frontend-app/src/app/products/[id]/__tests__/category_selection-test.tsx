@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as cpv from '@/services/cpv';
-import { renderWithProviders } from '@/test-utils';
+import { loadCPV } from '@/services/cpv';
+import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
 import CategorySelection from '../category_selection';
 
 const mockUseAuth = jest.fn();
-const mockedLoadCPV = jest.mocked(cpv.loadCPV);
+const mockedLoadCPV = jest.mocked(loadCPV);
+const SUBCATEGORY_COUNT_PATTERN = /1 subcategor/;
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
@@ -20,6 +21,7 @@ jest.mock('@/services/cpv', () => ({
 const mockDismissTo = jest.fn();
 const mockReplace = jest.fn();
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: category selection behavior is easier to follow with one shared navigation and CPV setup.
 describe('CategorySelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -115,7 +117,7 @@ describe('CategorySelection', () => {
     renderWithProviders(<CategorySelection />);
     // Agricultural products has 1 subcategory; shows "1 subcategories" link
     await waitFor(() => {
-      expect(screen.getByText(/1 subcategor/)).toBeOnTheScreen(); // spell-checker: ignore subcategor
+      expect(screen.getByText(SUBCATEGORY_COUNT_PATTERN)).toBeOnTheScreen(); // spell-checker: ignore subcategor
     });
     fireEvent.press(screen.getByText('1 subcategories'));
     await waitFor(() => {

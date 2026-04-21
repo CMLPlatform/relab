@@ -33,10 +33,12 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   useEffect(() => {
     let isMounted = true;
 
-    loadCPV().then((cpv) => {
-      if (!isMounted) return;
-      setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? cpv.root);
-    });
+    loadCPV()
+      .then((cpv) => {
+        if (!isMounted) return;
+        setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? cpv.root);
+      })
+      .catch(() => {});
 
     return () => {
       isMounted = false;

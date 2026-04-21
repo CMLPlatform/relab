@@ -28,7 +28,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
           {CPV.description}
         </Text>
       </Pressable>
-      {actionElement || <Text style={[styles.subText, { color: textColor }]}>{CPV.name}</Text>}
+      {actionElement ?? <Text style={[styles.subText, { color: textColor }]}>{CPV.name}</Text>}
       <View style={styles.shapes}>
         <Icon source="shape" size={150} />
       </View>

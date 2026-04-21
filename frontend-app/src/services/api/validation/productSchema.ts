@@ -7,7 +7,7 @@ export const PRODUCT_NAME_MAX_LENGTH = 100;
  * Validates that a string is a properly-formatted URL (http or https).
  * Used by ProductVideo component and video schema validation.
  */
-export function isValidUrl(value: string | undefined): boolean {
+export function isValidUrl(value: string | undefined): true | false {
   if (!value || typeof value !== 'string') return false;
 
   const trimmed = value.trim();

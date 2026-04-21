@@ -54,7 +54,7 @@ export async function login(
 
     if (response.status === 400) {
       authRuntime.token = undefined;
-      return undefined;
+      return;
     }
 
     if (!response.ok) {

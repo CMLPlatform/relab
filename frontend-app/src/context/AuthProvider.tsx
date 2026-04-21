@@ -1,16 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
+import { AuthContext } from '@/context/auth';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/authentication';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
-
-interface AuthContextType {
-  user: User | undefined;
-  isLoading: boolean;
-  refetch: (forceRefresh?: boolean) => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | undefined>(undefined);
@@ -52,13 +45,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     };
-    initializeAuth();
+    initializeAuth().catch(() => {});
   }, []);
 
-  const refetch = async (forceRefresh = true) => {
+  const refetch = useCallback(async (forceRefresh = true) => {
     const userData = await getUser(forceRefresh);
     setUser(userData);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({ user, isLoading, refetch }), [user, isLoading, refetch]);
 
   if (isLoading) {
     return (
@@ -68,15 +63,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <AuthContext.Provider value={{ user, isLoading, refetch }}>{children}</AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }

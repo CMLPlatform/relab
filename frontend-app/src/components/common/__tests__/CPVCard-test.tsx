@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
-import { renderWithProviders, setupUser } from '@/test-utils';
+import { renderWithProviders, setupUser } from '@/test-utils/index';
 import type { CPVCategory } from '@/types/CPVCategory';
 import CPVCard from '../CPVCard';
 

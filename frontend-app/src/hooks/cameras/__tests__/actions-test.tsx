@@ -26,7 +26,7 @@ jest.mock('@tanstack/react-query', () => ({
   }),
 }));
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({
     setActiveStream: mockSetActiveStream,
   }),
@@ -40,6 +40,7 @@ jest.mock('@/services/api/rpiCamera', () => ({
   startYouTubeStream: (...args: unknown[]) => mockStartYouTubeStream(...args),
 }));
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: camera-action hook coverage shares one mutation-heavy test harness.
 describe('camera action hooks', () => {
   beforeEach(() => {
     jest.clearAllMocks();

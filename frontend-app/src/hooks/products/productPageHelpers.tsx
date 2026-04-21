@@ -3,10 +3,9 @@ import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Button, Text } from 'react-native-paper';
-import { useDialog } from '@/components/common/DialogProvider';
-import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { getProductNameHelperText, productSchema } from '@/services/api/validation/productSchema';
+import { Text } from 'react-native-paper';
+import { EditNameButton } from '@/hooks/products/EditNameButton';
+import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { Product } from '@/types/Product';
 
 export function truncateHeaderLabel(value: string | undefined, maxLength: number): string {
@@ -20,14 +19,18 @@ export function useSlowLoading(isLoading: boolean) {
 
   useEffect(() => {
     if (!isLoading) {
-      setSlowLoading(false);
       return;
     }
+
+    const resetTimer = setTimeout(() => setSlowLoading(false), 0);
     const timer = setTimeout(() => setSlowLoading(true), 5000);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(resetTimer);
+      clearTimeout(timer);
+    };
   }, [isLoading]);
 
-  return slowLoading;
+  return isLoading && slowLoading;
 }
 
 export function useSavedIndicator(justSaved: boolean) {
@@ -35,9 +38,13 @@ export function useSavedIndicator(justSaved: boolean) {
 
   useEffect(() => {
     if (!justSaved) return;
-    setShowSavedIcon(true);
-    const timer = setTimeout(() => setShowSavedIcon(false), 3000);
-    return () => clearTimeout(timer);
+
+    const showTimer = setTimeout(() => setShowSavedIcon(true), 0);
+    const hideTimer = setTimeout(() => setShowSavedIcon(false), 3000);
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
   }, [justSaved]);
 
   return showSavedIcon;
@@ -195,53 +202,4 @@ export function getPrimaryFabIcon({
     );
   }
   return <MaterialCommunityIcons name="pencil" size={20} color={theme.colors.onBackground} />;
-}
-
-function EditNameButton({
-  product,
-  onProductNameChange,
-}: {
-  product: Product | undefined;
-  onProductNameChange?: (newName: string) => void;
-}) {
-  const dialog = useDialog();
-  const feedback = useAppFeedback();
-
-  return (
-    <Button
-      onPress={() => {
-        if (!product) return;
-        dialog.input({
-          title: 'Edit name',
-          placeholder: 'Product Name',
-          helperText: getProductNameHelperText(),
-          defaultValue: product.name || '',
-          buttons: [
-            { text: 'Cancel' },
-            {
-              text: 'OK',
-              disabled: (value) => {
-                const parseResult = productSchema.shape.name.safeParse(value);
-                return !parseResult.success;
-              },
-              onPress: (newName) => {
-                const name = typeof newName === 'string' ? newName.trim() : '';
-                const parseResult = productSchema.shape.name.safeParse(name);
-                if (!parseResult.success) {
-                  feedback.error(
-                    parseResult.error.issues[0]?.message || 'Invalid product name',
-                    'Invalid product name',
-                  );
-                  return;
-                }
-                onProductNameChange?.(name);
-              },
-            },
-          ],
-        });
-      }}
-    >
-      Edit name
-    </Button>
-  );
 }

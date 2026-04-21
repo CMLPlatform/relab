@@ -22,11 +22,10 @@ export function useProductsWelcomeCard({
   currentUser,
   refetchUser,
 }: ProductsWelcomeCardParams) {
-  const [showInfoCard, setShowInfoCard] = useState<boolean | null>(null);
+  const [guestDismissed, setGuestDismissed] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
-      setShowInfoCard(currentUser?.preferences?.products_welcome_dismissed !== true);
       return;
     }
 
@@ -34,19 +33,27 @@ export function useProductsWelcomeCard({
     const load = async () => {
       try {
         const dismissed = await getLocalItem(GUEST_INFO_CARD_STORAGE_KEY);
-        if (!cancelled) setShowInfoCard(dismissed !== 'true');
+        if (!cancelled) setGuestDismissed(dismissed === 'true');
       } catch {
-        if (!cancelled) setShowInfoCard(true);
+        if (!cancelled) setGuestDismissed(false);
       }
     };
     void load();
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.preferences?.products_welcome_dismissed, isAuthenticated]);
+  }, [isAuthenticated]);
+
+  const showInfoCard = isAuthenticated
+    ? currentUser?.preferences?.products_welcome_dismissed !== true
+    : guestDismissed === null
+      ? null
+      : !guestDismissed;
 
   const dismissInfoCard = async () => {
-    setShowInfoCard(false);
+    if (!isAuthenticated) {
+      setGuestDismissed(true);
+    }
     if (isAuthenticated) {
       try {
         await updateUser({ preferences: { products_welcome_dismissed: true } });

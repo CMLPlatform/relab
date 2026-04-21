@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as cpv from '@/services/cpv';
-import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils';
+import { loadCPV } from '@/services/cpv';
+import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductType from '../ProductType';
 
@@ -10,7 +10,8 @@ jest.mock('@/services/cpv');
 
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
-const mockedLoadCPV = jest.mocked(cpv.loadCPV);
+const mockedLoadCPV = jest.mocked(loadCPV);
+const TYPE_OR_MATERIAL_PATTERN = /Type or Material/;
 
 const baseProduct: Product = { ..._base, productTypeID: undefined };
 
@@ -51,7 +52,7 @@ describe('ProductType', () => {
 
   it("renders 'Type or Material' heading", async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={false} />);
-    expect(await screen.findByText(/Type or Material/)).toBeOnTheScreen();
+    expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
   });
 
   it('renders the root category when productTypeID is undefined', async () => {

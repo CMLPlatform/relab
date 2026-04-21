@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Card, Icon, useTheme } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
@@ -27,23 +27,35 @@ interface Props {
   showOwner?: boolean;
 }
 
-export default function ProductCard({ product, enabled = true, showOwner = false }: Props) {
+function ProductCardComponent({ product, enabled = true, showOwner = false }: Props) {
   const router = useRouter();
   const theme = useTheme();
   const [hadError, setHadError] = useState(false);
 
   const hasThumbnail = !hadError && !!product.thumbnailUrl;
-  const detailList = [product.brand, product.model, product.productTypeName].filter(Boolean);
+  const detailList = useMemo(
+    () => [product.brand, product.model, product.productTypeName].filter(Boolean),
+    [product.brand, product.model, product.productTypeName],
+  );
   const createdAgo = relativeTime(product.createdAt);
   const ownerLabel = showOwner
     ? product.ownedBy === 'me'
       ? 'you'
       : (product.ownerUsername ?? 'anonymous')
     : null;
+  const hasMetadata = createdAgo !== null || ownerLabel !== null;
 
-  const navigateToProduct = () => {
+  const navigateToProduct = useCallback(() => {
     router.push({ pathname: '/products/[id]', params: { id: product.id } });
-  };
+  }, [product.id, router]);
+
+  const navigateToOwner = useCallback(() => {
+    if (!product.ownerUsername) return;
+    router.push({
+      pathname: '/users/[username]',
+      params: { username: product.ownerUsername },
+    });
+  }, [product.ownerUsername, router]);
 
   return (
     <Card
@@ -102,7 +114,7 @@ export default function ProductCard({ product, enabled = true, showOwner = false
           >
             {product.description}
           </Text>
-          {(createdAgo || ownerLabel) && (
+          {hasMetadata && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 }}>
               {createdAgo && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -116,14 +128,7 @@ export default function ProductCard({ product, enabled = true, showOwner = false
                   <Text
                     style={{ fontSize: 11, color: theme.colors.primary }}
                     numberOfLines={1}
-                    onPress={() => {
-                      if (product.ownerUsername) {
-                        router.push({
-                          pathname: '/users/[username]',
-                          params: { username: product.ownerUsername },
-                        });
-                      }
-                    }}
+                    onPress={navigateToOwner}
                   >
                     {ownerLabel}
                   </Text>
@@ -136,3 +141,7 @@ export default function ProductCard({ product, enabled = true, showOwner = false
     </Card>
   );
 }
+
+const ProductCard = memo(ProductCardComponent);
+
+export default ProductCard;

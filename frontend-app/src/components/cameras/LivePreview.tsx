@@ -3,14 +3,10 @@ import type { ReactNode } from 'react';
 import { Component } from 'react';
 import { View } from 'react-native';
 import { Text } from 'react-native-paper';
-import {
-  getLivePreviewCaption,
-  PreviewPlayer,
-} from '@/components/cameras/live-preview/PreviewPlayer';
-import {
-  PreviewShell,
-  livePreviewStyles as styles,
-} from '@/components/cameras/live-preview/shared';
+import { getLivePreviewCaption } from '@/components/cameras/live-preview/caption';
+import { PreviewPlayer } from '@/components/cameras/live-preview/PreviewPlayer';
+import { PreviewShell } from '@/components/cameras/live-preview/shared';
+import { livePreviewStyles as styles } from '@/components/cameras/live-preview/styles';
 import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
 import type { CameraRead } from '@/services/api/rpiCamera';
@@ -58,6 +54,7 @@ export function LivePreview({
   );
 }
 
+// biome-ignore lint/style/useReactFunctionComponents: React error boundaries still require a class component to catch render errors.
 export class PreviewErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean }

@@ -13,7 +13,7 @@ export function resolveCameraLivePreview(
     connectionInfo,
   }: { enabled?: boolean; connectionInfo?: CameraConnectionInfo } = {},
 ): CameraLivePreviewResult {
-  if (!enabled || !cameraId) {
+  if (!(enabled && cameraId)) {
     return { hlsUrl: null, isLocalStream: false };
   }
 

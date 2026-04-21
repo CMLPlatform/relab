@@ -13,11 +13,17 @@
 import { expect, test } from '@playwright/test';
 import { EMAIL, finishOnboardingIfVisible, PASSWORD } from './helpers';
 
+const PRODUCTS_URL_PATTERN = /products/;
+const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
+const NEW_ACCOUNT_URL_PATTERN = /new-account/;
+const FORGOT_PASSWORD_URL_PATTERN = /forgot-password/;
+const FORGOT_PASSWORD_SUCCESS_PATTERN = /If an account exists with this email/;
+
 test.describe('Authentication flow', () => {
   test('unauthenticated user can browse the products page without signing in', async ({ page }) => {
     await page.goto('/');
     // Root redirects to /products; publicly accessible without login
-    await expect(page).toHaveURL(/products/, { timeout: 5_000 });
+    await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 5_000 });
     // Header shows Sign In pill for guests
     await expect(page.getByText('Sign In', { exact: true })).toBeVisible();
   });
@@ -46,7 +52,7 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
+    await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   });
 
   test('full new-user flow: login → onboarding → products', async ({ page }) => {
@@ -57,7 +63,7 @@ test.describe('Authentication flow', () => {
     await page.getByPlaceholder('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Login' }).click();
 
-    await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
+    await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
 
     // ── Verify products screen loaded ────────────────────────────────────────
@@ -71,7 +77,7 @@ test.describe('Account registration', () => {
   test('registration page is accessible from the login screen', async ({ page }) => {
     await page.goto('/login');
     await page.getByRole('button', { name: 'Create a new account' }).click();
-    await expect(page).toHaveURL(/new-account/, { timeout: 5_000 });
+    await expect(page).toHaveURL(NEW_ACCOUNT_URL_PATTERN, { timeout: 5_000 });
     await expect(page.getByPlaceholder('Username', { exact: true })).toBeVisible();
   });
 
@@ -103,7 +109,7 @@ test.describe('Account registration', () => {
     await page.getByRole('button', { name: 'Create Account' }).click();
 
     // After registration + auto-login the app navigates to /products.
-    await expect(page).toHaveURL(/products/, { timeout: 30_000 });
+    await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   });
 });
 
@@ -117,7 +123,7 @@ test.describe('Forgot password', () => {
     await page.getByRole('textbox').fill(EMAIL);
     await page.getByRole('button', { name: 'Send Reset Link' }).click();
 
-    await expect(page.getByText(/If an account exists with this email/)).toBeVisible({
+    await expect(page.getByText(FORGOT_PASSWORD_SUCCESS_PATTERN)).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -125,6 +131,6 @@ test.describe('Forgot password', () => {
   test('forgot password page is accessible from the login screen', async ({ page }) => {
     await page.goto('/login');
     await page.getByRole('button', { name: 'Forgot Password?' }).click();
-    await expect(page).toHaveURL(/forgot-password/, { timeout: 5_000 });
+    await expect(page).toHaveURL(FORGOT_PASSWORD_URL_PATTERN, { timeout: 5_000 });
   });
 });

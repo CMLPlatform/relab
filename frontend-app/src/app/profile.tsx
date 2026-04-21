@@ -1,21 +1,22 @@
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
+import { maybeCompleteAuthSession } from 'expo-web-browser';
 import {
   ProfileAccountSection,
-  ProfileAppearanceSection,
   ProfileDangerZoneSection,
-  ProfileDialogs,
-  ProfileHero,
-  ProfileIntegrationsSection,
-  ProfileLayout,
   ProfileLinkedAccountsSection,
   ProfileNewsletterSection,
-  ProfileStatsSection,
+} from '@/components/profile/sections/AccountSections';
+import { ProfileDialogs } from '@/components/profile/sections/Dialogs';
+import { ProfileHero, ProfileStatsSection } from '@/components/profile/sections/HeroStats';
+import { ProfileIntegrationsSection } from '@/components/profile/sections/Integrations';
+import {
+  ProfileAppearanceSection,
   ProfileVisibilitySection,
-} from '@/components/profile/ProfileScreenSections';
-import { useProfileScreen } from '@/hooks/useProfileScreen';
+} from '@/components/profile/sections/Preferences';
+import { ProfileLayout } from '@/components/profile/sections/shared';
+import { useProfileScreen } from '@/hooks/profile/useProfileScreen';
 
-WebBrowser.maybeCompleteAuthSession({ skipRedirectCheck: true });
+maybeCompleteAuthSession({ skipRedirectCheck: true });
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -32,23 +33,23 @@ export default function ProfileTab() {
       <ProfileIntegrationsSection
         rpiEnabled={integrations.rpiEnabled}
         rpiLoading={integrations.rpiLoading}
-        onSetRpiEnabled={(value) => void integrations.setRpiEnabled(value)}
+        onSetRpiEnabled={integrations.setRpiEnabled}
         onManageCameras={() => router.push('/cameras')}
         youtubeEnabled={integrations.youtubeEnabled}
         youtubeLoading={integrations.youtubeLoading}
         youtubeAuthPending={integrations.youtubeAuthPending}
-        onToggleYouTube={(value) => void integrations.handleYouTubeToggle(value)}
+        onToggleYouTube={integrations.handleYouTubeToggle}
       />
 
       <ProfileAppearanceSection
         themeMode={profile.themeMode}
-        onSetThemeMode={(mode) => void profile.setThemeMode(mode)}
+        onSetThemeMode={profile.setThemeMode}
       />
 
       <ProfileVisibilitySection
         profile={profile.profile}
         visibilitySaving={profile.visibilitySaving}
-        onChangeVisibility={(visibility) => void profile.handleVisibilityChange(visibility)}
+        onChangeVisibility={profile.handleVisibilityChange}
       />
 
       <ProfileAccountSection
@@ -63,9 +64,7 @@ export default function ProfileTab() {
         newsletterSaving={newsletter.newsletterSaving}
         newsletterError={newsletter.newsletterError}
         onToggleNewsletter={newsletter.handleNewsletterToggle}
-        onReloadNewsletterPreference={() => {
-          void newsletter.loadNewsletterPreference();
-        }}
+        onReloadNewsletterPreference={newsletter.loadNewsletterPreference}
       />
 
       <ProfileLinkedAccountsSection
@@ -73,9 +72,7 @@ export default function ProfileTab() {
         isGithubLinked={integrations.isGithubLinked}
         googleAccount={integrations.googleAccount}
         githubAccount={integrations.githubAccount}
-        onLinkOAuth={(provider) => {
-          void integrations.handleLinkOAuth(provider);
-        }}
+        onLinkOAuth={integrations.handleLinkOAuth}
         onRequestUnlink={dialogs.unlinkDialog.request}
       />
 
@@ -86,15 +83,11 @@ export default function ProfileTab() {
         onDismissEditUsername={dialogs.editUsername.close}
         newUsername={dialogs.editUsername.value}
         onChangeUsername={dialogs.editUsername.setValue}
-        onSaveUsername={() => {
-          void actions.handleUpdateUsername();
-        }}
+        onSaveUsername={actions.handleUpdateUsername}
         unlinkDialogVisible={dialogs.unlinkDialog.visible}
         onDismissUnlink={dialogs.unlinkDialog.close}
         providerToUnlink={dialogs.unlinkDialog.provider}
-        onConfirmUnlink={() => {
-          void integrations.handleUnlinkOAuthConfirm();
-        }}
+        onConfirmUnlink={integrations.handleUnlinkOAuthConfirm}
         logoutDialogVisible={dialogs.logoutDialog.visible}
         onDismissLogout={dialogs.logoutDialog.close}
         onConfirmLogout={actions.confirmLogout}

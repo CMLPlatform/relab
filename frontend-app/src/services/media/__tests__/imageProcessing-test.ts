@@ -20,7 +20,7 @@ jest.mock('expo-image-manipulator', () => ({
   },
 }));
 
-const { processImage } = require('../imageProcessing') as typeof import('../imageProcessing');
+const { processImage } = require('../imageProcessing.tsx') as typeof import('../imageProcessing');
 
 describe('processImage', () => {
   beforeEach(() => {

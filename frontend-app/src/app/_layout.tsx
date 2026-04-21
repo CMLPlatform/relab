@@ -1,9 +1,5 @@
 import { HeaderBackButton } from '@react-navigation/elements';
-import {
-  DarkTheme as RNDark,
-  DefaultTheme as RNLight,
-  ThemeProvider,
-} from '@react-navigation/native';
+import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
@@ -12,24 +8,19 @@ import { Platform, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {
-  adaptNavigationTheme,
-  MD3DarkTheme,
-  MD3LightTheme,
   PaperProvider,
 } from 'react-native-paper';
-import {
-  ensureWebAnimatedPatch,
-  getProductsHeaderStyle,
-  HeaderRightPill,
-  useAnimatedBackground,
-} from '@/app/layout/helpers';
-import darkTheme from '@/assets/themes/dark';
-import lightTheme from '@/assets/themes/light';
+import { ensureWebAnimatedPatch, useAnimatedBackground } from '@/app/layout/background';
+import { HeaderRightPill } from '@/app/layout/HeaderRightPill';
+import { getProductsHeaderStyle } from '@/app/layout/styles';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
 import { DialogProvider } from '@/components/common/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
-import { StreamSessionProvider, useStreamSession } from '@/context/StreamSessionContext';
-import { ThemeModeProvider, useEffectiveColorScheme } from '@/context/ThemeModeProvider';
+import { StreamSessionProvider } from '@/context/StreamSessionProvider';
+import { useStreamSession } from '@/context/streamSession';
+import { ThemeModeProvider } from '@/context/ThemeModeProvider';
+import { useEffectiveColorScheme } from '@/context/themeMode';
+import { createNavigationThemes, getAppTheme } from '@/theme';
 
 ensureWebAnimatedPatch();
 const queryClient = new QueryClient({
@@ -49,7 +40,90 @@ export default function RootLayout() {
   );
 }
 
-export const HeaderRight = HeaderRightPill;
+export function HeaderRight() {
+  return <HeaderRightPill />;
+}
+
+function AppBackground({
+  BackgroundComponent,
+  overlayColor,
+  showBackground,
+  showOverlay,
+}: ReturnType<typeof useAnimatedBackground>) {
+  return (
+    <>
+      {showBackground && BackgroundComponent ? <BackgroundComponent /> : null}
+      {showOverlay ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: overlayColor,
+            pointerEvents: 'none',
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<typeof useRouter> }) {
+  const theme = getAppTheme(isDark ? 'dark' : 'light');
+  return (
+    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="products/index"
+        options={{
+          title: 'RELab',
+          ...getProductsHeaderStyle(theme),
+          headerRight: () => <HeaderRightPill />,
+          headerLeft: () => null,
+        }}
+      />
+      <Stack.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          headerLeft: (props) => (
+            <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
+          ),
+        }}
+      />
+      <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
+      <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="products/[id]/category_selection"
+        options={{ title: 'Select Category' }}
+      />
+      <Stack.Screen name="cameras/index" options={{ title: 'My Cameras' }} />
+      <Stack.Screen
+        name="cameras/add"
+        options={{
+          title: 'Add Camera',
+          headerLeft: (props) => (
+            <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
+          ),
+        }}
+      />
+      <Stack.Screen
+        name="cameras/[id]"
+        options={{
+          title: 'Camera',
+          headerLeft: (props) => (
+            <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
+          ),
+        }}
+      />
+    </Stack>
+  );
+}
 
 function AppShell() {
   const colorScheme = useEffectiveColorScheme();
@@ -77,77 +151,13 @@ function AppShell() {
 
   return (
     <View style={{ flex: 1 }}>
-      {showBackground && BackgroundComponent ? <BackgroundComponent /> : null}
-      {showOverlay && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: overlayColor,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-      <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="products/index"
-          options={{
-            title: 'RELab',
-            ...getProductsHeaderStyle(isDark),
-            headerRight: () => <HeaderRightPill />,
-            headerLeft: () => null,
-          }}
-        />
-
-        <Stack.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            headerLeft: (props) => (
-              <HeaderBackButton {...props} onPress={() => router.replace('/products')} />
-            ),
-          }}
-        />
-        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/new-account" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
-
-        <Stack.Screen
-          name="products/[id]/category_selection"
-          options={{ title: 'Select Category' }}
-        />
-
-        <Stack.Screen
-          name="cameras/index"
-          options={{
-            title: 'My Cameras',
-          }}
-        />
-        <Stack.Screen
-          name="cameras/add"
-          options={{
-            title: 'Add Camera',
-            headerLeft: (props) => (
-              <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
-            ),
-          }}
-        />
-        <Stack.Screen
-          name="cameras/[id]"
-          options={{
-            title: 'Camera',
-            headerLeft: (props) => (
-              <HeaderBackButton {...props} onPress={() => router.replace('/cameras')} />
-            ),
-          }}
-        />
-      </Stack>
+      <AppBackground
+        BackgroundComponent={BackgroundComponent}
+        overlayColor={overlayColor}
+        showBackground={showBackground}
+        showOverlay={showOverlay}
+      />
+      <AppStack isDark={isDark} router={router} />
       <ActiveStreamBanner />
     </View>
   );
@@ -170,20 +180,8 @@ export function Providers({ children }: { children: ReactNode }) {
 /** Inner providers that depend on the resolved theme mode. */
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
-
-  const theme =
-    colorScheme === 'light'
-      ? { ...MD3LightTheme, colors: lightTheme.colors }
-      : { ...MD3DarkTheme, colors: darkTheme.colors };
-  const { LightTheme, DarkTheme } = adaptNavigationTheme({
-    reactNavigationLight: RNLight,
-    reactNavigationDark: RNDark,
-    materialLight: theme,
-    materialDark: theme,
-  });
-
-  LightTheme.colors.background = 'transparent';
-  DarkTheme.colors.background = 'transparent';
+  const theme = getAppTheme(colorScheme);
+  const { LightTheme, DarkTheme } = createNavigationThemes();
 
   return (
     <PaperProvider theme={theme}>

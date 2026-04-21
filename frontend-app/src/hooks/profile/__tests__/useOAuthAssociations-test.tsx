@@ -38,6 +38,7 @@ jest.mock('@/services/api/oauthFlow', () => ({
   })),
 }));
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: OAuth association coverage shares one auth/linking harness for the hook.
 describe('useOAuthAssociations', () => {
   beforeEach(() => {
     jest.clearAllMocks();

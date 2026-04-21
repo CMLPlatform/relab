@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import * as SecureStore from 'expo-secure-store';
-import { mockPlatform, mockResponse, restorePlatform, setupFetchMock } from '@/test-utils';
-import * as auth from '../authentication';
+import { resetAuthRuntimeForTests } from '@/services/api/authRuntime';
+import { setWebSessionFlag } from '@/services/api/authSession';
+import { mockPlatform, mockResponse, restorePlatform, setupFetchMock } from '@/test-utils/index';
+
+const SecureStore = require('expo-secure-store') as typeof import('expo-secure-store');
+const auth = require('../authentication') as typeof import('../authentication');
 
 setupFetchMock();
 const secureStoreMock = SecureStore as jest.Mocked<typeof SecureStore>;
 const fetchMock = () => global.fetch as jest.MockedFunction<typeof fetch>;
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this long-lived service suite intentionally keeps shared auth API fixtures together.
 describe('Authentication API Service', () => {
   let consoleErrorSpy: jest.SpiedFunction<typeof console.error>;
 
@@ -23,10 +27,8 @@ describe('Authentication API Service', () => {
   beforeEach(async () => {
     setupFetchMock();
     jest.clearAllMocks();
-    // Reset module-level token/user state by logging out
-    fetchMock().mockResolvedValueOnce(mockResponse(200, {}) as Response);
-    await auth.logout();
-    jest.clearAllMocks(); // clear the logout call
+    resetAuthRuntimeForTests();
+    setWebSessionFlag(false);
   });
 
   // ─── getToken ───────────────────────────────────────────
@@ -189,8 +191,7 @@ describe('Authentication API Service', () => {
 
   describe('fetchWithAuth', () => {
     it('refreshes token on 401 and retries', async () => {
-      // The beforeEach logout sets explicitlyLoggedOut=true. Simulate a fresh login
-      // to reset that flag before testing the 401-retry flow.
+      // Populate the cached token before exercising the 401 -> refresh -> retry flow.
       fetchMock().mockResolvedValueOnce(
         mockResponse(200, { access_token: 'old-token' }) as Response,
       );
@@ -255,6 +256,7 @@ describe('Authentication API Service', () => {
 
   // ─── getUser ────────────────────────────────────────────
 
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: getUser coverage reuses one shared raw-user fixture matrix.
   describe('getUser', () => {
     const rawUser = {
       id: 1,
@@ -560,6 +562,7 @@ describe('Authentication API Service', () => {
   // lightweight test environment). We install a simple in-memory mock once
   // and share it across all web-platform describe blocks.
 
+  // biome-ignore lint/complexity/noExcessiveLinesPerFunction: web-platform behavior is easier to compare with one shared mocked storage harness.
   describe('web platform', () => {
     const mockStore: Record<string, string> = {};
     const mockSessionStorage = {

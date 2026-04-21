@@ -11,7 +11,7 @@ import type { User } from '@/types/User';
 export function mockResponse(status: number, body: unknown, ok?: boolean) {
   return {
     status,
-    ok: ok !== undefined ? ok : status >= 200 && status < 300,
+    ok: ok ?? (status >= 200 && status < 300),
     json: async () => body,
     text: async () => JSON.stringify(body),
   };

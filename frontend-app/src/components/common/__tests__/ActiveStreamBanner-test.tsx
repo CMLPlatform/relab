@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { ActiveStreamBanner } from '@/components/common/ActiveStreamBanner';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 
 const mockStreamingSheet = jest.fn();
 const mockUseStreamSession = jest.fn();
@@ -13,7 +13,7 @@ jest.mock('@/components/common/StreamingSheet', () => ({
   },
 }));
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => mockUseStreamSession(),
 }));
 

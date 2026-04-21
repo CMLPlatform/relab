@@ -1,16 +1,16 @@
 import {
-  CamerasErrorState,
   CamerasFab,
-  CamerasGrid,
-  CamerasLoadingState,
   CamerasSelectionOverlay,
   CamerasSnackbar,
   CamerasStreamDialog,
-} from '@/components/cameras/CamerasScreenSections';
-import { useCamerasScreen } from '@/hooks/useCamerasScreen';
+} from '@/components/cameras/screen/Chrome';
+import { CamerasGrid } from '@/components/cameras/screen/Grid';
+import { CamerasErrorState, CamerasLoadingState } from '@/components/cameras/screen/States';
+import { useCamerasScreen } from '@/hooks/cameras/useCamerasScreen';
 
 export default function CamerasScreen() {
   const { screen, selection, streaming, actions } = useCamerasScreen();
+  const handleStartStream = async () => streaming.handleStartStream();
 
   if (!screen.user) return null;
   if (screen.isLoading) return <CamerasLoadingState />;
@@ -56,9 +56,7 @@ export default function CamerasScreen() {
         onDismiss={streaming.closeStreamDialog}
         onChangeTitle={streaming.setStreamTitle}
         onChangePrivacy={streaming.setStreamPrivacy}
-        onStart={() => {
-          void streaming.handleStartStream();
-        }}
+        onStart={handleStartStream}
       />
     </>
   );

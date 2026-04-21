@@ -15,16 +15,9 @@ lockfile:
 # Update Expo-managed dependencies to versions compatible with the current SDK
 update:
     npx expo install --fix
+    pnpm update -D
     npx expo-doctor
-    @echo "✓ Frontend-app Expo dependencies updated"
-
-# Run static type checks
-typecheck:
-    pnpm run typecheck
-
-# Lint the codebase
-lint:
-    pnpm run lint
+    @echo "✓ Frontend-app dependencies updated"
 
 # Run the frontend-app quality gate
 check:
@@ -43,9 +36,21 @@ fix: format
 test:
     pnpm run test
 
-# Run tests with coverage (for CI)
-test-cov:
-    pnpm run test:coverage
+# Run the fast unit test suite
+test-unit:
+    pnpm run test:unit
+
+# Run the slower app-level Jest integration test suite
+test-integration:
+    pnpm run test:integration
+
+# Record file-level timings for the unit Jest suite
+test-unit-timings:
+    pnpm run test:unit:timings
+
+# Record file-level timings for the integration Jest suite
+test-integration-timings:
+    pnpm run test:integration:timings
 
 # Run the frontend-app CI test suite
 test-ci:
@@ -74,9 +79,6 @@ e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
 
 # Build Expo web app for E2E testing (exports static SPA to dist/)
 # Only the API URL is required for these tests; the public website URL falls back in-app.
-build:
-    pnpm run build
-
 build-web:
     @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
     EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} pnpm run build:web
@@ -84,9 +86,6 @@ build-web:
 # Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
 test-e2e:
     pnpm run test:e2e
-
-# Alias for explicit CI naming
-test-e2e-full-stack: test-e2e
 
 # Open Playwright UI for interactive E2E test development
 test-e2e-ui:

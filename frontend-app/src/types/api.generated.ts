@@ -2234,6 +2234,8 @@ export interface components {
       last_image_url?: string | null;
       /** Last Image Thumbnail Url */
       last_image_thumbnail_url?: string | null;
+      /** Last Preview Thumbnail Url */
+      last_preview_thumbnail_url?: string | null;
     };
     /**
      * CameraStatus

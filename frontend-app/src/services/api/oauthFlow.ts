@@ -1,16 +1,16 @@
-import * as WebBrowser from 'expo-web-browser';
+import { openAuthSessionAsync } from 'expo-web-browser';
 import { apiFetch } from '@/services/api/client';
 
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;
 
-export type OAuthSessionResult = Awaited<ReturnType<typeof WebBrowser.openAuthSessionAsync>>;
+export type OAuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
 
 export function buildOAuthAuthorizeUrl(pathname: string, redirectUri: string) {
   return `${pathname}?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }
 
 export function extractOAuthErrorDetail(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== 'object') return undefined;
+  if (!payload || typeof payload !== 'object') return;
   const candidate = (payload as { detail?: unknown }).detail;
   if (typeof candidate === 'string') return candidate;
   if (candidate && typeof candidate === 'object') {
@@ -18,7 +18,7 @@ export function extractOAuthErrorDetail(payload: unknown): string | undefined {
     if (typeof nested.reason === 'string') return nested.reason;
     if (typeof nested.message === 'string') return nested.message;
   }
-  return undefined;
+  return;
 }
 
 export async function fetchOAuthAuthorizationUrl(
@@ -55,7 +55,7 @@ export async function openOAuthBrowserSession(
 
   try {
     return (await Promise.race([
-      WebBrowser.openAuthSessionAsync(authorizationUrl, redirectUri),
+      openAuthSessionAsync(authorizationUrl, redirectUri),
       timeoutPromise,
     ])) as OAuthSessionResult;
   } finally {

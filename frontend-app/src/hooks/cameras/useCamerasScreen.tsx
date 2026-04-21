@@ -1,19 +1,18 @@
 import { useNavigation, useRouter } from 'expo-router';
-import { useCallback, useEffect } from 'react';
-import { useAuth } from '@/context/AuthProvider';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useAuth } from '@/context/auth';
 import {
   useCameraCaptureActions,
   useCameraConnectionSnapshots,
   useCameraStreamActions,
 } from '@/hooks/cameras/actions';
+import { useCameraScreenData, useCamerasHeader } from '@/hooks/cameras/helpers';
+import { useCameraRouteModes } from '@/hooks/cameras/routeModes';
 import {
-  useCameraRouteModes,
-  useCameraScreenData,
   useCameraSelectionActions,
   useCameraSelectionController,
   useCameraStreamingController,
-  useCamerasHeader,
-} from '@/hooks/cameras/helpers';
+} from '@/hooks/cameras/stateControllers';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
@@ -21,6 +20,7 @@ import { useProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this screen hook intentionally assembles selection, streaming, and grid state in one place.
 export function useCamerasScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -128,44 +128,82 @@ export function useCamerasScreen() {
     feedback,
   });
 
-  return {
-    screen: {
-      user,
-      rows: screenData.rows,
-      isLoading,
-      isFetching,
-      isError,
-      error,
-      refetch,
-      numColumns: screenData.numColumns,
-      onlineCount: screenData.onlineCount,
-      captureModeEnabled: screenData.captureModeEnabled,
-      streamModeEnabled: screenData.streamModeEnabled,
-    },
-    selection: {
-      selectionMode,
-      selectedIds,
-      selectedCount,
-      captureAllPending: captureAll.isPending,
-      handleSelectAll,
-      clearSelection,
-      handleCaptureSelected,
-    },
-    streaming: {
-      streamDialog,
-      isStartingStream,
-      snackbarMessage,
+  const openAddCamera = useCallback(() => {
+    router.push('/cameras/add');
+  }, [router]);
+
+  return useMemo(
+    () => ({
+      screen: {
+        user,
+        rows: screenData.rows,
+        isLoading,
+        isFetching,
+        isError,
+        error,
+        refetch,
+        numColumns: screenData.numColumns,
+        onlineCount: screenData.onlineCount,
+        captureModeEnabled: screenData.captureModeEnabled,
+        streamModeEnabled: screenData.streamModeEnabled,
+      },
+      selection: {
+        selectionMode,
+        selectedIds,
+        selectedCount,
+        captureAllPending: captureAll.isPending,
+        handleSelectAll,
+        clearSelection,
+        handleCaptureSelected,
+      },
+      streaming: {
+        streamDialog,
+        isStartingStream,
+        snackbarMessage,
+        dismissSnackbar,
+        closeStreamDialog,
+        setStreamTitle,
+        setStreamPrivacy,
+        handleStartStream,
+      },
+      actions: {
+        handleCardTap,
+        handleCardLongPress,
+        handleEffectiveConnectionChange,
+        openAddCamera,
+      },
+    }),
+    [
+      captureAll.isPending,
       dismissSnackbar,
-      closeStreamDialog,
-      setStreamTitle,
-      setStreamPrivacy,
-      handleStartStream,
-    },
-    actions: {
-      handleCardTap,
+      error,
       handleCardLongPress,
+      handleCardTap,
+      handleCaptureSelected,
       handleEffectiveConnectionChange,
-      openAddCamera: () => router.push('/cameras/add'),
-    },
-  };
+      handleSelectAll,
+      handleStartStream,
+      isError,
+      isFetching,
+      isLoading,
+      openAddCamera,
+      refetch,
+      screenData.captureModeEnabled,
+      screenData.numColumns,
+      screenData.onlineCount,
+      screenData.rows,
+      screenData.streamModeEnabled,
+      selectedCount,
+      selectedIds,
+      selectionMode,
+      snackbarMessage,
+      streamDialog,
+      clearSelection,
+      closeStreamDialog,
+      isStartingStream,
+      setStreamPrivacy,
+      setStreamTitle,
+      user,
+    ],
+  );
 }

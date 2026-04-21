@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
-import { baseProduct, renderWithProviders } from '@/test-utils';
+import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductVideo from '../ProductVideo';
 
@@ -37,6 +37,7 @@ const defaultProps: ProductVideoProps = {
   onNavigateToProfile: jest.fn(),
   onNavigateToActiveStream: jest.fn(),
 };
+const VIDEO_HEADING_PATTERN = /Video/;
 
 function renderProductVideo(overrides: Partial<ProductVideoProps> = {}) {
   return renderWithProviders(<ProductVideo {...defaultProps} {...overrides} />, {
@@ -44,10 +45,11 @@ function renderProductVideo(overrides: Partial<ProductVideoProps> = {}) {
   });
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: product-video coverage keeps one end-to-end fixture set for the whole feature surface.
 describe('ProductVideo', () => {
   it('renders the Video heading', () => {
     renderProductVideo();
-    expect(screen.getByText(/Video/)).toBeOnTheScreen();
+    expect(screen.getByText(VIDEO_HEADING_PATTERN)).toBeOnTheScreen();
   });
 
   it("shows 'no associated videos' message when empty", () => {

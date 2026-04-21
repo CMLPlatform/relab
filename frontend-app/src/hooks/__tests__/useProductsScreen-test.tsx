@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { useProductsScreen } from '@/hooks/useProductsScreen';
+import { useProductsScreen } from '@/hooks/products/useProductsScreen';
 
 const mockSetParams: jest.Mock = jest.fn();
 const mockPush: jest.Mock = jest.fn();
@@ -19,26 +19,36 @@ const mockProductsQueryResult = {
   isFetching: false,
   isLoading: false,
   error: null,
-  refetch: jest.fn(),
+  refetch: jest.fn(async () => undefined),
 };
 const mockAuthState = {
   user: null,
   refetch: mockRefetchUser,
 };
 
+jest.mock('@tanstack/react-query', () => ({
+  useQueries: () => [mockProductsQueryResult],
+}));
+
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
   useLocalSearchParams: () => ({}),
 }));
 
-jest.mock('@/components/common/DialogProvider', () => ({
-  useDialog: () => ({
-    alert: mockAlert,
-    input: mockInput,
-  }),
-}));
+jest.mock('@/components/common/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
+    '@/components/common/dialogContext',
+  );
+  return {
+    ...actual,
+    useDialog: () => ({
+      alert: mockAlert,
+      input: mockInput,
+    }),
+  };
+});
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => mockAuthState,
 }));
 
@@ -49,7 +59,7 @@ jest.mock('@/hooks/useProductQueries', () => ({
     { label: 'Newest first', value: ['-created_at'] },
     { label: 'Oldest first', value: ['created_at'] },
   ],
-  useProductsQuery: () => mockProductsQueryResult,
+  productsQueryOptions: jest.fn(() => ({})),
   useSearchBrandsQuery: () => ({ data: [], isLoading: false }),
   useSearchProductTypesQuery: () => ({ data: [], isLoading: false }),
 }));

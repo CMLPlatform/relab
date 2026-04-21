@@ -1,23 +1,131 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Text, useTheme } from 'react-native-paper';
 import { API_URL } from '@/config';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 import { apiFetch } from '@/services/api/client';
 import { logError } from '@/utils/logging';
 
 type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
+
+function unrefTimer(timer: ReturnType<typeof setTimeout>) {
+  if (timer && typeof timer === 'object' && 'unref' in timer) {
+    (timer as TimerWithUnref).unref();
+  }
+}
+
+function getVerificationErrorMessage(detail: unknown) {
+  return typeof detail === 'string' ? detail : 'Verification failed. Please try registering again.';
+}
+
+async function verifyToken(token: string) {
+  return apiFetch(`${API_URL}/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+}
+
+function useVerificationRedirect({
+  success,
+  user,
+  refetch,
+  router,
+}: {
+  success: boolean;
+  user: ReturnType<typeof useAuth>['user'];
+  refetch: ReturnType<typeof useAuth>['refetch'];
+  router: ReturnType<typeof useRouter>;
+}) {
+  useEffect(() => {
+    if (!success) return;
+
+    const timer = setTimeout(() => {
+      if (user) {
+        refetch(true).then(() => router.replace('/products'));
+      } else {
+        router.replace('/login?redirectTo=/products');
+      }
+    }, 3000);
+    unrefTimer(timer);
+
+    return () => clearTimeout(timer);
+  }, [success, router, user, refetch]);
+}
+
+function useVerifyToken({
+  token,
+  setError,
+  setIsLoading,
+  setSuccess,
+}: {
+  token: string | undefined;
+  setError: (value: string | null) => void;
+  setIsLoading: (value: boolean) => void;
+  setSuccess: (value: boolean) => void;
+}) {
+  useEffect(() => {
+    let cancelled = false;
+
+    const finish = (callback: () => void) => {
+      if (!cancelled) callback();
+    };
+
+    const handleMissingToken = () => {
+      finish(() => {
+        setError('No verification token provided. Please check your verification email.');
+        setIsLoading(false);
+      });
+    };
+
+    const runVerification = async () => {
+      if (!token) {
+        handleMissingToken();
+        return;
+      }
+
+      try {
+        const response = await verifyToken(token);
+        if (cancelled) return;
+
+        if (response.ok) {
+          setSuccess(true);
+          setError(null);
+          return;
+        }
+
+        const data = await response.json();
+        finish(() => setError(getVerificationErrorMessage(data.detail)));
+      } catch (err) {
+        logError('Verification error:', err);
+        finish(() => setError('An error occurred during verification. Please try again later.'));
+      } finally {
+        finish(() => setIsLoading(false));
+      }
+    };
+
+    runVerification().catch((err) => {
+      logError('Verification effect error:', err);
+      finish(() => {
+        setError('An error occurred during verification. Please try again later.');
+        setIsLoading(false);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, setError, setIsLoading, setSuccess]);
+}
 
 export default function VerifyEmailScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { user, refetch } = useAuth();
   const { token: tokenParam } = useLocalSearchParams<{ token: string }>();
+  const token = typeof tokenParam === 'string' ? tokenParam : undefined;
 
-  // Capture the token from the URL into a ref immediately, then strip it from
-  // the address bar so it doesn't persist in browser history.
-  const tokenRef = useRef(tokenParam);
   useEffect(() => {
     if (tokenParam && Platform.OS === 'web' && typeof window !== 'undefined') {
       window.history.replaceState({}, '', window.location.pathname);
@@ -28,59 +136,8 @@ export default function VerifyEmailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        if (user) {
-          refetch(true).then(() => router.replace('/products'));
-        } else {
-          router.replace('/login?redirectTo=/products');
-        }
-      }, 3000);
-
-      if (timer && typeof timer === 'object' && 'unref' in timer) {
-        (timer as TimerWithUnref).unref();
-      }
-
-      return () => clearTimeout(timer);
-    }
-  }, [success, router, user, refetch]);
-
-  const verifyToken = useCallback(async () => {
-    const token = tokenRef.current;
-    if (!token) {
-      setError('No verification token provided. Please check your verification email.');
-      setIsLoading(false);
-      return;
-    }
-
-    const apiUrl = `${API_URL}/auth/verify`;
-
-    try {
-      const response = await apiFetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }), // token was captured from URL before stripping
-      });
-
-      if (response.ok) {
-        setSuccess(true);
-        setError(null);
-      } else {
-        const data = await response.json();
-        setError(data.detail || 'Verification failed. Please try registering again.');
-      }
-    } catch (err) {
-      logError('Verification error:', err);
-      setError('An error occurred during verification. Please try again later.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    verifyToken();
-  }, [verifyToken]);
+  useVerificationRedirect({ success, user, refetch, router });
+  useVerifyToken({ token, setError, setIsLoading, setSuccess });
 
   return (
     <View style={{ flex: 1 }}>

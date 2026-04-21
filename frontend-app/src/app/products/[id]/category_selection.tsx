@@ -5,7 +5,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, HelperText, Icon, Searchbar } from 'react-native-paper';
 
 import CPVCard from '@/components/common/CPVCard';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { loadCPV } from '@/services/cpv';
@@ -49,12 +49,14 @@ export default function CategorySelection() {
   useEffect(() => {
     let isMounted = true;
 
-    loadCPV().then((data) => {
-      if (!isMounted) return;
-      setCpv(data);
-      setCpvClass(data.root);
-      setHistory([data.root]);
-    });
+    loadCPV()
+      .then((data) => {
+        if (!isMounted) return;
+        setCpv(data);
+        setCpvClass(data.root);
+        setHistory([data.root]);
+      })
+      .catch(() => {});
 
     return () => {
       isMounted = false;
@@ -82,7 +84,7 @@ export default function CategorySelection() {
 
   // Methods
   const filtered = useMemo((): CPVCategory[] => {
-    if (!cpv || !cpvClass) return [];
+    if (!(cpv && cpvClass)) return [];
     if (!searchQuery) return cpvClass.directChildren.map((id) => cpv[id]);
     const unfiltered = cpvClass.allChildren.map((id) => cpv[id]);
     return unfiltered.filter(

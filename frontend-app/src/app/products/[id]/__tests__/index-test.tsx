@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import type { ReactNode } from 'react';
 import type { ScrollView as RNScrollView, Text as RNText } from 'react-native';
-import * as products from '@/services/api/products';
-import { renderWithProviders } from '@/test-utils';
+import { getProduct, newProduct } from '@/services/api/products';
+import { renderWithProviders } from '@/test-utils/index';
 import ProductPage from '../index';
 
-const mockedGetProduct = jest.mocked(products.getProduct);
-const mockedNewProduct = jest.mocked(products.newProduct);
+const mockedGetProduct = jest.mocked(getProduct);
+const mockedNewProduct = jest.mocked(newProduct);
 const mockUseAuth = jest.fn();
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
@@ -52,17 +53,39 @@ jest.mock('react-native-keyboard-controller', () => {
   };
 });
 
-jest.mock('@/components/product/ProductImageGallery', () => 'ProductImageGallery');
-jest.mock(
-  '@/components/product/ProductCircularityProperties',
-  () => 'ProductCircularityProperties',
+function mockCreateSectionStub(label: string) {
+  const mockReact = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
+    Text: typeof RNText;
+  };
+
+  return function SectionStub({
+    children,
+    ...props
+  }: {
+    children?: ReactNode;
+    [key: string]: unknown;
+  }) {
+    return mockReact.createElement(Text, props, children ?? label);
+  };
+}
+
+jest.mock('@/components/product/ProductImageGallery', () =>
+  mockCreateSectionStub('ProductImageGallery'),
 );
-jest.mock('@/components/product/ProductComponents', () => 'ProductComponents');
-jest.mock('@/components/product/ProductDelete', () => 'ProductDelete');
-jest.mock('@/components/product/ProductPhysicalProperties', () => 'ProductPhysicalProperties');
-jest.mock('@/components/product/ProductTags', () => 'ProductTags');
-jest.mock('@/components/product/ProductType', () => 'ProductType');
-jest.mock('@/components/product/ProductVideo', () => 'ProductVideo');
+jest.mock('@/components/product/ProductCircularityProperties', () =>
+  mockCreateSectionStub('ProductCircularityProperties'),
+);
+jest.mock('@/components/product/ProductComponents', () =>
+  mockCreateSectionStub('ProductComponents'),
+);
+jest.mock('@/components/product/ProductDelete', () => mockCreateSectionStub('ProductDelete'));
+jest.mock('@/components/product/ProductPhysicalProperties', () =>
+  mockCreateSectionStub('ProductPhysicalProperties'),
+);
+jest.mock('@/components/product/ProductTags', () => mockCreateSectionStub('ProductTags'));
+jest.mock('@/components/product/ProductType', () => mockCreateSectionStub('ProductType'));
+jest.mock('@/components/product/ProductVideo', () => mockCreateSectionStub('ProductVideo'));
 jest.mock('@/components/product/ProductMetaData', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native') as {
@@ -179,7 +202,7 @@ describe('ProductPage route protection', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(products.newProduct).toHaveBeenCalledWith(undefined, NaN, undefined, undefined);
+      expect(newProduct).toHaveBeenCalledWith(undefined, NaN, undefined, undefined);
       expect(screen.getByText('Description:Draft Product')).toBeOnTheScreen();
       expect(screen.getByText('Save Product')).toBeOnTheScreen();
     });
@@ -193,7 +216,7 @@ describe('ProductPage route protection', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(products.getProduct).toHaveBeenCalledWith(42);
+      expect(getProduct).toHaveBeenCalledWith(42);
       expect(screen.getByText('Description:Existing Product')).toBeOnTheScreen();
     });
     expect(mockReplace).not.toHaveBeenCalled();

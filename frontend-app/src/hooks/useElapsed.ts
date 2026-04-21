@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
  * Returns a formatted elapsed time string (M:SS) for the given ISO start
@@ -6,21 +6,22 @@ import { useEffect, useState } from 'react';
  * null (not yet started / stream inactive).
  */
 export function useElapsed(startedAt: string | null): string {
-  const [elapsed, setElapsed] = useState('');
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!startedAt) {
-      setElapsed('');
       return;
     }
-    const tick = () => {
-      const s = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
-      setElapsed(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [startedAt]);
 
-  return elapsed;
+  return useMemo(() => {
+    if (!startedAt) {
+      return '';
+    }
+
+    const seconds = Math.floor((now - new Date(startedAt).getTime()) / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  }, [now, startedAt]);
 }

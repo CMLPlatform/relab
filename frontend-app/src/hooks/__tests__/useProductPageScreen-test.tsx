@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useProductPageScreen } from '@/hooks/useProductPageScreen';
+import { useProductPageScreen } from '@/hooks/products/useProductPageScreen';
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -25,12 +25,18 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
-jest.mock('@/components/common/DialogProvider', () => ({
-  useDialog: () => ({
-    alert: mockAlert,
-    input: jest.fn(),
-  }),
-}));
+jest.mock('@/components/common/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
+    '@/components/common/dialogContext',
+  );
+  return {
+    ...actual,
+    useDialog: () => ({
+      alert: mockAlert,
+      input: jest.fn(),
+    }),
+  };
+});
 
 jest.mock('@/hooks/useAppFeedback', () => ({
   useAppFeedback: () => ({
@@ -39,7 +45,7 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   }),
 }));
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => ({
     user: {
       oauth_accounts: [{ oauth_name: 'google' }],
@@ -47,7 +53,7 @@ jest.mock('@/context/AuthProvider', () => ({
   }),
 }));
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({
     activeStream: { productId: 99, productName: 'Stream Product' },
   }),

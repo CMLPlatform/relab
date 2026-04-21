@@ -1,10 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { setupUser } from '@/test-utils';
 import LocalizedFloatInput from '../LocalizedFloatInput';
 
 describe('LocalizedFloatInput', () => {
-  const user = setupUser();
   it('renders with placeholder', () => {
     render(<LocalizedFloatInput value={undefined} placeholder="Enter value" />);
     expect(screen.getByPlaceholderText('Enter value')).toBeOnTheScreen();
@@ -29,7 +27,7 @@ describe('LocalizedFloatInput', () => {
     const onChange = jest.fn();
     render(<LocalizedFloatInput value={5} onChange={onChange} />);
     const input = screen.getByDisplayValue('5');
-    await user.clear(input);
+    fireEvent.changeText(input, '');
     fireEvent(input, 'blur');
     expect(onChange).toHaveBeenCalledWith(undefined);
   });
@@ -38,7 +36,7 @@ describe('LocalizedFloatInput', () => {
     const onChange = jest.fn();
     render(<LocalizedFloatInput value={undefined} onChange={onChange} />);
     const input = screen.getByPlaceholderText('> 0');
-    await user.type(input, '42.5');
+    fireEvent.changeText(input, '42.5');
     fireEvent(input, 'blur');
     expect(onChange).toHaveBeenCalledWith(42.5);
   });
@@ -58,7 +56,7 @@ describe('LocalizedFloatInput', () => {
   it('ignores non-numeric characters during text change', async () => {
     render(<LocalizedFloatInput value={undefined} />);
     const input = screen.getByPlaceholderText('> 0');
-    await user.type(input, 'abc');
+    fireEvent.changeText(input, 'abc');
     // "abc" doesn't match the decimal regex, so text state stays empty
     expect(screen.queryByDisplayValue('abc')).toBeNull();
   });
@@ -66,7 +64,7 @@ describe('LocalizedFloatInput', () => {
   it('accepts valid decimal text during typing', async () => {
     render(<LocalizedFloatInput value={undefined} />);
     const input = screen.getByPlaceholderText('> 0');
-    await user.type(input, '12.3');
+    fireEvent.changeText(input, '12.3');
     expect(screen.getByDisplayValue('12.3')).toBeOnTheScreen();
   });
 

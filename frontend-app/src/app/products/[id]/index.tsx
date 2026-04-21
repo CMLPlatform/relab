@@ -1,11 +1,8 @@
 import { ActivityIndicator, View } from 'react-native';
-import {
-  ProductFabControls,
-  ProductPageContent,
-  ProductPageErrorState,
-  ProductPageLoadingState,
-} from '@/components/product/ProductPageSections';
-import { useProductPageScreen } from '@/hooks/useProductPageScreen';
+import { ProductPageContent } from '@/components/product/detail/Content';
+import { ProductFabControls } from '@/components/product/detail/FabControls';
+import { ProductPageErrorState, ProductPageLoadingState } from '@/components/product/detail/States';
+import { useProductPageScreen } from '@/hooks/products/useProductPageScreen';
 import { isProductNotFoundError } from '@/services/api/products';
 
 export default function ProductPage() {
@@ -35,7 +32,7 @@ export default function ProductPage() {
     );
   }
 
-  if (!screen.product.id && !capabilities.isNew) {
+  if (!(screen.product.id || capabilities.isNew)) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />

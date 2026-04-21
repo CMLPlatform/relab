@@ -8,6 +8,8 @@ import {
   openOAuthBrowserSession,
 } from '@/services/api/oauthFlow';
 
+const OAUTH_DETAIL_PATTERN = /[?&]detail=([^&]*)/;
+
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
@@ -47,7 +49,7 @@ export function useOAuthAssociations({
       await createAuthorizedHeaders(),
     );
 
-    if (!authorization.ok || !authorization.authorizationUrl) {
+    if (!(authorization.ok && authorization.authorizationUrl)) {
       throw new Error(authorization.detail || 'Failed to reach association endpoint.');
     }
 
@@ -74,7 +76,7 @@ export function useOAuthAssociations({
       }
 
       if (result.type === 'success') {
-        const detail = result.url?.match(/[?&]detail=([^&]*)/)?.[1];
+        const detail = result.url?.match(OAUTH_DETAIL_PATTERN)?.[1];
         feedback.error(
           detail ? decodeURIComponent(detail) : 'Access was denied.',
           'YouTube authorization failed',

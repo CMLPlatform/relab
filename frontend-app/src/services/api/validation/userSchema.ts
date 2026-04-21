@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Re-export constants from user.ts for backward compatibility and single source of truth
+// Canonical validation constraints used by the auth schemas and helper text.
 export const USERNAME_MIN_LENGTH = 2;
 export const USERNAME_MAX_LENGTH = 50;
 export const USERNAME_PATTERN = /^\w+$/; // Only letters, numbers, and underscores

@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useDialog } from '@/components/common/DialogProvider';
-import { useAuth } from '@/context/AuthProvider';
-import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
+import { useForm, useWatch } from 'react-hook-form';
+import { useDialog } from '@/components/common/dialogContext';
+import { useAuth } from '@/context/auth';
+import { useEffectiveColorScheme } from '@/context/themeMode';
 import { login, register } from '@/services/api/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
 import { logError } from '@/utils/logging';
@@ -29,7 +29,11 @@ export function useNewAccountScreen() {
     defaultValues: { username: '', email: '', password: '' },
   });
 
-  const username = form.watch('username');
+  const username = useWatch({
+    control: form.control,
+    name: 'username',
+    defaultValue: '',
+  });
 
   const advanceFromUsername = async () => {
     const isValid = await form.trigger('username');

@@ -31,7 +31,7 @@ export function useGalleryIndexPersistence({
     };
 
     if (productId && imageCount > 0) {
-      void loadLastIndex();
+      loadLastIndex().catch(() => {});
     }
   }, [imageCount, productId]);
 

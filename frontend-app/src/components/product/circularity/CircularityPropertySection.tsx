@@ -1,5 +1,4 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Fragment } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
@@ -35,7 +34,7 @@ export function CircularityPropertySection({
   const { observation, comment, reference } = getCircularityValues(circularityProperties, config);
 
   return (
-    <Fragment>
+    <>
       <View style={[styles.divider, { backgroundColor: colors.outlineVariant }]} />
       <View style={styles.propertySection}>
         <View style={styles.propertyHeader}>
@@ -108,7 +107,7 @@ export function CircularityPropertySection({
           </View>
         ) : null}
       </View>
-    </Fragment>
+    </>
   );
 }
 

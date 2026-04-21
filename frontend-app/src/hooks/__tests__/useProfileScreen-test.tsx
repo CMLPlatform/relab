@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
 import type React from 'react';
-import { useProfileScreen } from '@/hooks/useProfileScreen';
+import { useProfileScreen } from '@/hooks/profile/useProfileScreen';
 
 const mockReplace: jest.Mock = jest.fn();
 const mockRefetch: jest.Mock = jest.fn();
@@ -55,15 +55,15 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => mockAuthState,
 }));
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => mockStreamSessionState,
 }));
 
-jest.mock('@/context/ThemeModeProvider', () => ({
+jest.mock('@/context/themeMode', () => ({
   useThemeMode: () => mockThemeModeState,
 }));
 

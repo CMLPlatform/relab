@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import {
-  ProductImageCameraDialogs,
-  ProductImageEmptyEditState,
-  ProductImageGalleryContent,
-  ProductImageThumbnails,
-} from '@/components/product/gallery/ProductImageGallerySections';
-import { renderWithProviders } from '@/test-utils';
+import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
+import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
+import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
+import { ProductImageThumbnails } from '@/components/product/gallery/ProductImageThumbnails';
+import { renderWithProviders } from '@/test-utils/index';
 
 jest.mock('expo-image', () => ({
   Image: ({ source }: { source: { uri: string } }) => {
@@ -73,7 +71,7 @@ jest.mock('@/components/cameras/LivePreview', () => ({
   LivePreview: () => null,
 }));
 
-describe('ProductImageGallerySections', () => {
+describe('product gallery section components', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

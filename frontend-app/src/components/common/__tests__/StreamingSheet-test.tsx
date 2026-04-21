@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { StreamingSheet } from '@/components/common/StreamingSheet';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 
 const mockStreamingContent = jest.fn();
 

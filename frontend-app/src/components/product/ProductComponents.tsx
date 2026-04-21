@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Button } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import { useDialog } from '@/components/common/DialogProvider';
+import { useDialog } from '@/components/common/dialogContext';
 import ProductCard from '@/components/common/ProductCard';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { productComponents } from '@/services/api/products';
@@ -29,12 +29,17 @@ export default function ProductComponents({ product, editMode }: Props) {
 
   // Effects
   useEffect(() => {
-    productComponents(product).then(setComponents);
-  }, [product]);
+    async function loadComponents() {
+      try {
+        const nextComponents = await productComponents(product);
+        setComponents(nextComponents);
+      } catch {
+        // Keep the section empty when the subcomponent query fails.
+      }
+    }
 
-  useEffect(() => {
-    setExpanded(false);
-  }, []);
+    loadComponents().catch(() => {});
+  }, [product]);
 
   // Callbacks
   const newComponent = () => {

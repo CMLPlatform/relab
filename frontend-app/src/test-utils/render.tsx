@@ -44,7 +44,7 @@ export function renderWithProviders(
   });
 
   // withThemeMode requires auth since ThemeModeProvider calls useAuth()
-  const needsAuth = withAuth || withThemeMode;
+  const needsAuth = withAuth ? true : withThemeMode;
   const testTheme = {
     ...MD3LightTheme,
     animation: {

@@ -4,7 +4,7 @@ import {
   showGoogleAccountRequired,
   showStreamStartFailed,
 } from '@/components/cameras/streamingFeedback';
-import { useStreamSession } from '@/context/StreamSessionContext';
+import { useStreamSession } from '@/context/streamSession';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { addProductVideo } from '@/services/api/products';
 import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';

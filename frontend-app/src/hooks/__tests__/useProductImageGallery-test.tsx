@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useProductImageGallery } from '@/hooks/useProductImageGallery';
+import { useProductImageGallery } from '@/hooks/products/useProductImageGallery';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import type { Product } from '@/types/Product';
 
@@ -60,6 +60,7 @@ const baseProduct = {
   ownedBy: 'me',
 } as unknown as Product;
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: gallery-hook coverage intentionally shares one media fixture matrix.
 describe('useProductImageGallery', () => {
   beforeEach(() => {
     jest.clearAllMocks();

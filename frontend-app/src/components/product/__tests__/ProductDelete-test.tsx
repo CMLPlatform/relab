@@ -1,11 +1,12 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
-import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-utils/index';
 
 import type { Product } from '@/types/Product';
 import ProductDelete from '../ProductDelete';
 
 const existingProduct: Product = { ..._base, id: 42 };
+const DELETE_CONFIRMATION_PATTERN = /Are you sure/;
 
 describe('ProductDelete', () => {
   const user = setupUser();
@@ -38,7 +39,7 @@ describe('ProductDelete', () => {
     await user.press(screen.getByText('Delete product'));
 
     expect(screen.getByText('Delete Product')).toBeOnTheScreen();
-    expect(screen.getByText(/Are you sure/)).toBeOnTheScreen();
+    expect(screen.getByText(DELETE_CONFIRMATION_PATTERN)).toBeOnTheScreen();
   });
 
   it('pressing Cancel in the dialog does not call onDelete', async () => {

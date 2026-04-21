@@ -1,4 +1,5 @@
 export type LocalConnectionMode = 'probing' | 'local' | 'relay';
+const TRAILING_SLASH_PATTERN = /\/$/;
 
 export interface LocalConnectionState {
   mode: LocalConnectionMode;
@@ -45,7 +46,7 @@ export function createInitialLocalConnectionState(): LocalConnectionState {
 }
 
 export function normalizeLocalConnectionUrl(baseUrl: string): string {
-  return baseUrl.replace(/\/$/, '');
+  return baseUrl.replace(TRAILING_SLASH_PATTERN, '');
 }
 
 export function deriveLocalMediaUrl(baseUrl: string | null): string | null {

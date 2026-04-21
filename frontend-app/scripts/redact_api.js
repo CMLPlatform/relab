@@ -24,7 +24,7 @@
     node scripts/redact_api.js
 */
 // Support both CommonJS and ESM execution environments.
-(async () => {
+async function main() {
   const modFs = typeof require === 'function' ? require('node:fs') : await import('node:fs');
   const modPath = typeof require === 'function' ? require('node:path') : await import('node:path');
   const fs = modFs.default ?? modFs;
@@ -50,4 +50,9 @@
   }
   fs.writeFileSync(file, out, 'utf8');
   console.log('Redacted JWT examples in', file);
-})();
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

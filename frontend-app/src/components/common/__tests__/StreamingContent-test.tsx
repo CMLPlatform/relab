@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { Linking } from 'react-native';
 import { StreamingContent } from '@/components/common/StreamingContent';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 
 const mockPush = jest.fn();
 const mockSetActiveStream = jest.fn();
@@ -24,7 +24,7 @@ jest.mock('@/components/cameras/LivePreview', () => ({
   LivePreview: () => null,
 }));
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({ setActiveStream: mockSetActiveStream }),
 }));
 

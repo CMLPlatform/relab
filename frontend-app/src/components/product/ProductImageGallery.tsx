@@ -1,15 +1,13 @@
 // spell-checker: ignore Zoomable
 
 import { View } from 'react-native';
-import {
-  ProductImageCameraDialogs,
-  ProductImageEmptyEditState,
-  ProductImageGalleryContent,
-  ProductImagePlaceholder,
-  ProductImageThumbnails,
-} from '@/components/product/gallery/ProductImageGallerySections';
+import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
+import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
+import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
 import { ProductImageLightbox } from '@/components/product/gallery/ProductImageLightbox';
-import { useProductImageGallery } from '@/hooks/useProductImageGallery';
+import { ProductImagePlaceholder } from '@/components/product/gallery/ProductImagePlaceholder';
+import { ProductImageThumbnails } from '@/components/product/gallery/ProductImageThumbnails';
+import { useProductImageGallery } from '@/hooks/products/useProductImageGallery';
 import type { Product } from '@/types/Product';
 
 interface Props {
@@ -24,6 +22,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     editMode,
     onImagesChange,
   });
+  const handleTakePhoto = async () => actions.takePhoto();
+  const handlePickImage = async () => actions.pickImage();
 
   if (media.imageCount === 0 && !editMode) {
     return <ProductImagePlaceholder width={media.width} label={product.name} />;
@@ -49,12 +49,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           hasCamerasConfigured={capture.hasCamerasConfigured}
           isCapturing={capture.isCapturing}
           rpiCamerasLoading={capture.rpiCamerasLoading}
-          onTakePhoto={() => {
-            void actions.takePhoto();
-          }}
-          onPickImage={() => {
-            void actions.pickImage();
-          }}
+          onTakePhoto={handleTakePhoto}
+          onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}
           onDeleteImage={() => actions.deleteImage(viewer.selectedIndex)}
         />
@@ -65,12 +61,8 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           hasCamerasConfigured={capture.hasCamerasConfigured}
           isCapturing={capture.isCapturing}
           rpiCamerasLoading={capture.rpiCamerasLoading}
-          onTakePhoto={() => {
-            void actions.takePhoto();
-          }}
-          onPickImage={() => {
-            void actions.pickImage();
-          }}
+          onTakePhoto={handleTakePhoto}
+          onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}
         />
       ) : null}

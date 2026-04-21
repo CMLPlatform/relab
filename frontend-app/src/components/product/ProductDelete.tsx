@@ -1,5 +1,5 @@
 import { Button } from 'react-native-paper';
-import { useDialog } from '@/components/common/DialogProvider';
+import { useDialog } from '@/components/common/dialogContext';
 import type { Product } from '@/types/Product';
 
 interface Props {

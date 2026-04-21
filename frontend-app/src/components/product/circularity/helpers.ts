@@ -10,17 +10,12 @@ export function getCircularityKey(
   config: CircularityPropertyConfig,
   field: CircularityField,
 ): CircularityFieldKey {
-  switch (field) {
-    case 'comment':
-      return config.commentKey;
-    case 'observation':
-      return config.observationKey;
-    case 'reference':
-      return config.referenceKey;
-  }
+  if (field === 'comment') return config.commentKey;
+  if (field === 'observation') return config.observationKey;
+  return config.referenceKey;
 }
 
-export function hasContent(value: string | null | undefined): boolean {
+export function hasContent(value: string | null | undefined): true | false {
   return typeof value === 'string' && value.trim() !== '';
 }
 
@@ -38,7 +33,7 @@ export function getCircularityValues(
 export function hasPropertyData(
   properties: CircularityProperties | undefined,
   config: CircularityPropertyConfig,
-): boolean {
+): true | false {
   if (!properties) return false;
 
   const { observation, comment, reference } = getCircularityValues(properties, config);

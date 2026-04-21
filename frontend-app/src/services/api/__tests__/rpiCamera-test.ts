@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import * as auth from '../authentication';
+import { fetchWithAuth } from '../authentication';
 import {
   buildCameraHlsUrl,
   buildLocalHlsUrl,
@@ -18,7 +18,9 @@ jest.mock('@/services/api/authentication', () => ({
   fetchWithAuth: jest.fn(),
 }));
 
-const mockFetchWithAuth = jest.mocked(auth.fetchWithAuth);
+const mockFetchWithAuth = jest.mocked(fetchWithAuth);
+const PREVIEW_THUMBNAIL_PATH_PATTERN = /\/uploads\/images\/rpi-cam-preview\/cam-1\.jpg$/;
+const ABSOLUTE_URL_PATTERN = /^https?:\/\//;
 
 function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
   mockFetchWithAuth.mockResolvedValueOnce({
@@ -28,6 +30,7 @@ function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
   } as Response);
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: RPi camera service coverage uses one shared fetch spy and payload matrix.
 describe('rpiCamera API service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -39,7 +42,13 @@ describe('rpiCamera API service', () => {
     const result = await fetchCameras(true);
 
     expect(result).toEqual([
-      { id: 'cam-1', name: 'Desk Cam', last_image_url: null, last_image_thumbnail_url: null },
+      {
+        id: 'cam-1',
+        name: 'Desk Cam',
+        last_image_url: null,
+        last_image_thumbnail_url: null,
+        last_preview_thumbnail_url: null,
+      },
     ]);
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -62,6 +71,7 @@ describe('rpiCamera API service', () => {
       name: 'Desk Cam',
       last_image_url: null,
       last_image_thumbnail_url: null,
+      last_preview_thumbnail_url: null,
     });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -209,6 +219,21 @@ describe('rpiCamera API service', () => {
     );
     const urlArg = mockFetchWithAuth.mock.calls[0]?.[0] as URL;
     expect(urlArg.searchParams.get('include_telemetry')).toBe('true');
+  });
+
+  it('normalizes preview thumbnail URLs through the API media resolver', async () => {
+    mockJsonResponse({
+      id: 'cam-1',
+      name: 'Desk Cam',
+      last_image_url: null,
+      last_image_thumbnail_url: null,
+      last_preview_thumbnail_url: '/uploads/images/rpi-cam-preview/cam-1.jpg',
+    });
+
+    const result = await fetchCamera('cam-1', true);
+
+    expect(result.last_preview_thumbnail_url).toMatch(PREVIEW_THUMBNAIL_PATH_PATTERN);
+    expect(result.last_preview_thumbnail_url).toMatch(ABSOLUTE_URL_PATTERN);
   });
 
   it('omits include_telemetry when the flag is false', async () => {

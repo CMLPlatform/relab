@@ -1,9 +1,10 @@
-import * as Linking from 'expo-linking';
+import { openURL } from 'expo-linking';
 import { View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { DOCS_URL } from '@/config';
-import { ProfileAction, ProfileSectionHeader, profileSectionStyles as styles } from './shared';
+import { ProfileAction, ProfileSectionHeader } from './shared';
+import { profileSectionStyles as styles } from './styles';
 
 type ProfileIntegrationsSectionProps = {
   rpiEnabled: boolean;
@@ -40,7 +41,7 @@ export function ProfileIntegrationsSection({
               Capture images with a Raspberry Pi camera during disassembly.{' '}
               <Text
                 style={styles.docsLink}
-                onPress={() => Linking.openURL(`${DOCS_URL}/user-guides/rpi-cam`)}
+                onPress={() => openURL(`${DOCS_URL}/user-guides/rpi-cam`)}
               >
                 Learn more
               </Text>

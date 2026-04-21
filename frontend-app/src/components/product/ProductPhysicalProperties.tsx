@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import { View } from 'react-native';
 import { Divider } from 'react-native-paper';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
@@ -51,7 +50,7 @@ export default function ProductPhysicalProperties({
         depth={product.physicalProperties.depth}
       />
       {Object.keys(product.physicalProperties).map((prop) => (
-        <Fragment key={prop}>
+        <View key={prop}>
           <Divider />
           <LocalizedFloatInput
             label={nameMap[prop as keyof PhysicalProperties]}
@@ -62,7 +61,7 @@ export default function ProductPhysicalProperties({
             min={0}
             placeholder="> 0"
           />
-        </Fragment>
+        </View>
       ))}
     </View>
   );

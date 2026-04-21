@@ -11,6 +11,18 @@
 import { expect, test } from '@playwright/test';
 import { loginAndReachProducts, reachProductsPage, selectMenuItem } from './helpers';
 
+const SORT_CREATED_AT_URL_PATTERN = /sort=created_at/;
+const SORT_NAME_URL_PATTERN = /sort=name/;
+const DAYS_7_URL_PATTERN = /days=7/;
+const DAYS_30_URL_PATTERN = /days=30/;
+const DAYS_90_URL_PATTERN = /days=90/;
+const ANY_DAYS_URL_PATTERN = /days=/;
+const BRANDS_URL_PATTERN = /brands=/;
+const SEARCH_QUERY_URL_PATTERN = /q=test-query-abc/;
+const ANY_SEARCH_QUERY_URL_PATTERN = /q=/;
+const FILTER_MODE_MINE_URL_PATTERN = /filterMode=mine/;
+const FILTER_MODE_ALL_URL_PATTERN = /filterMode=all/;
+
 /** Navigate to /products and dismiss the welcome card if present. */
 async function goToProducts(page: import('@playwright/test').Page) {
   await reachProductsPage(page);
@@ -39,14 +51,14 @@ test.describe('Sort menu', () => {
     await goToProducts(page);
     await page.getByLabel('Sort products').click();
     await selectMenuItem(page, 'Oldest first');
-    await expect(page).toHaveURL(/sort=created_at/, { timeout: 3_000 });
+    await expect(page).toHaveURL(SORT_CREATED_AT_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('selecting "Name A→Z" updates the URL sort param', async ({ page }) => {
     await goToProducts(page);
     await page.getByLabel('Sort products').click();
     await selectMenuItem(page, 'Name A→Z');
-    await expect(page).toHaveURL(/sort=name/, { timeout: 3_000 });
+    await expect(page).toHaveURL(SORT_NAME_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('sort menu closes after selecting an option', async ({ page }) => {
@@ -76,32 +88,32 @@ test.describe('Date filter chips', () => {
     await goToProducts(page);
     await page.getByText('Date', { exact: true }).click();
     await selectMenuItem(page, 'Last 7d');
-    await expect(page).toHaveURL(/days=7/, { timeout: 3_000 });
+    await expect(page).toHaveURL(DAYS_7_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('clicking an active preset again removes the days param', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Date', { exact: true }).click();
     await selectMenuItem(page, 'Last 30d');
-    await expect(page).toHaveURL(/days=30/, { timeout: 3_000 });
+    await expect(page).toHaveURL(DAYS_30_URL_PATTERN, { timeout: 3_000 });
     // Toggle off via the close (×) button on the active chip
     await page.getByRole('button', { name: 'Close' }).click();
-    await expect(page).not.toHaveURL(/days=/, { timeout: 5_000 });
+    await expect(page).not.toHaveURL(ANY_DAYS_URL_PATTERN, { timeout: 5_000 });
   });
 
   test('only one date preset can be active at a time', async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Date', { exact: true }).click();
     await selectMenuItem(page, 'Last 7d');
-    await expect(page).toHaveURL(/days=7/, { timeout: 3_000 });
+    await expect(page).toHaveURL(DAYS_7_URL_PATTERN, { timeout: 3_000 });
     // Navigate fresh so the Date chip is in its initial state, then select a different preset.
     // This avoids the unreliable close-and-reopen menu flow while still verifying that
     // only one preset can be in the URL at a time.
     await goToProducts(page);
     await page.getByText('Date', { exact: true }).click();
     await selectMenuItem(page, 'Last 90d');
-    await expect(page).toHaveURL(/days=90/, { timeout: 5_000 });
-    await expect(page).not.toHaveURL(/days=7/);
+    await expect(page).toHaveURL(DAYS_90_URL_PATTERN, { timeout: 5_000 });
+    await expect(page).not.toHaveURL(DAYS_7_URL_PATTERN);
   });
 });
 
@@ -128,7 +140,7 @@ test.describe('Brand filter', () => {
       timeout: 3_000,
     });
     // URL should not contain brands param
-    await expect(page).not.toHaveURL(/brands=/);
+    await expect(page).not.toHaveURL(BRANDS_URL_PATTERN);
   });
 });
 
@@ -150,7 +162,7 @@ test.describe('Search URL sync', () => {
     await goToProducts(page);
     await page.getByPlaceholder('Search products').fill('test-query-abc');
     // The products page debounces search by 500 ms; allow up to 2 s for the URL to update
-    await expect(page).toHaveURL(/q=test-query-abc/, { timeout: 2_000 });
+    await expect(page).toHaveURL(SEARCH_QUERY_URL_PATTERN, { timeout: 2_000 });
   });
 
   test('clearing the search bar removes the q param from the URL', async ({ page }) => {
@@ -159,7 +171,7 @@ test.describe('Search URL sync', () => {
       timeout: 10_000,
     });
     await page.getByPlaceholder('Search products').clear();
-    await expect(page).not.toHaveURL(/q=/, { timeout: 2_000 });
+    await expect(page).not.toHaveURL(ANY_SEARCH_QUERY_URL_PATTERN, { timeout: 2_000 });
   });
 
   test('search query loaded from URL populates the search bar', async ({ page }) => {
@@ -186,15 +198,15 @@ test.describe('My Products filter', () => {
   test('clicking My Products updates the filterMode URL param', async ({ page }) => {
     await loginAndReachProducts(page);
     await page.getByText('Mine', { exact: true }).click();
-    await expect(page).toHaveURL(/filterMode=mine/, { timeout: 3_000 });
+    await expect(page).toHaveURL(FILTER_MODE_MINE_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('switching back to All Products clears filterMode=mine', async ({ page }) => {
     await loginAndReachProducts(page);
     await page.getByText('Mine', { exact: true }).click();
-    await expect(page).toHaveURL(/filterMode=mine/, { timeout: 3_000 });
+    await expect(page).toHaveURL(FILTER_MODE_MINE_URL_PATTERN, { timeout: 3_000 });
     // Click "Mine" again to toggle back to all
     await page.getByText('Mine', { exact: true }).click();
-    await expect(page).toHaveURL(/filterMode=all/, { timeout: 3_000 });
+    await expect(page).toHaveURL(FILTER_MODE_ALL_URL_PATTERN, { timeout: 3_000 });
   });
 });

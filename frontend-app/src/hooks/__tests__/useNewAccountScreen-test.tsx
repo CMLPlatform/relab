@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useNewAccountScreen } from '@/hooks/useNewAccountScreen';
+import { useNewAccountScreen } from '@/hooks/auth/useNewAccountScreen';
 
 const mockReplace = jest.fn();
 const mockDismissTo = jest.fn();
@@ -17,13 +17,19 @@ jest.mock('expo-router', () => ({
   }),
 }));
 
-jest.mock('@/components/common/DialogProvider', () => ({
-  useDialog: () => ({
-    alert: mockAlert,
-  }),
-}));
+jest.mock('@/components/common/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
+    '@/components/common/dialogContext',
+  );
+  return {
+    ...actual,
+    useDialog: () => ({
+      alert: mockAlert,
+    }),
+  };
+});
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => ({
     user: null,
     isLoading: false,
@@ -31,7 +37,7 @@ jest.mock('@/context/AuthProvider', () => ({
   }),
 }));
 
-jest.mock('@/context/ThemeModeProvider', () => ({
+jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: () => 'light',
 }));
 
@@ -58,6 +64,7 @@ jest.mock('react-hook-form', () => ({
           password: 'password123',
         }),
   }),
+  useWatch: () => 'newuser',
 }));
 
 jest.mock('@hookform/resolvers/zod', () => ({

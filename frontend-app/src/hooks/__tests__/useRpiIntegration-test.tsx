@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/authentication';
 import type { User } from '@/types/User';
 import { useRpiIntegration } from '../useRpiIntegration';
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),
 }));
 
@@ -62,5 +62,18 @@ describe('useRpiIntegration', () => {
       preferences: { rpi_camera_enabled: true },
     });
     expect(refetch).toHaveBeenCalledWith(false);
+  });
+
+  it('reports loading when auth has not produced a user yet', () => {
+    mockedUseAuth.mockReturnValue({
+      user: undefined,
+      refetch: refetch as (forceRefresh?: boolean) => Promise<void>,
+      isLoading: true,
+    });
+
+    const { result } = renderHook(() => useRpiIntegration());
+
+    expect(result.current.enabled).toBe(false);
+    expect(result.current.loading).toBe(true);
   });
 });

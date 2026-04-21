@@ -6,7 +6,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
+import { useEffectiveColorScheme } from '@/context/themeMode';
 
 export function AnimatedBackground() {
   const rotation = useAnimatedSensor(SensorType.ROTATION, { interval: 20 });

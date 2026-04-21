@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/base/Text';
-import { useStreamSession } from '@/context/StreamSessionContext';
+import { useStreamSession } from '@/context/streamSession';
 import { useElapsed } from '@/hooks/useElapsed';
 import { getActiveStreamBannerBottomInset, getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';

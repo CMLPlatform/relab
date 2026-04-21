@@ -2,7 +2,8 @@ import { Pressable, View } from 'react-native';
 import { Icon, useTheme } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import type { ThemeMode, User } from '@/types/User';
-import { ProfileSectionHeader, profileSectionStyles as styles } from './shared';
+import { ProfileSectionHeader } from './shared';
+import { profileSectionStyles as styles } from './styles';
 
 type ProfileAppearanceSectionProps = {
   themeMode: ThemeMode;

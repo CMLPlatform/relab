@@ -1,13 +1,21 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Button } from 'react-native-paper';
 import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import { useDialog } from '@/components/common/DialogProvider';
+import { useDialog } from '@/components/common/dialogContext';
 import { StreamingContent } from '@/components/common/StreamingContent';
-import type { StreamSession } from '@/context/StreamSessionContext';
-import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
+import type { StreamSession } from '@/context/streamSession';
+import { useEffectiveColorScheme } from '@/context/themeMode';
 import { extractYouTubeVideoId, isValidUrl } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 
@@ -57,10 +65,8 @@ export default function ProductVideo({
   const [expanded, setExpanded] = useState(false);
   const dialog = useDialog();
   const darkMode = useEffectiveColorScheme() === 'dark';
-
-  useEffect(() => {
-    if (streamingThisProduct) setExpanded(true);
-  }, [streamingThisProduct]);
+  const linkColor = darkMode ? '#6dd5ed' : '#0062cc';
+  const textColor = darkMode ? '#e1e2e4' : '#000000';
 
   const handleVideoChange = (
     idx: number,
@@ -87,9 +93,9 @@ export default function ProductVideo({
         { text: 'Cancel' },
         {
           text: 'Add',
-          disabled: (value) => !value?.trim() || !isValidUrl(value),
+          disabled: (value) => !(value?.trim() && isValidUrl(value)),
           onPress: (url) => {
-            if (!url || !isValidUrl(url)) return;
+            if (!(url && isValidUrl(url))) return;
             const updated = [...videos, { url: url.trim(), title: '', description: '' }];
             setVideos(updated);
             onVideoChange?.(updated);
@@ -113,8 +119,16 @@ export default function ProductVideo({
 
   const showGoLiveCta =
     !isNew && ownedByMe && rpiEnabled && !streamingThisProduct && !isProductComponent;
-
-  const showExpandToggle = !editMode && videos.length > 0;
+  const hasVideos = videos.length > 0;
+  const showExpandToggle = !editMode && hasVideos;
+  const showVideoRows = editMode || streamingThisProduct || expanded;
+  const showEmptyState = !(
+    editMode ||
+    expanded ||
+    streamingThisProduct ||
+    showGoLiveCta ||
+    hasVideos
+  );
 
   return (
     <View>
@@ -122,17 +136,15 @@ export default function ProductVideo({
         title="Video"
         tooltipTitle="Add uploaded recordings or start a live stream."
         rightElement={
-          editMode ? (
-            <TouchableOpacity onPress={handleAdd} style={{ marginTop: 4 }}>
-              <Text style={{ color: darkMode ? '#6dd5ed' : '#0062cc' }}>Add video</Text>
-            </TouchableOpacity>
-          ) : showExpandToggle ? (
-            <Pressable onPress={() => setExpanded((v) => !v)} style={{ marginTop: 4 }}>
-              <Text style={{ color: darkMode ? '#6dd5ed' : '#0062cc' }}>
-                {expanded ? 'Hide' : `Show (${videos.length})`}
-              </Text>
-            </Pressable>
-          ) : undefined
+          <VideoHeaderAction
+            editMode={editMode}
+            showExpandToggle={showExpandToggle}
+            isExpanded={expanded}
+            videoCount={videos.length}
+            linkColor={linkColor}
+            onAdd={handleAdd}
+            onToggleExpanded={() => setExpanded((value) => !value)}
+          />
         }
       />
 
@@ -149,77 +161,147 @@ export default function ProductVideo({
         />
       ) : null}
 
-      {(editMode || expanded) &&
-        videos.map((video, idx) => (
-          <View
-            key={video.id ?? idx}
-            style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
-          >
-            <View style={{ flex: 1 }}>
-              <TextInput
-                style={{
-                  paddingHorizontal: 14,
-                  fontSize: 20,
-                  fontWeight: 'bold',
-                  lineHeight: 16,
-                  color: darkMode ? '#e1e2e4' : '#000000',
-                }}
-                placeholder="Title"
-                value={video.title}
-                onChangeText={(val) => handleVideoChange(idx, 'title', val)}
-                editable={editMode}
-                errorOnEmpty
-              />
-              {editMode ? (
-                <TextInput
-                  style={{
-                    paddingHorizontal: 14,
-                    fontSize: 16,
-                    lineHeight: 26,
-                    color: darkMode ? '#e1e2e4' : '#000000',
-                  }}
-                  placeholder="Video URL"
-                  value={video.url}
-                  onChangeText={(val) => handleVideoChange(idx, 'url', val)}
-                  errorOnEmpty
-                  customValidation={isValidUrl}
-                  editable={editMode}
-                />
-              ) : (
-                <VideoEmbed url={video.url} darkMode={darkMode} />
-              )}
-              {(editMode || Boolean(video.description)) && (
-                <TextInput
-                  style={{
-                    paddingHorizontal: 14,
-                    fontSize: 16,
-                    lineHeight: 16,
-                    color: darkMode ? '#e1e2e4' : '#000000',
-                  }}
-                  placeholder="Add description (optional)"
-                  value={video.description}
-                  onChangeText={(val) => handleVideoChange(idx, 'description', val)}
-                  editable={editMode}
-                />
-              )}
-            </View>
-            {editMode && (
-              <TouchableOpacity
-                testID={`delete-video-${idx}`}
-                onPress={() => handleRemove(idx)}
-                style={{ padding: 14, justifyContent: 'center', alignItems: 'center' }}
-              >
-                <MaterialCommunityIcons name="delete" size={24} color="red" />
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
+      {showVideoRows ? (
+        <VideoList
+          videos={videos}
+          editMode={editMode}
+          textColor={textColor}
+          linkColor={linkColor}
+          onVideoChange={handleVideoChange}
+          onRemove={handleRemove}
+        />
+      ) : null}
 
-      {!editMode && !expanded && !streamingThisProduct && !showGoLiveCta && videos.length === 0 && (
-        <Text style={{ opacity: 0.7, marginBottom: 8, color: darkMode ? '#c0c8cd' : '#666666' }}>
-          This product has no associated videos.
-        </Text>
-      )}
+      {showEmptyState ? <EmptyVideoState darkMode={darkMode} /> : null}
+    </View>
+  );
+}
+
+function VideoHeaderAction({
+  editMode,
+  showExpandToggle,
+  isExpanded,
+  videoCount,
+  linkColor,
+  onAdd,
+  onToggleExpanded,
+}: {
+  editMode: boolean;
+  showExpandToggle: boolean;
+  isExpanded: boolean;
+  videoCount: number;
+  linkColor: string;
+  onAdd: () => void;
+  onToggleExpanded: () => void;
+}) {
+  if (editMode) {
+    return (
+      <TouchableOpacity onPress={onAdd} style={styles.headerAction}>
+        <Text style={{ color: linkColor }}>Add video</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  if (!showExpandToggle) {
+    return null;
+  }
+
+  return (
+    <Pressable onPress={onToggleExpanded} style={styles.headerAction}>
+      <Text style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</Text>
+    </Pressable>
+  );
+}
+
+function VideoList({
+  videos,
+  editMode,
+  textColor,
+  linkColor,
+  onVideoChange,
+  onRemove,
+}: {
+  videos: Video[];
+  editMode: boolean;
+  textColor: string;
+  linkColor: string;
+  onVideoChange: (idx: number, field: 'url' | 'title' | 'description', value: string) => void;
+  onRemove: (idx: number) => void;
+}) {
+  return videos.map((video, idx) => (
+    <VideoRow
+      key={video.id ?? idx}
+      video={video}
+      idx={idx}
+      editMode={editMode}
+      textColor={textColor}
+      linkColor={linkColor}
+      onVideoChange={onVideoChange}
+      onRemove={onRemove}
+    />
+  ));
+}
+
+function VideoRow({
+  video,
+  idx,
+  editMode,
+  textColor,
+  linkColor,
+  onVideoChange,
+  onRemove,
+}: {
+  video: Video;
+  idx: number;
+  editMode: boolean;
+  textColor: string;
+  linkColor: string;
+  onVideoChange: (idx: number, field: 'url' | 'title' | 'description', value: string) => void;
+  onRemove: (idx: number) => void;
+}) {
+  return (
+    <View style={styles.videoRow}>
+      <View style={styles.videoFields}>
+        <TextInput
+          style={[styles.titleInput, { color: textColor }]}
+          placeholder="Title"
+          value={video.title}
+          onChangeText={(value) => onVideoChange(idx, 'title', value)}
+          editable={editMode}
+          errorOnEmpty
+        />
+        {editMode ? (
+          <TextInput
+            style={[styles.bodyInput, { color: textColor }]}
+            placeholder="Video URL"
+            value={video.url}
+            onChangeText={(value) => onVideoChange(idx, 'url', value)}
+            errorOnEmpty
+            customValidation={isValidUrl}
+            editable={editMode}
+          />
+        ) : (
+          <VideoEmbed url={video.url} linkColor={linkColor} />
+        )}
+        {(editMode || Boolean(video.description)) && (
+          <TextInput
+            style={[styles.descriptionInput, { color: textColor }]}
+            placeholder="Add description (optional)"
+            value={video.description}
+            onChangeText={(value) => onVideoChange(idx, 'description', value)}
+            editable={editMode}
+          />
+        )}
+      </View>
+      {editMode ? (
+        <TouchableOpacity
+          testID={`delete-video-${idx}`}
+          onPress={() => onRemove(idx)}
+          style={styles.deleteButton}
+        >
+          <MaterialCommunityIcons name="delete" size={24} color="red" />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -258,7 +340,7 @@ function GoLiveCTA({
       mode="outlined"
       icon="youtube"
       onPress={handlePress}
-      style={{ marginHorizontal: 14, marginBottom: 8, opacity: ready ? 1 : 0.5 }}
+      style={[styles.goLiveButton, { opacity: ready ? 1 : 0.5 }]}
     >
       Go Live
     </Button>
@@ -276,22 +358,13 @@ const embedContainerStyle = {
   overflow: 'hidden' as const,
 };
 
-function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
+function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
   const videoId = extractYouTubeVideoId(url);
+  const handleOpenUrl = async () => Linking.openURL(url);
   if (!videoId) {
     return (
-      <TouchableOpacity onPress={() => void Linking.openURL(url)}>
-        <Text
-          style={{
-            paddingHorizontal: 14,
-            fontSize: 16,
-            lineHeight: 26,
-            color: darkMode ? '#6dd5ed' : '#0062cc',
-            textDecorationLine: 'underline',
-          }}
-        >
-          {url}
-        </Text>
+      <TouchableOpacity onPress={handleOpenUrl}>
+        <Text style={[styles.videoLink, { color: linkColor }]}>{url}</Text>
       </TouchableOpacity>
     );
   }
@@ -302,7 +375,7 @@ function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
         <iframe
           src={embedUri}
           title="Embedded product video"
-          style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
+          style={styles.webEmbed}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
@@ -320,3 +393,66 @@ function VideoEmbed({ url, darkMode }: { url: string; darkMode: boolean }) {
     />
   );
 }
+
+function EmptyVideoState({ darkMode }: { darkMode: boolean }) {
+  return (
+    <Text style={[styles.emptyState, { color: darkMode ? '#c0c8cd' : '#666666' }]}>
+      This product has no associated videos.
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  headerAction: {
+    marginTop: 4,
+  },
+  videoRow: {
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  videoFields: {
+    flex: 1,
+  },
+  titleInput: {
+    paddingHorizontal: 14,
+    fontSize: 20,
+    fontWeight: 'bold',
+    lineHeight: 16,
+  },
+  bodyInput: {
+    paddingHorizontal: 14,
+    fontSize: 16,
+    lineHeight: 26,
+  },
+  descriptionInput: {
+    paddingHorizontal: 14,
+    fontSize: 16,
+    lineHeight: 16,
+  },
+  deleteButton: {
+    padding: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  goLiveButton: {
+    marginHorizontal: 14,
+    marginBottom: 8,
+  },
+  videoLink: {
+    paddingHorizontal: 14,
+    fontSize: 16,
+    lineHeight: 26,
+    textDecorationLine: 'underline',
+  },
+  webEmbed: {
+    width: '100%',
+    height: '100%',
+    borderWidth: 0,
+    borderRadius: 8,
+  },
+  emptyState: {
+    opacity: 0.7,
+    marginBottom: 8,
+  },
+});

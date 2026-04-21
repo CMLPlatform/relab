@@ -11,10 +11,18 @@
 import { expect, test } from '@playwright/test';
 import { EMAIL, finishOnboardingIfVisible, loginAndGoToProfile, PASSWORD } from './helpers';
 
+const LOGIN_URL_PATTERN = /login/;
+const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
+const PROFILE_URL_PATTERN = /profile/;
+const NEWSLETTER_STATUS_PATTERN = /You are (not )?subscribed\./;
+const GOOGLE_LINK_PATTERN = /^(Link Google Account|Unlink Google)$/;
+const GITHUB_LINK_PATTERN = /^(Link GitHub Account|Unlink GitHub)$/;
+const PRODUCTS_URL_PATTERN = /products/;
+
 test.describe('Profile: access', () => {
   test('unauthenticated visit redirects to login', async ({ page }) => {
     await page.goto('/profile');
-    await expect(page).toHaveURL(/login/, { timeout: 5_000 });
+    await expect(page).toHaveURL(LOGIN_URL_PATTERN, { timeout: 5_000 });
   });
 
   test('header shows username pill (not Sign In) after login', async ({ page }) => {
@@ -22,7 +30,7 @@ test.describe('Profile: access', () => {
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page).toHaveURL(/onboarding|products/, { timeout: 30_000 });
+    await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
     // Once authenticated, the header pill switches from "Sign In" to the username
     await expect(page.getByText('Sign In', { exact: true })).not.toBeVisible({
@@ -31,7 +39,7 @@ test.describe('Profile: access', () => {
     // The header also shows the email address as part of the identity in the profile page,
     // verifying the auth state is reflected. Navigate to /profile to confirm it loads.
     await page.goto('/profile');
-    await expect(page).toHaveURL(/profile/, { timeout: 5_000 });
+    await expect(page).toHaveURL(PROFILE_URL_PATTERN, { timeout: 5_000 });
     await expect(page.getByText('Hi,')).toBeVisible();
   });
 });
@@ -60,19 +68,19 @@ test.describe('Profile: content', () => {
   test('newsletter subscription status text is displayed', async ({ page }) => {
     await loginAndGoToProfile(page);
     // After loading, one of these must be visible
-    await expect(page.getByText(/You are (not )?subscribed\./)).toBeVisible({
+    await expect(page.getByText(NEWSLETTER_STATUS_PATTERN)).toBeVisible({
       timeout: 10_000,
     });
   });
 
   test('linked accounts section shows Google and GitHub options', async ({ page }) => {
     await loginAndGoToProfile(page);
-    await expect(page.getByText(/^(Link Google Account|Unlink Google)$/)).toBeVisible();
-    await expect(page.getByText(/^(Link GitHub Account|Unlink GitHub)$/)).toBeVisible();
+    await expect(page.getByText(GOOGLE_LINK_PATTERN)).toBeVisible();
+    await expect(page.getByText(GITHUB_LINK_PATTERN)).toBeVisible();
   });
 });
 
-test.describe('Profile: dialogs', () => {
+test.describe('Profile: username dialog', () => {
   test('tapping the username heading opens the edit-username dialog', async ({ page }) => {
     await loginAndGoToProfile(page);
     // The "Hi," Text and the username Pressable are siblings in the hero section.
@@ -90,7 +98,9 @@ test.describe('Profile: dialogs', () => {
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByText('Edit Username')).not.toBeVisible();
   });
+});
 
+test.describe('Profile: logout dialog', () => {
   test('logout button opens the confirmation dialog', async ({ page }) => {
     await loginAndGoToProfile(page);
     // "Logout" appears in the Account section as a ProfileAction title
@@ -110,7 +120,7 @@ test.describe('Profile: dialogs', () => {
     });
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByText('Are you sure you want to log out?')).not.toBeVisible();
-    await expect(page).toHaveURL(/profile/);
+    await expect(page).toHaveURL(PROFILE_URL_PATTERN);
   });
 
   test('confirming logout navigates to products and shows Sign In header', async ({ page }) => {
@@ -121,13 +131,15 @@ test.describe('Profile: dialogs', () => {
     });
     // Click the dialog's Logout confirm button (last "Logout" on the page)
     await page.getByRole('button', { name: 'Logout' }).last().click();
-    await expect(page).toHaveURL(/products/, { timeout: 15_000 });
+    await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 15_000 });
     // The header should now show "Sign In" instead of the username
     await expect(page.getByText('Sign In', { exact: true })).toBeVisible({
       timeout: 5_000,
     });
   });
+});
 
+test.describe('Profile: delete dialog', () => {
   test('delete account dialog shows the contact email address', async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByText('Delete Account?').click();

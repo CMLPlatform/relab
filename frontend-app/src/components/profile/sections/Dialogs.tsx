@@ -2,7 +2,7 @@ import { Link } from 'expo-router';
 import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import LogoutConfirm from '@/components/common/LogoutConfirm';
-import { profileSectionStyles as styles } from './shared';
+import { profileSectionStyles as styles } from './styles';
 
 type ProfileDialogsProps = {
   editUsernameVisible: boolean;

@@ -4,10 +4,12 @@ import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text, Tooltip, useTheme } from 'react-native-paper';
 import { radius, spacing } from '@/constants/layout';
 
+const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
+
 const getIsMobileWeb = () =>
   Platform.OS === 'web' &&
   typeof navigator !== 'undefined' &&
-  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  MOBILE_USER_AGENT_PATTERN.test(navigator.userAgent);
 
 export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useTheme();

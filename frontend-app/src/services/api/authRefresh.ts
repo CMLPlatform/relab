@@ -29,7 +29,7 @@ export async function clearCachedAuthState(): Promise<void> {
 
 export async function getToken(): Promise<string | undefined> {
   if (authRuntime.token) return authRuntime.token;
-  if (isWeb()) return undefined;
+  if (isWeb()) return;
 
   try {
     const storedToken = await loadStoredAccessToken();
@@ -40,7 +40,7 @@ export async function getToken(): Promise<string | undefined> {
   } catch (err) {
     logError('[GetToken Error]:', err);
   }
-  return undefined;
+  return;
 }
 
 export async function refreshAuthToken(apiUrl: string): Promise<boolean> {

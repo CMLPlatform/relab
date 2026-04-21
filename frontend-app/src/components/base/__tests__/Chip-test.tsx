@@ -1,11 +1,15 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
-import * as ReactNative from 'react-native';
+import { View } from 'react-native';
 import DarkTheme from '@/assets/themes/dark';
 import LightTheme from '@/assets/themes/light';
-import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
-import { setupUser } from '@/test-utils';
+import { useEffectiveColorScheme } from '@/context/themeMode';
+import { setupUser } from '@/test-utils/index';
 import { Chip } from '../Chip';
+
+jest.mock('@/context/themeMode', () => ({
+  useEffectiveColorScheme: jest.fn(() => 'light'),
+}));
 
 describe('Chip', () => {
   const user = setupUser();
@@ -63,7 +67,7 @@ describe('Chip', () => {
 
   it('renders an icon when one is provided', () => {
     render(
-      <Chip icon={<ReactNative.View testID="chip-icon" />} title="With Icon">
+      <Chip icon={<View testID="chip-icon" />} title="With Icon">
         Chip Content
       </Chip>,
     );

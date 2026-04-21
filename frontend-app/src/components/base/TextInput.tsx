@@ -1,6 +1,6 @@
 import type React from 'react';
 import { TextInput as NativeTextInput, StyleSheet, type TextInputProps } from 'react-native';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme } from '@/theme';
 
 interface Props extends TextInputProps {
   errorOnEmpty?: boolean;
@@ -16,21 +16,24 @@ export function TextInput({
   ref,
   ...props
 }: Props) {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
   const emptyError = errorOnEmpty && (!props.value || props.value === '');
   const validationError = customValidation && props.value && !customValidation(props.value);
-  const error = emptyError || validationError;
+  const error = emptyError ? true : Boolean(validationError);
 
   return (
     <NativeTextInput
       ref={ref}
       style={[
         styles.input,
-        { color: colors.onSurface },
-        error && { backgroundColor: colors.errorContainer, color: colors.onErrorContainer },
+        { color: theme.colors.onSurface },
+        error && {
+          backgroundColor: theme.colors.errorContainer,
+          color: theme.colors.onErrorContainer,
+        },
         style,
       ]}
-      placeholderTextColor={colors.onSurface}
+      placeholderTextColor={theme.colors.onSurface}
       {...props}
     >
       {children}

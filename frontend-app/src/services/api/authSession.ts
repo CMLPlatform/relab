@@ -14,7 +14,7 @@ export const WEB_SESSION_FLAG = 'web_has_session';
 export const isWeb = () => Platform.OS === 'web';
 
 export async function loadStoredAccessToken() {
-  if (isWeb()) return undefined;
+  if (isWeb()) return;
   return getSecureItem(ACCESS_TOKEN_KEY);
 }
 
@@ -39,5 +39,5 @@ export function setWebSessionFlag(value: boolean) {
 
 export function hasWebSessionFlag() {
   if (!isWeb()) return false;
-  return !!getSessionItem(WEB_SESSION_FLAG);
+  return Boolean(getSessionItem(WEB_SESSION_FLAG));
 }

@@ -4,10 +4,13 @@ import {
   NewAccountPasswordStep,
   NewAccountUsernameStep,
 } from '@/components/auth/NewAccountSections';
-import { useNewAccountScreen } from '@/hooks/useNewAccountScreen';
+import { useNewAccountScreen } from '@/hooks/auth/useNewAccountScreen';
 
 export default function NewAccount() {
   const { ui, flow, form, actions } = useNewAccountScreen();
+  const handleAdvanceFromUsername = async () => actions.advanceFromUsername();
+  const handleAdvanceFromEmail = async () => actions.advanceFromEmail();
+  const handleCreateAccount = async () => actions.createAccount();
 
   return (
     <NewAccountLayout
@@ -21,9 +24,7 @@ export default function NewAccount() {
           errors={form.errors}
           headlineColor={ui.headlineColor}
           mutedColor={ui.mutedColor}
-          onAdvance={() => {
-            void actions.advanceFromUsername();
-          }}
+          onAdvance={handleAdvanceFromUsername}
         />
       ) : null}
 
@@ -34,9 +35,7 @@ export default function NewAccount() {
           headlineColor={ui.headlineColor}
           mutedColor={ui.mutedColor}
           username={flow.username}
-          onAdvance={() => {
-            void actions.advanceFromEmail();
-          }}
+          onAdvance={handleAdvanceFromEmail}
           onBack={actions.goBackToUsername}
         />
       ) : null}
@@ -49,9 +48,7 @@ export default function NewAccount() {
           mutedColor={ui.mutedColor}
           username={flow.username}
           isSubmitting={form.isSubmitting}
-          onSubmit={() => {
-            void actions.createAccount();
-          }}
+          onSubmit={handleCreateAccount}
           onBack={actions.goBackToEmail}
         />
       ) : null}

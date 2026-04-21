@@ -1,12 +1,8 @@
 import { View } from 'react-native';
 import { Button, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
-import {
-  type OAuthAccount,
-  ProfileAction,
-  ProfileSectionHeader,
-  profileSectionStyles as styles,
-} from './shared';
+import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared';
+import { profileSectionStyles as styles } from './styles';
 
 type ProfileAccountSectionProps = {
   isVerified: boolean;

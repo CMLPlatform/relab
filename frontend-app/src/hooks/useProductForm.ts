@@ -1,7 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { type FieldErrors, type FieldPath, type FieldPathValue, useForm } from 'react-hook-form';
+import {
+  type FieldErrors,
+  type FieldPath,
+  type FieldPathValue,
+  useForm,
+  useWatch,
+} from 'react-hook-form';
 
 /** Recursively extract the first error message from possibly nested FieldErrors. */
 function getFirstFormError(errors: FieldErrors): string | undefined {
@@ -14,11 +20,11 @@ function getFirstFormError(errors: FieldErrors): string | undefined {
       if (nested) return nested;
     }
   }
-  return undefined;
+  return;
 }
 
-import { useDialog } from '@/components/common/DialogProvider';
-import { useAuth } from '@/context/AuthProvider';
+import { useDialog } from '@/components/common/dialogContext';
+import { useAuth } from '@/context/auth';
 import {
   useDeleteProductMutation,
   useProductQuery,
@@ -34,51 +40,63 @@ import type { Product } from '@/types/Product';
  * Uses react-hook-form with zod validation internally, while keeping the same
  * external interface so child components don't need changes.
  */
-export function useProductForm(id: string) {
-  const router = useRouter();
-  const dialog = useDialog();
-  const { user } = useAuth();
+function buildValidationResult(
+  formState: ReturnType<typeof useForm<ProductFormValues>>['formState'],
+) {
+  return {
+    isValid: formState.isValid,
+    error: getFirstFormError(formState.errors),
+  };
+}
 
-  const isNew = id === 'new';
-  const numericId = isNew ? ('new' as const) : parseInt(id, 10);
+function useProductFieldHandlers(
+  setValue: ReturnType<typeof useForm<ProductFormValues>>['setValue'],
+) {
+  const updateField = <K extends FieldPath<ProductFormValues>>(field: K) => {
+    return (value: FieldPathValue<ProductFormValues, K>) =>
+      setValue(field, value, { shouldValidate: true });
+  };
 
-  // ─── Server state ─────────────────────────────────────────────────────────────
-  const { data: serverProduct, isLoading, isError, error, refetch } = useProductQuery(numericId);
+  return {
+    onProductNameChange: (newName: string) =>
+      setValue('name', newName.trim(), { shouldValidate: true }),
+    onChangeDescription: updateField('description'),
+    onChangePhysicalProperties: updateField('physicalProperties'),
+    onChangeCircularityProperties: updateField('circularityProperties'),
+    onBrandChange: updateField('brand'),
+    onModelChange: updateField('model'),
+    onTypeChange: updateField('productTypeID'),
+    onImagesChange: updateField('images'),
+    onAmountInParentChange: updateField('amountInParent'),
+    onVideoChange: updateField('videos'),
+  };
+}
 
-  // ─── react-hook-form ──────────────────────────────────────────────────────────
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues: isNew ? newProduct() : ({} as Product),
-    mode: 'onChange',
-  });
-
-  const product = form.watch() as Product;
-
-  const [editMode, setEditMode] = useState(isNew);
-  // True for the session immediately after a new product's first save; drives the component nudge
-  const [justCreated, setJustCreated] = useState(false);
+function useProductFormHydration({
+  editMode,
+  isNew,
+  replace,
+  reset,
+  serverProduct,
+  user,
+}: {
+  editMode: boolean;
+  isNew: boolean;
+  replace: ReturnType<typeof useRouter>['replace'];
+  reset: ReturnType<typeof useForm<ProductFormValues>>['reset'];
+  serverProduct: Product | undefined;
+  user: ReturnType<typeof useAuth>['user'];
+}) {
   const hydratedDraftRef = useRef(false);
   const lastHydratedProductRef = useRef<Product | null>(null);
 
-  const saveMutation = useSaveProductMutation();
-  const deleteMutation = useDeleteProductMutation();
-
-  const isProductComponent =
-    typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
-  // Derive validation result from RHF's Zod resolver which validates on every change
-  const validationResult = {
-    isValid: form.formState.isValid,
-    error: getFirstFormError(form.formState.errors),
-  };
-
-  // Seed form state when server data arrives or when creating a new product
   useEffect(() => {
     if (isNew) {
       if (hydratedDraftRef.current) {
         return;
       }
       if (!user) {
-        router.replace({ pathname: '/login', params: { redirectTo: '/products' } });
+        replace({ pathname: '/login', params: { redirectTo: '/products' } });
         return;
       }
       const intent = consumeNewProductIntent();
@@ -91,60 +109,62 @@ export function useProductForm(id: string) {
       if (intent?.isComponent && !newProd.amountInParent) {
         newProd.amountInParent = 1;
       }
-      form.reset(newProd);
+      reset(newProd);
       hydratedDraftRef.current = true;
-    } else if (serverProduct && !editMode) {
-      // Only sync from server when not actively editing; avoids clobbering user input
-      if (lastHydratedProductRef.current === serverProduct) {
-        return;
-      }
-      form.reset(serverProduct);
-      lastHydratedProductRef.current = serverProduct;
+      return;
     }
-  }, [
-    serverProduct,
-    isNew,
-    editMode, // Only sync from server when not actively editing; avoids clobbering user input
-    form.reset,
-    router.replace,
-    user,
-  ]);
 
-  // ─── Field change handlers ────────────────────────────────────────────────────
-  const updateField = <K extends FieldPath<ProductFormValues>>(field: K) => {
-    return (value: FieldPathValue<ProductFormValues, K>) =>
-      form.setValue(field, value, { shouldValidate: true });
-  };
+    if (!serverProduct || editMode || lastHydratedProductRef.current === serverProduct) {
+      return;
+    }
 
-  const onProductNameChange = (newName: string) =>
-    form.setValue('name', newName.trim(), { shouldValidate: true });
-  const onChangeDescription = updateField('description');
-  const onChangePhysicalProperties = updateField('physicalProperties');
-  const onChangeCircularityProperties = updateField('circularityProperties');
-  const onBrandChange = updateField('brand');
-  const onModelChange = updateField('model');
-  const onTypeChange = updateField('productTypeID');
-  const onImagesChange = updateField('images');
-  const onAmountInParentChange = updateField('amountInParent');
-  const onVideoChange = updateField('videos');
+    // Only sync from server when not actively editing; avoids clobbering user input.
+    reset(serverProduct);
+    lastHydratedProductRef.current = serverProduct;
+  }, [serverProduct, isNew, editMode, reset, replace, user]);
+}
 
-  // ─── Save / delete ────────────────────────────────────────────────────────────
+function useProductFormActions({
+  deleteMutation,
+  dialog,
+  editMode,
+  isNew,
+  product,
+  replace,
+  saveMutation,
+  serverProduct,
+  setEditMode,
+  setJustCreated,
+  setParams,
+}: {
+  deleteMutation: ReturnType<typeof useDeleteProductMutation>;
+  dialog: ReturnType<typeof useDialog>;
+  editMode: boolean;
+  isNew: boolean;
+  product: Product;
+  replace: ReturnType<typeof useRouter>['replace'];
+  saveMutation: ReturnType<typeof useSaveProductMutation>;
+  serverProduct: Product | undefined;
+  setEditMode: (value: boolean) => void;
+  setJustCreated: (value: boolean) => void;
+  setParams: ReturnType<typeof useRouter>['setParams'];
+}) {
   const toggleEditMode = () => {
     if (!editMode) {
       setEditMode(true);
       return;
     }
 
-    // Pass server-state images/videos so saving.ts can diff without re-fetching
-    const originalImages = serverProduct?.images ?? [];
-    const originalVideos = serverProduct?.videos ?? [];
-
     saveMutation.mutate(
-      { product, originalImages, originalVideos },
+      {
+        product,
+        originalImages: serverProduct?.images ?? [],
+        originalVideos: serverProduct?.videos ?? [],
+      },
       {
         onSuccess: (savedId) => {
           if (isNew) {
-            router.setParams({ id: savedId.toString() });
+            setParams({ id: savedId.toString() });
             setJustCreated(true);
           }
           setEditMode(false);
@@ -160,10 +180,60 @@ export function useProductForm(id: string) {
     deleteMutation.mutate(product, {
       onSuccess: () => {
         setEditMode(false);
-        router.replace('/products');
+        replace('/products');
       },
     });
   };
+
+  return { toggleEditMode, onProductDelete };
+}
+
+export function useProductForm(id: string) {
+  const { replace, setParams } = useRouter();
+  const dialog = useDialog();
+  const { user } = useAuth();
+
+  const isNew = id === 'new';
+  const numericId = isNew ? ('new' as const) : parseInt(id, 10);
+  const { data: serverProduct, isLoading, isError, error, refetch } = useProductQuery(numericId);
+
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
+    defaultValues: isNew ? newProduct() : ({} as Product),
+    mode: 'onChange',
+  });
+  const { reset, setValue, formState } = form;
+
+  const product = useWatch({
+    control: form.control,
+    defaultValue: form.getValues(),
+  }) as Product;
+
+  const [editMode, setEditMode] = useState(isNew);
+  const [justCreated, setJustCreated] = useState(false);
+
+  useProductFormHydration({ editMode, isNew, replace, reset, serverProduct, user });
+
+  const saveMutation = useSaveProductMutation();
+  const deleteMutation = useDeleteProductMutation();
+  const fieldHandlers = useProductFieldHandlers(setValue);
+  const { toggleEditMode, onProductDelete } = useProductFormActions({
+    deleteMutation,
+    dialog,
+    editMode,
+    isNew,
+    product,
+    replace,
+    saveMutation,
+    serverProduct,
+    setEditMode,
+    setJustCreated,
+    setParams,
+  });
+
+  const isProductComponent =
+    typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
+  const validationResult = buildValidationResult(formState);
 
   return {
     product,
@@ -179,16 +249,7 @@ export function useProductForm(id: string) {
     isSaving: saveMutation.isPending,
     justSaved: saveMutation.isSuccess,
     justCreated,
-    onProductNameChange,
-    onChangeDescription,
-    onChangePhysicalProperties,
-    onChangeCircularityProperties,
-    onBrandChange,
-    onModelChange,
-    onTypeChange,
-    onImagesChange,
-    onAmountInParentChange,
-    onVideoChange,
+    ...fieldHandlers,
     toggleEditMode,
     onProductDelete,
   };

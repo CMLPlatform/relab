@@ -2,9 +2,9 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { useDialog } from '@/components/common/DialogProvider';
-import { useAuth } from '@/context/AuthProvider';
-import { useStreamSession } from '@/context/StreamSessionContext';
+import { useDialog } from '@/components/common/dialogContext';
+import { useAuth } from '@/context/auth';
+import { useStreamSession } from '@/context/streamSession';
 import {
   getPrimaryFabIcon,
   getProductCapabilities,
@@ -23,6 +23,7 @@ type SearchParams = {
   id: string;
 };
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: product-page orchestration is intentionally exposed through one screen hook.
 export function useProductPageScreen() {
   const { id } = useLocalSearchParams<SearchParams>();
   const navigation = useNavigation();
@@ -126,7 +127,7 @@ export function useProductPageScreen() {
 
   useEffect(() => {
     return navigation.addListener('beforeRemove', (event) => {
-      if (!editMode && !capabilities.streamingThisProduct) return;
+      if (!(editMode || capabilities.streamingThisProduct)) return;
       event.preventDefault();
       dialog.alert({
         title: editMode ? 'Discard changes?' : 'Stream still active',

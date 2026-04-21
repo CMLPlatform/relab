@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/authentication';
 
 /**

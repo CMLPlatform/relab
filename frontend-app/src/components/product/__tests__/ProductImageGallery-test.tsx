@@ -2,7 +2,7 @@
  * ProductImageGallery — RPi capture flow + gallery/AsyncStorage surface.
  *
  * Lightbox / zoom gestures are intentionally NOT covered here; see the
- * existing ProductImage-test.tsx which covers that surface.
+ * existing ProductImageGalleryLightbox-test.tsx which covers that surface.
  */
 
 // spell-checker: ignore Zoomable
@@ -12,9 +12,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils';
+import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductImageGallery from '../ProductImageGallery';
+
+const RPI_CAMERA_BUTTON_PATTERN = /RPi camera|Set up RPi camera/i;
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
@@ -164,6 +166,7 @@ const productWithImages = (count: number): Product => ({
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: gallery integration coverage shares one async storage and capture harness.
 describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -311,7 +314,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       withDialog: true,
     });
 
-    expect(screen.queryByLabelText(/RPi camera|Set up RPi camera/i)).toBeNull();
+    expect(screen.queryByLabelText(RPI_CAMERA_BUTTON_PATTERN)).toBeNull();
   });
 
   it('shows the RPi button when rpiEnabled === true', () => {

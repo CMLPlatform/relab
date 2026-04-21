@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import * as productApi from '@/services/api/products';
-import * as rpiCameraApi from '@/services/api/rpiCamera';
-import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils';
+import { addProductVideo } from '@/services/api/products';
+import { startYouTubeStream } from '@/services/api/rpiCamera';
+import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils/index';
 import { CameraStreamPicker } from '../CameraStreamPicker';
 
 const mockSetActiveStream = jest.fn();
 const mockAlert = jest.fn();
 const mockInvalidateQueries = jest.fn();
-let startYouTubeStreamSpy: jest.SpiedFunction<typeof rpiCameraApi.startYouTubeStream>;
-let addProductVideoSpy: jest.SpiedFunction<typeof productApi.addProductVideo>;
+const startYouTubeStreamMock = jest.mocked(startYouTubeStream);
+const addProductVideoMock = jest.mocked(addProductVideo);
 
 jest.mock('@tanstack/react-query', () => {
   const actual = jest.requireActual('@tanstack/react-query') as object;
@@ -20,7 +20,7 @@ jest.mock('@tanstack/react-query', () => {
   };
 });
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({
     setActiveStream: mockSetActiveStream,
   }),
@@ -37,6 +37,14 @@ jest.mock('@/hooks/useAppFeedback', () => ({
       }),
     ),
   }),
+}));
+
+jest.mock('@/services/api/products', () => ({
+  addProductVideo: jest.fn(),
+}));
+
+jest.mock('@/services/api/rpiCamera', () => ({
+  startYouTubeStream: jest.fn(),
 }));
 
 jest.mock('../CameraPickerDialog', () => ({
@@ -60,10 +68,7 @@ jest.mock('../CameraPickerDialog', () => ({
 describe('CameraStreamPicker', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    startYouTubeStreamSpy = jest.spyOn(rpiCameraApi, 'startYouTubeStream');
-    addProductVideoSpy = jest.spyOn(productApi, 'addProductVideo');
-
-    startYouTubeStreamSpy.mockResolvedValue({
+    startYouTubeStreamMock.mockResolvedValue({
       mode: 'youtube',
       provider: 'youtube',
       started_at: '2026-04-15T10:00:00.000Z',
@@ -74,7 +79,7 @@ describe('CameraStreamPicker', () => {
         fps: null,
       },
     });
-    addProductVideoSpy.mockResolvedValue(undefined);
+    addProductVideoMock.mockResolvedValue(undefined);
   });
 
   it('starts a stream and closes after camera selection and config confirmation', async () => {
@@ -91,7 +96,7 @@ describe('CameraStreamPicker', () => {
     fireEvent.press(screen.getByText('Go Live'));
 
     await waitFor(() => {
-      expect(startYouTubeStreamSpy).toHaveBeenCalledWith('cam-1', {
+      expect(startYouTubeStreamMock).toHaveBeenCalledWith('cam-1', {
         product_id: 9,
         title: 'Live teardown',
         privacy_status: 'private',
@@ -106,7 +111,7 @@ describe('CameraStreamPicker', () => {
       startedAt: '2026-04-15T10:00:00.000Z',
       youtubeUrl: 'https://youtube.test/watch?v=123',
     });
-    expect(addProductVideoSpy).toHaveBeenCalledWith(9, {
+    expect(addProductVideoMock).toHaveBeenCalledWith(9, {
       url: 'https://youtube.test/watch?v=123',
       title: 'Live teardown',
       description: '',
@@ -116,7 +121,7 @@ describe('CameraStreamPicker', () => {
   });
 
   it('shows the Google account required message when YouTube OAuth is missing', async () => {
-    startYouTubeStreamSpy.mockRejectedValue(new Error('GOOGLE_OAUTH_REQUIRED'));
+    startYouTubeStreamMock.mockRejectedValue(new Error('GOOGLE_OAUTH_REQUIRED'));
 
     renderWithProviders(
       <CameraStreamPicker productId={9} productName="Desk Radio" visible onDismiss={jest.fn()} />,

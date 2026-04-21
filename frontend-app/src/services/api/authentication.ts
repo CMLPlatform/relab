@@ -27,7 +27,7 @@ export function markWebSessionActive(): void {
   setWebSessionFlag(true);
 }
 
-export function hasWebSessionFlag(): boolean {
+export function hasWebSessionFlag() {
   return readWebSessionFlag();
 }
 

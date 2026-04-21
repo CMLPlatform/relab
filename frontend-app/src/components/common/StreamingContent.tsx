@@ -4,8 +4,8 @@ import { Linking, StyleSheet, View } from 'react-native';
 import { Button, Chip, Text, useTheme } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
-import type { StreamSession } from '@/context/StreamSessionContext';
-import { useStreamSession } from '@/context/StreamSessionContext';
+import type { StreamSession } from '@/context/streamSession';
+import { useStreamSession } from '@/context/streamSession';
 import { invalidateProductQuery } from '@/hooks/camera-data/mutations';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
@@ -32,7 +32,7 @@ export function StreamingContent({
   const elapsed = useElapsed(session.startedAt);
   const stopMutation = useStopYouTubeStreamMutation(session.cameraId);
 
-  const handleWatch = () => void Linking.openURL(session.youtubeUrl);
+  const handleWatch = async () => Linking.openURL(session.youtubeUrl);
 
   const handleStop = () => {
     stopMutation.mutate(undefined, {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
-import { mockPlatform, restorePlatform } from '@/test-utils';
+import { mockPlatform, restorePlatform } from '@/test-utils/index';
 import { AnimatedBackground } from '../AnimatedBackground';
 
 describe('AnimatedBackground', () => {

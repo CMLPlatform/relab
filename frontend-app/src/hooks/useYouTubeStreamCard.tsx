@@ -1,6 +1,6 @@
 import { Linking } from 'react-native';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
-import { useStreamSession } from '@/context/StreamSessionContext';
+import { useStreamSession } from '@/context/streamSession';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/useRpiCameras';

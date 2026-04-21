@@ -34,6 +34,75 @@ import {
   updateCamera,
 } from '@/services/api/rpiCamera';
 
+function useInvalidateOnSuccessMutation<TVariables, TData = unknown>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  onSuccess: () => void,
+) {
+  return useMutation({
+    mutationFn,
+    onSuccess,
+  });
+}
+
+function useCameraListInvalidationMutation<TVariables, TData = unknown>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+) {
+  const queryClient = useQueryClient();
+  return useInvalidateOnSuccessMutation(mutationFn, () => {
+    invalidateCameraListQuery(queryClient);
+  });
+}
+
+function useCameraDetailAndListInvalidationMutation<TVariables, TData = unknown>(
+  cameraId: string,
+  mutationFn: (variables: TVariables) => Promise<TData>,
+) {
+  const queryClient = useQueryClient();
+  return useInvalidateOnSuccessMutation(mutationFn, () => {
+    invalidateCameraDetailQuery(queryClient, cameraId);
+    invalidateCameraListQuery(queryClient);
+  });
+}
+
+function useProductInvalidationMutation<TVariables, TData = unknown>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (_data, variables) => {
+      invalidateProductQuery(queryClient, (variables as { productId: number }).productId);
+    },
+  });
+}
+
+function useCameraStreamInvalidationMutation<TVariables, TData = unknown>(
+  cameraId: string,
+  mutationFn: (variables: TVariables) => Promise<TData>,
+) {
+  const queryClient = useQueryClient();
+  return useInvalidateOnSuccessMutation(mutationFn, () => {
+    invalidateCameraStreamStatusQuery(queryClient, cameraId);
+  });
+}
+
+function useOptimisticCameraStreamMutation<TData = unknown>(
+  cameraId: string,
+  mutationFn: () => Promise<TData>,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onMutate: async () => clearOptimisticStreamStatus(queryClient, cameraId),
+    onError: (_err, _vars, context) => {
+      restoreOptimisticStreamStatus(queryClient, cameraId, context?.previous);
+    },
+    onSuccess: () => {
+      invalidateCameraStreamStatusQuery(queryClient, cameraId);
+    },
+  });
+}
+
 export function useCamerasQuery(
   includeStatus = false,
   {
@@ -60,34 +129,17 @@ export function useCameraTelemetryQuery(
 }
 
 export function useUpdateCameraMutation(id: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CameraUpdate) => updateCamera(id, data),
-    onSuccess: () => {
-      invalidateCameraDetailQuery(queryClient, id);
-      invalidateCameraListQuery(queryClient);
-    },
-  });
+  return useCameraDetailAndListInvalidationMutation(id, (data: CameraUpdate) =>
+    updateCamera(id, data),
+  );
 }
 
 export function useDeleteCameraMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => deleteCamera(id),
-    onSuccess: () => {
-      invalidateCameraListQuery(queryClient);
-    },
-  });
+  return useCameraListInvalidationMutation((id: string) => deleteCamera(id));
 }
 
 export function useClaimPairingMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: PairingClaimRequest) => claimPairingCode(data),
-    onSuccess: () => {
-      invalidateCameraListQuery(queryClient);
-    },
-  });
+  return useCameraListInvalidationMutation((data: PairingClaimRequest) => claimPairingCode(data));
 }
 
 export function useCameraLivePreview(
@@ -101,14 +153,9 @@ export function useCameraLivePreview(
 }
 
 export function useCaptureImageMutation(connectionInfo?: CameraConnectionInfo) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (params: { cameraId: string; productId: number }) =>
-      resolveCaptureImageRequest(params, connectionInfo),
-    onSuccess: (_data, { productId }) => {
-      invalidateProductQuery(queryClient, productId);
-    },
-  });
+  return useProductInvalidationMutation((params: { cameraId: string; productId: number }) =>
+    resolveCaptureImageRequest(params, connectionInfo),
+  );
 }
 
 export function useStreamStatusQuery(
@@ -119,41 +166,24 @@ export function useStreamStatusQuery(
 }
 
 export function useStartYouTubeStreamMutation(cameraId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (params: StartYouTubeStreamParams) => startYouTubeStream(cameraId, params),
-    onSuccess: () => {
-      invalidateCameraStreamStatusQuery(queryClient, cameraId);
-    },
-  });
+  return useCameraStreamInvalidationMutation(cameraId, (params: StartYouTubeStreamParams) =>
+    startYouTubeStream(cameraId, params),
+  );
 }
 
 export function useStopYouTubeStreamMutation(cameraId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => stopYouTubeStream(cameraId),
-    onMutate: async () => clearOptimisticStreamStatus(queryClient, cameraId),
-    onError: (_err, _vars, context) => {
-      restoreOptimisticStreamStatus(queryClient, cameraId, context?.previous);
-    },
-    onSuccess: () => {
-      invalidateCameraStreamStatusQuery(queryClient, cameraId);
-    },
-  });
+  return useOptimisticCameraStreamMutation(cameraId, () => stopYouTubeStream(cameraId));
 }
 
 export function useCaptureAllMutation(connectionInfoMap?: Record<string, CameraConnectionInfo>) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (params: { cameraIds: string[]; productId: number }): Promise<CaptureAllResult> =>
+  return useProductInvalidationMutation(
+    (params: { cameraIds: string[]; productId: number }): Promise<CaptureAllResult> =>
       captureFromMultipleCameras(params, connectionInfoMap),
-    onSuccess: (_data, { productId }) => {
-      invalidateProductQuery(queryClient, productId);
-    },
-  });
+  );
 }
 
 export type { CaptureAllResult } from '@/hooks/camera-data/mutations';
+// biome-ignore lint/performance/noBarrelFile: this module intentionally exposes the camera-data surface for hook consumers.
 export {
   cameraQueryOptions,
   camerasQueryOptions,

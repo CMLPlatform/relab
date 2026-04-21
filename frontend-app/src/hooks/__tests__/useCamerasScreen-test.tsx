@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { useCamerasScreen } from '@/hooks/useCamerasScreen';
+import { useCamerasScreen } from '@/hooks/cameras/useCamerasScreen';
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -19,13 +19,13 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
 }));
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => ({
     user: { id: 'user-1', email: 'test@example.com' },
   }),
 }));
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({
     setActiveStream: jest.fn(),
   }),

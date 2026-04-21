@@ -7,7 +7,7 @@ import { Text } from '@/components/base/Text';
 interface Props {
   title: string;
   tooltipTitle?: string;
-  rightElement?: ReactNode;
+  rightElement?: Exclude<ReactNode, Promise<unknown>>;
   style?: StyleProp<TextStyle>;
 }
 

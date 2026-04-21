@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils';
+import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils/index';
 import { YouTubeStreamCard } from '../YouTubeStreamCard';
 
 const mockSetActiveStream = jest.fn();
@@ -10,7 +10,7 @@ const mockUseYouTubeIntegration = jest.fn();
 const mockUseStreamStatusQuery = jest.fn();
 const mockUseStopYouTubeStreamMutation = jest.fn();
 
-jest.mock('@/context/StreamSessionContext', () => ({
+jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({
     setActiveStream: mockSetActiveStream,
   }),

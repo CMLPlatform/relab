@@ -8,9 +8,6 @@ import { resolveApiMediaUrl } from './media';
 
 const baseUrl = API_URL;
 
-/** @deprecated Use ApiProductRead from @/types/api instead */
-export type ProductData = ApiProductRead;
-
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;

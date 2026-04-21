@@ -8,3 +8,12 @@ export const authRuntime = {
   explicitlyLoggedOut: false,
   authGeneration: 0,
 };
+
+export function resetAuthRuntimeForTests() {
+  authRuntime.token = undefined;
+  authRuntime.user = undefined;
+  authRuntime.refreshPromise = null;
+  authRuntime.getUserPromise = null;
+  authRuntime.explicitlyLoggedOut = false;
+  authRuntime.authGeneration = 0;
+}

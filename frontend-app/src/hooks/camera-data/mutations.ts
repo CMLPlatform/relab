@@ -21,19 +21,19 @@ export interface CaptureAllResult {
 }
 
 export function invalidateProductQuery(queryClient: QueryClient, productId: number) {
-  void queryClient.invalidateQueries({ queryKey: ['product', productId] });
+  queryClient.invalidateQueries({ queryKey: ['product', productId] }).catch(() => {});
 }
 
 export function invalidateCameraListQuery(queryClient: QueryClient) {
-  void queryClient.invalidateQueries({ queryKey: ['rpiCameras'] });
+  queryClient.invalidateQueries({ queryKey: ['rpiCameras'] }).catch(() => {});
 }
 
 export function invalidateCameraDetailQuery(queryClient: QueryClient, cameraId: string) {
-  void queryClient.invalidateQueries({ queryKey: ['rpiCamera', cameraId] });
+  queryClient.invalidateQueries({ queryKey: ['rpiCamera', cameraId] }).catch(() => {});
 }
 
 export function invalidateCameraStreamStatusQuery(queryClient: QueryClient, cameraId: string) {
-  void queryClient.invalidateQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] });
+  queryClient.invalidateQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] }).catch(() => {});
 }
 
 export function resolveCaptureImageRequest(

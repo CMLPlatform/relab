@@ -1,11 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { Pressable, Text } from 'react-native';
-import { renderWithProviders, setupUser } from '@/test-utils';
-import { useDialog } from '../DialogProvider';
+import { renderWithProviders, setupUser } from '@/test-utils/index';
+import { useDialog } from '../dialogContext';
 
-// A test component that exposes dialog controls
-function AlertTrigger({ onPress }: { onPress: () => void }) {
+function renderAlertTrigger(onPress: () => void) {
   return (
     <Pressable testID="trigger" onPress={onPress}>
       <Text>Open Alert</Text>
@@ -18,6 +17,7 @@ function AlertTrigger({ onPress }: { onPress: () => void }) {
 // context to be available to the components under test; which renderWithProviders
 // provides when withDialog: true is set.
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: dialog-provider integration coverage relies on one shared interactive harness.
 describe('DialogProvider', () => {
   const user = setupUser();
 
@@ -39,10 +39,8 @@ describe('DialogProvider', () => {
   it('alert() shows dialog with title', async () => {
     function AlertTest() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() => dialog.alert({ title: 'Alert Title', buttons: [{ text: 'OK' }] })}
-        />
+      return renderAlertTrigger(() =>
+        dialog.alert({ title: 'Alert Title', buttons: [{ text: 'OK' }] }),
       );
     }
 
@@ -57,12 +55,8 @@ describe('DialogProvider', () => {
   it('alert() shows dialog with message', async () => {
     function MessageTest() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() =>
-            dialog.alert({ title: 'Title', message: 'Some message', buttons: [{ text: 'Close' }] })
-          }
-        />
+      return renderAlertTrigger(() =>
+        dialog.alert({ title: 'Title', message: 'Some message', buttons: [{ text: 'Close' }] }),
       );
     }
 
@@ -76,16 +70,12 @@ describe('DialogProvider', () => {
   it('input() shows dialog with TextInput', async () => {
     function InputTest() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() =>
-            dialog.input({
-              title: 'Input Dialog',
-              placeholder: 'Type something...',
-              buttons: [{ text: 'Submit' }],
-            })
-          }
-        />
+      return renderAlertTrigger(() =>
+        dialog.input({
+          title: 'Input Dialog',
+          placeholder: 'Type something...',
+          buttons: [{ text: 'Submit' }],
+        }),
       );
     }
 
@@ -102,16 +92,12 @@ describe('DialogProvider', () => {
 
     function InputTypingTest() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() =>
-            dialog.input({
-              title: 'Enter Name',
-              placeholder: 'Your name',
-              buttons: [{ text: 'Submit', onPress: onSubmit }],
-            })
-          }
-        />
+      return renderAlertTrigger(() =>
+        dialog.input({
+          title: 'Enter Name',
+          placeholder: 'Your name',
+          buttons: [{ text: 'Submit', onPress: onSubmit }],
+        }),
       );
     }
 
@@ -131,15 +117,11 @@ describe('DialogProvider', () => {
 
     function AlertTest() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() =>
-            dialog.alert({
-              title: 'Confirm',
-              buttons: [{ text: 'Yes', onPress: onConfirm }],
-            })
-          }
-        />
+      return renderAlertTrigger(() =>
+        dialog.alert({
+          title: 'Confirm',
+          buttons: [{ text: 'Yes', onPress: onConfirm }],
+        }),
       );
     }
 
@@ -157,16 +139,12 @@ describe('DialogProvider', () => {
 
     function InputSubmitTest() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() =>
-            dialog.input({
-              title: 'Enter Name',
-              placeholder: 'Your name',
-              buttons: [{ text: 'Cancel' }, { text: 'OK', onPress: onSubmit }],
-            })
-          }
-        />
+      return renderAlertTrigger(() =>
+        dialog.input({
+          title: 'Enter Name',
+          placeholder: 'Your name',
+          buttons: [{ text: 'Cancel' }, { text: 'OK', onPress: onSubmit }],
+        }),
       );
     }
 
@@ -184,7 +162,7 @@ describe('DialogProvider', () => {
   it('default OK button renders when no buttons provided', async () => {
     function DefaultTest() {
       const dialog = useDialog();
-      return <AlertTrigger onPress={() => dialog.alert({ title: 'No Buttons' })} />;
+      return renderAlertTrigger(() => dialog.alert({ title: 'No Buttons' }));
     }
 
     renderWithProviders(<DefaultTest />, { withDialog: true });
@@ -197,7 +175,7 @@ describe('DialogProvider', () => {
   it('toast() shows a transient snackbar message', async () => {
     function ToastTest() {
       const dialog = useDialog();
-      return <AlertTrigger onPress={() => dialog.toast('Saved')} />;
+      return renderAlertTrigger(() => dialog.toast('Saved'));
     }
 
     renderWithProviders(<ToastTest />, { withDialog: true });
@@ -207,12 +185,28 @@ describe('DialogProvider', () => {
     expect(screen.getByText('Saved')).toBeOnTheScreen();
   });
 
+  it('dialog actions remain callable after the consumer rerenders', async () => {
+    function AlertTest({ title }: { title: string }) {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.alert({ title, buttons: [{ text: 'OK' }] }));
+    }
+
+    const view = renderWithProviders(<AlertTest title="First Title" />, { withDialog: true });
+
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('First Title')).toBeOnTheScreen();
+    await user.press(screen.getByText('OK'));
+
+    view.rerender(<AlertTest title="Second Title" />);
+
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByText('Second Title')).toBeOnTheScreen();
+  });
+
   it('pressing a button with no onPress closes the dialog without throwing', async () => {
     function Test() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger onPress={() => dialog.alert({ title: 'Plain', buttons: [{ text: 'OK' }] })} />
-      );
+      return renderAlertTrigger(() => dialog.alert({ title: 'Plain', buttons: [{ text: 'OK' }] }));
     }
 
     renderWithProviders(<Test />, { withDialog: true });
@@ -225,10 +219,8 @@ describe('DialogProvider', () => {
   it('submitEditing on input with no buttons calls handleClose without crashing', async () => {
     function Test() {
       const dialog = useDialog();
-      return (
-        <AlertTrigger
-          onPress={() => dialog.input({ title: 'No-Button Input', placeholder: 'type here' })}
-        />
+      return renderAlertTrigger(() =>
+        dialog.input({ title: 'No-Button Input', placeholder: 'type here' }),
       );
     }
 

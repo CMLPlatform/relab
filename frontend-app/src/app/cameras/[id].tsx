@@ -1,31 +1,26 @@
 import {
   CameraConnectionCard,
+  CameraPreviewSection,
+} from '@/components/cameras/detail/ConnectionPreview';
+import { CameraDetailDialogs } from '@/components/cameras/detail/Dialogs';
+import {
   CameraDangerZone,
-  CameraDetailDialogs,
+  CameraDetailsCard,
+  CameraStreamingSection,
+} from '@/components/cameras/detail/StreamingDetails';
+import {
   CameraDetailErrorState,
   CameraDetailLayout,
   CameraDetailLoadingState,
-  CameraDetailsCard,
-  CameraPreviewSection,
-  CameraStreamingSection,
-} from '@/components/cameras/CameraDetailSections';
+} from '@/components/cameras/detail/shared';
 import { useCameraDetailScreen } from '@/hooks/cameras/useCameraDetailScreen';
 
-export default function CameraDetailScreen() {
-  const { screen, preview, dialogs, actions } = useCameraDetailScreen();
-
-  if (!screen.user) return null;
-  if (screen.isLoading) return <CameraDetailLoadingState />;
-
-  if (screen.isError || !screen.camera) {
-    return (
-      <CameraDetailErrorState
-        message={String(screen.error) || 'Camera not found.'}
-        onRetry={actions.refresh}
-      />
-    );
-  }
-
+function CameraDetailContent({
+  screen,
+  preview,
+  dialogs,
+  actions,
+}: ReturnType<typeof useCameraDetailScreen>) {
   return (
     <>
       <CameraDetailLayout>
@@ -77,10 +72,28 @@ export default function CameraDetailScreen() {
         onDeleteCamera={actions.deleteCamera}
         onChangeLocalUrl={actions.setLocalUrl}
         onChangeLocalKey={actions.setLocalKey}
-        onConnectLocal={() => {
-          void actions.connectLocal();
-        }}
+        onConnectLocal={actions.connectLocal}
       />
     </>
+  );
+}
+
+export default function CameraDetailScreen() {
+  const { screen, preview, dialogs, actions } = useCameraDetailScreen();
+
+  if (!screen.user) return null;
+  if (screen.isLoading) return <CameraDetailLoadingState />;
+
+  if (screen.isError || !screen.camera) {
+    return (
+      <CameraDetailErrorState
+        message={String(screen.error) || 'Camera not found.'}
+        onRetry={actions.refresh}
+      />
+    );
+  }
+
+  return (
+    <CameraDetailContent screen={screen} preview={preview} dialogs={dialogs} actions={actions} />
   );
 }

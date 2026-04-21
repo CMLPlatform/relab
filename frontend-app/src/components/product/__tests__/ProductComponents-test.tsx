@@ -2,15 +2,17 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import type { Text as RNText } from 'react-native';
-import * as products from '@/services/api/products';
+import { productComponents } from '@/services/api/products';
 import { setNewProductIntent } from '@/services/newProductStore';
-import { baseProduct, renderWithProviders } from '@/test-utils';
+import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductComponents from '../ProductComponents';
 
 jest.mock('@/services/api/products', () => ({
   productComponents: jest.fn(),
 }));
+
+const COMPONENTS_EMPTY_PATTERN = /Components \(0\)/;
 
 jest.mock('@/services/newProductStore', () => ({
   setNewProductIntent: jest.fn(),
@@ -30,7 +32,7 @@ jest.mock('@/components/common/ProductCard', () => {
 });
 
 const mockPush = jest.fn();
-const mockedProductComponents = jest.mocked(products.productComponents);
+const mockedProductComponents = jest.mocked(productComponents);
 const mockedSetNewProductIntent = jest.mocked(setNewProductIntent);
 
 describe('ProductComponents', () => {
@@ -49,7 +51,7 @@ describe('ProductComponents', () => {
     renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    await screen.findByText(/Components \(0\)/);
+    await screen.findByText(COMPONENTS_EMPTY_PATTERN);
   });
 
   it("shows 'no subcomponents' message when empty", async () => {

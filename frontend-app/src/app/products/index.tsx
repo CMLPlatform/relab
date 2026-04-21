@@ -2,25 +2,36 @@ import { useWindowDimensions, View } from 'react-native';
 import {
   ProductsErrorBanner,
   ProductsFab,
-  ProductsFilterBar,
+} from '@/components/product/products-screen/FeedbackControls';
+import { ProductsFilterBar } from '@/components/product/products-screen/FilterBar';
+import {
   ProductsHeaderFade,
   ProductsListContent,
-  ProductsSearchToolbar,
-  ProductsWelcomeCard,
-} from '@/components/product/ProductsScreenSections';
-import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
+} from '@/components/product/products-screen/ListContent';
+import { ProductsSearchToolbar } from '@/components/product/products-screen/Toolbar';
+import { ProductsWelcomeCard } from '@/components/product/products-screen/WelcomeCard';
+import { useEffectiveColorScheme } from '@/context/themeMode';
+import { useProductsScreen } from '@/hooks/products/useProductsScreen';
 import { PRODUCT_SORT_OPTIONS } from '@/hooks/useProductQueries';
-import { useProductsScreen } from '@/hooks/useProductsScreen';
+import { getAppTheme } from '@/theme';
 
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;
 
 export default function Products() {
   const colorScheme = useEffectiveColorScheme();
-  const bgOverlay = colorScheme === 'light' ? 'rgba(242, 242, 242, 0.95)' : 'rgba(10,10,10,0.90)';
+  const bgOverlay = getAppTheme(colorScheme).tokens.overlay.page;
   const { width } = useWindowDimensions();
   const numColumns = width < 600 ? 1 : width < 1000 ? 2 : 3;
 
   const { screen, search, filters, list, actions } = useProductsScreen(numColumns);
+  const handleGoToLogin = async () => {
+    await actions.dismissWelcomeCard();
+    actions.goToLogin();
+  };
+  const handleGoToProfile = async () => {
+    await actions.dismissWelcomeCard();
+    actions.goToProfile();
+  };
 
   return (
     <>
@@ -35,14 +46,8 @@ export default function Products() {
           isAuthenticated={screen.isAuthenticated}
           currentUser={screen.currentUser}
           onDismiss={actions.dismissWelcomeCard}
-          onSignIn={() => {
-            void actions.dismissWelcomeCard();
-            actions.goToLogin();
-          }}
-          onGoToProfile={() => {
-            void actions.dismissWelcomeCard();
-            actions.goToProfile();
-          }}
+          onSignIn={handleGoToLogin}
+          onGoToProfile={handleGoToProfile}
         />
 
         <ProductsSearchToolbar

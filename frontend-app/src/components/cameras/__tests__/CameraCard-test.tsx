@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 import { CameraCard } from '../CameraCard';
+
+const LAST_SEEN_PATTERN = /Last seen/;
 
 // Stub out expo-image so we can query it by accessible content
 jest.mock('expo-image', () => {
@@ -33,6 +35,7 @@ function makeCamera(overrides: Partial<CameraReadWithStatus> = {}): CameraReadWi
     description: '',
     last_image_url: null,
     last_image_thumbnail_url: null,
+    last_preview_thumbnail_url: null,
     status: { connection: 'online', last_seen_at: null, details: null },
     telemetry: undefined,
     ...overrides,
@@ -46,6 +49,7 @@ function secsAgo(seconds: number): string {
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this suite compares multiple camera-card states using one common fixture setup.
 describe('CameraCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -93,6 +97,17 @@ describe('CameraCard', () => {
     expect(screen.getByText('img:https://example.com/shot-thumb.webp')).toBeOnTheScreen();
   });
 
+  it('online + no capture yet: falls back to the cached preview thumbnail', () => {
+    const camera = makeCamera({
+      last_preview_thumbnail_url: 'https://example.com/preview-thumb.jpg',
+    });
+
+    renderWithProviders(<CameraCard camera={camera} />);
+
+    expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
+    expect(screen.getByText('img:https://example.com/preview-thumb.jpg')).toBeOnTheScreen();
+  });
+
   it('direct connection state still renders without needing snapshot queries', () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: null, details: null },
@@ -126,7 +141,7 @@ describe('CameraCard', () => {
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();
 
     // "Last seen" subtext is rendered
-    expect(screen.getByText(/Last seen/)).toBeOnTheScreen();
+    expect(screen.getByText(LAST_SEEN_PATTERN)).toBeOnTheScreen();
 
     // Telemetry badge NOT rendered when offline
     expect(screen.queryByTestId('telemetry-badge')).toBeNull();

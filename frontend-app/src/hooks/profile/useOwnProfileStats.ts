@@ -20,13 +20,40 @@ export function useOwnProfileStats(username?: string) {
   }, [username]);
 
   useEffect(() => {
-    void loadOwnStats();
-  }, [loadOwnStats]);
+    if (!username) {
+      return;
+    }
+
+    let cancelled = false;
+    const currentUsername = username;
+
+    async function loadStats() {
+      setStatsLoading(true);
+      try {
+        const stats = await getPublicProfile(currentUsername);
+        if (!cancelled) {
+          setOwnStats(stats);
+        }
+      } catch (error) {
+        logError('Failed to load own stats:', error);
+      } finally {
+        if (!cancelled) {
+          setStatsLoading(false);
+        }
+      }
+    }
+
+    void loadStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username]);
 
   return {
     state: {
-      stats: ownStats,
-      loading: statsLoading,
+      stats: username ? ownStats : null,
+      loading: username ? statsLoading : false,
     },
     actions: {
       reload: loadOwnStats,

@@ -1,8 +1,12 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react-native';
 import DarkTheme from '@/assets/themes/dark';
-import { useEffectiveColorScheme } from '@/context/ThemeModeProvider';
+import { useEffectiveColorScheme } from '@/context/themeMode';
 import { TextInput } from '../TextInput';
+
+jest.mock('@/context/themeMode', () => ({
+  useEffectiveColorScheme: jest.fn(() => 'light'),
+}));
 
 describe('<TextInput />', () => {
   it('renders placeholder correctly', () => {

@@ -30,6 +30,10 @@ type HlsConstructor = {
   Events: { ERROR: string };
 };
 
+function safePlay(video: VideoLike) {
+  Promise.resolve(video.play()).catch(() => {});
+}
+
 export async function setupWebHlsVideo({
   video,
   src,
@@ -66,7 +70,7 @@ export async function setupWebHlsVideo({
   if (video.canPlayType('application/vnd.apple.mpegurl')) {
     video.crossOrigin = withCredentials ? 'use-credentials' : 'anonymous';
     video.src = src;
-    void Promise.resolve(video.play()).catch(() => {});
+    safePlay(video);
 
     const onError = () => {
       if (!isCancelled()) {
@@ -97,8 +101,12 @@ export async function setupWebHlsVideo({
 
     const hls = new Hls({
       lowLatencyMode: true,
-      backBufferLength: 4,
-      maxBufferLength: 4,
+      // Keep a slightly deeper buffer than the 200ms LL-HLS parts to absorb
+      // typical jitter without pushing latency past ~2s. Back buffer stays
+      // short to keep memory bounded on long-running sessions.
+      backBufferLength: 6,
+      maxBufferLength: 8,
+      maxMaxBufferLength: 20,
       xhrSetup: withCredentials
         ? (xhr) => {
             xhr.withCredentials = true;

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { deleteItemAsync, getItemAsync, setItemAsync } from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const isWeb = () => Platform.OS === 'web';
@@ -45,7 +45,7 @@ export async function getSecureItem(key: string): Promise<string | null> {
   if (isWeb()) {
     return AsyncStorage.getItem(key);
   }
-  return SecureStore.getItemAsync(key);
+  return getItemAsync(key);
 }
 
 export async function setSecureItem(key: string, value: string): Promise<void> {
@@ -53,7 +53,7 @@ export async function setSecureItem(key: string, value: string): Promise<void> {
     await AsyncStorage.setItem(key, value);
     return;
   }
-  await SecureStore.setItemAsync(key, value);
+  await setItemAsync(key, value);
 }
 
 export async function removeSecureItem(key: string): Promise<void> {
@@ -61,7 +61,7 @@ export async function removeSecureItem(key: string): Promise<void> {
     await AsyncStorage.removeItem(key);
     return;
   }
-  await SecureStore.deleteItemAsync(key);
+  await deleteItemAsync(key);
 }
 
 export function getSessionItem(key: string): string | null {

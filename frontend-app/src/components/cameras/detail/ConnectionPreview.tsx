@@ -9,7 +9,7 @@ import {
   STATUS_COLOR,
   STATUS_LABEL,
   cameraDetailStyles as styles,
-} from './shared';
+} from './styles';
 
 type CameraConnectionCardProps = {
   camera: CameraReadWithStatus;

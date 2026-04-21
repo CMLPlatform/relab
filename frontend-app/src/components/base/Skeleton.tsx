@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Animated, Platform, type StyleProp, type ViewStyle } from 'react-native';
 
 interface SkeletonProps {
@@ -10,7 +10,7 @@ interface SkeletonProps {
  * Animated skeleton placeholder with a pulsing opacity effect.
  */
 export function Skeleton({ style, duration = 750 }: SkeletonProps) {
-  const opacity = useRef(new Animated.Value(0.4)).current;
+  const opacity = useMemo(() => new Animated.Value(0.4), []);
 
   useEffect(() => {
     const anim = Animated.loop(

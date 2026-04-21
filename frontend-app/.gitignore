@@ -24,6 +24,7 @@ ios/
 
 # TypeScript
 *.tsbuildinfo
+.eslintcache
 
 # Debug logs
 npm-debug.*
@@ -41,12 +42,13 @@ yarn-error.*
 !.vscode/settings.json
 !.vscode/extensions.json
 
-# Test coverage
+# Testing
 coverage/
-
-# Playwright
 playwright-report/
 test-results/
+
+# Custom jest timing output files
+.jest-*.json
 
 # Env files (frontend env files are all public)
 !.env.development

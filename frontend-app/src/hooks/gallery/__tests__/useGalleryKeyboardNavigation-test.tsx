@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { useGalleryKeyboardNavigation } from '@/hooks/gallery/useGalleryKeyboardNavigation';
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: keyboard-navigation coverage shares one platform-aware harness across many paths.
 describe('useGalleryKeyboardNavigation', () => {
   const originalPlatform = Platform.OS;
   const addEventListener = jest.fn();
@@ -133,5 +134,58 @@ describe('useGalleryKeyboardNavigation', () => {
     unmount();
 
     expect(removeEventListener).toHaveBeenCalledWith('keydown', handler);
+  });
+
+  it('keeps one listener while using the latest callbacks after rerenders', () => {
+    const originalPrevious = jest.fn();
+    const originalNext = jest.fn();
+    const latestPrevious = jest.fn();
+    const latestNext = jest.fn();
+
+    const { rerender } = renderHook(
+      ({
+        selectedIndex,
+        onPrevious,
+        onNext,
+      }: {
+        selectedIndex: number;
+        onPrevious: () => void;
+        onNext: () => void;
+      }) =>
+        useGalleryKeyboardNavigation({
+          enabled: true,
+          imageCount: 3,
+          selectedIndex,
+          onPrevious,
+          onNext,
+        }),
+      {
+        initialProps: {
+          selectedIndex: 1,
+          onPrevious: originalPrevious,
+          onNext: originalNext,
+        },
+      },
+    );
+
+    const handler = addEventListener.mock.calls[0]?.[1] as (event: KeyboardEvent) => void;
+
+    rerender({
+      selectedIndex: 1,
+      onPrevious: latestPrevious,
+      onNext: latestNext,
+    });
+
+    expect(addEventListener).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      handler({ key: 'ArrowLeft' } as KeyboardEvent);
+      handler({ key: 'ArrowRight' } as KeyboardEvent);
+    });
+
+    expect(originalPrevious).not.toHaveBeenCalled();
+    expect(originalNext).not.toHaveBeenCalled();
+    expect(latestPrevious).toHaveBeenCalledTimes(1);
+    expect(latestNext).toHaveBeenCalledTimes(1);
   });
 });

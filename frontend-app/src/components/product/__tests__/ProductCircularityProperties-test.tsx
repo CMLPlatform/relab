@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { TextInput } from 'react-native';
-import { baseProduct as _base, renderWithProviders } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { CircularityProperties, Product } from '@/types/Product';
 import ProductCircularityProperties from '../ProductCircularityProperties';
 
@@ -20,11 +20,13 @@ const emptyCircularity: CircularityProperties = {
 };
 
 const baseProduct: Product = { ..._base, circularityProperties: emptyCircularity };
+const CIRCULARITY_PROPERTIES_PATTERN = /Circularity Properties/;
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this suite intentionally keeps one large circularity-fixture matrix together.
 describe('ProductCircularityProperties', () => {
   it('renders the section heading', () => {
     renderWithProviders(<ProductCircularityProperties product={baseProduct} editMode={false} />);
-    expect(screen.getByText(/Circularity Properties/)).toBeOnTheScreen();
+    expect(screen.getByText(CIRCULARITY_PROPERTIES_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText('Show')).toBeOnTheScreen();
   });
 

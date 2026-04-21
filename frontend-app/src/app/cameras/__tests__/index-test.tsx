@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 import CamerasScreen from '../index';
+
+const SELECTED_PATTERN = /selected/;
 
 const mockUseAuth = jest.fn();
 const mockUseCamerasQuery = jest.fn();
@@ -10,7 +12,7 @@ const mockUseLocalConnection = jest.fn();
 const mockCaptureMutate = jest.fn();
 const mockUseIsDesktop = jest.fn<() => boolean>(() => false);
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
@@ -30,6 +32,174 @@ jest.mock('@/hooks/useIsDesktop', () => ({
   useIsDesktop: () => mockUseIsDesktop(),
 }));
 
+jest.mock('@/components/cameras/screen/States', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+
+  return {
+    CamerasLoadingState: () => React.createElement(View, { testID: 'cameras-loading-state' }),
+    CamerasErrorState: ({
+      message,
+      onRetry,
+    }: {
+      message: string;
+      onRetry: () => void;
+    }) =>
+      React.createElement(
+        View,
+        null,
+        React.createElement(Text, null, message),
+        React.createElement(Pressable, { accessibilityRole: 'button', onPress: onRetry }, React.createElement(Text, null, 'Retry')),
+      ),
+  };
+});
+
+jest.mock('@/components/cameras/screen/Chrome', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+
+  return {
+    CamerasFab: ({ visible, onPress }: { visible: boolean; onPress: () => void }) =>
+      visible
+        ? React.createElement(
+            Pressable,
+            { accessibilityLabel: 'Add camera', accessibilityRole: 'button', onPress },
+            React.createElement(Text, null, 'Add camera'),
+          )
+        : null,
+    CamerasSelectionOverlay: ({
+      visible,
+      selectedCount,
+      onlineCount,
+      onSelectAll,
+      onClear,
+      onCaptureAll,
+    }: {
+      visible: boolean;
+      selectedCount: number;
+      onlineCount: number;
+      onSelectAll: () => void;
+      onClear: () => void;
+      onCaptureAll: () => void;
+    }) =>
+      visible
+        ? React.createElement(
+            View,
+            null,
+            React.createElement(Text, null, `${selectedCount} selected`),
+            React.createElement(
+              Pressable,
+              { accessibilityLabel: 'Select all online cameras', accessibilityRole: 'button', onPress: onSelectAll },
+              React.createElement(Text, null, `Select all (${onlineCount})`),
+            ),
+            React.createElement(
+              Pressable,
+              { accessibilityRole: 'button', onPress: onCaptureAll },
+              React.createElement(Text, null, `Capture ${selectedCount}`),
+            ),
+            React.createElement(
+              Pressable,
+              { accessibilityRole: 'button', onPress: onClear },
+              React.createElement(Text, null, 'Clear'),
+            ),
+          )
+        : null,
+    CamerasSnackbar: ({
+      message,
+      onDismiss,
+    }: {
+      message: string | null;
+      onDismiss: () => void;
+    }) =>
+      message
+        ? React.createElement(
+            Pressable,
+            { accessibilityRole: 'button', onPress: onDismiss },
+            React.createElement(Text, null, message),
+          )
+        : null,
+    CamerasStreamDialog: () => null,
+  };
+});
+
+jest.mock('@/components/cameras/screen/Grid', () => {
+  const React = require('react');
+  const { Pressable, Text, View } = require('react-native');
+
+  return {
+    CamerasGrid: ({
+      rows,
+      numColumns,
+      onRefresh,
+      onCardPress,
+      onCardLongPress,
+      onEffectiveConnectionChange,
+    }: {
+      rows: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        status?: { connection?: string | null };
+      }>;
+      numColumns: number;
+      onRefresh: () => void;
+      onCardPress: (row: unknown) => void;
+      onCardLongPress: (row: unknown) => void;
+      onEffectiveConnectionChange: (cameraId: string, next: unknown) => void;
+    }) =>
+      React.createElement(
+        View,
+        { numColumns, refreshing: false, onRefresh },
+        rows.length === 0
+          ? React.createElement(
+              View,
+              null,
+              React.createElement(Text, null, 'No cameras yet'),
+              React.createElement(Text, null, 'Tap the + button to register your first RPi camera.'),
+            )
+          : rows.map((row) =>
+              {
+                const localConnection = mockUseLocalConnection();
+                const isLocallyReachable =
+                  localConnection?.mode === 'local' && Boolean(localConnection?.localBaseUrl);
+                const statusLabel =
+                  isLocallyReachable || row.status?.connection === 'online' ? 'Online' : 'Offline';
+                const subtitle = isLocallyReachable ? 'Direct connection' : row.description;
+
+                return React.createElement(
+                  Pressable,
+                  {
+                    key: row.id,
+                    accessibilityLabel: `Camera: ${row.name}`,
+                    accessibilityRole: 'button',
+                    onPress: () => onCardPress(row),
+                    onLongPress: () => onCardLongPress(row),
+                  },
+                  React.createElement(Text, null, row.name),
+                  React.createElement(Text, null, statusLabel),
+                  subtitle ? React.createElement(Text, null, subtitle) : null,
+                  React.createElement(
+                    Pressable,
+                    {
+                      accessibilityLabel: `Mark ${row.name} reachable`,
+                      accessibilityRole: 'button',
+                      onPress: () =>
+                        onEffectiveConnectionChange(row.id, {
+                          isReachable: true,
+                          mode: 'local',
+                          localBaseUrl: 'http://192.168.7.1:8018',
+                        }),
+                    },
+                    React.createElement(Text, null, 'Mark reachable'),
+                  ),
+                );
+              }
+            ),
+      ),
+  };
+});
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: this screen suite intentionally keeps one shared mocked cameras environment.
 describe('CamerasScreen', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
@@ -209,7 +379,7 @@ describe('CamerasScreen', () => {
 
     // Long-press should not enter selection mode (captureModeEnabled=false)
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
-    expect(screen.queryByText(/selected/)).toBeNull();
+    expect(screen.queryByText(SELECTED_PATTERN)).toBeNull();
   });
 
   it('shows success snackbar after capture with no failures', async () => {
@@ -315,7 +485,7 @@ describe('CamerasScreen', () => {
 
     fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
 
-    expect(screen.queryByText(/selected/)).toBeNull();
+    expect(screen.queryByText(SELECTED_PATTERN)).toBeNull();
   });
 
   it('long-press in selection mode toggles the camera id in selectedIds', async () => {
@@ -370,7 +540,7 @@ describe('CamerasScreen', () => {
       expect(screen.getByText("Offline Cam is offline — can't capture.")).toBeOnTheScreen(),
     );
     // Selection mode must NOT have been entered
-    expect(screen.queryByText(/selected/)).toBeNull();
+    expect(screen.queryByText(SELECTED_PATTERN)).toBeNull();
   });
 
   it('"Select all" fills selectedIds with exactly the online cameras', async () => {
@@ -432,7 +602,7 @@ describe('CamerasScreen', () => {
     });
 
     // Selection is cleared after success
-    expect(screen.queryByText(/selected/)).toBeNull();
+    expect(screen.queryByText(SELECTED_PATTERN)).toBeNull();
   });
 
   // ── Pull-to-refresh ────────────────────────────────────────────────────────

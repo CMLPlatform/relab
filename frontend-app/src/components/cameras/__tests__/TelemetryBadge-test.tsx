@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react-native';
 import type { CameraTelemetry } from '@/services/api/rpiCamera';
-import { renderWithProviders } from '@/test-utils';
+import { renderWithProviders } from '@/test-utils/index';
 import { TelemetryBadge } from '../TelemetryBadge';
+
+const TEMPERATURE_PATTERN = /°C/;
+const LIVE_PATTERN = /live/;
 
 const baseTelemetry: CameraTelemetry = {
   timestamp: '2024-01-01T00:00:00Z',
@@ -33,7 +36,7 @@ describe('TelemetryBadge', () => {
       />,
     );
     expect(screen.getByText('Normal')).toBeOnTheScreen();
-    expect(screen.queryByText(/°C/)).toBeNull();
+    expect(screen.queryByText(TEMPERATURE_PATTERN)).toBeNull();
   });
 
   it('shows temperature and state label when cpu_temp_c is provided', () => {
@@ -62,6 +65,6 @@ describe('TelemetryBadge', () => {
 
   it('does not show live count when preview_sessions is 0', () => {
     renderWithProviders(<TelemetryBadge telemetry={{ ...baseTelemetry, preview_sessions: 0 }} />);
-    expect(screen.queryByText(/live/)).toBeNull();
+    expect(screen.queryByText(LIVE_PATTERN)).toBeNull();
   });
 });

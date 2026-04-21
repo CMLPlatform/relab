@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { baseProduct as _base, renderWithProviders } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductPhysicalProperties from '../ProductPhysicalProperties';
 

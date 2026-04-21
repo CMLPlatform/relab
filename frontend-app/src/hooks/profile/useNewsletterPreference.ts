@@ -28,8 +28,39 @@ export function useNewsletterPreference(profilePresent: boolean) {
   }, [profilePresent]);
 
   useEffect(() => {
-    void loadNewsletterPreference();
-  }, [loadNewsletterPreference]);
+    if (!profilePresent) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPreference() {
+      setNewsletterLoading(true);
+      setNewsletterError('');
+
+      try {
+        const preference = await getNewsletterPreference();
+        if (!cancelled) {
+          setNewsletterSubscribed(preference.subscribed);
+          setNewsletterError('');
+        }
+      } catch (error: unknown) {
+        if (!cancelled) {
+          setNewsletterError(getErrorMessage(error, 'Unable to load email updates.'));
+        }
+      } finally {
+        if (!cancelled) {
+          setNewsletterLoading(false);
+        }
+      }
+    }
+
+    void loadPreference();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profilePresent]);
 
   const handleNewsletterToggle = async (nextSubscribed: boolean) => {
     if (!profilePresent || newsletterSaving) return;
@@ -49,7 +80,7 @@ export function useNewsletterPreference(profilePresent: boolean) {
   return {
     state: {
       subscribed: newsletterSubscribed,
-      loading: newsletterLoading,
+      loading: profilePresent ? newsletterLoading : false,
       saving: newsletterSaving,
       error: newsletterError,
     },

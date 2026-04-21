@@ -3,9 +3,57 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, Divider, Portal, Text, TextInput, useTheme } from 'react-native-paper';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useClaimPairingMutation } from '@/hooks/useRpiCameras';
+import { ApiError } from '@/services/api/rpiCamera/shared';
+
+const PAIRING_CODE_PATTERN = /^[A-Z0-9]{6}$/;
+const NON_ALPHANUMERIC_PAIRING_CODE_PATTERN = /[^A-Z0-9]/g;
+
+function PairingCodeInput({
+  pairingCode,
+  setPairingCode,
+}: {
+  pairingCode: string;
+  setPairingCode: (value: string) => void;
+}) {
+  return (
+    <TextInput
+      mode="outlined"
+      label="Pairing code"
+      value={pairingCode}
+      onChangeText={(v) =>
+        setPairingCode(
+          v.toUpperCase().replace(NON_ALPHANUMERIC_PAIRING_CODE_PATTERN, '').slice(0, 6),
+        )
+      }
+      maxLength={6}
+      autoCapitalize="characters"
+      style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
+      contentStyle={{ textAlign: 'center' }}
+    />
+  );
+}
+
+function PairingSuccessDialog({ visible, onDismiss }: { visible: boolean; onDismiss: () => void }) {
+  return (
+    <Portal>
+      <Dialog visible={visible} onDismiss={onDismiss}>
+        <Dialog.Content style={{ alignItems: 'center', gap: 12, paddingTop: 24 }}>
+          <MaterialCommunityIcons name="check-circle" size={56} color="#2e7d32" />
+          <Text variant="titleMedium">Camera paired</Text>
+          <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
+            Your camera should come online within a few seconds.
+          </Text>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={onDismiss}>Done</Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
+}
 
 export default function AddCameraScreen() {
   const router = useRouter();
@@ -26,7 +74,7 @@ export default function AddCameraScreen() {
   const [pairingSuccess, setPairingSuccess] = useState(false);
 
   const canSubmitPairing =
-    pairingCode.length === 6 && /^[A-Z0-9]{6}$/.test(pairingCode) && name.trim().length >= 2;
+    pairingCode.length === 6 && PAIRING_CODE_PATTERN.test(pairingCode) && name.trim().length >= 2;
 
   const handlePair = () => {
     claimMutation.mutate(
@@ -36,16 +84,27 @@ export default function AddCameraScreen() {
         description: description.trim() || null,
       },
       {
-        onSuccess: () => setPairingSuccess(true),
-        onError: (err) =>
+        onSuccess: () => {
+          setPairingCode('');
+          setPairingSuccess(true);
+        },
+        onError: (err) => {
+          const isCodeMissing = err instanceof ApiError && err.status === 404;
           feedback.alert({
             title: 'Pairing failed',
-            message: String(err),
+            message: isCodeMissing
+              ? 'The pairing code was not found. Make sure the Raspberry Pi is powered on and showing a code, then try again in a few seconds.'
+              : err instanceof Error
+                ? err.message
+                : String(err),
             buttons: [{ text: 'OK' }],
-          }),
+          });
+        },
       },
     );
   };
+
+  useEffect(() => () => setPairingCode(''), []);
 
   const handlePairingSuccessDismiss = () => {
     setPairingSuccess(false);
@@ -61,23 +120,7 @@ export default function AddCameraScreen() {
         Enter the 6-character code shown on your Raspberry Pi setup page, or read the boxed `PAIRING
         READY` banner over SSH if the device is headless.
       </Text>
-      <TextInput
-        mode="outlined"
-        label="Pairing code"
-        value={pairingCode}
-        onChangeText={(v) =>
-          setPairingCode(
-            v
-              .toUpperCase()
-              .replace(/[^A-Z0-9]/g, '')
-              .slice(0, 6),
-          )
-        }
-        maxLength={6}
-        autoCapitalize="characters"
-        style={[styles.input, { fontFamily: 'monospace', fontSize: 20 }]}
-        contentStyle={{ textAlign: 'center' }}
-      />
+      <PairingCodeInput pairingCode={pairingCode} setPairingCode={setPairingCode} />
 
       <Divider style={styles.divider} />
 
@@ -124,20 +167,7 @@ export default function AddCameraScreen() {
         Pair camera
       </Button>
 
-      <Portal>
-        <Dialog visible={pairingSuccess} onDismiss={handlePairingSuccessDismiss}>
-          <Dialog.Content style={{ alignItems: 'center', gap: 12, paddingTop: 24 }}>
-            <MaterialCommunityIcons name="check-circle" size={56} color="#2e7d32" />
-            <Text variant="titleMedium">Camera paired</Text>
-            <Text variant="bodyMedium" style={{ textAlign: 'center', opacity: 0.7 }}>
-              Your camera should come online within a few seconds.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handlePairingSuccessDismiss}>Done</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+      <PairingSuccessDialog visible={pairingSuccess} onDismiss={handlePairingSuccessDismiss} />
     </ScrollView>
   );
 }

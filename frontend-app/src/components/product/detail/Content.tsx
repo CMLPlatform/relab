@@ -12,7 +12,7 @@ import ProductPhysicalProperties from '@/components/product/ProductPhysicalPrope
 import ProductTags from '@/components/product/ProductTags';
 import ProductType from '@/components/product/ProductType';
 import ProductVideo from '@/components/product/ProductVideo';
-import type { StreamSession } from '@/context/StreamSessionContext';
+import type { StreamSession } from '@/context/streamSession';
 import type { Product } from '@/types/Product';
 
 type ProductPageContentProps = {

@@ -6,8 +6,8 @@ import {
   showGoogleAccountRequired,
   showStreamStartFailed,
 } from '@/components/cameras/streamingFeedback';
-import { useStreamSession } from '@/context/StreamSessionContext';
-import type { StreamDialogState } from '@/hooks/cameras/helpers';
+import { useStreamSession } from '@/context/streamSession';
+import type { StreamDialogState } from '@/hooks/cameras/stateControllers';
 import type { EffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import { addProductVideo } from '@/services/api/products';
 import { type CameraReadWithStatus, startYouTubeStream } from '@/services/api/rpiCamera';
@@ -192,7 +192,7 @@ export function useCameraStreamActions({
   );
 
   const handleStartStream = useCallback(async () => {
-    if (!streamDialog.cameraId || !streamProductId) return;
+    if (!(streamDialog.cameraId && streamProductId)) return;
     setIsStartingStream(true);
     try {
       const result = await startYouTubeStream(streamDialog.cameraId, {

@@ -22,6 +22,7 @@ export function CameraStreamPicker({
     productName,
     onDismiss,
   });
+  const handleStart = async () => actions.handleStartStream();
 
   return (
     <>
@@ -37,9 +38,7 @@ export function CameraStreamPicker({
         onDismiss={actions.handleBack}
         onChangeTitle={actions.setTitle}
         onChangePrivacy={actions.setPrivacy}
-        onStart={() => {
-          void actions.handleStartStream();
-        }}
+        onStart={handleStart}
       />
     </>
   );

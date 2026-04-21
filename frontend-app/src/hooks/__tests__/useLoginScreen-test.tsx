@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react-native';
-import { useLoginScreen } from '@/hooks/useLoginScreen';
+import { useLoginScreen } from '@/hooks/auth/useLoginScreen';
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -13,13 +13,19 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
 }));
 
-jest.mock('@/components/common/DialogProvider', () => ({
-  useDialog: () => ({
-    alert: jest.fn(),
-  }),
-}));
+jest.mock('@/components/common/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
+    '@/components/common/dialogContext',
+  );
+  return {
+    ...actual,
+    useDialog: () => ({
+      alert: jest.fn(),
+    }),
+  };
+});
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: () => ({
     user: null,
     isLoading: false,
@@ -27,7 +33,7 @@ jest.mock('@/context/AuthProvider', () => ({
   }),
 }));
 
-jest.mock('@/context/ThemeModeProvider', () => ({
+jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: () => 'light',
 }));
 

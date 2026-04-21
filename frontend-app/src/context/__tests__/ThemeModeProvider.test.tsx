@@ -2,7 +2,7 @@
 // global stub registered in jest.setup.ts.
 jest.unmock('@/context/ThemeModeProvider');
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),
 }));
 
@@ -11,12 +11,9 @@ jest.mock('@/services/api/authentication', () => ({
 }));
 
 import { act, renderHook } from '@testing-library/react-native';
-import { useAuth } from '@/context/AuthProvider';
-import {
-  ThemeModeProvider,
-  useEffectiveColorScheme,
-  useThemeMode,
-} from '@/context/ThemeModeProvider';
+import { useAuth } from '@/context/auth';
+import { ThemeModeProvider } from '@/context/ThemeModeProvider';
+import { useEffectiveColorScheme, useThemeMode } from '@/context/themeMode';
 import { updateUser } from '@/services/api/authentication';
 
 const mockRefetch = jest.fn();

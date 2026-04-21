@@ -1,6 +1,7 @@
 import { createElement, useEffect, useRef } from 'react';
 import { View } from 'react-native';
-import { PreviewErrorOverlay, PreviewLoadingOverlay, livePreviewStyles as styles } from './shared';
+import { PreviewErrorOverlay, PreviewLoadingOverlay } from './shared';
+import { livePreviewStyles as styles } from './styles';
 import { useWebHlsPlayback } from './useWebHlsPlayback';
 import { setupWebHlsVideo } from './webHlsVideoHelpers';
 
@@ -15,7 +16,6 @@ export function WebHlsVideo({
   const {
     state,
     errorMessage,
-    retryKey,
     retryNow,
     markLive,
     markError,
@@ -24,7 +24,6 @@ export function WebHlsVideo({
     clearRetryTimer,
   } = useWebHlsPlayback(src);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey intentionally retriggers player setup for explicit retries
   useEffect(() => {
     clearRetryTimer();
     resetForSourceChange();
@@ -34,7 +33,7 @@ export function WebHlsVideo({
 
     let cancelled = false;
     let cleanup: (() => void) | null = null;
-    void setupWebHlsVideo({
+    setupWebHlsVideo({
       video,
       src,
       withCredentials,
@@ -42,13 +41,15 @@ export function WebHlsVideo({
       markError,
       handleFatalError,
       isCancelled: () => cancelled,
-    }).then((nextCleanup) => {
-      if (cancelled) {
-        nextCleanup();
-        return;
-      }
-      cleanup = nextCleanup;
-    });
+    })
+      .then((nextCleanup) => {
+        if (cancelled) {
+          nextCleanup();
+          return;
+        }
+        cleanup = nextCleanup;
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
@@ -61,7 +62,6 @@ export function WebHlsVideo({
     markError,
     markLive,
     resetForSourceChange,
-    retryKey,
     src,
     withCredentials,
   ]);

@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import { baseProduct as _base, renderWithProviders } from '@/test-utils';
+import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 import ProductTags from '../ProductTags';
+
+const BRAND_PATTERN = /CircularTech/;
+const MODEL_PATTERN = /X100/;
 
 jest.mock('@/hooks/useProductQueries', () => ({
   useSearchBrandsQuery: jest.fn(() => ({
@@ -28,8 +31,8 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText(/CircularTech/)).toBeOnTheScreen();
-    expect(screen.getByText(/X100/)).toBeOnTheScreen();
+    expect(screen.getByText(BRAND_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByText(MODEL_PATTERN)).toBeOnTheScreen();
   });
 
   it("renders 'Unknown' when brand is missing", () => {
@@ -52,7 +55,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(/CircularTech/));
+    fireEvent.press(screen.getByText(BRAND_PATTERN));
     expect(screen.getByText('Select Brand')).toBeOnTheScreen();
   });
 
@@ -60,7 +63,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(/CircularTech/));
+    fireEvent.press(screen.getByText(BRAND_PATTERN));
     expect(screen.queryByText('Select Brand')).toBeNull();
   });
 
@@ -72,7 +75,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText(/CircularTech/));
+    fireEvent.press(screen.getByText(BRAND_PATTERN));
     await screen.findByText('Select Brand');
     fireEvent.press(screen.getByText('Samsung'));
     expect(onBrandChange).toHaveBeenCalledWith('Samsung');
@@ -82,7 +85,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(/CircularTech/));
+    fireEvent.press(screen.getByText(BRAND_PATTERN));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
@@ -96,7 +99,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText(/CircularTech/));
+    fireEvent.press(screen.getByText(BRAND_PATTERN));
     await screen.findByText('Select Brand');
     fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
     await screen.findByText('MyNewBrand');
@@ -108,7 +111,7 @@ describe('ProductTags', () => {
     renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(/X100/));
+    fireEvent.press(screen.getByText(MODEL_PATTERN));
     expect(screen.getByText('Set Model')).toBeOnTheScreen();
   });
 
@@ -120,7 +123,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText(/X100/));
+    fireEvent.press(screen.getByText(MODEL_PATTERN));
     fireEvent.changeText(screen.getByPlaceholderText('Model Name'), 'NewModel');
     fireEvent.press(screen.getByText('OK'));
     expect(onModelChange).toHaveBeenCalledWith('NewModel');
@@ -142,6 +145,7 @@ describe('ProductTags', () => {
   });
 });
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: amount-chip coverage reuses one component-product fixture across all edge cases.
 describe('AmountChip (isComponent=true)', () => {
   const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
 

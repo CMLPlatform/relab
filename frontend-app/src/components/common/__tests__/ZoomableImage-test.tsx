@@ -4,6 +4,7 @@ import { act, render, screen } from '@testing-library/react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import ZoomableImage from '../ZoomableImage';
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: gesture-heavy coverage shares one zoom-image harness across many interaction paths.
 describe('ZoomableImage', () => {
   const testUri = 'https://example.com/image.jpg';
   type PinchGestureType = ReturnType<typeof Gesture.Pinch>;

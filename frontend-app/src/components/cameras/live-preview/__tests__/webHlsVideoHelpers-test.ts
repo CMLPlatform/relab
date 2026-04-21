@@ -21,6 +21,7 @@ function createVideoMock(canPlayType = '') {
   };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: playback-helper coverage shares one synthetic video harness across scenarios.
 describe('setupWebHlsVideo', () => {
   const markLive = jest.fn();
   const markError = jest.fn();

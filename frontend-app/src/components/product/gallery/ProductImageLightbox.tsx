@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import {
   Dimensions,
   type GestureResponderEvent,
@@ -26,6 +26,7 @@ type Props = {
   onClose: () => void;
 };
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: the lightbox render logic is intentionally centralized for one complex modal surface.
 export function ProductImageLightbox({
   visible,
   images,
@@ -35,7 +36,6 @@ export function ProductImageLightbox({
 }: Props) {
   const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
   const [isZoomed, setIsZoomed] = useState(false);
-  const [index, setIndex] = useState(startIndex);
   const scrollRef = useRef<ScrollableListHandle | null>(null);
   const targetIndexRef = useRef(startIndex);
   const dragStartIndexRef = useRef(startIndex);
@@ -43,6 +43,7 @@ export function ProductImageLightbox({
   const isWeb = Platform.OS === 'web';
   const isTouchWeb =
     isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const index = startIndex;
 
   const clampIndex = useCallback(
     (nextIndex: number) => Math.max(0, Math.min(nextIndex, images.length - 1)),
@@ -64,7 +65,6 @@ export function ProductImageLightbox({
     (nextIndex: number, animated: boolean) => {
       const clampedIndex = clampIndex(nextIndex);
       targetIndexRef.current = clampedIndex;
-      setIndex(clampedIndex);
       onIndexChange(clampedIndex);
       scrollToIndex(clampedIndex, animated);
     },
@@ -82,17 +82,26 @@ export function ProductImageLightbox({
   );
 
   const handleClose = useCallback(() => {
+    setIsZoomed(false);
     onIndexChange(targetIndexRef.current);
     onClose();
   }, [onClose, onIndexChange]);
+
+  const handleWindowKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === 'ArrowLeft') {
+      navigateBy(-1);
+    } else if (event.key === 'ArrowRight') {
+      navigateBy(1);
+    } else if (event.key === 'Escape') {
+      handleClose();
+    }
+  });
 
   useEffect(() => {
     if (!visible) return;
     targetIndexRef.current = startIndex;
     dragStartIndexRef.current = startIndex;
-    setIndex(startIndex);
     onIndexChange(startIndex);
-    setIsZoomed(false);
     const timer = setTimeout(() => {
       scrollToIndex(startIndex, false);
     }, 50);
@@ -103,21 +112,10 @@ export function ProductImageLightbox({
   }, [onIndexChange, scrollToIndex, startIndex, visible]);
 
   useEffect(() => {
-    if (!visible || !isWeb) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') {
-        navigateBy(-1);
-      } else if (event.key === 'ArrowRight') {
-        navigateBy(1);
-      } else if (event.key === 'Escape') {
-        handleClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose, isWeb, navigateBy, visible]);
+    if (!(visible && isWeb)) return;
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown);
+  }, [isWeb, visible]);
 
   const handleScrollBeginDrag = useCallback(
     (event: ScrollEvent) => {
@@ -147,7 +145,6 @@ export function ProductImageLightbox({
       }
 
       targetIndexRef.current = roundedIndex;
-      setIndex(roundedIndex);
       onIndexChange(roundedIndex);
     },
     [clampIndex, isWeb, isZoomed, onIndexChange, screenWidth, setActiveIndex],
@@ -217,7 +214,7 @@ export function ProductImageLightbox({
           pagingEnabled
           disableIntervalMomentum={true}
           bounces={false}
-          scrollEnabled={!isZoomed && !isTouchWeb}
+          scrollEnabled={!(isZoomed || isTouchWeb)}
           style={{ flex: 1 }}
           snapToInterval={screenWidth}
           snapToAlignment="center"

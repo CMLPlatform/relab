@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HttpResponse, http } from 'msw';
-import * as auth from '@/services/api/authentication';
-import { renderWithProviders } from '@/test-utils';
+import { getToken, getUser } from '@/services/api/authentication';
+import { renderWithProviders } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
 import VerifyEmailScreen from '../verify';
 
@@ -14,28 +14,35 @@ jest.mock('@/services/api/authentication', () => ({
 }));
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
-const mockedGetToken = jest.mocked(auth.getToken);
-const mockedGetUser = jest.mocked(auth.getUser);
+const NO_VERIFICATION_TOKEN_PATTERN = /No verification token/;
+const EMAIL_VERIFIED_SUCCESS_PATTERN = /Email verified successfully/;
+const GENERIC_VERIFY_ERROR_PATTERN = /An error occurred/;
+const mockedGetToken = jest.mocked(getToken);
+const mockedGetUser = jest.mocked(getUser);
 
-describe('VerifyEmailScreen', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockedGetToken.mockResolvedValue(undefined);
-    mockedGetUser.mockResolvedValue(undefined);
-    (useRouter as jest.Mock).mockReturnValue({
-      push: jest.fn(),
-      replace: jest.fn(),
-      back: jest.fn(),
-      setParams: jest.fn(),
-    });
+function renderVerifyEmailScreen() {
+  renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockedGetToken.mockResolvedValue(undefined);
+  mockedGetUser.mockResolvedValue(undefined);
+  (useRouter as jest.Mock).mockReturnValue({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    setParams: jest.fn(),
   });
+});
 
+describe('VerifyEmailScreen states', () => {
   it('shows error when no token is provided', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
-    renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+    renderVerifyEmailScreen();
     await waitFor(
       () => {
-        expect(screen.getByText(/No verification token/)).toBeOnTheScreen();
+        expect(screen.getByText(NO_VERIFICATION_TOKEN_PATTERN)).toBeOnTheScreen();
       },
       { timeout: 3000 },
     );
@@ -50,7 +57,7 @@ describe('VerifyEmailScreen', () => {
         return HttpResponse.json({}, { status: 200 });
       }),
     );
-    renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+    renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText('Verifying your email...')).toBeOnTheScreen();
     });
@@ -59,9 +66,9 @@ describe('VerifyEmailScreen', () => {
   it('shows success message when verification succeeds', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'valid-token' });
     server.use(http.post(`${API_URL}/auth/verify`, () => HttpResponse.json({}, { status: 200 })));
-    renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+    renderVerifyEmailScreen();
     await waitFor(() => {
-      expect(screen.getByText(/Email verified successfully/)).toBeOnTheScreen();
+      expect(screen.getByText(EMAIL_VERIFIED_SUCCESS_PATTERN)).toBeOnTheScreen();
     });
   });
 
@@ -72,7 +79,7 @@ describe('VerifyEmailScreen', () => {
         HttpResponse.json({ detail: 'Token expired' }, { status: 400 }),
       ),
     );
-    renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+    renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText('Token expired')).toBeOnTheScreen();
     });
@@ -81,12 +88,14 @@ describe('VerifyEmailScreen', () => {
   it('shows error when fetch throws', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'valid-token' });
     server.use(http.post(`${API_URL}/auth/verify`, () => HttpResponse.error()));
-    renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+    renderVerifyEmailScreen();
     await waitFor(() => {
-      expect(screen.getByText(/An error occurred/)).toBeOnTheScreen();
+      expect(screen.getByText(GENERIC_VERIFY_ERROR_PATTERN)).toBeOnTheScreen();
     });
   });
+});
 
+describe('VerifyEmailScreen navigation', () => {
   it('Back to Home button calls router.replace on error', async () => {
     const mockReplace = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({
@@ -96,7 +105,7 @@ describe('VerifyEmailScreen', () => {
       setParams: jest.fn(),
     });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
-    renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+    renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText('Back to Home')).toBeOnTheScreen();
     });

@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
-import { useAuth } from '@/context/AuthProvider';
+import { useAuth } from '@/context/auth';
 import { consumeNewProductIntent } from '@/services/newProductStore';
 import type { Product } from '@/types/Product';
 import { useProductForm } from '../useProductForm';
@@ -12,17 +12,23 @@ import {
   useSaveProductMutation,
 } from '../useProductQueries';
 
-jest.mock('@/context/AuthProvider', () => ({
+jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(() => ({ user: { id: '1', username: 'test' }, refetch: jest.fn() })),
 }));
 
-jest.mock('@/components/common/DialogProvider', () => ({
-  useDialog: jest.fn(() => ({
-    alert: jest.fn(),
-    input: jest.fn(),
-    toast: jest.fn(),
-  })),
-}));
+jest.mock('@/components/common/dialogContext', () => {
+  const actual = jest.requireActual<typeof import('@/components/common/dialogContext')>(
+    '@/components/common/dialogContext',
+  );
+  return {
+    ...actual,
+    useDialog: jest.fn(() => ({
+      alert: jest.fn(),
+      input: jest.fn(),
+      toast: jest.fn(),
+    })),
+  };
+});
 
 jest.mock('../useProductQueries', () => ({
   useProductQuery: jest.fn(),
@@ -74,6 +80,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 );
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: form-hook coverage uses one shared mocked form environment for readability.
 describe('useProductForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();

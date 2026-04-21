@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
@@ -69,13 +69,14 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
  *     caption, telemetry chip. Full opacity.
  *   - **Offline:** whole card dimmed to 60% opacity, status chip in the
  *     offline colour, "Last seen X ago" caption replaces telemetry. No
- *     thumbnail. Online cards use the latest stored capture thumbnail instead
+ *     thumbnail. Online cards use the best cached image available
+ *     (captured-photo thumbnail first, then cached preview thumbnail) instead
  *     of issuing live snapshot requests from the mosaic.
  *
  * Tapping the card navigates to the camera detail screen regardless of
  * state so users can still see history / dialog / settings when offline.
  */
-export function CameraCard({
+function CameraCardComponent({
   camera,
   effectiveConnection,
 }: {
@@ -86,9 +87,16 @@ export function CameraCard({
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
-  const resolvedThumbnailUrl = camera.last_image_thumbnail_url ?? camera.last_image_url ?? null;
+  const resolvedThumbnailUrl = useMemo(
+    () =>
+      camera.last_image_thumbnail_url ??
+      camera.last_image_url ??
+      camera.last_preview_thumbnail_url ??
+      null,
+    [camera.last_image_thumbnail_url, camera.last_image_url, camera.last_preview_thumbnail_url],
+  );
   const hasThumbnail =
-    isOnline && !!resolvedThumbnailUrl && failedThumbnailUrl !== resolvedThumbnailUrl;
+    isOnline && Boolean(resolvedThumbnailUrl) && failedThumbnailUrl !== resolvedThumbnailUrl;
 
   return (
     <Card
@@ -171,6 +179,8 @@ export function CameraCard({
     </Card>
   );
 }
+
+export const CameraCard = memo(CameraCardComponent);
 
 const styles = StyleSheet.create({
   card: {

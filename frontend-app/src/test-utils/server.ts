@@ -45,8 +45,8 @@ export const handlers = [
     const body = (await request.json()) as { subscribed?: boolean };
     return HttpResponse.json({
       email: 'test@example.com',
-      subscribed: !!body.subscribed,
-      is_confirmed: !!body.subscribed,
+      subscribed: Boolean(body.subscribed),
+      is_confirmed: Boolean(body.subscribed),
     });
   }),
   http.get(`${API_URL}/users/:username/profile`, () => {
@@ -93,7 +93,7 @@ export const handlers = [
     // - `{ request }` where `request.url` is a string
     // Be defensive and try multiple locations to find the request URL.
     const extractUrl = (p: unknown): string | undefined => {
-      if (!p || typeof p !== 'object') return undefined;
+      if (!p || typeof p !== 'object') return;
       const obj = p as Record<string, unknown>;
       const req = obj.request;
       if (req && typeof req === 'object') {
@@ -105,7 +105,7 @@ export const handlers = [
       const url = obj.url;
       if (typeof url === 'string') return url;
       if (url && typeof (url as URL).href === 'string') return (url as URL).href;
-      return undefined;
+      return;
     };
 
     const urlString = extractUrl(resolverParams) ?? `${API_URL}/`;

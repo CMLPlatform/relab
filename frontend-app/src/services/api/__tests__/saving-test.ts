@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { Product } from '@/types/Product';
-import * as auth from '../authentication';
-import * as client from '../client';
-import * as products from '../products';
+import { getToken } from '../authentication';
+import { apiFetch } from '../client';
+import { getProduct } from '../products';
 import { deleteProduct, saveProduct } from '../saving';
 
 // Mock dependencies
@@ -16,9 +16,9 @@ jest.mock('@/services/api/products', () => ({
   getProduct: jest.fn(),
 }));
 
-const mockGetToken = jest.mocked(auth.getToken);
-const mockApiFetch = jest.mocked(client.apiFetch);
-const mockGetProduct = jest.mocked(products.getProduct);
+const mockGetToken = jest.mocked(getToken);
+const mockApiFetch = jest.mocked(apiFetch);
+const mockGetProduct = jest.mocked(getProduct);
 const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 // Minimal valid product
@@ -63,6 +63,7 @@ function mockApiFetchError(status = 400, body: unknown = { detail: 'Error' }) {
   } as Response);
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: saving-service coverage intentionally keeps one shared upload harness.
 describe('Saving API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
