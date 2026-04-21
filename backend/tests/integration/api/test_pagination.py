@@ -102,9 +102,7 @@ class TestPaginationSmoke:
         assert response.status_code == status.HTTP_200_OK
         assert "items" in response.json()
 
-    async def test_organizations_returns_page_envelope(
-        self, api_client: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_organizations_returns_page_envelope(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         """GET /organizations must return a Page envelope."""
         owner = await UserFactory.create_async(session=db_session)
         await OrganizationFactory.create_async(session=db_session, owner_id=owner.id)

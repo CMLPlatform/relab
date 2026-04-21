@@ -55,13 +55,20 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         return super().build(**kwargs)
 
     @classmethod
-    async def create_async(cls, session: AsyncSession | None = None, **kwargs: Any) -> T:  # noqa: ANN401 #  Any-type kwargs are expected by the parent class signature
+    async def create_async(
+        cls,
+        session: AsyncSession | None = None,
+        *,
+        refresh_instance: bool = False,
+        **kwargs: Any,  # noqa: ANN401 - Any-typed kwargs are expected by the parent class signature.
+    ) -> T:
         """Create a new instance, optionally using a provided session."""
         if session:
             instance = cls.build(**kwargs)
             session.add(instance)
             await session.flush()
-            await session.refresh(instance)
+            if refresh_instance:
+                await session.refresh(instance)
             return instance
         return await super().create_async(**kwargs)
 

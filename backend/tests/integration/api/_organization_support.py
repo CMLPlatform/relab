@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
 @pytest.fixture
 async def verified_user(db_session: AsyncSession) -> User:
     """Non-superuser verified active user."""

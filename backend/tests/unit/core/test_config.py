@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-@pytest.mark.unit
 class TestCoreSettingsCors:
     """Test CORS configuration behavior in CoreSettings."""
 
@@ -183,7 +182,6 @@ class TestCoreSettingsCors:
             )
 
 
-@pytest.mark.unit
 class TestModuleSettingsValidation:
     """Test non-core module settings that should fail fast on bad config."""
 
@@ -211,7 +209,6 @@ class TestModuleSettingsValidation:
             RPiCamSettings(environment=Environment.DEV, rpi_cam_plugin_secret="not-a-fernet-key")
 
 
-@pytest.mark.unit
 class TestGetEnvFile:
     """get_env_file() should return the correct .env path for each ENVIRONMENT value."""
 

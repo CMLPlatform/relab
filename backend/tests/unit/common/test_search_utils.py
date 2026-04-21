@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
 from sqlalchemy import literal_column
 from sqlalchemy.dialects import postgresql
 
@@ -24,7 +23,6 @@ _NAME_COL = literal_column("material.name")
 _DESC_COL = literal_column("material.description")
 
 
-@pytest.mark.unit
 class TestBuildTextSearchClause:
     """Tests for build_text_search_clause."""
 
@@ -77,7 +75,6 @@ class TestBuildTextSearchClause:
         assert " OR " in sql.upper()
 
 
-@pytest.mark.unit
 class TestTsRankExpr:
     """Tests for ts_rank_expr."""
 

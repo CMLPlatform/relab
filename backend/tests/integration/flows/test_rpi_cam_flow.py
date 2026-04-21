@@ -2,7 +2,6 @@
 
 from typing import TYPE_CHECKING
 
-import pytest
 from fastapi import status
 
 if TYPE_CHECKING:
@@ -36,7 +35,6 @@ def build_camera_payload(name: str = CAM_NAME, description: str | None = CAM_DES
     }
 
 
-@pytest.mark.asyncio
 async def test_camera_lifecycle_and_constraints(api_client_superuser: AsyncClient, db_superuser: User) -> None:
     """Test the lifecycle of a camera and DB constraints.
 
@@ -81,7 +79,6 @@ async def test_camera_lifecycle_and_constraints(api_client_superuser: AsyncClien
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-@pytest.mark.asyncio
 async def test_current_user_camera_alias_routes(api_client_superuser: AsyncClient) -> None:
     """The user-scoped camera alias should expose the same CRUD flow."""
     camera_data = build_camera_payload()
@@ -100,7 +97,6 @@ async def test_current_user_camera_alias_routes(api_client_superuser: AsyncClien
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
-@pytest.mark.asyncio
 async def test_camera_unique_constraints(api_client_superuser: AsyncClient) -> None:
     """Test unique constraints if any."""
     camera_data = build_camera_payload(name=DUPLICATE_CAM_NAME)
@@ -114,7 +110,6 @@ async def test_camera_unique_constraints(api_client_superuser: AsyncClient) -> N
     assert response.status_code == status.HTTP_201_CREATED
 
 
-@pytest.mark.asyncio
 async def test_camera_required_fields(api_client_superuser: AsyncClient) -> None:
     """Test API structure validation for required fields."""
     camera_data = {

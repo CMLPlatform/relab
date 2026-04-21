@@ -11,8 +11,6 @@ from __future__ import annotations
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from app.api.auth.crud.users import add_user_role_in_organization_after_registration
 from app.api.auth.models import OrganizationRole, User
 from tests.factories.models import UserFactory
@@ -41,7 +39,6 @@ def _make_request(body: dict) -> MagicMock:
     return request
 
 
-@pytest.mark.unit
 class TestAddUserRoleInOrganization:
     """add_user_role_in_organization_after_registration branch coverage."""
 

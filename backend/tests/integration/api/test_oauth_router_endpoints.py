@@ -42,7 +42,6 @@ async def active_user_client(
         yield api_client
 
 
-@pytest.mark.integration
 class TestRemoveOAuthAssociation:
     """Tests for DELETE /auth/oauth/{provider}/associate."""
 

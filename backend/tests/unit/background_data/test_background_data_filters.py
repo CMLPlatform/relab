@@ -1,4 +1,5 @@
 """Unit tests for background_data filter helper functions (SQL-clause level, no DB required)."""
+# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
 
@@ -27,7 +28,6 @@ def _sql(clause: ClauseElement) -> str:
 
 
 # ruff: noqa : SLF001, ARG002 # We are testing the _search_vector_col and _trigram_cols methods directly and in a parameterized way
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("filter_cls", "table_name"),
     [
@@ -55,7 +55,6 @@ class TestFilterSearchVector:
         assert not getattr(filter_cls.Constants, "search_model_fields", None)
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("model_cls", "expected_fields"),
     [

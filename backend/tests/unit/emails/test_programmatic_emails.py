@@ -88,14 +88,12 @@ def test_generate_token_link_with_trailing_slash() -> None:
 
 
 ### Registration Email Tests ###
-@pytest.mark.asyncio
 async def test_send_registration_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration email is sent."""
     await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_send_registration_email_sets_reply_to(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration emails include the configured reply-to address."""
     await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
@@ -110,14 +108,12 @@ async def test_send_registration_email_sets_reply_to(email_data: dict[str, str],
     assert message.reply_to[0] == reply_to
 
 
-@pytest.mark.asyncio
 async def test_send_registration_email_no_username(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration email works without username."""
     await send_registration_email(email_data["email"], None, email_data["token"])
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_send_registration_email_with_background_tasks(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -134,14 +130,12 @@ async def test_send_registration_email_with_background_tasks(
 
 
 ### Password Reset Email Tests ###
-@pytest.mark.asyncio
 async def test_send_reset_password_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test password reset email is sent."""
     await send_reset_password_email(email_data["email"], email_data["username"], email_data["token"])
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_send_reset_password_email_with_background_tasks(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -157,14 +151,12 @@ async def test_send_reset_password_email_with_background_tasks(
 
 
 ### Verification Email Tests ###
-@pytest.mark.asyncio
 async def test_send_verification_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test verification email is sent."""
     await send_verification_email(email_data["email"], email_data["username"], email_data["token"])
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_send_verification_email_with_background_tasks(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -180,14 +172,12 @@ async def test_send_verification_email_with_background_tasks(
 
 
 ### Post-Verification Email Tests ###
-@pytest.mark.asyncio
 async def test_send_post_verification_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test post-verification email is sent."""
     await send_post_verification_email(email_data["email"], email_data["username"])
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_send_post_verification_email_no_username(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -196,7 +186,6 @@ async def test_send_post_verification_email_no_username(
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_send_post_verification_email_with_background_tasks(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -210,7 +199,6 @@ async def test_send_post_verification_email_with_background_tasks(
 
 
 ### Parametrized Integration Tests ###
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("email_func", "needs_token"),
     [
@@ -238,7 +226,6 @@ async def test_all_email_functions_send_emails(
     mock_email_sending.assert_called_once()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("email_func", "needs_token"),
     [

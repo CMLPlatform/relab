@@ -1,5 +1,4 @@
 """Behavior-focused tests for parent-scoped media CRUD."""
-# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -24,6 +23,7 @@ class TestParentStorageCrud:
     """Test parent-scoped storage operations."""
 
     async def test_create_rejects_parent_scope_mismatch(self, mock_session: AsyncMock) -> None:
+        """Test that creating an item with a parent ID that doesn't match the expected parent scope raises an error."""
         operations = ParentMediaCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,
@@ -42,6 +42,7 @@ class TestParentStorageCrud:
             await operations.create(mock_session, 1, image_create)
 
     async def test_delete_removes_db_record_when_storage_file_is_missing(self, mock_session: AsyncMock) -> None:
+        """Test that deleting an item removes the database record even if the storage file is missing."""
         storage_service = MagicMock()
         storage_service.delete = AsyncMock()
         operations = ParentMediaCrud(
@@ -64,6 +65,7 @@ class TestParentStorageCrud:
         storage_service.delete.assert_awaited_once_with(mock_session, item_id)
 
     async def test_get_by_id_raises_not_found_for_wrong_parent(self, mock_session: AsyncMock) -> None:
+        """Test a not found error is raised if the item exists but is not owned by the specified parent."""
         operations = ParentMediaCrud(
             parent_model=Product,
             parent_type=MediaParentType.PRODUCT,

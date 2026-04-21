@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
 from app.api.common.models.base import camel_to_capital, get_model_label_plural, pluralize_camel_name
 
 
-@pytest.mark.unit
 class TestModelNamingHelpers:
     """Tests for shared API model naming helpers."""
 

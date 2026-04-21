@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
@@ -26,7 +25,6 @@ def _create_test_app() -> FastAPI:
     return app
 
 
-@pytest.mark.anyio
 async def test_request_id_middleware_generates_response_header(mocker: MockerFixture) -> None:
     """Requests without an ID should receive a generated request ID."""
     bind_logger = MagicMock()
@@ -54,7 +52,6 @@ async def test_request_id_middleware_generates_response_header(mocker: MockerFix
     bind_logger.info.assert_called_once_with("HTTP request completed")
 
 
-@pytest.mark.anyio
 async def test_request_id_middleware_preserves_incoming_header(mocker: MockerFixture) -> None:
     """Requests with an ID should echo the same request ID back to callers."""
     bind_logger = MagicMock()

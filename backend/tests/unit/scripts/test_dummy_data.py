@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from app.api.common.models.enums import Unit
 from scripts.seed import dummy_data as dummy_data_script
 
@@ -13,7 +11,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.mark.unit
 class TestDummyDataScript:
     """Verify the seed script's helper behavior."""
 

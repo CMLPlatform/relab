@@ -1,5 +1,4 @@
 """Behavior-focused tests for organization membership endpoints."""
-# ruff: noqa: D101, D102
 # spell-checker: ignore usefixtures
 
 from __future__ import annotations
@@ -21,13 +20,14 @@ if TYPE_CHECKING:
 
 pytest_plugins = ("tests.integration.api._organization_support",)
 
-pytestmark = pytest.mark.integration
-
 
 class TestGetOrganizationMembers:
+    """Cover organization member listing behavior."""
+
     async def test_member_can_list_members(
         self, verified_user_client: AsyncClient, org_with_owner: Organization
     ) -> None:
+        """Allows members to view their organization's member list."""
         response = await verified_user_client.get(f"/organizations/{org_with_owner.id}/members")
 
         assert response.status_code == status.HTTP_200_OK
@@ -39,6 +39,7 @@ class TestGetOrganizationMembers:
         db_session: AsyncSession,
         verified_user: User,
     ) -> None:
+        """Rejects member-list access for users outside the organization."""
         other_owner = await UserFactory.create_async(session=db_session)
         other_org = await OrganizationFactory.create_async(session=db_session, owner_id=other_owner.id)
         verified_user.organization_id = None
@@ -55,17 +56,21 @@ class TestGetOrganizationMembers:
         db_session: AsyncSession,
         db_superuser: User,
     ) -> None:
+        """Allows a superuser to inspect any organization's members."""
         org = await OrganizationFactory.create_async(session=db_session, owner_id=db_superuser.id)
         response = await api_client_superuser.get(f"/organizations/{org.id}/members")
         assert response.status_code == status.HTTP_200_OK
 
 
 class TestJoinOrganization:
+    """Cover organization join behavior."""
+
     async def test_user_can_join_organization(
         self,
         verified_user_client: AsyncClient,
         db_session: AsyncSession,
     ) -> None:
+        """Lets an eligible user join another organization."""
         other_owner = await UserFactory.create_async(session=db_session)
         org = await OrganizationFactory.create_async(session=db_session, owner_id=other_owner.id)
 
@@ -82,6 +87,7 @@ class TestJoinOrganization:
         db_session: AsyncSession,
         org_with_owner: Organization,
     ) -> None:
+        """Allows owners to switch when their current organization becomes empty."""
         other_owner = await UserFactory.create_async(session=db_session)
         other_org = await OrganizationFactory.create_async(session=db_session, owner_id=other_owner.id)
 
@@ -95,6 +101,8 @@ class TestJoinOrganization:
 
 
 class TestUpdateOrganization:
+    """Cover organization update behavior."""
+
     async def test_owner_can_transfer_ownership(
         self,
         verified_user_client: AsyncClient,
@@ -102,6 +110,7 @@ class TestUpdateOrganization:
         org_with_owner: Organization,
         verified_user: User,
     ) -> None:
+        """Transfers ownership to another existing member."""
         new_owner = await UserFactory.create_async(
             session=db_session,
             organization_id=org_with_owner.id,
@@ -123,6 +132,7 @@ class TestUpdateOrganization:
         verified_user_client: AsyncClient,
         db_session: AsyncSession,
     ) -> None:
+        """Rejects ownership transfer to a user outside the organization."""
         outsider = await UserFactory.create_async(session=db_session)
 
         response = await verified_user_client.patch("/users/me/organization", json={"owner_id": str(outsider.id)})
@@ -131,7 +141,10 @@ class TestUpdateOrganization:
 
 
 class TestUserOrganizationMembers:
+    """Cover the current user's organization member endpoint."""
+
     async def test_returns_404_when_user_has_no_organization(self, verified_user_client: AsyncClient) -> None:
+        """Returns 404 when the current user does not belong to an organization."""
         response = await verified_user_client.get("/users/me/organization/members")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND

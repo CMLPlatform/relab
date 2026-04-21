@@ -162,9 +162,11 @@ class TestS3StorageSyncOperations:
         monkeypatch.delitem(sys.modules, "boto3", raising=False)
         monkeypatch.setattr(
             "app.api.file_storage.models.storage_s3.import_module",
-            lambda name: (_ for _ in ()).throw(ImportError(f"No module named '{name}'"))
-            if name == "boto3"
-            else importlib.import_module(name),
+            lambda name: (
+                (_ for _ in ()).throw(ImportError(f"No module named '{name}'"))
+                if name == "boto3"
+                else importlib.import_module(name)
+            ),
         )
 
         storage = S3Storage(bucket="my-bucket", prefix="files")
@@ -173,10 +175,10 @@ class TestS3StorageSyncOperations:
             storage.get_size("file.txt")
         assert "uv sync --group s3" in str(exc_info.value)
 
+
 class TestS3StorageAsyncOperations:
     """Test asynchronous upload operations."""
 
-    @pytest.mark.asyncio
     async def test_write_upload_uploads_to_s3(self, mock_boto3: MagicMock) -> None:
         """Test write_upload() streams file to S3 in thread pool."""
         mock_client = MagicMock()
@@ -205,7 +207,6 @@ class TestS3StorageAsyncOperations:
         mock_file.seek.assert_called_once_with(0)
         mock_file.close.assert_called_once()
 
-    @pytest.mark.asyncio
     async def test_write_image_upload_validates_then_uploads(
         self, mock_boto3: MagicMock, mocker: MockerFixture
     ) -> None:

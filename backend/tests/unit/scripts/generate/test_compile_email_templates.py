@@ -5,17 +5,15 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
-import pytest
-
 from scripts.generate import compile_email_templates as compile_email_templates_script
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
     from pytest_mock import MockerFixture
 
 
-@pytest.mark.unit
 class TestCompileEmailTemplatesScript:
     """Verify MJML template compilation behavior."""
 

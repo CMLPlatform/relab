@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import sys
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi import FastAPI
 
 from app.core.observability.telemetry import init_telemetry, shutdown_telemetry
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class _FakeResource:
@@ -64,20 +67,16 @@ def _build_fake_otel_modules(
     }
 
 
-@pytest.mark.unit
 def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Disabled telemetry should not import or instrument anything."""
     app = FastAPI()
-    app.state.telemetry_enabled = True
     async_engine = MagicMock()
 
     monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", False)
 
     assert init_telemetry(app, async_engine) is False
-    assert app.state.telemetry_enabled is False
 
 
-@pytest.mark.unit
 def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Enabled telemetry should set up the tracer provider and instrumentors."""
     app = FastAPI()
@@ -100,7 +99,6 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     with patch.dict(sys.modules, fake_modules):
         assert init_telemetry(app, async_engine) is True
 
-    assert app.state.telemetry_enabled is True
     trace_module.set_tracer_provider.assert_called_once()
     fastapi_instrumentor.instrument_app.assert_called_once_with(app)
     sqlalchemy_instrumentor.instrument.assert_called_once_with(engine=async_engine.sync_engine)
@@ -113,7 +111,6 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     httpx_instrumentor.uninstrument.assert_called_once_with()
 
 
-@pytest.mark.unit
 def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Missing optional telemetry dependencies should fail closed, not crash startup."""
     app = FastAPI()
@@ -124,4 +121,3 @@ def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pyt
     # Setting a module to None in sys.modules causes ImportError on import
     with patch.dict(sys.modules, {"opentelemetry": None}):
         assert init_telemetry(app, async_engine) is False
-    assert app.state.telemetry_enabled is False

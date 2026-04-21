@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.common.routers.health import (
@@ -19,7 +18,6 @@ from app.api.common.routers.health import (
 from app.core.runtime import AppServices
 
 
-@pytest.mark.unit
 class TestHealthCheckHelpers:
     """Tests for health check helper functions."""
 
@@ -36,7 +34,6 @@ class TestHealthCheckHelpers:
         assert result["error"] == "db connection refused"
 
 
-@pytest.mark.unit
 class TestCheckDatabase:
     """Tests for check_database function."""
 
@@ -92,7 +89,6 @@ class TestCheckDatabase:
         assert result["error"] == "Database connection failed"
 
 
-@pytest.mark.unit
 class TestCheckRedis:
     """Tests for check_redis function."""
 
@@ -146,7 +142,6 @@ class TestCheckRedis:
         assert result["error"] == "Redis connection failed"
 
 
-@pytest.mark.unit
 class TestPerformHealthChecks:
     """Tests for perform_health_checks."""
 

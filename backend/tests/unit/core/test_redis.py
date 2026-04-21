@@ -10,7 +10,6 @@ from fastapi import HTTPException
 from app.core.redis import delete_redis_key, get_redis_value, require_redis, set_redis_value
 
 
-@pytest.mark.unit
 class TestRedisHelpers:
     """Test shared Redis helper functions."""
 

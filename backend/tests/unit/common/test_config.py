@@ -1,12 +1,9 @@
 """Unit tests for the common API configuration."""
 
-import pytest
-
 from app.__version__ import version
 from app.api.common.config import APISettings
 
 
-@pytest.mark.unit
 class TestAPISettingsOpenAPIDocs:
     """APISettings should expose correctly structured OpenAPI metadata."""
 

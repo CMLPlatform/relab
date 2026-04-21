@@ -1,5 +1,4 @@
 """Behavior-focused tests for newsletter preference endpoints."""
-# ruff: noqa: D103
 
 from __future__ import annotations
 
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 async def newsletter_user(db_session: AsyncSession) -> User:
+    """Create an active user for newsletter preference tests."""
     return await UserFactory.create_async(session=db_session, is_active=True)
 
 
@@ -31,16 +31,17 @@ async def newsletter_user(db_session: AsyncSession) -> User:
 async def newsletter_user_client(
     api_client: AsyncClient, newsletter_user: User, test_app: FastAPI
 ) -> AsyncGenerator[AsyncClient]:
+    """Provide an authenticated client for the newsletter user."""
     with override_authenticated_user(test_app, newsletter_user, verified=False, optional=False):
         yield api_client
 
 
-@pytest.mark.asyncio
 async def test_get_newsletter_preference_returns_subscribed_state(
     newsletter_user_client: AsyncClient,
     newsletter_user: User,
     db_session: AsyncSession,
 ) -> None:
+    """Returns subscription state for a user with a confirmed subscriber record."""
     newsletter_user.email = "pref@example.com"
     db_session.add(newsletter_user)
     await db_session.flush()
@@ -57,12 +58,12 @@ async def test_get_newsletter_preference_returns_subscribed_state(
     assert response.json()["is_confirmed"] is True
 
 
-@pytest.mark.asyncio
 async def test_enable_newsletter_preference_without_email_verification(
     newsletter_user_client: AsyncClient,
     newsletter_user: User,
     db_session: AsyncSession,
 ) -> None:
+    """Enables newsletter delivery even when the user email is not verified."""
     newsletter_user.email = "signup@example.com"
     db_session.add(newsletter_user)
     await db_session.flush()
@@ -81,12 +82,12 @@ async def test_enable_newsletter_preference_without_email_verification(
     assert subscriber.is_confirmed is True
 
 
-@pytest.mark.asyncio
 async def test_disable_newsletter_preference_removes_subscriber(
     newsletter_user_client: AsyncClient,
     newsletter_user: User,
     db_session: AsyncSession,
 ) -> None:
+    """Removes the subscriber record when a user opts out."""
     newsletter_user.email = "leave@example.com"
     db_session.add(newsletter_user)
     await db_session.flush()

@@ -1,4 +1,4 @@
-"""Tests for ``get_last_image_urls_per_camera`` — the mosaic thumbnail query."""
+"""Tests for mosaic capture and preview-thumbnail URL helpers."""
 
 from __future__ import annotations
 
@@ -10,14 +10,19 @@ import pytest
 
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.plugins.rpi_cam import service_runtime as rpi_cam_service_runtime
-from app.api.plugins.rpi_cam.services import get_last_image_urls_per_camera
+from app.api.plugins.rpi_cam.services import (
+    get_last_image_urls_per_camera,
+    get_preview_thumbnail_urls_per_camera,
+)
+from app.core.config import settings
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
-pytestmark = [pytest.mark.integration, pytest.mark.db]
+pytestmark = pytest.mark.db
 
 
 @pytest.fixture(autouse=True)
@@ -80,14 +85,12 @@ async def _persist_image(
     return image
 
 
-@pytest.mark.asyncio
 async def test_empty_input_returns_empty_dict(db_session: AsyncSession) -> None:
     """An empty ``camera_ids`` list should short-circuit to ``{}``."""
     result = await get_last_image_urls_per_camera(db_session, [])
     assert result == {}
 
 
-@pytest.mark.asyncio
 async def test_returns_most_recent_image_per_camera(db_session: AsyncSession) -> None:
     """For each camera, the URL of the most recently-created image wins."""
     cam_a = uuid.uuid4()
@@ -120,7 +123,6 @@ async def test_returns_most_recent_image_per_camera(db_session: AsyncSession) ->
     assert newest_b.id.hex in (result[cam_b].thumbnail_url or "")
 
 
-@pytest.mark.asyncio
 async def test_camera_with_no_images_gets_none(db_session: AsyncSession) -> None:
     """A camera in the request list with no captures must come back as ``None``."""
     cam_with_image = uuid.uuid4()
@@ -141,7 +143,6 @@ async def test_camera_with_no_images_gets_none(db_session: AsyncSession) -> None
     assert result[cam_without_image].thumbnail_url is None
 
 
-@pytest.mark.asyncio
 async def test_ignores_images_with_no_camera_id_in_metadata(db_session: AsyncSession) -> None:
     """Legacy images without ``camera_id`` in metadata must not leak into results."""
     cam = uuid.uuid4()
@@ -162,3 +163,32 @@ async def test_ignores_images_with_no_camera_id_in_metadata(db_session: AsyncSes
 
     assert result[cam].image_url is None
     assert result[cam].thumbnail_url is None
+
+
+async def test_preview_thumbnail_helper_returns_public_url_when_file_exists(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The preview-thumbnail helper should expose deterministic upload URLs."""
+    camera_id = uuid.uuid4()
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+    path = tmp_path / "rpi-cam-preview" / f"{camera_id}.jpg"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"preview-bytes")
+
+    result = get_preview_thumbnail_urls_per_camera([camera_id])
+
+    assert result[camera_id] == f"/uploads/images/rpi-cam-preview/{camera_id}.jpg"
+
+
+async def test_preview_thumbnail_helper_returns_none_when_file_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Missing preview-thumbnail files should produce ``None`` entries."""
+    camera_id = uuid.uuid4()
+    monkeypatch.setattr(settings, "image_storage_path", tmp_path)
+
+    result = get_preview_thumbnail_urls_per_camera([camera_id])
+
+    assert result[camera_id] is None

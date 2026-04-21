@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-import pytest
+from typing import TYPE_CHECKING
 
 from scripts.db import is_empty as db_is_empty
 
+if TYPE_CHECKING:
+    import pytest
 
-@pytest.mark.unit
+
 class TestDbIsEmptyCli:
     """Verify the shell-facing exit-code contract."""
 

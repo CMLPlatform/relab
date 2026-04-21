@@ -1,12 +1,10 @@
 """Unit tests for the auth module configuration."""
 
-import pytest
 from pydantic import SecretStr
 
 from app.api.auth.config import AuthSettings
 
 
-@pytest.mark.unit
 class TestAuthSettingsDefaults:
     """AuthSettings should produce safe, predictable defaults when no env file is present."""
 
@@ -78,7 +76,6 @@ class TestAuthSettingsDefaults:
         assert all(s.startswith("https://www.googleapis.com/auth/youtube") for s in settings.youtube_api_scopes)
 
 
-@pytest.mark.unit
 class TestAuthSettingsOverrides:
     """AuthSettings should accept constructor-level overrides for all fields."""
 

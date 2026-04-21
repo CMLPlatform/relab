@@ -17,7 +17,6 @@ ERR_MISSING_AMOUNT = "must have amount_in_parent set"
 _VALIDATE_PRODUCT = validate_product
 
 
-@pytest.mark.unit
 class TestProductLogic:
     """Tests for product model business logic like cycle detection and validation."""
 

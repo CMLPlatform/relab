@@ -112,9 +112,7 @@ class TestNotFound:
 class TestUnprocessableEntity:
     """Invalid request bodies must return 422 with structured error details."""
 
-    async def test_create_taxonomy_missing_required_fields_returns_422(
-        self, api_client_superuser: AsyncClient
-    ) -> None:
+    async def test_create_taxonomy_missing_required_fields_returns_422(self, api_client_superuser: AsyncClient) -> None:
         """POST /admin/taxonomies with an empty body → 422 (name and domains are required)."""
         response = await api_client_superuser.post("/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
@@ -138,9 +136,7 @@ class TestUnprocessableEntity:
             assert "msg" in error, f"Missing 'msg' in error: {error}"
             assert "type" in error, f"Missing 'type' in error: {error}"
 
-    async def test_create_material_with_negative_density_returns_422(
-        self, api_client_superuser: AsyncClient
-    ) -> None:
+    async def test_create_material_with_negative_density_returns_422(self, api_client_superuser: AsyncClient) -> None:
         """Materials with negative density must fail schema validation with 422."""
         data = {"name": "Bad Material", "density_kg_m3": -500.0}
         response = await api_client_superuser.post("/admin/materials", json=data)

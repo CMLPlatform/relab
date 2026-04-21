@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import UUID
 
-import pytest
 from fastapi import status
 from sqlalchemy import select
 
@@ -49,7 +48,6 @@ async def get_user_by_email(db_session: AsyncSession, email: str) -> User | None
     return result.scalars().first()
 
 
-@pytest.mark.asyncio
 class TestCompleteAuthFlow:
     """Test complete authentication flow from registration to logout."""
 
@@ -203,7 +201,6 @@ class TestCompleteAuthFlow:
         await api_client.post("/auth/cookie/logout")
 
 
-@pytest.mark.asyncio
 class TestErrorHandling:
     """Test error handling in authentication flows."""
 

@@ -1,5 +1,4 @@
 """Behavior-focused tests for organization member listing."""
-# ruff: noqa: D101, D102
 
 from __future__ import annotations
 
@@ -15,11 +14,12 @@ from app.api.auth.models import Organization, User
 from app.api.auth.schemas import UserReadPublic
 from tests.unit.auth._org_crud_support import make_user
 
-pytestmark = pytest.mark.unit
-
 
 class TestGetOrganizationMembers:
+    """Test getting organization members."""
+
     async def test_get_members_non_member_raises(self, mock_session: AsyncMock) -> None:
+        """Test that a not found error is raised if the user is not a member of the organization."""
         org_id = uuid.uuid4()
         user = make_user(organization_id=uuid.uuid4())
 
@@ -27,6 +27,7 @@ class TestGetOrganizationMembers:
             await get_organization_members(mock_session, org_id, user)
 
     async def test_get_members_success_as_member(self, mock_session: AsyncMock) -> None:
+        """Test that a user can get the list of members for their organization."""
         org_id = uuid.uuid4()
         user = make_user(organization_id=org_id)
         mock_members = [MagicMock(), MagicMock()]
@@ -39,6 +40,7 @@ class TestGetOrganizationMembers:
         assert result == mock_members
 
     async def test_get_members_success_as_superuser(self, mock_session: AsyncMock) -> None:
+        """Test that a superuser can get the list of members for any org, even if they are not a member themselves."""
         org_id = uuid.uuid4()
         user = make_user(is_superuser=True)
         mock_org = MagicMock()
@@ -51,6 +53,7 @@ class TestGetOrganizationMembers:
         assert len(members) == 1
 
     async def test_get_members_paginated_success(self, mock_session: AsyncMock) -> None:
+        """Test that a user can get a paginated list of members for their organization."""
         org_id = uuid.uuid4()
         user = make_user(organization_id=org_id)
 

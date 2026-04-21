@@ -1,6 +1,6 @@
 """Unit tests for the disposable-email fallback refresh script."""
 # spell-checker: ignore mailinator, nmailinator
-# ruff: noqa: SLF001
+# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.mark.unit
 class TestRefreshDisposableEmailDomainsScript:
     """Verify disposable-domain refresh behavior."""
 

@@ -10,12 +10,12 @@ Two levels:
    without the registry helper.  This documents which modules are
    self-contained and which still depend on the registry.
 """
+# ruff: noqa: PLC0415 # We are intentionally testing that these models have mappers configured after load_models().
 
 import importlib
 import multiprocessing as mp
 import traceback
 
-import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import configure_mappers
 
@@ -25,15 +25,13 @@ from app.core.model_registry import load_models
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _run_isolated(module: str) -> tuple[bool, str]:
-    """Import *module* in a subprocess, then call ``configure_mappers()``.
 
-    Returns ``(True, "")`` on success or ``(False, last_stderr_line)`` on failure.
-    """
+def _run_isolated(import_paths: tuple[str, ...]) -> tuple[bool, str]:
+    """Import modules in a subprocess, then call ``configure_mappers()`` once."""
     ctx = mp.get_context("spawn")
     result_queue: mp.Queue = ctx.Queue()
 
-    process = ctx.Process(target=_worker, args=(module, result_queue))
+    process = ctx.Process(target=_worker, args=(import_paths, result_queue))
     process.start()
     process.join(timeout=15)
     if process.is_alive():
@@ -47,12 +45,14 @@ def _run_isolated(module: str) -> tuple[bool, str]:
     if process.exitcode == 0:
         return True, ""
 
-    return False, f"worker exited with code {process.exitcode}"
+    modules = ", ".join(import_paths)
+    return False, f"worker exited with code {process.exitcode} while checking: {modules}"
 
 
-def _worker(import_path: str, queue: mp.Queue) -> None:
+def _worker(import_paths: tuple[str, ...], queue: mp.Queue) -> None:
     try:
-        importlib.import_module(import_path)
+        for import_path in import_paths:
+            importlib.import_module(import_path)
 
         configure_mappers()
     except (
@@ -64,7 +64,7 @@ def _worker(import_path: str, queue: mp.Queue) -> None:
         ValueError,
         AssertionError,
         SQLAlchemyError,
-    ) as exc:  # pragma: no cover - exercised in subprocess
+    ) as exc:
         lines = [line for line in traceback.format_exc().splitlines() if line.strip()]
         message = lines[-1] if lines else str(exc)
         queue.put((False, message))
@@ -77,8 +77,7 @@ def _worker(import_path: str, queue: mp.Queue) -> None:
 # ---------------------------------------------------------------------------
 
 
-# ruff: noqa: PLC0415 # These imports are intentionally inside the test to verify that they work after load_models() has run
-@pytest.mark.unit
+# These imports are intentionally inside the test to verify that they work after load_models() has run
 class TestMapperWithRegistry:
     """Mapper configuration succeeds when load_models() has run."""
 
@@ -132,26 +131,17 @@ class TestMapperWithRegistry:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.unit
 class TestModuleIsolation:
     """Each test imports exactly one top-level model module in a clean process."""
 
-    def test_auth_models_self_contained(self) -> None:
-        """Test that app.api.auth.models can be imported and have mappers configured without the registry."""
-        ok, msg = _run_isolated("app.api.auth.models")
-        assert ok, msg
-
-    def test_background_data_models_self_contained(self) -> None:
-        """Test that app.api.background_data.models can be imported and have mappers configured without the registry."""
-        ok, msg = _run_isolated("app.api.background_data.models")
-        assert ok, msg
-
-    def test_data_collection_models_self_contained(self) -> None:
-        """Test that app.api.data_collection.models.product can be imported without the registry."""
-        ok, msg = _run_isolated("app.api.data_collection.models.product")
-        assert ok, msg
-
-    def test_file_storage_models_self_contained(self) -> None:
-        """Test that app.api.file_storage.models can be imported without the registry."""
-        ok, msg = _run_isolated("app.api.file_storage.models")
+    def test_model_modules_are_self_contained(self) -> None:
+        """Model modules should configure mappers without depending on the registry helper."""
+        ok, msg = _run_isolated(
+            (
+                "app.api.auth.models",
+                "app.api.background_data.models",
+                "app.api.data_collection.models.product",
+                "app.api.file_storage.models",
+            )
+        )
         assert ok, msg

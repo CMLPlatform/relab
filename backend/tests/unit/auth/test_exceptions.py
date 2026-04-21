@@ -49,7 +49,6 @@ _USER_ID = uuid4()
 _ORG_ID = uuid4()
 
 
-@pytest.mark.unit
 class TestAuthCRUDErrorHierarchy:
     """Test the exception class hierarchy."""
 
@@ -63,7 +62,6 @@ class TestAuthCRUDErrorHierarchy:
         assert not issubclass(UserOwnershipError, AuthCRUDError)
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("exception_cls", "kwargs", "expected_status", "expected_fragments"),
     [
@@ -182,7 +180,6 @@ def test_api_error_status_and_message(
         assert fragment in error.message, f"Expected '{fragment}' in '{error.message}'"
 
 
-@pytest.mark.unit
 def test_user_ownership_error_message() -> None:
     """UserOwnershipError includes model name, user_id, and model_id."""
     mock_model = Mock()
@@ -199,7 +196,6 @@ def test_user_ownership_error_message() -> None:
     assert "does not own" in error.message.lower()
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("error_cls", "kwargs", "expected_status", "expected_detail"),
     [
@@ -232,7 +228,6 @@ def test_http_error_adapter(
         assert error.detail == expected_detail
 
 
-@pytest.mark.unit
 class TestExceptionInheritanceChain:
     """Tests for verifying the complete exception inheritance chain."""
 
@@ -264,7 +259,6 @@ class TestExceptionInheritanceChain:
             raise UserNameAlreadyExistsError(username="test")
 
 
-@pytest.mark.unit
 class TestHandleOrganizationIntegrityError:
     """Tests for handle_organization_integrity_error."""
 

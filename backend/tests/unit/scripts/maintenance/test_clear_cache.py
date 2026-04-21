@@ -13,7 +13,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.mark.unit
 class TestClearCacheScript:
     """Verify Redis cache clearing script behavior."""
 

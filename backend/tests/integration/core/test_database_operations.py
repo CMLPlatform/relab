@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
@@ -16,7 +15,6 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.integration
 async def test_taxonomy_categories_relationship_loads_children(
     db_session: AsyncSession,
     db_taxonomy: Taxonomy,

@@ -42,7 +42,6 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.asyncio
 class TestRegistrationEndpoint:
     """Tests for the /auth/register endpoint."""
 
@@ -176,7 +175,6 @@ class TestRegistrationEndpoint:
         assert response.status_code == status.HTTP_201_CREATED
 
 
-@pytest.mark.asyncio
 class TestLoginEndpoint:
     """Tests for FastAPI-Users login endpoints."""
 
@@ -278,7 +276,6 @@ class TestLoginEndpoint:
         assert response.status_code == status.HTTP_200_OK
 
 
-@pytest.mark.asyncio
 class TestLogoutEndpoint:
     """Tests for FastAPI-Users logout endpoints."""
 
@@ -293,7 +290,6 @@ class TestLogoutEndpoint:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-@pytest.mark.asyncio
 class TestRateLimiting:
     """Tests for rate limiting on auth endpoints."""
 

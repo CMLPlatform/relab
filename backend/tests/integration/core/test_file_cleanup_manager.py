@@ -7,7 +7,6 @@ import time
 import uuid
 from typing import TYPE_CHECKING, Any, cast
 
-import pytest
 from sqlalchemy import text
 
 from app.api.file_storage.models import MediaParentType
@@ -19,12 +18,12 @@ from tests.factories.models import ProductFactory, ProductTypeFactory
 if TYPE_CHECKING:
     from pathlib import Path
 
+    import pytest
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
 
 
-@pytest.mark.integration
 class TestFileCleanupManager:
     """Scheduled cleanup manager behavior."""
 

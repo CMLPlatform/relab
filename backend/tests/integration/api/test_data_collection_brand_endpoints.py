@@ -8,10 +8,10 @@ import pytest
 from fastapi import status
 
 from app.api.data_collection.models.product import Product
-from tests.factories.models import ProductFactory, ProductTypeFactory
-from tests.integration.api.data_collection_support import (
+from tests.constants import (
     BRAND_X,
 )
+from tests.factories.models import ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from app.api.auth.models import User
 
-pytestmark = [pytest.mark.integration, pytest.mark.api]
+pytestmark = pytest.mark.api
 
 
 async def test_get_brands(api_client: AsyncClient, setup_product: Product) -> None:

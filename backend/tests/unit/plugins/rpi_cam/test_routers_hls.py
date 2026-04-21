@@ -1,6 +1,6 @@
 """Unit tests for the RPi Cam LL-HLS proxy router."""
-# ruff: noqa: SLF001
 # spell-checker: ignore ftypmp, EXTM, mpegurl
+# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
 

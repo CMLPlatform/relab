@@ -36,7 +36,8 @@ class _NoNetworkTransport(httpx.AsyncBaseTransport):
     - Any other callers that fail open on non-OK responses are also fine.
     """
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:  # noqa: ARG002
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        _ = request
         return httpx.Response(200, content=b"")
 
 
@@ -141,7 +142,6 @@ async def api_client(
                 yield client
 
             # Cleanup
-            test_app.state.redis = None
             await close_fastapi_cache()
             limiter.enabled = True
             test_app.dependency_overrides.clear()

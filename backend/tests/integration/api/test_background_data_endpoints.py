@@ -24,7 +24,7 @@ PARENT_CATEGORY = "Parent Category"
 CHILD_CATEGORY = "Child Category"
 NONEXISTENT_ID = "99999"
 
-pytestmark = [pytest.mark.integration, pytest.mark.api]
+pytestmark = pytest.mark.api
 
 
 async def test_create_taxonomy_contract(api_client_superuser: AsyncClient) -> None:

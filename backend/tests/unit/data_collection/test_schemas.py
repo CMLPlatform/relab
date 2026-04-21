@@ -29,7 +29,6 @@ def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
     return schema.model_validate(data)
 
 
-@pytest.mark.unit
 class TestValidatorsCommon:
     """Tests for custom validators used across schemas."""
 
@@ -71,7 +70,6 @@ class TestValidatorsCommon:
             not_too_old(old_dt, time_delta=timedelta(days=30))
 
 
-@pytest.mark.unit
 @pytest.mark.parametrize(
     ("schema_cls", "field", "max_len"),
     [
@@ -99,14 +97,12 @@ def test_field_max_length_enforced(schema_cls: type[BaseModel], field: str, max_
         _validate_model(schema_cls, data_bad)
 
 
-@pytest.mark.unit
 def test_product_name_min_length() -> None:
     """Product name must be at least 2 characters."""
     with pytest.raises(ValidationError):
         _validate_model(ProductCreateBaseProduct, {"name": "A"})
 
 
-@pytest.mark.unit
 class TestProductTimeValidation:
     """Tests for dismantling time custom validators."""
 
@@ -127,7 +123,6 @@ class TestProductTimeValidation:
             )
 
 
-@pytest.mark.unit
 def test_product_list_fields_default_to_empty() -> None:
     """Videos and bill_of_materials default to empty lists."""
     product = _validate_model(ProductCreateBaseProduct, {"name": "Dyson V15 Detect"})
@@ -135,7 +130,6 @@ def test_product_list_fields_default_to_empty() -> None:
     assert product.bill_of_materials == []
 
 
-@pytest.mark.unit
 def test_product_brand_lowercased() -> None:
     """Brand field is normalized to lowercase."""
     product = _validate_model(
@@ -145,7 +139,6 @@ def test_product_brand_lowercased() -> None:
     assert product.brand == "bosch"
 
 
-@pytest.mark.unit
 class TestValidDatetimeType:
     """Tests for ValidDateTime custom type."""
 
@@ -190,7 +183,6 @@ class TestValidDatetimeType:
             TestModel(event_time=dt)
 
 
-@pytest.mark.unit
 def test_product_read_thumbnail_url_with_images() -> None:
     """Thumbnail URL is computed from the first image."""
     image1 = _validate_model(
@@ -234,7 +226,6 @@ def test_product_read_thumbnail_url_with_images() -> None:
     assert product.thumbnail_url == "/uploads/images/front-panel.png"
 
 
-@pytest.mark.unit
 def test_product_read_thumbnail_url_without_images() -> None:
     """Thumbnail URL is None when no images are present."""
     product = _validate_model(

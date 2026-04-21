@@ -4,12 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 
-@pytest.mark.unit
 class TestOpenAPIExamples:
     """Tests for shared OpenAPI example helper functions."""
 

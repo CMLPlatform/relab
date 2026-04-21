@@ -1,5 +1,4 @@
 """Behavior-focused tests for file and image CRUD entrypoints."""
-# ruff: noqa: D102
 
 from __future__ import annotations
 
@@ -31,6 +30,7 @@ class TestFileStorageCrud:
     """Test CRUD operations for generic files."""
 
     async def test_create_file_success(self, mock_session: AsyncMock) -> None:
+        """Creates a file record for a valid upload."""
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = TEST_FILENAME
         mock_file.size = 1024
@@ -58,6 +58,7 @@ class TestFileStorageCrud:
         assert result.parent_id == 1
 
     async def test_create_file_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
+        """Rejects file uploads above the size limit."""
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = TEST_FILENAME
         mock_file.size = 51 * MB
@@ -71,6 +72,7 @@ class TestFileStorageCrud:
             await create_file(mock_session, file_create)
 
     async def test_delete_file_success(self, mock_session: AsyncMock) -> None:
+        """Deletes a stored file and its database record."""
         file_id = uuid4()
         mock_db_file = MagicMock(spec=File)
         mock_db_file.file.path = FAKE_PATH
@@ -89,6 +91,7 @@ class TestImageStorageCrud:
     """Test CRUD operations for image files."""
 
     async def test_create_image_internal_success(self, mock_session: AsyncMock) -> None:
+        """Creates an image record for a valid upload."""
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = IMAGE_FILENAME
         mock_file.content_type = CONTENT_TYPE_PNG
@@ -116,6 +119,7 @@ class TestImageStorageCrud:
         assert result.filename == IMAGE_FILENAME
 
     async def test_create_image_rejects_oversized_upload(self, mock_session: AsyncMock) -> None:
+        """Rejects image uploads above the size limit."""
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = IMAGE_FILENAME
         mock_file.content_type = CONTENT_TYPE_PNG
@@ -130,6 +134,7 @@ class TestImageStorageCrud:
             await create_image(mock_session, image_create)
 
     async def test_delete_image_success(self, mock_session: AsyncMock) -> None:
+        """Deletes a stored image and its database record."""
         image_id = uuid4()
         mock_db_image = MagicMock(spec=Image)
         mock_db_image.file.path = FAKE_IMAGE_PATH
@@ -146,6 +151,7 @@ class TestImageStorageCrud:
         mock_delete_image.assert_awaited_once_with(Path(FAKE_IMAGE_PATH))
 
     async def test_delete_image_cleans_thumbnails_when_original_is_missing(self, mock_session: AsyncMock) -> None:
+        """Cleans up derived image files when the original file record is missing."""
         image_id = uuid4()
         mock_db_image = MagicMock(spec=Image)
         mock_db_image.file.path = FAKE_IMAGE_PATH

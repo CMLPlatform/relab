@@ -37,7 +37,6 @@ def mock_send_unsubscription_email() -> Generator[AsyncMock]:
         yield mock
 
 
-@pytest.mark.asyncio
 async def test_newsletter_subscription_lifecycle(
     api_client: AsyncClient,
     db_session: AsyncSession,

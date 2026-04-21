@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-import pytest
-
 from app.api.auth.models import OrganizationRole, User
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from tests.factories.models import ProductFactory
 
 
-@pytest.mark.unit
 def test_user_organization_owner_property_tracks_mutations() -> None:
     """Derived role flags should reflect the latest field value."""
     user = User(
@@ -31,7 +28,6 @@ def test_user_organization_owner_property_tracks_mutations() -> None:
     assert user.is_organization_owner is True
 
 
-@pytest.mark.unit
 def test_physical_properties_volume_tracks_dimension_updates() -> None:
     """Computed volume should not retain stale cached values after mutation."""
     product = ProductFactory.build(height_cm=2, width_cm=3, depth_cm=4, owner_id=uuid.uuid4())
@@ -43,7 +39,6 @@ def test_physical_properties_volume_tracks_dimension_updates() -> None:
     assert product.volume_cm3 == 30
 
 
-@pytest.mark.unit
 def test_product_derived_flags_track_parent_and_component_updates() -> None:
     """Product convenience flags should reflect the current graph state."""
     product = Product(

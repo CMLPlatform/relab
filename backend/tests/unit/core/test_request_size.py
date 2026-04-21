@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
-import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
 from app.core.middleware.request_size import register_request_size_limit_middleware
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def _create_test_app() -> FastAPI:
@@ -27,7 +30,6 @@ def _create_test_app() -> FastAPI:
     return app
 
 
-@pytest.mark.anyio
 async def test_request_size_limit_accepts_small_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """JSON requests under the limit should pass through unchanged."""
     monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 64)
@@ -40,7 +42,6 @@ async def test_request_size_limit_accepts_small_json(monkeypatch: pytest.MonkeyP
     assert response.json() == {"payload": {"ok": "yes"}}
 
 
-@pytest.mark.anyio
 async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyPatch) -> None:
     """JSON requests over the limit should receive a 413 response."""
     monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 32)
@@ -58,7 +59,6 @@ async def test_request_size_limit_rejects_large_json(monkeypatch: pytest.MonkeyP
     assert response.json()["detail"]["message"] == "Request body too large. Maximum size: 32 bytes"
 
 
-@pytest.mark.anyio
 async def test_request_size_limit_skips_multipart_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     """Multipart requests should remain governed by route-specific upload validation."""
     monkeypatch.setattr("app.core.middleware.request_size.settings.request_body_limit_bytes", 8)

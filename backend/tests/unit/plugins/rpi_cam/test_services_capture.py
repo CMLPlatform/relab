@@ -1,4 +1,5 @@
 """Unit tests for RPi Cam image capture service helpers."""
+# spell-checker: ignore excinfo
 
 from __future__ import annotations
 

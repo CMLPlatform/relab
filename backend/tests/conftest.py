@@ -59,7 +59,6 @@ pytest_plugins = [
     "tests.fixtures.data",
     "tests.fixtures.migrations",
     "tests.fixtures.redis",
-    "tests.integration.api.data_collection_support",
 ]
 
 _DEFAULT_TEST_DB_NAME = "test_relab"
@@ -263,12 +262,6 @@ async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> A
             yield db_session
             if transaction.is_active:
                 await transaction.rollback()
-
-
-@pytest.fixture
-def anyio_backend() -> str:
-    """Configure anyio backend for async tests."""
-    return "asyncio"
 
 
 @pytest.fixture(autouse=True, scope="session")

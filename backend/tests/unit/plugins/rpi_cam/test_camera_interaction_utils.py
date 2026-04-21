@@ -28,7 +28,6 @@ def build_camera() -> Camera:
     )
 
 
-@pytest.mark.asyncio
 async def test_fetch_from_camera_url_delegates_to_relay(monkeypatch: pytest.MonkeyPatch) -> None:
     """fetch_from_camera_url should delegate entirely to relay_via_websocket."""
     camera = build_camera()
@@ -51,7 +50,6 @@ async def test_fetch_from_camera_url_delegates_to_relay(monkeypatch: pytest.Monk
     )
 
 
-@pytest.mark.asyncio
 async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.MonkeyPatch) -> None:
     """fetch_from_camera_url should forward body, error_msg, and expect_binary."""
     camera = build_camera()
@@ -81,7 +79,6 @@ async def test_fetch_from_camera_url_passes_body_and_flags(monkeypatch: pytest.M
     )
 
 
-@pytest.mark.asyncio
 async def test_get_user_owned_camera_returns_camera_when_online() -> None:
     """Should return the camera when it is online."""
     camera = build_camera()
@@ -106,7 +103,6 @@ async def test_get_user_owned_camera_returns_camera_when_online() -> None:
     get_status_mock.assert_awaited_once_with(redis, camera.id)
 
 
-@pytest.mark.asyncio
 async def test_get_user_owned_camera_raises_503_when_offline() -> None:
     """Should raise HTTP 503 when the camera is offline."""
     camera = build_camera()
@@ -133,7 +129,6 @@ async def test_get_user_owned_camera_raises_503_when_offline() -> None:
     get_status_mock.assert_awaited_once_with(redis, camera.id)
 
 
-@pytest.mark.asyncio
 async def test_get_user_owned_camera_raises_401_when_unauthorized() -> None:
     """Should raise HTTP 401 when the camera returns unauthorized status."""
     camera = build_camera()

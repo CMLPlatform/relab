@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
 
@@ -67,7 +65,6 @@ class TestGetBrandSearchStatement:
         assert sql_default == sql_asc
 
 
-@pytest.mark.unit
 class TestProductFilterRankSort:
     """Tests for ProductFilter's relevance-rank ordering behaviour.
 

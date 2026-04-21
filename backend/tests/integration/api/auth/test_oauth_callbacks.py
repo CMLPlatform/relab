@@ -1,5 +1,5 @@
 """OAuth callback and association flow tests."""
-# ruff: noqa: SLF001, D101, D102
+# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
 
@@ -24,12 +24,11 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
-pytestmark = pytest.mark.unit
-
-
 class TestOAuthCallbackLinkingPolicy:
-    @pytest.mark.asyncio
+    """Cover account-linking rules in the OAuth callback flow."""
+
     async def test_callback_passes_associate_by_email_false(self) -> None:
+        """Disables implicit email-based account linking."""
         builder = make_auth_builder()
         request, access_token_state = make_request_with_valid_state()
 
@@ -47,8 +46,8 @@ class TestOAuthCallbackLinkingPolicy:
         assert user_manager.oauth_callback.await_args is not None
         assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
 
-    @pytest.mark.asyncio
     async def test_callback_returns_stable_existing_user_error(self) -> None:
+        """Maps duplicate-user errors to the stable OAuth error code."""
         builder = make_auth_builder()
         request, access_token_state = make_request_with_valid_state()
 
@@ -64,8 +63,10 @@ class TestOAuthCallbackLinkingPolicy:
 
 
 class TestOAuthAssociateFlow:
-    @pytest.mark.asyncio
+    """Cover linking an OAuth provider to the current user."""
+
     async def test_associate_callback_links_provider_for_current_user(self) -> None:
+        """Associates the provider when it is not already linked elsewhere."""
         builder = make_associate_builder()
         current_user = MagicMock()
         current_user.id = USER1_EMAIL
@@ -91,8 +92,8 @@ class TestOAuthAssociateFlow:
         assert result["email"] == TEST_EMAIL
         assert user_manager.oauth_associate_callback.await_count == 1
 
-    @pytest.mark.asyncio
     async def test_associate_callback_rejects_provider_linked_to_other_user(self) -> None:
+        """Rejects association when the provider belongs to a different user."""
         builder = make_associate_builder()
         current_user = MagicMock()
         current_user.id = USER1_EMAIL

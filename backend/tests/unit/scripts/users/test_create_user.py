@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.mark.unit
 class TestCreateUserScript:
     """Verify the create_user script contract."""
 

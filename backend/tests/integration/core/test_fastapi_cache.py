@@ -6,6 +6,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 import pytest
+from cashews.backends import memory as memory_backend
 from fastapi import APIRouter, Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 
@@ -50,7 +51,6 @@ async def cache_app() -> AsyncGenerator[FastAPI]:
 class TestFastAPICacheIntegration:
     """Integration tests for cached FastAPI endpoints."""
 
-    @pytest.mark.asyncio
     async def test_cache_hit_on_second_request(self, cache_app: FastAPI) -> None:
         """Test that second request returns cached response with HIT header."""
         async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
@@ -62,7 +62,6 @@ class TestFastAPICacheIntegration:
             assert response2.status_code == 200
             assert response2.json() == {"result": "processed_test", "call_count": 1}
 
-    @pytest.mark.asyncio
     async def test_different_params_different_cache(self, cache_app: FastAPI) -> None:
         """Test that different parameters create separate cache entries."""
         async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
@@ -78,9 +77,14 @@ class TestFastAPICacheIntegration:
             assert response3.status_code == 200
             assert response3.json()["call_count"] == 1
 
-    @pytest.mark.asyncio
-    async def test_cache_ttl_expiration(self) -> None:
+    async def test_cache_ttl_expiration(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that cache entries expire after TTL."""
+        fake_now = {"value": 1_700_000_000.0}
+
+        def _fake_time() -> float:
+            return fake_now["value"]
+
+        monkeypatch.setattr(memory_backend.time, "time", _fake_time)
         await close_fastapi_cache()
         init_fastapi_cache(None)
 
@@ -104,14 +108,13 @@ class TestFastAPICacheIntegration:
                 response2 = await client.get("/short-ttl?value=test")
                 assert response2.json()["call_count"] == 1
 
-                await asyncio.sleep(1.1)
+                fake_now["value"] += 1.1
 
                 response3 = await client.get("/short-ttl?value=test")
                 assert response3.json()["call_count"] == 2
         finally:
             await close_fastapi_cache()
 
-    @pytest.mark.asyncio
     async def test_session_exclusion_from_cache_key(self) -> None:
         """Dependencies should not affect the cache key when request params are unchanged."""
         await close_fastapi_cache()
@@ -145,7 +148,6 @@ class TestFastAPICacheIntegration:
         finally:
             await close_fastapi_cache()
 
-    @pytest.mark.asyncio
     async def test_concurrent_requests_same_endpoint(self, cache_app: FastAPI) -> None:
         """Concurrent requests should all succeed even before the cache warms."""
         async with AsyncClient(transport=ASGITransport(app=cache_app), base_url="http://test") as client:
@@ -159,7 +161,6 @@ class TestFastAPICacheIntegration:
             call_counts = [r.json()["call_count"] for r in responses]
             assert 1 in call_counts
 
-    @pytest.mark.asyncio
     async def test_cache_different_endpoints_separate(self) -> None:
         """Different endpoints should maintain separate cache entries."""
         await close_fastapi_cache()
@@ -196,7 +197,6 @@ class TestFastAPICacheIntegration:
         finally:
             await close_fastapi_cache()
 
-    @pytest.mark.asyncio
     async def test_cache_clear_namespace(self) -> None:
         """Clearing a namespace should invalidate matching cached endpoints."""
         await close_fastapi_cache()

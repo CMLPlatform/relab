@@ -8,20 +8,20 @@ import pytest
 from fastapi import status
 
 from app.api.data_collection.models.product import Product
-from tests.factories.models import MaterialFactory
-from tests.integration.api.data_collection_support import (
+from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
     COMPONENT_AMOUNT,
     COMPONENT_NAME,
     NEW_COMPONENT_NAME,
 )
+from tests.factories.models import MaterialFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-pytestmark = [pytest.mark.integration, pytest.mark.api]
+pytestmark = pytest.mark.api
 
 
 async def test_get_product_components(

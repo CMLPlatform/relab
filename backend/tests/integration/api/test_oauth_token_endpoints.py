@@ -14,7 +14,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi import status
 
 from app.api.auth.exceptions import OAuthStateDecodeError, OAuthStateExpiredError
@@ -57,7 +56,6 @@ def _patch_verify(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.integration
 class TestGoogleCookieTokenEndpoint:
     """Tests for POST /auth/oauth/google/cookie/token."""
 
@@ -129,7 +127,6 @@ class TestGoogleCookieTokenEndpoint:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.integration
 class TestGoogleBearerTokenEndpoint:
     """Tests for POST /auth/oauth/google/bearer/token."""
 

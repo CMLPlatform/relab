@@ -1,5 +1,4 @@
 """Behavior-focused tests for public newsletter endpoints."""
-# ruff: noqa: D103
 
 from __future__ import annotations
 
@@ -35,20 +34,22 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_send_subscription_email() -> Generator[AsyncMock]:
+    """Mock newsletter subscription emails."""
     with patch("app.api.newsletter.routers.send_newsletter_subscription_email", new_callable=AsyncMock) as mocked:
         yield mocked
 
 
 @pytest.fixture
 def mock_send_unsubscription_email() -> Generator[AsyncMock]:
+    """Mock newsletter unsubscription emails."""
     with patch(
         "app.api.newsletter.routers.send_newsletter_unsubscription_request_email", new_callable=AsyncMock
     ) as mocked:
         yield mocked
 
 
-@pytest.mark.asyncio
 async def test_subscribe_new_email(api_client: AsyncClient, mock_send_subscription_email: AsyncMock) -> None:
+    """Creates an unconfirmed subscriber for a new email address."""
     response = await api_client.post("/newsletter/subscribe", json=EMAIL_NEW)
     assert response.status_code == HTTP_CREATED
     data = response.json()
@@ -57,12 +58,12 @@ async def test_subscribe_new_email(api_client: AsyncClient, mock_send_subscripti
     mock_send_subscription_email.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_existing_unconfirmed_email(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_send_subscription_email: AsyncMock,
 ) -> None:
+    """Rejects duplicate subscription requests for an unconfirmed subscriber."""
     subscriber = NewsletterSubscriber(email=EMAIL_EXISTING, is_confirmed=False)
     db_session.add(subscriber)
     await db_session.flush()
@@ -73,12 +74,12 @@ async def test_subscribe_existing_unconfirmed_email(
     mock_send_subscription_email.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_existing_confirmed_email(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_send_subscription_email: AsyncMock,
 ) -> None:
+    """Rejects duplicate subscription requests for a confirmed subscriber."""
     subscriber = NewsletterSubscriber(email=EMAIL_CONFIRMED, is_confirmed=True)
     db_session.add(subscriber)
     await db_session.flush()
@@ -89,8 +90,8 @@ async def test_subscribe_existing_confirmed_email(
     mock_send_subscription_email.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_confirm_subscription_success(api_client: AsyncClient, db_session: AsyncSession) -> None:
+    """Confirms a pending newsletter subscription with a valid token."""
     email = EMAIL_CONFIRM_REQ
     subscriber = NewsletterSubscriber(email=email, is_confirmed=False)
     db_session.add(subscriber)
@@ -106,18 +107,18 @@ async def test_confirm_subscription_success(api_client: AsyncClient, db_session:
     assert subscriber.is_confirmed is True
 
 
-@pytest.mark.asyncio
 async def test_confirm_subscription_invalid_token(api_client: AsyncClient) -> None:
+    """Rejects confirmation requests with an invalid token."""
     response = await api_client.post("/newsletter/confirm", json="invalid_token")
     assert response.status_code == HTTP_BAD_REQUEST
 
 
-@pytest.mark.asyncio
 async def test_request_unsubscribe_success(
     api_client: AsyncClient,
     db_session: AsyncSession,
     mock_send_unsubscription_email: AsyncMock,
 ) -> None:
+    """Sends an unsubscribe email for an existing confirmed subscriber."""
     email = EMAIL_UNSUBSCRIBE
     subscriber = NewsletterSubscriber(email=email, is_confirmed=True)
     db_session.add(subscriber)
@@ -128,8 +129,8 @@ async def test_request_unsubscribe_success(
     mock_send_unsubscription_email.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_unsubscribe_with_token_success(api_client: AsyncClient, db_session: AsyncSession) -> None:
+    """Deletes a subscriber when given a valid unsubscribe token."""
     email = EMAIL_DELETE
     subscriber = NewsletterSubscriber(email=email, is_confirmed=True)
     db_session.add(subscriber)
@@ -142,10 +143,10 @@ async def test_unsubscribe_with_token_success(api_client: AsyncClient, db_sessio
     assert await db_session.get(NewsletterSubscriber, subscriber.id) is None
 
 
-@pytest.mark.asyncio
 async def test_confirm_subscription_already_confirmed_returns_400(
     api_client: AsyncClient, db_session: AsyncSession
 ) -> None:
+    """Rejects confirmation for an already confirmed subscription."""
     email = "already_confirmed@example.com"
     subscriber = NewsletterSubscriber(email=email, is_confirmed=True)
     db_session.add(subscriber)
@@ -158,8 +159,8 @@ async def test_confirm_subscription_already_confirmed_returns_400(
     assert "Already confirmed" in detail_text(response.json())
 
 
-@pytest.mark.asyncio
 async def test_confirm_subscription_unknown_email_returns_404(api_client: AsyncClient) -> None:
+    """Returns 404 when a confirmation token references no subscriber."""
     token = create_jwt_token("ghost@example.com", JWTType.NEWSLETTER_CONFIRMATION)
     response = await api_client.post("/newsletter/confirm", json=token)
 
@@ -167,14 +168,14 @@ async def test_confirm_subscription_unknown_email_returns_404(api_client: AsyncC
     assert "not found" in detail_text(response.json()).lower()
 
 
-@pytest.mark.asyncio
 async def test_unsubscribe_with_invalid_token_returns_400(api_client: AsyncClient) -> None:
+    """Rejects unsubscribe requests with an invalid token."""
     response = await api_client.post("/newsletter/unsubscribe", json="not-a-valid-token")
     assert response.status_code == HTTP_BAD_REQUEST
 
 
-@pytest.mark.asyncio
 async def test_request_unsubscribe_unknown_email_returns_safe_message(api_client: AsyncClient) -> None:
+    """Returns a safe generic message for unknown unsubscribe requests."""
     response = await api_client.post("/newsletter/request-unsubscribe", json="nobody@example.com")
 
     assert response.status_code == HTTP_OK

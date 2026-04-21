@@ -16,11 +16,10 @@ from app.api.common.ownership import get_user_owned_object
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-@pytest.mark.unit
+
 class TestGetUserOwnedObject:
     """get_user_owned_object enforces owner scoping and maps failures cleanly."""
 
-    @pytest.mark.asyncio
     async def test_success_returns_object_and_filters_by_default_owner_fk(self, mocker: MockerFixture) -> None:
         """Happy path: returned object matches and the default FK is owner_id."""
         user_id = uuid4()
@@ -43,7 +42,6 @@ class TestGetUserOwnedObject:
         assert result is expected
         db.execute.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_success_respects_custom_owner_fk(self, mocker: MockerFixture) -> None:
         """Custom owner FK names should be checked and queried consistently."""
         user_id = uuid4()
@@ -67,7 +65,6 @@ class TestGetUserOwnedObject:
 
         assert result is expected
 
-    @pytest.mark.asyncio
     async def test_ownership_error_raises_user_ownership_error(self, mocker: MockerFixture) -> None:
         """Mismatched owner IDs are translated to UserOwnershipError (403, correct message)."""
         user_id = uuid4()
@@ -93,7 +90,6 @@ class TestGetUserOwnedObject:
         assert str(model_id) in err.message
         assert "Product" in err.message
 
-    @pytest.mark.asyncio
     async def test_missing_object_raises_model_not_found(self, mocker: MockerFixture) -> None:
         """Missing owned objects should surface as ModelNotFoundError."""
         user_id = uuid4()

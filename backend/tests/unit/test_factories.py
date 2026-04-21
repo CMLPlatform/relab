@@ -1,6 +1,13 @@
 """Unit tests for shared test-factory behaviour."""
 
-from tests.factories.models import CategoryFactory, MaterialFactory
+from typing import TYPE_CHECKING
+
+import pytest
+
+from tests.factories.models import CategoryFactory, MaterialFactory, UserFactory
+
+if TYPE_CHECKING:
+    from unittest.mock import AsyncMock
 
 
 class TestBaseModelFactory:
@@ -15,3 +22,21 @@ class TestBaseModelFactory:
         """Skipping computed fields should apply across all models using the base factory."""
         category = CategoryFactory.build(name="Metals")
         assert category.search_vector is None
+
+    @pytest.mark.asyncio
+    async def test_create_async_skips_refresh_by_default(self, mock_session: AsyncMock) -> None:
+        """Factory inserts should avoid an unnecessary refresh unless a test opts in."""
+        await UserFactory.create_async(session=mock_session, email="factory@example.com")
+
+        mock_session.refresh.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_create_async_supports_opt_in_refresh(self, mock_session: AsyncMock) -> None:
+        """Tests can still request a refresh when server-generated fields are needed immediately."""
+        instance = await UserFactory.create_async(
+            session=mock_session,
+            email="factory-refresh@example.com",
+            refresh_instance=True,
+        )
+
+        mock_session.refresh.assert_awaited_once_with(instance)

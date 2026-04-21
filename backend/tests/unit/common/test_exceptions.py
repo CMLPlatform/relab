@@ -6,7 +6,6 @@ import json
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi import status
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
@@ -18,7 +17,6 @@ from app.api.common.exceptions import (
 from app.api.common.routers.exceptions import create_exception_handler
 
 
-@pytest.mark.unit
 class TestCreateExceptionHandler:
     """Tests for create_exception_handler."""
 
@@ -107,7 +105,6 @@ class TestCreateExceptionHandler:
         mock_logger.error.assert_called_once_with("InternalServerError: Database invariant failed for category link")
 
 
-@pytest.mark.unit
 class TestRateLimitExceededHandler:
     """Tests for rate_limit_exceeded_handler."""
 
@@ -135,7 +132,6 @@ class TestRateLimitExceededHandler:
         assert body["code"] == "RateLimitExceeded"
 
 
-@pytest.mark.unit
 class TestSharedExceptionFamilies:
     """Tests for shared common exception families exercising the full response path."""
 

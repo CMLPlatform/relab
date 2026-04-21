@@ -33,7 +33,6 @@ def _make_db_image(path: str | None = None) -> MagicMock:
     return db_image
 
 
-@pytest.mark.unit
 class TestGetResizedImage:
     """Tests for the GET /images/{image_id}/resized endpoint handler."""
 

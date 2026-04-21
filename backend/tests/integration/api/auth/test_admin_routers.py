@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
 from fastapi import status
 
 from tests.factories.models import OrganizationFactory, UserFactory
@@ -16,11 +15,9 @@ if TYPE_CHECKING:
     from app.api.auth.models import User
 
 
-@pytest.mark.integration
 class TestAdminUserRouters:
     """Integration tests for admin user management endpoints."""
 
-    @pytest.mark.asyncio
     async def test_get_all_users_as_superuser(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
@@ -42,7 +39,6 @@ class TestAdminUserRouters:
         assert user1.email in user_emails
         assert user2.email in user_emails
 
-    @pytest.mark.asyncio
     async def test_get_all_users_with_pagination(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession
     ) -> None:
@@ -60,7 +56,6 @@ class TestAdminUserRouters:
         assert "page" in data
         assert "total" in data
 
-    @pytest.mark.asyncio
     async def test_get_user_by_id_as_superuser(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession
     ) -> None:
@@ -77,7 +72,6 @@ class TestAdminUserRouters:
         assert "is_active" in data
         assert "is_verified" in data
 
-    @pytest.mark.asyncio
     async def test_get_all_users_by_email(self, api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
         """Can retrieve user by email via admin endpoint."""
         user = await UserFactory.create_async(db_session, email="by_email@example.com", username="by_email_user")
@@ -88,10 +82,7 @@ class TestAdminUserRouters:
         data = response.json()
         assert data["email"] == "by_email@example.com"
 
-    @pytest.mark.asyncio
-    async def test_get_all_users_by_username(
-        self, api_client_superuser: AsyncClient, db_session: AsyncSession
-    ) -> None:
+    async def test_get_all_users_by_username(self, api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
         """Can retrieve user by username via admin endpoint."""
         user = await UserFactory.create_async(db_session, email="byuser@example.com", username="byuser_unique")
 
@@ -100,7 +91,6 @@ class TestAdminUserRouters:
         data = response.json()
         assert data["username"] == "byuser_unique"
 
-    @pytest.mark.asyncio
     async def test_admin_users_requires_superuser(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         """Admin user endpoints require superuser role."""
         # Create regular user and authenticate
@@ -114,11 +104,9 @@ class TestAdminUserRouters:
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
 
-@pytest.mark.integration
 class TestAdminOrganizationRouters:
     """Integration tests for admin organization management endpoints."""
 
-    @pytest.mark.asyncio
     async def test_get_all_organizations_as_superuser(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
@@ -143,7 +131,6 @@ class TestAdminOrganizationRouters:
         assert "Org1" in org_names
         assert "Org2" in org_names
 
-    @pytest.mark.asyncio
     async def test_get_all_organizations_with_relationships(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
@@ -169,7 +156,6 @@ class TestAdminOrganizationRouters:
         assert user1.email in member_emails
         assert user2.email in member_emails
 
-    @pytest.mark.asyncio
     async def test_get_organization_by_id_with_relationships(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
@@ -192,7 +178,6 @@ class TestAdminOrganizationRouters:
         assert member.email in member_emails
         assert "org_member@example.com" in member_emails
 
-    @pytest.mark.asyncio
     async def test_admin_organizations_requires_superuser(self, api_client: AsyncClient) -> None:
         """Admin organization endpoints require superuser role."""
         response = await api_client.get("/admin/organizations")

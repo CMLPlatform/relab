@@ -12,7 +12,6 @@ from app.api.background_data.models import TaxonomyDomain
 from app.api.background_data.schemas import MaterialCreate, TaxonomyCreate
 
 
-@pytest.mark.unit
 def test_taxonomy_name_min_length() -> None:
     """Taxonomy name must be at least 2 characters."""
     with pytest.raises(ValidationError) as exc_info:
@@ -22,7 +21,6 @@ def test_taxonomy_name_min_length() -> None:
     assert any(e["loc"][0] == "name" for e in errors)
 
 
-@pytest.mark.unit
 def test_material_negative_density_rejected() -> None:
     """Material density must be greater than zero (business constraint)."""
     with pytest.raises(ValidationError) as exc_info:

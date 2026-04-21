@@ -17,7 +17,6 @@ TEST_EMAIL = "test@example.com"
 TEST_USERNAME = "testuser"
 
 
-@pytest.mark.integration
 async def test_email_uniqueness_is_enforced(db_session: AsyncSession) -> None:
     """The database must reject duplicate email addresses."""
     await UserFactory.create_async(db_session, email="unique@example.com", hashed_password="hashed1")
@@ -26,7 +25,6 @@ async def test_email_uniqueness_is_enforced(db_session: AsyncSession) -> None:
         await UserFactory.create_async(db_session, email="unique@example.com", hashed_password="hashed2")
 
 
-@pytest.mark.integration
 async def test_username_uniqueness_ignores_null_values(db_session: AsyncSession) -> None:
     """Usernames should be unique when present, but nullable usernames remain allowed."""
     await UserFactory.create_async(
@@ -47,7 +45,6 @@ async def test_username_uniqueness_ignores_null_values(db_session: AsyncSession)
         )
 
 
-@pytest.mark.integration
 async def test_user_can_join_and_leave_organization(db_session: AsyncSession) -> None:
     """Users should be able to gain and lose organization membership cleanly."""
     owner = await UserFactory.create_async(db_session, email="owner@example.com", hashed_password="hashed")
@@ -73,7 +70,6 @@ async def test_user_can_join_and_leave_organization(db_session: AsyncSession) ->
     assert user.organization_role is None
 
 
-@pytest.mark.unit
 def test_organization_role_enum_values_match_storage_strings() -> None:
     """Enum values should stay aligned with the stored string values."""
     assert OrganizationRole.OWNER.value == "owner"

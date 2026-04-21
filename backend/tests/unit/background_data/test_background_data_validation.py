@@ -1,5 +1,4 @@
 """Validation-focused tests for background data CRUD helpers."""
-# ruff: noqa: D101, D102
 
 from __future__ import annotations
 
@@ -24,7 +23,10 @@ def _make_session() -> AsyncMock:
 
 
 class TestCategoryValidation:
+    """Cover category creation validation helpers."""
+
     async def test_validate_category_creation_with_supercategory(self, mock_session: AsyncMock) -> None:
+        """Accepts a matching supercategory within the same taxonomy."""
         category_create = AsyncMock()
         category_create.taxonomy_id = 99
         super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
@@ -39,6 +41,7 @@ class TestCategoryValidation:
         mock_get.assert_called_with(mock_session, Category, 1)
 
     async def test_validate_category_creation_supercategory_mismatch(self, mock_session: AsyncMock) -> None:
+        """Rejects a supercategory from a different taxonomy."""
         category_create = AsyncMock()
         super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
 
@@ -49,6 +52,7 @@ class TestCategoryValidation:
             await validate_category_creation(mock_session, category_create, taxonomy_id=20, supercategory_id=1)
 
     async def test_validate_category_creation_top_level(self, mock_session: AsyncMock) -> None:
+        """Allows top-level categories when a taxonomy is provided."""
         category_create = AsyncMock()
         category_create.taxonomy_id = 10
         mock_taxonomy = TaxonomyFactory.build(id=10, name="Tax")
@@ -63,6 +67,7 @@ class TestCategoryValidation:
         mock_get.assert_called_with(mock_session, Taxonomy, 10)
 
     async def test_validate_category_creation_missing_taxonomy(self, mock_session: AsyncMock) -> None:
+        """Rejects category creation without any taxonomy id."""
         category_create = AsyncMock()
         category_create.taxonomy_id = None
 
@@ -71,7 +76,10 @@ class TestCategoryValidation:
 
 
 class TestTaxonomyDomainValidation:
+    """Cover taxonomy-domain validation helpers."""
+
     async def test_validate_domains_success(self, mock_session: AsyncMock) -> None:
+        """Accepts categories whose taxonomies include the expected domain."""
         category_ids = {1, 2}
         expected_domain = TaxonomyDomain.PRODUCTS
         cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS}))
@@ -88,6 +96,7 @@ class TestTaxonomyDomainValidation:
         await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
     async def test_validate_domains_missing_category(self, mock_session: AsyncMock) -> None:
+        """Raises when some requested categories are missing."""
         category_ids = {1, 2}
         expected_domain = TaxonomyDomain.PRODUCTS
         cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.PRODUCTS}))
@@ -101,6 +110,7 @@ class TestTaxonomyDomainValidation:
             await validate_category_taxonomy_domains(mock_session, category_ids, expected_domain)
 
     async def test_validate_domains_invalid_domain(self, mock_session: AsyncMock) -> None:
+        """Raises when category taxonomies do not allow the target domain."""
         category_ids = {1}
         expected_domain = TaxonomyDomain.PRODUCTS
         cat1 = CategoryFactory.build(id=1, taxonomy=TaxonomyFactory.build(domains={TaxonomyDomain.MATERIALS}))
@@ -115,12 +125,16 @@ class TestTaxonomyDomainValidation:
 
 
 class TestGetCategoryTrees:
+    """Cover category tree retrieval helpers."""
+
     async def test_raises_when_both_ids_provided(self) -> None:
+        """Rejects requests that mix taxonomy and supercategory filters."""
         session = _make_session()
         with pytest.raises(BadRequestError, match="not both"):
             await get_category_trees(session, supercategory_id=1, taxonomy_id=2)
 
     async def test_returns_top_level_categories(self) -> None:
+        """Returns top-level categories when no filters are provided."""
         session = _make_session()
         cat = CategoryFactory.build(id=1)
         mock_scalars = MagicMock()
@@ -132,6 +146,7 @@ class TestGetCategoryTrees:
         assert result == [cat]
 
     async def test_filters_by_taxonomy_id(self) -> None:
+        """Filters category trees by taxonomy id."""
         session = _make_session()
         cat = CategoryFactory.build(id=1, taxonomy_id=10)
         mock_scalars = MagicMock()
@@ -145,6 +160,7 @@ class TestGetCategoryTrees:
         assert result == [cat]
 
     async def test_filters_by_supercategory_id(self) -> None:
+        """Filters category trees by supercategory id."""
         session = _make_session()
         child_cat = CategoryFactory.build(id=2, supercategory_id=1)
         mock_scalars = MagicMock()

@@ -20,7 +20,6 @@ from app.api.auth.services.oauth import (
 from .shared import TEST_EMAIL, TEST_STATE_JWT_SECRET
 
 if TYPE_CHECKING:
-
     from httpx_oauth.oauth2 import OAuth2Token
 
 

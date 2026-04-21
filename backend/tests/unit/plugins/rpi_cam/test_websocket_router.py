@@ -25,15 +25,19 @@ from app.api.plugins.rpi_cam.websocket.router import (
 async def test_record_auth_failure_sanitizes_ip_in_log() -> None:
     """Auth failure logging should neutralize line breaks in client IPs."""
     ip = "203.0.113.10\nFORGED"
+    camera_key = "cam\nFORGED"
 
     with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
-        _record_auth_failure(ip, 1, 0.0)
+        _record_auth_failure(ip, camera_key, 1, 0, 0.0)
 
     mock_logger.warning.assert_called_once_with(
-        "Auth failure from %s (%d/%d before lockout).",
+        "Auth failure (ip=%s %d/%d; camera=%s %d/%d).",
         "203.0.113.10 FORGED",
         2,
         5,
+        "cam FORGED",
+        1,
+        20,
     )
 
 
@@ -162,7 +166,6 @@ def _make_assertion(
 class TestVerifyDeviceAssertion:
     """Tests for _verify_device_assertion — all accept/reject cases."""
 
-    @pytest.mark.asyncio
     async def test_accepts_valid_assertion(self) -> None:
         """A well-formed signed assertion should be accepted."""
         key_id = "key-1"
@@ -177,7 +180,6 @@ class TestVerifyDeviceAssertion:
         assert payload["sub"] == f"camera:{camera.id}"
         assert payload["kid"] == key_id
 
-    @pytest.mark.asyncio
     async def test_rejects_expired_assertion(self) -> None:
         """An assertion with exp in the past should be rejected."""
         key_id = "key-1"
@@ -189,7 +191,6 @@ class TestVerifyDeviceAssertion:
         with pytest.raises(jwt.InvalidTokenError):
             await _verify_device_assertion(assertion, camera, redis)
 
-    @pytest.mark.asyncio
     async def test_rejects_wrong_audience(self) -> None:
         """An assertion with the wrong audience should be rejected."""
         key_id = "key-1"
@@ -201,7 +202,6 @@ class TestVerifyDeviceAssertion:
         with pytest.raises(jwt.InvalidTokenError):
             await _verify_device_assertion(assertion, camera, redis)
 
-    @pytest.mark.asyncio
     async def test_rejects_wrong_subject(self) -> None:
         """An assertion whose sub doesn't match the camera id should be rejected."""
         key_id = "key-1"
@@ -216,7 +216,6 @@ class TestVerifyDeviceAssertion:
         with pytest.raises(jwt.InvalidTokenError, match="subject"):
             await _verify_device_assertion(assertion, camera, redis)
 
-    @pytest.mark.asyncio
     async def test_rejects_wrong_kid(self) -> None:
         """An assertion whose kid doesn't match the stored key_id should be rejected."""
         key_id = "key-1"
@@ -229,7 +228,6 @@ class TestVerifyDeviceAssertion:
         with pytest.raises(jwt.InvalidTokenError, match="key id"):
             await _verify_device_assertion(assertion, camera, redis)
 
-    @pytest.mark.asyncio
     async def test_rejects_invalid_signature(self) -> None:
         """An assertion signed by a different key should be rejected."""
         key_id = "key-1"
@@ -243,7 +241,6 @@ class TestVerifyDeviceAssertion:
         with pytest.raises(jwt.InvalidTokenError):
             await _verify_device_assertion(assertion, camera, redis)
 
-    @pytest.mark.asyncio
     async def test_rejects_replayed_jti(self) -> None:
         """A replayed jti (Redis already has it) should be rejected."""
         key_id = "key-1"
@@ -256,7 +253,6 @@ class TestVerifyDeviceAssertion:
         with pytest.raises(jwt.InvalidTokenError, match="replay"):
             await _verify_device_assertion(assertion, camera, redis)
 
-    @pytest.mark.asyncio
     async def test_rejects_unsupported_algorithm(self) -> None:
         """An assertion signed with HS256 instead of ES256 should be rejected."""
         key_id = "key-1"

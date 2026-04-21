@@ -1,4 +1,5 @@
 """Unit tests for refresh token service."""
+# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
 from __future__ import annotations
 
@@ -30,7 +31,6 @@ TTL_MARGIN = 10
 TTL_ABS_MARGIN = 5
 
 
-@pytest.mark.asyncio
 class TestRefreshTokenService:
     """Tests for refresh token service functions."""
 
@@ -150,8 +150,7 @@ class TestRefreshTokenService:
         assert abs(token_ttl - expected_ttl) < TTL_ABS_MARGIN
 
 
-# ruff: noqa: SLF001 # Private method access is needed for testing in-memory fallback behavior
-@pytest.mark.asyncio
+# Private method access is needed for testing in-memory fallback behavior
 class TestRefreshTokenServiceInMemory:
     """Tests for refresh token service in-memory fallback (redis=None)."""
 

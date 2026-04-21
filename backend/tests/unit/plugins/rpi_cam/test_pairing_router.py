@@ -98,6 +98,7 @@ async def test_claim_pairing_code_sanitizes_code_in_log() -> None:
         patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger,
     ):
         response = await claim_pairing_code(
+            request=build_request(),
             body=body,
             session=session,
             current_user=current_user,
@@ -127,6 +128,7 @@ async def test_poll_pairing_status_sanitizes_code_in_log() -> None:
                 "ws_url": "3",
                 "auth_scheme": "device_assertion",
                 "key_id": KEY_ID,
+                "rpi_fingerprint": "fingerprint",
             }
         ),
     )

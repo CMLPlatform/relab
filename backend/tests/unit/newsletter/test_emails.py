@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from app.api.newsletter.utils.emails import (
     send_newsletter,
     send_newsletter_subscription_email,
@@ -18,7 +16,6 @@ TEST_SUBJECT = "Test Newsletter"
 TEST_CONTENT = "Hello from the newsletter!"
 
 
-@pytest.mark.unit
 class TestNewsletterEmails:
     """Tests for newsletter email sending utilities."""
 

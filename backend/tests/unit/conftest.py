@@ -1,4 +1,5 @@
 """Shared fixtures for unit tests (no database required)."""
+# spell-checker: ignore fixturenames
 
 from __future__ import annotations
 

@@ -35,22 +35,11 @@ def _reset_app_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generat
     monkeypatch.setattr(settings, "file_storage_path", file_storage_path)
     monkeypatch.setattr(settings, "image_storage_path", image_storage_path)
 
-    app.state.redis = None
-    app.state.email_checker = None
-    app.state.blocking_redis = None
-    app.state.camera_connection_manager = None
-    app.state.file_cleanup_manager = None
-    app.state.http_client = None
+    app.state.services = AppServices()
     yield
-    app.state.redis = None
-    app.state.email_checker = None
-    app.state.blocking_redis = None
-    app.state.camera_connection_manager = None
-    app.state.file_cleanup_manager = None
-    app.state.http_client = None
+    app.state.services = AppServices()
 
 
-@pytest.mark.integration
 class TestLifespan:
     """Application lifespan startup and shutdown."""
 
@@ -71,7 +60,6 @@ class TestLifespan:
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
-                assert app.state.redis is mock_redis
                 assert isinstance(app.state.services, AppServices)
                 assert app.state.services.redis is mock_redis
             mock_init_redis.assert_awaited_once()
@@ -93,7 +81,7 @@ class TestLifespan:
             patch("app.main.cleanup_logging"),
         ):
             async with lifespan(app):
-                assert app.state.email_checker is mock_email_checker
+                assert app.state.services.email_checker is mock_email_checker
             mock_init_checker.assert_awaited_once_with(mock_redis)
 
     async def test_startup_initializes_storage_on_app_state(self) -> None:
@@ -113,7 +101,7 @@ class TestLifespan:
             patch("app.core.lifecycle.register_favicon_route") as mock_favicon,
         ):
             async with lifespan(app):
-                assert app.state.storage_ready is True
+                assert app.state.services.storage_ready is True
 
             mock_ensure.assert_called_once()
             mock_mount.assert_called_once_with(app)

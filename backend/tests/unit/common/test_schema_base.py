@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-
 from app.api.common.schemas.base import IntIdReadSchemaWithTimeStamp
 
 
@@ -15,7 +13,6 @@ class ExampleReadSchema(IntIdReadSchemaWithTimeStamp):
     name: str
 
 
-@pytest.mark.unit
 class TestBaseReadSchemaWithTimeStamp:
     """Tests for common read-schema behavior."""
 

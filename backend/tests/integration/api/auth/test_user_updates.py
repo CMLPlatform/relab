@@ -20,11 +20,9 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.integration
 class TestUpdateUserValidation:
     """Integration tests for update_user_override() username uniqueness logic."""
 
-    @pytest.mark.asyncio
     async def test_update_username_to_available_name_succeeds(self, db_session: AsyncSession) -> None:
         """Updating to an available username should succeed."""
         user = await UserFactory.create_async(
@@ -38,7 +36,6 @@ class TestUpdateUserValidation:
         result = await update_user_override(user_db, user, UserUpdate(username=NEW_USERNAME))
         assert result.username == NEW_USERNAME
 
-    @pytest.mark.asyncio
     async def test_update_username_to_same_name_succeeds(self, db_session: AsyncSession) -> None:
         """Updating to the same username should succeed."""
         user = await UserFactory.create_async(
@@ -52,7 +49,6 @@ class TestUpdateUserValidation:
         result = await update_user_override(user_db, user, UserUpdate(username=USER1_USERNAME))
         assert result.username == USER1_USERNAME
 
-    @pytest.mark.asyncio
     async def test_update_username_to_taken_name_raises(self, db_session: AsyncSession) -> None:
         """Updating to a taken username should raise an error."""
         await UserFactory.create_async(db_session, email=USER1_EMAIL, username=TAKEN_USERNAME, hashed_password="pw")
@@ -68,7 +64,6 @@ class TestUpdateUserValidation:
         with pytest.raises(UserNameAlreadyExistsError):
             await update_user_override(user_db, user2, UserUpdate(username=TAKEN_USERNAME))
 
-    @pytest.mark.asyncio
     async def test_update_without_username_change_passes_through(self, db_session: AsyncSession) -> None:
         """Updating without changing the username should pass through."""
         user = await UserFactory.create_async(
@@ -83,8 +78,6 @@ class TestUpdateUserValidation:
         assert result.username is None
 
 
-@pytest.mark.integration
-@pytest.mark.asyncio
 class TestUpdateUserEndpoint:
     """Integration tests for the user update API endpoint."""
 

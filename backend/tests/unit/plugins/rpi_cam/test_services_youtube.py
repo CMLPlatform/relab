@@ -1,4 +1,5 @@
 """Unit tests for YouTube-facing RPi Cam service helpers."""
+# spell-checker: ignore excinfo
 
 from __future__ import annotations
 

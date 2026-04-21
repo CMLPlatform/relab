@@ -19,8 +19,7 @@ if TYPE_CHECKING:
 
     from app.api.auth.models import User
 
-pytestmark = [pytest.mark.integration, pytest.mark.db]
-
+pytestmark = pytest.mark.db
 TEST_CAMERA_NAME = "Test Camera"
 TEST_CAMERA_DESC = "Test Description"
 TEST_OLD_NAME = "Old Name"

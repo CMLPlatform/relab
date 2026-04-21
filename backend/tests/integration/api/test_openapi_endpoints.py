@@ -6,18 +6,31 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
+from httpx import ASGITransport, AsyncClient
 
 if TYPE_CHECKING:
-    from httpx import AsyncClient
+    from collections.abc import AsyncGenerator
+
+    from fastapi import FastAPI
 
 
-@pytest.mark.integration
+@pytest.fixture
+async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
+    """Provide a minimal client for schema tests without full runtime startup."""
+    async with AsyncClient(
+        transport=ASGITransport(app=test_app),
+        base_url="http://test",
+        follow_redirects=True,
+    ) as client:
+        yield client
+
+
 class TestOpenAPIEndpoints:
     """Tests for public and full OpenAPI schema generation."""
 
-    async def test_public_openapi_json_can_be_generated(self, api_client: AsyncClient) -> None:
+    async def test_public_openapi_json_can_be_generated(self, openapi_client: AsyncClient) -> None:
         """The public OpenAPI schema endpoint should return valid JSON."""
-        response = await api_client.get("/openapi.json")
+        response = await openapi_client.get("/openapi.json")
 
         assert response.status_code == status.HTTP_200_OK
         payload = response.json()
@@ -71,9 +84,9 @@ class TestOpenAPIEndpoints:
         refresh_response_examples = payload["components"]["schemas"]["RefreshTokenResponse"]["examples"]
         assert refresh_response_examples[0]["token_type"] == "bearer"
 
-    async def test_full_openapi_json_can_be_generated(self, api_client: AsyncClient) -> None:
+    async def test_full_openapi_json_can_be_generated(self, openapi_client: AsyncClient) -> None:
         """The full OpenAPI schema endpoint should render successfully in dev/test."""
-        response = await api_client.get("/openapi_full.json")
+        response = await openapi_client.get("/openapi_full.json")
 
         assert response.status_code == status.HTTP_200_OK
         payload = response.json()
@@ -112,9 +125,9 @@ class TestOpenAPIEndpoints:
             "University of Example"
         )
 
-    async def test_openapi_includes_centralized_data_collection_examples(self, api_client: AsyncClient) -> None:
+    async def test_openapi_includes_centralized_data_collection_examples(self, openapi_client: AsyncClient) -> None:
         """The OpenAPI schema should expose centralized data-collection examples."""
-        response = await api_client.get("/openapi.json")
+        response = await openapi_client.get("/openapi.json")
 
         assert response.status_code == status.HTTP_200_OK
         payload = response.json()
@@ -152,14 +165,14 @@ class TestOpenAPIEndpoints:
         ].get("parameters", [])
         assert all(parameter["name"] != "include" for parameter in product_component_detail_parameters)
 
-    async def test_openapi_etag_supports_conditional_get(self, api_client: AsyncClient) -> None:
+    async def test_openapi_etag_supports_conditional_get(self, openapi_client: AsyncClient) -> None:
         """The public OpenAPI schema should return 304 for matching ETags."""
-        first_response = await api_client.get("/openapi.json")
+        first_response = await openapi_client.get("/openapi.json")
 
         assert first_response.status_code == status.HTTP_200_OK
         assert "etag" in first_response.headers
 
-        second_response = await api_client.get(
+        second_response = await openapi_client.get(
             "/openapi.json",
             headers={"If-None-Match": first_response.headers["etag"]},
         )

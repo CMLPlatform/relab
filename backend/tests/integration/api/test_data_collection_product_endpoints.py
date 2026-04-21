@@ -9,8 +9,7 @@ from fastapi import status
 
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
-from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
-from tests.integration.api.data_collection_support import (
+from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
     BRAND_X,
@@ -24,6 +23,7 @@ from tests.integration.api.data_collection_support import (
     UPDATED_PRODUCT_NAME,
     WEIGHT_500,
 )
+from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
     from app.api.auth.models import User
 
-pytestmark = [pytest.mark.integration, pytest.mark.api]
+pytestmark = pytest.mark.api
 
 
 async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:

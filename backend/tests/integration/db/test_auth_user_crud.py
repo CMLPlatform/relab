@@ -21,7 +21,7 @@ from tests.factories.models import UserFactory
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-pytestmark = [pytest.mark.integration, pytest.mark.db]
+pytestmark = pytest.mark.db
 
 
 def _make_user_db(db_session: AsyncSession) -> UserDatabaseAsync:
@@ -29,7 +29,6 @@ def _make_user_db(db_session: AsyncSession) -> UserDatabaseAsync:
     return UserDatabaseAsync(db_session, User, OAuthAccount)
 
 
-@pytest.mark.integration
 class TestValidateUserCreate:
     """validate_user_create enforces username uniqueness, disposable-email, and org rules."""
 
@@ -101,7 +100,6 @@ class TestValidateUserCreate:
         assert result.email == "orgfounder@example.com"
 
 
-@pytest.mark.integration
 class TestGetUserByUsername:
     """get_user_by_username returns the user or raises ValueError."""
 

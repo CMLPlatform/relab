@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 from fastapi.responses import RedirectResponse
 
 from app.api.auth.routers.frontend import login_page, router
 
 
-@pytest.mark.unit
 class TestLoginPage:
     """Tests for the login page route."""
 

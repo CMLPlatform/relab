@@ -4,12 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from app.api.auth.services.programmatic_user_crud import get_chained_async_user_manager_context
 
 
-@pytest.mark.unit
 class TestGetChainedAsyncUserManagerContext:
     """Tests for get_chained_async_user_manager_context."""
 

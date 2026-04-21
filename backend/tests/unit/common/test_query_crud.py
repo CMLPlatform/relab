@@ -15,7 +15,6 @@ from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.query import require_model
 
 
-@pytest.mark.unit
 class TestFilterHasValues:
     """Tests for active fastapi-filter detection."""
 
@@ -34,7 +33,6 @@ class TestFilterHasValues:
         assert filter_has_values(mock_filter) is True
 
 
-@pytest.mark.unit
 class TestRequireModel:
     """Tests for model lookup error paths."""
 
@@ -49,7 +47,6 @@ class TestRequireModel:
             await require_model(session, cast("type[Any]", NoIdModel), 1)
 
 
-@pytest.mark.unit
 class TestQueryConstruction:
     """Tests for query filtering and relationship loading."""
 

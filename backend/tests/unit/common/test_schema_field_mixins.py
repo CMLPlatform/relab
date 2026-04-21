@@ -17,7 +17,6 @@ from app.api.data_collection.models.product import Product
 from app.api.data_collection.schemas import ProductCreateBaseProduct
 
 
-@pytest.mark.unit
 def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> None:
     """Read schemas should validate ORM-like attribute objects via pure Pydantic field mixins."""
 
@@ -75,7 +74,6 @@ def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> Non
     assert ProductRead.model_validate(ProductRow()).owner_username == "simon"
 
 
-@pytest.mark.unit
 def test_redact_product_owner_noops_on_serialized_schema() -> None:
     """Privacy redaction should safely no-op if a schema object is passed by mistake."""
     product = ProductRead(id=1, name="Office Chair", owner_username="simon")
@@ -85,7 +83,6 @@ def test_redact_product_owner_noops_on_serialized_schema() -> None:
     assert product.owner_username == "simon"
 
 
-@pytest.mark.unit
 def test_product_create_schema_still_validates_end_after_start() -> None:
     """Timestamp validation should now live in schema validation, not the ORM base."""
     with pytest.raises(ValidationError):

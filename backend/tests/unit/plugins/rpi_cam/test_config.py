@@ -1,11 +1,8 @@
 """Unit tests for the Raspberry Pi Camera plugin configuration."""
 
-import pytest
-
 from app.api.plugins.rpi_cam.config import RPiCamSettings
 
 
-@pytest.mark.unit
 class TestRPiCamSettingsDefaults:
     """RPiCamSettings should produce safe defaults when no env file is present."""
 
@@ -15,7 +12,6 @@ class TestRPiCamSettingsDefaults:
         assert settings.rpi_cam_plugin_secret == ""
 
 
-@pytest.mark.unit
 class TestRPiCamSettingsOverrides:
     """RPiCamSettings should accept constructor-level overrides."""
 

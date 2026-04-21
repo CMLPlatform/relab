@@ -11,7 +11,6 @@ from app.api.common.crud.associations import add_links, require_link
 from app.api.common.exceptions import BadRequestError
 
 
-@pytest.mark.unit
 class TestRequireLink:
     """Tests for require_link."""
 
@@ -49,7 +48,7 @@ class TestRequireLink:
                 CategoryMaterialLink.category_id,
             )
 
-@pytest.mark.unit
+
 class TestAddLinks:
     """Tests for add_links."""
 

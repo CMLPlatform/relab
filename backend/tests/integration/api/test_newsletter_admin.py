@@ -1,11 +1,8 @@
 """Behavior-focused tests for newsletter admin endpoints."""
-# ruff: noqa: D103
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-
-import pytest
 
 from app.api.newsletter.models import NewsletterSubscriber
 from tests.integration.api._newsletter_support import HTTP_OK
@@ -15,10 +12,8 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.asyncio
-async def test_admin_get_subscribers_returns_list(
-    api_client_superuser: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_admin_get_subscribers_returns_list(api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
+    """Test that the admin endpoint for getting newsletter subscribers returns a list of subscribers."""
     emails = ["sub1@example.com", "sub2@example.com"]
     for email in emails:
         db_session.add(NewsletterSubscriber(email=email, is_confirmed=True))

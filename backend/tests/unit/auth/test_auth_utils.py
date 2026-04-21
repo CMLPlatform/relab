@@ -1,6 +1,7 @@
 """Unit tests for authentication utilities."""
-
 # spell-checker: ignore hget, hset, mailinator
+# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
+
 from __future__ import annotations
 
 import asyncio
@@ -26,7 +27,7 @@ PW_TOO_SHORT = "Too short"
 PASSWORD_INVALID_MSG = f"Password is invalid: {PW_TOO_SHORT}"
 
 
-# ruff: noqa: SLF001 # Allow private method access for testing purposes
+# Allow private method access for testing purposes
 @pytest.fixture
 def mock_redis() -> AsyncMock:
     """Fixture for a mock Redis client."""

@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from typing import Never
 
 
-@pytest.mark.unit
 class TestAPIError:
     """Test custom API error exception."""
 

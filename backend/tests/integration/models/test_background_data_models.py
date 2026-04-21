@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from app.api.background_data.models import Material, ProductType
 
 
-@pytest.mark.integration
 async def test_deleting_taxonomy_cascades_categories(db_session: AsyncSession, db_taxonomy: Taxonomy) -> None:
     """Deleting a taxonomy should remove its categories."""
     category = await CategoryFactory.create_async(db_session, name="Test Category", taxonomy_id=db_taxonomy.id)
@@ -35,7 +34,6 @@ async def test_deleting_taxonomy_cascades_categories(db_session: AsyncSession, d
     assert await db_session.get(Category, category_id) is None
 
 
-@pytest.mark.integration
 async def test_category_requires_taxonomy(db_session: AsyncSession) -> None:
     """Categories should fail without a taxonomy foreign key."""
     category = CategoryFactory.build(name="Invalid Category")
@@ -45,7 +43,6 @@ async def test_category_requires_taxonomy(db_session: AsyncSession) -> None:
         await db_session.flush()
 
 
-@pytest.mark.integration
 async def test_category_hierarchy_loads_subcategories(db_session: AsyncSession, db_taxonomy: Taxonomy) -> None:
     """Category trees should retain parent-child relationships."""
     parent = await CategoryFactory.create_async(db_session, name="Metals", taxonomy_id=db_taxonomy.id)
@@ -61,7 +58,6 @@ async def test_category_hierarchy_loads_subcategories(db_session: AsyncSession, 
     assert [subcategory.name for subcategory in parent.subcategories] == ["Ferrous"]
 
 
-@pytest.mark.integration
 async def test_material_and_product_type_links_round_trip(
     db_session: AsyncSession,
     db_category: Category,
