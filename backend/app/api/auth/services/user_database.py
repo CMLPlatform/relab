@@ -81,12 +81,18 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
         self.oauth_account_model = oauth_account_model
 
     async def get(self, id: ID) -> UP | None:  # noqa: A002 # Reuse FastAPI Users' "id" parameter name for compatibility
-        """Get a single user by ID."""
-        return await self.session.get(self.user_model, id)
+        """Get a single user by ID, with oauth_accounts eagerly loaded."""
+        statement = select(self.user_model).where(self.user_model.id == id)
+        if self.oauth_account_model is not None:
+            statement = statement.options(selectinload(self.user_model.oauth_accounts))  # type: ignore[attr-defined]
+        results = await self.session.execute(statement)
+        return results.scalars().unique().one_or_none()
 
     async def get_by_email(self, email: str) -> UP | None:
-        """Get a single user by email."""
+        """Get a single user by email, with oauth_accounts eagerly loaded."""
         statement = select(self.user_model).where(func.lower(self.user_model.email) == func.lower(email))
+        if self.oauth_account_model is not None:
+            statement = statement.options(selectinload(self.user_model.oauth_accounts))  # type: ignore[attr-defined]
         results = await self.session.execute(statement)
         return results.scalars().unique().one_or_none()
 
