@@ -34,7 +34,7 @@ importers:
         specifier: ^4.1.5
         version: 4.1.5(vitest@4.1.5)
       happy-dom:
-        specifier: ^19.0.0
+        specifier: ^19.0.2
         version: 19.0.2
       typescript:
         specifier: ^5.9.3
