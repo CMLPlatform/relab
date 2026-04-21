@@ -15,19 +15,19 @@ The dev server runs on <http://localhost:8081>. In the full Docker stack, the si
 
 Composite workflows live in the [justfile](./justfile); day-to-day commands are in [package.json](./package.json). Use whichever surface you prefer.
 
-| Task | just | pnpm |
-| --- | --- | --- |
-| Start dev server | — | `pnpm run dev` |
-| Build (prod) | — | `pnpm run build` |
-| Preview build | — | `pnpm run preview` |
-| Lint + typecheck | `just check` | `pnpm run check` |
-| Format | `just format` | `pnpm run format` |
-| Unit tests | `just test` | `pnpm run test` |
+| Task                  | just            | pnpm                     |
+| --------------------- | --------------- | ------------------------ |
+| Start dev server      | —               | `pnpm run dev`           |
+| Build (prod)          | —               | `pnpm run build`         |
+| Preview build         | —               | `pnpm run preview`       |
+| Lint + typecheck      | `just check`    | `pnpm run check`         |
+| Format                | `just format`   | `pnpm run format`        |
+| Unit tests            | `just test`     | `pnpm run test`          |
 | Unit tests + coverage | `just test-cov` | `pnpm run test:coverage` |
-| E2E (Playwright) | `just test-e2e` | `pnpm run test:e2e` |
-| All tests | `just test-all` | `pnpm run test:all` |
-| Full CI pipeline | `just ci` | — |
-| Output size budget | `just size` | — |
+| E2E (Playwright)      | `just test-e2e` | `pnpm run test:e2e`      |
+| All tests             | `just test-all` | `pnpm run test:all`      |
+| Full CI pipeline      | `just ci`       | —                        |
+| Output size budget    | `just size`     | —                        |
 
 ## Architecture
 
@@ -47,21 +47,21 @@ E2E tests in [e2e/](./e2e) assume the dev server is running *or* a preview build
 
 Public (baked into the build via `import.meta.env`, read by [src/config/public.ts](./src/config/public.ts)):
 
-| Name | Required | Notes |
-| --- | --- | --- |
-| `PUBLIC_API_URL` | yes | Backend API base URL |
-| `PUBLIC_APP_URL` | yes | Canonical app URL |
-| `PUBLIC_SITE_URL` | yes | Canonical site URL for sitemap/OG tags |
-| `PUBLIC_DOCS_URL` | yes | Docs site URL |
-| `PUBLIC_LINKEDIN_URL` | no | LinkedIn group, rendered in footer when set |
-| `PUBLIC_CONTACT_EMAIL` | no | Falls back to `relab@cml.leidenuniv.nl` |
+| Name                   | Required | Notes                                       |
+| ---------------------- | -------- | ------------------------------------------- |
+| `PUBLIC_API_URL`       | yes      | Backend API base URL                        |
+| `PUBLIC_APP_URL`       | yes      | Canonical app URL                           |
+| `PUBLIC_SITE_URL`      | yes      | Canonical site URL for sitemap/OG tags      |
+| `PUBLIC_DOCS_URL`      | yes      | Docs site URL                               |
+| `PUBLIC_LINKEDIN_URL`  | no       | LinkedIn group, rendered in footer when set |
+| `PUBLIC_CONTACT_EMAIL` | no       | Falls back to `relab@cml.leidenuniv.nl`     |
 
 Runtime (tooling only, read by [config/runtime.ts](./config/runtime.ts)):
 
-| Name | Notes |
-| --- | --- |
+| Name       | Notes                                                            |
+| ---------- | ---------------------------------------------------------------- |
 | `BASE_URL` | If set, Playwright runs against it instead of starting a preview |
-| `CI` | Set by CI; tightens Playwright reporter + retries |
+| `CI`       | Set by CI; tightens Playwright reporter + retries                |
 
 ## Repo structure
 

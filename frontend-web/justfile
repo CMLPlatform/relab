@@ -21,6 +21,16 @@ update:
     pnpm up -D
     @echo "✓ Frontend-web dependencies updated"
 
+# Run lint checks
+lint:
+    pnpm run lint
+    @echo "✓ Frontend-web lint passed"
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+    @echo "✓ Frontend-web type checks passed"
+
 # Auto-format code with Biome
 format:
     pnpm run format
@@ -30,9 +40,13 @@ fix: format
     @echo "✓ Frontend-web code formatted"
 
 # Run lint + typecheck
-check:
-    pnpm run check
+check: lint typecheck
     @echo "✓ Frontend-web checks passed"
+
+# Build the production site
+build:
+    pnpm run build
+    @echo "✓ Frontend-web built"
 
 # Run unit tests
 test:
@@ -43,12 +57,16 @@ test-cov:
     pnpm run test:coverage
 
 # Run the frontend-web CI test suite
-test-ci: test-cov
+test-ci:
+    pnpm run test:ci
     @echo "✓ Frontend-web CI test suite passed"
 
 # Run browser end-to-end tests (requires a prior build)
 test-e2e:
     pnpm run test:e2e
+
+# Run browser end-to-end tests (browser workflow alias)
+test-e2e-browser: test-e2e
 
 # Run all tests (unit + e2e)
 test-all:

@@ -23,11 +23,13 @@
     "lint": "biome lint .",
     "typecheck": "astro check",
     "test": "vitest run",
+    "test:ci": "pnpm run test:coverage",
     "test:coverage": "vitest run --coverage",
     "audit": "pnpm audit --prod --audit-level high",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "vitest run && playwright test"
+    "test:all": "vitest run && playwright test",
+    "ci": "pnpm run check && pnpm run test:ci"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
