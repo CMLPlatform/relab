@@ -1,32 +1,34 @@
-# docker-compose.prod.yml (PRODUCTION - must be explicitly specified)
-name: relab_prod # Separate prod containers, networks, and volumes from dev
+# compose.deploy.yml (DEPLOY — covers prod AND staging)
+# Defaults target prod. Uncomment the staging block in root `.env` to run a
+# staging-shaped stack (same file, different .env).
+name: ${COMPOSE_PROJECT_NAME:-relab_prod}
 
 services:
   api:
-    image: ${RELAB_BACKEND_IMAGE:-relab-backend:prod-local}
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV:-prod}-local}
     environment:
-      ENVIRONMENT: prod
+      ENVIRONMENT: ${APP_ENV:-prod}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT_PROD:-http://otel-collector:4318}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
-      # Lower WEB_CONCURRENCY to reduce load on a shared server.
+      # Prod: 4, Staging: 2, small VMs: 1.
       #
-      #                    per worker  x  workers  =  total
+      #                    per worker  x  workers  =  total (prod)
       # Image threads:          5      x     4     =   20  (CPU-bound)
       # DB connections:    10 + 10     x     4     =   80  (PostgreSQL default max=100)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
-      WEB_CONCURRENCY: "4"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
-    env_file: ./backend/.env.prod
+    env_file: ./backend/.env.${APP_ENV:-prod}
 
   migrator:
-    image: ${RELAB_BACKEND_IMAGE:-relab-backend:prod-local}
-    env_file: ./backend/.env.prod
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV:-prod}-local}
+    env_file: ./backend/.env.${APP_ENV:-prod}
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   uploads-backup:
@@ -54,9 +56,9 @@ services:
 
   redis:
     volumes:
-      # Persist cache data in production
+      # Persist cache data in both prod and staging (AOF persistence).
       - cache_data:/data
-    env_file: ./backend/.env.prod
+    env_file: ./backend/.env.${APP_ENV:-prod}
 
   cloudflared:
     # Cloudflared tunnel service
@@ -66,21 +68,34 @@ services:
       api:
         condition: service_healthy
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN_PROD}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
     command: tunnel --no-autoupdate run
     pull_policy: always
 
   postgres:
-    env_file: ./backend/.env.prod
+    env_file: ./backend/.env.${APP_ENV:-prod}
 
   docs-site:
-    image: ${RELAB_DOCS_IMAGE:-relab-docs:prod-local}
+    image: ${RELAB_DOCS_IMAGE:-relab-docs:${APP_ENV:-prod}-local}
+    build:
+      args:
+        BUILD_MODE: ${BUILD_MODE:-prod}
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
 
   app-site:
-    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:prod-local}
+    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:${APP_ENV:-prod}-local}
+    build:
+      args:
+        BUILD_MODE: ${BUILD_MODE:-prod}
+    environment:
+      # Needed by Caddyfile to determine the API origin.
+      CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
 
   web-site:
-    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:prod-local}
+    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:${APP_ENV:-prod}-local}
+    build:
+      args:
+        BUILD_MODE: ${BUILD_MODE:-prod}
 
   postgres-backup:
     # Automated database backups to local file system
@@ -98,7 +113,7 @@ services:
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
-    env_file: ./backend/.env.prod # Load database connection settings
+    env_file: ./backend/.env.${APP_ENV:-prod} # Load database connection settings
     profiles:
       - backups
 

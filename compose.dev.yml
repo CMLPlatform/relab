@@ -5,7 +5,8 @@ name: relab_dev
 services:
   api:
     build:
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
     restart: "no"
     ports:
       - "8011:8000"
@@ -47,7 +48,8 @@ services:
   docs-site:
     build:
       context: ./docs
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
     restart: "no"
     ports:
       - "8012:8000"
@@ -68,7 +70,8 @@ services:
 
   app-site:
     build:
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
     restart: "no"
     ports:
       - "8013:8081"
@@ -99,7 +102,8 @@ services:
 
   web-site:
     build:
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
     restart: "no"
     ports:
       - "8010:8081"

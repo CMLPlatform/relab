@@ -38,7 +38,7 @@ Run from `backend/scripts/backup/`:
 From the repo root:
 
 ```bash
-docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
+docker compose -f compose.yml -f compose.deploy.yml --profile backups up -d
 ```
 
 This starts:
@@ -46,7 +46,7 @@ This starts:
 - `uploads-backup` for user uploads
 - `postgres-backup` for PostgreSQL dumps
 
-Schedules and retention settings live in [compose.prod.yml](../../../compose.prod.yml).
+Schedules and retention settings live in [compose.deploy.yml](../../../compose.deploy.yml).
 
 ## Remote Sync
 

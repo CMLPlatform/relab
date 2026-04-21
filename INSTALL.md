@@ -80,23 +80,33 @@ This page is about running the stack. For manifest conventions, tooling policy, 
    just test
    ```
 
-## Production Deployment
+## Production / Staging Deployment
 
-Production deployments are Docker Compose based. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the production stack, run migrations, and verify health.
+Deploys use a single compose overlay, [`compose.deploy.yml`](compose.deploy.yml). The host's root `.env` decides whether the stack comes up as prod or staging — one file, one command, no extra flags. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
 
 1. Configure a Cloudflare tunnel.
 
    - Set up a domain and a remotely managed tunnel in Cloudflare.
    - Forward traffic to `app-site:8081`, `web-site:8081`, `api:8000`, and `docs-site:8000`.
-   - Set `TUNNEL_TOKEN_PROD` in the root `.env`.
 
-1. Configure the backend production environment.
+1. Copy `.env.example` to `.env` and fill in values.
 
    ```bash
-   cp backend/.env.prod.example backend/.env.prod
+   cp .env.example .env
    ```
 
-1. Start the production stack.
+   - **Prod host**: set `TUNNEL_TOKEN=<prod token>`; leave the commented "staging overrides" block commented. Defaults resolve to `ENVIRONMENT=prod`, `WEB_CONCURRENCY=4`, project `relab_prod`.
+   - **Staging host**: uncomment the staging block (`APP_ENV=staging`, `COMPOSE_PROJECT_NAME=relab_staging`, `WEB_CONCURRENCY=2`, `BUILD_MODE=staging`, `PUBLIC_SITE_URL=…`, `CSP_API_ORIGIN=…`) and set `TUNNEL_TOKEN=<staging token>`.
+
+1. Configure the backend runtime environment for this host.
+
+   ```bash
+   cp backend/.env.prod.example backend/.env.prod          # on a prod host
+   # OR
+   cp backend/.env.staging.example backend/.env.staging    # on a staging host
+   ```
+
+1. Start the stack.
 
    ```bash
    just prod-up YES
@@ -113,7 +123,7 @@ Production deployments are Docker Compose based. Cloudflare Tunnel remains the s
    If you also need taxonomy seeding in the migration container:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.prod.yml --profile migrations up --build migrator
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.deploy.yml --profile migrations up --build migrator
    ```
 
 1. Manage the running stack.

@@ -18,4 +18,3 @@
 - `resized_image` is optional and only runs when a sample image is available.
 - If these numbers replace the prior baseline, keep older reports as historical context only.
 - Threshold refresh remains a maintainer-only follow-up step.
-
