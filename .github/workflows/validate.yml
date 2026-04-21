@@ -104,7 +104,7 @@ jobs:
       - name: Install dependencies
         run: just backend/install
 
-      - name: Run checks
+      - name: Run check
         run: just backend/check
 
       - name: Run CI test suite
@@ -149,7 +149,7 @@ jobs:
       - name: Install dependencies
         run: just frontend-web/install
 
-      - name: Run checks
+      - name: Run check
         run: just frontend-web/check
 
       - name: Run CI test suite
@@ -181,7 +181,7 @@ jobs:
         working-directory: frontend-web
 
       - name: Run browser E2E tests
-        run: just frontend-web/test-e2e-browser
+        run: just frontend-web/test-e2e
 
       - name: Archive Playwright report
         if: failure()
@@ -211,7 +211,7 @@ jobs:
       - name: Install dependencies
         run: just frontend-app/install
 
-      - name: Run checks
+      - name: Run check
         run: just frontend-app/check
 
       - name: Run CI test suite
@@ -255,8 +255,11 @@ jobs:
       - name: Install dependencies
         run: just docs/install
 
-      - name: Run docs checks
+      - name: Run docs check
         run: just docs/check
+
+      - name: Run docs CI test suite
+        run: just docs/test-ci
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
