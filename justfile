@@ -6,9 +6,15 @@ default:
     @just --list
 
 dev_compose := "docker compose -p relab_dev -f compose.yml -f compose.dev.yml"
-test_compose := "docker compose -p relab_test -f compose.yml -f compose.test.yml"
-staging_compose := "docker compose -p relab_staging -f compose.yml -f compose.staging.yml"
-prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.prod.yml"
+ci_compose := "docker compose -p relab_test -f compose.yml -f compose.ci.yml"
+
+# Deploy overlay — same file for prod and staging. Per-host `.env` drives which
+# environment you get (see .env.example). On a prod VM `prod_compose` and
+# `staging_compose` both work; the `.env` decides.
+prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.deploy.yml"
+# `staging_compose` is for dev-laptop-driven staging ops; env vars are forced inline
+# so the laptop's `.env` (usually prod-shaped) doesn't leak through.
+staging_compose := "APP_ENV=staging COMPOSE_PROJECT_NAME=relab_staging WEB_CONCURRENCY=2 BUILD_MODE=staging PUBLIC_SITE_URL=https://docs-test.cml-relab.org CSP_API_ORIGIN=https://api-test.cml-relab.org docker compose -f compose.yml -f compose.deploy.yml"
 
 # ============================================================================
 # Setup
@@ -54,6 +60,44 @@ pre-commit:
     uv run pre-commit run --all-files
     @echo "✓ Repository policy checks passed"
 
+# Run root-only lint checks
+lint-root:
+    pnpm run lint
+    @echo "✅ Root-level lint passed"
+
+# Run root and subrepo lint checks
+lint: lint-root
+    @just backend/lint
+    @just docs/lint
+    @just frontend-web/lint
+    @just frontend-app/lint
+    @echo "✅ Root and subrepo lint passed"
+
+# Run root-only quality checks
+check-root: lint-root
+    @echo "✅ Root-level checks passed"
+
+# Run root and subrepo quality checks
+check: check-root
+    @just backend/check
+    @just docs/check
+    @just frontend-web/check
+    @just frontend-app/check
+    @echo "✅ Root and subrepo checks passed"
+
+# Format root-only files
+format-root:
+    pnpm run format
+    @echo "✅ Root-level formatting complete"
+
+# Format root and subrepo codebases
+format: format-root
+    @just backend/format
+    @just docs/format
+    @just frontend-web/format
+    @just frontend-app/format
+    @echo "✅ Root and subrepo formatting complete"
+
 # Canonical fast validation target used locally and in CI
 validate: pre-commit _test-ci compose-config
     @echo "✅ Validation pipeline passed"
@@ -86,7 +130,7 @@ test-integration:
 # CI-oriented test suite across all subrepos
 _test-ci:
     @just backend/test-ci
-    @just docs/check
+    @just docs/test-ci
     @just frontend-web/test-ci
     @just frontend-app/test-ci
     @echo "✅ All CI test suites passed"
@@ -117,23 +161,22 @@ _test-e2e-full-stack:
 # Security
 # ============================================================================
 
-# Run dependency vulnerability audit across all subrepos
-_audit:
-    @just _audit-root
+# Run dependency vulnerability audit for root Python tooling
+audit-root:
+    uv audit --preview-features audit --frozen --no-dev
+    @echo "✓ Root dependency audit complete"
+
+# Run dependency vulnerability audit across root and all subrepos
+audit: audit-root
     @just backend/audit
     @just docs/audit
     @just frontend-app/audit
     @just frontend-web/audit
-    @echo "✅ All dependency audits complete"
+    @echo "✅ Root and subrepo dependency audits complete"
 
 # Canonical security target
-security: _audit
+security: audit
     @echo "✅ Security checks complete"
-
-# Run dependency vulnerability audit for root Python tooling
-_audit-root:
-    uv audit --preview-features audit --frozen --no-dev
-    @echo "✓ Root dependency audit complete"
 
 
 # Validate every supported Compose stack shape
@@ -152,7 +195,7 @@ compose-config:
     fi
     trap '[[ "$created_prod_env" == true ]] && rm -f backend/.env.prod; [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging' EXIT
     {{ dev_compose }} config >/dev/null
-    {{ test_compose }} config >/dev/null
+    {{ ci_compose }} config >/dev/null
     {{ staging_compose }} config >/dev/null
     {{ prod_compose }} config >/dev/null
     docker compose -p relab_e2e -f compose.e2e.yml config >/dev/null
@@ -338,11 +381,11 @@ _require-confirm action example force_example confirm='':
 
 # Internal helper: bring up a CI compose subset and wait for readiness.
 _docker-smoke-up services timeout:
-    {{ test_compose }} up --build -d --wait --wait-timeout {{ timeout }} {{ services }}
+    {{ ci_compose }} up --build -d --wait --wait-timeout {{ timeout }} {{ services }}
 
 # Internal helper: tear down a CI compose subset and its anonymous resources.
 _docker-smoke-down services:
-    {{ test_compose }} down -v --remove-orphans {{ services }} || true
+    {{ ci_compose }} down -v --remove-orphans {{ services }} || true
 
 # Smoke test: backend + its infrastructure (database, cache)
 _docker-smoke-backend:
@@ -406,7 +449,7 @@ _docker-orchestration-smoke:
     set -euo pipefail
     trap 'just _docker-smoke-down "postgres redis api migrator"' EXIT
     just _docker-smoke-up "postgres redis api migrator" 120
-    {{ test_compose }} exec -T api python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
+    {{ ci_compose }} exec -T api python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
     echo "✅ Docker orchestration smoke test passed"
 
 # Run all smoke tests sequentially (CI runs them in parallel per-service)
@@ -425,11 +468,11 @@ docker-smoke: _docker-smoke-all
 
 # Build (or rebuild) CI images without cache
 _docker-ci-build:
-    {{ test_compose }} --profile migrations build --no-cache
+    {{ ci_compose }} --profile migrations build --no-cache
 
 # Start CI services and wait for readiness
 _docker-ci-up services="postgres redis api":
-    {{ test_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
+    {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
 
 # Start the CI backend subset (database, cache, backend) and wait for readiness
 _docker-ci-backend-up:
@@ -437,12 +480,12 @@ _docker-ci-backend-up:
 
 # Run CI migrations and seed dummy data for repeatable backend perf tests
 _docker-ci-migrate-dummy:
-    {{ test_compose }} run --rm -e SEED_DUMMY_DATA=true migrator
+    {{ ci_compose }} run --rm -e SEED_DUMMY_DATA=true migrator
 
 # Stop the CI stack and remove volumes
 _docker-ci-down confirm='':
     @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
-    {{ test_compose }}  --profile migrations down -v --remove-orphans
+    {{ ci_compose }}  --profile migrations down -v --remove-orphans
 
 # Run the backend k6 baseline against the CI Docker stack.
 # Keeps the CI stack running for maintainer follow-up if needed.

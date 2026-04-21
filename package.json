@@ -1,0 +1,18 @@
+{
+  "name": "relab",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": "24.x",
+    "pnpm": "10.x"
+  },
+  "scripts": {
+    "biome": "biome",
+    "check": "pnpm run lint",
+    "lint": "biome check biome.jsonc package.json codemeta.json relab.code-workspace renovate.json",
+    "format": "biome check --write biome.jsonc package.json codemeta.json relab.code-workspace renovate.json"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.12"
+  }
+}

@@ -39,14 +39,19 @@ words:
   - dismissable
   - Donati
   - ERD
+  - Filenaming
   - fileparenttype
+  - grotesk
   - GOMAXPROCS
+  - hydrateable
   - imageparenttype
   - instrumentor
   - instrumentors
   - jaegertracing
   - Lierde
+  - linkinator
   - materialproductlink
+  - mpegurl
   - newslettersubscriber
   - orcid
   - organizationrole
@@ -62,6 +67,7 @@ words:
   - remanufacturable
   - repairability
   - refetches
+  - RTMP
   - selectinload
   - shellcheck
   - subcomponent
