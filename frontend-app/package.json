@@ -13,8 +13,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "check": "pnpm run lint",
-    "lint": "pnpm run typecheck && biome check . && pnpm run lint:react",
+    "check": "pnpm run lint && pnpm run typecheck",
+    "lint": "biome check . && pnpm run lint:react",
     "lint:react": "eslint --cache --max-warnings=0 src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "format": "biome check --write .",
@@ -33,6 +33,7 @@
     "audit": "pnpm audit --prod --audit-level high",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "ci": "pnpm run check && pnpm run test:ci",
     "codegen:api": "openapi-typescript ${EXPO_PUBLIC_API_URL:-http://localhost:8011}/openapi_full.json -o src/types/api.generated.ts",
     "codegen:api:redact": "pnpm run codegen:api && node scripts/redact_api.js",
     "codegen": "pnpm run codegen:api:redact"

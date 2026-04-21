@@ -1,9 +1,7 @@
-import { parseForESLint } from '@typescript-eslint/parser';
+import tsParser from '@typescript-eslint/parser';
 import { defineConfig } from 'eslint/config';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
-
-const tsParser = { parseForESLint };
 
 const reactHooksErrors = Object.fromEntries(
   Object.keys(reactHooks.configs.flat['recommended-latest'].rules).map((ruleName) => [

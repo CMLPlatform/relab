@@ -1,62 +1,65 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
-	"extends": "//",
-	"files": {
-		"includes": [
-			"**",
-			"!.expo",
-			"!coverage",
-			"!dist",
-			"!node_modules",
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "extends": "//",
+  "files": {
+    "includes": [
+      "**",
+      "!.expo",
+      "!coverage",
+      "!dist",
+      "!node_modules",
 
-			// Generated fixtures are intentionally machine-managed.
-			"!src/assets/data/*.json"
-		]
-	},
-	"linter": {
-		"rules": {
-			"complexity": {
-				"noExcessiveLinesPerFunction": {
-					"level": "warn",
-					"options": {
-						"maxLines": 100
-					}
-				}
-			},
-			"correctness": {
-				"noReactPropAssignments": "error",
-				"useExhaustiveDependencies": "error",
-				"useHookAtTopLevel": "error",
-				"useImportExtensions": "off"
-			},
-			"style": {
-				"useComponentExportOnlyModules": "warn"
-			},
-			"suspicious": {
-				"noSkippedTests": "error"
-			}
-		}
-	},
-	"overrides": [
-		{
-			// Test files routinely contain dummy secrets and looser fixture setup.
-			"includes": [
-				"babel.config.*",
-				"config/jest/**",
-				"e2e/**",
-				"jest.config.*",
-				"jest.setup.*",
-				"**/__tests__/**",
-				"**/*.test.ts",
-				"**/*.test.tsx"
-			],
-			"linter": {
-				"rules": {
-					"security": {
-						"noSecrets": "off"
-					}
-				}
-			}
-		}
-	]
+      // Generated fixtures are intentionally machine-managed.
+      "!src/assets/data/*.json"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveLinesPerFunction": {
+          "level": "warn",
+          "options": {
+            "maxLines": 100
+          }
+        }
+      },
+      "correctness": {
+        "noReactPropAssignments": "error",
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error",
+        "useImportExtensions": "off"
+      },
+      "style": {
+        "useComponentExportOnlyModules": "warn"
+      },
+      "suspicious": {
+        "noSkippedTests": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // Test files routinely contain dummy secrets and looser fixture setup.
+      "includes": [
+        "babel.config.*",
+        "config/jest/**",
+        "e2e/**",
+        "jest.config.*",
+        "jest.setup.*",
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
+          "security": {
+            "noSecrets": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -19,9 +19,18 @@ update:
     npx expo-doctor
     @echo "✓ Frontend-app dependencies updated"
 
+# Run lint checks
+lint:
+    pnpm run lint
+    @echo "✓ Frontend-app lint passed"
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+    @echo "✓ Frontend-app type checks passed"
+
 # Run the frontend-app quality gate
-check:
-    pnpm run check
+check: lint typecheck
     @echo "✓ Frontend-app checks passed"
 
 # Auto-format code
@@ -60,6 +69,11 @@ test-ci:
 # Run the full frontend-app CI pipeline locally
 ci: check test-ci
     @echo "✓ Frontend-app CI pipeline passed"
+
+# Run the full Jest suite (unit + integration)
+test-jest:
+    pnpm run test:jest
+    @echo "✓ Frontend-app Jest suites passed"
 
 # Start dev server
 dev PORT="8081":
