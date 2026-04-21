@@ -18,7 +18,7 @@ class FileFilter(Filter):
         """FilterAPI class configuration."""
 
         model = File
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "filename",
             "description",
         ]
@@ -37,7 +37,7 @@ class ImageFilter(Filter):
         """FilterAPI class configuration."""
 
         model = Image
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "filename",
             "description",
         ]
@@ -55,7 +55,7 @@ class VideoFilter(Filter):
         """FilterAPI class configuration."""
 
         model = Video
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "url",
             "description",
         ]

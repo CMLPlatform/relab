@@ -223,7 +223,7 @@ async def start_recording(
                 video_metadata=serialize_stream_metadata(stream_info.metadata),
             ),
         )
-    except (HTTPException, APIError):
+    except HTTPException, APIError:
         try:
             await camera_request(
                 endpoint=PLUGIN_STREAM_ENDPOINT,

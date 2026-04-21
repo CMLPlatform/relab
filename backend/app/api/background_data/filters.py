@@ -29,7 +29,7 @@ class TaxonomyFilter(Filter):
         """FilterAPI class configuration."""
 
         model = Taxonomy
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "name",
             "description",
             "version",

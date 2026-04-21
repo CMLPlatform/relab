@@ -32,7 +32,7 @@ class CameraFilter(Filter):
         """FilterAPI class configuration."""
 
         model = Camera
-        search_model_fields: list[str] = ["name", "description"]  # noqa: RUF012
+        search_model_fields: list[str] = ["name", "description"]  # noqa: RUF012 # fastapi-filter excepts this syntax
 
 
 class CameraFilterWithOwner(CameraFilter):
@@ -80,6 +80,7 @@ class CameraReadWithStatus(CameraRead):
     telemetry: TelemetrySnapshot | None = None
     last_image_url: str | None = None
     last_image_thumbnail_url: str | None = None
+    last_preview_thumbnail_url: str | None = None
 
     @classmethod
     async def from_db_model_with_status(
@@ -90,6 +91,7 @@ class CameraReadWithStatus(CameraRead):
         include_telemetry: bool = False,
         last_image_url: str | None = None,
         last_image_thumbnail_url: str | None = None,
+        last_preview_thumbnail_url: str | None = None,
     ) -> Self:
         """Create CameraReadWithStatus instance from Camera database model, fetching online status."""
         telemetry = await get_cached_telemetry(redis, db_model.id) if include_telemetry else None
@@ -99,6 +101,7 @@ class CameraReadWithStatus(CameraRead):
             telemetry=telemetry,
             last_image_url=last_image_url,
             last_image_thumbnail_url=last_image_thumbnail_url,
+            last_preview_thumbnail_url=last_preview_thumbnail_url,
         )
 
 

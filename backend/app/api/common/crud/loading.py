@@ -42,6 +42,16 @@ def relationship_names(model: type[MT]) -> set[str]:
     return set(_get_model_relationships(model))
 
 
+def relationship_attr(model: type[MT], name: str) -> QueryableAttribute[Any]:
+    """Return a typed relationship attribute by name."""
+    relationships = _get_model_relationships(model)
+    try:
+        return relationships[name]
+    except KeyError as exc:
+        err_msg = f"{model.__name__} has no relationship named {name!r}"
+        raise CRUDConfigurationError(err_msg) from exc
+
+
 def apply_loader_profile(
     statement: Select,
     model: type[MT],

@@ -1,4 +1,5 @@
 """OAuth helper DTOs and token utilities."""
+# spell-checker: ignore fastapiusersoauthcsrf
 
 import secrets
 from dataclasses import dataclass
@@ -14,11 +15,11 @@ from app.core.config import settings as core_settings
 if TYPE_CHECKING:
     from typing import Literal
 
-STATE_TOKEN_AUDIENCE = "fastapi-users:oauth-state"  # noqa: S105
-CSRF_TOKEN_KEY = "csrftoken"  # noqa: S105
-CSRF_TOKEN_COOKIE_NAME = "fastapiusersoauthcsrf"  # noqa: S105 # spell-checker: ignore fastapiusersoauthcsrf
+STATE_TOKEN_AUDIENCE = "fastapi-users:oauth-state"  # noqa: S105 # This value is not a secret
+CSRF_TOKEN_KEY = "csrftoken"  # noqa: S105 # This value is not a secret
+CSRF_TOKEN_COOKIE_NAME = "fastapiusersoauthcsrf"  # noqa: S105 # This value is not a secret
 SET_COOKIE_HEADER = b"set-cookie"
-ACCESS_TOKEN_KEY = "access_token"  # noqa: S105
+ACCESS_TOKEN_KEY = "access_token"  # noqa: S105 # This value is not a secret
 
 
 class OAuth2AuthorizeResponse(BaseModel):

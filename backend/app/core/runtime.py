@@ -123,22 +123,8 @@ def require_connection_http_client(connection: HTTPConnection) -> AsyncClient:
     return http_client
 
 
-def sync_legacy_state(app: FastAPI, services: AppServices) -> None:
-    """Mirror typed services onto legacy ``app.state`` attributes during migration."""
-    app.state.redis = services.redis
-    app.state.blocking_redis = services.blocking_redis
-    app.state.email_checker = services.email_checker
-    app.state.camera_connection_manager = services.camera_connection_manager
-    app.state.file_cleanup_manager = services.file_cleanup_manager
-    app.state.http_client = services.http_client
-    app.state.image_resize_limiter = services.image_resize_limiter
-    app.state.storage_ready = services.storage_ready
-    app.state.telemetry_enabled = services.telemetry_enabled
-
-
 def reset_app_services(app: FastAPI) -> AppServices:
     """Reset runtime services to an empty container."""
     services = AppServices()
     app.state.services = services
-    sync_legacy_state(app, services)
     return services

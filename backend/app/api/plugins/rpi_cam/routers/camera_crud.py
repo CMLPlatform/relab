@@ -18,19 +18,22 @@ from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
-from app.api.plugins.rpi_cam.models import Camera, CameraStatus
+from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
+from app.api.plugins.rpi_cam.service_runtime import get_preview_thumbnail_path
 from app.api.plugins.rpi_cam.services import (
     get_camera_status as fetch_camera_status,
 )
 from app.api.plugins.rpi_cam.services import (
     get_last_image_urls_per_camera,
+    get_preview_thumbnail_urls_per_camera,
 )
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
 from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from pathlib import Path
 
     from redis.asyncio import Redis
 
@@ -91,9 +94,11 @@ async def get_user_cameras(
     # requested we skip this too — no point paying the query cost for a
     # caller that just wants online/offline status.
     last_image_urls: dict = {}
+    preview_thumbnail_urls: dict = {}
     if include_telemetry:
         camera_ids = [camera.id for camera in db_cameras]
         last_image_urls = await get_last_image_urls_per_camera(session, camera_ids)
+        preview_thumbnail_urls = get_preview_thumbnail_urls_per_camera(camera_ids)
 
     results: list[CameraReadWithStatus] = []
     for camera in db_cameras:
@@ -105,6 +110,7 @@ async def get_user_cameras(
                 include_telemetry=include_telemetry,
                 last_image_url=last_image_url,
                 last_image_thumbnail_url=last_image_thumbnail_url,
+                last_preview_thumbnail_url=preview_thumbnail_urls.get(camera.id),
             )
         )
     return results
@@ -135,17 +141,20 @@ async def get_user_camera(
         return db_camera
     last_image_url: str | None = None
     last_image_thumbnail_url: str | None = None
+    last_preview_thumbnail_url: str | None = None
     if include_telemetry:
         urls = await get_last_image_urls_per_camera(session, [db_camera.id])
         last_image = urls.get(db_camera.id)
         last_image_url = last_image.image_url if last_image is not None else None
         last_image_thumbnail_url = last_image.thumbnail_url if last_image is not None else None
+        last_preview_thumbnail_url = get_preview_thumbnail_urls_per_camera([db_camera.id]).get(db_camera.id)
     return await CameraReadWithStatus.from_db_model_with_status(
         db_camera,
         redis,
         include_telemetry=include_telemetry,
         last_image_url=last_image_url,
         last_image_thumbnail_url=last_image_thumbnail_url,
+        last_preview_thumbnail_url=last_preview_thumbnail_url,
     )
 
 
@@ -199,9 +208,11 @@ async def delete_user_camera(
     redis: OptionalRedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
+    preview_thumbnail_path = get_preview_thumbnail_path(camera.id)
     await db.delete(camera)
     await db.commit()
     background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
+    background_tasks.add_task(_remove_preview_thumbnail, preview_thumbnail_path)
 
 
 @camera_router.delete(
@@ -221,6 +232,7 @@ async def self_unpair_camera(
 ) -> None:
     """Device-initiated self-deletion. Pi calls this on local unpair."""
     logger.info("Camera %s self-unpaired via device assertion", camera.id)
+    _remove_preview_thumbnail(get_preview_thumbnail_path(camera.id))
     await db.delete(camera)
     await db.commit()
 
@@ -257,6 +269,11 @@ async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
     Logs a warning and continues if the camera is offline or unresponsive —
     deletion should never be blocked by camera connectivity.
     """
+    status = await fetch_camera_status(redis, camera_id)
+    if status.connection != CameraConnectionStatus.ONLINE:
+        logger.info("Skipping unpair relay for offline camera %s.", camera_id)
+        return
+
     try:
         await relay_via_websocket(camera_id, "DELETE", "/pairing", redis=redis)
     except HTTPException as exc:
@@ -265,6 +282,14 @@ async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
             camera_id,
             exc.status_code,
         )
+
+
+def _remove_preview_thumbnail(path: Path) -> None:
+    """Best-effort cleanup of a camera's cached preview thumbnail file."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        logger.warning("Could not remove preview thumbnail at %s", path)
 
 
 router.include_router(camera_router, prefix="/plugins/rpi-cam/cameras")

@@ -50,7 +50,7 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
 
     try:
         await to_thread.run_sync(generate_thumbnails, image_path)
-    except (ValueError, OSError):
+    except ValueError, OSError:
         logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
 
     return db_image

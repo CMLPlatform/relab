@@ -49,6 +49,10 @@ def build_claimed_bootstrap(
     return PairingClaimedBootstrap(camera_id=camera_id, ws_url=ws_url, key_id=key_id, auth_scheme=auth_scheme)
 
 
-def build_claimed_record(payload: PairingClaimedBootstrap) -> PairingClaimedRecord:
-    """Promote a claimed bootstrap payload into the Redis-stored paired record."""
-    return PairingClaimedRecord(**payload.model_dump())
+def build_claimed_record(payload: PairingClaimedBootstrap, *, rpi_fingerprint: str) -> PairingClaimedRecord:
+    """Promote a claimed bootstrap payload into the Redis-stored paired record.
+
+    The pending record's fingerprint is copied onto the claimed record so the
+    device poll can re-verify identity before receiving the bootstrap payload.
+    """
+    return PairingClaimedRecord(**payload.model_dump(), rpi_fingerprint=rpi_fingerprint)

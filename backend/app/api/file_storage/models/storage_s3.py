@@ -37,6 +37,7 @@ def _client_error_type() -> type[Exception]:
     try:
         return import_module("botocore.exceptions").ClientError
     except ImportError:
+
         class ClientError(Exception):
             """Fallback exception used when botocore is not installed."""
 

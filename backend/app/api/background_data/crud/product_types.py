@@ -205,9 +205,7 @@ async def get_product_type_image(db: AsyncSession, product_type_id: int, image_i
     )
 
 
-async def create_product_type_image(
-    db: AsyncSession, product_type_id: int, payload: ImageCreateFromForm
-) -> Image:
+async def create_product_type_image(db: AsyncSession, product_type_id: int, payload: ImageCreateFromForm) -> Image:
     """Create an image attached to a product type."""
     return await create_parent_media(
         db,

@@ -31,7 +31,7 @@
       <div class="section">
         <h2>User Access</h2>
         {% if user %}
-          <a href="#" onclick="logout()" class="secondary-btn">Logout</a>
+          <a href="#" id="logoutLink" class="secondary-btn">Logout</a>
         {% else %}
           <a href="{{ url_for('login_page') }}" class="secondary-btn">Login</a>
         {% endif %}
@@ -39,13 +39,19 @@
     </div>
 
     <script>
-      async function logout() {
-        try {
-          await fetch('{{ url_for("auth:logout") }}', { method: 'POST', credentials: 'include' })
-          window.location.reload()
-        } catch (error) {
-          console.error('Logout failed:', error)
-        }
+      const logoutLink = document.getElementById('logoutLink')
+
+      if (logoutLink) {
+        logoutLink.addEventListener('click', async (event) => {
+          event.preventDefault()
+
+          try {
+            await fetch('{{ url_for("auth:logout") }}', { method: 'POST', credentials: 'include' })
+            window.location.reload()
+          } catch (error) {
+            console.error('Logout failed:', error)
+          }
+        })
       }
     </script>
   </body>

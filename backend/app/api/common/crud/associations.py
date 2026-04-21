@@ -1,6 +1,5 @@
 """Typed helpers for association/link models."""
 
-
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select

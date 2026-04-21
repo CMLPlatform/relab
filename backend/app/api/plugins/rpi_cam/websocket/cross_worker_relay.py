@@ -77,7 +77,17 @@ def _resp_key(msg_id: str) -> str:
 
 
 # Expire stale response keys in case the requesting worker dies before reading.
-_RESP_TTL_SECONDS = 120
+_RESP_TTL_MIN_SECONDS = 120
+
+# Cap the number of queued relay commands per camera so a misbehaving requester
+# or a slow Pi cannot grow the Redis list unbounded. Oldest commands are
+# dropped via LTRIM after the RPUSH; stale commands also self-filter on the
+# listener side via their ``deadline`` field.
+_CMD_QUEUE_MAX_LEN = 256
+
+
+def _resp_ttl_seconds(timeout_s: float) -> int:
+    return max(_RESP_TTL_MIN_SECONDS, int(timeout_s) + 10)
 
 
 async def _await_redis_result[T](result: Awaitable[T] | T) -> T:
@@ -127,12 +137,17 @@ async def relay_cross_worker(
             "body": body,
             "headers": headers or {},
             "deadline": time.time() + timeout_s,  # wall-clock for cross-process comparison
+            "timeout_s": timeout_s,
         }
     )
 
     resp_key = _resp_key(msg_id)
 
-    await _await_redis_result(redis.rpush(_cmd_key(camera_id), command_payload))
+    cmd_key = _cmd_key(camera_id)
+    await _await_redis_result(redis.rpush(cmd_key, command_payload))
+    # Keep only the most recent _CMD_QUEUE_MAX_LEN entries; older ones self-expire
+    # via their deadline on the listener side.
+    await _await_redis_result(redis.ltrim(cmd_key, -_CMD_QUEUE_MAX_LEN, -1))
 
     remaining = deadline - time.monotonic()
     if remaining <= 0:
@@ -288,7 +303,7 @@ async def _execute_and_respond(
         error_payload = json.dumps({"error": str(exc)})
         with contextlib.suppress(Exception):
             await _await_redis_result(redis.rpush(resp_key, error_payload))
-            await _await_redis_result(redis.expire(resp_key, _RESP_TTL_SECONDS))
+            await _await_redis_result(redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0))))
         return
     except Exception as exc:
         logger.exception(
@@ -299,7 +314,7 @@ async def _execute_and_respond(
         error_payload = json.dumps({"error": f"Internal relay error: {exc}"})
         with contextlib.suppress(Exception):
             await _await_redis_result(redis.rpush(resp_key, error_payload))
-            await _await_redis_result(redis.expire(resp_key, _RESP_TTL_SECONDS))
+            await _await_redis_result(redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0))))
         return
 
     response: dict = {
@@ -311,7 +326,7 @@ async def _execute_and_respond(
 
     try:
         await _await_redis_result(redis.rpush(resp_key, json.dumps(response)))
-        await _await_redis_result(redis.expire(resp_key, _RESP_TTL_SECONDS))
+        await _await_redis_result(redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0))))
     except Exception:
         logger.exception(
             "Relay listener: failed to push response for command %s (camera %s)",

@@ -29,11 +29,13 @@ from app.api.plugins.rpi_cam.exceptions import (
 )
 from app.api.plugins.rpi_cam.models import CameraConnectionStatus, CameraStatus, RecordingSession
 from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+from app.core.config import settings
 from app.core.logging import sanitize_log_value
 from app.core.redis import delete_redis_key, get_redis_value, set_redis_value
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
+    from pathlib import Path
 
     from httpx import Response
     from redis.asyncio import Redis
@@ -43,6 +45,7 @@ logger = logging.getLogger(__name__)
 
 TELEMETRY_CACHE_PREFIX = "rpi_cam:telemetry"
 TELEMETRY_CACHE_TTL_SECONDS = 120
+PREVIEW_THUMBNAIL_SUBDIR = "rpi-cam-preview"
 YOUTUBE_RECORDING_SESSION_CACHE_PREFIX = "rpi_cam:youtube_recording"
 YOUTUBE_RECORDING_SESSION_TTL_SECONDS = 60 * 60 * 48
 
@@ -126,6 +129,25 @@ class LastCameraImageUrls:
 
     image_url: str | None = None
     thumbnail_url: str | None = None
+
+
+def get_preview_thumbnail_path(camera_id: UUID4) -> Path:
+    """Return the deterministic backend storage path for one camera's preview thumbnail."""
+    return settings.image_storage_path / PREVIEW_THUMBNAIL_SUBDIR / f"{camera_id}.jpg"
+
+
+def get_preview_thumbnail_url(camera_id: UUID4) -> str | None:
+    """Return the public URL for one camera's cached preview thumbnail when present."""
+    path = get_preview_thumbnail_path(camera_id)
+    if not path.exists():
+        return None
+    relative_path = path.relative_to(settings.image_storage_path)
+    return f"/uploads/images/{relative_path.as_posix()}"
+
+
+def get_preview_thumbnail_urls_per_camera(camera_ids: list[UUID4]) -> dict[UUID, str | None]:
+    """Return deterministic preview-thumbnail URLs for the given cameras."""
+    return {UUID(str(camera_id)): get_preview_thumbnail_url(camera_id) for camera_id in camera_ids}
 
 
 async def get_last_image_urls_per_camera(

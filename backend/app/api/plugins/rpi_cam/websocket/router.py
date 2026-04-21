@@ -43,8 +43,10 @@ _WS_BYTES = "bytes"
 _HEARTBEAT_INTERVAL = 30.0
 _HEARTBEAT_TIMEOUT = 90.0
 _MAX_AUTH_FAILURES = 5
+_MAX_CAMERA_AUTH_FAILURES = 20
 _AUTH_LOCKOUT_SECONDS = 300.0
 _auth_failures: dict[str, tuple[int, float]] = {}
+_camera_auth_failures: dict[str, tuple[int, float]] = {}
 
 
 @router.websocket("/plugins/rpi-cam/ws/connect")
@@ -92,28 +94,47 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
             await mark_camera_offline(redis, camera_id)
 
 
-async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
-    """Validate a short-lived signed camera device assertion."""
-    client_ip = extract_client_ip(websocket.headers, websocket.client.host if websocket.client else "unknown")
-    loop = asyncio.get_running_loop()
-
+async def _check_lockout(websocket: WebSocket, client_ip: str, camera_key: str, now: float) -> tuple[int, int] | None:
+    """Return (ip_count, camera_count) if caller is not locked out, else None."""
     fail_count, last_fail_at = _auth_failures.get(client_ip, (0, 0.0))
-    if loop.time() - last_fail_at > _AUTH_LOCKOUT_SECONDS:
+    if now - last_fail_at > _AUTH_LOCKOUT_SECONDS:
         fail_count = 0
     if fail_count >= _MAX_AUTH_FAILURES:
         logger.warning("Auth from %s blocked — too many failures.", sanitize_log_value(client_ip))
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Too many failed attempts.")
+        return None
+
+    cam_fail_count, cam_last_fail_at = _camera_auth_failures.get(camera_key, (0, 0.0))
+    if now - cam_last_fail_at > _AUTH_LOCKOUT_SECONDS:
+        cam_fail_count = 0
+    if cam_fail_count >= _MAX_CAMERA_AUTH_FAILURES:
+        logger.warning("Auth for camera %s blocked — too many failures.", sanitize_log_value(camera_key))
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Too many failed attempts.")
+        return None
+
+    return fail_count, cam_fail_count
+
+
+async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
+    """Validate a short-lived signed camera device assertion."""
+    client_ip = extract_client_ip(websocket.headers, websocket.client.host if websocket.client else "unknown")
+    camera_key = str(camera_id)
+    loop = asyncio.get_running_loop()
+
+    lockout = await _check_lockout(websocket, client_ip, camera_key, loop.time())
+    if lockout is None:
         return False
+    fail_count, cam_fail_count = lockout
 
     assertion = _extract_bearer_token(websocket)
     if not assertion:
-        _record_auth_failure(client_ip, fail_count, loop.time())
+        _record_auth_failure(client_ip, camera_key, fail_count, cam_fail_count, loop.time())
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing Authorization header.")
         return False
 
     camera = await _get_camera(camera_id)
     if camera is None or not camera.credential_is_active:
-        _record_auth_failure(client_ip, fail_count, loop.time())
+        _record_auth_failure(client_ip, camera_key, fail_count, cam_fail_count, loop.time())
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
         return False
 
@@ -133,12 +154,13 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
             sanitize_log_value(client_ip),
             sanitize_log_value(exc),
         )
-        _record_auth_failure(client_ip, fail_count, loop.time())
+        _record_auth_failure(client_ip, camera_key, fail_count, cam_fail_count, loop.time())
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
         return False
 
     await mark_camera_online(redis, camera_id)
     _auth_failures.pop(client_ip, None)
+    _camera_auth_failures.pop(camera_key, None)
     logger.info(
         "Camera %s authenticated from %s with key %s.",
         sanitize_log_value(camera_id),
@@ -162,11 +184,19 @@ async def _get_camera(camera_id: UUID4) -> Camera | None:
         await session.close()
 
 
-def _record_auth_failure(ip: str, current_count: int, now: float) -> None:
-    new_count = current_count + 1
-    _auth_failures[ip] = (new_count, now)
+def _record_auth_failure(ip: str, camera_key: str, ip_count: int, camera_count: int, now: float) -> None:
+    new_ip = ip_count + 1
+    new_cam = camera_count + 1
+    _auth_failures[ip] = (new_ip, now)
+    _camera_auth_failures[camera_key] = (new_cam, now)
     logger.warning(
-        "Auth failure from %s (%d/%d before lockout).", sanitize_log_value(ip), new_count, _MAX_AUTH_FAILURES
+        "Auth failure (ip=%s %d/%d; camera=%s %d/%d).",
+        sanitize_log_value(ip),
+        new_ip,
+        _MAX_AUTH_FAILURES,
+        sanitize_log_value(camera_key),
+        new_cam,
+        _MAX_CAMERA_AUTH_FAILURES,
     )
 
 

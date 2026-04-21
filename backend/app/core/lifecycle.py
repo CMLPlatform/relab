@@ -23,7 +23,7 @@ from app.core.config import settings
 from app.core.database import async_engine, async_sessionmaker_factory
 from app.core.observability import init_telemetry, shutdown_telemetry
 from app.core.redis import close_redis, init_blocking_redis, init_redis
-from app.core.runtime import AppServices, get_app_services, reset_app_services, sync_legacy_state
+from app.core.runtime import AppServices, get_app_services, reset_app_services
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -95,7 +95,6 @@ async def initialize_runtime_services(app: FastAPI) -> AppServices:
     await _initialize_camera_services(services)
     await _initialize_storage_services(app, services)
     _initialize_http_and_observability(app, services)
-    sync_legacy_state(app, services)
     structured_logger.info("Application services initialized")
     return services
 

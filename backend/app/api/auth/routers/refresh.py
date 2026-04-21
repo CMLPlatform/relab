@@ -59,7 +59,7 @@ async def refresh_access_token(
     return RefreshTokenResponse(
         access_token=access_token,
         refresh_token=new_refresh_token,
-        token_type="bearer",  # noqa: S106
+        token_type="bearer",  # noqa: S106 # This value is not a secret
         expires_in=auth_settings.access_token_ttl_seconds,
     )
 

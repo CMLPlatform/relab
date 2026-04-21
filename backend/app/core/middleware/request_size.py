@@ -60,5 +60,5 @@ def register_request_size_limit_middleware(app: FastAPI) -> None:
                 "more_body": False,
             }
 
-        request._receive = receive  # noqa: SLF001
-        return await call_next(request)
+        request_with_cached_body = Request(request.scope, receive)
+        return await call_next(request_with_cached_body)

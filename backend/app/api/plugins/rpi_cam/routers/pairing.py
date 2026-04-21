@@ -9,6 +9,7 @@ Flow:
 
 from __future__ import annotations
 
+import hmac
 import logging
 
 from fastapi import Query, Request, status
@@ -45,7 +46,7 @@ from app.api.plugins.rpi_cam.utils.device_contracts import (
 )
 from app.core.config import settings as core_settings
 from app.core.logging import sanitize_log_value
-from app.core.redis import RedisDep, delete_redis_key, get_redis_value, set_redis_value
+from app.core.redis import RedisDep, delete_redis_key, get_redis_value, set_redis_value, set_redis_value_nx
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ PAIRING_CREDENTIAL_TTL_SECONDS = 300
 
 REGISTER_RATE_LIMIT = "20/minute"
 POLL_RATE_LIMIT = "60/minute"
+CLAIM_RATE_LIMIT = "10/minute"
 
 _STATUS_WAITING = "waiting"
 
@@ -87,10 +89,6 @@ async def register_pairing_code(
     """Register a short-lived pairing code and the camera's public device key."""
     del request
     key = _pairing_key(body.code)
-    existing = await get_redis_value(redis, key)
-    if existing is not None:
-        raise PairingCodeCollisionError
-
     payload = dump_pairing_record(
         build_waiting_record(
             rpi_fingerprint=body.rpi_fingerprint,
@@ -98,10 +96,9 @@ async def register_pairing_code(
             key_id=body.key_id,
         )
     )
-    stored = await set_redis_value(redis, key, payload, ex=PAIRING_TTL_SECONDS)
+    stored = await set_redis_value_nx(redis, key, payload, ex=PAIRING_TTL_SECONDS)
     if not stored:
-        msg = "Failed to store pairing code in Redis."
-        raise RuntimeError(msg)
+        raise PairingCodeCollisionError
 
     logger.info("Pairing code %s registered.", sanitize_log_value(body.code))
     return PairingRegisterResponse(code=body.code, expires_in=PAIRING_TTL_SECONDS)
@@ -112,13 +109,16 @@ async def register_pairing_code(
     response_model=CameraRead,
     summary="Claim a pairing code and create a camera (called by user)",
 )
+@limiter.limit(CLAIM_RATE_LIMIT)
 async def claim_pairing_code(
+    request: Request,
     body: PairingClaimRequest,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     redis: RedisDep,
 ) -> Camera:
     """Claim a pairing code and create a WebSocket-relayed camera."""
+    del request
     key = _pairing_key(body.code)
     raw = await get_redis_value(redis, key)
     if raw is None:
@@ -144,7 +144,8 @@ async def claim_pairing_code(
                 camera_id=str(db_camera.id),
                 ws_url=_build_ws_url(),
                 key_id=db_camera.relay_key_id,
-            )
+            ),
+            rpi_fingerprint=record.rpi_fingerprint,
         )
     )
     await set_redis_value(redis, key, paired_payload, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
@@ -180,11 +181,13 @@ async def poll_pairing_status(
     record = parse_pairing_record(raw)
 
     if isinstance(record, PairingPendingRecord):
-        if record.rpi_fingerprint != fingerprint:
+        if not hmac.compare_digest(record.rpi_fingerprint, fingerprint):
             raise PairingFingerprintMismatchError
         return PairingPollResponse.waiting()
 
     if isinstance(record, PairingClaimedRecord):
+        if not hmac.compare_digest(record.rpi_fingerprint, fingerprint):
+            raise PairingFingerprintMismatchError
         await delete_redis_key(redis, key)
         logger.info("Pairing credentials retrieved for code %s.", sanitize_log_value(code))
         return PairingPollResponse.from_claimed_bootstrap(

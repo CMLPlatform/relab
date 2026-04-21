@@ -2,7 +2,7 @@
 
 # spell-checker: ignore BLPOP, BRPOP
 import logging
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Depends, HTTPException, Request
 from redis.asyncio import Redis
@@ -64,7 +64,7 @@ async def init_redis() -> Redis | None:
         )
 
         # Verify connection on startup
-        await redis_client.ping()  # ty: ignore[invalid-await] # ping is async in redis.asyncio, known issue with the Redis type annotations
+        await cast("Awaitable[bool]", redis_client.ping())
         logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
@@ -94,7 +94,7 @@ async def init_blocking_redis() -> Redis | None:
             socket_connect_timeout=5,
             socket_timeout=None,  # must be None for BLPOP — a finite timeout kills the socket mid-wait
         )
-        await redis_client.ping()  # ty: ignore[invalid-await]
+        await cast("Awaitable[bool]", redis_client.ping())
         logger.info(
             "Blocking Redis client initialized and connected: %s:%s",
             settings.redis_host,
@@ -135,7 +135,11 @@ async def ping_redis(redis_client: Redis) -> bool:
 
     This is useful for health check endpoints.
     """
-    return await _execute_redis_operation("ping", redis_client.ping, failure_result=False)  # ty: ignore[invalid-argument-type] # ping is async in redis.asyncio, known issue with the Redis type annotations
+    return await _execute_redis_operation(
+        "ping",
+        cast("Callable[[], Awaitable[bool]]", redis_client.ping),
+        failure_result=False,
+    )
 
 
 async def get_redis_value(redis_client: Redis, key: str) -> str | None:
@@ -169,6 +173,20 @@ async def set_redis_value(redis_client: Redis, key: str, value: EncodableT, ex: 
         return True
 
     return await _execute_redis_operation("set", operation, failure_result=False, log_key=key)
+
+
+async def set_redis_value_nx(redis_client: Redis, key: str, value: EncodableT, ex: int | None = None) -> bool:
+    """Set value in Redis only if the key does not already exist (atomic SET NX EX).
+
+    Returns True if the value was stored, False if the key already existed or the
+    operation failed.
+    """
+
+    async def operation() -> bool:
+        result = await redis_client.set(key, value, ex=ex, nx=True)
+        return bool(result)
+
+    return await _execute_redis_operation("set_nx", operation, failure_result=False, log_key=key)
 
 
 async def delete_redis_key(redis_client: Redis, key: str) -> bool:

@@ -111,9 +111,7 @@ async def get_categories_tree(
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[CategoryReadWithRecursiveSubCategories] | Response:
     """Get all base categories and their subcategories in a tree structure."""
-    categories: Sequence[Category] = await get_category_trees(
-        session, recursion_depth, category_filter=category_filter
-    )
+    categories: Sequence[Category] = await get_category_trees(session, recursion_depth, category_filter=category_filter)
     payload = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
     return conditional_json_response(request, payload)
 

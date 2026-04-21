@@ -2,7 +2,6 @@
 
 import logging
 import sys
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import loguru
@@ -24,14 +23,13 @@ LOG_DIR = settings.log_path
 
 BASE_LOG_LEVEL = "DEBUG" if settings.debug else "INFO"
 
-
-@dataclass
-class OriginalLogInfo:
-    """Original log info used when intercepting standard logging."""
-
-    original_name: str
-    original_func: str
-    original_line: int
+_EXTRA_DEFAULTS = {
+    "request_id": "-",
+    "http_method": None,
+    "http_path": None,
+    "http_status_code": None,
+    "http_latency_ms": None,
+}
 
 
 def sanitize_log_value(value: object) -> str:
@@ -58,28 +56,12 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        # Preserve the original log record info
-        loguru.logger.bind(
-            original_info=OriginalLogInfo(
-                original_name=record.name,
-                original_func=record.funcName,
-                original_line=record.lineno,
-            )
-        ).opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        loguru.logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def patch_log_record(record: loguru.Record) -> None:
-    """Patch loguru record to use the original standard logger name/function/line if intercepted."""
-    record["extra"].setdefault("request_id", "-")
-    record["extra"].setdefault("http_method", None)
-    record["extra"].setdefault("http_path", None)
-    record["extra"].setdefault("http_status_code", None)
-    record["extra"].setdefault("http_latency_ms", None)
-
-    if original_info := record["extra"].get("original_info"):
-        record["name"] = original_info.original_name
-        record["function"] = original_info.original_func
-        record["line"] = original_info.original_line
+    """Fill in default extras on every loguru record."""
+    record["extra"] = {**_EXTRA_DEFAULTS, **record["extra"]}
 
 
 def configure_loguru_handlers(log_dir: Path | None, base_log_level: str) -> None:

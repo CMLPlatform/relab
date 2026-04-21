@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from app.api.file_storage.filters import FileFilter, ImageFilter
     from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
 
+
 async def list_product_files(db: AsyncSession, product_id: int, *, filter_params: FileFilter) -> Sequence[File]:
     """List files attached to a product."""
     return await list_parent_media(

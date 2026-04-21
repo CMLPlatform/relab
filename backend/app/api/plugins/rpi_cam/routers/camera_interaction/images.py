@@ -1,12 +1,13 @@
 """Routers for the Raspberry Pi Camera plugin."""
 
+import contextlib
 import json
 import logging
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
-from relab_rpi_cam_models import DeviceImageUploadAck
+from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.query import require_model
@@ -22,14 +23,33 @@ from app.api.plugins.rpi_cam.examples import (
     CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.routers.camera_interaction.utils import build_camera_request, get_user_owned_camera
+from app.api.plugins.rpi_cam.service_runtime import get_preview_thumbnail_path, get_preview_thumbnail_url
 from app.api.plugins.rpi_cam.services import capture_and_store_image
 from app.core.redis import OptionalRedisDep
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Any
 
 logger = logging.getLogger(__name__)
 router = PublicAPIRouter()
+
+
+def _unlink_quiet(path: Path) -> None:
+    with contextlib.suppress(FileNotFoundError):
+        path.unlink()
+
+
+def _write_preview_thumbnail_atomic(path: Path, image_bytes: bytes) -> None:
+    """Write preview thumbnail bytes atomically to the deterministic cache path."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    try:
+        tmp_path.write_bytes(image_bytes)
+        tmp_path.replace(path)
+    except BaseException:
+        _unlink_quiet(tmp_path)
+        raise
 
 
 ### Images ###
@@ -152,3 +172,33 @@ async def receive_camera_upload(
             detail="Image stored but URL could not be computed — storage layer misconfigured.",
         )
     return DeviceImageUploadAck(image_id=image.id.hex, image_url=image_read.image_url)
+
+
+@router.post(
+    "/{camera_id}/preview-thumbnail-upload",
+    response_model=DevicePreviewThumbnailAck,
+    summary="Internal: receive a cached preview thumbnail pushed directly from a paired Raspberry Pi",
+    description=(
+        "Called by the Pi's background thumbnail worker. Authenticated with the same short-lived "
+        "ES256 device assertion used by the WebSocket relay. Stores a deterministic per-camera JPEG "
+        "cache file for camera-card previews without creating an Image database row."
+    ),
+    status_code=201,
+)
+async def receive_preview_thumbnail_upload(
+    camera_id: UUID4,  # noqa: ARG001 — consumed by AuthenticatedCameraDep
+    camera: AuthenticatedCameraDep,
+    file: Annotated[UploadFile, File(description="Cached preview JPEG thumbnail")],
+) -> DevicePreviewThumbnailAck:
+    """Receive a cached preview thumbnail pushed from the Pi and persist it."""
+    image_bytes = await file.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Preview thumbnail upload was empty")
+
+    logger.info("Receiving cached preview thumbnail from camera %s", camera.id)
+    path = get_preview_thumbnail_path(camera.id)
+    _write_preview_thumbnail_atomic(path, image_bytes)
+    preview_thumbnail_url = get_preview_thumbnail_url(camera.id)
+    if preview_thumbnail_url is None:
+        raise HTTPException(status_code=500, detail="Preview thumbnail stored but URL could not be computed")
+    return DevicePreviewThumbnailAck(preview_thumbnail_url=preview_thumbnail_url)

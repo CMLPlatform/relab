@@ -1,8 +1,11 @@
 """Ownership validation helpers shared across API modules."""
 
+from typing import cast
+
 from pydantic import UUID4
 from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.common.crud.exceptions import ModelNotFoundError
@@ -17,8 +20,8 @@ async def get_user_owned_object(
     user_fk: str = "owner_id",
 ) -> MT:
     """Validate user ownership of a model instance with a many-to-one relationship."""
-    model_id_column = inspect(model).primary_key[0]
-    statement = select(model).where(model_id_column == model_id)  # type: ignore[operator]
+    model_id_column = cast("InstrumentedAttribute[IDT]", inspect(model).primary_key[0])
+    statement = select(model).where(model_id_column == model_id)
     db_model = (await db.execute(statement)).scalars().unique().one_or_none()
     if db_model is None:
         raise ModelNotFoundError(model, model_id)

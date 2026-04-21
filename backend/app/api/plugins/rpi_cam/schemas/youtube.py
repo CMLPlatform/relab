@@ -1,9 +1,9 @@
 """Pydantic models for YouTube API requests and responses."""
+# ruff: noqa: N815 # PascalCase field names match YouTube API conventions; ignore snake_case naming violation
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ruff: noqa: N815 # PascalCase field names match YouTube API conventions; ignore snake_case naming violation
 class YouTubeSnippetCreate(BaseModel):
     """Common YouTube snippet payload."""
 

@@ -13,8 +13,9 @@ from fastapi_users.db.base import BaseUserDatabase
 from fastapi_users.models import ID, OAP, UOAP, UP
 from sqlalchemy import String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Mapped, QueryableAttribute, mapped_column, selectinload
+from sqlalchemy.orm import Mapped, mapped_column, selectinload
 
+from app.api.common.crud.loading import relationship_attr
 from app.api.common.models.base import Base
 
 if TYPE_CHECKING:
@@ -84,7 +85,8 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
         """Get a single user by ID, with oauth_accounts eagerly loaded."""
         statement = select(self.user_model).where(self.user_model.id == id)
         if self.oauth_account_model is not None:
-            statement = statement.options(selectinload(self.user_model.oauth_accounts))  # type: ignore[attr-defined]
+            oauth_accounts = relationship_attr(cast("type[Base]", self.user_model), "oauth_accounts")
+            statement = statement.options(selectinload(oauth_accounts))
         results = await self.session.execute(statement)
         return results.scalars().unique().one_or_none()
 
@@ -92,7 +94,8 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
         """Get a single user by email, with oauth_accounts eagerly loaded."""
         statement = select(self.user_model).where(func.lower(self.user_model.email) == func.lower(email))
         if self.oauth_account_model is not None:
-            statement = statement.options(selectinload(self.user_model.oauth_accounts))  # type: ignore[attr-defined]
+            oauth_accounts = relationship_attr(cast("type[Base]", self.user_model), "oauth_accounts")
+            statement = statement.options(selectinload(oauth_accounts))
         results = await self.session.execute(statement)
         return results.scalars().unique().one_or_none()
 
@@ -106,7 +109,7 @@ class UserDatabaseAsync(BaseUserDatabase[UP, ID]):
             select(oauth_account_model)
             .where(oauth_account_model.oauth_name == oauth)
             .where(oauth_account_model.account_id == account_id)
-            .options(selectinload(cast("QueryableAttribute[Any]", oauth_account_model.user)))
+            .options(selectinload(relationship_attr(oauth_account_model, "user")))
         )
         results = await self.session.execute(statement)
         oauth_account = results.scalars().unique().one_or_none()

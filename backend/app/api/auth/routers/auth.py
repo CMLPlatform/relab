@@ -18,7 +18,7 @@ from app.api.auth.services.user_manager import (
 from app.api.common.routers.openapi import mark_router_routes_public
 
 LOGIN_PATH = "/login"
-REQUEST_VERIFY_TOKEN_PATH = "/request-verify-token"  # noqa: S105
+REQUEST_VERIFY_TOKEN_PATH = "/request-verify-token"  # noqa: S105 # This value is not a secret
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

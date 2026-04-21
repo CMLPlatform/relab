@@ -81,6 +81,7 @@ def init_openapi_docs(app: FastAPI) -> FastAPI:
     for the app (the standard FastAPI integration point for tooling and middleware).
     The /openapi.json endpoint simply delegates to app.openapi().
     """
+
     def _public_openapi(_: FastAPI) -> dict[str, Any]:
         return _build_public_openapi(app)
 

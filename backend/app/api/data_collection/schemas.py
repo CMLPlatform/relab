@@ -89,7 +89,6 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
         err_msg = "Product must have at least one material or component"
         # TODO: raise error again once we implement mBill of materials UI
         # that allows users to add materials at product creation instead of only components
-        # raise ValueError(err_msg) #noqa: ERA001
         logger.warning("Validation warning: %s. This will become an error in the future.", err_msg)
 
 

@@ -24,7 +24,6 @@ from app.core.logging import sanitize_log_value
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from cachetools import TTLCache
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -198,25 +197,6 @@ def cache(
     return decorator
 
 
-def async_ttl_cache(cache: TTLCache) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
-    """Simple async cache decorator using cachetools.TTLCache."""
-
-    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
-        @wraps(func)
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            key = (args, tuple(sorted(kwargs.items())))
-            if key in cache:
-                return cache[key]
-
-            result = await func(*args, **kwargs)
-            cache[key] = result
-            return result
-
-        return wrapper
-
-    return decorator
-
-
 def init_fastapi_cache(redis_client: Redis | None) -> None:
     """Initialize the shared cache backend for endpoint caching."""
     if _cache_state["initialized"]:
@@ -227,7 +207,7 @@ def init_fastapi_cache(redis_client: Redis | None) -> None:
         _backend.setup(backend_location)
         _cache_state["initialized"] = True
         _log_cache_backend_selection(redis_client, backend_location)
-    except OSError, RuntimeError, ValueError:  # pragma: no cover - defensive fallback
+    except OSError, RuntimeError, ValueError:
         logger.warning("Endpoint cache fell back to in-memory backend - Redis unavailable", exc_info=True)
         _backend.setup(_MEMORY_CACHE_BACKEND)
         _cache_state["initialized"] = True

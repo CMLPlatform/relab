@@ -1,4 +1,5 @@
 """Database models for the Raspberry Pi Camera plugin."""
+# spell-checker: ignore ondelete
 
 from __future__ import annotations
 
