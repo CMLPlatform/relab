@@ -50,7 +50,7 @@ WORKDIR $WORKDIR
 
 ENV CI=1
 
-COPY app.json babel.config.js expo-env.d.ts tsconfig.json ./
+COPY app.json babel.config.js tsconfig.json ./
 COPY src/ ./src/
 
 # Set the env file for this build mode (Expo reads .env by default)
