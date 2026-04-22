@@ -70,7 +70,7 @@
 ### Dependency groups
 [dependency-groups]
   # Developer tooling and local maintenance scripts
-  dev = ["mjml>=0.11.1", "paracelsus>=0.9.0", "ruff >=0.12.1", "ty>=0.0.15"]
+  dev = ["mjml>=0.11.1", "ruff >=0.12.1", "ty>=0.0.15"]
 
   # Schema changes, seeding, and migration-adjacent data-loading scripts
   migrations = ["alembic >=1.16.2", "alembic-postgresql-enum >=1.7.0", "psycopg[binary] >=3.2.9"]
@@ -130,18 +130,6 @@
     options    = "format REVISION_SCRIPT_FILENAME"
     type       = "exec"
 
-[tool.paracelsus]
-  base = "app.api.common.models.base:Base"
-  column_sort = "preserve-order"
-  imports = [
-    "app.api.auth.models",
-    "app.api.background_data.models",
-    "app.api.common.models.associations",
-    "app.api.data_collection.models.product",
-    "app.api.file_storage.models",
-    "app.api.plugins.rpi_cam.models",
-  ]
-
 [tool.pytest.ini_options]
   addopts = "-ra --strict-markers --strict-config"
   asyncio_default_fixture_loop_scope = "function"
@@ -152,8 +140,9 @@
   markers = [
     "api: API endpoint tests (E2E, full stack)",
     "db: Database-backed persistence and ORM tests",
+    "flow: Cross-boundary user journeys spanning multiple services or routers",
     "migration: Database migration tests",
-    "slow: Tests that take >1s",
+    "slow: Intentionally slower tests (for example subprocess, migration, or heavy end-to-end checks)",
   ]
   python_classes = ["Test*"]
   python_files = ["test_*.py"]
@@ -260,5 +249,5 @@
 [tool.uv.sources]
   # Use the sibling plugin repo's copy of relab-rpi-cam-models during development so
   # the backend can pick up new DTOs before they are published to PyPI. Requires
-  # /Users/simon/code/relab-rpi-cam-plugin to be checked out alongside this repo.
+  # /relab-rpi-cam-plugin to be checked out alongside this repo.
   relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
