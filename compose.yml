@@ -81,8 +81,6 @@ services:
         - type=gha
       cache_to:
         - type=gha,mode=max
-    environment:
-      GOMAXPROCS: "1"
     restart: unless-stopped
 
   app-site:
@@ -92,8 +90,6 @@ services:
         - type=gha
       cache_to:
         - type=gha,mode=max
-    environment:
-      GOMAXPROCS: "1"
     restart: unless-stopped
 
   web-site:
@@ -103,8 +99,6 @@ services:
         - type=gha
       cache_to:
         - type=gha,mode=max
-    environment:
-      GOMAXPROCS: "1"
     restart: unless-stopped
 
 volumes:

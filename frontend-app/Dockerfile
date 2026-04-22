@@ -1,9 +1,10 @@
-# syntax=docker/dockerfile:1.10
+# syntax=docker/dockerfile:1
 
 # Multi-target Dockerfile for the Expo frontend app
 #   - `dev`     → Metro dev server (use with `docker compose watch`)
 #   - `runtime` → caddy-served expo web export (default)
 
+# spell-checker: ignore USEPOLLING
 ARG WORKDIR=/opt/relab/frontend-app
 
 # --- Shared deps stage ---
@@ -28,6 +29,10 @@ FROM deps AS dev
 
 ARG WORKDIR
 WORKDIR $WORKDIR
+
+ENV CHOKIDAR_USEPOLLING=true \
+    CHOKIDAR_INTERVAL=500 \
+    WATCHPACK_POLLING=true
 
 COPY . .
 

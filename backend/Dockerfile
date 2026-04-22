@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.10
+# syntax=docker/dockerfile:1
 
 # Multi-target Dockerfile for the Backend
 #   - `dev`     → hot-reload dev image (all groups synced)
