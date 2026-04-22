@@ -61,12 +61,6 @@ repos:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
-  - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v9.7.0
-    hooks:
-      - id: cspell
-        args: [ "--config", ".cspell.yml", "--dot", "--gitignore" ]
-
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.11.1
     hooks:
@@ -85,6 +79,13 @@ repos:
 
   - repo: local
     hooks:
+      - id: cspell
+        name: cspell
+        entry: pnpm exec cspell
+        language: system
+        types: [ text ]
+        args:
+          [ "--config", ".cspell.yml", "--dot", "--gitignore", "--no-must-find-files" ]
       - id: pnpm-lock-frontend-app
         name: pnpm-lock-frontend-app
         entry: just frontend-app/lockfile

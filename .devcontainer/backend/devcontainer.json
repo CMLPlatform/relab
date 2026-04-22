@@ -4,9 +4,7 @@
   "service": "api",
   "runServices": ["api", "redis", "postgres"],
   "workspaceFolder": "/opt/relab/backend",
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
-  ],
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "overrideCommand": true,
   "postAttachCommand": "echo 'RELab backend devcontainer ready.\\nUse this for focused backend work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nAPI: http://localhost:8011'",
   "features": {

@@ -4,9 +4,7 @@
   "service": "app-site",
   "runServices": ["api", "redis", "postgres", "docs-site", "web-site", "app-site"],
   "workspaceFolder": "/opt/relab",
-  "mounts": [
-    "source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"
-  ],
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers-extra/features/expo-cli:1": {},

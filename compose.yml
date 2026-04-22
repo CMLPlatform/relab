@@ -7,18 +7,18 @@ services:
         - type=gha
       cache_to:
         - type=gha,mode=max
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - user_uploads:/opt/relab/backend/data/uploads
     environment:
       DATABASE_HOST: postgres # Point to the database service
       DATABASE_PORT: 5432
       REDIS_HOST: redis # Point to the cache service
-    volumes:
-      - user_uploads:/opt/relab/backend/data/uploads
-    restart: unless-stopped
 
   migrator:
     build:
@@ -31,9 +31,13 @@ services:
         - type=gha
       cache_to:
         - type=gha,mode=max
+    restart: on-failure:3
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      # Ensure migrations have access to user uploads (for seeding example images)
+      - user_uploads:/opt/relab/backend-migrations/data/uploads
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis
@@ -42,16 +46,12 @@ services:
       SEED_CPV_CATEGORIES: ${SEED_CPV_CATEGORIES:-false}
       SEED_CPV_PRODUCT_TYPES: ${SEED_CPV_PRODUCT_TYPES:-false}
       SEED_HS_CATEGORIES: ${SEED_HS_CATEGORIES:-false}
-    volumes:
-      # Ensure migrations have access to user uploads (for seeding example images)
-      - user_uploads:/opt/relab/backend-migrations/data/uploads
     profiles:
       - migrations
-    restart: on-failure:3
 
   redis:
     image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
-    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ] # spell-checker: ignore requirepass
+    restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG" ]
       interval: 30s
@@ -59,10 +59,13 @@ services:
       start_period: 5s
       start_interval: 5s
       retries: 3
-    restart: unless-stopped
+    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ] # spell-checker: ignore requirepass
 
   postgres:
     image: postgres:18
+    restart: unless-stopped
+    volumes:
+      - database_data:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 30s
@@ -70,9 +73,6 @@ services:
       start_period: 5s
       start_interval: 5s
       retries: 3
-    volumes:
-      - database_data:/var/lib/postgresql
-    restart: unless-stopped
 
   docs-site:
     build:
