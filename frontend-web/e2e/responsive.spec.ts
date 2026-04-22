@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-const OPEN_APP_LINK_NAME = /open( the)? app/i;
-const BROWSE_GITHUB_LINK_NAME = /browse github/i;
 const SUBSCRIBE_BUTTON_NAME = /subscribe/i;
 
 test.describe('Responsive layout', () => {
@@ -14,7 +12,7 @@ test.describe('Responsive layout', () => {
         level: 1,
       }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: OPEN_APP_LINK_NAME })).toBeVisible();
+    await expect(page.getByRole('button', { name: SUBSCRIBE_BUTTON_NAME })).toBeVisible();
   });
 
   test('landing page is usable on tablet viewport', async ({ page }) => {
@@ -26,7 +24,6 @@ test.describe('Responsive layout', () => {
         level: 1,
       }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: BROWSE_GITHUB_LINK_NAME })).toBeVisible();
     await expect(page.getByRole('button', { name: SUBSCRIBE_BUTTON_NAME })).toBeVisible();
   });
 

@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Theme control', () => {
-  test('cycles through the available themes and updates document state', async ({ page }) => {
+  test('cycles through the available themes and updates document state @smoke', async ({
+    page,
+  }) => {
     await page.goto('/');
 
     const toggle = page.locator('[data-theme-toggle]');

@@ -167,13 +167,13 @@
 }
 
 .btn-primary {
-  background: var(--color-primary);
+  background: #0b5970;
   color: #ffffff;
-  box-shadow: 0 10px 20px rgba(15, 117, 146, 0.16);
+  box-shadow: 0 10px 20px rgba(12, 91, 114, 0.18);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-strong);
+  background: #084b5e;
 }
 
 .btn-muted {

@@ -9,6 +9,8 @@ const okStatus = 200;
 const clientErrorStatus = 400;
 const successMessage = 'Please check your email to confirm unsubscription.';
 
+test.describe.configure({ mode: 'parallel' });
+
 async function gotoUnsubscribeForm(page: Page) {
   await page.goto(unsubscribeFormPath);
 }
@@ -47,7 +49,7 @@ test.describe('Newsletter unsubscribe form rendering and validation', () => {
 });
 
 test.describe('Newsletter unsubscribe form submission states', () => {
-  test('shows success message after valid submission', async ({ page }) => {
+  test('shows success message after valid submission @smoke', async ({ page }) => {
     await mockUnsubscribeRequest(page, okStatus, { message: successMessage });
     await gotoUnsubscribeForm(page);
     await fillEmail(page, 'test@example.com');
