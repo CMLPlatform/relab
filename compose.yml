@@ -32,7 +32,7 @@ services:
       - user_uploads:/opt/relab/backend/data/uploads
 
   database:
-    image: postgres:18@sha256:a9abf4275f9e99bff8e6aed712b3b7dfec9cac1341bba01c1ffdfce9ff9fc34a
+    image: postgres:18@sha256:059fa0289cc5a184034e05a1f4f6d6fd79f69dc718b8b04ab60b6b469eed411e
     env_file: ./backend/.env
     healthcheck:
       test: # Check if the database is ready to accept connections
