@@ -23,7 +23,7 @@ Use the root `justfile` as the primary interface:
 
 ```bash
 just setup
-just validate
+just ci
 just test
 just test-integration
 just security

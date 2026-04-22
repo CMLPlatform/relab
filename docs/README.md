@@ -19,7 +19,7 @@ The docs app targets Node `24.x` and `pnpm 10.x`.
 ```bash
 just build
 just check
-just test-visual
+just test-e2e
 just format
 just audit
 ```

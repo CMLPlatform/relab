@@ -56,7 +56,7 @@ cp .env.example .env
 cp backend/.env.dev.example backend/.env.dev
 just setup
 just dev
-just validate
+just ci
 ```
 
 Focused work is still supported from subproject directories, but the root `justfile` is the primary interface and the root full-stack devcontainer is the primary onboarding path.
