@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# spell-checker: ignore anchore, aquasecurity
+# spell-checker: ignore anchore, aquasecurity, gacts
 
 name: Security
 
@@ -11,6 +11,7 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,10 +25,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  PYTHON_VERSION: "3.14"
-  NODE_VERSION: "22"
-
 jobs:
   changes:
     name: Detect Changes
@@ -40,6 +37,7 @@ jobs:
       run-frontend-app-node: ${{ steps.detect.outputs.run-frontend-app-node }}
       run-frontend-web-node: ${{ steps.detect.outputs.run-frontend-web-node }}
       run-container-images: ${{ steps.detect.outputs.run-container-images }}
+      container-security-matrix: ${{ steps.detect.outputs.container-security-matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -60,9 +58,9 @@ jobs:
           fetch-depth: 0
 
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: gacts/gitleaks@c9a0338361dc45a01aa7ebaaa5330179f3c62873
+        with:
+          version: 8.30.1
 
   python-audit-root:
     name: Python Audit (root)
@@ -77,7 +75,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          setup-python: "true"
           uv-cache-dependency-glob: uv.lock
 
       - name: Install root dependencies
@@ -99,7 +97,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          setup-python: "true"
           uv-cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
@@ -122,8 +120,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: docs/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -162,8 +159,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: frontend-app/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -185,8 +181,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: frontend-web/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -197,30 +192,13 @@ jobs:
 
   container-security:
     name: Container Security (${{ matrix.service }})
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-container-images == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - service: api
-            context: ./backend
-            dockerfile: ./backend/Dockerfile
-            image_ref: relab/api:${{ github.sha }}
-          - service: docs-site
-            context: ./docs
-            dockerfile: ./docs/Dockerfile
-            image_ref: relab/docs-site:${{ github.sha }}
-          - service: app-site
-            context: ./frontend-app
-            dockerfile: ./frontend-app/Dockerfile
-            image_ref: relab/app-site:${{ github.sha }}
-          - service: web-site
-            context: ./frontend-web
-            dockerfile: ./frontend-web/Dockerfile
-            image_ref: relab/web-site:${{ github.sha }}
+      matrix: ${{ fromJSON(needs.changes.outputs.container-security-matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

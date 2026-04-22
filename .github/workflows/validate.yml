@@ -25,10 +25,6 @@ defaults:
   run:
     shell: bash
 
-env:
-  PYTHON_VERSION: "3.14"
-  NODE_VERSION: "22"
-
 jobs:
   changes:
     name: Detect Changes
@@ -62,14 +58,21 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          setup-python: "true"
+          setup-node: "true"
           uv-cache-dependency-glob: |
             pyproject.toml
             uv.lock
             backend/uv.lock
 
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Run pre-commit checks
         run: just pre-commit
+
+      - name: Check shared dep version alignment
+        run: pnpm run syncpack:check
 
       - name: Validate Compose stacks
         run: just compose-config
@@ -83,6 +86,7 @@ jobs:
             echo "### Validation automation"
             echo
             echo "- repository policy checks passed"
+            echo "- shared dep versions aligned across subrepos"
             echo "- Compose configs rendered successfully"
             echo "- GitHub workflow lint passed"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -100,7 +104,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          setup-python: "true"
           uv-cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies
@@ -144,8 +148,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: frontend-web/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -166,6 +169,7 @@ jobs:
           flags: frontend-web
           name: validate-frontend-web-coverage
           disable-search: "true"
+          network-prefix: frontend-web/
 
       - name: Archive frontend-web coverage
         if: always()
@@ -179,7 +183,7 @@ jobs:
         run: just frontend-web/build
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox
+        run: pnpm exec playwright install --with-deps chromium firefox
         working-directory: frontend-web
 
       - name: Run browser E2E tests
@@ -206,8 +210,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: frontend-app/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -228,6 +231,7 @@ jobs:
           flags: frontend-app
           name: validate-frontend-app-coverage
           disable-search: "true"
+          network-prefix: frontend-app/
 
       - name: Archive frontend-app coverage
         if: always()
@@ -250,8 +254,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: docs/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -281,8 +284,7 @@ jobs:
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
+          setup-node: "true"
           cache-dependency-path: frontend-app/pnpm-lock.yaml
 
       - name: Install frontend-app dependencies
@@ -292,7 +294,7 @@ jobs:
         run: just frontend-app/build-web
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
         working-directory: frontend-app
 
       - name: Run full-stack E2E tests

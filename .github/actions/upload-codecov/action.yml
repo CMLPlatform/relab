@@ -19,6 +19,10 @@ inputs:
     description: Disable Codecov file autodiscovery.
     required: false
     default: "false"
+  network-prefix:
+    description: Prefix to prepend to uploaded report paths before Codecov matches files in the repo.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -33,3 +37,4 @@ runs:
         token: ${{ inputs.token }}
         slug: CMLPlatform/relab
         disable_search: ${{ inputs.disable-search }}
+        network_prefix: ${{ inputs.network-prefix }}
