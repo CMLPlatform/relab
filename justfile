@@ -60,50 +60,36 @@ pre-commit:
     uv run pre-commit run --all-files
     @echo "✓ Repository policy checks passed"
 
-# Run root-only lint checks
-lint-root:
-    pnpm run lint
-    @echo "✅ Root-level lint passed"
-
 # Run root and subrepo lint checks
-lint: lint-root
+lint:
+    pnpm run lint
     @just backend/lint
     @just docs/lint
     @just frontend-web/lint
     @just frontend-app/lint
     @echo "✅ Root and subrepo lint passed"
 
-# Run root-only quality checks
-check-root: lint-root
-    @echo "✅ Root-level checks passed"
-
-# Run root and subrepo quality checks
-check: check-root
+# Run root and subrepo quality checks (lint + typecheck + format verification)
+check:
+    pnpm run lint
     @just backend/check
     @just docs/check
     @just frontend-web/check
     @just frontend-app/check
     @echo "✅ Root and subrepo checks passed"
 
-# Format root-only files
-format-root:
-    pnpm run format
-    @echo "✅ Root-level formatting complete"
-
 # Format root and subrepo codebases
-format: format-root
+format:
+    pnpm run format
     @just backend/format
     @just docs/format
     @just frontend-web/format
     @just frontend-app/format
     @echo "✅ Root and subrepo formatting complete"
 
-# Canonical fast validation target used locally and in CI
-validate: pre-commit _test-ci compose-config
-    @echo "✅ Validation pipeline passed"
-
-# Auto-fix code issues where supported
-_fix:
+# Auto-fix lint issues and format code across root and subrepos
+fix:
+    pnpm run fix
     @just backend/fix
     @just docs/fix
     @just frontend-web/fix
@@ -114,7 +100,7 @@ _fix:
 # Testing
 # ============================================================================
 
-# Full local test suite across all subrepos
+# Full local test suite across all subrepos (unit + integration, no e2e)
 test:
     @just backend/test
     @just docs/test
@@ -122,18 +108,38 @@ test:
     @just frontend-app/test
     @echo "✅ All tests passed"
 
-# Shared integration-confidence target
+# Run unit tests across subrepos that implement them
+test-unit:
+    @just backend/test-unit
+    @just frontend-app/test-unit
+    @echo "✅ All unit tests passed"
+
+# Run integration tests across subrepos that implement them
 test-integration:
     @just backend/test-integration
-    @echo "✅ Integration tests passed"
+    @just frontend-app/test-integration
+    @echo "✅ All integration tests passed"
 
 # CI-oriented test suite across all subrepos
-_test-ci:
+test-ci:
     @just backend/test-ci
     @just docs/test-ci
     @just frontend-web/test-ci
     @just frontend-app/test-ci
     @echo "✅ All CI test suites passed"
+
+# Run end-to-end tests across subrepos that implement them
+test-e2e:
+    @just frontend-web/build
+    @just frontend-web/test-e2e
+    @just docs/build
+    @just docs/test-e2e
+    @just test-e2e-full-stack
+    @echo "✅ All E2E tests passed"
+
+# Canonical CI pipeline: policy, quality checks, CI tests, compose validation
+ci: pre-commit check test-ci compose-config
+    @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
 _e2e-backend-up:
@@ -143,9 +149,8 @@ _e2e-backend-up:
 _e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yml down -v --remove-orphans
 
-# Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down
-# Requires Docker to be running.
-_test-e2e-full-stack:
+# Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down (requires Docker)
+test-e2e-full-stack:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _e2e-backend-down || true' EXIT
@@ -388,7 +393,7 @@ _docker-smoke-down services:
     {{ ci_compose }} down -v --remove-orphans {{ services }} || true
 
 # Smoke test: backend + its infrastructure (database, cache)
-_docker-smoke-backend:
+docker-smoke-backend:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down api' EXIT
@@ -396,7 +401,7 @@ _docker-smoke-backend:
     echo "✅ Backend smoke test passed"
 
 # Smoke test: docs static server
-_docker-smoke-docs:
+docker-smoke-docs:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down docs-site' EXIT
@@ -404,7 +409,7 @@ _docker-smoke-docs:
     echo "✅ Docs smoke test passed"
 
 # Smoke test: frontend-web static server
-_docker-smoke-frontend-web:
+docker-smoke-frontend-web:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down web-site' EXIT
@@ -412,7 +417,7 @@ _docker-smoke-frontend-web:
     echo "✅ Frontend-web smoke test passed"
 
 # Smoke test: frontend-app static server (slow: expo export runs during build)
-_docker-smoke-frontend-app:
+docker-smoke-frontend-app:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down app-site' EXIT
@@ -420,7 +425,7 @@ _docker-smoke-frontend-app:
     echo "✅ Frontend-app smoke test passed"
 
 # Smoke test: user-upload backups image can create a backup archive from a sample uploads tree
-_docker-smoke-user-upload-backups:
+docker-smoke-user-upload-backups:
     #!/usr/bin/env bash
     set -euo pipefail
     tmp_root="$(mktemp -d)"
@@ -444,7 +449,7 @@ _docker-smoke-user-upload-backups:
     echo "✅ User-upload backups smoke test passed"
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
-_docker-orchestration-smoke:
+docker-orchestration-smoke:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down "postgres redis api migrator"' EXIT
@@ -452,17 +457,14 @@ _docker-orchestration-smoke:
     {{ ci_compose }} exec -T api python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
     echo "✅ Docker orchestration smoke test passed"
 
-# Run all smoke tests sequentially (CI runs them in parallel per-service)
-_docker-smoke-all:
-    @just _docker-smoke-backend
-    @just _docker-smoke-docs
-    @just _docker-smoke-frontend-web
-    @just _docker-smoke-frontend-app
-    @just _docker-smoke-user-upload-backups
-    @just _docker-orchestration-smoke
-
-# Canonical Docker smoke target
-docker-smoke: _docker-smoke-all
+# Run all Docker smoke tests sequentially (CI runs them in parallel per-service)
+docker-smoke:
+    @just docker-smoke-backend
+    @just docker-smoke-docs
+    @just docker-smoke-frontend-web
+    @just docker-smoke-frontend-app
+    @just docker-smoke-user-upload-backups
+    @just docker-orchestration-smoke
 
 ### CI test helpers for backend performance regression testing ---
 
@@ -483,9 +485,9 @@ _docker-ci-migrate-dummy:
     {{ ci_compose }} run --rm -e SEED_DUMMY_DATA=true migrator
 
 # Stop the CI stack and remove volumes
-_docker-ci-down confirm='':
+docker-ci-down confirm='':
     @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
-    {{ ci_compose }}  --profile migrations down -v --remove-orphans
+    {{ ci_compose }} --profile migrations down -v --remove-orphans
 
 # Run the backend k6 baseline against the CI Docker stack.
 # Keeps the CI stack running for maintainer follow-up if needed.
@@ -512,7 +514,7 @@ _docker-ci-perf-thresholds HEADROOM="1.15":
 # ============================================================================
 
 # Clean build artifacts and caches across all subrepos
-_clean:
+clean:
     @just backend/clean
     @just docs/clean
     @just frontend-web/clean

@@ -2,6 +2,8 @@
 # Run `just --list` to see all available commands
 # Run from root: `just backend/<recipe>` or from backend/: `just <recipe>`
 
+# spell-checker: ignore esac, htmlcov
+
 # Show available recipes
 default:
     @just --list
@@ -59,8 +61,13 @@ shellcheck:
     git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
     @echo "✓ Backend shell scripts passed ShellCheck"
 
+# Verify formatting (no writes)
+format-check:
+    uv run ruff format --check
+    @echo "✓ Backend formatting verified"
+
 # Run the fast backend quality gate (no database required)
-check: lint typecheck
+check: lint typecheck shellcheck format-check
     @echo "✓ Backend checks passed"
 
 # ============================================================================
@@ -70,10 +77,6 @@ check: lint typecheck
 # Run all tests
 test *ARGS:
     {{ pytest }} {{ ARGS }}
-
-# Run all tests with stdout/stderr output (no capture)
-test-v *ARGS:
-    {{ pytest }} -s {{ ARGS }}
 
 # Run tests with coverage report (FORMAT: html for local, xml for CI)
 test-cov FORMAT="html":
@@ -168,10 +171,6 @@ clear-cache NAMESPACE="background-data":
 # Compile MJML email templates to HTML
 compile-email:
     uv run python -m scripts.generate.compile_email_templates
-
-# Render entity relationship diagrams
-render-erd:
-    uv run python -m scripts.generate.render_erd
 
 # Refresh the committed disposable-email fallback list from the upstream source
 refresh-disposable-email-domains:

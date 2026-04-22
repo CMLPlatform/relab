@@ -36,12 +36,14 @@ check: lint typecheck
 # Auto-format code
 format:
     pnpm run format
-
-# Auto-fix what the formatter can fix
-fix: format
     @echo "✓ Frontend-app code formatted"
 
-# Run tests
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+    @echo "✓ Frontend-app code fixed and formatted"
+
+# Run tests (unit + integration)
 test:
     pnpm run test
 
@@ -53,14 +55,6 @@ test-unit:
 test-integration:
     pnpm run test:integration
 
-# Record file-level timings for the unit Jest suite
-test-unit-timings:
-    pnpm run test:unit:timings
-
-# Record file-level timings for the integration Jest suite
-test-integration-timings:
-    pnpm run test:integration:timings
-
 # Run the frontend-app CI test suite
 test-ci:
     pnpm run test:ci
@@ -70,18 +64,9 @@ test-ci:
 ci: check test-ci
     @echo "✓ Frontend-app CI pipeline passed"
 
-# Run the full Jest suite (unit + integration)
-test-jest:
-    pnpm run test:jest
-    @echo "✓ Frontend-app Jest suites passed"
-
 # Start dev server
 dev PORT="8081":
     pnpm exec expo start --port {{PORT}} --web
-
-# Start dev server with a clean Metro cache (use after adding new directories/aliases)
-dev-clean PORT="8081":
-    npx expo start --port {{PORT}} --clear
 
 # Scan dependencies for known vulnerabilities
 audit:

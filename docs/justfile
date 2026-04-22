@@ -55,27 +55,22 @@ format:
     pnpm run format
     @echo "✓ Docs formatted"
 
-# Auto-fix what the formatter can fix
-fix: format
-    @echo "✓ Docs code formatted"
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+    @echo "✓ Docs code fixed and formatted"
 
-# Smoke + a11y + visual + theme (requires `just build` first)
+# Docs has no unit tests; see `test-e2e` for Playwright suites
 test:
     pnpm run test
-    @echo "✓ Docs tests passed"
 
-# Visual and theme regression checks only (requires `just build` first)
-test-visual:
-    pnpm run test:visual
-    @echo "✓ Docs visual tests passed"
+# Browser end-to-end tests: smoke + a11y + visual + theme (requires `just build` first)
+test-e2e:
+    pnpm run test:e2e
+    @echo "✓ Docs E2E tests passed"
 
-# Check built docs links
-test-links:
-    pnpm run test:links
-    @echo "✓ Docs link checks passed"
-
-# Run the docs CI test suite
-test-ci: check
+# Run the docs CI test suite (build + e2e + link check)
+test-ci:
     pnpm run test:ci
     @echo "✓ Docs CI test suite passed"
 

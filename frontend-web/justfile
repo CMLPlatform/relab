@@ -34,10 +34,12 @@ typecheck:
 # Auto-format code with Biome
 format:
     pnpm run format
-
-# Auto-fix what the formatter can fix
-fix: format
     @echo "✓ Frontend-web code formatted"
+
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+    @echo "✓ Frontend-web code fixed and formatted"
 
 # Run lint + typecheck
 check: lint typecheck
@@ -52,25 +54,14 @@ build:
 test:
     pnpm run test
 
-# Run tests with coverage report (for CI)
-test-cov:
-    pnpm run test:coverage
-
 # Run the frontend-web CI test suite
 test-ci:
     pnpm run test:ci
     @echo "✓ Frontend-web CI test suite passed"
 
-# Run browser end-to-end tests (requires a prior build)
+# Run browser end-to-end tests (always builds before preview)
 test-e2e:
     pnpm run test:e2e
-
-# Run browser end-to-end tests (browser workflow alias)
-test-e2e-browser: test-e2e
-
-# Run all tests (unit + e2e)
-test-all:
-    pnpm run test:all
 
 # Run the full frontend-web CI pipeline locally
 ci: check test-ci
