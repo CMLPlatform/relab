@@ -8,12 +8,17 @@
   },
   "scripts": {
     "biome": "biome",
-    "check": "pnpm run lint",
-    "lint": "biome check biome.jsonc package.json codemeta.json relab.code-workspace renovate.json",
-    "format": "biome format --write biome.jsonc package.json codemeta.json relab.code-workspace renovate.json",
-    "fix": "biome check --write biome.jsonc package.json codemeta.json relab.code-workspace renovate.json"
+    "check": "pnpm run lint && pnpm run syncpack:check",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "fix": "biome check --write",
+    "syncpack:check": "syncpack lint"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.12"
+    "@biomejs/biome": "^2.4.12",
+    "syncpack": "^14.3.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": []
   }
 }

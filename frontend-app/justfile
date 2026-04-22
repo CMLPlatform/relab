@@ -14,9 +14,10 @@ lockfile:
 
 # Update Expo-managed dependencies to versions compatible with the current SDK
 update:
-    npx expo install --fix
+    pnpm exec expo install --fix
     pnpm update -D
-    npx expo-doctor
+    pnpm dedupe
+    pnpm dlx expo-doctor
     @echo "✓ Frontend-app dependencies updated"
 
 # Run lint checks

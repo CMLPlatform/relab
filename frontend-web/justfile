@@ -15,10 +15,12 @@ install:
 lockfile:
     pnpm install --lockfile-only --ignore-scripts
 
-# Upgrade Astro and official integrations using Astro's upgrade tool
+# Upgrade Astro and official integrations, then apply in-range pnpm updates.
+# Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
 update:
     pnpm dlx @astrojs/upgrade
-    pnpm up -D
+    pnpm up
+    pnpm dedupe
     @echo "✓ Frontend-web dependencies updated"
 
 # Run lint checks

@@ -16,10 +16,12 @@ lockfile:
     pnpm install --lockfile-only --ignore-scripts
     @echo "✓ Docs lockfile refreshed"
 
-# Update dependencies (Astro upgrade + pnpm latest)
+# Update dependencies (Astro upgrade + in-range pnpm updates + dedupe the tree)
+# Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
 update:
     pnpm dlx @astrojs/upgrade
-    pnpm up --latest
+    pnpm up
+    pnpm dedupe
     @echo "✓ Docs dependencies updated"
 
 # Start development server with live reload

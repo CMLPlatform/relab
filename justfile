@@ -168,12 +168,12 @@ test-e2e-full-stack:
 
 # Run dependency vulnerability audit for root Python tooling
 audit-root:
-    uv audit --preview-features audit --frozen --no-dev
+    uv audit --preview-features audit --frozen
     @echo "✓ Root dependency audit complete"
 
 # Run dependency vulnerability audit across root and all subrepos
 audit: audit-root
-    @just backend/audit
+    @just backend/audit SCOPE=all
     @just docs/audit
     @just frontend-app/audit
     @just frontend-web/audit
@@ -182,7 +182,6 @@ audit: audit-root
 # Canonical security target
 security: audit
     @echo "✅ Security checks complete"
-
 
 # Validate every supported Compose stack shape
 compose-config:
@@ -205,7 +204,6 @@ compose-config:
     {{ prod_compose }} config >/dev/null
     docker compose -p relab_e2e -f compose.e2e.yml config >/dev/null
     echo "✓ Compose configurations validated"
-
 
 # ============================================================================
 # Docker: Targeted Development (subset of services with hot reload)

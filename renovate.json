@@ -64,11 +64,19 @@
     },
     {
       "groupName": "frontend-web-runtime-tooling",
-      "matchFileNames": ["frontend-web/package.json", "frontend-web/pnpm-lock.yaml", "frontend-web/Dockerfile*"]
+      "matchFileNames": [
+        "frontend-web/package.json",
+        "frontend-web/pnpm-lock.yaml",
+        "frontend-web/Dockerfile*"
+      ]
     },
     {
       "groupName": "frontend-app-runtime-tooling",
-      "matchFileNames": ["frontend-app/package.json", "frontend-app/pnpm-lock.yaml", "frontend-app/Dockerfile*"]
+      "matchFileNames": [
+        "frontend-app/package.json",
+        "frontend-app/pnpm-lock.yaml",
+        "frontend-app/Dockerfile*"
+      ]
     },
     {
       "groupName": "containers-compose",

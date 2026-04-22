@@ -44,7 +44,7 @@
     "@react-navigation/elements": "^2.9.14",
     "@react-navigation/native": "^7.1.33",
     "@tanstack/react-query": "^5.99.2",
-    "expo": "~55.0.16",
+    "expo": "~55.0.17",
     "expo-auth-session": "~55.0.15",
     "expo-blur": "~55.0.14",
     "expo-constants": "~55.0.15",
@@ -88,11 +88,11 @@
     "@jest/globals": "~29.7.0",
     "@playwright/test": "^1.59.1",
     "@testing-library/react-native": "^13.3.3",
-    "@types/jest": "29.5.14",
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.2.14",
     "@typescript-eslint/parser": "^8.59.0",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.10.20",
+    "baseline-browser-mapping": "^2.10.21",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -101,7 +101,12 @@
     "msw": "^2.13.4",
     "openapi-typescript": "^7.13.0",
     "ts-node": "^10.9.2",
-    "typescript": "~5.9.3"
+    "typescript": "^5.9.3"
   },
-  "private": true
+  "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "msw"
+    ]
+  }
 }
