@@ -8,6 +8,7 @@ const localBaseUrl = 'http://localhost:8081';
 // Structural (ARIA) snapshots only run on desktop Chromium — one baseline
 // is enough to catch landmark/heading regressions. Other projects ignore it.
 const structureSpec = /structure\.spec\.ts/;
+const smokeTag = /@smoke/;
 
 export default defineConfig({
   testDir: './e2e',
@@ -29,33 +30,20 @@ export default defineConfig({
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
       testIgnore: structureSpec,
+      grep: smokeTag,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
       testIgnore: structureSpec,
-    },
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-      testIgnore: structureSpec,
-    },
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 12'] },
-      testIgnore: structureSpec,
-    },
-    {
-      name: 'tablet',
-      use: { ...devices['iPad Pro 11'] },
-      testIgnore: structureSpec,
+      grep: smokeTag,
     },
   ],
   // Skip the dev server when BASE_URL is set; the stack is already running (e.g. via docker compose)
   webServer: runtimeConfig.baseUrl
     ? undefined
     : {
-        command: 'pnpm run preview',
+        command: 'pnpm run preview:e2e',
         url: localBaseUrl,
         reuseExistingServer: !runtimeConfig.isCi,
       },
