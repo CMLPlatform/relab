@@ -11,7 +11,11 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "platformAutomerge": true,
+  "configMigration": true,
   "pep621": {
+    "enabled": true
+  },
+  "pre-commit": {
     "enabled": true
   },
   "lockFileMaintenance": {
@@ -21,25 +25,34 @@
   "packageRules": [
     {
       "groupName": "runtime-containers",
-      "matchManagers": ["docker-compose", "dockerfile"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "matchManagers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
       "pinDigests": true,
       "automerge": false,
-      "labels": ["runtime-risk", "containers"]
+      "labels": [
+        "runtime-risk",
+        "containers"
+      ]
     },
     {
-      "matchUpdateTypes": ["minor", "patch"],
-      "matchPackagePatterns": ["*"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "matchPackagePatterns": [
+        "*"
+      ],
       "automerge": true,
-      "labels": ["automerge"]
-    },
-    {
-      "groupName": "github-actions",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
-      "pinDigests": true,
-      "automerge": true,
-      "labels": ["automerge", "github-actions"]
+      "labels": [
+        "automerge"
+      ]
     },
     {
       "groupName": "repo-tooling",
@@ -48,19 +61,33 @@
         ".github/**",
         ".devcontainer/**",
         ".vscode/**",
+        ".python-version",
+        "backend/.python-version",
+        "package.json",
+        "pnpm-lock.yaml",
         "pyproject.toml",
         "uv.lock",
         "renovate.json"
       ],
-      "labels": ["tooling"]
+      "labels": [
+        "tooling"
+      ]
     },
     {
       "groupName": "backend-python-runtime",
-      "matchFileNames": ["backend/pyproject.toml", "backend/uv.lock", "backend/Dockerfile*"]
+      "matchFileNames": [
+        "backend/pyproject.toml",
+        "backend/uv.lock",
+        "backend/Dockerfile*"
+      ]
     },
     {
-      "groupName": "docs-python-tooling",
-      "matchFileNames": ["docs/pyproject.toml", "docs/uv.lock", "docs/Dockerfile*"]
+      "groupName": "docs-site-runtime-tooling",
+      "matchFileNames": [
+        "docs/package.json",
+        "docs/pnpm-lock.yaml",
+        "docs/Dockerfile*"
+      ]
     },
     {
       "groupName": "frontend-web-runtime-tooling",
@@ -80,9 +107,32 @@
     },
     {
       "groupName": "containers-compose",
-      "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
+      "matchFileNames": [
+        "**/compose.*.yml",
+        "**/compose.yml"
+      ],
       "pinDigests": true
+    },
+    {
+      "groupName": "github-actions",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
+      "pinDigests": true,
+      "automerge": true,
+      "labels": [
+        "automerge",
+        "github-actions"
+      ]
     }
   ],
-  "labels": ["dependencies", "renovate"]
+  "labels": [
+    "dependencies",
+    "renovate"
+  ]
 }
