@@ -2,12 +2,16 @@
 
 from typing import TYPE_CHECKING
 
+import pytest
 from fastapi import status
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
 
     from app.api.auth.models import User
+
+
+pytestmark = pytest.mark.flow
 
 # Constants for test values
 CAM_NAME = "Integration Camera"

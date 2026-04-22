@@ -14,6 +14,8 @@ from app.api.auth.services.oauth import CSRF_TOKEN_KEY, OAuthCookieSettings, gen
 from ._oauth_support import TEST_STATE_JWT_SECRET, make_base_builder
 from .shared import FRONTEND_REDIRECT_URI, JWT_DOT_COUNT
 
+pytestmark = pytest.mark.api
+
 
 class TestOAuthHelpers:
     """Cover standalone OAuth token helpers."""

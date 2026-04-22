@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
+pytestmark = pytest.mark.api
+
+
 class TestUpdateUserValidation:
     """Integration tests for update_user_override() username uniqueness logic."""
 

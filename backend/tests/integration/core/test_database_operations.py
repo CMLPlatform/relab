@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
@@ -13,6 +14,9 @@ from tests.factories.models import CategoryFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+pytestmark = pytest.mark.db
 
 
 async def test_taxonomy_categories_relationship_loads_children(

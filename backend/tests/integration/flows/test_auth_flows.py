@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import UUID
 
+import pytest
 from fastapi import status
 from sqlalchemy import select
 
@@ -21,6 +22,9 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+pytestmark = pytest.mark.flow
 
 # Constants for test values
 FLOW_TEST_EMAIL = "flowtest@example.com"

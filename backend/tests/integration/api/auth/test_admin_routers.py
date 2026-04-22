@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from fastapi import status
 
 from tests.factories.models import OrganizationFactory, UserFactory
@@ -15,18 +16,21 @@ if TYPE_CHECKING:
     from app.api.auth.models import User
 
 
+pytestmark = pytest.mark.api
+
+
 class TestAdminUserRouters:
     """Integration tests for admin user management endpoints."""
 
     async def test_get_all_users_as_superuser(
-        self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
+        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
         """Superuser can list all users."""
         # Create additional users
         user1 = await UserFactory.create_async(db_session, email="user1@example.com", username="user1")
         user2 = await UserFactory.create_async(db_session, email="user2@example.com", username="user2")
 
-        response = await api_client_superuser.get("/admin/users")
+        response = await api_client_superuser_light.get("/admin/users")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -40,7 +44,7 @@ class TestAdminUserRouters:
         assert user2.email in user_emails
 
     async def test_get_all_users_with_pagination(
-        self, api_client_superuser: AsyncClient, db_session: AsyncSession
+        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession
     ) -> None:
         """Pagination works for user list."""
         # Create 5 users
@@ -48,7 +52,7 @@ class TestAdminUserRouters:
             await UserFactory.create_async(db_session, email=f"pag{i}@example.com", username=f"pag_user_{i}")
 
         # Request with page size 2
-        response = await api_client_superuser.get("/admin/users?page=1&size=2")
+        response = await api_client_superuser_light.get("/admin/users?page=1&size=2")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -72,25 +76,6 @@ class TestAdminUserRouters:
         assert "is_active" in data
         assert "is_verified" in data
 
-    async def test_get_all_users_by_email(self, api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
-        """Can retrieve user by email via admin endpoint."""
-        user = await UserFactory.create_async(db_session, email="by_email@example.com", username="by_email_user")
-
-        # Get the user to verify email is present
-        response = await api_client_superuser.get(f"/admin/users/{user.id}")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["email"] == "by_email@example.com"
-
-    async def test_get_all_users_by_username(self, api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
-        """Can retrieve user by username via admin endpoint."""
-        user = await UserFactory.create_async(db_session, email="byuser@example.com", username="byuser_unique")
-
-        response = await api_client_superuser.get(f"/admin/users/{user.id}")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["username"] == "byuser_unique"
-
     async def test_admin_users_requires_superuser(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
         """Admin user endpoints require superuser role."""
         # Create regular user and authenticate
@@ -108,7 +93,7 @@ class TestAdminOrganizationRouters:
     """Integration tests for admin organization management endpoints."""
 
     async def test_get_all_organizations_as_superuser(
-        self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
+        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
         """Superuser can list all organizations."""
         org1 = await OrganizationFactory.create_async(
@@ -118,7 +103,7 @@ class TestAdminOrganizationRouters:
             db_session, name="Org2", location="Location2", owner_id=db_superuser.id
         )
 
-        response = await api_client_superuser.get("/admin/organizations")
+        response = await api_client_superuser_light.get("/admin/organizations")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -132,7 +117,7 @@ class TestAdminOrganizationRouters:
         assert "Org2" in org_names
 
     async def test_get_all_organizations_with_relationships(
-        self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
+        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
         """Organization list includes members relationship."""
         org = await OrganizationFactory.create_async(db_session, name="OrgWithMembers", owner_id=db_superuser.id)
@@ -143,7 +128,7 @@ class TestAdminOrganizationRouters:
             db_session, email="member2@example.com", username="member2", organization_id=org.id
         )
 
-        response = await api_client_superuser.get("/admin/organizations")
+        response = await api_client_superuser_light.get("/admin/organizations")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -157,7 +142,7 @@ class TestAdminOrganizationRouters:
         assert user2.email in member_emails
 
     async def test_get_organization_by_id_with_relationships(
-        self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
+        self, api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
         """Superuser can retrieve organization with members."""
         org = await OrganizationFactory.create_async(
@@ -167,7 +152,7 @@ class TestAdminOrganizationRouters:
             db_session, email="org_member@example.com", username="org_member", organization_id=org.id
         )
 
-        response = await api_client_superuser.get(f"/admin/organizations/{org.id}")
+        response = await api_client_superuser_light.get(f"/admin/organizations/{org.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()

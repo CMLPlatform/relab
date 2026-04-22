@@ -32,13 +32,8 @@ class TestUnauthenticated:
         response = await api_client.post("/products", json={})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_get_me_without_auth_returns_401(self, api_client: AsyncClient) -> None:
-        """GET /users/me requires authentication; anonymous request → 401."""
-        response = await api_client.get("/users/me")
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-    async def test_401_response_has_detail_key(self, api_client: AsyncClient) -> None:
-        """401 responses must include a 'detail' key (FastAPI standard shape)."""
+    async def test_get_me_without_auth_returns_401_with_detail(self, api_client: AsyncClient) -> None:
+        """GET /users/me requires authentication and returns the standard error shape."""
         response = await api_client.get("/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         body = response.json()
@@ -90,46 +85,33 @@ class TestForbidden:
 class TestNotFound:
     """Requests for non-existent resources must return 404."""
 
-    async def test_get_nonexistent_taxonomy_returns_404(self, api_client: AsyncClient) -> None:
-        """GET /taxonomies/{id} with an id that does not exist → 404."""
-        response = await api_client.get("/taxonomies/999999")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_get_nonexistent_material_returns_404(self, api_client: AsyncClient) -> None:
-        """GET /materials/{id} with an id that does not exist → 404."""
-        response = await api_client.get("/materials/999999")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    async def test_404_response_has_detail_key(self, api_client: AsyncClient) -> None:
-        """404 responses must include a 'detail' key."""
-        response = await api_client.get("/taxonomies/999999")
+    async def test_get_nonexistent_taxonomy_returns_404_with_detail(self, api_client_light: AsyncClient) -> None:
+        """GET /taxonomies/{id} with an id that does not exist returns the standard error shape."""
+        response = await api_client_light.get("/taxonomies/999999")
         assert response.status_code == status.HTTP_404_NOT_FOUND
         body = response.json()
         assert "detail" in body
+
+    async def test_get_nonexistent_material_returns_404(self, api_client_light: AsyncClient) -> None:
+        """GET /materials/{id} with an id that does not exist → 404."""
+        response = await api_client_light.get("/materials/999999")
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 @pytest.mark.api
 class TestUnprocessableEntity:
     """Invalid request bodies must return 422 with structured error details."""
 
-    async def test_create_taxonomy_missing_required_fields_returns_422(self, api_client_superuser: AsyncClient) -> None:
-        """POST /admin/taxonomies with an empty body → 422 (name and domains are required)."""
-        response = await api_client_superuser.post("/admin/taxonomies", json={})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-    async def test_422_response_has_detail_list(self, api_client_superuser: AsyncClient) -> None:
-        """422 responses must have 'detail' as a list of validation error objects."""
+    async def test_create_taxonomy_missing_required_fields_returns_structured_422(
+        self, api_client_superuser: AsyncClient
+    ) -> None:
+        """POST /admin/taxonomies with an empty body → 422 with validation error objects."""
         response = await api_client_superuser.post("/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         body = response.json()
         assert "detail" in body
         assert isinstance(body["detail"], list)
-
-    async def test_422_error_objects_have_loc_msg_type(self, api_client_superuser: AsyncClient) -> None:
-        """Each validation error must contain 'loc', 'msg', and 'type' keys."""
-        response = await api_client_superuser.post("/admin/taxonomies", json={})
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-        errors = response.json()["detail"]
+        errors = body["detail"]
         assert len(errors) > 0
         for error in errors:
             assert "loc" in error, f"Missing 'loc' in error: {error}"

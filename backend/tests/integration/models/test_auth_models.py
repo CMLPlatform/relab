@@ -13,6 +13,9 @@ from tests.factories.models import OrganizationFactory, UserFactory
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+
+pytestmark = pytest.mark.db
+
 TEST_EMAIL = "test@example.com"
 TEST_USERNAME = "testuser"
 

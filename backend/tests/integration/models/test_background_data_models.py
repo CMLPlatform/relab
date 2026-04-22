@@ -23,6 +23,9 @@ if TYPE_CHECKING:
     from app.api.background_data.models import Material, ProductType
 
 
+pytestmark = pytest.mark.db
+
+
 async def test_deleting_taxonomy_cascades_categories(db_session: AsyncSession, db_taxonomy: Taxonomy) -> None:
     """Deleting a taxonomy should remove its categories."""
     category = await CategoryFactory.create_async(db_session, name="Test Category", taxonomy_id=db_taxonomy.id)

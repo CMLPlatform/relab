@@ -42,6 +42,9 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
+pytestmark = pytest.mark.api
+
+
 class TestRegistrationEndpoint:
     """Tests for the /auth/register endpoint."""
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
+from app.api.background_data.models import Material, ProductType
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from tests.constants import (
@@ -23,29 +24,30 @@ from tests.constants import (
     UPDATED_PRODUCT_NAME,
     WEIGHT_500,
 )
-from tests.factories.models import MaterialFactory, ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
+    from tests.fixtures.data import ProductGraph
 
 pytestmark = pytest.mark.api
 
 
 async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
     """GET /products returns the current product page."""
-    product_type = await ProductTypeFactory.create_async(session=db_session)
-    await ProductFactory.create_async(
-        session=db_session,
+    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
+    product = Product(
         owner_id=db_superuser.id,
-        product_type_id=product_type.id,
         name=PRODUCT_BASE_NAME,
         brand=BRAND_X,
         dismantling_time_start=START_TIME,
         dismantling_time_end=END_TIME,
+        product_type=product_type,
     )
+    db_session.add_all([product_type, product])
+    await db_session.flush()
 
     response = await api_client.get("/products")
 
@@ -70,16 +72,15 @@ async def test_get_products_tree(api_client: AsyncClient, setup_product: Product
 
 async def test_get_products_tree_includes_nested_components_without_async_lazy_loads(
     api_client: AsyncClient,
-    setup_product: Product,
-    setup_component: Product,
+    setup_product_graph: ProductGraph,
 ) -> None:
     """GET /products/tree returns nested components at bounded depth without crashing."""
     response = await api_client.get("/products/tree?recursion_depth=2")
 
     assert response.status_code == status.HTTP_200_OK
-    tree_product = next((item for item in response.json() if item["id"] == setup_product.id), None)
+    tree_product = next((item for item in response.json() if item["id"] == setup_product_graph.product.id), None)
     assert tree_product is not None
-    assert [component["id"] for component in tree_product["components"]] == [setup_component.id]
+    assert [component["id"] for component in tree_product["components"]] == [setup_product_graph.component.id]
 
 
 async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product) -> None:
@@ -106,33 +107,40 @@ async def test_get_product_by_id_supports_conditional_get(api_client: AsyncClien
     assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
 
 
-async def test_validate_product_tree(api_client: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
+async def test_validate_product_tree(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+) -> None:
     """POST /products/{id}/validate handles a fully loaded tree."""
-    product_type = await ProductTypeFactory.create_async(session=db_session)
-    root = await ProductFactory.create_async(
-        session=db_session,
+    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
+    root = Product(
         owner_id=db_superuser.id,
-        product_type_id=product_type.id,
         name=f"{PRODUCT_BASE_NAME} Root",
+        product_type=product_type,
     )
-    child = await ProductFactory.create_async(
-        session=db_session,
+    child = Product(
         owner_id=db_superuser.id,
-        parent_id=root.id,
-        product_type_id=product_type.id,
         name=f"{PRODUCT_BASE_NAME} Child",
+        parent=root,
+        product_type=product_type,
     )
-    material = await MaterialFactory.create_async(session=db_session)
-    db_session.add(
-        MaterialProductLink(
-            material_id=material.id,
-            product_id=child.id,
-            quantity=1.0,
-            unit=Unit.GRAM,
-        )
+    material = Material(name="Steel")
+    db_session.add_all(
+        [
+            product_type,
+            root,
+            child,
+            material,
+            MaterialProductLink(
+                material=material,
+                product=child,
+                quantity=1.0,
+                unit=Unit.GRAM,
+            ),
+        ]
     )
-    await db_session.commit()
-    await db_session.begin()
+    await db_session.flush()
 
     response = await api_client.post(f"/products/{root.id}/validate")
 
@@ -142,8 +150,10 @@ async def test_validate_product_tree(api_client: AsyncClient, db_session: AsyncS
 
 async def test_create_product(api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
     """POST /products creates a new product."""
-    product_type = await ProductTypeFactory.create_async(session=db_session)
-    material = await MaterialFactory.create_async(session=db_session)
+    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
+    material = Material(name="Steel")
+    db_session.add_all([product_type, material])
+    await db_session.flush()
     payload = {
         "name": NEW_PRODUCT_NAME,
         "description": PRODUCT_DESC,

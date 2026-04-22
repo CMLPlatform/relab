@@ -11,6 +11,8 @@ from fastapi import HTTPException, Response, status
 
 from ._oauth_support import make_auth_builder, make_base_builder
 
+pytestmark = pytest.mark.api
+
 
 class TestOAuthRedirectValidation:
     """Cover redirect-uri validation and redirect rewriting."""

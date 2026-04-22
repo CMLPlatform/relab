@@ -16,6 +16,7 @@ import importlib
 import multiprocessing as mp
 import traceback
 
+import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import configure_mappers
 
@@ -134,6 +135,7 @@ class TestMapperWithRegistry:
 class TestModuleIsolation:
     """Each test imports exactly one top-level model module in a clean process."""
 
+    @pytest.mark.slow
     def test_model_modules_are_self_contained(self) -> None:
         """Model modules should configure mappers without depending on the registry helper."""
         ok, msg = _run_isolated(

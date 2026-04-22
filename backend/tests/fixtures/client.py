@@ -148,12 +148,67 @@ async def api_client(
 
 
 @pytest.fixture
+async def api_client_light(
+    test_app: FastAPI,
+    db_session: AsyncSession,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> AsyncGenerator[httpx.AsyncClient]:
+    """Provide a lightweight async client without full app lifespan startup.
+
+    Use this for read-focused API tests that only need the injected DB session
+    and in-memory cache initialization.
+
+    Safe fits:
+    - Plain DB-backed reads and pagination/filtering assertions
+    - Tests that authenticate by dependency override rather than real auth backends
+
+    Keep using the full ``api_client`` for routes that depend on runtime startup
+    services or auth/session wiring, including:
+    - Optional/guest auth resolution that still passes through auth backends
+    - Cookie/session/refresh/OAuth flows
+    - Newsletter, file-storage, and other runtime-service-heavy paths
+    """
+    _configure_test_storage(tmp_path, monkeypatch)
+
+    async def override_get_session() -> AsyncGenerator[AsyncSession]:
+        yield db_session
+
+    test_app.dependency_overrides[get_async_session] = override_get_session
+    test_app.dependency_overrides[get_auth_async_session] = override_get_session
+
+    limiter.enabled = False
+    init_fastapi_cache(None)
+
+    try:
+        async with httpx.AsyncClient(
+            transport=ASGITransport(app=test_app),
+            base_url="http://test",
+            follow_redirects=True,
+        ) as client:
+            yield client
+    finally:
+        await close_fastapi_cache()
+        limiter.enabled = True
+        test_app.dependency_overrides.clear()
+
+
+@pytest.fixture
 async def api_client_user(
     api_client: httpx.AsyncClient, db_user: User, test_app: FastAPI
 ) -> AsyncGenerator[httpx.AsyncClient]:
     """Provide an authenticated client for a regular active user."""
     with override_authenticated_user(test_app, db_user):
         yield api_client
+
+
+@pytest.fixture
+async def api_client_superuser_light(
+    api_client_light: httpx.AsyncClient, db_superuser: User, test_app: FastAPI
+) -> AsyncGenerator[httpx.AsyncClient]:
+    """Provide a lightweight authenticated client with superuser privileges."""
+    with override_authenticated_user(test_app, db_superuser, superuser=True):
+        yield api_client_light
 
 
 @pytest.fixture

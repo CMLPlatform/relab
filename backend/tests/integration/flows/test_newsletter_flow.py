@@ -16,6 +16,9 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
+
+pytestmark = pytest.mark.flow
+
 # Constants for test values
 FLOW_EMAIL = "integration_flow@example.com"
 IS_CONFIRMED = "is_confirmed"

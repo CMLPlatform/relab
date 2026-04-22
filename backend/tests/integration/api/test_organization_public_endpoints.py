@@ -23,12 +23,12 @@ pytest_plugins = ("tests.integration.api._organization_support",)
 class TestGetOrganizations:
     """Cover organization list responses."""
 
-    async def test_list_includes_created_org(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
+    async def test_list_includes_created_org(self, api_client_light: AsyncClient, db_session: AsyncSession) -> None:
         """Returns newly created organizations in the listing."""
         owner = await UserFactory.create_async(session=db_session)
         await OrganizationFactory.create_async(session=db_session, name="Test Corp", owner_id=owner.id)
 
-        response = await api_client.get("/organizations")
+        response = await api_client_light.get("/organizations")
 
         assert response.status_code == status.HTTP_200_OK
         names = [item["name"] for item in response.json()["items"]]
@@ -38,19 +38,19 @@ class TestGetOrganizations:
 class TestGetOrganizationById:
     """Cover organization detail lookups."""
 
-    async def test_returns_org_by_id(self, api_client: AsyncClient, db_session: AsyncSession) -> None:
+    async def test_returns_org_by_id(self, api_client_light: AsyncClient, db_session: AsyncSession) -> None:
         """Returns the requested organization when it exists."""
         owner = await UserFactory.create_async(session=db_session)
         org = await OrganizationFactory.create_async(session=db_session, name="My Org", owner_id=owner.id)
 
-        response = await api_client.get(f"/organizations/{org.id}")
+        response = await api_client_light.get(f"/organizations/{org.id}")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["name"] == "My Org"
 
-    async def test_returns_404_for_unknown_id(self, api_client: AsyncClient) -> None:
+    async def test_returns_404_for_unknown_id(self, api_client_light: AsyncClient) -> None:
         """Returns 404 for an unknown organization id."""
-        response = await api_client.get(f"/organizations/{uuid.uuid4()}")
+        response = await api_client_light.get(f"/organizations/{uuid.uuid4()}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 

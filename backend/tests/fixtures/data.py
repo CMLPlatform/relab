@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pytest
@@ -13,13 +14,21 @@ from tests.constants import BRAND_X, COMPONENT_NAME, END_TIME, PRODUCT_BASE_NAME
 from tests.factories.models import (
     CategoryFactory,
     MaterialFactory,
-    ProductFactory,
     ProductTypeFactory,
     TaxonomyFactory,
 )
 
 if TYPE_CHECKING:
     from app.api.auth.models import User
+
+
+@dataclass(slots=True)
+class ProductGraph:
+    """Compact seeded product graph for API tests."""
+
+    product_type: ProductType
+    product: Product
+    component: Product
 
 
 @pytest.fixture
@@ -71,28 +80,52 @@ async def db_product_type(db_session: AsyncSession) -> ProductType:
 @pytest.fixture
 async def setup_product(db_session: AsyncSession, db_superuser: User) -> Product:
     """Create a top-level product owned by the authenticated superuser."""
-    product_type = await ProductTypeFactory.create_async(session=db_session)
-    return await ProductFactory.create_async(
-        session=db_session,
+    product_type = ProductType(
+        name="Power Tool",
+        description="Handheld electric tools for construction and DIY",
+    )
+    product = Product(
         owner_id=db_superuser.id,
-        product_type_id=product_type.id,
         name=PRODUCT_BASE_NAME,
         brand=BRAND_X,
         dismantling_time_start=START_TIME,
         dismantling_time_end=END_TIME,
+        product_type=product_type,
     )
+    db_session.add_all([product_type, product])
+    await db_session.flush()
+    return product
 
 
 @pytest.fixture
-async def setup_component(db_session: AsyncSession, setup_product: Product, db_superuser: User) -> Product:
-    """Create a child component below ``setup_product``."""
-    product_type = await ProductTypeFactory.create_async(session=db_session)
-    return await ProductFactory.create_async(
-        session=db_session,
+async def setup_product_graph(db_session: AsyncSession, db_superuser: User) -> ProductGraph:
+    """Create a compact product graph with a root product and one child component."""
+    product_type = ProductType(
+        name="Power Tool",
+        description="Handheld electric tools for construction and DIY",
+    )
+    product = Product(
         owner_id=db_superuser.id,
-        parent_id=setup_product.id,
-        product_type_id=product_type.id,
+        name=PRODUCT_BASE_NAME,
+        brand=BRAND_X,
+        dismantling_time_start=START_TIME,
+        dismantling_time_end=END_TIME,
+        product_type=product_type,
+    )
+    component = Product(
+        owner_id=db_superuser.id,
         name=COMPONENT_NAME,
         dismantling_time_start=START_TIME,
         dismantling_time_end=END_TIME,
+        product_type=product_type,
+        parent=product,
     )
+    db_session.add_all([product_type, product, component])
+    await db_session.flush()
+    return ProductGraph(product_type=product_type, product=product, component=component)
+
+
+@pytest.fixture
+async def setup_component(setup_product_graph: ProductGraph) -> Product:
+    """Create a child component below ``setup_product``."""
+    return setup_product_graph.component

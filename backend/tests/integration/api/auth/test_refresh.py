@@ -5,6 +5,7 @@ from __future__ import annotations
 from http.cookies import SimpleCookie
 from typing import TYPE_CHECKING
 
+import pytest
 from fastapi import status
 
 from app.api.auth.services.refresh_token_service import create_refresh_token
@@ -14,10 +15,12 @@ from tests.factories.models import UserFactory
 from .shared import INVALID_REFRESH_TOKEN, hash_test_password
 
 if TYPE_CHECKING:
-    import pytest
     from httpx import AsyncClient
     from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+pytestmark = pytest.mark.api
 
 
 class TestRefreshTokenEndpoint:

@@ -24,6 +24,9 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 
+pytestmark = pytest.mark.api
+
+
 class TestOAuthCallbackLinkingPolicy:
     """Cover account-linking rules in the OAuth callback flow."""
 

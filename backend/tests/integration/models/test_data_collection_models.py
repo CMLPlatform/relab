@@ -17,6 +17,9 @@ if TYPE_CHECKING:
     from app.api.auth.models import User
 
 
+pytestmark = pytest.mark.db
+
+
 async def test_product_requires_owner(db_session: AsyncSession) -> None:
     """Products without an owner should fail the database constraint."""
     with pytest.raises(IntegrityError):
