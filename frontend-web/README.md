@@ -1,78 +1,92 @@
 # RELab Web
 
-The `frontend-web` subrepo contains the public-facing Astro website.
+This subrepo contains the public website for RELab, built with Astro. It is the small, mostly static front door for the project: the landing page, privacy page, newsletter flows, and the links that point people toward the app, docs, and backend services.
 
-## Quick Start
+If you are looking for the main application itself, that lives elsewhere in the monorepo. This package is the website around the project, not the research workflow UI.
+
+## Quick start
+
+Run commands from `frontend-web/`.
 
 ```bash
 just install
 pnpm run dev
 ```
 
-The dev server runs on <http://localhost:8081>. In the full Docker stack, the site is served on <http://localhost:8010> behind Caddy.
+The local dev server runs at <http://localhost:8081>.
 
-## Commands
+In the full Docker stack, the site is served behind Caddy at <http://localhost:8010>.
 
-Composite workflows live in the [justfile](./justfile); day-to-day commands are in [package.json](./package.json). Use whichever surface you prefer.
+## What is here
 
-| Task                  | just            | pnpm                     |
-| --------------------- | --------------- | ------------------------ |
-| Start dev server      | —               | `pnpm run dev`           |
-| Build (prod)          | —               | `pnpm run build`         |
-| Preview build         | —               | `pnpm run preview`       |
-| Lint + typecheck      | `just check`    | `pnpm run check`         |
-| Format                | `just format`   | `pnpm run format`        |
-| Unit tests            | `just test`     | `pnpm run test`          |
-| Unit tests + coverage | `just test-cov` | `pnpm run test:coverage` |
-| E2E (Playwright)      | `just test-e2e` | `pnpm run test:e2e`      |
-| All tests             | `just test-all` | `pnpm run test:all`      |
-| Full CI pipeline      | `just ci`       | —                        |
-| Output size budget    | `just size`     | —                        |
+- `src/pages` for route-level Astro pages
+- `src/components` for shared UI building blocks
+- `src/layouts` for the document shell
+- `src/scripts` for the small amount of client-side JavaScript
+- `src/content` for site copy and structured content
+- `src/config` for environment handling and shared config helpers
+- `src/styles` for the CSS layers and design tokens
+- `e2e` for Playwright browser tests
 
-## Architecture
+## Common commands
 
-- **Astro 6** static site with a small amount of client-side JS (`src/scripts/*`) wired up on hydrateable islands.
-- **Caddy** serves the built output (`dist/`) in production; see the [Caddyfile](./Caddyfile). SPA routing is handled server-side so client navigations and 404s both work.
-- **Biome** is the single tool for linting and formatting — no ESLint or Prettier.
-- **Playwright** drives browser e2e tests (functional + visual). Axe-core runs a11y scans in the suite.
-- **Vitest** (happy-dom) covers pure utilities and DOM scripts.
+Use `just` if you want the repo-standard task runner, or `pnpm run` if you prefer package scripts.
 
-## Testing
+| Task                    | Command            |
+| ----------------------- | ------------------ |
+| Install dependencies    | `just install`     |
+| Start local dev server  | `pnpm run dev`     |
+| Build production output | `pnpm run build`   |
+| Preview a build locally | `pnpm run preview` |
+| Lint and type-check     | `just check`       |
+| Format files            | `just format`      |
+| Auto-fix Biome issues   | `just fix`         |
+| Run unit tests          | `just test`        |
+| Run browser E2E tests   | `just test-e2e`    |
 
-Unit tests live beside the code they cover (`*.test.ts`). Run a single file with `pnpm vitest run src/scripts/theme.test.ts`, or watch with `pnpm vitest`.
+## Development notes
 
-E2E tests in [e2e/](./e2e) assume the dev server is running *or* a preview build is served. Playwright's [config](./playwright.config.ts) will spin up `pnpm run preview` automatically when `BASE_URL` is unset; set `BASE_URL=http://localhost:8010` to run against the Docker stack instead. Open the interactive runner with `pnpm run test:e2e:ui`.
+- Astro does most of the work here. The site is intentionally light on client-side JavaScript.
+- Biome handles linting and formatting.
+- Vitest covers utilities and small DOM scripts.
+- Playwright covers the browser flows and accessibility checks.
+- Production output is served by Caddy from `dist/`.
 
 ## Environment variables
 
-Public (baked into the build via `import.meta.env`, read by [src/config/public.ts](./src/config/public.ts)):
+Public variables are read through `import.meta.env` and used by [src/config/public.ts](src/config/public.ts).
 
-| Name                   | Required | Notes                                       |
-| ---------------------- | -------- | ------------------------------------------- |
-| `PUBLIC_API_URL`       | yes      | Backend API base URL                        |
-| `PUBLIC_APP_URL`       | yes      | Canonical app URL                           |
-| `PUBLIC_SITE_URL`      | yes      | Canonical site URL for sitemap/OG tags      |
-| `PUBLIC_DOCS_URL`      | yes      | Docs site URL                               |
-| `PUBLIC_LINKEDIN_URL`  | no       | LinkedIn group, rendered in footer when set |
-| `PUBLIC_CONTACT_EMAIL` | no       | Falls back to `relab@cml.leidenuniv.nl`     |
+| Name                   | Required | Purpose                            |
+| ---------------------- | -------- | ---------------------------------- |
+| `PUBLIC_API_URL`       | yes      | Backend API base URL               |
+| `PUBLIC_APP_URL`       | yes      | Canonical app URL                  |
+| `PUBLIC_SITE_URL`      | yes      | Canonical site URL                 |
+| `PUBLIC_DOCS_URL`      | yes      | Canonical docs URL                 |
+| `PUBLIC_LINKEDIN_URL`  | no       | LinkedIn group link for the footer |
+| `PUBLIC_CONTACT_EMAIL` | no       | Public contact address             |
 
-Runtime (tooling only, read by [config/runtime.ts](./config/runtime.ts)):
+Tooling also reads a small runtime config surface from [config/runtime.ts](config/runtime.ts).
 
-| Name       | Notes                                                            |
-| ---------- | ---------------------------------------------------------------- |
-| `BASE_URL` | If set, Playwright runs against it instead of starting a preview |
-| `CI`       | Set by CI; tightens Playwright reporter + retries                |
+| Name       | Purpose                                                                        |
+| ---------- | ------------------------------------------------------------------------------ |
+| `BASE_URL` | Run Playwright against an existing site instead of spinning up a local preview |
+| `CI`       | Tightens Playwright reporting and retry behavior in CI                         |
 
-## Repo structure
+## Testing
 
-- `src/layouts` — shared document shell and page chrome
-- `src/components` — presentational Astro components
-- `src/scripts` — small client-side DOM initializers
-- `src/content` — structured metadata and page copy
-- `src/config` — public-env and shared helpers
-- `src/styles` — layered CSS (tokens, layout, header, forms, components)
-- `e2e` — functional and visual Playwright coverage
+Unit tests live next to the code they cover as `*.test.ts`.
 
-## More
+```bash
+pnpm vitest run src/scripts/theme.test.ts
+pnpm vitest
+```
 
-For local setup, testing patterns, and accessibility expectations, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development). For a lightweight performance budget, build the site and run `just size` — unexpected jumps in built HTML/CSS/image output are worth reviewing.
+E2E tests live in `e2e/`. By default, Playwright builds the site and starts a preview server when `BASE_URL` is not set. To run against the Docker stack instead:
+
+```bash
+BASE_URL=http://localhost:8010 pnpm run test:e2e
+```
+
+## More context
+
+For broader frontend conventions in this monorepo, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
