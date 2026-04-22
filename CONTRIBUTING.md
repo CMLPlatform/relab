@@ -53,7 +53,7 @@ This is the recommended path into the repo if you use VS Code.
 1. Run the standard checks when you want to verify the repo state.
 
    ```bash
-   just validate
+   just ci
    ```
 
 ### Available Configurations
@@ -148,7 +148,7 @@ From the repo root:
 
 ```bash
 just setup
-just validate
+just ci
 just test
 just test-integration
 just security
@@ -321,7 +321,7 @@ If you are new to the repo, start with the architecture docs before making struc
 1. Run the relevant checks.
 
    ```bash
-   just validate
+   just ci
    ```
 
 1. Push your branch and open a PR.
@@ -346,7 +346,7 @@ The repo uses GitHub Actions for:
 
 Locally, the important commands are:
 
-- `just validate`
+- `just ci`
 - `just test`
 - `just test-integration`
 - `just security`

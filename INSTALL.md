@@ -76,7 +76,7 @@ This page is about running the stack. For manifest conventions, tooling policy, 
 1. Run checks if needed.
 
    ```bash
-   just validate
+   just ci
    just test
    ```
 
