@@ -1,3 +1,6 @@
+# OpenTelemetry Collector configuration for Jaeger tracing
+# spell-checker: ignore otlphttp
+file_format: yaml
 receivers:
   otlp:
     protocols:
@@ -6,6 +9,7 @@ receivers:
 
 processors:
   batch:
+
 
 exporters:
   debug:
@@ -16,6 +20,6 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [debug, otlphttp/jaeger]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ debug, otlphttp/jaeger ]

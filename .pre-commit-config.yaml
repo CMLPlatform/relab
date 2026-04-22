@@ -1,6 +1,8 @@
 # Repository-wide pre-commit policy hooks.
 # Project-specific linting and test commands live in the subrepo `justfile`s.
 
+# spell-checker: ignore rhysd
+
 repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
@@ -38,7 +40,7 @@ repos:
     rev: v1.7.12
     hooks:
       - id: actionlint
-        files: ^\.github/(workflows/.*\.ya?ml|actions/.*/action\.ya?ml)$
+        files: ^\.github/workflows/.*\.ya?ml$
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1

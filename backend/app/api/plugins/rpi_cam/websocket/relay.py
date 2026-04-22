@@ -1,5 +1,5 @@
 """Relay camera HTTP-style commands through an active WebSocket connection."""
-# spell-checker: ignore BLPOP, mpegurl
+# spell-checker: ignore BLPOP
 
 from __future__ import annotations
 

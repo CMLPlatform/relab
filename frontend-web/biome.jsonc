@@ -24,6 +24,7 @@
           },
           "style": {
             // Astro components follow PascalCase by convention.
+            // spell-checker: ignore Filenaming
             "useFilenamingConvention": {
               "level": "on",
               "options": {

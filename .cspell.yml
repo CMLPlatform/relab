@@ -17,6 +17,7 @@ enabledFileTypes:
   "*": true
 useGitignore: true
 ignorePaths:
+  - .cspell.yml
   - .devcontainer
   - .dockerignore
   - .git
@@ -25,91 +26,83 @@ ignorePaths:
   - package-lock.json
   - pnpm-lock.yaml
   - uv.lock
-  - "backend/app/api/auth/resources/disposable_email_domains.txt"
-  - "frontend-app/src/assets/data/**"
-  - "frontend-app/src/types/api.generated.ts"
-language: en_us,nl
+  - backend/app/api/auth/resources/disposable_email_domains.txt
+  - frontend-app/src/assets/data/**
+  - frontend-app/src/types/api.generated.ts
+
+language: en_us
 words:
-  - anchore
-  - aquasecurity
-  - categorymateriallink
-  - categoryproducttypelink
-  - circularityproperties
-  - crowdsource
-  - dismissable
+  # Proper nouns
   - Donati
-  - ERD
-  - Filenaming
-  - fileparenttype
-  - grotesk
-  - GOMAXPROCS
-  - hydrateable
-  - imageparenttype
-  - instrumentor
-  - instrumentors
-  - jaegertracing
   - Lierde
+  - RELab
+
+  # Font names
+  - grotesk
+
+  # Technical terms
   - linkinator
-  - materialproductlink
   - mpegurl
-  - newslettersubscriber
+  - nosniff
+  - shellcheck
+  - subrepo
+  - subrepos
+  - trixie
+
+  -  # Miscellaneous
   - orcid
-  - organizationrole
-  - oauthaccount
-  - physicalproperties
-  - pressable
-  - pressables
-  - primaryjoin
-  - producttype
   - refurbishers
-  - relab
+  - RELab
   - remanufacturability
   - remanufacturable
   - repairability
-  - refetches
-  - RTMP
-  - selectinload
-  - shellcheck
-  - subcomponent
-  - subcomponents
-  - subrepo
-  - subrepos
-  - supercategory
-  - taxonomydomain
-  - tsquery
-  - tsvector
-  - trixie
-  - UNEP
-  - viewability
   - zenodo
 
-  # Temp (added to cSpell repo, should be available in the next cSpell release)
-  - ASGI
-  - Caddyfile
-  - cloudflared
-  - Fernet
-  - fontawesome
-  - justfile
-  - mdformat
-  - mjml
-  - mypi
-  - rclone
-  - rhysd
-  - Zensical
-
 ignoreWords:
-  - Jldmlldw
-  - ellipsize
-  - hibp
-  - htmlcov
-  - nosniff
-  - otelcol
-  - otlphttp
-  - piexif
-  - PYTHONDONTWRITEBYTECODE
-  - PYTHONUNBUFFERED
+
   - USEPOLLING
-  - uninstrument
-  - worklets
-  - xdist
-  - zxcvbn
+
+overrides:
+  - filename: "{backend,docs}/**"
+    words:
+      # Model terms
+      - categorymateriallink
+      - categoryproducttypelink
+      - circularityproperties
+      - fileparenttype
+      - imageparenttype
+      - materialproductlink
+      - newslettersubscriber
+      - organizationrole
+      - oauthaccount
+      - physicalproperties
+      - producttype
+      - subcomponent
+      - subcomponents
+      - supercategory
+      - taxonomydomain
+
+  - filename: "backend/**"
+    words:
+      # Technical terms
+      - instrumentor
+      - instrumentors
+      - piexif
+      - PYTHONDONTWRITEBYTECODE
+      - PYTHONUNBUFFERED
+      - primaryjoin
+      - selectinload
+      - tsquery
+      - tsvector
+      - uninstrument
+      - xdist
+      - zxcvbn
+
+  - filename: "frontend-app/**"
+    words:
+      # Technical terms
+      - ellipsize
+      - pressable
+      - pressables
+      - refetches
+      - worklets

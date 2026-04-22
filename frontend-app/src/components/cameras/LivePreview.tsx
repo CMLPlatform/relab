@@ -11,7 +11,6 @@ import type { CameraConnectionInfo } from '@/hooks/useLocalConnection';
 import { useCameraLivePreview } from '@/hooks/useRpiCameras';
 import type { CameraRead } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
-// spell-checker: ignore mpegurl
 
 /**
  * LL-HLS live preview for a single camera.

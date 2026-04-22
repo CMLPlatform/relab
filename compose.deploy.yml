@@ -1,6 +1,9 @@
 # compose.deploy.yml (DEPLOY — covers prod AND staging)
 # Defaults target prod. Uncomment the staging block in root `.env` to run a
 # staging-shaped stack (same file, different .env).
+
+# spell-checker:: ignore jaegertracing, otelcol
+
 name: ${COMPOSE_PROJECT_NAME:-relab_prod}
 
 services:
