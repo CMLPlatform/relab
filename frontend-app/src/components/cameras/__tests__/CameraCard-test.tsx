@@ -33,9 +33,7 @@ function makeCamera(overrides: Partial<CameraReadWithStatus> = {}): CameraReadWi
     id: 'cam-1',
     name: 'Test Camera',
     description: '',
-    last_image_url: null,
-    last_image_thumbnail_url: null,
-    last_preview_thumbnail_url: null,
+    preview_thumbnail_url: null,
     status: { connection: 'online', last_seen_at: null, details: null },
     telemetry: undefined,
     ...overrides,
@@ -56,13 +54,13 @@ describe('CameraCard', () => {
 
   // ── Three-state visual distinction ────────────────────────────────────────
 
-  it('online + last_image_url: renders thumbnail, full opacity, "Online" chip', () => {
-    const camera = makeCamera({ last_image_url: 'https://example.com/shot.jpg' });
+  it('online + preview_thumbnail_url: renders thumbnail, full opacity, "Online" chip', () => {
+    const camera = makeCamera({ preview_thumbnail_url: 'https://example.com/preview.jpg' });
 
     const { UNSAFE_getByProps } = renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
-    expect(screen.getByText('img:https://example.com/shot.jpg')).toBeOnTheScreen();
+    expect(screen.getByText('img:https://example.com/preview.jpg')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
 
     // Card must NOT have the opacity:0.6 offline style
@@ -75,36 +73,13 @@ describe('CameraCard', () => {
   });
 
   it('online + no stored preview: renders placeholder icon and preview caption', () => {
-    const camera = makeCamera({ last_image_url: null });
+    const camera = makeCamera({ preview_thumbnail_url: null });
 
     renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();
     expect(screen.getByText('No preview available')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
-  });
-
-  it('online + last stored thumbnail: prefers the thumbnail-sized URL', () => {
-    const camera = makeCamera({
-      last_image_url: 'https://example.com/shot.jpg',
-      last_image_thumbnail_url: 'https://example.com/shot-thumb.webp',
-    });
-
-    renderWithProviders(<CameraCard camera={camera} />);
-
-    expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
-    expect(screen.getByText('img:https://example.com/shot-thumb.webp')).toBeOnTheScreen();
-  });
-
-  it('online + no capture yet: falls back to the cached preview thumbnail', () => {
-    const camera = makeCamera({
-      last_preview_thumbnail_url: 'https://example.com/preview-thumb.jpg',
-    });
-
-    renderWithProviders(<CameraCard camera={camera} />);
-
-    expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen();
-    expect(screen.getByText('img:https://example.com/preview-thumb.jpg')).toBeOnTheScreen();
   });
 
   it('direct connection state still renders without needing snapshot queries', () => {
@@ -128,9 +103,9 @@ describe('CameraCard', () => {
     expect(screen.getByText('Direct connection')).toBeOnTheScreen();
   });
 
-  it('offline: card has opacity 0.6, "Offline" chip, "Last seen" text; no thumbnail even with last_image_url', () => {
+  it('offline: card has opacity 0.6, "Offline" chip, "Last seen" text; no thumbnail even with preview_thumbnail_url', () => {
     const camera = makeCamera({
-      last_image_url: 'https://example.com/stale.jpg',
+      preview_thumbnail_url: 'https://example.com/stale.jpg',
       status: { connection: 'offline', last_seen_at: secsAgo(120), details: null },
     });
 

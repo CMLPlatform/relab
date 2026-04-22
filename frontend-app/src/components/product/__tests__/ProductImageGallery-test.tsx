@@ -147,7 +147,7 @@ function makeCamera(overrides: Partial<CameraReadWithStatus> = {}): CameraReadWi
     id: 'cam-1',
     name: 'Bench Cam',
     description: '',
-    last_image_url: null,
+    preview_thumbnail_url: null,
     status: { connection: 'online', last_seen_at: null, details: null },
     telemetry: undefined,
     ...overrides,

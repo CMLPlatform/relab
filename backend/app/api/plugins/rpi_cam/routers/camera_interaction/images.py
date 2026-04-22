@@ -142,15 +142,10 @@ async def receive_camera_upload(
     await require_model(session, Product, product_id_int)
 
     description = upload_meta.get("description") or f"Captured from camera {camera.name}."
-    # Stamp which camera took the image into the JSONB metadata so the mosaic
-    # dashboard can efficiently find the most recent capture per camera
-    # without adding a dedicated FK column + Alembic migration. See
-    # ``services.get_last_image_url_per_camera``.
-    capture_meta_with_camera = {**capture_meta, "camera_id": str(camera.id)}
     image_data = ImageCreateInternal(
         file=file,
         description=description,
-        image_metadata=capture_meta_with_camera,
+        image_metadata=capture_meta,
         parent_type=MediaParentType.PRODUCT,
         parent_id=product_id_int,
     )

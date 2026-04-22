@@ -2230,12 +2230,8 @@ export interface components {
       relay_credential_status: components['schemas']['CameraCredentialStatus'];
       status: components['schemas']['CameraStatus'];
       telemetry?: components['schemas']['TelemetrySnapshot'] | null;
-      /** Last Image Url */
-      last_image_url?: string | null;
-      /** Last Image Thumbnail Url */
-      last_image_thumbnail_url?: string | null;
-      /** Last Preview Thumbnail Url */
-      last_preview_thumbnail_url?: string | null;
+      /** Preview Thumbnail Url */
+      preview_thumbnail_url?: string | null;
     };
     /**
      * CameraStatus
@@ -2254,8 +2250,6 @@ export interface components {
     CameraStatusView: {
       current_mode?: components['schemas']['CameraMode'] | null;
       stream?: components['schemas']['StreamView'] | null;
-      /** Last Image Url */
-      last_image_url?: string | null;
     };
     /**
      * CameraUpdate

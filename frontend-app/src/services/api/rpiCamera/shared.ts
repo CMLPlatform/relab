@@ -19,10 +19,7 @@ export type CameraStatus = ApiCameraStatus;
 export type CameraRead = ApiCameraRead;
 export type ThermalState = ApiThermalState;
 export type CameraTelemetry = ApiCameraTelemetry;
-export type CameraReadWithStatus = ApiCameraReadWithStatus & {
-  last_image_thumbnail_url?: string | null;
-  last_preview_thumbnail_url?: string | null;
-};
+export type CameraReadWithStatus = ApiCameraReadWithStatus;
 export type LocalAccessInfo = ApiLocalAccessInfo;
 export type PairingClaimRequest = ApiPairingClaimRequest;
 export type StreamView = ApiStreamView;
@@ -72,24 +69,13 @@ export async function throwFromResponse(resp: Response, fallback: string): Promi
   throw new ApiError(message, resp.status, code);
 }
 
-export function normalizeCameraReadWithStatus<
-  T extends {
-    last_image_url?: string | null;
-    last_image_thumbnail_url?: string | null;
-    last_preview_thumbnail_url?: string | null;
-  },
->(camera: T): T {
+export function normalizeCameraReadWithStatus<T extends { preview_thumbnail_url?: string | null }>(
+  camera: T,
+): T {
   return {
     ...camera,
-    last_image_url: resolveApiMediaUrl(camera.last_image_url) ?? camera.last_image_url ?? null,
-    last_image_thumbnail_url:
-      resolveApiMediaUrl(camera.last_image_thumbnail_url) ??
-      camera.last_image_thumbnail_url ??
-      null,
-    last_preview_thumbnail_url:
-      resolveApiMediaUrl(camera.last_preview_thumbnail_url) ??
-      camera.last_preview_thumbnail_url ??
-      null,
+    preview_thumbnail_url:
+      resolveApiMediaUrl(camera.preview_thumbnail_url) ?? camera.preview_thumbnail_url ?? null,
   };
 }
 

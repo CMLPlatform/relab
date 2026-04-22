@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
@@ -13,14 +12,12 @@ from uuid import UUID
 from pydantic import UUID4, AnyUrl, BaseModel, PositiveInt, ValidationError
 from relab_rpi_cam_models.images import ImageCaptureStatus
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.query import require_model
 from app.api.common.schemas.base import serialize_datetime_with_z
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image
-from app.api.file_storage.schemas import ImageRead
 from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.exceptions import (
     InvalidCameraResponseError,
@@ -123,14 +120,6 @@ async def get_cached_telemetry(
         return None
 
 
-@dataclass(frozen=True)
-class LastCameraImageUrls:
-    """Public image URLs for the most recent capture of one camera."""
-
-    image_url: str | None = None
-    thumbnail_url: str | None = None
-
-
 def get_preview_thumbnail_path(camera_id: UUID4) -> Path:
     """Return the deterministic backend storage path for one camera's preview thumbnail."""
     return settings.image_storage_path / PREVIEW_THUMBNAIL_SUBDIR / f"{camera_id}.jpg"
@@ -148,45 +137,6 @@ def get_preview_thumbnail_url(camera_id: UUID4) -> str | None:
 def get_preview_thumbnail_urls_per_camera(camera_ids: list[UUID4]) -> dict[UUID, str | None]:
     """Return deterministic preview-thumbnail URLs for the given cameras."""
     return {UUID(str(camera_id)): get_preview_thumbnail_url(camera_id) for camera_id in camera_ids}
-
-
-async def get_last_image_urls_per_camera(
-    session: AsyncSession,
-    camera_ids: list[UUID4],
-) -> dict[UUID, LastCameraImageUrls]:
-    """Return the most recent captured image and thumbnail URLs for each camera in one query."""
-    if not camera_ids:
-        return {}
-
-    camera_id_strings = [str(camera_id) for camera_id in camera_ids]
-    camera_id_expr = Image.image_metadata["camera_id"].astext
-
-    stmt = (
-        select(Image)
-        .where(camera_id_expr.in_(camera_id_strings))
-        .order_by(camera_id_expr, Image.created_at.desc())
-        .distinct(camera_id_expr)
-    )
-    result = await session.execute(stmt)
-    rows = result.scalars().all()
-
-    urls: dict[UUID, LastCameraImageUrls] = {camera_id: LastCameraImageUrls() for camera_id in camera_ids}
-    for image in rows:
-        stored_camera_id = (image.image_metadata or {}).get("camera_id")
-        if not stored_camera_id:
-            continue
-        try:
-            camera_uuid = UUID(stored_camera_id)
-        except ValueError:
-            continue
-        if camera_uuid not in urls:
-            continue
-        image_read = ImageRead.model_validate(image)
-        urls[camera_uuid] = LastCameraImageUrls(
-            image_url=image_read.image_url,
-            thumbnail_url=image_read.thumbnail_url,
-        )
-    return urls
 
 
 class YouTubeRecordingSession(BaseModel):

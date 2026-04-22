@@ -25,7 +25,6 @@ from app.api.plugins.rpi_cam.services import (
     get_camera_status as fetch_camera_status,
 )
 from app.api.plugins.rpi_cam.services import (
-    get_last_image_urls_per_camera,
     get_preview_thumbnail_urls_per_camera,
 )
 from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
@@ -37,23 +36,10 @@ if TYPE_CHECKING:
 
     from redis.asyncio import Redis
 
-    from app.api.plugins.rpi_cam.service_runtime import LastCameraImageUrls
-
 logger = logging.getLogger(__name__)
 
 camera_router = PublicAPIRouter(tags=["rpi-cam-management"])
 router = PublicAPIRouter()
-
-
-def _camera_last_image_fields(
-    last_image_urls: dict[UUID4, LastCameraImageUrls],
-    camera_id: UUID4,
-) -> tuple[str | None, str | None]:
-    """Return the last image URLs for one camera when available."""
-    last_image = last_image_urls.get(camera_id)
-    if last_image is None:
-        return None, None
-    return last_image.image_url, last_image.thumbnail_url
 
 
 @camera_router.get(
@@ -89,31 +75,19 @@ async def get_user_cameras(
     if not (include_status or include_telemetry):
         return list(db_cameras)
 
-    # Batch-fetch the most recent capture URL per camera in one query so the
-    # mosaic list doesn't fan out N DB round-trips. When telemetry isn't
-    # requested we skip this too — no point paying the query cost for a
-    # caller that just wants online/offline status.
-    last_image_urls: dict = {}
-    preview_thumbnail_urls: dict = {}
+    preview_thumbnail_urls: dict[UUID4, str | None] = {}
     if include_telemetry:
-        camera_ids = [camera.id for camera in db_cameras]
-        last_image_urls = await get_last_image_urls_per_camera(session, camera_ids)
-        preview_thumbnail_urls = get_preview_thumbnail_urls_per_camera(camera_ids)
+        preview_thumbnail_urls = get_preview_thumbnail_urls_per_camera([camera.id for camera in db_cameras])
 
-    results: list[CameraReadWithStatus] = []
-    for camera in db_cameras:
-        last_image_url, last_image_thumbnail_url = _camera_last_image_fields(last_image_urls, camera.id)
-        results.append(
-            await CameraReadWithStatus.from_db_model_with_status(
-                camera,
-                redis,
-                include_telemetry=include_telemetry,
-                last_image_url=last_image_url,
-                last_image_thumbnail_url=last_image_thumbnail_url,
-                last_preview_thumbnail_url=preview_thumbnail_urls.get(camera.id),
-            )
+    return [
+        await CameraReadWithStatus.from_db_model_with_status(
+            camera,
+            redis,
+            include_telemetry=include_telemetry,
+            preview_thumbnail_url=preview_thumbnail_urls.get(camera.id),
         )
-    return results
+        for camera in db_cameras
+    ]
 
 
 @camera_router.get(
@@ -124,7 +98,6 @@ async def get_user_cameras(
 async def get_user_camera(
     db_camera: UserOwnedCameraDep,
     redis: OptionalRedisDep,
-    session: AsyncSessionDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -139,22 +112,14 @@ async def get_user_camera(
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
     if not (include_status or include_telemetry):
         return db_camera
-    last_image_url: str | None = None
-    last_image_thumbnail_url: str | None = None
-    last_preview_thumbnail_url: str | None = None
+    preview_thumbnail_url: str | None = None
     if include_telemetry:
-        urls = await get_last_image_urls_per_camera(session, [db_camera.id])
-        last_image = urls.get(db_camera.id)
-        last_image_url = last_image.image_url if last_image is not None else None
-        last_image_thumbnail_url = last_image.thumbnail_url if last_image is not None else None
-        last_preview_thumbnail_url = get_preview_thumbnail_urls_per_camera([db_camera.id]).get(db_camera.id)
+        preview_thumbnail_url = get_preview_thumbnail_urls_per_camera([db_camera.id]).get(db_camera.id)
     return await CameraReadWithStatus.from_db_model_with_status(
         db_camera,
         redis,
         include_telemetry=include_telemetry,
-        last_image_url=last_image_url,
-        last_image_thumbnail_url=last_image_thumbnail_url,
-        last_preview_thumbnail_url=last_preview_thumbnail_url,
+        preview_thumbnail_url=preview_thumbnail_url,
     )
 
 

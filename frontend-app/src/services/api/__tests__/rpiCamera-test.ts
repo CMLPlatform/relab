@@ -44,9 +44,7 @@ describe('rpiCamera API service', () => {
       {
         id: 'cam-1',
         name: 'Desk Cam',
-        last_image_url: null,
-        last_image_thumbnail_url: null,
-        last_preview_thumbnail_url: null,
+        preview_thumbnail_url: null,
       },
     ]);
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
@@ -68,9 +66,7 @@ describe('rpiCamera API service', () => {
     expect(result).toEqual({
       id: 'cam-1',
       name: 'Desk Cam',
-      last_image_url: null,
-      last_image_thumbnail_url: null,
-      last_preview_thumbnail_url: null,
+      preview_thumbnail_url: null,
     });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -224,15 +220,13 @@ describe('rpiCamera API service', () => {
     mockJsonResponse({
       id: 'cam-1',
       name: 'Desk Cam',
-      last_image_url: null,
-      last_image_thumbnail_url: null,
-      last_preview_thumbnail_url: '/uploads/images/rpi-cam-preview/cam-1.jpg',
+      preview_thumbnail_url: '/uploads/images/rpi-cam-preview/cam-1.jpg',
     });
 
     const result = await fetchCamera('cam-1', true);
 
-    expect(result.last_preview_thumbnail_url).toMatch(PREVIEW_THUMBNAIL_PATH_PATTERN);
-    expect(result.last_preview_thumbnail_url).toMatch(ABSOLUTE_URL_PATTERN);
+    expect(result.preview_thumbnail_url).toMatch(PREVIEW_THUMBNAIL_PATH_PATTERN);
+    expect(result.preview_thumbnail_url).toMatch(ABSOLUTE_URL_PATTERN);
   });
 
   it('omits include_telemetry when the flag is false', async () => {
@@ -291,23 +285,19 @@ describe('rpiCamera API service', () => {
     );
   });
 
-  it('resolves relative last-image URLs against the API base', async () => {
+  it('resolves relative preview_thumbnail_url against the API base', async () => {
     mockJsonResponse([
       {
         id: 'cam-1',
         name: 'Bench Cam',
-        last_image_url: '/uploads/cameras/cam-1/latest.jpg',
-        last_image_thumbnail_url: '/images/cam-1-thumb/resized?width=200',
+        preview_thumbnail_url: '/uploads/images/rpi-cam-preview/cam-1.jpg',
       },
     ]);
 
     const result = await fetchCameras(true);
 
-    expect(result[0]?.last_image_url).toBe(
-      'http://localhost:8000/api/uploads/cameras/cam-1/latest.jpg',
-    );
-    expect(result[0]?.last_image_thumbnail_url).toBe(
-      'http://localhost:8000/api/images/cam-1-thumb/resized?width=200',
+    expect(result[0]?.preview_thumbnail_url).toBe(
+      'http://localhost:8000/api/uploads/images/rpi-cam-preview/cam-1.jpg',
     );
   });
 

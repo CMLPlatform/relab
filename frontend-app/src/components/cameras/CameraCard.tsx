@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { memo, useMemo, useState } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
@@ -44,25 +44,6 @@ function formatLastSeen(lastSeenAt: string | null | undefined): string {
   return `${diffDays}d ago`;
 }
 
-/**
- * Camera card used by the mosaic dashboard.
- *
- * Three visual states, deliberately distinct so a user can tell "offline" from
- * "online but no captures yet" at a glance:
- *
- *   - **Online + has captures:** thumbnail on top, status + telemetry chips
- *     below. Full opacity.
- *   - **Online + no captures yet:** icon placeholder with "No captures yet"
- *     caption, telemetry chip. Full opacity.
- *   - **Offline:** whole card dimmed to 60% opacity, status chip in the
- *     offline colour, "Last seen X ago" caption replaces telemetry. No
- *     thumbnail. Online cards use the best cached image available
- *     (captured-photo thumbnail first, then cached preview thumbnail) instead
- *     of issuing live snapshot requests from the mosaic.
- *
- * Tapping the card navigates to the camera detail screen regardless of
- * state so users can still see history / dialog / settings when offline.
- */
 function CameraCardComponent({
   camera,
   effectiveConnection,
@@ -74,16 +55,8 @@ function CameraCardComponent({
   const [failedThumbnailUrl, setFailedThumbnailUrl] = useState<string | null>(null);
   const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
-  const resolvedThumbnailUrl = useMemo(
-    () =>
-      camera.last_image_thumbnail_url ??
-      camera.last_image_url ??
-      camera.last_preview_thumbnail_url ??
-      null,
-    [camera.last_image_thumbnail_url, camera.last_image_url, camera.last_preview_thumbnail_url],
-  );
-  const hasThumbnail =
-    isOnline && Boolean(resolvedThumbnailUrl) && failedThumbnailUrl !== resolvedThumbnailUrl;
+  const thumbnailUrl = camera.preview_thumbnail_url ?? null;
+  const hasThumbnail = isOnline && Boolean(thumbnailUrl) && failedThumbnailUrl !== thumbnailUrl;
 
   return (
     <Card
@@ -98,11 +71,11 @@ function CameraCardComponent({
       <View style={[styles.thumbnailFrame, { backgroundColor: theme.colors.scrim }]}>
         {hasThumbnail ? (
           <Image
-            source={{ uri: resolvedThumbnailUrl ?? undefined }}
+            source={{ uri: thumbnailUrl ?? undefined }}
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
-            onError={() => setFailedThumbnailUrl(resolvedThumbnailUrl)}
+            onError={() => setFailedThumbnailUrl(thumbnailUrl)}
           />
         ) : (
           <View style={styles.thumbnailPlaceholder}>
