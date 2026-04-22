@@ -58,17 +58,14 @@ The app uses three test layers with different speed and confidence tradeoffs:
 - `integration`: slower Jest tests for screen composition, router behavior, provider stacks, and MSW-backed user flows
 - `e2e`: Playwright browser flows against a built web app
 
-`just test` and `pnpm test` intentionally run only the fast unit suite.
+`just test` and `pnpm test` run the full Jest suite (unit + integration).
 
-Use explicit commands when you need broader confidence:
+Use explicit commands when you need a narrower or broader scope:
 
 ```bash
-just test-unit         # same as just test
+just test-unit         # fast unit suite only
 just test-integration  # app-level Jest integration tests
-just test-jest         # unit + integration together
-just test-unit-timings
-just test-integration-timings
-just test-e2e          # Playwright browser E2E
+just test-e2e          # Playwright browser E2E (requires `just build-web` and compose.e2e.yml running)
 pnpm run test:ci       # unit + integration with CI flags and coverage
 ```
 
@@ -76,22 +73,11 @@ Jest integration tests in this repo still run in-memory with `jest-expo` and Rea
 
 ## Timing Jest Suites
 
-Use Jest's built-in JSON output to profile slow test files:
+To profile slow test files, run Jest with JSON output and inspect the report:
 
 ```bash
-just test-unit-timings
-just test-integration-timings
+pnpm test -- --runInBand --json --outputFile=.jest-timings.json
 ```
-
-These commands run the relevant Jest suite serially with `--runInBand`, write a JSON report, and print a sorted table of the slowest test files.
-
-If you already have a JSON timing file and only want to reformat it, use:
-
-```bash
-node scripts/jest-timings.js .jest-unit-timings.json 10
-```
-
-We intentionally keep only the two explicit timing commands. They cover the common path, and the direct `node scripts/jest-timings.js ...` fallback is enough when you only want to reformat an existing report.
 
 ## More
 
