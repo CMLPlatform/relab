@@ -15,9 +15,14 @@ dictionaries:
 enabled: true
 enabledFileTypes:
   "*": true
+dot: true
 useGitignore: true
+cache:
+  useCache: true
+  cacheStrategy: content
 ignorePaths:
   - .cspell.yml
+  - .cspellcache
   - .devcontainer
   - .dockerignore
   - .git
@@ -49,17 +54,15 @@ words:
   - subrepos
   - trixie
 
-  -  # Miscellaneous
+  # Miscellaneous
   - orcid
   - refurbishers
-  - RELab
   - remanufacturability
   - remanufacturable
   - repairability
   - zenodo
 
 ignoreWords:
-
   - USEPOLLING
 
 overrides:

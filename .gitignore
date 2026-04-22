@@ -85,3 +85,6 @@ AGENTS.md
 
 # pnpm store
 .pnpm-store
+
+# Local cspell cache
+.cspellcache

@@ -84,8 +84,8 @@ repos:
         entry: pnpm exec cspell
         language: system
         types: [ text ]
-        args:
-          [ "--config", ".cspell.yml", "--dot", "--gitignore", "--no-must-find-files" ]
+        # Disable cspell caching as pre-commit and CI doesn't play well with it.
+        args: [ "--no-cache", "--no-must-find-files" ]
       - id: pnpm-lock-frontend-app
         name: pnpm-lock-frontend-app
         entry: just frontend-app/lockfile
