@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
-  "extends": "//",
+  "extends": ["../biome.base.jsonc"],
   "files": {
     "includes": [
       "**",
@@ -38,6 +38,17 @@
     }
   },
   "overrides": [
+    {
+      // Tooling config files run in Node and occasionally need interop imports.
+      "includes": ["eslint.config.mjs"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noNamespaceImport": "off"
+          }
+        }
+      }
+    },
     {
       // Test files routinely contain dummy secrets and looser fixture setup.
       "includes": [

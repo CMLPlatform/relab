@@ -1,9 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
-  "extends": "//",
+  "extends": ["../biome.base.jsonc"],
   "files": {
     "includes": [
       // Keep docs linting focused on checked-in source and config files.
+      ".",
       "astro.config.mjs",
       "playwright.config.ts",
       "package.json",
