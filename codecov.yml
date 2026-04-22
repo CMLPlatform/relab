@@ -40,18 +40,10 @@ flags:
     carryforward: true
 
 # Path resolution note:
-# Jest runs inside each sub-directory, so LCOV files contain paths relative to
-# that directory (e.g. "src/app/profile.tsx"). Codecov's auto-path-fix resolves
-# these by searching the git tree for matching files. This works reliably here
-# because frontend-app, frontend-web, and backend have non-overlapping file
-# names, so each path resolves unambiguously.
-#
-# If Codecov ever starts mis-attributing files, add explicit fixes:
-#   fixes:
-#     - "src/::frontend-app/src/"   # only safe if frontend-web uses a different prefix
-#
-# A more robust long-term fix is to configure Jest to emit absolute paths:
-#   coverageProvider: "v8" and rootDir set to the repo root.
+# Frontend LCOV uploads contain paths relative to their subrepo (for example
+# "src/app/index.tsx"). CI passes an explicit network_prefix per upload, so
+# Codecov resolves those files against "frontend-app/" and "frontend-web/"
+# without relying on repository-wide path search heuristics.
 
 comment:
   layout: "reach,diff,flags,files"
