@@ -10,7 +10,8 @@
     "biome": "biome",
     "check": "pnpm run lint",
     "lint": "biome check biome.jsonc package.json codemeta.json relab.code-workspace renovate.json",
-    "format": "biome check --write biome.jsonc package.json codemeta.json relab.code-workspace renovate.json"
+    "format": "biome format --write biome.jsonc package.json codemeta.json relab.code-workspace renovate.json",
+    "fix": "biome check --write biome.jsonc package.json codemeta.json relab.code-workspace renovate.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.12"
