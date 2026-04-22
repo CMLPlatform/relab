@@ -60,6 +60,11 @@ pre-commit:
     uv run pre-commit run --all-files
     @echo "✓ Repository policy checks passed"
 
+# Run cached full-repo spell checking
+spellcheck:
+    pnpm run spellcheck
+    @echo "✓ Full-repo spell check passed"
+
 # Run root and subrepo lint checks
 lint:
     pnpm run lint
@@ -71,7 +76,7 @@ lint:
 
 # Run root and subrepo quality checks (lint + typecheck + format verification)
 check:
-    pnpm run lint
+    pnpm run check
     @just backend/check
     @just docs/check
     @just frontend-web/check
