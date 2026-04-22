@@ -33,10 +33,7 @@ const mermaidThemeVariables = {
 } as const;
 
 const normalizeMermaidSource = (source: string) => {
-  let text = source
-    .replace(/\r\n?/g, '\n')
-    .replace(BOM_PATTERN, '')
-    .trim();
+  let text = source.replace(/\r\n?/g, '\n').replace(BOM_PATTERN, '').trim();
 
   const frontmatterMatch = text.match(FRONTMATTER_PATTERN);
   if (frontmatterMatch) {
@@ -137,7 +134,7 @@ const renderMermaid = async (force = false) => {
       activeMermaidTheme = theme;
       for (const diagram of diagrams) {
         diagram.removeAttribute('data-processed');
-        diagram.innerHTML = diagram.dataset.mermaidSource ?? diagram.textContent ?? '';
+        diagram.textContent = diagram.dataset.mermaidSource ?? diagram.textContent ?? '';
       }
     }
 

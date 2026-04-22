@@ -80,6 +80,25 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -
     assert exc_info.value.headers == {"Retry-After": "2"}
 
 
+async def test_relay_via_websocket_sanitizes_path_and_response_in_warning_log(caplog: pytest.LogCaptureFixture) -> None:
+    """Warning logs should neutralize newline characters from relay-controlled values."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.return_value = (
+        {"status": 400, "data": "bad\npayload\rvalue"},
+        None,
+    )
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        pytest.raises(HTTPException),
+        caplog.at_level("WARNING"),
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
+
+    assert any("bad payload value" in record.message and "GET /camera" in record.message for record in caplog.records)
+
+
 async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
     """After three failed cross-worker attempts, later requests should fast-fail."""
     camera_id = uuid4()

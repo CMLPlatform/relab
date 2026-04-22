@@ -1,5 +1,6 @@
 const tocStateKey = 'relab-docs-toc-collapsed';
-const tocChevronPath = 'm14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z';
+const tocChevronPath =
+  'm14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z';
 
 export const initTocChrome = () => {
   const panel = document.querySelector('.right-sidebar-panel');
@@ -7,9 +8,9 @@ export const initTocChrome = () => {
   const toc = panel?.querySelector('starlight-toc');
   if (
     !(
-      (panel instanceof HTMLElement) &&
-      (container instanceof HTMLElement) &&
-      (toc instanceof HTMLElement)
+      panel instanceof HTMLElement &&
+      container instanceof HTMLElement &&
+      toc instanceof HTMLElement
     )
   ) {
     return;

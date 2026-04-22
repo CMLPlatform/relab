@@ -1,5 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { PRODUCT_NAME_MAX_LENGTH, PRODUCT_NAME_MIN_LENGTH, productSchema } from '../productSchema';
+import {
+  extractYouTubeVideoId,
+  PRODUCT_NAME_MAX_LENGTH,
+  PRODUCT_NAME_MIN_LENGTH,
+  productSchema,
+} from '../productSchema';
 
 const validBase = {
   id: 1 as number | 'new',
@@ -145,5 +150,16 @@ describe('productSchema', () => {
       ],
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe('extractYouTubeVideoId', () => {
+  it('extracts IDs from youtube.com watch URLs', () => {
+    expect(extractYouTubeVideoId('https://www.youtube.com/watch?v=abc123')).toBe('abc123');
+  });
+
+  it('rejects deceptive non-YouTube hosts containing youtube.com', () => {
+    expect(extractYouTubeVideoId('https://evil-youtube.com/watch?v=abc123')).toBeNull();
+    expect(extractYouTubeVideoId('https://youtube.com.evil.example/watch?v=abc123')).toBeNull();
   });
 });

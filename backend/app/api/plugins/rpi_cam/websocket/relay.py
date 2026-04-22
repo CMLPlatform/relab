@@ -22,6 +22,7 @@ from app.api.plugins.rpi_cam.websocket.connection_manager import (
 )
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import relay_cross_worker
 from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -241,7 +242,11 @@ async def relay_via_websocket(
     except RuntimeError as exc:
         # Camera not connected in this worker — try the cross-worker bridge.
         if redis is None:
-            logger.warning("Camera %s not connected for relay: %s", camera_id, exc)
+            logger.warning(
+                "Camera %s not connected for relay: %s",
+                sanitize_log_value(camera_id),
+                sanitize_log_value(exc),
+            )
             raise _camera_not_connected() from exc
         try:
             json_resp, binary = await _attempt_cross_worker_relay(
@@ -272,11 +277,11 @@ async def relay_via_websocket(
         _detail = error_msg or f"Camera returned error for {normalized_method} {path}"
         logger.warning(
             "Camera %s returned %d for %s %s: %s",
-            camera_id,
+            sanitize_log_value(camera_id),
             response_status,
-            normalized_method,
-            path,
-            response_data,
+            sanitize_log_value(normalized_method),
+            sanitize_log_value(path),
+            sanitize_log_value(response_data),
         )
         raise HTTPException(status_code=response_status, detail=_detail)
 
