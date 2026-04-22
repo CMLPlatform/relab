@@ -1,12 +1,14 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
+# spell-checker: ignore rhysd
+
 name: Validate
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main, develop]
+    branches: [ main, develop ]
   merge_group:
   workflow_dispatch:
   schedule:
@@ -49,7 +51,7 @@ jobs:
 
   automation:
     name: Automation and Compose Policy
-    needs: [changes]
+    needs: [ changes ]
     if: github.event_name != 'schedule' && needs.changes.outputs.run-policy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -87,7 +89,7 @@ jobs:
 
   backend:
     name: Backend
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-backend == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -131,7 +133,7 @@ jobs:
 
   frontend-web:
     name: Frontend Web
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -193,7 +195,7 @@ jobs:
 
   frontend-app:
     name: Frontend App
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-frontend-app == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -237,7 +239,7 @@ jobs:
 
   docs:
     name: Docs
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-docs == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -263,7 +265,7 @@ jobs:
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
-    needs: [changes]
+    needs: [ changes ]
     if: needs.changes.outputs.run-e2e == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -294,7 +296,7 @@ jobs:
         working-directory: frontend-app
 
       - name: Run full-stack E2E tests
-        run: just _test-e2e-full-stack
+        run: just test-e2e-full-stack
 
       - name: Archive Playwright report
         if: failure()
