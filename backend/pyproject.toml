@@ -41,7 +41,7 @@
     "pillow >=11.2.1",
     "psycopg[binary] >=3.2.9",
     # TODO: Investigate pydantic v2.12 compatibility issues (might have to do with custom fastapi-users-db-sqlmodel fork)
-    "pydantic >=2.12,<2.13",
+    "pydantic >=2.13,<2.14",
     "pydantic-extra-types >=2.10.5",
     "pydantic-settings >=2.10.1",
     "python-dotenv >=1.1.1",
