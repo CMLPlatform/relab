@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast  # lgtm[py/unused-import]
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import QueryableAttribute
+from sqlalchemy.orm.attributes import QueryableAttribute  # lgtm[py/unused-import]
 
 from app.api.background_data.filters import CategoryFilter, CategoryFilterWithRelationships
 from app.api.background_data.models import Category, Taxonomy, TaxonomyDomain

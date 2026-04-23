@@ -23,7 +23,7 @@ _What problem does this solve or why is it worth merging?_
 
 ## Checklist
 
-- [ ] I've read the [contributing guidelines](../CONTRIBUTING.md)
+- [ ] I've read the [contributing guidelines](CONTRIBUTING.md)
 - [ ] Code follows style guidelines and passes quality checks (`just ci`)
 - [ ] Unit tests added/updated and passing locally (`just test`)
 - [ ] Documentation updated (if applicable)

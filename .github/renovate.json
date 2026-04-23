@@ -49,8 +49,7 @@
         "package.json",
         "pnpm-lock.yaml",
         "pyproject.toml",
-        "uv.lock",
-        "renovate.json"
+        "uv.lock"
       ],
       "labels": ["tooling"]
     },
@@ -80,7 +79,7 @@
     },
     {
       "groupName": "containers-compose",
-      "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
+      "matchFileNames": ["**/compose.*.yaml", "**/compose.yaml"],
       "pinDigests": true
     },
     {

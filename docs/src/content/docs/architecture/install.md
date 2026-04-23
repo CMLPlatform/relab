@@ -1,4 +1,10 @@
-# Installation Guide
+---
+title: Installation and Self-Hosting
+description: Run RELab locally or self-host the stack in production or staging.
+owner: docs
+status: canonical
+lastReviewed: '2026-04-23'
+---
 
 ## Hosted Use
 
@@ -10,7 +16,7 @@ No local setup is required.
 
 ## Self-Hosting
 
-Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. If your main goal is contributing code, [CONTRIBUTING.md](CONTRIBUTING.md) is the better starting point.
+Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. If your main goal is contributing code, [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md) is the better starting point.
 
 This page is about running the stack. For manifest conventions, tooling policy, and contributor workflow, use the engineering and contributing docs instead.
 
@@ -82,7 +88,7 @@ This page is about running the stack. For manifest conventions, tooling policy, 
 
 ## Production / Staging Deployment
 
-Deploys use a single compose overlay, [`compose.deploy.yml`](compose.deploy.yml). The host's root `.env` decides whether the stack comes up as prod or staging — one file, one command, no extra flags. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
+Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.env` decides whether the stack comes up as prod or staging — one file, one command, no extra flags. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
 
 1. Configure a Cloudflare tunnel.
 
@@ -123,7 +129,7 @@ Deploys use a single compose overlay, [`compose.deploy.yml`](compose.deploy.yml)
    If you also need taxonomy seeding in the migration container:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.deploy.yml --profile migrations up --build migrator
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yaml -f compose.deploy.yaml --profile migrations up --build migrator
    ```
 
 1. Manage the running stack.
@@ -143,9 +149,9 @@ If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), pro
    docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
    ```
 
-1. Set `LOKI_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include [`compose.logging.loki.yml`](compose.logging.loki.yml) when `LOKI_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
+1. Set `LOKI_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
 
-See the [engineering ops telemetry section](https://docs.cml-relab.org/architecture/engineering-ops/#telemetry) for the full flow.
+See the [engineering ops telemetry section](/architecture/engineering-ops/#telemetry) for the full flow.
 
 ## Staging Deployment
 
@@ -182,7 +188,7 @@ If you want camera-assisted capture, see the external plugin repository:
 
 [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
 
-The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the displayed pairing code in the app. See the [plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md) and the [platform camera guide](https://docs.cml-relab.org/user-guides/rpi-cam/) for details.
+The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the displayed pairing code in the app. See the [plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md) and the [platform camera guide](/user-guides/rpi-cam/) for details.
 If the Pi is headless, you can read the pairing code either from its local `/setup` page or from the `PAIRING READY` log line over SSH, `docker compose logs`, or `journalctl`.
 
 ## Need Help?

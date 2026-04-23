@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 with contextlib.suppress(ModuleNotFoundError):
-    import alembic_postgresql_enum  # Registers Alembic plugin for enum migrations; installed via `migrations` extra
-
+    # Registers Alembic plugin for enum migrations; installed via `migrations` extra
+    import alembic_postgresql_enum  # lgtm[py/unused-import]
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url

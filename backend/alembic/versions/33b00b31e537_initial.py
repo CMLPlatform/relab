@@ -8,7 +8,6 @@ Create Date: 2025-06-29 18:10:44.514384
 # spell-checker: ignore astext
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
 from alembic import op

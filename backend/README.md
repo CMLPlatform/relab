@@ -35,7 +35,7 @@ Committed migration/bootstrap payloads live under [data/seed/](data/seed/). The 
 
 Taxonomy imports are intentionally opt-in for the migrations image. If you want `SEED_CPV_*` or `SEED_HS_CATEGORIES`, rebuild `backend/Dockerfile.migrations` with `BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true` so the optional `seed-taxonomies` dependency group is available.
 
-The main [`backend/Dockerfile`](Dockerfile) is multi-target: the default `runtime` stage builds the slim production image, and `--target dev` produces the hot-reload dev image used by `compose.dev.yml`.
+The main [`backend/Dockerfile`](Dockerfile) is multi-target: the default `runtime` stage builds the slim production image, and `--target dev` produces the hot-reload dev image used by `compose.dev.yaml`.
 
 ## Current Backend Shape
 
@@ -62,4 +62,4 @@ Frontend code should keep consuming backend-generated OpenAPI types rather than 
 
 ## More
 
-For Docker setup, local development, migration workflow, and testing conventions, see [CONTRIBUTING.md](../CONTRIBUTING.md#backend-development).
+For Docker setup, local development, migration workflow, and testing conventions, see [CONTRIBUTING.md](../.github/CONTRIBUTING.md#backend-development).

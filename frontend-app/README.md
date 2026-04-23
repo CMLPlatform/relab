@@ -34,7 +34,7 @@ The Expo dev server runs on <http://localhost:8081>.
 
 You will usually want the backend running as well. If the API is not on localhost, set `EXPO_PUBLIC_API_URL` in `.env.local`.
 
-To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to your web OAuth client ID from Google Cloud Console. See [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-setup) for details.
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to your web OAuth client ID from Google Cloud Console. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md#frontend-setup) for details.
 
 ## Common Commands
 
@@ -65,7 +65,7 @@ Use explicit commands when you need a narrower or broader scope:
 ```bash
 just test-unit         # fast unit suite only
 just test-integration  # app-level Jest integration tests
-just test-e2e          # Playwright browser E2E (requires `just build-web` and compose.e2e.yml running)
+just test-e2e          # Playwright browser E2E (requires `just build-web` and compose.e2e.yaml running)
 pnpm run test:ci       # unit + integration with CI flags and coverage
 ```
 
@@ -81,7 +81,7 @@ pnpm test -- --runInBand --json --outputFile=.jest-timings.json
 
 ## More
 
-For emulator and device setup, testing patterns, and app-specific development notes, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
+For emulator and device setup, testing patterns, and app-specific development notes, see [CONTRIBUTING.md](../.github/CONTRIBUTING.md#frontend-development).
 
 ## Styling And Theming
 

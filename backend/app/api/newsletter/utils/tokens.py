@@ -23,12 +23,13 @@ class JWTType(StrEnum):
         """Return the expiration time in seconds for the token type."""
         match self:
             case JWTType.NEWSLETTER_CONFIRMATION:
-                return settings.verification_token_ttl_seconds
+                seconds = settings.verification_token_ttl_seconds
             case JWTType.NEWSLETTER_UNSUBSCRIBE:
-                return settings.newsletter_unsubscription_token_ttl_seconds
+                seconds = settings.newsletter_unsubscription_token_ttl_seconds
             case _:
                 err_msg = f"Invalid token type: {self}"
                 raise ValueError(err_msg)
+        return seconds
 
 
 def create_jwt_token(email: str, token_type: JWTType) -> str:

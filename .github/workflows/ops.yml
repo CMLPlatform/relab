@@ -31,18 +31,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout
+      - name: Checkout trusted workflow ref
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          ref: ${{ inputs.git_ref }}
 
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
+
+      - name: Checkout requested repository ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.git_ref }}
+          path: repo
+          persist-credentials: false
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
 
       - name: Run CI-stack backend perf baseline
+        working-directory: repo
         run: just docker-ci-perf-baseline
 
       - name: Archive perf artifacts
@@ -51,6 +57,6 @@ jobs:
         with:
           name: ops-backend-perf-baseline
           path: |
-            backend/reports/performance/latest-k6-summary.json
-            backend/reports/performance/*.md
+            repo/backend/reports/performance/latest-k6-summary.json
+            repo/backend/reports/performance/*.md
           retention-days: 14

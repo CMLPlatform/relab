@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Contribution guide
-    url: https://github.com/CMLPlatform/relab/blob/main/CONTRIBUTING.md
+    url: https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md
     about: Read this first if you need repo conventions, setup help, or contribution guidance.

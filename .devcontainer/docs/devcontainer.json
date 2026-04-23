@@ -1,6 +1,6 @@
 {
   "name": "relab-docs",
-  "dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
+  "dockerComposeFile": ["../../compose.yaml", "../../compose.dev.yaml"],
   "service": "docs-site",
   "runServices": ["docs-site"],
   "workspaceFolder": "/opt/relab/docs",

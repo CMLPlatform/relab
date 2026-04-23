@@ -9,7 +9,7 @@ default:
 install:
     pnpm install --frozen-lockfile
 
-# Regenerate the lockfile without installing dependencies
+# Regenerate the lockfile without installing dependencies (called by pre-commit hook on package.json changes)
 lockfile:
     pnpm install --lockfile-only --ignore-scripts
 
@@ -19,17 +19,14 @@ update:
     pnpm update -D
     pnpm dedupe
     pnpm dlx expo-doctor
-    @echo "✓ Frontend-app dependencies updated"
 
 # Run lint checks
 lint:
     pnpm run lint
-    @echo "✓ Frontend-app lint passed"
 
 # Run static type checks
 typecheck:
     pnpm run typecheck
-    @echo "✓ Frontend-app type checks passed"
 
 # Run the frontend-app quality gate
 check: lint typecheck
@@ -38,12 +35,10 @@ check: lint typecheck
 # Auto-format code
 format:
     pnpm run format
-    @echo "✓ Frontend-app code formatted"
 
 # Auto-fix lint issues and format code
 fix:
     pnpm run fix
-    @echo "✓ Frontend-app code fixed and formatted"
 
 # Run tests (unit + integration)
 test:
@@ -60,7 +55,6 @@ test-integration:
 # Run the frontend-app CI test suite
 test-ci:
     pnpm run test:ci
-    @echo "✓ Frontend-app CI test suite passed"
 
 # Run the full frontend-app CI pipeline locally
 ci: check test-ci
@@ -73,9 +67,8 @@ dev PORT="8081":
 # Scan dependencies for known vulnerabilities
 audit:
     pnpm run audit
-    @echo "✓ Dependency audit complete"
 
-# Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)
+# Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
 e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
 
 # Build Expo web app for E2E testing (exports static SPA to dist/)
@@ -84,7 +77,7 @@ build-web:
     @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
     EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} pnpm run build:web
 
-# Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
+# Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yaml running)
 test-e2e:
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
@@ -103,14 +96,9 @@ test-e2e-cross-browser:
     fi
     pnpm run test:e2e:cross-browser
 
-# Open Playwright UI for interactive E2E test development
-test-e2e-ui:
-    pnpm run test:e2e:ui
-
 # Clean caches and build artifacts
 clean:
     rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
-    @echo "✓ Cleaned caches and build artifacts"
 
 # Generate TypeScript API types from backend OpenAPI and redact sensitive examples
 codegen PORT="8011":
