@@ -1,19 +1,38 @@
 # compose.deploy.yml (DEPLOY — covers prod AND staging)
-# Defaults target prod. Uncomment the staging block in root `.env` to run a
-# staging-shaped stack (same file, different .env).
+#
+# Single artifact for both environments. APP_ENV (required) selects which.
+# Per-environment knobs live in committed `.env.<env>.compose` files at repo
+# root; per-host secrets live in the auto-loaded `.env` (gitignored).
+#
+# Invocation (see justfile `prod_compose` / `staging_compose`):
+#   docker compose --env-file .env --env-file .env.prod.compose \
+#                  -f compose.yml -f compose.deploy.yml up -d
 
-# spell-checker:: ignore jaegertracing, otelcol
+name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
-name: ${COMPOSE_PROJECT_NAME:-relab_prod}
+# --- Reusable fragments ------------------------------------------------------
+# Shipping container logs to a central Loki instance is opt-in: include
+# compose.logging.loki.yml alongside this file (the justfile does this
+# automatically when LOKI_URL is set in the host's root .env). Hosts without
+# Loki get Docker's default json-file driver — no config needed.
+
+x-env-backend: &env-backend
+  env_file: ./backend/.env.${APP_ENV:?APP_ENV must be set (prod|staging)}
 
 services:
   api:
-    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV:-prod}-local}
+    <<: *env-backend
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV}-local}
     environment:
-      ENVIRONMENT: ${APP_ENV:-prod}
+      ENVIRONMENT: ${APP_ENV}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
+      # OpenTelemetry — OTEL_EXPORTER_OTLP_ENDPOINT is the on/off switch;
+      # leave unset in root .env to disable. OTEL_SERVICE_NAME is read by the
+      # OTEL SDK automatically from the container env and matches the compose
+      # service name so traces group cleanly in the backend.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: relab-api
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
@@ -27,11 +46,10 @@ services:
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
-    env_file: ./backend/.env.${APP_ENV:-prod}
 
   migrator:
-    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV:-prod}-local}
-    env_file: ./backend/.env.${APP_ENV:-prod}
+    <<: *env-backend
+    image: ${RELAB_BACKEND_MIGRATIONS_IMAGE:-relab-backend-migrations:${APP_ENV}-local}
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   uploads-backup:
@@ -58,10 +76,10 @@ services:
       - backups
 
   redis:
+    <<: *env-backend
     volumes:
       # Persist cache data in both prod and staging (AOF persistence).
       - cache_data:/data
-    env_file: ./backend/.env.${APP_ENV:-prod}
 
   cloudflared:
     # Cloudflared tunnel service
@@ -71,22 +89,22 @@ services:
       api:
         condition: service_healthy
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be set (in root .env on the deploy host)}
     command: tunnel --no-autoupdate run
     pull_policy: always
 
   postgres:
-    env_file: ./backend/.env.${APP_ENV:-prod}
+    <<: *env-backend
 
   docs-site:
-    image: ${RELAB_DOCS_IMAGE:-relab-docs:${APP_ENV:-prod}-local}
+    image: ${RELAB_DOCS_IMAGE:-relab-docs:${APP_ENV}-local}
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
         PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
 
   app-site:
-    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:${APP_ENV:-prod}-local}
+    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:${APP_ENV}-local}
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
@@ -95,7 +113,7 @@ services:
       CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
 
   web-site:
-    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:${APP_ENV:-prod}-local}
+    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:${APP_ENV}-local}
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
@@ -116,33 +134,9 @@ services:
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
-    env_file: ./backend/.env.${APP_ENV:-prod} # Load database connection settings
+    env_file: ./backend/.env.${APP_ENV} # Load database connection settings
     profiles:
       - backups
 
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.123.0@sha256:611f7b58a12086c8ff8c752f5cb1cce3c88eec52d7374d8f273a609fdb9c0f63
-    restart: unless-stopped
-    depends_on:
-      - jaeger
-    volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    command: [ "--config=/etc/otelcol-contrib/config.yaml" ]
-    profiles:
-      - telemetry
-
-  jaeger:
-    image: jaegertracing/jaeger:2.6.0@sha256:5765e3da84e6e0dce8c1f39d33044f98f2519db15fbce0d7befc04df9e498f10
-    restart: unless-stopped
-    ports:
-      - "16686:16686" # Jaeger UI
-    volumes:
-      - jaeger_data:/badger
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    profiles:
-      - telemetry
-
 volumes:
   cache_data:
-  jaeger_data:

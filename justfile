@@ -8,13 +8,18 @@ default:
 dev_compose := "docker compose -p relab_dev -f compose.yml -f compose.dev.yml"
 ci_compose := "docker compose -p relab_test -f compose.yml -f compose.ci.yml"
 
-# Deploy overlay — same file for prod and staging. Per-host `.env` drives which
-# environment you get (see .env.example). On a prod VM `prod_compose` and
-# `staging_compose` both work; the `.env` decides.
-prod_compose := "docker compose -p relab_prod -f compose.yml -f compose.deploy.yml"
-# `staging_compose` is for dev-laptop-driven staging ops; env vars are forced inline
-# so the laptop's `.env` (usually prod-shaped) doesn't leak through.
-staging_compose := "APP_ENV=staging COMPOSE_PROJECT_NAME=relab_staging WEB_CONCURRENCY=2 BUILD_MODE=staging PUBLIC_SITE_URL=https://docs-test.cml-relab.org CSP_API_ORIGIN=https://api-test.cml-relab.org docker compose -f compose.yml -f compose.deploy.yml"
+# Deploy overlay — same file for prod and staging. Per-env non-secret config
+# lives in committed `.env.<env>.compose`; per-host secrets (TUNNEL_TOKEN, …)
+# live in the auto-loaded root `.env` (gitignored). Both `--env-file` flags are
+# required because specifying any `--env-file` disables Compose's auto-load.
+# `COMPOSE_PROJECT_NAME` is set inside each `.env.<env>.compose`, so laptop-
+# driven staging ops no longer need to override the host `.env`.
+#
+# `_loki_overlay` auto-includes compose.logging.loki.yml when the host's `.env`
+# has a non-empty LOKI_URL. Hosts without Loki get Docker's default log driver.
+_loki_overlay   := `if [ -f .env ] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then printf -- ' -f compose.logging.loki.yml'; fi`
+prod_compose    := "docker compose --env-file .env --env-file .env.prod.compose    -f compose.yml -f compose.deploy.yml" + _loki_overlay
+staging_compose := "docker compose --env-file .env --env-file .env.staging.compose -f compose.yml -f compose.deploy.yml" + _loki_overlay
 
 # ============================================================================
 # Setup
@@ -23,6 +28,7 @@ staging_compose := "APP_ENV=staging COMPOSE_PROJECT_NAME=relab_staging WEB_CONCU
 # Install all workspace dependencies (root + all subrepos)
 install:
     uv sync --frozen
+    pnpm install
     @just backend/install
     @just docs/install
     @just frontend-web/install
@@ -32,6 +38,8 @@ install:
 # Update all workspace dependencies
 update:
     uv lock --upgrade
+    pnpm update -D
+    pnpm dedupe 
     @just backend/update
     @just docs/update
     @just frontend-web/update
@@ -65,6 +73,11 @@ spellcheck:
     pnpm run spellcheck
     @echo "✓ Full-repo spell check passed"
 
+# Lint all tracked shell scripts with the pre-commit-managed ShellCheck hook
+shellcheck:
+    uv run pre-commit run shellcheck --files $(git ls-files '*.sh')
+    @echo "✓ Repository shell scripts passed ShellCheck"
+
 # Run root and subrepo lint checks
 lint:
     pnpm run lint
@@ -77,6 +90,7 @@ lint:
 # Run root and subrepo quality checks (lint + typecheck + format verification)
 check:
     pnpm run check
+    @just shellcheck
     @just backend/check
     @just docs/check
     @just frontend-web/check
@@ -194,6 +208,7 @@ compose-config:
     set -euo pipefail
     created_prod_env=false
     created_staging_env=false
+    created_root_env=false
     if [[ ! -f backend/.env.prod && -f backend/.env.prod.example ]]; then
         cp backend/.env.prod.example backend/.env.prod
         created_prod_env=true
@@ -202,11 +217,33 @@ compose-config:
         cp backend/.env.staging.example backend/.env.staging
         created_staging_env=true
     fi
-    trap '[[ "$created_prod_env" == true ]] && rm -f backend/.env.prod; [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging' EXIT
+    # Root .env holds deploy-host secrets (TUNNEL_TOKEN, …). Stub it for
+    # validation-only runs (e.g. CI) so `--env-file .env` doesn't error on
+    # a missing file. Values are placeholders; real secrets stay on the VM.
+    # Stub root .env if absent (e.g. CI) so `--env-file .env` doesn't fail.
+    if [[ ! -f .env ]]; then
+        : > .env
+        created_root_env=true
+    fi
+    trap '
+        [[ "$created_prod_env" == true ]] && rm -f backend/.env.prod
+        [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging
+        [[ "$created_root_env" == true ]] && rm -f .env
+    ' EXIT
+    # Placeholder secrets for validation-only runs. Real values come from the
+    # deploy host's root .env. Shell env fills gaps left by --env-file inputs.
+    # LOKI_URL is only consumed when the Loki overlay is included; export
+    # a placeholder so the "with-Loki" validation path renders too.
+    export TUNNEL_TOKEN="${TUNNEL_TOKEN:-placeholder}"
+    export LOKI_URL="${LOKI_URL:-http://placeholder/loki/api/v1/push}"
     {{ dev_compose }} config >/dev/null
     {{ ci_compose }} config >/dev/null
     {{ staging_compose }} config >/dev/null
     {{ prod_compose }} config >/dev/null
+    # Exercise the Loki-on path explicitly so CI catches regressions regardless
+    # of whether the local .env happens to have LOKI_URL set.
+    docker compose --env-file .env --env-file .env.prod.compose    -f compose.yml -f compose.deploy.yml -f compose.logging.loki.yml config >/dev/null
+    docker compose --env-file .env --env-file .env.staging.compose -f compose.yml -f compose.deploy.yml -f compose.logging.loki.yml config >/dev/null
     docker compose -p relab_e2e -f compose.e2e.yml config >/dev/null
     echo "✓ Compose configurations validated"
 
@@ -267,7 +304,7 @@ _dev-reset confirm='':
 # Docker: Production
 # ============================================================================
 
-# Start production stack (optional profiles: telemetry, backups, migrations)
+# Start production stack (optional profiles: backups, migrations)
 prod-up *PROFILES:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -282,7 +319,7 @@ prod-up *PROFILES:
     fi
     {{ prod_compose }} $flags up -d
 
-# Build (or rebuild) prod images (optional profiles: telemetry, backups, migrations)
+# Build (or rebuild) prod images (optional profiles: backups, migrations)
 prod-build *PROFILES:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -290,7 +327,15 @@ prod-build *PROFILES:
     for p in {{ PROFILES }}; do flags+=" --profile $p"; done
     {{ prod_compose }} $flags build
 
-# Stop production stack (optional profiles: telemetry, backups)
+# Build (or rebuild) prod images without cache (optional profiles: backups, migrations)
+prod-build-no-cache *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="--profile migrations --profile backups"
+    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
+    {{ prod_compose }} $flags build --no-cache
+
+# Stop production stack (optional profiles: backups)
 prod-down *PROFILES:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -323,7 +368,7 @@ _prod-backups-up confirm='':
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (optional profiles: telemetry, migrations)
+# Start staging stack (optional profiles: migrations)
 staging-up *PROFILES:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -338,7 +383,7 @@ staging-up *PROFILES:
     fi
     {{ staging_compose }} $flags up -d
 
-# Build (or rebuild) staging images (optional profiles: telemetry, migrations)
+# Build (or rebuild) staging images (optional profiles: migrations)
 staging-build *PROFILES:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -346,7 +391,15 @@ staging-build *PROFILES:
     for p in {{ PROFILES }}; do flags+=" --profile $p"; done
     {{ staging_compose }} $flags build
 
-# Stop staging stack (optional profiles: telemetry)
+# Build (or rebuild) staging images without cache (optional profiles: migrations)
+staging-build-no-cache *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="--profile migrations"
+    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
+    {{ staging_compose }} $flags build --no-cache
+
+# Stop staging stack ()
 staging-down *PROFILES:
     #!/usr/bin/env bash
     set -euo pipefail

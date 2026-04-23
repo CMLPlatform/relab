@@ -133,6 +133,20 @@ Deploys use a single compose overlay, [`compose.deploy.yml`](compose.deploy.yml)
    just prod-down YES
    ```
 
+### Optional: central telemetry
+
+If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), prod and staging can ship to it without any code changes:
+
+1. Install the Loki Docker driver plugin on the host (once):
+
+   ```bash
+   docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+   ```
+
+1. Set `LOKI_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include [`compose.logging.loki.yml`](compose.logging.loki.yml) when `LOKI_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
+
+See the [engineering ops telemetry section](https://docs.cml-relab.org/architecture/engineering-ops/#telemetry) for the full flow.
+
 ## Staging Deployment
 
 Staging is a first-class operational environment and follows the same manual server-side flow as production.

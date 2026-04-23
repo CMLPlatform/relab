@@ -56,18 +56,13 @@ typecheck:
     uv run --all-groups ty check
     @echo "✓ Backend: Static type checks passed"
 
-# Lint backend shell scripts with ShellCheck
-shellcheck:
-    git ls-files '*.sh' | xargs shellcheck -x --source-path=SCRIPTDIR:.
-    @echo "✓ Backend shell scripts passed ShellCheck"
-
 # Verify formatting (no writes)
 format-check:
     uv run ruff format --check
     @echo "✓ Backend formatting verified"
 
 # Run the fast backend quality gate (no database required)
-check: lint typecheck shellcheck format-check
+check: lint typecheck format-check
     @echo "✓ Backend checks passed"
 
 # ============================================================================
