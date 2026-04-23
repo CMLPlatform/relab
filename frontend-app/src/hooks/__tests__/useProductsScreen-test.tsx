@@ -189,10 +189,12 @@ describe('useProductsScreen', () => {
       const { rerender } = await renderUseProductsScreen();
 
       const mockedFn = jest.mocked(productsQueryOptions);
-      const firstIso = (mockedFn.mock.calls[0][4] as { createdAfter: Date }).createdAfter.toISOString();
+      const firstIso = (
+        mockedFn.mock.calls[0][4] as { createdAfter: Date }
+      ).createdAfter.toISOString();
 
       jest.advanceTimersByTime(500);
-      rerender();
+      rerender({});
 
       const lastIso = (
         mockedFn.mock.calls[mockedFn.mock.calls.length - 1][4] as { createdAfter: Date }

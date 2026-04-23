@@ -36,7 +36,9 @@ async function createProductViaDialog(
 // ─── Product detail navigation ─────────────────────────────────────────────────
 
 test.describe('Product detail: navigation', () => {
-  test('clicking a product card navigates to the detail page', { tag: '@cross-browser' }, async ({ page }) => {
+  test('clicking a product card navigates to the detail page', { tag: '@cross-browser' }, async ({
+    page,
+  }) => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);
   });

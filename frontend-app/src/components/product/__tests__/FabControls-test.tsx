@@ -34,6 +34,9 @@ jest.mock('@/components/cameras/CameraStreamPicker', () => ({
   CameraStreamPicker: () => null,
 }));
 
+const DISABLED_FALSE = /disabled=false/;
+const DISABLED_TRUE = /disabled=true/;
+
 const baseProps = {
   editMode: false,
   ownedByMe: true,
@@ -60,7 +63,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(/disabled=false/);
+    expect(fab).toHaveTextContent(DISABLED_FALSE);
     // No tooltip because we're not actually trying to save
     expect(screen.queryByTestId('tooltip')).toBeNull();
   });
@@ -76,7 +79,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
       />,
     );
     const fab = screen.getByTestId('primary-fab');
-    expect(fab).toHaveTextContent(/disabled=true/);
+    expect(fab).toHaveTextContent(DISABLED_TRUE);
     expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
   });
 
@@ -84,7 +87,7 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     render(
       <ProductFabControls {...baseProps} editMode={true} isDirty={true} validationValid={true} />,
     );
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(/disabled=false/);
+    expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_FALSE);
   });
 
   it('disables the FAB while saving regardless of dirty/valid state', () => {
@@ -97,11 +100,11 @@ describe('ProductFabControls — primary FAB enabled state', () => {
         isSaving={true}
       />,
     );
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(/disabled=true/);
+    expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_TRUE);
   });
 
   it('enables the FAB in view mode (validation is irrelevant)', () => {
     render(<ProductFabControls {...baseProps} editMode={false} validationValid={false} />);
-    expect(screen.getByTestId('primary-fab')).toHaveTextContent(/disabled=false/);
+    expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_FALSE);
   });
 });

@@ -6,7 +6,7 @@ const mockReplace = jest.fn();
 const mockPush = jest.fn();
 const mockSetOptions = jest.fn();
 const mockDispatch = jest.fn();
-const mockAddListener = jest.fn(() => jest.fn());
+const mockAddListener = jest.fn((_eventName: string, _listener: unknown) => jest.fn());
 const mockAlert = jest.fn();
 const mockFeedbackAlert = jest.fn();
 const mockUseProductForm = jest.fn();
@@ -229,9 +229,7 @@ describe('useProductPageScreen', () => {
       result.current.actions.goBackWithGuards();
     });
 
-    expect(mockAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Discard changes?' }),
-    );
+    expect(mockAlert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Discard changes?' }));
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
@@ -250,10 +248,10 @@ describe('useProductPageScreen', () => {
 
     expect(mockAlert).toHaveBeenCalledTimes(1);
 
-    const firstAlert = mockAlert.mock.calls[0]?.[0];
-    const discardButton = firstAlert?.buttons?.find(
-      (button: { text: string; onPress?: () => void }) => button.text === 'Discard',
-    );
+    const firstAlert = mockAlert.mock.calls[0]?.[0] as
+      | { buttons?: Array<{ text: string; onPress?: () => void }> }
+      | undefined;
+    const discardButton = firstAlert?.buttons?.find((button) => button.text === 'Discard');
 
     expect(discardButton).toBeDefined();
 

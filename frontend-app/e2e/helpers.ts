@@ -38,6 +38,7 @@ export async function dismissProductsInfoCard(page: Page) {
 
   for (const name of DISMISS_BUTTON_NAMES) {
     const button = page.getByRole('button', { name, exact: true });
+    // biome-ignore lint/performance/noAwaitInLoops: probe dismiss buttons in order; first visible wins.
     if (await button.isVisible({ timeout: 500 }).catch(() => false)) {
       await button.click();
       await expect(welcomeHeading).not.toBeVisible({ timeout: 5_000 });
@@ -102,45 +103,76 @@ export async function openProductCreationDialog(page: Page) {
  * second click triggers a fresh measurement and typically succeeds.
  */
 export async function openMenu(page: Page, anchor: Locator) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await anchor.click();
+  // Ensure the anchor is attached and actionable before we start dispatching clicks.
+  await anchor.waitFor({ state: 'visible', timeout: 10_000 });
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    // Alternate click strategies: Playwright's trusted click first, then a
+    // synthetic DOM click via element.click(). RN Paper's IconButton in
+    // contained-tonal mode occasionally drops the first pointer event under
+    // parallel-worker CPU load; a direct element.click() bypasses any
+    // pointer-events quirks on the Surface wrapper.
+    // biome-ignore lint/performance/noAwaitInLoops: sequential retry — each attempt must observe the previous one's outcome.
+    await (attempt % 2 === 0
+      ? anchor.click({ force: true })
+      : anchor.evaluate((el) => (el as HTMLElement).click()));
     try {
-      await page.locator('[role="menuitem"]').first().waitFor({
-        state: 'attached',
-        timeout: 3_000,
-      });
+      // Poll in-browser for attached menu items. Paper's measurement phase can
+      // briefly attach items with opacity 0 / visibility:hidden; attachment is
+      // the earliest reliable signal that onPress fired and the Portal mounted.
+      // In-browser polling at 50ms is fast enough to catch the window before
+      // measurement tears items down; Playwright's network-hop locator polling
+      // is too slow and would cause us to press Escape on a menu that just opened.
+      await page.waitForFunction(
+        () => document.querySelectorAll('[data-testid="menu-item-title"]').length > 0,
+        null,
+        { timeout: 2_500, polling: 50 },
+      );
       return;
     } catch {
-      // Menu didn't render; press Escape to clear any stuck Portal state, then retry.
       await page.keyboard.press('Escape').catch(() => {});
     }
   }
-  throw new Error('Menu anchor did not open a menu after 3 attempts');
+  throw new Error('Menu anchor did not open a menu after 4 attempts');
 }
 
-export async function selectMenuItem(page: Page, label: string) {
-  // RN Paper menus do a two-phase Portal render: items briefly attach off-screen
-  // for measurement, detach, then re-attach at the correct position. Playwright's
-  // async waitFor + evaluate can't bridge that window reliably. waitForFunction
-  // polls entirely in-browser so find + click is atomic with no JS-round-trip gap.
-  //
-  // We scan by title text *and* by the accessible menuitem name, because RN Paper
-  // renders the title in a non-clickable child and the menuitem role on an
-  // ancestor TouchableRipple. Clicking the ancestor is more reliable than
-  // clicking the text node directly.
-  await page.waitForFunction(
-    (targetLabel) => {
-      const items = Array.from(
-        document.querySelectorAll('[role="menuitem"]'),
-      ) as HTMLElement[];
-      const el = items.find((node) => node.textContent?.trim() === targetLabel);
-      if (!el) return false;
-      el.click();
-      return true;
-    },
-    label,
-    { timeout: 15_000, polling: 50 },
-  );
+/**
+ * Open an RN Paper Menu via its anchor and click the item with the given label.
+ * Combining open + select into one retried operation is required because the
+ * Menu can dismiss itself between separate calls (Paper re-measures on mount
+ * and any stray pointer event closes the Portal). We retry the full sequence
+ * until the item is clicked or we exhaust attempts.
+ */
+export async function selectMenuItem(page: Page, anchor: Locator, label: string) {
+  await anchor.waitFor({ state: 'visible', timeout: 10_000 });
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    // biome-ignore lint/performance/noAwaitInLoops: sequential retry.
+    await (attempt % 2 === 0
+      ? anchor.click({ force: true })
+      : anchor.evaluate((el) => (el as HTMLElement).click()));
+
+    try {
+      await page.waitForFunction(
+        (targetLabel) => {
+          const titles = Array.from(
+            document.querySelectorAll('[data-testid="menu-item-title"]'),
+          ) as HTMLElement[];
+          const titleNode = titles.find((node) => node.textContent?.trim() === targetLabel);
+          if (!titleNode) return false;
+          const clickable = (titleNode.closest('[role="menuitem"]') ?? titleNode) as HTMLElement;
+          clickable.click();
+          return true;
+        },
+        label,
+        { timeout: 3_500, polling: 50 },
+      );
+      return;
+    } catch {
+      await page.keyboard.press('Escape').catch(() => {});
+    }
+  }
+  throw new Error(`Could not open menu and click item "${label}" after 4 attempts`);
 }
 
 export async function openSeededProductFromProductsPage(page: Page) {
