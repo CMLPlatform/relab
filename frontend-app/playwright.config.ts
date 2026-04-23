@@ -30,25 +30,29 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
+      grep: /@cross-browser/,
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
+      grep: /@cross-browser/,
     },
     {
       name: 'mobile-chrome',
       use: { ...devices['Pixel 5'] },
+      grep: /@cross-browser/,
     },
     {
       name: 'mobile-safari',
       use: { ...devices['iPhone 13'] },
+      grep: /@cross-browser/,
     },
   ],
   // Serves the pre-built Expo web dist/ unless BASE_URL is already set
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'npx serve dist -l 18081 --no-clipboard',
+        command: 'pnpm exec serve dist -l 18081 --no-clipboard',
         url: 'http://localhost:18081',
         reuseExistingServer: !process.env.CI,
       },

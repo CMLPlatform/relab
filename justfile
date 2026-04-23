@@ -181,6 +181,19 @@ test-e2e-full-stack:
     just frontend-app/test-e2e
     echo "✅ Full-stack E2E tests passed"
 
+# Full-stack cross-browser E2E: same as test-e2e-full-stack but runs the full browser matrix
+test-e2e-full-stack-cross-browser:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'just _e2e-backend-down || true' EXIT
+    echo "→ Starting backend infrastructure..."
+    just _e2e-backend-up
+    echo "→ Building Expo web app..."
+    just frontend-app/build-web
+    echo "→ Running cross-browser Playwright E2E tests..."
+    just frontend-app/test-e2e-cross-browser
+    echo "✅ Full-stack cross-browser E2E tests passed"
+
 # ============================================================================
 # Security
 # ============================================================================

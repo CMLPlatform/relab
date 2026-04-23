@@ -1,4 +1,5 @@
 # Frontend App Tasks
+# spell-checker: ignore compgen
 
 # Show available recipes
 default:
@@ -85,7 +86,22 @@ build-web:
 
 # Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
 test-e2e:
-    pnpm run test:e2e
+    pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
+
+# Run the full cross-browser E2E matrix (installs missing browsers on first run; set INSTALL=force to reinstall)
+test-e2e-cross-browser:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cache_dir="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+    needed=(chromium firefox webkit)
+    missing=0
+    for b in "${needed[@]}"; do
+        compgen -G "$cache_dir/${b}-*" > /dev/null || missing=1
+    done
+    if [[ "${INSTALL:-}" == "force" || "$missing" == "1" ]]; then
+        pnpm exec playwright install --with-deps
+    fi
+    pnpm run test:e2e:cross-browser
 
 # Open Playwright UI for interactive E2E test development
 test-e2e-ui:
