@@ -86,7 +86,7 @@ async function mockGalleryProductApi(page: Page) {
   });
 }
 
-test.describe('Product gallery (e2e)', () => {
+test.describe('Product gallery (e2e)', { tag: '@cross-browser' }, () => {
   // Increase the per-test timeout for slower CI environments
   test.setTimeout(60_000);
   test('opens and closes lightbox from product page', async ({ page }) => {

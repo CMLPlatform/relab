@@ -26,6 +26,7 @@ export type AppTokens = {
     link: string;
     muted: string;
     inverseMuted: string;
+    onMedia: string;
   };
   surface: {
     raised: string;

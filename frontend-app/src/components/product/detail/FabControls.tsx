@@ -12,6 +12,7 @@ type ProductFabControlsProps = {
   validationError?: string;
   validationValid: boolean;
   isSaving: boolean;
+  isDirty: boolean;
   onPrimaryFabPress: () => void;
   streamPickerVisible: boolean;
   onDismissStreamPicker: () => void;
@@ -27,6 +28,7 @@ export function ProductFabControls({
   validationError,
   validationValid,
   isSaving,
+  isDirty,
   onPrimaryFabPress,
   streamPickerVisible,
   onDismissStreamPicker,
@@ -41,6 +43,7 @@ export function ProductFabControls({
         validationError={validationError}
         validationValid={validationValid}
         isSaving={isSaving}
+        isDirty={isDirty}
         ownedByMe={ownedByMe}
         editMode={editMode}
       />
@@ -63,6 +66,7 @@ function PrimaryProductFab({
   validationError,
   validationValid,
   isSaving,
+  isDirty,
   ownedByMe,
   editMode,
 }: {
@@ -72,22 +76,26 @@ function PrimaryProductFab({
   validationError?: string;
   validationValid: boolean;
   isSaving: boolean;
+  isDirty: boolean;
   ownedByMe: boolean;
   editMode: boolean;
 }) {
+  // Validation only matters when pressing the FAB would actually save
+  // (i.e. dirty). Otherwise the FAB just exits edit mode / discards a draft.
+  const wouldSave = editMode && isDirty;
   const fab = (
     <AnimatedFAB
       icon={icon}
       onPress={onPress}
       style={styles.rightFab}
-      disabled={(editMode && !validationValid) || isSaving}
+      disabled={(wouldSave && !validationValid) || isSaving}
       extended={fabExtended}
       label={editMode ? 'Save Product' : 'Edit Product'}
       visible={ownedByMe}
     />
   );
 
-  if (editMode && validationError) {
+  if (wouldSave && validationError) {
     return (
       <Tooltip title={validationError} enterTouchDelay={0} leaveTouchDelay={1500}>
         {fab}

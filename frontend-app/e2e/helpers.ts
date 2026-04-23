@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 const EMAIL = 'e2e-admin@example.com';
 const PASSWORD = 'E2eTestPass123!';
@@ -15,22 +15,39 @@ function makeOnboardingUsername() {
   return `e2e_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 }
 
-export async function dismissProductsInfoCard(page: Page) {
-  const buttons = DISMISS_BUTTON_NAMES.map((buttonName) => ({
-    button: page.getByRole('button', { name: buttonName }),
-    buttonName,
-  }));
-  const visibility = await Promise.all(
-    buttons.map(async ({ button }) => button.isVisible({ timeout: 1_000 }).catch(() => false)),
-  );
-  const visibleButton = buttons[visibility.findIndex(Boolean)]?.button;
+/**
+ * Pre-dismiss the guest welcome card via localStorage so it never renders.
+ * Must be called before any goto() on this page. The key matches
+ * GUEST_INFO_CARD_STORAGE_KEY in useProductsWelcomeCard.ts.
+ */
+async function suppressGuestWelcomeCard(page: Page) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('products_info_card_dismissed_guest', 'true');
+    } catch {
+      // Non-fatal: some contexts (e.g. opaque origin) forbid localStorage.
+    }
+  });
+}
 
-  if (visibleButton) {
-    await visibleButton.click();
+export async function dismissProductsInfoCard(page: Page) {
+  // Fallback dismissal for authenticated users (whose preference lives server-side).
+  const welcomeHeading = page.getByText('Welcome to RELab', { exact: true });
+  const appeared = await welcomeHeading.isVisible({ timeout: 1_000 }).catch(() => false);
+  if (!appeared) return;
+
+  for (const name of DISMISS_BUTTON_NAMES) {
+    const button = page.getByRole('button', { name, exact: true });
+    if (await button.isVisible({ timeout: 500 }).catch(() => false)) {
+      await button.click();
+      await expect(welcomeHeading).not.toBeVisible({ timeout: 5_000 });
+      return;
+    }
   }
 }
 
 export async function reachProductsPage(page: Page) {
+  await suppressGuestWelcomeCard(page);
   await page.goto('/products');
   await dismissProductsInfoCard(page);
   await expect(page.getByPlaceholder('Search products')).toBeVisible({
@@ -51,6 +68,7 @@ export async function finishOnboardingIfVisible(page: Page) {
 }
 
 export async function loginAndReachProducts(page: Page) {
+  await suppressGuestWelcomeCard(page);
   await page.goto('/login');
   await page.getByPlaceholder('Email or username').fill(EMAIL);
   await page.getByPlaceholder('Password').fill(PASSWORD);
@@ -77,19 +95,52 @@ export async function openProductCreationDialog(page: Page) {
   });
 }
 
-export async function selectMenuItem(page: Page, label: string) {
-  const labelNode = page.getByText(label, { exact: true }).last();
-  await expect(labelNode).toBeVisible({ timeout: 5_000 });
-
-  const menuItem = labelNode.locator('xpath=ancestor::*[@role="button" or @role="menuitem"][1]');
-  if ((await menuItem.count()) > 0) {
-    await menuItem.scrollIntoViewIfNeeded();
-    await menuItem.click({ force: true });
-    return;
+/**
+ * Click an RN Paper Menu anchor and wait for items to mount. Retries on
+ * failure: under parallel-worker CPU load, Paper's initial layout measurement
+ * can return zero dimensions, leaving the Portal in "not rendered" state — a
+ * second click triggers a fresh measurement and typically succeeds.
+ */
+export async function openMenu(page: Page, anchor: Locator) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await anchor.click();
+    try {
+      await page.locator('[role="menuitem"]').first().waitFor({
+        state: 'attached',
+        timeout: 3_000,
+      });
+      return;
+    } catch {
+      // Menu didn't render; press Escape to clear any stuck Portal state, then retry.
+      await page.keyboard.press('Escape').catch(() => {});
+    }
   }
+  throw new Error('Menu anchor did not open a menu after 3 attempts');
+}
 
-  await labelNode.scrollIntoViewIfNeeded();
-  await labelNode.click({ force: true });
+export async function selectMenuItem(page: Page, label: string) {
+  // RN Paper menus do a two-phase Portal render: items briefly attach off-screen
+  // for measurement, detach, then re-attach at the correct position. Playwright's
+  // async waitFor + evaluate can't bridge that window reliably. waitForFunction
+  // polls entirely in-browser so find + click is atomic with no JS-round-trip gap.
+  //
+  // We scan by title text *and* by the accessible menuitem name, because RN Paper
+  // renders the title in a non-clickable child and the menuitem role on an
+  // ancestor TouchableRipple. Clicking the ancestor is more reliable than
+  // clicking the text node directly.
+  await page.waitForFunction(
+    (targetLabel) => {
+      const items = Array.from(
+        document.querySelectorAll('[role="menuitem"]'),
+      ) as HTMLElement[];
+      const el = items.find((node) => node.textContent?.trim() === targetLabel);
+      if (!el) return false;
+      el.click();
+      return true;
+    },
+    label,
+    { timeout: 15_000, polling: 50 },
+  );
 }
 
 export async function openSeededProductFromProductsPage(page: Page) {

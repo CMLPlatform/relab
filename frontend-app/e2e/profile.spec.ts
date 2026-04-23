@@ -45,7 +45,7 @@ test.describe('Profile: access', () => {
 });
 
 test.describe('Profile: content', () => {
-  test('displays user email and account status chips', async ({ page }) => {
+  test('displays user email and account status chips', { tag: '@cross-browser' }, async ({ page }) => {
     await loginAndGoToProfile(page);
     await expect(page.getByText(EMAIL)).toBeVisible();
     await expect(page.getByText('Active')).toBeVisible();
@@ -123,7 +123,7 @@ test.describe('Profile: logout dialog', () => {
     await expect(page).toHaveURL(PROFILE_URL_PATTERN);
   });
 
-  test('confirming logout navigates to products and shows Sign In header', async ({ page }) => {
+  test('confirming logout navigates to products and shows Sign In header', { tag: '@cross-browser' }, async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByRole('button', { name: 'Logout' }).first().click();
     await expect(page.getByText('Are you sure you want to log out?')).toBeVisible({

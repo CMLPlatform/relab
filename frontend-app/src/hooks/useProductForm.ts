@@ -54,12 +54,12 @@ function useProductFieldHandlers(
 ) {
   const updateField = <K extends FieldPath<ProductFormValues>>(field: K) => {
     return (value: FieldPathValue<ProductFormValues, K>) =>
-      setValue(field, value, { shouldValidate: true });
+      setValue(field, value, { shouldValidate: true, shouldDirty: true });
   };
 
   return {
     onProductNameChange: (newName: string) =>
-      setValue('name', newName.trim(), { shouldValidate: true }),
+      setValue('name', newName.trim(), { shouldValidate: true, shouldDirty: true }),
     onChangeDescription: updateField('description'),
     onChangePhysicalProperties: updateField('physicalProperties'),
     onChangeCircularityProperties: updateField('circularityProperties'),
@@ -128,6 +128,7 @@ function useProductFormActions({
   deleteMutation,
   dialog,
   editMode,
+  isDirty,
   isNew,
   product,
   replace,
@@ -140,6 +141,7 @@ function useProductFormActions({
   deleteMutation: ReturnType<typeof useDeleteProductMutation>;
   dialog: ReturnType<typeof useDialog>;
   editMode: boolean;
+  isDirty: boolean;
   isNew: boolean;
   product: Product;
   replace: ReturnType<typeof useRouter>['replace'];
@@ -152,6 +154,17 @@ function useProductFormActions({
   const toggleEditMode = () => {
     if (!editMode) {
       setEditMode(true);
+      return;
+    }
+
+    if (!isDirty) {
+      // For new products, leaving means discarding the draft — defer to the
+      // page's navigation guard (beforeRemove) to surface the discard dialog.
+      if (isNew) {
+        replace('/products');
+        return;
+      }
+      setEditMode(false);
       return;
     }
 
@@ -203,6 +216,7 @@ export function useProductForm(id: string) {
     mode: 'onChange',
   });
   const { reset, setValue, formState } = form;
+  const { isDirty } = formState;
 
   const product = useWatch({
     control: form.control,
@@ -221,6 +235,7 @@ export function useProductForm(id: string) {
     deleteMutation,
     dialog,
     editMode,
+    isDirty,
     isNew,
     product,
     replace,
@@ -238,6 +253,7 @@ export function useProductForm(id: string) {
   return {
     product,
     editMode,
+    isDirty,
     serverProduct,
     isNew,
     isProductComponent,

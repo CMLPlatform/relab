@@ -197,7 +197,7 @@ export function ProductImageLightbox({
           accessibilityLabel="Close lightbox"
           style={styles.closeButton}
         >
-          <Icon source="close" size={28} color={theme.colors.inverseOnSurface} />
+          <Icon source="close" size={28} color={theme.tokens.text.onMedia} />
         </Pressable>
 
         <GalleryFlatList
@@ -253,10 +253,10 @@ export function ProductImageLightbox({
                 accessibilityRole="button"
                 accessibilityLabel="Previous image"
               >
-                <Icon source="chevron-left" size={32} color={theme.colors.inverseOnSurface} />
+                <Icon source="chevron-left" size={32} color={theme.tokens.text.onMedia} />
               </Pressable>
 
-              <Text style={[styles.counterText, { color: theme.colors.inverseOnSurface }]}>
+              <Text style={[styles.counterText, { color: theme.tokens.text.onMedia }]}>
                 {index + 1} / {images.length}
               </Text>
 
@@ -268,7 +268,7 @@ export function ProductImageLightbox({
                 accessibilityRole="button"
                 accessibilityLabel="Next image"
               >
-                <Icon source="chevron-right" size={32} color={theme.colors.inverseOnSurface} />
+                <Icon source="chevron-right" size={32} color={theme.tokens.text.onMedia} />
               </Pressable>
             </View>
           </View>

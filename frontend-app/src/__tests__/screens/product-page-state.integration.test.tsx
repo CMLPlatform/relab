@@ -474,6 +474,7 @@ describe('ProductPage state handling', () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       editMode: true,
+      isDirty: true,
     } as never);
 
     renderWithProviders(<ProductPage />, { withDialog: true });

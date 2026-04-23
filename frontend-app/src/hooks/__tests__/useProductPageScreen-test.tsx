@@ -11,6 +11,9 @@ const mockAlert = jest.fn();
 const mockFeedbackAlert = jest.fn();
 const mockUseProductForm = jest.fn();
 const mockUseProductQuery = jest.fn();
+let beforeRemoveListener:
+  | ((event: { preventDefault: () => void; data: { action: { type: string } } }) => void)
+  | undefined;
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: '42' }),
@@ -98,6 +101,7 @@ const baseProduct = {
 const baseFormReturn = {
   product: baseProduct,
   editMode: false,
+  isDirty: false,
   isNew: false,
   isProductComponent: false,
   justCreated: false,
@@ -125,6 +129,13 @@ const baseFormReturn = {
 describe('useProductPageScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    beforeRemoveListener = undefined;
+    mockAddListener.mockImplementation((eventName: string, listener: unknown) => {
+      if (eventName === 'beforeRemove') {
+        beforeRemoveListener = listener as typeof beforeRemoveListener;
+      }
+      return jest.fn();
+    });
     mockUseProductQuery.mockReturnValue({ data: undefined });
     mockUseProductForm.mockReturnValue(baseFormReturn);
   });
@@ -170,6 +181,7 @@ describe('useProductPageScreen', () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,
       editMode: true,
+      isDirty: true,
     });
 
     const { result } = renderHook(() => useProductPageScreen());
@@ -184,6 +196,81 @@ describe('useProductPageScreen', () => {
       }),
     );
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('navigates back without a discard prompt when editing with no unsaved changes', () => {
+    mockUseProductForm.mockReturnValueOnce({
+      ...baseFormReturn,
+      editMode: true,
+      isDirty: false,
+    });
+
+    const { result } = renderHook(() => useProductPageScreen());
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith('/products');
+    expect(mockAlert).not.toHaveBeenCalled();
+  });
+
+  it('prompts before navigating back from a new (unsaved) product even with no edits', () => {
+    mockUseProductForm.mockReturnValueOnce({
+      ...baseFormReturn,
+      editMode: true,
+      isDirty: false,
+      isNew: true,
+    });
+
+    const { result } = renderHook(() => useProductPageScreen());
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Discard changes?' }),
+    );
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('does not show the discard dialog twice after confirming a guarded back action', () => {
+    mockUseProductForm.mockReturnValueOnce({
+      ...baseFormReturn,
+      editMode: true,
+      isDirty: true,
+    });
+
+    const { result } = renderHook(() => useProductPageScreen());
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockAlert).toHaveBeenCalledTimes(1);
+
+    const firstAlert = mockAlert.mock.calls[0]?.[0];
+    const discardButton = firstAlert?.buttons?.find(
+      (button: { text: string; onPress?: () => void }) => button.text === 'Discard',
+    );
+
+    expect(discardButton).toBeDefined();
+
+    act(() => {
+      discardButton?.onPress?.();
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith('/products');
+
+    act(() => {
+      beforeRemoveListener?.({
+        preventDefault: jest.fn(),
+        data: { action: { type: 'GO_BACK' } },
+      });
+    });
+
+    expect(mockAlert).toHaveBeenCalledTimes(1);
   });
 
   it('navigates to the active stream product and profile setup routes', () => {

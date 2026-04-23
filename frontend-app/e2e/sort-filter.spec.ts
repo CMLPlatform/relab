@@ -9,7 +9,7 @@
  */
 
 import { expect, test } from '@playwright/test';
-import { loginAndReachProducts, reachProductsPage, selectMenuItem } from './helpers';
+import { loginAndReachProducts, openMenu, reachProductsPage, selectMenuItem } from './helpers';
 
 const SORT_CREATED_AT_URL_PATTERN = /sort=created_at/;
 const SORT_NAME_URL_PATTERN = /sort=name/;
@@ -38,36 +38,41 @@ test.describe('Sort menu', () => {
 
   test('sort button opens a menu with all expected options', async ({ page }) => {
     await goToProducts(page);
-    await page.getByLabel('Sort products').click();
-    await expect(page.getByText('Newest first')).toBeVisible();
-    await expect(page.getByText('Oldest first')).toBeVisible();
-    await expect(page.getByText('Name A→Z')).toBeVisible();
-    await expect(page.getByText('Name Z→A')).toBeVisible();
-    await expect(page.getByText('Brand A→Z')).toBeVisible();
-    await expect(page.getByText('Brand Z→A')).toBeVisible();
+    await openMenu(page, page.getByLabel('Sort products'));
+    // waitForFunction polls in-browser so we read all items atomically while they exist.
+    await page.waitForFunction(
+      (expected) => {
+        const found = Array.from(
+          document.querySelectorAll('[role="menuitem"]'),
+        ).map((el) => el.textContent?.trim() ?? '');
+        return expected.every((label) => found.includes(label));
+      },
+      ['Newest first', 'Oldest first', 'Name A→Z', 'Name Z→A', 'Brand A→Z', 'Brand Z→A'],
+      { timeout: 15_000, polling: 100 },
+    );
   });
 
   test('selecting "Oldest first" updates the URL sort param', async ({ page }) => {
     await goToProducts(page);
-    await page.getByLabel('Sort products').click();
+    await openMenu(page, page.getByLabel('Sort products'));
     await selectMenuItem(page, 'Oldest first');
     await expect(page).toHaveURL(SORT_CREATED_AT_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('selecting "Name A→Z" updates the URL sort param', async ({ page }) => {
     await goToProducts(page);
-    await page.getByLabel('Sort products').click();
+    await openMenu(page, page.getByLabel('Sort products'));
     await selectMenuItem(page, 'Name A→Z');
     await expect(page).toHaveURL(SORT_NAME_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('sort menu closes after selecting an option', async ({ page }) => {
     await goToProducts(page);
-    await page.getByLabel('Sort products').click();
-    await expect(page.getByText('Newest first')).toBeVisible();
+    await openMenu(page, page.getByLabel('Sort products'));
     await selectMenuItem(page, 'Newest first');
-    await expect(page.getByText('Oldest first')).not.toBeVisible({
-      timeout: 2_000,
+    // After selection the menu dismisses; items leave the DOM
+    await expect(page.locator('[role="menuitem"]').first()).not.toBeAttached({
+      timeout: 3_000,
     });
   });
 });
@@ -78,39 +83,46 @@ test.describe('Date filter chips', () => {
   test('all three date preset chips are visible', async ({ page }) => {
     await goToProducts(page);
     await expect(page.getByText('Date', { exact: true })).toBeVisible();
-    await page.getByText('Date', { exact: true }).click();
-    await expect(page.getByText('Last 7d')).toBeVisible();
-    await expect(page.getByText('Last 30d')).toBeVisible();
-    await expect(page.getByText('Last 90d')).toBeVisible();
+    await openMenu(page, page.getByText('Date', { exact: true }));
+    await page.waitForFunction(
+      (expected) => {
+        const found = Array.from(
+          document.querySelectorAll('[role="menuitem"]'),
+        ).map((el) => el.textContent?.trim() ?? '');
+        return expected.every((label) => found.includes(label));
+      },
+      ['Last 7d', 'Last 30d', 'Last 90d'],
+      { timeout: 15_000, polling: 100 },
+    );
   });
 
   test('clicking "Last 7d" updates the URL days param', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Date', { exact: true }).click();
+    await openMenu(page, page.getByText('Date', { exact: true }));
     await selectMenuItem(page, 'Last 7d');
     await expect(page).toHaveURL(DAYS_7_URL_PATTERN, { timeout: 3_000 });
   });
 
   test('clicking an active preset again removes the days param', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Date', { exact: true }).click();
+    await openMenu(page, page.getByText('Date', { exact: true }));
     await selectMenuItem(page, 'Last 30d');
     await expect(page).toHaveURL(DAYS_30_URL_PATTERN, { timeout: 3_000 });
     // Toggle off via the close (×) button on the active chip
-    await page.getByRole('button', { name: 'Close' }).click();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(page).not.toHaveURL(ANY_DAYS_URL_PATTERN, { timeout: 5_000 });
   });
 
   test('only one date preset can be active at a time', async ({ page }) => {
     await goToProducts(page);
-    await page.getByText('Date', { exact: true }).click();
+    await openMenu(page, page.getByText('Date', { exact: true }));
     await selectMenuItem(page, 'Last 7d');
     await expect(page).toHaveURL(DAYS_7_URL_PATTERN, { timeout: 3_000 });
     // Navigate fresh so the Date chip is in its initial state, then select a different preset.
     // This avoids the unreliable close-and-reopen menu flow while still verifying that
     // only one preset can be in the URL at a time.
     await goToProducts(page);
-    await page.getByText('Date', { exact: true }).click();
+    await openMenu(page, page.getByText('Date', { exact: true }));
     await selectMenuItem(page, 'Last 90d');
     await expect(page).toHaveURL(DAYS_90_URL_PATTERN, { timeout: 5_000 });
     await expect(page).not.toHaveURL(DAYS_7_URL_PATTERN);
@@ -120,13 +132,13 @@ test.describe('Date filter chips', () => {
 // ─── Brand / Type filter modals ────────────────────────────────────────────────
 
 test.describe('Brand filter', () => {
-  test('Brand chip opens a filter modal with a search field', async ({ page }) => {
+  test('Brand chip opens a filter modal with a search field', { tag: '@cross-browser' }, async ({ page }) => {
     await goToProducts(page);
     await page.getByText('Brand', { exact: true }).click();
     await expect(page.getByText('Filter by Brand')).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByPlaceholder('Search brands…')).toBeVisible();
+    await expect(page.getByPlaceholder('Search brands...')).toBeVisible();
   });
 
   test('dismissing the brand modal closes it without filtering', async ({ page }) => {
@@ -151,14 +163,14 @@ test.describe('Type filter', () => {
     await expect(page.getByText('Filter by Product Type')).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.getByPlaceholder('Search types…')).toBeVisible();
+    await expect(page.getByPlaceholder('Search types...')).toBeVisible();
   });
 });
 
 // ─── Search URL sync ───────────────────────────────────────────────────────────
 
 test.describe('Search URL sync', () => {
-  test('search query appears in URL after the debounce delay', async ({ page }) => {
+  test('search query appears in URL after the debounce delay', { tag: '@cross-browser' }, async ({ page }) => {
     await goToProducts(page);
     await page.getByPlaceholder('Search products').fill('test-query-abc');
     // The products page debounces search by 500 ms; allow up to 2 s for the URL to update

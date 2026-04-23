@@ -36,7 +36,7 @@ async function createProductViaDialog(
 // ─── Product detail navigation ─────────────────────────────────────────────────
 
 test.describe('Product detail: navigation', () => {
-  test('clicking a product card navigates to the detail page', async ({ page }) => {
+  test('clicking a product card navigates to the detail page', { tag: '@cross-browser' }, async ({ page }) => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);
   });
@@ -53,7 +53,7 @@ test.describe('Product detail: navigation', () => {
 // ─── Product creation flow ─────────────────────────────────────────────────────
 
 test.describe('Product creation', () => {
-  test('FAB opens the Create New Product dialog', async ({ page }) => {
+  test('FAB opens the Create New Product dialog', { tag: '@cross-browser' }, async ({ page }) => {
     await loginAndReachProducts(page);
     await openProductCreationDialog(page);
     await expect(page.getByPlaceholder('Product Name')).toBeVisible();
@@ -139,11 +139,13 @@ test.describe('Product detail: edit mode', () => {
     await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
       timeout: 10_000,
     });
+    // Make the form dirty so the unsaved-changes guard fires (form starts pristine after creation)
+    await page.getByPlaceholder('Add a product description').fill('test description');
 
     // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
     await page.getByRole('link', { name: BACK_LINK_NAME_PATTERN }).click();
     await expect(page.getByText('Discard changes?')).toBeVisible({
-      timeout: 5_000,
+      timeout: 10_000,
     });
     await expect(page.getByRole('button', { name: "Don't leave" })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();

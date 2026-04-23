@@ -17,7 +17,7 @@ import {
 } from './helpers';
 
 test.describe('Guest access', () => {
-  test('products page is publicly accessible without signing in', async ({ page }) => {
+  test('products page is publicly accessible without signing in', { tag: '@cross-browser' }, async ({ page }) => {
     await page.goto('/products');
     await dismissProductsInfoCard(page);
     await expect(page.getByPlaceholder('Search products')).toBeVisible({
@@ -29,7 +29,7 @@ test.describe('Guest access', () => {
 });
 
 test.describe('Products page', () => {
-  test('products page loads with correct filter tabs and search bar', async ({ page }) => {
+  test('products page loads with correct filter tabs and search bar', { tag: '@cross-browser' }, async ({ page }) => {
     await loginAndReachProducts(page);
     await expect(page.getByText('Mine', { exact: true })).toBeVisible();
     await expect(page.getByText('Date', { exact: true })).toBeVisible();

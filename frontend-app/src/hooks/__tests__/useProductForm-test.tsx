@@ -158,7 +158,7 @@ describe('useProductForm', () => {
     expect(result.current.product.name).toBe('Updated Name');
   });
 
-  it('triggers save mutation when toggleEditMode is called while editing', async () => {
+  it('triggers save mutation when toggleEditMode is called after edits', async () => {
     const mockMutate = jest.fn();
     (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
@@ -175,17 +175,66 @@ describe('useProductForm', () => {
     });
     expect(result.current.editMode).toBe(true);
 
-    // Call it again to save
+    // Make a change so the form is dirty
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    // Call toggle again to save
     await act(async () => {
       result.current.toggleEditMode();
     });
 
     expect(mockMutate).toHaveBeenCalledWith(
       expect.objectContaining({
-        product: expect.objectContaining({ name: 'Recycled Aluminum Laptop Stand' }),
+        product: expect.objectContaining({ name: 'Edited Name' }),
       }),
       expect.any(Object),
     );
+  });
+
+  it('exits edit mode without saving when toggleEditMode is called with no edits', async () => {
+    const mockMutate = jest.fn();
+    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+
+    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.toggleEditMode();
+    });
+    expect(result.current.editMode).toBe(true);
+
+    await act(async () => {
+      result.current.toggleEditMode();
+    });
+
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(result.current.editMode).toBe(false);
+  });
+
+  it('navigates back to /products when toggleEditMode is called on a new product with no edits', async () => {
+    // The navigation-guard in useProductPageScreen surfaces the discard dialog
+    // when isNew; this hook just initiates the navigation.
+    const mockMutate = jest.fn();
+    (useProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (consumeNewProductIntent as jest.Mock).mockReturnValue({ name: 'Draft' });
+
+    const { result } = renderHook(() => useProductForm('new'), { wrapper });
+
+    await waitFor(() => expect(result.current.isNew).toBe(true));
+
+    await act(async () => {
+      result.current.toggleEditMode();
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith('/products');
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 
   it('shows a dialog when saving fails', async () => {
@@ -207,6 +256,11 @@ describe('useProductForm', () => {
       result.current.toggleEditMode();
     });
     expect(result.current.editMode).toBe(true);
+
+    // Make a change so the form is dirty and save is triggered
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
 
     // Trigger save — the onError callback fires
     await act(async () => {
@@ -258,6 +312,11 @@ describe('useProductForm', () => {
     const { result } = renderHook(() => useProductForm('new'), { wrapper });
 
     await waitFor(() => expect(result.current.isNew).toBe(true));
+
+    // Make a change so the form is dirty and save is triggered
+    await act(async () => {
+      result.current.onProductNameChange('Filled Draft');
+    });
 
     await act(async () => {
       result.current.toggleEditMode();

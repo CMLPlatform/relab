@@ -38,6 +38,9 @@ export function createTokens(scheme: AppScheme, colors: MD3Theme['colors']): App
       link: SEMANTIC_COLORS.link,
       muted: isDark ? '#B7B7B7' : '#999999',
       inverseMuted: 'rgba(255,255,255,0.6)',
+      // Always-light content for elements placed on overlay.media (a dark scrim),
+      // regardless of app theme — the scrim is dark in both schemes.
+      onMedia: '#fff',
     },
     surface: {
       raised: colors.elevation.level2,

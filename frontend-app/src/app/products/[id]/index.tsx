@@ -84,6 +84,7 @@ export default function ProductPage() {
         validationError={editing.validationResult.error}
         validationValid={editing.validationResult.isValid}
         isSaving={editing.isSaving}
+        isDirty={editing.isDirty}
         onPrimaryFabPress={actions.toggleEditMode}
         streamPickerVisible={streaming.streamPickerVisible}
         onDismissStreamPicker={streaming.closeStreamPicker}

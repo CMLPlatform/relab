@@ -47,7 +47,7 @@ test.describe('Authentication flow', () => {
     });
   });
 
-  test('login with correct credentials succeeds and leaves the login screen', async ({ page }) => {
+  test('login with correct credentials succeeds and leaves the login screen', { tag: '@cross-browser' }, async ({ page }) => {
     await page.goto('/login');
     await page.getByPlaceholder('Email or username').fill(EMAIL);
     await page.getByPlaceholder('Password').fill(PASSWORD);
@@ -55,7 +55,7 @@ test.describe('Authentication flow', () => {
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
   });
 
-  test('full new-user flow: login → onboarding → products', async ({ page }) => {
+  test('full new-user flow: login → onboarding → products', { tag: '@cross-browser' }, async ({ page }) => {
     await page.goto('/login');
 
     // ── Login ───────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ test.describe('Account registration', () => {
     await expect(page.getByPlaceholder('Username', { exact: true })).toBeVisible();
   });
 
-  test('full registration flow: username → email → password → products', async ({ page }) => {
+  test('full registration flow: username → email → password → products', { tag: '@cross-browser' }, async ({ page }) => {
     // Use a timestamp-based unique identity to avoid collisions across runs
     const unique = Date.now();
     const username = `e2e${unique}`;

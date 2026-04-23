@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useProductsScreen } from '@/hooks/products/useProductsScreen';
+import { productsQueryOptions } from '@/hooks/useProductQueries';
 
+let mockSearchParams: Record<string, string> = {};
 const mockSetParams: jest.Mock = jest.fn();
 const mockPush: jest.Mock = jest.fn();
 const mockAlert: jest.Mock = jest.fn();
@@ -32,7 +34,7 @@ jest.mock('@tanstack/react-query', () => ({
 
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockSearchParams,
 }));
 
 jest.mock('@/components/common/dialogContext', () => {
@@ -80,6 +82,7 @@ jest.mock('@/services/storage', () => ({
 describe('useProductsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSearchParams = {};
     mockGetLocalItem.mockImplementation(async () => null);
     mockSetLocalItem.mockImplementation(async () => undefined);
   });
@@ -155,5 +158,46 @@ describe('useProductsScreen', () => {
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine', page: '1' });
     expect(mockSetParams).toHaveBeenCalledWith({ brands: 'Apple,Dell', page: '1' });
     expect(mockSetParams).toHaveBeenCalledWith({ page: '3' });
+  });
+
+  describe('date preset filter', () => {
+    beforeEach(() => {
+      jest.setSystemTime(new Date('2026-04-23T14:30:45.123Z'));
+    });
+
+    it('passes createdAfter truncated to UTC midnight for the given day count', async () => {
+      mockSearchParams = { days: '30' };
+      await renderUseProductsScreen();
+
+      const calls = jest.mocked(productsQueryOptions).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const { createdAfter } = calls[0][4] as { createdAfter: Date };
+      expect(createdAfter).toBeInstanceOf(Date);
+      expect(createdAfter.toISOString()).toBe('2026-03-24T00:00:00.000Z');
+    });
+
+    it('omits createdAfter when no days preset is active', async () => {
+      await renderUseProductsScreen();
+
+      const calls = jest.mocked(productsQueryOptions).mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      expect((calls[0][4] as { createdAfter?: Date }).createdAfter).toBeUndefined();
+    });
+
+    it('passes the same createdAfter ISO string on re-renders without a preset change', async () => {
+      mockSearchParams = { days: '7' };
+      const { rerender } = await renderUseProductsScreen();
+
+      const mockedFn = jest.mocked(productsQueryOptions);
+      const firstIso = (mockedFn.mock.calls[0][4] as { createdAfter: Date }).createdAfter.toISOString();
+
+      jest.advanceTimersByTime(500);
+      rerender();
+
+      const lastIso = (
+        mockedFn.mock.calls[mockedFn.mock.calls.length - 1][4] as { createdAfter: Date }
+      ).createdAfter.toISOString();
+      expect(lastIso).toBe(firstIso);
+    });
   });
 });

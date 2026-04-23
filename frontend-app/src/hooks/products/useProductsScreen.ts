@@ -48,9 +48,6 @@ function normalizeProductsParams(params: ProductsSearchParams) {
     activeDatePreset,
     activeBrands: params.brands ? params.brands.split(',') : [],
     activeProductTypes: params.types ? params.types.split(',') : [],
-    createdAfter: activeDatePreset
-      ? new Date(Date.now() - activeDatePreset * 86_400_000)
-      : undefined,
   };
 }
 
@@ -457,8 +454,14 @@ export function useProductsScreen(numColumns: number) {
     activeDatePreset,
     activeBrands,
     activeProductTypes,
-    createdAfter,
   } = useMemo(() => normalizeProductsParams(params), [params]);
+  const createdAfter = useMemo(() => {
+    if (!activeDatePreset) return undefined;
+    const d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() - activeDatePreset);
+    return d;
+  }, [activeDatePreset]);
   const [searchQuery, setSearchQuery] = useState(searchQueryURL);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const filterUi = useProductsFilterUiState();

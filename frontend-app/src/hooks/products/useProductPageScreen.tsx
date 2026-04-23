@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
@@ -40,10 +40,12 @@ export function useProductPageScreen() {
 
   const [fabExtended, setFabExtended] = useState(true);
   const [streamPickerVisible, setStreamPickerVisible] = useState(false);
+  const skipNextBeforeRemoveRef = useRef(false);
 
   const {
     product,
     editMode,
+    isDirty,
     isNew,
     isProductComponent,
     justCreated,
@@ -78,30 +80,83 @@ export function useProductPageScreen() {
   const showSavedIcon = useSavedIndicator(justSaved);
   useStreamPrompt({ activeStream, feedback, isNew, isProductComponent });
 
-  const goBackWithGuards = useCallback(() => {
-    const navigate = () => {
-      if (isProductComponent && product.parentID) {
-        router.replace({
-          pathname: '/products/[id]',
-          params: { id: product.parentID.toString() },
-        });
-      } else {
-        router.replace('/products');
-      }
-    };
+  const hasUnsavedChanges = isDirty || isNew;
 
-    if (editMode) {
+  const confirmLeave = useCallback(
+    (onConfirm: () => void) => {
       dialog.alert({
-        title: 'Discard changes?',
-        message:
-          'You have unsaved changes. Are you sure you want to discard them and leave the screen?',
-        buttons: [{ text: "Don't leave" }, { text: 'Discard', onPress: navigate }],
+        title: hasUnsavedChanges ? 'Discard changes?' : 'Stream still active',
+        message: hasUnsavedChanges
+          ? 'You have unsaved changes. Are you sure you want to discard them and leave the screen?'
+          : "You're currently live on YouTube. Leaving won't stop the stream — use Stop first.",
+        buttons: hasUnsavedChanges
+          ? [
+              { text: "Don't leave" },
+              {
+                text: 'Discard',
+                onPress: () => {
+                  skipNextBeforeRemoveRef.current = true;
+                  onConfirm();
+                },
+              },
+            ]
+          : [
+              { text: 'Stay' },
+              {
+                text: 'Leave anyway',
+                onPress: () => {
+                  skipNextBeforeRemoveRef.current = true;
+                  onConfirm();
+                },
+              },
+            ],
       });
+    },
+    [dialog, hasUnsavedChanges],
+  );
+
+  const capabilities = useMemo(
+    () =>
+      getProductCapabilities({
+        product,
+        activeStream,
+        rpiEnabled,
+        youtubeEnabled,
+        isGoogleLinked,
+        isNew,
+        isProductComponent,
+        justCreated,
+      }),
+    [
+      product,
+      activeStream,
+      rpiEnabled,
+      youtubeEnabled,
+      isGoogleLinked,
+      isNew,
+      isProductComponent,
+      justCreated,
+    ],
+  );
+
+  const navigateBack = useCallback(() => {
+    if (isProductComponent && product.parentID) {
+      router.replace({
+        pathname: '/products/[id]',
+        params: { id: product.parentID.toString() },
+      });
+    } else {
+      router.replace('/products');
+    }
+  }, [isProductComponent, product.parentID, router]);
+
+  const goBackWithGuards = useCallback(() => {
+    if (hasUnsavedChanges || capabilities.streamingThisProduct) {
+      confirmLeave(navigateBack);
       return;
     }
-
-    navigate();
-  }, [dialog, editMode, isProductComponent, product.parentID, router]);
+    navigateBack();
+  }, [capabilities.streamingThisProduct, confirmLeave, hasUnsavedChanges, navigateBack]);
 
   useProductPageHeader({
     navigation,
@@ -114,38 +169,17 @@ export function useProductPageScreen() {
     onProductNameChange,
   });
 
-  const capabilities = getProductCapabilities({
-    product,
-    activeStream,
-    rpiEnabled,
-    youtubeEnabled,
-    isGoogleLinked,
-    isNew,
-    isProductComponent,
-    justCreated,
-  });
-
   useEffect(() => {
     return navigation.addListener('beforeRemove', (event) => {
-      if (!(editMode || capabilities.streamingThisProduct)) return;
+      if (skipNextBeforeRemoveRef.current) {
+        skipNextBeforeRemoveRef.current = false;
+        return;
+      }
+      if (!(hasUnsavedChanges || capabilities.streamingThisProduct)) return;
       event.preventDefault();
-      dialog.alert({
-        title: editMode ? 'Discard changes?' : 'Stream still active',
-        message: editMode
-          ? 'You have unsaved changes. Are you sure you want to discard them and leave the screen?'
-          : "You're currently live on YouTube. Leaving won't stop the stream — use Stop first.",
-        buttons: editMode
-          ? [
-              { text: "Don't leave" },
-              { text: 'Discard', onPress: () => navigation.dispatch(event.data.action) },
-            ]
-          : [
-              { text: 'Stay' },
-              { text: 'Leave anyway', onPress: () => navigation.dispatch(event.data.action) },
-            ],
-      });
+      confirmLeave(() => navigation.dispatch(event.data.action));
     });
-  }, [capabilities.streamingThisProduct, dialog, editMode, navigation]);
+  }, [capabilities.streamingThisProduct, confirmLeave, hasUnsavedChanges, navigation]);
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     setFabExtended(event.nativeEvent.contentOffset.y <= 0);
@@ -164,6 +198,7 @@ export function useProductPageScreen() {
     },
     editing: {
       editMode,
+      isDirty,
       isSaving,
       validationResult,
       primaryFabIcon: () =>

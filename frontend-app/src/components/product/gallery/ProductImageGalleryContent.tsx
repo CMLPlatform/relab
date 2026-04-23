@@ -110,7 +110,7 @@ export function ProductImageGalleryContent({
             style={{ right: 8 }}
           />
           <View style={styles.counterBadge}>
-            <Text style={{ color: theme.colors.onPrimary, fontSize: 12, fontWeight: 'bold' }}>
+            <Text style={{ color: theme.tokens.text.onMedia, fontSize: 12, fontWeight: 'bold' }}>
               {selectedIndex + 1} / {imageCount}
             </Text>
           </View>
@@ -141,9 +141,9 @@ export function ProductImageGalleryContent({
                 ]}
               >
                 {isCapturing || rpiCamerasLoading ? (
-                  <ActivityIndicator size={18} color={theme.colors.onPrimary} />
+                  <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
                 ) : (
-                  <Icon source="camera-wireless" size={20} color={theme.colors.onPrimary} />
+                  <Icon source="camera-wireless" size={20} color={theme.tokens.text.onMedia} />
                 )}
               </Pressable>
             ) : null}
@@ -154,7 +154,7 @@ export function ProductImageGalleryContent({
             accessibilityLabel="Delete photo"
             style={styles.deleteButton}
           >
-            <Icon source="delete" size={20} color={theme.colors.onPrimary} />
+            <Icon source="delete" size={20} color={theme.tokens.text.onMedia} />
           </Pressable>
         </>
       ) : null}
@@ -175,7 +175,7 @@ function OverlayActionButton({
   const styles = createGalleryStyles(theme);
   return (
     <Pressable onPress={onPress} accessibilityLabel={label} style={styles.overlayIconButton}>
-      <Icon source={icon} size={20} color={theme.colors.onPrimary} />
+      <Icon source={icon} size={20} color={theme.tokens.text.onMedia} />
     </Pressable>
   );
 }
@@ -206,7 +206,7 @@ function GalleryNavButton({
       <Icon
         source={direction === 'left' ? 'chevron-left' : 'chevron-right'}
         size={32}
-        color={theme.colors.onPrimary}
+        color={theme.tokens.text.onMedia}
       />
     </Pressable>
   );
