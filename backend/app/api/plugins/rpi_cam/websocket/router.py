@@ -78,17 +78,18 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
     try:
         await _receive_loop(websocket, camera_id, manager, last_pong_at, redis)
     except WebSocketDisconnect:
+        # Client closed the socket; normal termination.
         pass
     except Exception:
         logger.exception("Unexpected error in WebSocket receive loop for camera %s", sanitize_log_value(camera_id))
     finally:
         heartbeat.cancel()
         with contextlib.suppress(asyncio.CancelledError):
-            await heartbeat
+            await heartbeat  # lgtm[py/ineffectual-statement]
         if relay_listener is not None:
             relay_listener.cancel()
             with contextlib.suppress(asyncio.CancelledError):
-                await relay_listener
+                await relay_listener  # lgtm[py/ineffectual-statement]
         manager.unregister(camera_id)
         if redis:
             await mark_camera_offline(redis, camera_id)

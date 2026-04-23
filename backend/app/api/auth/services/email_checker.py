@@ -16,7 +16,7 @@ from app.core.env import BACKEND_DIR
 from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
+    from collections.abc import Awaitable  # lgtm[py/unused-import]
     from pathlib import Path
 
     from redis.asyncio import Redis

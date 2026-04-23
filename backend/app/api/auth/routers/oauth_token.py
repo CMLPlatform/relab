@@ -43,7 +43,7 @@ from app.core.runtime import get_connection_redis
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable  # lgtm[py/unused-import]
 
 _GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 _GOOGLE_ISSUERS = frozenset({"https://accounts.google.com", "accounts.google.com"})

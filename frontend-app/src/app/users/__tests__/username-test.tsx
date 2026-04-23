@@ -7,7 +7,7 @@ import UserProfileScreen from '../[username]';
 
 jest.mock('@/services/api/profiles');
 jest.mock('expo-router', () => {
-  const React = require('react');
+  const React = require('react'); // lgtm[js/unused-local-variable]  // Used in `React.ReactNode` type annotation below.
   return {
     useRouter: jest.fn().mockReturnValue({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
     useSegments: () => [],

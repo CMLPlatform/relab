@@ -31,7 +31,7 @@ from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 from .base import BaseOAuthRouterBuilder
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable  # lgtm[py/unused-import]
 
     from fastapi_users.authentication import Authenticator
     from fastapi_users.jwt import SecretType
