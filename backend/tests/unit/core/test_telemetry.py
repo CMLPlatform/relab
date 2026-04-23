@@ -72,7 +72,7 @@ def test_init_telemetry_returns_false_when_disabled(monkeypatch: pytest.MonkeyPa
     app = FastAPI()
     async_engine = MagicMock()
 
-    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", False)
+    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", None)
 
     assert init_telemetry(app, async_engine) is False
 
@@ -85,8 +85,6 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     sqlalchemy_instrumentor = MagicMock()
     httpx_instrumentor = MagicMock()
 
-    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", True)
-    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_service_name", "relab-test")
     monkeypatch.setattr(
         "app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
     )
@@ -116,7 +114,9 @@ def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pyt
     app = FastAPI()
     async_engine = MagicMock()
 
-    monkeypatch.setattr("app.core.observability.telemetry.settings.otel_enabled", True)
+    monkeypatch.setattr(
+        "app.core.observability.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces"
+    )
 
     # Setting a module to None in sys.modules causes ImportError on import
     with patch.dict(sys.modules, {"opentelemetry": None}):

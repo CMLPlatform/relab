@@ -99,11 +99,10 @@ class TestCoreSettingsCors:
         settings = CoreSettings(environment=Environment.DEV)
         assert settings.request_body_limit_bytes == 1024 * 1024
 
-    def test_otel_defaults_are_disabled_and_named(self) -> None:
-        """Telemetry should be opt-in with a stable default service name."""
+    def test_otel_is_disabled_by_default(self) -> None:
+        """Telemetry is opt-in: no endpoint configured means OTEL is off."""
         settings = CoreSettings(environment=Environment.DEV)
         assert settings.otel_enabled is False
-        assert settings.otel_service_name == "relab-backend"
         assert settings.otel_exporter_otlp_endpoint is None
 
     def test_build_database_url_preserves_reserved_password_characters(self) -> None:
@@ -169,17 +168,16 @@ class TestCoreSettingsCors:
                 superuser_email="test@example.com",
             )
 
-    def test_otel_enabled_requires_endpoint(self) -> None:
-        """Telemetry must provide an exporter endpoint when enabled."""
-        with pytest.raises(ValidationError, match="OTEL_EXPORTER_OTLP_ENDPOINT must be set"):
-            CoreSettings(
-                environment=Environment.STAGING,
-                otel_enabled=True,
-                postgres_password=SecretStr("test-password"),
-                redis_password=SecretStr("test-password"),
-                superuser_password=SecretStr("test-password"),
-                superuser_email="test@example.com",
-            )
+    def test_otel_enabled_tracks_endpoint(self) -> None:
+        """Telemetry is enabled iff an exporter endpoint is configured."""
+        settings = CoreSettings(environment=Environment.DEV)
+        assert settings.otel_enabled is False
+
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            otel_exporter_otlp_endpoint="http://otel.internal:4318/v1/traces",
+        )
+        assert settings.otel_enabled is True
 
 
 class TestModuleSettingsValidation:

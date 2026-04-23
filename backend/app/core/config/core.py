@@ -126,9 +126,14 @@ class CoreSettings(RelabBaseSettings):
     http_max_connections: int = Field(default=100, ge=1, le=1000)
     http_max_keepalive_connections: int = Field(default=20, ge=0, le=1000)
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
-    otel_enabled: bool = False
-    otel_service_name: str = "relab-backend"
+    # OTEL on/off is derived from the endpoint; service.name is read by the
+    # OTEL SDK directly from the OTEL_SERVICE_NAME env var (set in compose).
     otel_exporter_otlp_endpoint: str | None = None
+
+    @property
+    def otel_enabled(self) -> bool:
+        """Enable OpenTelemetry tracing if an OTLP endpoint is configured."""
+        return self.otel_exporter_otlp_endpoint is not None
 
     # ── File cleanup ──────────────────────────────────────────────────────────────
     file_cleanup_enabled: bool = True
@@ -274,9 +279,6 @@ class CoreSettings(RelabBaseSettings):
 
         if self.frontend_web_url.scheme != HTTPS_SCHEME:
             errors.append("FRONTEND_WEB_URL must use https in production/staging")
-
-        if self.otel_enabled and not self.otel_exporter_otlp_endpoint:
-            errors.append("OTEL_EXPORTER_OTLP_ENDPOINT must be set when OTEL_ENABLED is true")
 
         return errors
 

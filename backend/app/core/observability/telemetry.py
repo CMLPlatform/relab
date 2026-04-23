@@ -55,19 +55,12 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
         logger.warning("OpenTelemetry is enabled but instrumentation dependencies are not installed")
         return False
 
-    resource = resource_cls.create(
-        {
-            "service.name": settings.otel_service_name,
-            "deployment.environment.name": settings.environment,
-        }
-    )
+    # service.name comes from OTEL_SERVICE_NAME in the container env (set in
+    # compose.deploy.yml), auto-merged by Resource.create().
+    resource = resource_cls.create({"deployment.environment.name": settings.environment})
     tracer_provider = tracer_provider_cls(resource=resource)
 
-    exporter = (
-        otlp_span_exporter(endpoint=settings.otel_exporter_otlp_endpoint)
-        if settings.otel_exporter_otlp_endpoint
-        else otlp_span_exporter()
-    )
+    exporter = otlp_span_exporter(endpoint=settings.otel_exporter_otlp_endpoint)
     tracer_provider.add_span_processor(batch_span_processor_cls(exporter))
     trace.set_tracer_provider(tracer_provider)
 
