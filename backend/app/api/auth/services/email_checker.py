@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 from fastapi import Request
@@ -16,7 +16,6 @@ from app.core.env import BACKEND_DIR
 from app.core.runtime import get_request_services
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable  # lgtm[py/unused-import]
     from pathlib import Path
 
     from redis.asyncio import Redis
@@ -79,7 +78,7 @@ class EmailChecker(PeriodicBackgroundTask):
         try:
             domain = email.rsplit("@", 1)[-1].lower()
             if self.redis_client is not None:
-                return bool(await cast("Awaitable[str | None]", self.redis_client.hget(_REDIS_DOMAINS_HASH, domain)))
+                return bool(await cast("Any", self.redis_client.hget(_REDIS_DOMAINS_HASH, domain)))
         except _RECOVERABLE_ERRORS:
             logger.exception("Failed to check if email is disposable: %s. Allowing registration.", email)
             return False

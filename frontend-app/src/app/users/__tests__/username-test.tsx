@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
+import type { ReactNode } from 'react';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { getPublicProfile } from '@/services/api/profiles';
 import { renderWithProviders } from '@/test-utils/index';
@@ -7,7 +8,6 @@ import UserProfileScreen from '../[username]';
 
 jest.mock('@/services/api/profiles');
 jest.mock('expo-router', () => {
-  const React = require('react'); // lgtm[js/unused-local-variable]  // Used in `React.ReactNode` type annotation below.
   return {
     useRouter: jest.fn().mockReturnValue({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
     useSegments: () => [],
@@ -17,7 +17,7 @@ jest.mock('expo-router', () => {
       canGoBack: jest.fn().mockReturnValue(false),
       goBack: jest.fn(),
     }),
-    Link: ({ children }: { children: React.ReactNode }) => children,
+    Link: ({ children }: { children: ReactNode }) => children,
     useGlobalSearchParams: jest.fn().mockReturnValue({ username: 'alice' }),
     Stack: { Screen: () => null },
   };
