@@ -11,7 +11,9 @@
         "docs/package.json",
         "frontend-app/app.json",
         "frontend-app/package.json",
-        "frontend-web/package.json"
+        "frontend-web/package.json",
+        "package.json",
+        "pyproject.toml"
       ]
     }
   },

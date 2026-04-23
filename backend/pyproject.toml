@@ -60,7 +60,7 @@
     "opentelemetry-instrumentation-httpx>=0.62b0",
   ]
   requires-python = ">=3.14"
-  version = "0.1.0"
+  version = "0.2.0"
 
   [project.urls]
     Homepage   = "https://github.com/CMLPlatform/relab"

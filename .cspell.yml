@@ -57,6 +57,7 @@ words:
   - subrepos
   - trivyignores
   - trixie
+  - tsvector
 
   # Miscellaneous
   - orcid
@@ -100,7 +101,6 @@ overrides:
       - primaryjoin
       - selectinload
       - tsquery
-      - tsvector
       - uninstrument
       - xdist
       - zxcvbn
