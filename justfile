@@ -205,7 +205,7 @@ audit-root:
 
 # Run dependency vulnerability audit across root and all subrepos
 audit: audit-root
-    @just backend/audit SCOPE=all
+    @just backend/audit all
     @just docs/audit
     @just frontend-app/audit
     @just frontend-web/audit
@@ -221,6 +221,7 @@ compose-config:
     set -euo pipefail
     created_prod_env=false
     created_staging_env=false
+    created_dev_env=false
     created_root_env=false
     if [[ ! -f backend/.env.prod && -f backend/.env.prod.example ]]; then
         cp backend/.env.prod.example backend/.env.prod
@@ -229,6 +230,10 @@ compose-config:
     if [[ ! -f backend/.env.staging && -f backend/.env.staging.example ]]; then
         cp backend/.env.staging.example backend/.env.staging
         created_staging_env=true
+    fi
+    if [[ ! -f backend/.env.dev && -f backend/.env.dev.example ]]; then
+        cp backend/.env.dev.example backend/.env.dev
+        created_dev_env=true
     fi
     # Root .env holds deploy-host secrets (TUNNEL_TOKEN, …). Stub it for
     # validation-only runs (e.g. CI) so `--env-file .env` doesn't error on
@@ -241,6 +246,7 @@ compose-config:
     trap '
         [[ "$created_prod_env" == true ]] && rm -f backend/.env.prod
         [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging
+        [[ "$created_dev_env" == true ]] && rm -f backend/.env.dev
         [[ "$created_root_env" == true ]] && rm -f .env
     ' EXIT
     # Placeholder secrets for validation-only runs. Real values come from the
@@ -498,11 +504,17 @@ docker-smoke-user-upload-backups:
     #!/usr/bin/env bash
     set -euo pipefail
     tmp_root="$(mktemp -d)"
-    trap 'rm -rf "$tmp_root"' EXIT
+    host_uid="$(id -u)"
+    host_gid="$(id -g)"
+    # Cleanup runs as host user; chown the backup tree back before rm since the
+    # container wrote it as uid 1001 (backupuser).
+    trap 'docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work >/dev/null 2>&1 || true; rm -rf "$tmp_root"' EXIT
     mkdir -p "$tmp_root/uploads/images" "$tmp_root/uploads/files" "$tmp_root/backups"
     printf 'smoke test image bytes\n' > "$tmp_root/uploads/images/example.txt"
     printf 'smoke test file bytes\n' > "$tmp_root/uploads/files/example.txt"
     docker build -f backend/Dockerfile.user-upload-backups -t relab-user-upload-backups-smoke backend
+    # Exercise the production perms pattern: enter as root, chown the bind mount,
+    # then drop privileges to backupuser via su-exec (matches the real entrypoint).
     docker run --rm \
         -v "$tmp_root/uploads:/data/uploads:ro" \
         -v "$tmp_root/backups:/backups" \
@@ -512,8 +524,9 @@ docker-smoke-user-upload-backups:
         -e BACKUP_KEEP_WEEKS=1 \
         -e BACKUP_KEEP_MONTHS=1 \
         -e MAX_TOTAL_GB=1 \
-        --entrypoint ./backup_user_uploads.sh \
-        relab-user-upload-backups-smoke
+        --entrypoint sh \
+        relab-user-upload-backups-smoke \
+        -c 'chown -R backupuser:backupuser "$UPLOADS_BACKUP_DIR" && exec su-exec backupuser ./backup_user_uploads.sh'
     find "$tmp_root/backups" -type f -name 'user_uploads-*.tar.*' | grep -q .
     echo "✅ User-upload backups smoke test passed"
 

@@ -244,7 +244,7 @@ audit SCOPE="runtime":
     set -euo pipefail
     case "{{ SCOPE }}" in
       runtime) flag="--no-default-groups" ;;
-      all) flag="--all-groups" ;;
+      all) flag="" ;;
       *) echo "SCOPE must be 'runtime' or 'all'"; exit 1 ;;
     esac
     uv audit --preview-features audit --frozen $flag

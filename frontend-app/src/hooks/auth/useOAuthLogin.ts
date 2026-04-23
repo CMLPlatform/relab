@@ -17,7 +17,7 @@ type TimerWithUnref = ReturnType<typeof setTimeout> & { unref(): void };
 type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getUser>>>;
 type DialogApi = ReturnType<typeof useDialog>;
 
-function maybeUnrefTimer(timer: ReturnType<typeof setTimeout>): void {
+function maybeUnrefTimer(timer: unknown): void {
   if (timer && typeof timer === 'object' && 'unref' in timer) {
     (timer as TimerWithUnref).unref();
   }
