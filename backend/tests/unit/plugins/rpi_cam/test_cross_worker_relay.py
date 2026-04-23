@@ -5,6 +5,8 @@ These tests exercise the serialization, deadline, timeout, and binary-payload
 contract without standing up a real Redis (a mock Redis is sufficient to
 validate the module's own logic — the Redis driver itself is not under test).
 """
+# spell-checker: ignore blpop, rpush
+
 # ruff: noqa: SLF001 — private helpers (_resp_ttl_seconds, _execute_and_respond, …) are the subject under test
 
 from __future__ import annotations
@@ -134,7 +136,14 @@ class TestRelayCrossWorker:
 
         with pytest.raises(RuntimeError, match="timed out"):
             await cwr.relay_cross_worker(
-                redis, uuid4(), "GET", "/x", None, None, None, timeout_s=0.05,
+                redis,
+                uuid4(),
+                "GET",
+                "/x",
+                None,
+                None,
+                None,
+                timeout_s=0.05,
             )
 
     async def test_blpop_none_raises(self) -> None:
@@ -143,7 +152,14 @@ class TestRelayCrossWorker:
         redis.blpop.return_value = None
         with pytest.raises(RuntimeError, match="timed out"):
             await cwr.relay_cross_worker(
-                redis, uuid4(), "GET", "/x", None, None, None, timeout_s=1,
+                redis,
+                uuid4(),
+                "GET",
+                "/x",
+                None,
+                None,
+                None,
+                timeout_s=1,
             )
 
     async def test_malformed_response_raises(self) -> None:
@@ -152,7 +168,14 @@ class TestRelayCrossWorker:
         redis.blpop.return_value = ("key", "{not-json")
         with pytest.raises(RuntimeError, match="malformed response"):
             await cwr.relay_cross_worker(
-                redis, uuid4(), "GET", "/x", None, None, None, timeout_s=1,
+                redis,
+                uuid4(),
+                "GET",
+                "/x",
+                None,
+                None,
+                None,
+                timeout_s=1,
             )
 
     async def test_error_field_propagates(self) -> None:
@@ -161,7 +184,14 @@ class TestRelayCrossWorker:
         redis.blpop.return_value = ("key", json.dumps({"error": "camera gone"}))
         with pytest.raises(RuntimeError, match="camera gone"):
             await cwr.relay_cross_worker(
-                redis, uuid4(), "GET", "/x", None, None, None, timeout_s=1,
+                redis,
+                uuid4(),
+                "GET",
+                "/x",
+                None,
+                None,
+                None,
+                timeout_s=1,
             )
 
     async def test_bad_base64_raises(self) -> None:
@@ -173,7 +203,14 @@ class TestRelayCrossWorker:
         )
         with pytest.raises(RuntimeError, match="binary payload"):
             await cwr.relay_cross_worker(
-                redis, uuid4(), "GET", "/x", None, None, None, timeout_s=1,
+                redis,
+                uuid4(),
+                "GET",
+                "/x",
+                None,
+                None,
+                None,
+                timeout_s=1,
             )
 
 

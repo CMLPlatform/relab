@@ -1,5 +1,5 @@
 """Unit tests for password validation helpers."""
-# spell-checker: ignore hibp zxcvbn
+# spell-checker: ignore alicewonder, hibp, zxcvbn
 
 from __future__ import annotations
 

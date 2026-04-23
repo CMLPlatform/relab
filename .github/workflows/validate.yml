@@ -189,7 +189,7 @@ jobs:
         run: just frontend-web/build
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium firefox
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
         working-directory: frontend-web
 
       - name: Run browser E2E tests
@@ -269,13 +269,17 @@ jobs:
       - name: Run docs check
         run: just docs/check
 
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: docs
+
       - name: Run docs CI test suite
         run: just docs/test-ci
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
     needs: [ changes ]
-    if: needs.changes.outputs.run-e2e == 'true' && github.event_name != 'schedule'
+    if: needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:

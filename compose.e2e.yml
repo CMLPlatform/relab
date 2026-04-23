@@ -18,6 +18,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     ports:
       - "${E2E_BACKEND_PORT:-18432}:8000"
     volumes:

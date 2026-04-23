@@ -1,4 +1,5 @@
 """Unit tests for the RPi Cam Fernet encryption helpers."""
+# spell-checker: ignore usefixtures
 
 from __future__ import annotations
 
