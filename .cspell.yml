@@ -27,6 +27,7 @@ ignorePaths:
   - .dockerignore
   - .git
   - .gitignore
+  - .trivyignore
   - .vscode
   - package-lock.json
   - pnpm-lock.yaml
@@ -54,6 +55,7 @@ words:
   - shellcheck
   - subrepo
   - subrepos
+  - trivyignores
   - trixie
 
   # Miscellaneous
