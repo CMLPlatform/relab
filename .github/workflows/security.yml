@@ -61,6 +61,8 @@ jobs:
         uses: gacts/gitleaks@c9a0338361dc45a01aa7ebaaa5330179f3c62873
         with:
           version: 8.30.1
+        env:
+          GITLEAKS_CONFIG: .github/gitleaks.toml
 
   python-audit-root:
     name: Python Audit (root)
@@ -223,7 +225,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: HIGH,CRITICAL
-          trivyignores: .trivyignore
+          trivyignores: .github/trivyignore
 
       - name: Generate SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
