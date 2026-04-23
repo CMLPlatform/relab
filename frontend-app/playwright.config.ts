@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Full-stack E2E configuration for the Expo web app.
  *
- * Assumes the Docker backend stack (compose.e2e.yml) is already running and
+ * Assumes the Docker backend stack (compose.e2e.yaml) is already running and
  * the Expo web build has already been exported to dist/ before this runs.
  *
  * Preferred local usage:

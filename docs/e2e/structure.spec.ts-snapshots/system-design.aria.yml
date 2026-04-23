@@ -1,0 +1,131 @@
+- main:
+  - heading "System Design" [level=1]
+  - paragraph: RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
+  - heading "High-Level Architecture" [level=2]
+  - link "Section titled “High-Level Architecture”":
+    - /url: "#high-level-architecture"
+  - document:
+    - paragraph: Data entry
+    - paragraph: Browses products
+    - paragraph: Reads landing page
+    - paragraph: Reads docs
+    - paragraph: Admin API calls
+    - paragraph: API requests
+    - paragraph: Selected API usage
+    - paragraph: Cache + refresh tokens
+    - paragraph: Queries
+    - paragraph: Upload / process / delete
+    - paragraph: Transactional email
+    - paragraph: Camera integration
+    - paragraph: Optional streaming
+    - paragraph: Authenticates
+    - paragraph: Authenticates
+    - paragraph: Authentication Layer
+    - paragraph: "OAuth: GitHub, Google"
+    - paragraph: Bearer/cookie auth + refresh tokens
+    - paragraph: Have I Been Pwned
+    - paragraph: Researcher
+    - paragraph: Expo App
+    - paragraph: Public visitor
+    - paragraph: Astro Landing Page
+    - paragraph: Astro Starlight Docs
+    - paragraph: Admin
+    - paragraph: FastAPI Backend
+    - paragraph: Redis
+    - paragraph: PostgreSQL
+    - paragraph: File Storage
+    - paragraph: SMTP
+    - paragraph: RPI Camera API
+    - paragraph: YouTube API
+  - group: Styled architecture overview (ELK layout)
+  - paragraph:
+    - text: For formal C4 architecture views (Context, Container, Component), see
+    - link "C4 Architecture Diagrams":
+      - /url: ../c4-diagrams/
+    - text: .
+  - heading "Monorepo Structure" [level=2]
+  - link "Section titled “Monorepo Structure”":
+    - /url: "#monorepo-structure"
+  - list:
+    - listitem:
+      - code: backend/
+      - text: ": main API, persistence, auth, file handling, and plugin integration"
+    - listitem:
+      - code: frontend-app/
+      - text: ": authenticated mobile-first data collection client built with Expo Router"
+    - listitem:
+      - code: frontend-web/
+      - text: ": landing page built with Astro"
+    - listitem:
+      - code: docs/
+      - text: ": documentation site"
+    - listitem: Compose files at the repository root coordinate local and deployed multi-service setups
+  - heading "Technology Choices" [level=2]
+  - link "Section titled “Technology Choices”":
+    - /url: "#technology-choices"
+  - list:
+    - listitem:
+      - strong: Backend API
+      - text: ": FastAPI"
+    - listitem:
+      - strong: Persistence layer
+      - text: ": SQLAlchemy 2.0 + Pydantic"
+    - listitem:
+      - strong: Database
+      - text: ": PostgreSQL"
+    - listitem:
+      - strong: Migrations
+      - text: ": Alembic"
+    - listitem:
+      - strong: Caching and token infrastructure
+      - text: ": Redis"
+    - listitem:
+      - strong: Research app frontend
+      - text: ": Expo / React Native"
+    - listitem:
+      - strong: Public web frontend
+      - text: ": Astro"
+    - listitem:
+      - strong: Docs site
+      - text: ": Astro Starlight"
+  - paragraph: These choices keep the stack relatively small and understandable, while still supporting public access, API interoperability, and later AI-assisted workflows.
+  - heading "Backend Domain Structure" [level=2]
+  - link "Section titled “Backend Domain Structure”":
+    - /url: "#backend-domain-structure"
+  - paragraph: "The backend is organised mainly by domain rather than by HTTP verb alone:"
+  - figure "Terminal window":
+    - text: ""
+    - region:
+      - code: "app/ ├── api/ │ ├── auth/ # Login, registration, OAuth, users, organizations │ ├── background_data/ # Taxonomies, categories, materials, product types, units │ ├── data_collection/ # Products, components, search, related properties │ ├── file_storage/ # Uploaded files, images, linked media records │ ├── newsletter/ # Newsletter subscription flows │ ├── plugins/ # Optional integrations such as rpi_cam │ └── common/ # Shared routers, helpers, exceptions ├── core/ # Runtime configuration, DB, cache, logging, HTTP clients ├── static/ # Static assets served by the backend └── templates/ # Email and HTML templates"
+    - button "Copy to clipboard"
+  - heading "Runtime Behavior" [level=2]
+  - link "Section titled “Runtime Behavior”":
+    - /url: "#runtime-behavior"
+  - paragraph: "At startup the backend:"
+  - list:
+    - listitem: validates security-sensitive configuration
+    - listitem: initializes Redis and API caching
+    - listitem: creates storage directories for uploads
+    - listitem: mounts static and upload-backed routes
+    - listitem: prepares shared outbound HTTP clients
+    - listitem: starts background cleanup infrastructure
+  - heading "Design Priorities" [level=2]
+  - link "Section titled “Design Priorities”":
+    - /url: "#design-priorities"
+  - list:
+    - listitem: keep the data model explicit and inspectable
+    - listitem: support authenticated data entry from a dedicated app
+    - listitem: allow public and private API surfaces to coexist
+    - listitem: preserve a path toward dataset publication and external reuse
+    - listitem: support FAIR-style reuse through open interfaces and documented structure
+    - listitem: keep the data model suitable for later benchmarking and AI-assisted enrichment
+    - listitem: avoid unnecessary infrastructure complexity for a PhD-scale project
+  - link "Edit page":
+    - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/architecture/system-design.mdx
+  - paragraph:
+    - text: "Last updated:"
+    - time: /Apr \d+, \d+/
+  - link "Previous API":
+    - /url: /user-guides/api/
+  - link "Next Data Model":
+    - /url: /architecture/datamodel/
