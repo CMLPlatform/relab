@@ -55,6 +55,7 @@ words:
   - shellcheck
   - subrepo
   - subrepos
+  - tootallnate
   - trivyignores
   - trixie
   - tsvector
