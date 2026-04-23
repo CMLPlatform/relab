@@ -9,12 +9,6 @@ default:
 # Install dependencies
 install:
     pnpm install --frozen-lockfile
-    @echo "✓ Docs dependencies installed"
-
-# Regenerate the lockfile without installing dependencies
-lockfile:
-    pnpm install --lockfile-only --ignore-scripts
-    @echo "✓ Docs lockfile refreshed"
 
 # Update dependencies (Astro upgrade + in-range pnpm updates + dedupe the tree)
 # Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
@@ -22,7 +16,6 @@ update:
     pnpm dlx @astrojs/upgrade
     pnpm up
     pnpm dedupe
-    @echo "✓ Docs dependencies updated"
 
 # Start development server with live reload
 dev PORT="8000":
@@ -31,22 +24,14 @@ dev PORT="8000":
 # Run lint checks
 lint:
     pnpm run lint
-    @echo "✓ Docs lint passed"
 
 # Run static type checks
 typecheck:
     pnpm run typecheck
-    @echo "✓ Docs type checks passed"
 
 # Build the static docs site
 build:
     pnpm run build
-    @echo "✓ Docs built"
-
-# Print a simple static output budget for local review
-size:
-    du -sh dist
-    find dist -type f | sort | xargs du -h
 
 # Run quality checks that also validate the docs build pipeline
 check: lint typecheck
@@ -56,12 +41,10 @@ check: lint typecheck
 # Auto-format docs code and markdown
 format:
     pnpm run format
-    @echo "✓ Docs formatted"
 
 # Auto-fix lint issues and format code
 fix:
     pnpm run fix
-    @echo "✓ Docs code fixed and formatted"
 
 # Docs has no unit tests; see `test-e2e` for Playwright suites
 test:
@@ -70,12 +53,10 @@ test:
 # Browser end-to-end tests: smoke + a11y + visual + theme (requires `just build` first)
 test-e2e:
     pnpm run test:e2e
-    @echo "✓ Docs E2E tests passed"
 
 # Run the docs CI test suite (build + e2e + link check)
 test-ci:
     pnpm run test:ci
-    @echo "✓ Docs CI test suite passed"
 
 # Run the full docs CI pipeline locally
 ci: check test-ci
@@ -84,9 +65,7 @@ ci: check test-ci
 # Scan dependencies for known vulnerabilities
 audit:
     pnpm run audit
-    @echo "✓ Docs dependency audit complete"
 
 # Clean caches and generated site output
 clean:
     rm -rf .astro dist node_modules playwright-report test-results site
-    @echo "✓ Cleaned docs caches and build artifacts"

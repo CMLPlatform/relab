@@ -89,4 +89,4 @@ BASE_URL=http://localhost:8010 pnpm run test:e2e
 
 ## More context
 
-For broader frontend conventions in this monorepo, see [CONTRIBUTING.md](../CONTRIBUTING.md#frontend-development).
+For broader frontend conventions in this monorepo, see [CONTRIBUTING.md](../.github/CONTRIBUTING.md#frontend-development).

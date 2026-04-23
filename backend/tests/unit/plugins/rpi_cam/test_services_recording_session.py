@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession  # lgtm[py/unused-import]
 
 from app.api.common.exceptions import ConflictError, ServiceUnavailableError
 from app.api.plugins.rpi_cam.services import (

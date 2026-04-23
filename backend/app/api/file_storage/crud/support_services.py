@@ -14,7 +14,7 @@ from app.api.common.crud.query import require_model
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
-from app.api.file_storage.schemas import (
+from app.api.file_storage.schemas import (  # lgtm[py/unused-import]
     MAX_FILE_SIZE_MB,
     MAX_IMAGE_SIZE_MB,
     FileCreate,

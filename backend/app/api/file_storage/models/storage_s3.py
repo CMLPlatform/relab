@@ -22,9 +22,11 @@ if TYPE_CHECKING:
     class _S3Client(Protocol):
         """Narrow protocol for the boto3 S3 client methods used by S3Storage."""
 
-        def head_object(self, *, bucket: str, key: str) -> dict: ...
-        def get_object(self, *, bucket: str, key: str) -> dict: ...
-        def upload_fileobj(self, fileobj: BinaryIO, *, bucket: str, key: str) -> None: ...
+        def head_object(self, *, bucket: str, key: str) -> dict: ...  # lgtm[py/ineffectual-statement]
+        def get_object(self, *, bucket: str, key: str) -> dict: ...  # lgtm[py/ineffectual-statement]
+        def upload_fileobj(
+            self, fileobj: BinaryIO, *, bucket: str, key: str
+        ) -> None: ...  # lgtm[py/ineffectual-statement]
 
 
 def _import_boto3() -> object:

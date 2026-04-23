@@ -27,5 +27,5 @@ just audit
 ## Canonical Sources
 
 - Product, platform, and architecture docs live in this app.
-- Repo onboarding remains in [../README.md](../README.md), [../INSTALL.md](../INSTALL.md), and [../CONTRIBUTING.md](../CONTRIBUTING.md).
+- Repo onboarding remains in [../README.md](../README.md) and [../.github/CONTRIBUTING.md](../.github/CONTRIBUTING.md). Install and self-hosting steps now live at [architecture/install](src/content/docs/architecture/install.md).
 - Interactive API reference remains canonical at <https://api.cml-relab.org/docs>.

@@ -31,8 +31,6 @@ from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 from .base import BaseOAuthRouterBuilder
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
-
     from fastapi_users.authentication import Authenticator
     from fastapi_users.jwt import SecretType
 
@@ -209,7 +207,7 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
             user = cast("User", updated_user)
         else:
             oauth_associate_callback = cast(
-                "Callable[..., Awaitable[User]]",
+                "Any",
                 user_manager.oauth_associate_callback,
             )
 

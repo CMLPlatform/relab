@@ -2,7 +2,7 @@
  * Full-stack auth E2E tests.
  *
  * Prerequisites:
- *   - compose.e2e.yml services are running
+ *   - compose.e2e.yaml services are running
  *   - the Expo web app has been built for E2E
  *
  * Test user credentials come from backend/.env.test:

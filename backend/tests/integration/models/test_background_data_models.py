@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import QueryableAttribute
+from sqlalchemy.orm.attributes import QueryableAttribute  # lgtm[py/unused-import]
 
 from app.api.background_data.models import Category, Taxonomy
 from tests.factories.models import (

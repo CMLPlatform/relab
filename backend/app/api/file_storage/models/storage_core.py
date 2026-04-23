@@ -112,6 +112,12 @@ class StorageFile(str):
     def __str__(self) -> str:
         return self.path
 
+    def __eq__(self, other: object) -> bool:
+        return str.__eq__(self, other)
+
+    def __hash__(self) -> int:
+        return str.__hash__(self)
+
 
 class StorageImage(StorageFile):
     """Storage file wrapper for image files."""

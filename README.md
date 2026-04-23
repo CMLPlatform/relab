@@ -6,7 +6,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16637742.svg)](https://doi.org/10.5281/zenodo.16637742)
 [![Coverage](https://img.shields.io/codecov/c/github/CMLPlatform/relab)](https://codecov.io/gh/CMLPlatform/relab)
 [![FAIR checklist badge](https://fairsoftwarechecklist.net/badge.svg)](https://fairsoftwarechecklist.net/v0.2?f=31&a=32113&i=22322&r=123)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 [![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fcml-relab.org&label=website)](https://cml-relab.org)
 
 RELab is an open-source research platform for collecting and publicly viewing data on the disassembly of durable goods. It is built at [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to support industrial ecology and circular economy research through better primary product data generation.
@@ -41,8 +41,8 @@ The fastest path is the hosted platform:
 
 If you want to go deeper:
 
-- [INSTALL.md](INSTALL.md) for running or self-hosting the stack
-- [CONTRIBUTING.md](CONTRIBUTING.md) for making code or docs changes
+- [Install & Self-Host](https://docs.cml-relab.org/architecture/install/) for running or self-hosting the stack
+- [CONTRIBUTING.md](.github/CONTRIBUTING.md) for making code or docs changes
 - [docs.cml-relab.org](https://docs.cml-relab.org) for architecture and user-facing docs
 
 ## Monorepo
@@ -75,10 +75,10 @@ just dev       # start the full Docker dev stack with file watching
 
 ## Community and Policy
 
-- [Contributing](CONTRIBUTING.md)
-- [Installation](INSTALL.md)
-- [Security](SECURITY.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Contributing](.github/CONTRIBUTING.md)
+- [Install & Self-Host](https://docs.cml-relab.org/architecture/install/)
+- [Security](.github/SECURITY.md)
+- [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 - [Changelog](CHANGELOG.md)
 - [Citation](CITATION.cff)
 - [License](LICENSE)

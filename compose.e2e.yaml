@@ -1,4 +1,4 @@
-# compose.e2e.yml (END-TO-END TESTING, used for testing the full stack in CI)
+# compose.e2e.yaml (END-TO-END TESTING, used for testing the full stack in CI)
 #
 # Normal local entrypoint:
 #  just test-e2e-full-stack

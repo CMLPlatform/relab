@@ -1,6 +1,6 @@
 {
   "name": "relab-backend",
-  "dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
+  "dockerComposeFile": ["../../compose.yaml", "../../compose.dev.yaml"],
   "service": "api",
   "runServices": ["api", "redis", "postgres"],
   "workspaceFolder": "/opt/relab/backend",

@@ -53,7 +53,7 @@ Rules:
 
 Telemetry connection settings now live in one place only: the host's root `.env`. The deploy overlay reads them from there; the committed `.env.prod.compose` / `.env.staging.compose` files do not duplicate them, and dev/CI ignore them.
 
-- `LOKI_URL`: push endpoint for a central Loki instance. When set to a non-empty value, the root `justfile` auto-includes `compose.logging.loki.yml`, which overlays the Loki Docker log driver onto every service. Hosts without this variable keep Docker's default `json-file` driver. Install the driver plugin once per host before setting the variable:
+- `LOKI_URL`: push endpoint for a central Loki instance. When set to a non-empty value, the root `justfile` auto-includes `compose.logging.loki.yaml`, which overlays the Loki Docker log driver onto every service. Hosts without this variable keep Docker's default `json-file` driver. Install the driver plugin once per host before setting the variable:
 
   ```bash
   docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
