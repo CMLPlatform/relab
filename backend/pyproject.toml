@@ -38,7 +38,7 @@
     "sqlalchemy>=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.3.0",
+    "relab-rpi-cam-models>=0.3.1",
     # Password strength and breach checking
     "zxcvbn>=4.4.28",
     # Configuration, validation, and utility types
@@ -245,9 +245,3 @@
     [tool.ruff.lint.pylint]
       allow-magic-value-types = ["int"]
       max-args                = 10
-
-[tool.uv.sources]
-  # Use the sibling plugin repo's copy of relab-rpi-cam-models during development so
-  # the backend can pick up new DTOs before they are published to PyPI. Requires
-  # /relab-rpi-cam-plugin to be checked out alongside this repo.
-  relab-rpi-cam-models = { path = "../../relab-rpi-cam-plugin/relab_rpi_cam_models", editable = true }
