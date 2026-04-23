@@ -1,6 +1,6 @@
 {
   "name": "relab-fullstack",
-  "dockerComposeFile": ["../compose.yml", "../compose.dev.yml"],
+  "dockerComposeFile": ["../compose.yaml", "../compose.dev.yaml"],
   "service": "app-site",
   "runServices": ["api", "redis", "postgres", "docs-site", "web-site", "app-site"],
   "workspaceFolder": "/opt/relab",

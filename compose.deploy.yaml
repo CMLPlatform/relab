@@ -1,4 +1,4 @@
-# compose.deploy.yml (DEPLOY — covers prod AND staging)
+# compose.deploy.yaml (DEPLOY — covers prod AND staging)
 #
 # Single artifact for both environments. APP_ENV (required) selects which.
 # Per-environment knobs live in committed `.env.<env>.compose` files at repo
@@ -6,13 +6,13 @@
 #
 # Invocation (see justfile `prod_compose` / `staging_compose`):
 #   docker compose --env-file .env --env-file .env.prod.compose \
-#                  -f compose.yml -f compose.deploy.yml up -d
+#                  -f compose.yaml -f compose.deploy.yaml up -d
 
 name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
 # --- Reusable fragments ------------------------------------------------------
 # Shipping container logs to a central Loki instance is opt-in: include
-# compose.logging.loki.yml alongside this file (the justfile does this
+# compose.logging.loki.yaml alongside this file (the justfile does this
 # automatically when LOKI_URL is set in the host's root .env). Hosts without
 # Loki get Docker's default json-file driver — no config needed.
 
