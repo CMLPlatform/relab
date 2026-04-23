@@ -20,7 +20,7 @@
   ## Dependencies and version constraints
   requires-python = ">=3.14"
   # NOTE: package versioning across the repo is managed by release-please.
-  version = "0.2.0"
+  version = "1.0.0"
 
 [dependency-groups]
   dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0"]

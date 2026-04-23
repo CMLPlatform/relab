@@ -42,7 +42,10 @@
   ],
   "license": "https://spdx.org/licenses/AGPL-3.0-or-later",
   "name": "Reverse Engineering Lab",
-  "programmingLanguage": ["Python 3", "JavaScript"],
+  "programmingLanguage": [
+    "Python 3",
+    "JavaScript"
+  ],
   "softwareRequirements": "Docker",
-  "version": "0.2.0"
+  "version": "1.0.0"
 }
