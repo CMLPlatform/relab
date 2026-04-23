@@ -33,9 +33,11 @@
     },
     {
       "matchUpdateTypes": ["minor", "patch"],
-      "matchPackagePatterns": ["*"],
       "automerge": true,
-      "labels": ["automerge"]
+      "labels": ["automerge"],
+      "matchPackageNames": [
+        "*"
+      ]
     },
     {
       "groupName": "repo-tooling",
