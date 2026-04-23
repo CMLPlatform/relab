@@ -79,9 +79,7 @@ jobs:
 
       - name: Run pre-commit checks
         run: >-
-          ${{ github.event_name == 'push' && github.ref == 'refs/heads/main'
-          && 'SKIP=no-commit-to-branch ' || '' }}uv run pre-commit run
-          --all-files --show-diff-on-failure
+          ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'SKIP=no-commit-to-branch ' || '' }}uv run pre-commit run --all-files --show-diff-on-failure
 
       - name: Check shared dep version alignment
         run: pnpm run syncpack:check
