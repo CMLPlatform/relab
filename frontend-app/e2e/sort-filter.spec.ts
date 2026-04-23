@@ -39,26 +39,28 @@ test.describe('Sort menu', () => {
   test('sort button opens a menu with all expected options', async ({ page }) => {
     await goToProducts(page);
     const titles = page.locator('[data-testid="menu-item-title"]');
-    // Poll: each iteration clicks the anchor and checks the item count, so a
-    // menu that closes mid-assertion is simply reopened on the next tick.
-    await expect
-      .poll(
-        async () => {
-          if ((await titles.count()) === 6) return 6;
-          await openMenu(page, page.getByLabel('Sort products')).catch(() => {});
-          return titles.count();
-        },
-        { timeout: 15_000, intervals: [500, 1_000, 2_000] },
-      )
-      .toBe(6);
-    await expect(titles).toHaveText([
+    const expected = [
       'Newest first',
       'Oldest first',
       'Name A→Z',
       'Name Z→A',
       'Brand A→Z',
       'Brand Z→A',
-    ]);
+    ];
+    // Poll until the menu settles with all expected labels. Each failed iteration
+    // re-opens the anchor, so a menu that measurement-collapses between count
+    // and text assertions simply retries on the next tick.
+    await expect
+      .poll(
+        async () => {
+          const snapshot = await titles.allInnerTexts();
+          if (snapshot.length === expected.length) return snapshot.map((t) => t.trim());
+          await openMenu(page, page.getByLabel('Sort products')).catch(() => {});
+          return (await titles.allInnerTexts()).map((t) => t.trim());
+        },
+        { timeout: 15_000, intervals: [500, 1_000, 2_000] },
+      )
+      .toEqual(expected);
   });
 
   test('selecting "Oldest first" updates the URL sort param', async ({ page }) => {
@@ -90,17 +92,18 @@ test.describe('Date filter chips', () => {
     await goToProducts(page);
     await expect(page.getByText('Date', { exact: true })).toBeVisible();
     const titles = page.locator('[data-testid="menu-item-title"]');
+    const expected = ['Last 7d', 'Last 30d', 'Last 90d'];
     await expect
       .poll(
         async () => {
-          if ((await titles.count()) === 3) return 3;
+          const snapshot = await titles.allInnerTexts();
+          if (snapshot.length === expected.length) return snapshot.map((t) => t.trim());
           await openMenu(page, page.getByText('Date', { exact: true })).catch(() => {});
-          return titles.count();
+          return (await titles.allInnerTexts()).map((t) => t.trim());
         },
         { timeout: 15_000, intervals: [500, 1_000, 2_000] },
       )
-      .toBe(3);
-    await expect(titles).toHaveText(['Last 7d', 'Last 30d', 'Last 90d']);
+      .toEqual(expected);
   });
 
   test('clicking "Last 7d" updates the URL days param', async ({ page }) => {
