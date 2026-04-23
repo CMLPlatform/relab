@@ -47,8 +47,10 @@ words:
 
   # Technical terms
   - linkinator
+  - LogQL
   - mpegurl
   - nosniff
+  - OTLP
   - shellcheck
   - subrepo
   - subrepos
@@ -100,6 +102,11 @@ overrides:
       - uninstrument
       - xdist
       - zxcvbn
+
+  - filename: "docs/**"
+    words:
+      - RTMP
+      - HIBP
 
   - filename: "frontend-app/**"
     words:
