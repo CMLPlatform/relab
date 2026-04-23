@@ -37,7 +37,8 @@ class TestReceivePreviewThumbnailUpload:
 
         path = tmp_path / "rpi-cam-preview" / f"{camera_id}.jpg"
         assert path.read_bytes() == b"preview-bytes"
-        assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{camera_id}.jpg"
+        expected_mtime = int(path.stat().st_mtime)
+        assert ack.preview_thumbnail_url == f"/uploads/images/rpi-cam-preview/{camera_id}.jpg?v={expected_mtime}"
 
     async def test_rejects_empty_preview_thumbnail_upload(
         self,

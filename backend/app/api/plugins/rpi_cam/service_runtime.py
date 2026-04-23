@@ -128,10 +128,12 @@ def get_preview_thumbnail_path(camera_id: UUID4) -> Path:
 def get_preview_thumbnail_url(camera_id: UUID4) -> str | None:
     """Return the public URL for one camera's cached preview thumbnail when present."""
     path = get_preview_thumbnail_path(camera_id)
-    if not path.exists():
+    try:
+        mtime = int(path.stat().st_mtime)
+    except FileNotFoundError:
         return None
     relative_path = path.relative_to(settings.image_storage_path)
-    return f"/uploads/images/{relative_path.as_posix()}"
+    return f"/uploads/images/{relative_path.as_posix()}?v={mtime}"
 
 
 def get_preview_thumbnail_urls_per_camera(camera_ids: list[UUID4]) -> dict[UUID, str | None]:

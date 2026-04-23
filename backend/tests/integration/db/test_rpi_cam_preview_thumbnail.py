@@ -29,7 +29,8 @@ async def test_preview_thumbnail_helper_returns_public_url_when_file_exists(
 
     result = get_preview_thumbnail_urls_per_camera([camera_id])
 
-    assert result[camera_id] == f"/uploads/images/rpi-cam-preview/{camera_id}.jpg"
+    expected_mtime = int(path.stat().st_mtime)
+    assert result[camera_id] == f"/uploads/images/rpi-cam-preview/{camera_id}.jpg?v={expected_mtime}"
 
 
 async def test_preview_thumbnail_helper_returns_none_when_file_is_missing(
