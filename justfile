@@ -1,12 +1,18 @@
 # RELab Monorepo Task Runner
 # Run `just --list` to see all available commands
+# spell-checker: ignore esac
 
 # Show available recipes
 default:
     @just --list
 
-dev_compose := "docker compose -p relab_dev -f compose.yml -f compose.dev.yml"
-ci_compose := "docker compose -p relab_test -f compose.yml -f compose.ci.yml"
+dev_compose := "docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
+ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
+
+# Subrepos that mirror the root quality / test / audit / clean recipes.
+subrepos := "backend docs frontend-web frontend-app"
+# Subset of subrepos that implement test-unit / test-integration.
+unit_subrepos := "backend frontend-app"
 
 # Deploy overlay — same file for prod and staging. Per-env non-secret config
 # lives in committed `.env.<env>.compose`; per-host secrets (TUNNEL_TOKEN, …)
@@ -15,11 +21,12 @@ ci_compose := "docker compose -p relab_test -f compose.yml -f compose.ci.yml"
 # `COMPOSE_PROJECT_NAME` is set inside each `.env.<env>.compose`, so laptop-
 # driven staging ops no longer need to override the host `.env`.
 #
-# `_loki_overlay` auto-includes compose.logging.loki.yml when the host's `.env`
+# `_loki_overlay` auto-includes compose.logging.loki.yaml when the host's `.env`
 # has a non-empty LOKI_URL. Hosts without Loki get Docker's default log driver.
-_loki_overlay   := `if [ -f .env ] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then printf -- ' -f compose.logging.loki.yml'; fi`
-prod_compose    := "docker compose --env-file .env --env-file .env.prod.compose    -f compose.yml -f compose.deploy.yml" + _loki_overlay
-staging_compose := "docker compose --env-file .env --env-file .env.staging.compose -f compose.yml -f compose.deploy.yml" + _loki_overlay
+[private]
+_loki_overlay := `if [ -f .env ] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then printf -- ' -f compose.logging.loki.yaml'; fi`
+prod_compose := "docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
+staging_compose := "docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
 
 # ============================================================================
 # Setup
@@ -27,24 +34,22 @@ staging_compose := "docker compose --env-file .env --env-file .env.staging.compo
 
 # Install all workspace dependencies (root + all subrepos)
 install:
+    #!/usr/bin/env bash
+    set -euo pipefail
     uv sync --frozen
     pnpm install
-    @just backend/install
-    @just docs/install
-    @just frontend-web/install
-    @just frontend-app/install
-    @echo "✓ All dependencies installed"
+    for d in {{ subrepos }}; do just "$d/install"; done
+    echo "✓ All dependencies installed"
 
 # Update all workspace dependencies
 update:
+    #!/usr/bin/env bash
+    set -euo pipefail
     uv lock --upgrade
     pnpm update -D
     pnpm dedupe
-    @just backend/update
-    @just docs/update
-    @just frontend-web/update
-    @just frontend-app/update
-    @echo "✓ Dependencies updated (run 'just install' to sync)"
+    for d in {{ subrepos }}; do just "$d/update"; done
+    echo "✓ Dependencies updated (run 'just install' to sync)"
 
 # Install pre-commit hooks (run once after clone)
 _pre-commit-install:
@@ -80,40 +85,36 @@ shellcheck:
 
 # Run root and subrepo lint checks
 lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
     pnpm run lint
-    @just backend/lint
-    @just docs/lint
-    @just frontend-web/lint
-    @just frontend-app/lint
-    @echo "✅ Root and subrepo lint passed"
+    for d in {{ subrepos }}; do just "$d/lint"; done
+    echo "✅ Root and subrepo lint passed"
 
-# Run root and subrepo quality checks (lint + typecheck + format verification)
+# Run root and subrepo quality checks (lint + typecheck + format verification).
+# Policy checks (spellcheck, shellcheck, file-format) live in `just pre-commit`, not here.
 check:
+    #!/usr/bin/env bash
+    set -euo pipefail
     pnpm run check
-    @just shellcheck
-    @just backend/check
-    @just docs/check
-    @just frontend-web/check
-    @just frontend-app/check
-    @echo "✅ Root and subrepo checks passed"
+    for d in {{ subrepos }}; do just "$d/check"; done
+    echo "✅ Root and subrepo checks passed"
 
 # Format root and subrepo codebases
 format:
+    #!/usr/bin/env bash
+    set -euo pipefail
     pnpm run format
-    @just backend/format
-    @just docs/format
-    @just frontend-web/format
-    @just frontend-app/format
-    @echo "✅ Root and subrepo formatting complete"
+    for d in {{ subrepos }}; do just "$d/format"; done
+    echo "✅ Root and subrepo formatting complete"
 
 # Auto-fix lint issues and format code across root and subrepos
 fix:
+    #!/usr/bin/env bash
+    set -euo pipefail
     pnpm run fix
-    @just backend/fix
-    @just docs/fix
-    @just frontend-web/fix
-    @just frontend-app/fix
-    @echo "✓ Code fixed"
+    for d in {{ subrepos }}; do just "$d/fix"; done
+    echo "✓ Code fixed"
 
 # ============================================================================
 # Testing
@@ -121,31 +122,31 @@ fix:
 
 # Full local test suite across all subrepos (unit + integration, no e2e)
 test:
-    @just backend/test
-    @just docs/test
-    @just frontend-web/test
-    @just frontend-app/test
-    @echo "✅ All tests passed"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for d in {{ subrepos }}; do just "$d/test"; done
+    echo "✅ All tests passed"
 
 # Run unit tests across subrepos that implement them
 test-unit:
-    @just backend/test-unit
-    @just frontend-app/test-unit
-    @echo "✅ All unit tests passed"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for d in {{ unit_subrepos }}; do just "$d/test-unit"; done
+    echo "✅ All unit tests passed"
 
 # Run integration tests across subrepos that implement them
 test-integration:
-    @just backend/test-integration
-    @just frontend-app/test-integration
-    @echo "✅ All integration tests passed"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for d in {{ unit_subrepos }}; do just "$d/test-integration"; done
+    echo "✅ All integration tests passed"
 
 # CI-oriented test suite across all subrepos
 test-ci:
-    @just backend/test-ci
-    @just docs/test-ci
-    @just frontend-web/test-ci
-    @just frontend-app/test-ci
-    @echo "✅ All CI test suites passed"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for d in {{ subrepos }}; do just "$d/test-ci"; done
+    echo "✅ All CI test suites passed"
 
 # Run end-to-end tests across subrepos that implement them
 test-e2e:
@@ -162,37 +163,30 @@ ci: pre-commit check test-ci compose-config
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
 _e2e-backend-up:
-    docker compose -p relab_e2e -f compose.e2e.yml up --build -d --wait --wait-timeout 120
+    docker compose -p relab_e2e -f compose.e2e.yaml up --build -d --wait --wait-timeout 120
 
 # Tear down E2E backend infrastructure and remove volumes
 _e2e-backend-down:
-    docker compose -p relab_e2e -f compose.e2e.yml down -v --remove-orphans
+    docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down (requires Docker)
-test-e2e-full-stack:
+# MODE=cross-browser runs the full browser matrix instead of the default chromium project
+test-e2e-full-stack MODE="default":
     #!/usr/bin/env bash
     set -euo pipefail
+    case "{{ MODE }}" in
+      default)       e2e_recipe="test-e2e" ;;
+      cross-browser) e2e_recipe="test-e2e-cross-browser" ;;
+      *) echo "MODE must be 'default' or 'cross-browser'"; exit 1 ;;
+    esac
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
     echo "→ Building Expo web app..."
     just frontend-app/build-web
-    echo "→ Running Playwright E2E tests..."
-    just frontend-app/test-e2e
-    echo "✅ Full-stack E2E tests passed"
-
-# Full-stack cross-browser E2E: same as test-e2e-full-stack but runs the full browser matrix
-test-e2e-full-stack-cross-browser:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap 'just _e2e-backend-down || true' EXIT
-    echo "→ Starting backend infrastructure..."
-    just _e2e-backend-up
-    echo "→ Building Expo web app..."
-    just frontend-app/build-web
-    echo "→ Running cross-browser Playwright E2E tests..."
-    just frontend-app/test-e2e-cross-browser
-    echo "✅ Full-stack cross-browser E2E tests passed"
+    echo "→ Running Playwright E2E tests ({{ MODE }})..."
+    just "frontend-app/$e2e_recipe"
+    echo "✅ Full-stack E2E tests passed ({{ MODE }})"
 
 # ============================================================================
 # Security
@@ -205,11 +199,11 @@ audit-root:
 
 # Run dependency vulnerability audit across root and all subrepos
 audit: audit-root
-    @just backend/audit all
-    @just docs/audit
-    @just frontend-app/audit
-    @just frontend-web/audit
-    @echo "✅ Root and subrepo dependency audits complete"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just backend/audit all
+    for d in docs frontend-web frontend-app; do just "$d/audit"; done
+    echo "✅ Root and subrepo dependency audits complete"
 
 # Canonical security target
 security: audit
@@ -261,9 +255,9 @@ compose-config:
     {{ prod_compose }} config >/dev/null
     # Exercise the Loki-on path explicitly so CI catches regressions regardless
     # of whether the local .env happens to have LOKI_URL set.
-    docker compose --env-file .env --env-file .env.prod.compose    -f compose.yml -f compose.deploy.yml -f compose.logging.loki.yml config >/dev/null
-    docker compose --env-file .env --env-file .env.staging.compose -f compose.yml -f compose.deploy.yml -f compose.logging.loki.yml config >/dev/null
-    docker compose -p relab_e2e -f compose.e2e.yml config >/dev/null
+    docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
+    docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
+    docker compose -p relab_e2e -f compose.e2e.yaml config >/dev/null
     echo "✓ Compose configurations validated"
 
 # ============================================================================
@@ -320,54 +314,64 @@ _dev-reset confirm='':
     {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
+# Docker: Deploy stacks (prod + staging)
+#
+# `_stack-up` / `_stack-down` parse YES/profile args and delegate to the
+# matching compose command. `_stack-build` takes a default-profiles string and
+# respects `NO_CACHE=1` for no-cache builds.
+# ============================================================================
+
+# Internal: confirmed start of a deploy stack with optional profiles.
+_stack-up STACK COMPOSE *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false; flags=""
+    for p in {{ PROFILES }}; do
+        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to start the {{ STACK }} stack without explicit confirmation."
+        echo "Use 'just {{ STACK }}-up YES [profiles...]' or 'FORCE=1 just {{ STACK }}-up [profiles...]'."
+        exit 1
+    fi
+    {{ COMPOSE }} $flags up -d
+
+# Internal: confirmed stop of a deploy stack with optional profiles.
+_stack-down STACK COMPOSE *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false; flags=""
+    for p in {{ PROFILES }}; do
+        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to stop the {{ STACK }} stack without explicit confirmation."
+        echo "Use 'just {{ STACK }}-down YES [profiles...]' or 'FORCE=1 just {{ STACK }}-down [profiles...]'."
+        exit 1
+    fi
+    {{ COMPOSE }} $flags down
+
+# Internal: build deploy-stack images. NO_CACHE=1 forces a no-cache build.
+_stack-build COMPOSE DEFAULT_PROFILES *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="{{ DEFAULT_PROFILES }}"
+    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
+    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
+    {{ COMPOSE }} $flags build $nc
+
+# ============================================================================
 # Docker: Production
 # ============================================================================
 
 # Start production stack (optional profiles: backups, migrations)
-prod-up *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to start the production stack without explicit confirmation."
-        echo "Use 'just prod-up YES [profiles...]' or 'FORCE=1 just prod-up [profiles...]'."
-        exit 1
-    fi
-    {{ prod_compose }} $flags up -d
-
-# Build (or rebuild) prod images (optional profiles: backups, migrations)
-prod-build *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="--profile migrations --profile backups"
-    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
-    {{ prod_compose }} $flags build
-
-# Build (or rebuild) prod images without cache (optional profiles: backups, migrations)
-prod-build-no-cache *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="--profile migrations --profile backups"
-    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
-    {{ prod_compose }} $flags build --no-cache
+prod-up *PROFILES: (_stack-up "prod" prod_compose PROFILES)
 
 # Stop production stack (optional profiles: backups)
-prod-down *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to stop the production stack without explicit confirmation."
-        echo "Use 'just prod-down YES [profiles...]' or 'FORCE=1 just prod-down [profiles...]'."
-        exit 1
-    fi
-    {{ prod_compose }} $flags down
+prod-down *PROFILES: (_stack-down "prod" prod_compose PROFILES)
+
+# Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
+prod-build *PROFILES: (_stack-build prod_compose "--profile migrations --profile backups" PROFILES)
 
 # Tail production logs
 prod-logs:
@@ -388,50 +392,13 @@ _prod-backups-up confirm='':
 # ============================================================================
 
 # Start staging stack (optional profiles: migrations)
-staging-up *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to start the staging stack without explicit confirmation."
-        echo "Use 'just staging-up YES [profiles...]' or 'FORCE=1 just staging-up [profiles...]'."
-        exit 1
-    fi
-    {{ staging_compose }} $flags up -d
+staging-up *PROFILES: (_stack-up "staging" staging_compose PROFILES)
 
-# Build (or rebuild) staging images (optional profiles: migrations)
-staging-build *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="--profile migrations"
-    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
-    {{ staging_compose }} $flags build
+# Stop staging stack (optional profiles: migrations)
+staging-down *PROFILES: (_stack-down "staging" staging_compose PROFILES)
 
-# Build (or rebuild) staging images without cache (optional profiles: migrations)
-staging-build-no-cache *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="--profile migrations"
-    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
-    {{ staging_compose }} $flags build --no-cache
-
-# Stop staging stack ()
-staging-down *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to stop the staging stack without explicit confirmation."
-        echo "Use 'just staging-down YES [profiles...]' or 'FORCE=1 just staging-down [profiles...]'."
-        exit 1
-    fi
-    {{ staging_compose }} $flags down
+# Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: migrations)
+staging-build *PROFILES: (_stack-build staging_compose "--profile migrations" PROFILES)
 
 # Tail staging logs
 staging-logs:
@@ -597,9 +564,13 @@ _docker-ci-perf-thresholds HEADROOM="1.15":
 
 # Clean build artifacts and caches across all subrepos
 clean:
-    @just backend/clean
-    @just docs/clean
-    @just frontend-web/clean
-    @just frontend-app/clean
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for d in {{ subrepos }}; do just "$d/clean"; done
     rm -rf .ruff_cache
-    @echo "✓ Cleaned caches and build artifacts"
+    echo "✓ Cleaned caches and build artifacts"
+
+# Print a static-output size budget for a built directory (e.g. docs/dist, frontend-web/dist)
+size DIR:
+    du -sh {{ DIR }}
+    find {{ DIR }} -type f | sort | xargs du -h
