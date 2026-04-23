@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title="Page Not Found" description="The page you requested could not be found." noIndex={true}>
+  <section class="card empty-state content-reveal">
+    <h1>That page is not here.</h1>
+    <p>
+      The public RELab site is intentionally small, so the quickest way forward is usually the homepage or the privacy
+      page.
+    </p>
+    <div class="button-row">
+      <a href="/" class="btn btn-primary">Back to Homepage</a>
+      <a href="/privacy" class="btn btn-muted">Open Privacy Policy</a>
+    </div>
+  </section>
+</Layout>

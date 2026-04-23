@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Upload Codecov
+description: Upload a coverage report to Codecov with shared defaults.
+
+inputs:
+  files:
+    description: Coverage file path(s) to upload.
+    required: true
+  flags:
+    description: Codecov flags.
+    required: true
+  name:
+    description: Upload name shown in Codecov.
+    required: true
+  token:
+    description: Codecov token.
+    required: true
+  disable-search:
+    description: Disable Codecov file autodiscovery.
+    required: false
+    default: "false"
+  network-prefix:
+    description: Prefix to prepend to uploaded report paths before Codecov matches files in the repo.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
+      with:
+        files: ${{ inputs.files }}
+        flags: ${{ inputs.flags }}
+        name: ${{ inputs.name }}
+        fail_ci_if_error: false
+        token: ${{ inputs.token }}
+        slug: CMLPlatform/relab
+        disable_search: ${{ inputs.disable-search }}
+        network_prefix: ${{ inputs.network-prefix }}

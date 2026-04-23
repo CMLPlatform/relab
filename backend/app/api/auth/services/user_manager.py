@@ -1,183 +1,170 @@
 """User management service."""
 
 import logging
-from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, cast
 
-import tldextract
 from fastapi import Depends
-from fastapi_users import FastAPIUsers, InvalidPasswordException, UUIDIDMixin
-from fastapi_users.authentication import AuthenticationBackend, BearerTransport, CookieTransport, JWTStrategy
-from fastapi_users.jwt import SecretType
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
-from fastapi_users_db_sqlmodel import SQLModelUserDatabaseAsync
-from pydantic import UUID4, SecretStr
-from starlette.requests import Request
+from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
+from sqlalchemy import select
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.crud import (
-    add_user_role_in_organization_after_registration,
-    create_user_override,
-    update_user_override,
-)
-from app.api.auth.exceptions import AuthCRUDError
-from app.api.auth.models import OAuthAccount, User
-from app.api.auth.schemas import UserCreate, UserCreateWithOrganization, UserUpdate
-from app.api.auth.utils.programmatic_emails import (
+from app.api.auth.crud.users import update_user_override
+from app.api.auth.models import User
+from app.api.auth.schemas import UserCreate, UserUpdate
+from app.api.auth.services import refresh_token_service
+from app.api.auth.services.auth_backends import build_authentication_backends
+from app.api.auth.services.emails import (
     send_post_verification_email,
-    send_registration_email,
     send_reset_password_email,
     send_verification_email,
 )
-from app.api.common.routers.dependencies import AsyncSessionDep
-from app.core.config import settings as core_settings
+from app.api.auth.services.login_hooks import (
+    log_successful_login,
+    maybe_set_refresh_token_cookie,
+    update_last_login_metadata,
+)
+from app.api.auth.services.password_validator import validate_password as _validate_password
+from app.api.auth.services.user_database import get_user_db
+from app.api.common.routers.dependencies import get_external_http_client
+from app.core.logging import sanitize_log_value
+from app.core.runtime import get_request_services
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from fastapi_users.authentication import AuthenticationBackend
+    from fastapi_users.jwt import SecretType
+    from httpx import AsyncClient
+    from starlette.requests import Request
+    from starlette.responses import Response
+
+    from app.api.auth.services.user_database import UserDatabaseAsync
 # Set up logging
 logger = logging.getLogger(__name__)
 
 # Declare constants
-SECRET: str = auth_settings.fastapi_users_secret
+SECRET: SecretStr = auth_settings.fastapi_users_secret
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
 
 
-class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
+_AUTH_COOKIE_PREFIX = "auth="
+_SET_COOKIE_HEADER = "set-cookie"
+
+
+class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
     """User manager class for FastAPI-Users."""
 
+    # We will initialize the user manager with a UserDatabaseAsync instance in the dependency function below
+    user_db: UserDatabaseAsync
+
+    def __init__(self, user_db: UserDatabaseAsync, http_client: AsyncClient) -> None:
+        super().__init__(user_db)
+        self.http_client = http_client
+        self.skip_breach_check = False
+        self.skip_password_validation = False
+
     # Set up token secrets and lifetimes
-    reset_password_token_secret: SecretType = SECRET
+    reset_password_token_secret: SecretType = SECRET.get_secret_value()
     reset_password_token_lifetime_seconds = RESET_TOKEN_TTL
 
-    verification_token_secret: SecretType = SECRET
+    verification_token_secret: SecretType = SECRET.get_secret_value()
     verification_token_lifetime_seconds = VERIFICATION_TOKEN_TTL
 
-    async def create(
-        self,
-        user_create: UserCreate | UserCreateWithOrganization,
-        safe: bool = False,  # noqa: FBT001, FBT002 # This boolean-typed positional argument is expected by the `create` function signature
-        request: Request | None = None,
-    ) -> User:
-        """Override of base user creation with additional username uniqueness check and organization creation."""
+    async def authenticate(self, credentials: OAuth2PasswordRequestForm) -> User | None:
+        """Support login with either email or username."""
+        is_email = False
         try:
-            user_create = await create_user_override(self.user_db, user_create)
-        # HACK: This is a temporary solution to allow error propagation for username and organization creation errors.
-        # The built-in UserManager register route can only catch UserAlreadyExists and InvalidPasswordException errors.
-        # TODO: Implement custom exceptions in custom register router, this will also simplify user creation crud.
-        except AuthCRUDError as e:
-            raise InvalidPasswordException(
-                reason="WARNING: This is an AuthCRUDError error, not an InvalidPasswordException. To be fixed. "
-                + str(e)
-            ) from e
-        return await super().create(user_create, safe, request)
+            TypeAdapter(EmailStr).validate_python(credentials.username)
+            is_email = True
+        except ValidationError:
+            pass
 
-    async def update(
-        self,
-        user_update: UserUpdate,
-        user: User,
-        safe: bool = False,  # noqa: FBT001, FBT002 # This boolean-typed positional argument is expected by the `create` function signature
-        request: Request | None = None,
-    ) -> User:
-        """Override of base user update with additional username and organization validation."""
-        try:
-            user_update = await update_user_override(self.user_db, user, user_update)
-        # HACK: This is a temporary solution to allow error propagation for username and organization creation errors.
-        # The built-in UserManager register route can only catch UserAlreadyExists and InvalidPasswordException errors.
-        # TODO: Implement custom exceptions in custom update router, this will also simplify user creation crud.
-        except AuthCRUDError as e:
-            raise InvalidPasswordException(
-                reason="WARNING: This is an AuthCRUDError error, not an InvalidPasswordException. To be fixed. "
-                + str(e)
-            ) from e
+        if not is_email:
+            statement = select(User).where(User.username == credentials.username)
+            result = await self.user_db.session.execute(statement)
+            db_user = result.scalars().unique().one_or_none()
+            if db_user:
+                credentials.username = db_user.email
+        return await super().authenticate(credentials)
 
-        return await super().update(user_update, user, safe, request)
-
-    async def validate_password(  # pyright: ignore [reportIncompatibleMethodOverride] # Allow overriding user type in method
+    async def validate_password(
         self,
         password: str | SecretStr,
         user: UserCreate | User,
     ) -> None:
-        if isinstance(password, SecretStr):
-            password = password.get_secret_value()
-        if len(password) < 8:
-            raise InvalidPasswordException(reason="Password should be at least 8 characters")
-        if user.email in password:
-            raise InvalidPasswordException(reason="Password should not contain e-mail")
-        if user.username and user.username in password:
-            raise InvalidPasswordException(reason="Password should not contain username")
-
-    async def on_after_register(self, user: User, request: Request | None = None) -> None:
-        if not request:
-            err_msg = "Request object is required for user registration"
-            raise RuntimeError(err_msg)
-
-        user = await add_user_role_in_organization_after_registration(self.user_db, user, request)
-
-        # HACK: Skip sending registration email for programmatically created users by using synthetic request state
-        if request and hasattr(request.state, "send_registration_email") and not request.state.send_registration_email:
-            logger.info("Skipping registration email for user %s", user.email)
+        """Delegate password validation to the dedicated service."""
+        if self.skip_password_validation:
             return
+        await _validate_password(
+            password,
+            email=user.email,
+            username=getattr(user, "username", None),
+            http_client=self.http_client,
+            skip_breach_check=self.skip_breach_check,
+        )
 
-        # HACK: Create synthetic request to specify sending registration email with verification token
-        # instead of normal verification email
-        request = Request(scope={"type": "http"})
-        request.state.send_registration_email = True
-        await self.request_verify(user, request)
+    async def update(
+        self,
+        user_update: schemas.UU,
+        user: User,
+        safe: bool = False,  # noqa: FBT002, FBT001 # Expected by parent class signature
+        request: Request | None = None,
+    ) -> User:
+        """Update a user, injecting custom organization & username validation first."""
+        # Will raise exceptions like UserNameAlreadyExistsError if validation fails
+        real_user_update = cast("UserUpdate", user_update)
+        real_user_update = await update_user_override(self.user_db, user, real_user_update)
+        user_update = cast("schemas.UU", real_user_update)
 
-    async def on_after_request_verify(
-        self, user: User, token: str, request: Request | None = None
-    ) -> None:  # Request argument is expected in the method signature
-        if request and hasattr(request.state, "send_registration_email") and request.state.send_registration_email:
-            # Send registration email with verification token if synthetic request state is set
-            await send_registration_email(user.email, user.username, token)
-            logger.info("Registration email sent to user %s", user.email)
-        else:
-            await send_verification_email(user.email, user.username, token)
-            logger.info("Verification email sent to user %s", user.email)
+        # Proceed with base FastAPI User update logic
+        return await super().update(user_update, user, safe=safe, request=request)
+
+    async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
+        """Send verification email after verification is requested."""
+        await send_verification_email(user.email, user.username, token)
+        logger.info("Verification email sent to user %s", sanitize_log_value(user.email))
 
     async def on_after_verify(self, user: User, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
-        logger.info("User %s has been verified.", user.email)
+        """Send welcome email after user verifies their email."""
+        logger.info("User %s has been verified.", sanitize_log_value(user.email))
         await send_post_verification_email(user.email, user.username)
 
     async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
-        logger.info("User %s has forgot their password. Reset token: %s", user.email, token)
+        """Send password reset email."""
+        logger.info("User %s has forgot their password. Sending reset token", sanitize_log_value(user.email))
         await send_reset_password_email(user.email, user.username, token)
 
+    async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
+        """Revoke all refresh tokens when a user is deactivated."""
+        if update_dict.get("is_active") is False:
+            redis = get_request_services(request).redis if request else None
+            await refresh_token_service.revoke_all_user_tokens(redis, user.id)
 
-async def get_user_db(session: AsyncSessionDep) -> AsyncGenerator[SQLModelUserDatabaseAsync]:
-    """Async generator for the user database."""
-    yield SQLModelUserDatabaseAsync(session, User, OAuthAccount)
+    async def on_after_login(
+        self, user: User, request: Request | None = None, response: Response | None = None
+    ) -> None:
+        """Update last login timestamp, create refresh token and session after successful authentication."""
+        await update_last_login_metadata(user, request, self.user_db.session)
+        await maybe_set_refresh_token_cookie(user, request, response)
+        log_successful_login(user)
 
 
-async def get_user_manager(user_db: SQLModelUserDatabaseAsync = Depends(get_user_db)) -> AsyncGenerator[UserManager]:
+async def get_user_manager(
+    user_db: UserDatabaseAsync[User, UUID4] = Depends(get_user_db),
+    http_client: AsyncClient = Depends(get_external_http_client),
+) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""
-    yield UserManager(user_db)
+    yield UserManager(user_db, http_client)
 
 
-# Bearer Transport
-bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
-
-
-# Cookie Transport
-
-# Set the cookie domain to the main host, including subdomains (hence the dot prefix)
-url_extract = tldextract.extract(str(core_settings.frontend_web_url))
-cookie_domain = f".{url_extract.domain}.{url_extract.suffix}" if url_extract.domain and url_extract.suffix else None
-
-cookie_transport = CookieTransport(
-    cookie_name="auth",
-    cookie_max_age=ACCESS_TOKEN_TTL,
-    cookie_domain=cookie_domain,
-)
-
-
-def get_jwt_strategy() -> JWTStrategy:
-    """Get a JWT strategy to be used in authentication backends."""
-    return JWTStrategy(secret=SECRET, lifetime_seconds=ACCESS_TOKEN_TTL)
-
-
-# Authentication backends
-bearer_auth_backend = AuthenticationBackend(name="bearer", transport=bearer_transport, get_strategy=get_jwt_strategy)
-cookie_auth_backend = AuthenticationBackend(name="cookie", transport=cookie_transport, get_strategy=get_jwt_strategy)
+bearer_auth_backend: AuthenticationBackend[User, UUID4]
+cookie_auth_backend: AuthenticationBackend[User, UUID4]
+bearer_auth_backend, cookie_auth_backend = build_authentication_backends()
 
 # User manager singleton
 fastapi_user_manager = FastAPIUsers[User, UUID4](get_user_manager, [bearer_auth_backend, cookie_auth_backend])

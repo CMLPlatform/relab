@@ -1,48 +1,36 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 ### Auto-generated
-# dependencies
+# Dependencies
 node_modules/
 
-# Expo
-.expo/
+# Astro
 dist/
-web-build/
-expo-env.d.ts
+.astro/
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-android/
-ios/
+# TypeScript
+*.tsbuildinfo
 
-# Metro
-.metro-health-check*
-
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
+# Local env overrides
+.env.local
 
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-#
-!lib/
+# Playwright
+playwright-report/
+test-results/
 
 ### Manual additions
 # VS Code settings
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# Test coverage
+coverage/
+
+# Env files (frontend env files are all public)
+!.env.dev
+!.env.staging
+!.env.prod
+!.env.test

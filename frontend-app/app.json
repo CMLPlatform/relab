@@ -2,12 +2,11 @@
   "expo": {
     "name": "relab-frontend-app",
     "slug": "relab-frontend-app",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "portrait",
-    "icon": "./src/assets/images/logo-cml.png",
+    "icon": "./src/assets/images/favicon.png",
     "scheme": "relab-frontend-app",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -16,7 +15,6 @@
         "foregroundImage": "./src/assets/images/favicon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.cml.relabFrontendApp"
     },
     "web": {
@@ -25,7 +23,15 @@
       "favicon": "./src/assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "asyncRoutes": {
+            "web": true,
+            "default": "development"
+          }
+        }
+      ],
       "expo-font",
       [
         "expo-splash-screen",
@@ -36,7 +42,9 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true

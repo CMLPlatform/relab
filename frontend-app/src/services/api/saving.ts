@@ -1,187 +1,296 @@
+import { API_URL } from '@/config';
 import { getToken } from '@/services/api/authentication';
-import { getProduct } from '@/services/api/fetching';
-import { Product } from '@/types/Product';
+import { apiFetch } from '@/services/api/client';
+import type { Product } from '@/types/Product';
 
-// TODO: Break up the saving logic into smaller files
-// TODO: Refactor the types to build on the generated API client from OpenAPI spec
+const baseUrl = API_URL;
 
-const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
+// ─── API payload types (derived from generated OpenAPI types) ─────────────────
 
-function toNewProduct(product: Product): any {
-  const isComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
+type ProductPayload = {
+  name: string;
+  brand?: string;
+  model?: string;
+  description?: string;
+  product_type_id: number | null;
+  amount_in_parent?: number;
+  weight_g: number | null;
+  height_cm: number | null;
+  width_cm: number | null;
+  depth_cm: number | null;
+  recyclability_comment?: string | null;
+  recyclability_observation?: string | null;
+  recyclability_reference?: string | null;
+  remanufacturability_comment?: string | null;
+  remanufacturability_observation?: string | null;
+  remanufacturability_reference?: string | null;
+  repairability_comment?: string | null;
+  repairability_observation?: string | null;
+  repairability_reference?: string | null;
+};
+
+type NewProductPayload = ProductPayload & {
+  videos: Product['videos'];
+};
+
+// ─── Serialization helpers ────────────────────────────────────────────────────
+
+function toNullableNumber(value: number | undefined): number | null {
+  if (value === undefined || Number.isNaN(value)) return null;
+  return value;
+}
+
+function toNullableText(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  return value.trim() === '' ? null : value;
+}
+
+function toProductPayload(product: Product): ProductPayload {
+  const isComponent = typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
+
+  const circularityOut = {
+    recyclability_comment: toNullableText(product.circularityProperties.recyclabilityComment),
+    recyclability_observation: toNullableText(
+      product.circularityProperties.recyclabilityObservation,
+    ),
+    recyclability_reference: toNullableText(product.circularityProperties.recyclabilityReference),
+    remanufacturability_comment: toNullableText(
+      product.circularityProperties.remanufacturabilityComment,
+    ),
+    remanufacturability_observation: toNullableText(
+      product.circularityProperties.remanufacturabilityObservation,
+    ),
+    remanufacturability_reference: toNullableText(
+      product.circularityProperties.remanufacturabilityReference,
+    ),
+    repairability_comment: toNullableText(product.circularityProperties.repairabilityComment),
+    repairability_observation: toNullableText(
+      product.circularityProperties.repairabilityObservation,
+    ),
+    repairability_reference: toNullableText(product.circularityProperties.repairabilityReference),
+  };
+
+  const hasCircularity = Object.values(circularityOut).some((v) => v !== null);
 
   return {
     name: product.name,
     brand: product.brand,
     model: product.model,
     description: product.description,
-    bill_of_materials: [
-      {
-        quantity: 42,
-        unit: 'kg',
-        material_id: 1,
-      },
-    ],
-    physical_properties: toUpdatePhysicalProperties(product),
-    circularity_properties: toUpdateCircularityProperties(product),
     product_type_id: product.productTypeID ? product.productTypeID : null,
+    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
+    weight_g: toNullableNumber(product.physicalProperties.weight),
+    height_cm: toNullableNumber(product.physicalProperties.height),
+    width_cm: toNullableNumber(product.physicalProperties.width),
+    depth_cm: toNullableNumber(product.physicalProperties.depth),
+    ...(hasCircularity ? circularityOut : {}),
+  };
+}
+
+function toNewProductPayload(product: Product): NewProductPayload {
+  return {
+    ...toProductPayload(product),
     videos: product.videos,
-    // Only include amountInParent if this is a component (has a parent)
-    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
   };
 }
 
-function toUpdateProduct(product: Product): any {
-  const isComponent = typeof product.parentID === 'number' && !isNaN(product.parentID);
-
+function authHeaders(token: string | undefined): Record<string, string> {
   return {
-    name: product.name,
-    brand: product.brand,
-    model: product.model,
-    description: product.description,
-    product_type_id: product.productTypeID ? product.productTypeID : null,
-    // Only include amount_in_parent if this is a component (has a parent)
-    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
-function toUpdatePhysicalProperties(product: Product): any {
-  return {
-    weight_kg: product.physicalProperties.weight || null,
-    height_cm: product.physicalProperties.height || null,
-    width_cm: product.physicalProperties.width || null,
-    depth_cm: product.physicalProperties.depth || null,
-  };
+async function throwOnError(response: Response, label: string): Promise<void> {
+  if (response.ok || response.status === 404) return;
+  const errData = await response.json().catch(() => null);
+  throw new Error(
+    `Failed to ${label}: ${errData?.detail?.[0]?.msg || errData?.detail || response.statusText}`,
+  );
 }
 
-function toUpdateCircularityProperties(product: Product): any {
-  return {
-    recyclability_comment: product.circularityProperties.recyclabilityComment ?? null,
-    recyclability_observation: product.circularityProperties.recyclabilityObservation,
-    recyclability_reference: product.circularityProperties.recyclabilityReference ?? null,
-    remanufacturability_comment: product.circularityProperties.remanufacturabilityComment ?? null,
-    remanufacturability_observation: product.circularityProperties.remanufacturabilityObservation,
-    remanufacturability_reference: product.circularityProperties.remanufacturabilityReference ?? null,
-    repairability_comment: product.circularityProperties.repairabilityComment ?? null,
-    repairability_observation: product.circularityProperties.repairabilityObservation,
-    repairability_reference: product.circularityProperties.repairabilityReference ?? null,
-  };
-}
+/**
+ * Save a product. For updates, pass the server-state images/videos so we can
+ * diff without an extra network round-trip to re-fetch them.
+ */
+export async function saveProduct(
+  product: Product,
+  originalImages: Product['images'] = [],
+  originalVideos: Product['videos'] = [],
+): Promise<number> {
+  const token = await getToken();
 
-export async function saveProduct(product: Product): Promise<number> {
   if (product.id === 'new') {
-    return await saveNewProduct(product);
+    return await saveNewProduct(product, token);
   } else {
-    return await updateProduct(product);
+    return await updateProduct(product, originalImages, originalVideos, token);
   }
 }
 
-async function saveNewProduct(product: Product): Promise<number> {
-  // If product has a parent, it's a component - use the components endpoint
+async function saveNewProduct(product: Product, token: string | undefined): Promise<number> {
   const url =
-    typeof product.parentID === 'number' && !isNaN(product.parentID)
+    typeof product.parentID === 'number' && !Number.isNaN(product.parentID)
       ? new URL(`${baseUrl}/products/${product.parentID}/components`)
-      : new URL(baseUrl + '/products');
+      : new URL(`${baseUrl}/products`);
 
-  const token = await getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  const body = JSON.stringify(toNewProduct(product));
+  const headers = authHeaders(token);
+  const response = await apiFetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(toNewProductPayload(product)),
+  });
+  await throwOnError(response, 'save product');
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: body });
   const data = await response.json();
+  product.id = data.id;
 
-  console.log('Created product:', data);
-  product.id = data.id; // Update product ID to the newly assigned ID so we can add images
-
-  await updateProductImages(product);
-  await updateProductVideos(product);
+  // New product has no existing media on the server yet — uploads can run in parallel
+  await Promise.all([
+    updateProductImages(product, [], token),
+    updateProductVideos(product, [], token),
+  ]);
 
   return data.id;
 }
 
-async function updateProduct(product: Product): Promise<number> {
-  const token = await getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
+async function updateProduct(
+  product: Product,
+  originalImages: Product['images'],
+  originalVideos: Product['videos'],
+  token: string | undefined,
+): Promise<number> {
+  const headers = authHeaders(token);
 
-  const productBody = JSON.stringify(toUpdateProduct(product));
-  const propertiesBody = JSON.stringify(toUpdatePhysicalProperties(product));
-  const circularityBody = JSON.stringify(toUpdateCircularityProperties(product));
+  // Single PATCH request — properties are now flat on the product
+  const productRes = await apiFetch(new URL(`${baseUrl}/products/${product.id}`), {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(toProductPayload(product)),
+  });
 
-  let url = new URL(baseUrl + `/products/${product.id}`);
-  const response = await fetch(url, { method: 'PATCH', headers: headers, body: productBody });
+  await throwOnError(productRes, 'update product');
 
-  url = new URL(baseUrl + `/products/${product.id}/physical_properties`);
-  await fetch(url, { method: 'PATCH', headers: headers, body: propertiesBody });
+  // Image and video updates can run in parallel
+  await Promise.all([
+    updateProductImages(product, originalImages, token),
+    updateProductVideos(product, originalVideos, token),
+  ]);
 
-  url = new URL(baseUrl + `/products/${product.id}/circularity_properties`);
-  await fetch(url, { method: 'PATCH', headers: headers, body: circularityBody });
-
-  await updateProductImages(product);
-  await updateProductVideos(product);
-
-  const data = await response.json();
-
+  const data = await productRes.json();
   return data.id;
 }
 
-async function updateProductImages(product: Product) {
-  const currentImages = await getProduct(product.id);
-  const imagesToDelete = currentImages.images.filter((img) => !product.images.some((i) => i.id === img.id));
+async function updateProductImages(
+  product: Product,
+  originalImages: Product['images'],
+  token: string | undefined,
+) {
+  const imagesToDelete = originalImages.filter(
+    (img) => !product.images.some((i) => i.id === img.id),
+  );
   const imagesToAdd = product.images.filter((img) => !img.id);
 
-  for (const img of imagesToDelete) {
-    await deleteImage(product, img);
-  }
+  // Deletes can run in parallel
+  await Promise.all(
+    imagesToDelete
+      .filter((img) => img.id !== undefined)
+      .map((img) => deleteImage(product, img as { id: string }, token)),
+  );
 
-  for (const img of imagesToAdd) {
-    await addImage(product, img);
-  }
+  // Uploads run sequentially to avoid overwhelming the server with large payloads
+  await runSequentially(imagesToAdd, (img) => addImage(product, img, token));
 }
 
-async function deleteImage(product: Product, image: { id: number }) {
-  const url = new URL(baseUrl + `/products/${product.id}/images/${image.id}`);
-  const token = await getToken();
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  return await fetch(url, { method: 'DELETE', headers: headers });
+async function deleteImage(product: Product, image: { id: string }, token: string | undefined) {
+  const url = new URL(`${baseUrl}/products/${product.id}/images/${image.id}`);
+  return await apiFetch(url, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
 }
 
-async function addImage(product: Product, image: { url: string; description: string }) {
-  const url = new URL(baseUrl + `/products/${product.id}/images`);
-  const token = await getToken();
-  const headers = {
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+async function runSequentially<T>(items: T[], runItem: (item: T) => Promise<void>): Promise<void> {
+  await items.reduce<Promise<void>>(async (previous, item) => {
+    await previous;
+    await runItem(item);
+  }, Promise.resolve());
+}
+
+async function addImage(
+  product: Product,
+  image: { url: string; description: string; id?: string },
+  token: string | undefined,
+) {
+  const url = new URL(`${baseUrl}/products/${product.id}/images`);
+  const headers: Record<string, string> = {
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
   const body = new FormData();
 
   if (image.url.startsWith('data:')) {
-    body.append('file', dataURItoBlob(image.url), 'image.png');
+    const fileBlob = dataURItoBlob(image.url);
+    if (fileBlob.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error('Image is too large. Please use an image smaller than 10 MB.');
+    }
+    body.append('file', fileBlob, 'image.png');
   } else if (image.url.startsWith('file:')) {
-    console.log(image.url);
-    body.append('file', { uri: image.url, name: 'image.png', type: 'image/png' } as any);
-  } else if (image.url.startsWith('blob:')) {
-    // Fetch the blob from the blob URL
+    // React Native extends FormData to accept { uri, name, type } for native file uploads
+    body.append('file', {
+      uri: image.url,
+      name: 'image.png',
+      type: 'image/png',
+    } as unknown as Blob);
+  } else if (image.url.startsWith('blob:') || image.url.startsWith('http')) {
+    // Web blob or URL - fetch and convert to blob
     const response = await fetch(image.url);
     const blob = await response.blob();
+    if (blob.size > MAX_IMAGE_SIZE_BYTES) {
+      throw new Error('Image is too large. Please use an image smaller than 10 MB.');
+    }
     body.append('file', blob, 'image.png');
   }
 
-  await fetch(url, { method: 'POST', headers: headers, body: body });
+  const response = await apiFetch(url, {
+    method: 'POST',
+    headers: headers,
+    body: body,
+    timeoutMs: 30_000,
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => null);
+    throw new Error(`Image upload failed: ${errData?.detail || response.statusText}`);
+  }
+
+  // If the server returned the stored media object, update the local image
+  // entry so the UI uses the persisted HTTP URL instead of a blob: URI.
+  const data = await response.json().catch(() => null);
+  if (data) {
+    try {
+      if (data.id) {
+        // mutate the object in-place so callers see the updated id/url
+        image.id = data.id;
+      }
+      const newUrl = data.url || data.image_url || data.file_url || data.path || data.location;
+      if (newUrl) {
+        image.url = newUrl;
+      }
+    } catch {
+      // ignore mutation errors
+    }
+  }
 }
 
 function dataURItoBlob(dataURI: string) {
-  const byteString = atob(dataURI.split(',')[1]); // decode base64
+  let byteString: string;
+  try {
+    byteString = atob(dataURI.split(',')[1]); // decode base64
+  } catch {
+    throw new Error('Invalid image data.');
+  }
   const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0]; // e.g. "image/png"
 
   const ab = new ArrayBuffer(byteString.length);
@@ -193,82 +302,70 @@ function dataURItoBlob(dataURI: string) {
   return new Blob([ab], { type: mimeString });
 }
 
-async function updateProductVideos(product: Product) {
-  const currentProduct = await getProduct(product.id);
-  const currentVideos = currentProduct.videos || [];
-  const videosToDelete = currentVideos.filter((vid) => !product.videos.some((v) => v.id === vid.id));
+async function updateProductVideos(
+  product: Product,
+  originalVideos: Product['videos'],
+  token: string | undefined,
+) {
+  const currentVideos = originalVideos || [];
+  const videosToDelete = currentVideos.filter(
+    (vid) => !product.videos.some((v) => v.id === vid.id),
+  );
   const videosToAdd = product.videos.filter((vid) => !vid.id);
   const videosToUpdate = product.videos.filter((vid) => {
     const orig = currentVideos.find((v) => v.id === vid.id);
-    return orig && (orig.url !== vid.url
-        || orig.description !== vid.description
-        || orig.title !== vid.title
+    return (
+      orig &&
+      (orig.url !== vid.url || orig.description !== vid.description || orig.title !== vid.title)
     );
   });
 
-  for (const vid of videosToDelete) {
-    await deleteVideo(product, vid);
-  }
-  for (const vid of videosToAdd) {
-    await addVideo(product, vid);
-  }
-  for (const vid of videosToUpdate) {
-    await updateVideo(product, vid);
-  }
-}
+  const headers = authHeaders(token);
 
-async function addVideo(product: Product, video: { url: string; description: string, title: string, }) {
-  const url = new URL(baseUrl + `/products/${product.id}/videos`);
-  const token = await getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
-  await fetch(url, { method: 'POST', headers, body });
-}
+  // Deletes and updates can run in parallel
+  await Promise.all([
+    ...videosToDelete
+      .filter((vid) => vid.id)
+      .map((vid) =>
+        apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
+          method: 'DELETE',
+          headers: {
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }),
+      ),
+    ...videosToUpdate
+      .filter((vid) => vid.id)
+      .map((vid) =>
+        apiFetch(new URL(`${baseUrl}/products/${product.id}/videos/${vid.id}`), {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
+        }),
+      ),
+  ]);
 
-async function deleteVideo(product: Product, video: { id?: number }) {
-  if (!video.id) {
-    return;
-  }
-
-  const url = new URL(baseUrl + `/products/${product.id}/videos/${video.id}`);
-  const token = await getToken();
-  const headers = {
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  await fetch(url, { method: 'DELETE', headers });
-}
-
-async function updateVideo(product: Product, video: { id?: number; url: string; description: string, title: string, }) {
-  if (!video.id) {
-    return;
-  }
-
-  const url = new URL(baseUrl + `/products/${product.id}/videos/${video.id}`);
-  const token = await getToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
-  const body = JSON.stringify({ url: video.url, description: video.description, title: video.title });
-  await fetch(url, { method: 'PATCH', headers, body });
+  // Adds run sequentially
+  await runSequentially(videosToAdd, async (vid) => {
+    await apiFetch(new URL(`${baseUrl}/products/${product.id}/videos`), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ url: vid.url, description: vid.description, title: vid.title }),
+    });
+  });
 }
 
 export async function deleteProduct(product: Product): Promise<void> {
   if (product.id === 'new') {
     return;
   } // New products are not saved yet
-  const url = new URL(baseUrl + `/products/${product.id}`);
+  const url = new URL(`${baseUrl}/products/${product.id}`);
   const token = await getToken();
   const headers = {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  await fetch(url, { method: 'DELETE', headers: headers });
+  await apiFetch(url, { method: 'DELETE', headers: headers });
   return;
 }

@@ -1,0 +1,27 @@
+{
+  "name": "relab",
+  "private": true,
+  "version": "0.2.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": "24.x",
+    "pnpm": "10.x"
+  },
+  "scripts": {
+    "biome": "biome",
+    "check": "pnpm run lint && pnpm run spellcheck && pnpm run syncpack:check",
+    "spellcheck": "cspell .",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "fix": "biome check --write",
+    "syncpack:check": "syncpack lint"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.12",
+    "cspell": "^10.0.0",
+    "syncpack": "^14.3.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": []
+  }
+}

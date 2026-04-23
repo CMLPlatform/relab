@@ -1,0 +1,119 @@
+# Frontend App Tasks
+# spell-checker: ignore compgen
+
+# Show available recipes
+default:
+    @just --list
+
+# Install dependencies
+install:
+    pnpm install --frozen-lockfile
+
+# Regenerate the lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
+# Update Expo-managed dependencies to versions compatible with the current SDK
+update:
+    pnpm exec expo install --fix
+    pnpm update -D
+    pnpm dedupe
+    pnpm dlx expo-doctor
+    @echo "✓ Frontend-app dependencies updated"
+
+# Run lint checks
+lint:
+    pnpm run lint
+    @echo "✓ Frontend-app lint passed"
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+    @echo "✓ Frontend-app type checks passed"
+
+# Run the frontend-app quality gate
+check: lint typecheck
+    @echo "✓ Frontend-app checks passed"
+
+# Auto-format code
+format:
+    pnpm run format
+    @echo "✓ Frontend-app code formatted"
+
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+    @echo "✓ Frontend-app code fixed and formatted"
+
+# Run tests (unit + integration)
+test:
+    pnpm run test
+
+# Run the fast unit test suite
+test-unit:
+    pnpm run test:unit
+
+# Run the slower app-level Jest integration test suite
+test-integration:
+    pnpm run test:integration
+
+# Run the frontend-app CI test suite
+test-ci:
+    pnpm run test:ci
+    @echo "✓ Frontend-app CI test suite passed"
+
+# Run the full frontend-app CI pipeline locally
+ci: check test-ci
+    @echo "✓ Frontend-app CI pipeline passed"
+
+# Start dev server
+dev PORT="8081":
+    pnpm exec expo start --port {{PORT}} --web
+
+# Scan dependencies for known vulnerabilities
+audit:
+    pnpm run audit
+    @echo "✓ Dependency audit complete"
+
+# Port the E2E backend is mapped to on the host (must match compose.e2e.yml / E2E_BACKEND_PORT)
+e2e_backend_port := env("E2E_BACKEND_PORT", "18432")
+
+# Build Expo web app for E2E testing (exports static SPA to dist/)
+# Only the API URL is required for these tests; the public website URL falls back in-app.
+build-web:
+    @echo "Building Expo web for E2E with EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}}"
+    EXPO_PUBLIC_API_URL=http://localhost:{{e2e_backend_port}} pnpm run build:web
+
+# Run full-stack E2E tests (requires a prior `just build-web` and compose.e2e.yml running)
+test-e2e:
+    pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
+
+# Run the full cross-browser E2E matrix (installs missing browsers on first run; set INSTALL=force to reinstall)
+test-e2e-cross-browser:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cache_dir="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+    needed=(chromium firefox webkit)
+    missing=0
+    for b in "${needed[@]}"; do
+        compgen -G "$cache_dir/${b}-*" > /dev/null || missing=1
+    done
+    if [[ "${INSTALL:-}" == "force" || "$missing" == "1" ]]; then
+        pnpm exec playwright install --with-deps
+    fi
+    pnpm run test:e2e:cross-browser
+
+# Open Playwright UI for interactive E2E test development
+test-e2e-ui:
+    pnpm run test:e2e:ui
+
+# Clean caches and build artifacts
+clean:
+    rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
+    @echo "✓ Cleaned caches and build artifacts"
+
+# Generate TypeScript API types from backend OpenAPI and redact sensitive examples
+codegen PORT="8011":
+    @echo "Generating TypeScript API types and redacting JWT examples (backend at http://localhost:{{PORT}})..."
+    EXPO_PUBLIC_API_URL=http://localhost:{{PORT}} pnpm run codegen
+    @echo "✓ Generated src/types/api.generated.ts (redacted)"

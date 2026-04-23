@@ -1,12 +1,10 @@
 {
-  "extends": "expo/tsconfig.base",
-  "baseUrl": ".",
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist", "node_modules", "coverage", "test-results"],
   "compilerOptions": {
-    "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "strict": true
-  },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+    }
+  }
 }

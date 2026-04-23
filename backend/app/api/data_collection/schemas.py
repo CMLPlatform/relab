@@ -1,12 +1,13 @@
 """Pydantic models used to validate CRUD operations for data collection data."""
 
-from collections.abc import Collection
+import logging
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import (
     AfterValidator,
     AwareDatetime,
+    BeforeValidator,
     ConfigDict,
     Field,
     PastDatetime,
@@ -21,14 +22,14 @@ from app.api.common.schemas.associations import (
 )
 from app.api.common.schemas.base import (
     BaseCreateSchema,
-    BaseReadSchemaWithTimeStamp,
     BaseUpdateSchema,
     ComponentRead,
     ProductRead,
 )
-from app.api.data_collection.models import (
-    PhysicalPropertiesBase,
+from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
+from app.api.data_collection.models.base import (
     ProductBase,
+    validate_start_and_end_time,
 )
 from app.api.file_storage.schemas import (
     FileRead,
@@ -37,10 +38,20 @@ from app.api.file_storage.schemas import (
     VideoReadWithinProduct,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Collection
+
+
+logger = logging.getLogger(__name__)
+
 ### Constants ###
-
-
 MAX_TIMESTAMP_AGE: timedelta = timedelta(days=365)
+
+# Normalizes brand strings: strips whitespace and lowercases; empty string becomes None
+NormalizedBrand = Annotated[
+    str | None,
+    BeforeValidator(lambda v: v.strip().lower() or None if isinstance(v, str) else v),
+]
 
 
 ### Common Validators ###
@@ -68,31 +79,6 @@ ValidDateTime = Annotated[
 ]
 
 
-### Properties Schemas ###
-
-
-class PhysicalPropertiesCreate(BaseCreateSchema, PhysicalPropertiesBase):
-    """Schema for creating physical properties."""
-
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={"examples": [{"weight_kg": 20, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
-    )
-
-
-class PhysicalPropertiesRead(BaseReadSchemaWithTimeStamp, PhysicalPropertiesBase):
-    """Schema for reading physical properties."""
-
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={"examples": [{"id": 1, "weight_kg": 20, "height_cm": 150, "width_cm": 70, "depth_cm": 50}]}
-    )
-
-
-class PhysicalPropertiesUpdate(BaseUpdateSchema, PhysicalPropertiesBase):
-    """Schema for updating physical properties."""
-
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": [{"weight_kg": 15, "height_cm": 120}]})
-
-
 ### Product Schemas ###
 
 
@@ -101,14 +87,16 @@ def validate_material_or_components(bill_of_materials: Collection, components: C
     """Validation logic to ensure either materials or components are provided."""
     if len(bill_of_materials) == 0 and len(components) == 0:
         err_msg = "Product must have at least one material or component"
-        raise ValueError(err_msg)
+        # TODO: raise error again once we implement mBill of materials UI
+        # that allows users to add materials at product creation instead of only components
+        logger.warning("Validation warning: %s. This will become an error in the future.", err_msg)
 
 
 ## Create Schemas ##
-
-
 class ProductCreateBase(BaseCreateSchema, ProductBase):
     """Base schema for product and component creation."""
+
+    brand: NormalizedBrand = Field(default=None, max_length=100)
 
     # Override base model start and end time to for validation purposes
     dismantling_time_start: ValidDateTime = Field(
@@ -119,15 +107,17 @@ class ProductCreateBase(BaseCreateSchema, ProductBase):
         default=None, description="End of the dismantling time, in ISO 8601 format with timezone info"
     )
 
+    @model_validator(mode="after")
+    def validate_times(self) -> Self:
+        """Ensure end time is after start time if both are set."""
+        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
+        return self
+
 
 class ProductCreateWithRelationships(ProductCreateBase):
     """Schema for creating a product or component with relationships to other models."""
 
     product_type_id: PositiveInt | None = None
-
-    physical_properties: PhysicalPropertiesCreate | None = Field(
-        default=None, description="Physical properties of the product"
-    )
 
     videos: list[VideoCreateWithinProduct] = Field(default_factory=list, description="Disassembly videos")
     bill_of_materials: list[MaterialProductLinkCreateWithinProduct] = Field(
@@ -138,34 +128,7 @@ class ProductCreateWithRelationships(ProductCreateBase):
 class ProductCreateBaseProduct(ProductCreateWithRelationships):
     """Schema for creating a base product."""
 
-    model_config: ConfigDict = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "name": "Office Chair",
-                    "description": "Complete chair assembly",
-                    "brand": "Brand 1",
-                    "model": "Model 1",
-                    "dismantling_time_start": "2025-09-22T14:30:45Z",
-                    "dismantling_time_end": "2025-09-22T16:30:45Z",
-                    "product_type_id": 1,
-                    "physical_properties": {
-                        "weight_kg": 20,
-                        "height_cm": 150,
-                        "width_cm": 70,
-                        "depth_cm": 50,
-                    },
-                    "videos": [
-                        {"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}
-                    ],
-                    "bill_of_materials": [
-                        {"quantity": 0.3, "unit": "kg", "material_id": 1},
-                        {"quantity": 0.1, "unit": "kg", "material_id": 2},
-                    ],
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PRODUCT_CREATE_EXAMPLES})
 
 
 class ComponentCreate(ProductCreateWithRelationships):
@@ -187,12 +150,13 @@ class ComponentCreateWithComponents(ComponentCreate):
     """
 
     # Recursive components
-    components: list["ComponentCreateWithComponents"] = Field(
+    components: list[ComponentCreateWithComponents] = Field(
         default_factory=list, description="Set of component products"
     )
 
     @model_validator(mode="after")
     def has_material_or_components(self) -> Self:
+        """Validation to ensure product has either materials or components."""
         validate_material_or_components(self.bill_of_materials, self.components)
         return self
 
@@ -210,6 +174,7 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 
     @model_validator(mode="after")
     def has_material_or_components(self) -> Self:
+        """Validation to ensure product has either materials or components."""
         validate_material_or_components(self.bill_of_materials, self.components)
         return self
 
@@ -218,13 +183,7 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 # Note that the base ProductRead schema is imported from app.api.common.schemas.base to avoid circular dependencies
 
 
-class ProductReadWithProperties(ProductRead):
-    """Schema for reading product information with all properties."""
-
-    physical_properties: PhysicalPropertiesRead | None = None
-
-
-class ProductReadWithRelationships(ProductReadWithProperties):
+class ProductReadWithRelationships(ProductRead):
     """Schema for reading product information with all relationships."""
 
     product_type: ProductTypeRead | None = None
@@ -235,17 +194,24 @@ class ProductReadWithRelationships(ProductReadWithProperties):
         default_factory=list, description="Bill of materials with quantities and units"
     )
 
+    @model_validator(mode="after")
+    def populate_thumbnail_url_from_images(self) -> Self:
+        """Fill thumbnail_url from the first image when the field is otherwise unset."""
+        if self.thumbnail_url is None and self.images:
+            self.thumbnail_url = self.images[0].image_url
+        return self
+
 
 class ProductReadWithRelationshipsAndFlatComponents(ProductReadWithRelationships):
     """Schema for reading product information with one level of components."""
 
-    components: list["ComponentRead"] = Field(default_factory=list, description="List of component products")
+    components: list[ComponentRead] = Field(default_factory=list, description="List of component products")
 
 
 class ComponentReadWithRecursiveComponents(ComponentRead):
     """Schema for reading product information with recursive components."""
 
-    components: list["ComponentReadWithRecursiveComponents"] = Field(
+    components: list[ComponentReadWithRecursiveComponents] = Field(
         default_factory=list, description="List of component products"
     )
 
@@ -264,11 +230,11 @@ class ProductReadWithRecursiveComponents(ProductReadWithRelationships):
 
 ### Update Schemas ###
 class ProductUpdate(BaseUpdateSchema):
-    """Schema for updating basic product information."""
+    """Schema for updating product information including physical and circularity properties."""
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-    brand: str | None = Field(default=None, max_length=100)
+    brand: NormalizedBrand = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
 
     dismantling_notes: str | None = Field(default=None, max_length=500, description="Notes on the dismantling process")
@@ -285,8 +251,25 @@ class ProductUpdate(BaseUpdateSchema):
         default=None, gt=0, description="Quantity within parent product. Required for component products."
     )
 
+    # Physical properties
+    weight_g: float | None = Field(default=None, gt=0)
+    height_cm: float | None = Field(default=None, gt=0)
+    width_cm: float | None = Field(default=None, gt=0)
+    depth_cm: float | None = Field(default=None, gt=0)
 
-class ProductUpdateWithProperties(ProductUpdate):
-    """Schema for a partial update of a product with properties."""
+    # Circularity properties
+    recyclability_observation: str | None = Field(default=None, max_length=500)
+    recyclability_comment: str | None = Field(default=None, max_length=100)
+    recyclability_reference: str | None = Field(default=None, max_length=100)
+    repairability_observation: str | None = Field(default=None, max_length=500)
+    repairability_comment: str | None = Field(default=None, max_length=100)
+    repairability_reference: str | None = Field(default=None, max_length=100)
+    remanufacturability_observation: str | None = Field(default=None, max_length=500)
+    remanufacturability_comment: str | None = Field(default=None, max_length=100)
+    remanufacturability_reference: str | None = Field(default=None, max_length=100)
 
-    physical_properties: PhysicalPropertiesUpdate | None = None
+    @model_validator(mode="after")
+    def validate_times(self) -> Self:
+        """Ensure end time is after start time if both are set."""
+        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
+        return self

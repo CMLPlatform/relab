@@ -1,0 +1,56 @@
+{
+  "name": "relab-docs",
+  "type": "module",
+  "version": "0.2.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": "24.x",
+    "pnpm": "10.x"
+  },
+  "license": "AGPL-3.0-or-later",
+  "contributors": [
+    "Simon van Lierde <s.n.van.lierde@cml.leidenuniv.nl>"
+  ],
+  "scripts": {
+    "dev": "astro dev --port 8000 --host --mode dev",
+    "build": "astro build --mode prod",
+    "build:prod": "astro build --mode prod",
+    "build:staging": "astro build --mode staging",
+    "build:test": "astro build --mode test",
+    "preview": "astro preview --port 8000 --host",
+    "format": "biome format --write .",
+    "fix": "biome check --write . && markdownlint-cli2 --fix",
+    "lint": "biome check . && markdownlint-cli2 && node ./scripts/check-no-cdn-imports.mjs",
+    "typecheck": "astro check",
+    "test": "echo 'docs has no unit tests — see test:e2e for Playwright suites'",
+    "test:e2e": "playwright test",
+    "test:ci": "pnpm run build && pnpm run test:e2e && pnpm run test:links",
+    "test:links": "linkinator ./dist --silent --skip 'mailto:*'",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run build:test",
+    "ci": "pnpm run check && pnpm run test:ci",
+    "audit": "pnpm audit --prod --audit-level high"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^5.0.4",
+    "@astrojs/starlight": "^0.38.3",
+    "astro": "^6.1.9",
+    "mermaid": "^11.14.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@axe-core/playwright": "^4.11.2",
+    "@biomejs/biome": "^2.4.12",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "linkinator": "^7.6.1",
+    "markdownlint-cli2": "^0.22.1",
+    "playwright": "^1.59.1",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
+}

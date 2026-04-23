@@ -5,16 +5,16 @@ Revises:
 Create Date: 2025-06-29 18:10:44.514384
 
 """
+# spell-checker: ignore astext
 
 from collections.abc import Sequence
 from typing import Union
 
 import sqlalchemy as sa
-import sqlmodel
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
-import app.api.common.models.custom_types
-from alembic import op
+import app.api.file_storage.models.storage as file_storage_storage
 
 # revision identifiers, used by Alembic.
 revision: str = "33b00b31e537"
@@ -34,9 +34,9 @@ def upgrade() -> None:
         "material",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
-        sa.Column("source", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("description", sa.String(500), nullable=True),
+        sa.Column("source", sa.String(50), nullable=True),
         sa.Column("density_kg_m3", sa.Float(), nullable=True),
         sa.Column("is_crm", sa.Boolean(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
@@ -47,7 +47,7 @@ def upgrade() -> None:
         "newslettersubscriber",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("email", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("email", sa.String(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("is_confirmed", sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
@@ -57,9 +57,9 @@ def upgrade() -> None:
         "organization",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
-        sa.Column("location", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("location", sa.String(50), nullable=True),
+        sa.Column("description", sa.String(500), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("owner_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(["owner_id"], ["user.id"], name="fk_organization_owner", use_alter=True),
@@ -70,8 +70,8 @@ def upgrade() -> None:
         "producttype",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("description", sa.String(500), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -80,8 +80,8 @@ def upgrade() -> None:
         "taxonomy",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("description", sa.String(500), nullable=True),
         sa.Column(
             "domains",
             postgresql.ARRAY(
@@ -89,7 +89,7 @@ def upgrade() -> None:
             ),
             nullable=True,
         ),
-        sa.Column("source", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=True),
+        sa.Column("source", sa.String(50), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -97,14 +97,14 @@ def upgrade() -> None:
     op.create_table(
         "user",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("email", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("hashed_password", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("email", sa.String(), nullable=False),
+        sa.Column("hashed_password", sa.String(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False),
         sa.Column("is_superuser", sa.Boolean(), nullable=False),
         sa.Column("is_verified", sa.Boolean(), nullable=False),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("username", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column("username", sa.String(), nullable=True),
         sa.Column("organization_id", sa.Uuid(), nullable=True),
         sa.Column(
             "organization_role",
@@ -120,12 +120,12 @@ def upgrade() -> None:
         "camera",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
-        sa.Column("url", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("description", sa.String(500), nullable=True),
+        sa.Column("url", sa.String(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("encrypted_api_key", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("encrypted_auth_headers", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column("encrypted_api_key", sa.String(), nullable=False),
+        sa.Column("encrypted_auth_headers", sa.String(), nullable=True),
         sa.Column("owner_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["owner_id"],
@@ -138,9 +138,9 @@ def upgrade() -> None:
         "category",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=250), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
-        sa.Column("external_id", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column("name", sa.String(250), nullable=False),
+        sa.Column("description", sa.String(500), nullable=True),
+        sa.Column("external_id", sa.String(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("supercategory_id", sa.Integer(), nullable=True),
         sa.Column("taxonomy_id", sa.Integer(), nullable=False),
@@ -161,12 +161,12 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
-        sa.Column("oauth_name", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("access_token", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("oauth_name", sa.String(), nullable=False),
+        sa.Column("access_token", sa.String(), nullable=False),
         sa.Column("expires_at", sa.Integer(), nullable=True),
-        sa.Column("refresh_token", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("account_id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("account_email", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+        sa.Column("refresh_token", sa.String(), nullable=True),
+        sa.Column("account_id", sa.String(), nullable=False),
+        sa.Column("account_email", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["user.id"],
@@ -179,11 +179,11 @@ def upgrade() -> None:
         "product",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=50), nullable=False),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
-        sa.Column("brand", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
-        sa.Column("model", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
-        sa.Column("dismantling_notes", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("name", sa.String(50), nullable=False),
+        sa.Column("description", sa.String(500), nullable=True),
+        sa.Column("brand", sa.String(100), nullable=True),
+        sa.Column("model", sa.String(100), nullable=True),
+        sa.Column("dismantling_notes", sa.String(500), nullable=True),
         sa.Column("dismantling_time_start", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("dismantling_time_end", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
@@ -238,10 +238,10 @@ def upgrade() -> None:
         "file",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("description", sa.String(500), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("filename", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("file", app.api.file_storage.models.custom_types.FileType(), nullable=False),
+        sa.Column("filename", sa.String(), nullable=False),
+        sa.Column("file", file_storage_storage.FileType(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="fileparenttype", create_type=False),
@@ -268,11 +268,11 @@ def upgrade() -> None:
         "image",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("description", sa.String(500), nullable=True),
         sa.Column("image_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("filename", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("file", app.api.file_storage.models.custom_types.ImageType(), nullable=False),
+        sa.Column("filename", sa.String(), nullable=False),
+        sa.Column("file", file_storage_storage.ImageType(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="imageparenttype", create_type=False),
@@ -337,9 +337,9 @@ def upgrade() -> None:
         "video",
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=True),
-        sa.Column("url", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-        sa.Column("title", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
-        sa.Column("description", sqlmodel.sql.sqltypes.AutoString(length=500), nullable=True),
+        sa.Column("url", sa.String(), nullable=False),
+        sa.Column("title", sa.String(100), nullable=True),
+        sa.Column("description", sa.String(500), nullable=True),
         sa.Column("video_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("product_id", sa.Integer(), nullable=False),

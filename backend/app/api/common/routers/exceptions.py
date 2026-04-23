@@ -1,44 +1,59 @@
-"""FastAPI exception handlers to raise HTTP errors for common exceptions."""
+"""FastAPI exception handlers for API and framework exceptions."""
 
-import logging
-from collections.abc import Awaitable, Callable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from loguru import logger
 from pydantic import ValidationError
 
+from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.common.exceptions import APIError
+from app.core.responses import build_problem_response
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from starlette.responses import Response
 
 ### Generic exception handlers ###
-
-logger = logging.getLogger()
 
 
 def create_exception_handler(
     default_status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR,
-) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
+) -> Callable[[Request, Exception], Awaitable[Response]]:
     """Create a FastAPI exception handler. Can take in a default status code for built-in exceptions."""
 
-    async def handler(_: Request, exc: Exception) -> JSONResponse:
+    async def handler(request: Request, exc: Exception) -> Response:
         if isinstance(exc, APIError):
             status_code = exc.http_status_code
-            detail = {"message": exc.message}
+            detail = exc.message
+            log_message = exc.log_message
+            extra = {"code": exc.__class__.__name__}
             if exc.details:
-                detail["details"] = exc.details
+                extra["errors"] = exc.details
         else:
             status_code = default_status_code
-            detail = {"message": str(exc)}
+            detail = "Internal server error" if status_code >= 500 else str(exc)
+            log_message = str(exc)
+            extra = {"code": exc.__class__.__name__}
 
-        # TODO: Add traceback location to log message (perhaps easier by  just using loguru)
         # Log based on status code severity. Can be made more granular if needed.
         if status_code >= 500:
-            logger.error("%s: %s", exc.__class__.__name__, str(exc), exc_info=exc)
+            logger.opt(exception=True).error(f"{exc.__class__.__name__}: {log_message}")
         elif status_code >= 400 and status_code != 404:
-            logger.warning("%s: %s", exc.__class__.__name__, str(exc))
+            logger.warning(f"{exc.__class__.__name__}: {log_message}")
         else:
-            logger.info("%s: %s", exc.__class__.__name__, str(exc))
+            logger.info(f"{exc.__class__.__name__}: {log_message}")
 
-        return JSONResponse(status_code=status_code, content={"detail": detail})
+        return build_problem_response(
+            request=request,
+            status_code=status_code,
+            detail=detail,
+            code=extra.pop("code"),
+            extra=extra,
+        )
 
     return handler
 
@@ -46,16 +61,15 @@ def create_exception_handler(
 ### Exception handler registration ###
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""
-    # TODO: When going public, any errors resulting from internal server logic
-    # should be logged and not exposed to the client, instead returning a 500 error with a generic message.
-
     # Custom API exceptions
     app.add_exception_handler(APIError, create_exception_handler())
 
-    # Standard Python exceptions
-    # TODO: These should be replaced with custom exceptions
+    # Rate limiting
+    app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
+
+    # Temporary compatibility handler for legacy domain validation paths.
+    # Avoid catching RuntimeError broadly so programmer errors still surface normally.
     app.add_exception_handler(ValueError, create_exception_handler(status.HTTP_400_BAD_REQUEST))
-    app.add_exception_handler(RuntimeError, create_exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR))
 
     # NOTE: This is a validation error for internal logic, not for user input
     app.add_exception_handler(ValidationError, create_exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR))

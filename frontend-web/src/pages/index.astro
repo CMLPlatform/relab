@@ -1,0 +1,22 @@
+---
+import Hero from '@/components/Hero.astro';
+import NewsletterSignup from '@/components/NewsletterSignup.astro';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { homeContent } from '@/content/home-content.ts';
+import { siteLinks } from '@/content/site-meta.ts';
+import Layout from '@/layouts/Layout.astro';
+import { joinApiUrl } from '@/utils/url.ts';
+
+const publicSiteConfig = getPublicSiteConfig();
+const newsletterSubscribeUrl = joinApiUrl(publicSiteConfig.apiUrl, '/newsletter/subscribe');
+---
+
+<Layout title="Reverse Engineering Lab" description={homeContent.heroBody}>
+  <Hero
+    appUrl={publicSiteConfig.appUrl}
+    docsUrl={publicSiteConfig.docsUrl}
+    githubUrl={siteLinks.github}
+  />
+
+  <NewsletterSignup apiUrl={newsletterSubscribeUrl} />
+</Layout>

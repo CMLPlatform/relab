@@ -1,0 +1,20 @@
+{
+	admin off
+}
+
+:8081 {
+	root * /srv
+	encode zstd gzip
+
+	handle /health {
+		respond "ok" 200
+	}
+
+	handle_errors {
+		@notFound expression `{http.error.status_code} == 404`
+		rewrite @notFound /404.html
+		file_server
+	}
+
+	file_server
+}

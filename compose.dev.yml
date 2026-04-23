@@ -1,0 +1,121 @@
+# compose.dev.yml (DEVELOPMENT - explicit dev overlay)
+# Run with: docker compose -f compose.yml -f compose.dev.yml up
+name: relab_dev
+
+services:
+  api:
+    build:
+      dockerfile: Dockerfile
+      target: dev
+    restart: "no"
+    ports:
+      - "8011:8000"
+    environment:
+      ENVIRONMENT: dev
+      BACKEND_API_URL: "http://localhost:8011"
+      FRONTEND_APP_URL: "http://localhost:8013"
+      FRONTEND_WEB_URL: "http://localhost:8010"
+    env_file: ./backend/.env.dev
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /opt/relab/backend
+          ignore:
+            - .venv/
+            - __pycache__/
+            - "*.pyc"
+            - logs/
+            - data/
+        - action: rebuild
+          path: ./backend/uv.lock
+        - action: rebuild
+          path: ./backend/pyproject.toml
+
+  redis:
+    ports:
+      - "6379:6379"
+    env_file: ./backend/.env.dev
+
+  postgres:
+    ports:
+      - "5432:5432"
+    env_file: ./backend/.env.dev
+
+  migrator:
+    env_file: ./backend/.env.dev
+
+  docs-site:
+    build:
+      context: ./docs
+      dockerfile: Dockerfile
+      target: dev
+    restart: "no"
+    ports:
+      - "8012:8000"
+    develop:
+      watch:
+        - action: sync
+          path: ./docs
+          target: /opt/relab/docs
+          ignore:
+            - node_modules/
+            - .astro/
+            - dist/
+            - site/
+        - action: rebuild
+          path: ./docs/pnpm-lock.yaml
+        - action: rebuild
+          path: ./docs/package.json
+
+  app-site:
+    build:
+      dockerfile: Dockerfile
+      target: dev
+    restart: "no"
+    ports:
+      - "8013:8081"
+    environment:
+      EXPO_PUBLIC_API_URL: "http://localhost:8011"
+      EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend-app
+          target: /opt/relab/frontend-app
+          ignore:
+            - node_modules/
+            - .expo/
+            - dist/
+            - web-build/
+            - coverage/
+            - test-results/
+            - playwright-report/
+            - e2e/
+            - jest.config.ts
+            - jest.setup.ts
+        - action: rebuild
+          path: ./frontend-app/pnpm-lock.yaml
+
+  web-site:
+    build:
+      dockerfile: Dockerfile
+      target: dev
+    restart: "no"
+    ports:
+      - "8010:8081"
+    environment:
+      PUBLIC_API_URL: "http://localhost:8011"
+      PUBLIC_DOCS_URL: "http://localhost:8012"
+      PUBLIC_APP_URL: "http://localhost:8013"
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend-web
+          target: /opt/relab/frontend-web
+          ignore:
+            - node_modules/
+            - .astro/
+            - dist/
+        - action: rebuild
+          path: ./frontend-web/pnpm-lock.yaml

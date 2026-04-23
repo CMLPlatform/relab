@@ -1,20 +1,21 @@
 """Admin routes for managing users."""
 
-from collections.abc import Sequence
-from typing import Annotated
+from typing import Annotated, cast
 
-from fastapi import APIRouter, Path, Query, Security
+from fastapi import APIRouter, Path, Security
 from fastapi.responses import RedirectResponse
 from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
 from pydantic import UUID4, EmailStr
 
 from app.api.auth.crud import get_user_by_username
 from app.api.auth.dependencies import UserManagerDep, current_active_superuser
+from app.api.auth.examples import ADMIN_USERS_RESPONSE_EXAMPLES
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.routers.users import router as public_user_router
-from app.api.auth.schemas import UserRead, UserReadWithRelationships
-from app.api.common.crud.base import get_models
+from app.api.auth.schemas import UserRead
+from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
@@ -24,47 +25,12 @@ router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security
 @router.get(
     "",
     summary="View all users",
-    response_model=list[UserRead] | list[UserReadWithRelationships],
+    response_model=Page[UserRead],
     responses={
         200: {
             "description": "List of users",
             "content": {
-                "application/json": {
-                    "examples": {
-                        "basic": {
-                            "summary": "Users without relationships",
-                            "value": [
-                                {
-                                    "id": "12345678-cc4e-405c-8553-7806424de2a1",
-                                    "username": "alice",
-                                    "email": "alice@example.com",
-                                    "is_active": True,
-                                    "is_superuser": False,
-                                    "is_verified": True,
-                                }
-                            ],
-                        },
-                        "with_organization": {
-                            "summary": "Users with organization",
-                            "value": [
-                                {
-                                    "id": "12345678-cc4e-405c-8553-7806424de2a1",
-                                    "username": "alice",
-                                    "email": "alice@example.com",
-                                    "is_active": True,
-                                    "is_superuser": False,
-                                    "is_verified": True,
-                                    "organization": {
-                                        "id": "12345678-cc4e-405c-8553-7806424de2a1",
-                                        "name": "University of Example",
-                                        "location": "Example City",
-                                        "description": "Example organization",
-                                    },
-                                },
-                            ],
-                        },
-                    }
-                },
+                "application/json": {"examples": ADMIN_USERS_RESPONSE_EXAMPLES},
             },
         },
     },
@@ -72,26 +38,18 @@ router = APIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security
 async def get_users(
     user_filter: Annotated[UserFilter, FilterDepends(UserFilter)],
     session: AsyncSessionDep,
-    include: Annotated[
-        set[str] | None,
-        Query(
-            description="Relationships to include",
-            openapi_examples={
-                "none": {"value": []},
-                "products": {"value": ["products"]},
-                "all": {"value": ["products", "organization"]},
-            },
-        ),
-    ] = None,
-) -> Sequence[User]:
-    """Get a list of all users with optional filtering and relationships."""
-    return await get_models(session, User, include_relationships=include, model_filter=user_filter)
+) -> Page[UserRead]:
+    """Get a list of all users with optional filtering."""
+    return cast(
+        "Page[UserRead]",
+        await page_models(session, User, filters=user_filter, read_schema=UserRead),
+    )
 
 
 @router.get(
     "/{user_id}",
     summary="View a single user by ID",
-    response_model=UserReadWithRelationships,
+    response_model=UserRead,
 )
 async def get_user(
     user_id: Annotated[UUID4, Path(description="The user's ID")],

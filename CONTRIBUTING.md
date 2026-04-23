@@ -1,388 +1,479 @@
-# Contributing to Reverse Engineering Lab
+# Contributing to RELab
 
-Thank you for your interest in contributing to the Reverse Engineering Lab project! This guide will help you get started with the development process and outline our expectations for contributions.
+Thanks for contributing. RELab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
 
-## Overview
+This page is for code and documentation changes. If you mainly want to run or deploy the stack, use [INSTALL.md](INSTALL.md).
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-  - [Recommended: Devcontainer Setup](#recommended-devcontainer-setup)
-    - [Initial Setup](#initial-setup)
-    - [Using Devcontainers](#using-devcontainers)
-  - [Alternative: Local Development Setup](#alternative-local-development-setup)
-    - [Root Setup](#root-setup)
-    - [Backend Setup](#backend-setup)
-    - [Documentation Setup](#documentation-setup)
-    - [Frontend Setup](#frontend-setup)
-- [Development Workflow](#development-workflow)
-  - [Pull Request Process](#pull-request-process)
-  - [Backend Development](#backend-development)
-    - [Backend Code Style](#backend-code-style)
-    - [Backend Testing](#backend-testing)
-    - [Database Migrations](#database-migrations)
-  - [Frontend Development](#frontend-development)
-    - [Frontend Code Style](#frontend-code-style)
-    - [Frontend Testing](#frontend-testing)
-  - [Docs Development](#docs-development)
-  - [Documentation Style](#documentation-style)
-- [License](#license)
+## Start Here
+
+| I want to...                            | Start here                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                                |
+| run the full stack locally in Docker    | [Docker Development](#docker-development)                                                |
+| work on one subrepo directly            | [Local Development](#local-development)                                                  |
+| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/)              |
+| understand config ownership             | [engineering configuration](https://docs.cml-relab.org/architecture/engineering-config/) |
 
 ## Code of Conduct
 
-By participating in this project, you agree to uphold our [Code of Conduct](CODE_OF_CONDUCT.md). Please read it before contributing.
+By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Getting Started
+## Devcontainer Setup
 
-If you’re new, start with the [Architecture Documentation](https://docs.cml-relab.org/architecture/) for an overview of the project structure.
+This is the recommended path into the repo if you use VS Code.
 
-We recommend using [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers) for development, as this provides a consistent, ready-to-code environment for backend, frontend, and docs.
+### Requirements
 
-If you prefer, you can also set up your [environment manually](#alternative-local-development-setup).
+- [VS Code](https://code.visualstudio.com/)
+- [Docker Desktop](https://docs.docker.com/get-docker/)
+- [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
-### Recommended: Devcontainer Setup
+### First-Time Setup
 
-#### Initial Setup
+1. Clone the repository.
 
-1. **Install Prerequisites**
-
-   - [VS Code](https://code.visualstudio.com/)
-   - [Docker Desktop](https://docs.docker.com/get-docker/)
-   - [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-
-1. **Clone the Repository Using VS Code**
-
-   - Open VS Code.
-   - Press <kbd>F1</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>) to open the Command Palette.
-   - Type and select `Git: Clone`.
-   - Enter `https://github.com/CMLPlatform/relab` as the repository URL.
-   - Choose a local folder for the clone.
-   - When prompted, open the cloned repository.
-
-1. **Install linting and formatting tools**
+1. Create the environment files.
 
    ```bash
-   uv run pre-commit install
-   ```
-
-1. **Configure Environment Variables**
-
-   - Copy the example environment file for the backend:
-
-     ```bash
-     cp backend/.env.example backend/.env
-     ```
-
-   - Configure the necessary values in `backend/.env` (marked with 🔀).
-
-#### Using Devcontainers
-
-1. **Open Dev Container**
-
-   - Open the repository in VS Code.
-   - When prompted, click **"Reopen in Container"** in VS Code.
-   - Alternatively, open the Command Palette again and select `Dev Containers: Reopen in Container`.
-
-1. **Choose a Configuration**
-
-   - Select a container for your task:
-
-     | Configuration     | Purpose               | Main Service(s) Start Command |
-     | ----------------- | --------------------- | ----------------------------- |
-     | `relab-backend`   | Backend development   | `fastapi dev`                 |
-     | `relab-frontend`  | Frontend development  | `npx expo start --web`        |
-     | `relab-docs`      | Documentation         | MkDocs server auto-starts     |
-     | `relab-fullstack` | Fullstack development | Both servers auto-start       |
-
-1. **Service Ports**
-   The following ports are forwarded to your local machine:
-
-   - **Frontend:** [http://127.0.0.1:8010](http://127.0.0.1:8010)
-   - **Backend:** [http://127.0.0.1:8011](http://127.0.0.1:8011)
-   - **Docs:** [http://127.0.0.1:8012](http://127.0.0.1:8012)
-   - **PostgreSQL:** `5433`
-
-### Alternative: Local Development Setup
-
-If you prefer not to use devcontainers, you can set up your environment manually.
-
-You will need to install all dependencies (Python, Node, PostgreSQL, etc.) and run the services yourself.
-
-It is still recommended to use VS Code as your IDE, as we have provided some recommended extensions and settings in the `.vscode` folders.
-
-#### Root Setup
-
-1. **Install Prerequisites**
-
-   - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-   - [uv](https://docs.astral.sh/uv/getting-started/installation)
-
-1. **Fork and clone the repository**:
-
-   ```bash
-   git clone https://github.com/CMLPlatform/relab
-   cd relab
-   ```
-
-1. **Install linting and formatting tools**
-
-   ```bash
-   uv run pre-commit install
-   ```
-
-#### Backend Setup
-
-1. **Install Dependencies**
-
-   - [uv](https://docs.astral.sh/uv/getting-started/installation) (should have been installed in the root setup)
-   - [PostgreSQL](https://pipenv.pypa.io/en/latest/install/). Make sure PostgreSQL is installed and running.
-
-1. **Install Python Dependencies**
-
-   ```bash
-   cd backend  
-   uv sync  
-   ```
-
-1. **Configure Environment**
-
-   Copy the example environment file:
-
-   ```bash
+   cp backend/.env.dev.example backend/.env.dev
    cp .env.example .env
    ```
 
-   Configure the necessary values in `.env` (marked with 🔀).
+1. Fill in the required values in `backend/.env.dev` and `.env`.
 
-   > 💡 Note: Make sure to create the PostgreSQL database and user as specified in your `.env` file.
+1. Reopen the repo in the `relab-fullstack` devcontainer.
 
-1. **Run Setup Script**
-   The [`local_setup.sh`](backend/local_setup.sh) script creates the database tables, runs the migrations, and sets up initial test data.
-
-   **For Linux/macOS**: `./local_setup.sh`
-
-   **For Windows**: It is recommended to use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) or a Linux VM for development.
-
-1. **Start the Application**
-
-   Run the FastAPI server:
+1. Run the standard bootstrap path.
 
    ```bash
-   fastapi dev
+   just setup
+   just dev
    ```
 
-   The API is now available at <http://127.0.0.1:8000>.
+1. Run the standard checks when you want to verify the repo state.
 
-   You can log in with the superuser details specified in the `.env` file. This gives you access to:
+   ```bash
+   just ci
+   ```
 
-   - Interactive API documentation at <http://127.0.0.1:8000/swagger/full>
-   - Admin panel for database management at <http://127.0.0.1:8000/dashboard>
+### Available Configurations
 
-#### Documentation Setup
+| Configuration        | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| `relab-fullstack`    | primary onboarding path for full stack development |
+| `relab-backend`      | focused backend work                               |
+| `relab-frontend-app` | focused Expo app work                              |
+| `relab-frontend-web` | focused public site work                           |
+| `relab-docs`         | focused docs work                                  |
 
-You can use `uv` to manage the documentation dependencies and run the MkDocs server.
+### Forwarded Ports
+
+- Platform: <http://127.0.0.1:8010>
+- Backend: <http://127.0.0.1:8011>
+- Docs: <http://127.0.0.1:8012>
+- App frontend: <http://127.0.0.1:8013>
+- PostgreSQL: `5432`
+- Redis: `6379`
+
+## Docker Development
+
+Use this when you want the full stack without configuring each subrepo manually.
+
+1. Create the backend environment file.
+
+   ```bash
+   cp backend/.env.dev.example backend/.env.dev
+   cp .env.example .env
+   ```
+
+1. Install local tooling.
+
+   ```bash
+   just setup
+   ```
+
+1. Start the stack with file watching.
+
+   ```bash
+   just dev
+   ```
+
+1. Run migrations on first start.
+
+   ```bash
+   just dev-migrate
+   ```
+
+### Local Service URLs
+
+- Platform: <http://127.0.0.1:8010>
+- Backend: <http://127.0.0.1:8011>
+- Docs: <http://127.0.0.1:8012>
+- App frontend: <http://127.0.0.1:8013>
+
+### Useful Commands
 
 ```bash
-cd docs
-uv run mkdocs serve
+just dev-up       # start without file watching
+just dev-logs     # tail logs
+just dev-down     # stop containers
 ```
 
-The documentation is now available at <http://127.0.0.1:8000> with live reload.
+## Local Development
 
-#### Frontend Setup
+Use this when you want to work on a specific subrepo without Docker.
 
-1. **Install Dependencies**
+### Root Setup
 
-   - [Node.js](https://nodejs.org/en/download/) (LTS version recommended)
-   - [Expo](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for your target platform (Android/iOS, device/simulator).
-     - Select **Development build**, disable **Build with EAS**, and follow the setup steps for your platform.
+Install:
 
-1. **Install Node.js Packages**
+- [Git](https://git-scm.com/)
+- [uv](https://docs.astral.sh/uv/getting-started/installation)
+- [just](https://just.systems/man/en/) recommended
+- Node.js LTS for the frontend subrepos
 
-   ```bash
-   cd frontend
-   npm install
-   ```
-
-1. **Start the app**
-
-   ```bash
-   npx expo start --web
-   ```
-
-   This will launch the Expo development server for the web frontend. By default, it opens [http://localhost:8081](http://localhost:8081) in your browser.
-
-   > 💡 Note: You can also use the Expo UI to run the app on a mobile device or emulator, see the [official Expo documentation](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&buildEnv=local) for details.
-
-## Development Workflow
-
-This section explains how to contribute to Reverse Engineering Lab, including proposing changes, submitting pull requests, and following our development guidelines for backend, frontend, and documentation.
-
-If you’re new, start with the [Architecture Documentation](https://docs.cml-relab.org/architecture/) for an overview of the project structure.
-
-### Pull Request Process
-
-1. **Fork and Create a Feature Branch**
-   If not already done, [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) the repository and create a feature branch:
-
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-1. **Make and Commit Changes**
-
-   - Implement your feature or fix, following the [code style guidelines](#code-style-guidelines).
-
-   - [Pre-commit](https://pre-commit.com/) hooks will automatically check and format your code before each commit.\
-     You can also run all checks manually:
-
-     ```bash
-     uv run pre-commit run --all-files
-     ```
-
-     > 💡 Tip: Make sure you have installed the pre-commit hooks by running `uv run pre-commit install` in the project root directory.
-
-   - Use the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) format when committing changes:
-
-     ```bash
-     <type>(<scope>): <short summary>
-     ```
-
-     > 💡 Tip: You can use `uv run cz commit` to create conventional commits in the correct format.
-
-1. **Submit Pull Request**
-
-   - Push to your fork:
-
-     ```bash
-     git push origin feature/your-feature-name
-     ```
-
-   - Create a pull request against the main repository
-
-   - Provide a clear description and reference related issues
-
-   - Address review feedback
-
-All contributions must pass automated checks and receive approval before merging.
-
-### Backend Development
-
-Set up your environment as described in the [Getting Started](#getting-started) section.
-
-You can run the development server with:
+Then run:
 
 ```bash
-fastapi dev
+git clone https://github.com/CMLPlatform/relab
+cd relab
+just setup
 ```
 
-The API will be available at <http://localhost:8000>, or <http://localhost:8011> when using a devcontainer.
+## Task Runner
 
-#### Backend Code Style
+The repo uses [`just`](https://just.systems) as the common task runner.
 
-We follow RESTful API design and the [Google Style Guide](https://google.github.io/styleguide/pyguide.html) for Python code, but use a line length of 120 characters.
-
-We use several tools to ensure code quality:
-
-1. [Ruff](https://docs.astral.sh/ruff/) for linting and code style enforcement (see [`pyproject.toml`](backend/pyproject.toml) for rules):
-
-   ```bash
-   uv run ruff check .
-   uv run ruff format .
-   ```
-
-1. [Pyright](https://github.com/microsoft/pyright) for static type checking:
-
-   ```bash
-   uv run pyright
-   ```
-
-#### Backend Testing
-
-The project uses pytest for testing:
-
-1. **Running Tests**
-
-   ```bash
-   uv run pytest
-   ```
-
-1. **Writing Tests**
-
-   - Write unit tests for new functionality
-   - Use fixtures for test setup
-   - Mock external dependencies
-
-#### Database Migrations
-
-When making changes to the database schema:
-
-1. **Create a Migration**
-
-   ```bash
-   uv run alembic revision --autogenerate -m "Description of changes"
-   ```
-
-1. **Review the Generated Migration**
-   Review the migration file in `alembic/versions/` to ensure it correctly captures your changes.
-
-1. **Apply the Migration**
-
-   - For docker setups, run the migration service:
-
-   ```bash
-   docker compose up backend_migrations
-   ```
-
-   - For local setups, run:
-
-   ```bash
-   uv run alembic upgrade head
-   ```
-
-### Frontend Development
-
-Set up your environment as described in the [Getting Started](#getting-started) section.
-
-You can run the development server with:
+From the repo root:
 
 ```bash
-npx expo start --web
+just setup
+just ci
+just test
+just test-integration
+just security
 ```
 
-The app will be available at <http://localhost:8081>, or <http://localhost:8010> when using a devcontainer.
+Use `just --list` in any directory to see what is available there.
+Manifest ownership, env rules, and infra review guidelines live in the [engineering configuration docs](https://docs.cml-relab.org/architecture/engineering-config/).
 
-#### Frontend Code Style
+## Backend Setup
 
-- Code should be formatted with Prettier and checked with ESLint (run `npm run lint` and `npm run format`).
-- Use [React Native Paper](https://callstack.github.io/react-native-paper/) components where possible for UI consistency.
-- Follow the existing folder structure and naming conventions.
+The backend lives in `backend/`.
 
-#### Frontend Testing
+### Requirements
 
-- Write unit tests for new components and features.
-- Follow the [Expo testing guidelines](https://docs.expo.dev/develop/unit-testing/).
-- Run tests with `npm run test` before submitting a pull request.
+- `uv`
+- PostgreSQL
+- Redis recommended; required for production-like auth behavior
+
+### Setup
+
+```bash
+cd backend
+uv sync --all-groups --frozen
+cp .env.dev.example .env.dev
+./scripts/local_setup.sh
+just dev
+```
+
+The API is available at <http://127.0.0.1:8000>.
+
+- Public docs: <http://127.0.0.1:8000/docs>
+- Full docs: <http://127.0.0.1:8000/docs/full> after authenticating as a superuser
+
+### OpenAPI Examples
+
+Keep examples centralized and predictable:
+
+- Domain-specific examples go in `examples.py` (e.g., `backend/app/api/data_collection/examples.py`)
+- Cross-domain examples go in `backend/app/api/common/openapi_examples.py`
+- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for FastAPI named maps
+- In routers, pass examples via `openapi_examples=...` parameter
+- Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
+
+### Backend Module Structure
+
+Keep modules small, explicit, and domain-shaped:
+
+- One top-level package per domain: `auth`, `background_data`, `data_collection`, `file_storage`, `newsletter`, `plugins/rpi_cam`
+- Prefer flat modules first: `crud.py`, `dependencies.py`, `examples.py`, `exceptions.py`, `filters.py`, `models.py`, `schemas.py`
+- Use `routers/` only when multiple route files exist; entrypoint goes in `routers/__init__.py`
+- Use `models/` only when both ORM models and storage primitives exist; expose public surface at `models/__init__.py`
+- Use `services/` and `utils/` only when they reflect a real boundary; delete pass-through layers when simple enough to call directly
+- Keep shared behavior in `backend/app/api/common/`
+
+### Backend Test Architecture
+
+Keep the backend suite organized by execution cost first, then by feature:
+
+- `backend/tests/unit/`: pure unit tests only, with no database session, testcontainers startup, or real app lifespan
+- `backend/tests/integration/db/`: CRUD, ORM, and persistence behavior against the real schema
+- `backend/tests/integration/api/`: HTTP endpoint behavior against the ASGI app
+- `backend/tests/integration/flows/`: a small set of cross-boundary, multi-step scenarios
+
+Use the backend test commands that match those tiers:
+
+```bash
+cd backend
+just test-unit
+just test-integration-db
+just test-api
+just test-flows
+just test-ci
+```
+
+Fixture conventions should stay explicit and descriptive:
+
+- `db_session` for database access
+- `db_user` and `db_superuser` for persisted auth principals
+- `api_client`, `api_client_user`, and `api_client_superuser` for HTTP tests
+- `redis_client` or feature-local Redis fixtures where applicable
+
+Do not add or reintroduce `session` or `superuser` as in-repo fixture aliases. Use the canonical `db_session` and `db_superuser` names directly.
+
+Do not add compatibility-only test coverage for fixture aliases, re-export modules, or pass-through wrappers unless they protect a deliberate stable external contract. Prefer testing behavior at the canonical fixture or module surface.
+
+Keep fixtures close to the tests that use them when the reuse is local. Reserve `backend/tests/conftest.py` for bootstrap concerns such as testcontainers, test database setup, and global logging behavior. Avoid broad `autouse` fixtures unless they are true cross-suite safety rails.
+
+Keep API tests focused on one behavior per test. Avoid multi-step CRUD journeys in `tests/integration/api/`; move those broader stories to `tests/integration/flows/`.
+
+Path is the primary source of truth for where a test belongs:
+
+- Choose `unit` when the test can run with mocks/stubs only.
+- Choose `integration/db` when the behavior depends on SQLAlchemy queries, migrations, or constraints.
+- Choose `integration/api` when the behavior is expressed as HTTP requests against the app.
+- Choose `flows` only when the value comes from verifying a full multi-step journey.
+
+If a test file starts growing into a mixed “god file”, split it by behavior before adding more cases.
+
+## Frontend Setup
+
+### `frontend-app`
+
+```bash
+cd frontend-app
+pnpm install --frozen-lockfile
+just dev
+```
+
+The Expo dev server runs on <http://localhost:8081>.
+
+If you are using a physical device or a non-default backend URL, create `frontend-app/.env.local` and set `EXPO_PUBLIC_API_URL`.
+
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web client ID from Google Cloud Console. The authorized redirect URI for your environment must also be registered there (e.g. `http://localhost:8013/login` for local dev).
+
+### Regenerating API types
+
+The frontend TypeScript API types are autogenerated from the backend OpenAPI schema and written to `frontend-app/src/types/api.generated.ts`.
+
+When working on backend API changes, regenerate the types:
+
+```bash
+# from repo root
+cd frontend-app
+pnpm run codegen:api
+
+# regenerate and redact embedded JWT examples (recommended)
+pnpm run codegen
+```
+
+You can also run `just codegen` inside `frontend-app` (after `just install`) which runs the regeneration and redaction steps.
+
+### `frontend-web`
+
+```bash
+cd frontend-web
+pnpm install --frozen-lockfile
+just dev
+```
+
+The Astro dev server runs on <http://localhost:8081>.
+
+## Docs Setup
 
 ### Docs Development
 
-Set up your environment as described in the [Getting Started](#getting-started) section.
-
-You can run the MkDocs server with:
-
 ```bash
-uv run mkdocs serve
+cd docs
+pnpm install --frozen-lockfile
+just dev
 ```
 
-The docs will be available at <http://localhost:8000>, or <http://localhost:8012> when using a devcontainer.
+The docs site runs on <http://localhost:8000>.
+
+The docs app is the canonical home for public guides, architecture reference, and project context. Keep repo-level setup text in this file short and link back to the docs site when deeper explanation belongs there.
+
+## Development Workflow
+
+If you are new to the repo, start with the architecture docs before making structural changes.
+
+### Pull Requests
+
+1. Create a branch.
+
+   ```bash
+   git checkout -b feature/your-change
+   ```
+
+1. Make the change.
+
+1. Run the relevant checks.
+
+   ```bash
+   just ci
+   ```
+
+1. Push your branch and open a PR.
+
+1. Address review feedback.
+
+### Commit Messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```text
+<type>(<scope>): <short summary>
+```
+
+## CI
+
+The repo uses GitHub Actions for:
+
+- normal CI
+- security checks
+- release automation
+
+Locally, the important commands are:
+
+- `just ci`
+- `just test`
+- `just test-integration`
+- `just security`
+
+## Backend Development
+
+### Backend Code Style
+
+The backend uses:
+
+- Ruff for linting and formatting
+- Ty for static type checking
+- ShellCheck for shell scripts
+
+Useful commands from `backend/`:
+
+```bash
+just lint
+just format
+just fix
+just typecheck
+just shellcheck
+just check
+```
+
+### Backend Testing
+
+Useful commands from `backend/`:
+
+```bash
+just test
+just test-unit
+just test-integration
+just test-cov
+```
+
+When adding backend behavior, add tests close to the change. Prefer small unit tests unless the behavior really depends on routing, persistence, or integration boundaries.
+
+### Database Migrations
+
+When changing schema:
+
+1. Create a migration.
+
+   ```bash
+   cd backend
+   just migrate-create "describe the change"
+   ```
+
+1. Review the generated file in `alembic/versions/`.
+
+1. Apply it.
+
+   ```bash
+   just migrate
+   ```
+
+For Docker-based runs, you can also use `just dev-migrate` from the repo root.
+
+### Email Templates
+
+MJML source templates live in `backend/app/templates/emails/src/`. Compiled HTML lives in `backend/app/templates/emails/build/`.
+
+Do not edit compiled output directly.
+
+To rebuild email templates:
+
+```bash
+cd backend
+just compile-email
+```
+
+## Frontend Development
+
+### Frontend Code Style
+
+- `frontend-app` uses Expo linting and TypeScript-based tooling
+- `frontend-web` uses Biome and Astro validation
+- follow the existing folder structure and naming patterns
+- prefer consistency with the current UI and component patterns over novelty
+
+### Frontend Testing
+
+For `frontend-app`:
+
+```bash
+cd frontend-app
+just test
+just test-ci
+just check
+```
+
+For `frontend-web`:
+
+```bash
+cd frontend-web
+just test
+just test-ci
+just test-e2e
+just check
+```
+
+When adding a new public-facing page to `frontend-web`, add at least one browser test. When adding app behavior in `frontend-app`, add Jest coverage for the new logic or screen behavior.
+
+## Docs Development
 
 ### Documentation Style
 
-- Write docs in clear, concise English and follow the existing tone.
-- Prefer [GitHub-flavored Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax) and [Mermaid](https://mermaid-js.github.io/) for diagrams.
-- Avoid raw HTML unless absolutely necessary.
-- Format markdown with `mdformat` (see [.pre-commit-config.yaml](.pre-commit-config.yaml) for the configuration).
-- Refer to the [MkDocs](https://www.mkdocs.org/) and [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) documentation to see available features and best practices.
+- write plainly
+- keep docs informative but simple
+- avoid hype, filler, and brittle implementation detail unless it is genuinely needed
+- prefer Markdown and Mermaid over custom HTML where possible
+
+Before opening a docs-focused PR:
+
+```bash
+cd docs
+just check
+```
+
+To apply formatting:
+
+```bash
+cd docs
+just format
+```
 
 ## License
 
-By contributing to this project, you agree that your contributions will be licensed under the project's [LICENSE](LICENSE).
+By contributing, you agree that your contributions are licensed under the project [LICENSE](LICENSE).
