@@ -1,14 +1,10 @@
 ---
 title: Architecture
-description: Reference and explanation pages for RELab system design, data model, auth, and operations.
+description: System design, data model, API, auth, and operations.
 owner: docs
 status: canonical
 lastReviewed: '2026-04-15'
 ---
-
-<div class="relab-section-intro">
-How RELab is built: system design, data model, API layout, auth, camera integration, and deployment.
-</div>
 
 <div class="grid cards relab-card-grid" markdown>
 

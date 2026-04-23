@@ -29,8 +29,6 @@ Once you're logged in, the core workflow is:
 1. As you disassemble, create **child records** for meaningful components (e.g. battery pack, motor assembly, housing).
 1. Attach images, measurements, and notes at the level where they belong.
 
-This workflow is intentionally simple enough to work in labs, workshops, and other collaborative settings. Over time, the aim is to support wider contribution by repairers, dismantlers, and citizen scientists without making the data structure unusable.
-
 !!! note "Start simple"
 A partial record with good photos and honest notes is usually more useful than an over-structured one that takes twice as long. You can fill in gaps later.
 

@@ -3,16 +3,16 @@ title: Deployment and Operations
 description: The self-hosted RELab deployment topology and its operational trade-offs.
 owner: docs
 status: canonical
-lastReviewed: '2026-04-15'
+lastReviewed: '2026-04-23'
 ---
 
 <div class="relab-section-intro">
-The platform runs as a self-hosted Docker Compose stack. It is intentionally simple: understandable, reproducible, and cheap to operate at PhD-project scale.
+RELab runs as a self-hosted Docker Compose stack sized for a single VPS.
 </div>
 
 ## Compose Service Topology
 
-The deployed stack is defined entirely in Docker Compose. Core services run in all environments. Some deployments also enable additional operational services such as migrations, backups, the Cloudflare tunnel, and tracing support.
+The deployed stack is defined entirely in Docker Compose. Core services run in all environments. Some deployments also enable additional operational services such as migrations, backups, the Cloudflare tunnel, and optional log/trace shipping to an external monitoring stack.
 
 ```mermaid
 graph LR
@@ -31,17 +31,19 @@ graph LR
         DBBackups[postgres-backup\ndaily pg_dump + zstd]
         UploadBackups[user-upload-backups\ndaily file archives]
         Cloudflared[cloudflared\noutbound tunnel]
-        OTel[otel-collector\nOTLP traces]
+        Loki[Loki log driver\nexternal push]
+        OTel[external OTLP collector]
     end
 
     Migrations -->|schema forward| DB
     DBBackups -->|dumps| DB
     UploadBackups -->|archives| Uploads
     Cloudflared -->|proxies inbound traffic| Backend
-    OTel -->|receives OTLP from| Backend
+    Backend -->|OTLP traces/metrics| OTel
+    Backend -->|container logs via Docker driver| Loki
 ```
 
-Backup and telemetry services are supported through Compose profiles, but they are not required for the default local or production boot path.
+Backup services are enabled through Compose profiles. Telemetry is opt-in through host-level environment variables: `LOKI_URL` enables the optional Loki logging overlay, and `OTEL_EXPORTER_OTLP_ENDPOINT` enables backend OTLP export.
 
 For formal architecture views of the platform as a whole, see [C4 Architecture Diagrams](../c4-diagrams/).
 
@@ -66,5 +68,5 @@ The repository also includes dependency maintenance, container scanning, perform
 - Redis is used both for caching and parts of the authentication and token flow. Partial Redis outages have user-facing effects.
 - Uploaded media is part of the research record and should be treated as primary data, not as disposable assets.
 - Production secrets and origin/host configuration matter; the backend enforces stricter checks outside development.
-- Tracing is optional. When enabled, the backend exports OTLP traces to a local or external collector.
+- Telemetry is optional. When enabled, the backend exports OTLP traces and metrics to an external collector, while Docker ships container logs to Loki through the optional overlay.
 - The Compose-based setup is easy to reason about, but scaling and secret rotation are less automated than in a larger platform setup. That trade-off is deliberate.

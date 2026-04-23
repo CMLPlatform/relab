@@ -20,11 +20,7 @@ RELab is intended to support a public dataset of disassembled durable goods. The
 
 ## Why It Matters
 
-- it provides a path from operational data collection to publishable research outputs
-- it creates a stable layer for downstream analysis without exposing the full live application database
-- it makes provenance, scope, and licensing explicit
-- it helps turn bottom-up product observations into reusable research infrastructure
-- it creates a foundation for benchmarking and later AI-assisted IE workflows
+The dataset layer is where live RELab records become a citable research output: a curated, versioned snapshot with explicit provenance, scope, and licensing, decoupled from the operational database. Keeping that boundary sharp is what makes the data reusable beyond the project — for benchmarking, comparative studies, and integration with other industrial-ecology infrastructures.
 
 Likely data elements include:
 

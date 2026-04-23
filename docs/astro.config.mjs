@@ -38,53 +38,34 @@ const HEAD_LINKS = [
   },
 ];
 const SIDEBAR = [
-  {
-    label: 'Start Here',
-    collapsed: true,
-    items: [
-      { label: 'Overview', slug: '' },
-      { label: 'Guides', slug: 'user-guides' },
-      { label: 'Project', slug: 'project' },
-    ],
-  },
+  { label: 'Overview', slug: '' },
   {
     label: 'Guides',
-    collapsed: true,
     items: [
       { label: 'Getting Started', slug: 'user-guides/getting-started' },
       { label: 'Data Collection', slug: 'user-guides/data-collection' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
       { label: 'RPI Camera', slug: 'user-guides/rpi-cam' },
-      { label: 'API Interaction', slug: 'user-guides/api' },
+      { label: 'API', slug: 'user-guides/api' },
     ],
   },
   {
-    label: 'Reference',
-    collapsed: true,
-    items: [
-      { label: 'Architecture Overview', slug: 'architecture' },
-      { label: 'API Structure', slug: 'architecture/api' },
-      { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'Data Model', slug: 'architecture/datamodel' },
-      { label: 'Deployment', slug: 'architecture/deployment' },
-      { label: 'Engineering Configuration', slug: 'architecture/engineering-config' },
-      { label: 'Engineering Operations', slug: 'architecture/engineering-ops' },
-    ],
-  },
-  {
-    label: 'Explanation',
-    collapsed: true,
+    label: 'Architecture',
     items: [
       { label: 'System Design', slug: 'architecture/system-design' },
-      { label: 'C4 Diagrams', slug: 'architecture/c4-diagrams' },
+      { label: 'Data Model', slug: 'architecture/datamodel' },
+      { label: 'API Structure', slug: 'architecture/api' },
+      { label: 'Authentication', slug: 'architecture/auth' },
       { label: 'RPI Camera Plugin', slug: 'architecture/rpi-cam' },
+      { label: 'Deployment', slug: 'architecture/deployment' },
+      { label: 'C4 Diagrams', slug: 'architecture/c4-diagrams' },
+      { label: 'Engineering Config', slug: 'architecture/engineering-config' },
+      { label: 'Engineering Ops', slug: 'architecture/engineering-ops' },
     ],
   },
   {
     label: 'Project',
-    collapsed: true,
     items: [
-      { label: 'Overview', slug: 'project' },
       { label: 'Use Cases', slug: 'project/use-cases' },
       { label: 'Roadmap', slug: 'project/roadmap' },
       { label: 'Dataset', slug: 'project/dataset' },
@@ -94,6 +75,7 @@ const SIDEBAR = [
 const STARLIGHT_OPTIONS = {
   title: 'Reverse Engineering Lab',
   description: 'Technical documentation for the Reverse Engineering Lab research platform.',
+  disable404Route: true,
   logo: {
     src: './public/images/logo.png',
     alt: 'Reverse Engineering Lab logo',

@@ -15,18 +15,6 @@ lastReviewed: '2026-04-15'
   </p>
 </div>
 
-## Research Motivation
-
-Primary product data such as material makeup, component structure, and circularity-relevant properties is still hard to obtain for many durable goods. Existing industrial ecology databases help with curation and access, but there are still too few open, low-barrier workflows for generating new standardized product-level observations.
-
-RELab is an attempt to address that gap with a bottom-up data collection model. Instead of depending only on producer-controlled information flows, the platform is designed so middle- and end-of-life actors such as repairers, refurbishers, dismantlers, recyclers, and citizen scientists can contribute structured observations directly.
-
-The platform is also intended to support public sharing and reuse of those records. That includes open and collaborative data collection where it is practical, and eventual contribution to a broader industrial ecology data commons.
-
-Another core goal is interoperability: RELab should be able to link with existing and upcoming databases in the industrial ecology and circular economy fields rather than remaining an isolated system.
-
-The platform is also designed to be AI-ready in a practical sense. By linking structured metadata with images and other observations, it can support later benchmarking, model development, and assisted data entry without making AI the whole point of the system.
-
 ## Start Here
 
 <div class="grid cards relab-card-grid" markdown>
@@ -37,11 +25,8 @@ The platform is also designed to be AI-ready in a practical sense. By linking st
 - **[Guides](user-guides/)**
   Task-first help for data collection, hardware setup, RPI camera use, and API workflows.
 
-- **[Reference](architecture/)**
-  API structure, auth, deployment, configuration ownership, and operational facts.
-
-- **[Explanation](architecture/system-design/)**
-  Architectural rationale, C4 diagrams, and deeper system context.
+- **[Architecture](architecture/)**
+  System design, data model, API, auth, and deployment.
 
 - **[Project Context](project/)**
   Use cases, roadmap, dataset goals, and research framing.
@@ -53,6 +38,10 @@ The platform is also designed to be AI-ready in a practical sense. By linking st
 - [Open the platform](https://app.cml-relab.org)
 - [Open the API docs](https://api.cml-relab.org/docs)
 - [View the repository](https://github.com/CMLPlatform/relab)
+
+## Research Motivation
+
+Primary product data — material makeup, component structure, circularity-relevant properties — is still hard to obtain for many durable goods. RELab takes a bottom-up approach: instead of relying on producer-controlled information flows, the platform lets repairers, refurbishers, dismantlers, recyclers, and citizen scientists contribute structured observations directly, and is designed to interoperate with existing industrial-ecology databases rather than stand alone.
 
 ## Current System At A Glance
 

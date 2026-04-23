@@ -48,8 +48,9 @@ size:
     du -sh dist
     find dist -type f | sort | xargs du -h
 
-# Run fast quality checks (lint + typecheck)
+# Run quality checks that also validate the docs build pipeline
 check: lint typecheck
+    pnpm run build:test
     @echo "✓ Docs checks passed"
 
 # Auto-format docs code and markdown

@@ -3,7 +3,7 @@ title: Engineering Configuration
 description: Version policy, manifest ownership, and configuration rules for the RELab repo.
 owner: docs
 status: reviewed
-lastReviewed: '2026-04-15'
+lastReviewed: '2026-04-23'
 ---
 
 This page documents the supported configuration contract for RELab itself: runtime versions, manifest ownership, environment files, task runners, and the review rules for infra/meta changes.
@@ -34,7 +34,8 @@ The source-of-truth files are:
 
 RELab uses four distinct configuration surfaces:
 
-- root `.env`: host and operations settings used by Compose overlays, backups, and ingress
+- root `.env`: host-local secrets and operations settings used by Compose interpolation, backups, ingress, and optional telemetry shipping
+- root `.env.<env>.compose`: committed, non-secret per-environment Compose settings (`prod` and `staging`)
 - backend `.env.{dev,staging,prod,test}`: backend runtime settings
 - `frontend-app/.env.*`: build-time public Expo settings
 - `frontend-web/.env.*`: build-time public Astro settings
@@ -42,10 +43,26 @@ RELab uses four distinct configuration surfaces:
 Rules:
 
 - committed `*.example` files are the authoritative templates for human-managed environments
+- committed `.env.<env>.compose` files are the authoritative non-secret deploy defaults for their environment
 - committed test env files are allowed only when their values are intentionally non-secret
 - production/staging examples must leave secret values blank
 - Compose may override hostnames such as `DATABASE_HOST` or `REDIS_HOST`, but the variables still belong in the backend contract
 - public frontend variables must stay framework-native: `EXPO_PUBLIC_*` for Expo and `PUBLIC_*` for Astro
+
+### Telemetry variables (prod/staging only)
+
+Telemetry connection settings now live in one place only: the host's root `.env`. The deploy overlay reads them from there; the committed `.env.prod.compose` / `.env.staging.compose` files do not duplicate them, and dev/CI ignore them.
+
+- `LOKI_URL`: push endpoint for a central Loki instance. When set to a non-empty value, the root `justfile` auto-includes `compose.logging.loki.yml`, which overlays the Loki Docker log driver onto every service. Hosts without this variable keep Docker's default `json-file` driver. Install the driver plugin once per host before setting the variable:
+
+  ```bash
+  docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+  ```
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP HTTP endpoint for traces and metrics. The backend exports when set; leaving it empty disables OTLP cleanly.
+- `OTEL_EXPORTER_OTLP_HEADERS`: optional OTLP auth headers passed through to the backend container when your collector requires them.
+
+See [Engineering Operations → Telemetry](../engineering-ops/#telemetry) for the full flow.
 
 ## Local Workflow
 
