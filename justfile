@@ -39,7 +39,7 @@ install:
 update:
     uv lock --upgrade
     pnpm update -D
-    pnpm dedupe 
+    pnpm dedupe
     @just backend/update
     @just docs/update
     @just frontend-web/update

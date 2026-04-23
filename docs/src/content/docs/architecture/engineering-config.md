@@ -60,6 +60,7 @@ Telemetry connection settings now live in one place only: the host's root `.env`
   ```
 
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP HTTP endpoint for traces and metrics. The backend exports when set; leaving it empty disables OTLP cleanly.
+
 - `OTEL_EXPORTER_OTLP_HEADERS`: optional OTLP auth headers passed through to the backend container when your collector requires them.
 
 See [Engineering Operations → Telemetry](../engineering-ops/#telemetry) for the full flow.

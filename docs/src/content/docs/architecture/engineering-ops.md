@@ -116,7 +116,7 @@ Logs use the [Loki Docker log driver](https://grafana.com/docs/loki/latest/send-
    docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
    ```
 
-2. Set `LOKI_URL` in the host's root `.env` (the push endpoint of your central Loki).
+1. Set `LOKI_URL` in the host's root `.env` (the push endpoint of your central Loki).
 
 The root `justfile`'s `prod_compose` / `staging_compose` recipes auto-include [`compose.logging.loki.yml`](../../../../../compose.logging.loki.yml) when `LOKI_URL` is set. Hosts without `LOKI_URL` keep Docker's default `json-file` driver — no action required.
 
