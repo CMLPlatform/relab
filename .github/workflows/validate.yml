@@ -185,6 +185,25 @@ jobs:
           path: frontend-web/coverage/
           retention-days: 7
 
+  e2e-frontend-web:
+    name: Frontend Web E2E
+    needs: [ changes ]
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just frontend-web/install
+
       - name: Build site
         run: just frontend-web/build
 
@@ -279,7 +298,7 @@ jobs:
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
     needs: [ changes ]
-    if: needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group')
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'push' || github.event_name == 'merge_group'))
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
