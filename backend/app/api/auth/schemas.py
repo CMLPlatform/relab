@@ -1,24 +1,46 @@
 """DTO schemas for users."""
 
+from __future__ import annotations
+
 import uuid
-from typing import Annotated, Optional
+from datetime import datetime  # noqa: TC003 # Used at runtime for Pydantic model annotations
+from typing import Annotated
 
-from fastapi_users import schemas
-from pydantic import UUID4, ConfigDict, EmailStr, Field, StringConstraints
+from fastapi_users import schemas as fastapi_users_schemas
+from pydantic import (
+    UUID4,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    SecretStr,
+    StringConstraints,
+    field_validator,
+)
 
+from app.api.auth.examples import (
+    ORGANIZATION_CREATE_EXAMPLES,
+    REFRESH_TOKEN_REQUEST_EXAMPLES,
+    REFRESH_TOKEN_RESPONSE_EXAMPLES,
+    USER_CREATE_EXAMPLES,
+    USER_CREATE_WITH_ORGANIZATION_EXAMPLES,
+    USER_READ_EXAMPLES,
+    USER_UPDATE_EXAMPLES,
+)
 from app.api.auth.models import OrganizationBase, UserBase
-from app.api.common.schemas.base import BaseCreateSchema, BaseReadSchemaWithTimeStamp, BaseUpdateSchema, ProductRead
+from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 
-# TODO: Refactor into separate files for each model.
-# This is tricky due to circular imports and the way SQLAlchemy and Pydantic handle schema building.
+# Note: These auth schemas stay together to avoid circular imports during model/schema construction.
 
 
 ### Organizations ###
 class OrganizationCreate(BaseCreateSchema, OrganizationBase):
     """Create schema for organizations."""
 
+    model_config = ConfigDict(json_schema_extra={"examples": ORGANIZATION_CREATE_EXAMPLES})
 
-class OrganizationReadPublic(BaseReadSchemaWithTimeStamp, OrganizationBase):
+
+class OrganizationReadPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations."""
 
 
@@ -28,37 +50,77 @@ class OrganizationRead(OrganizationBase):
     owner_id: UUID4 = Field(description="ID of the organization owner.")
 
 
-class OrganizationReadWithRelationshipsPublic(BaseReadSchemaWithTimeStamp, OrganizationBase):
+class OrganizationReadWithRelationshipsPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations, including relationships."""
 
-    members: list["UserReadPublic"] = Field(default_factory=list, description="List of users in the organization.")
+    members: list[UserReadPublic] = Field(default_factory=list, description="List of users in the organization.")
 
 
-class OrganizationReadWithRelationships(BaseReadSchemaWithTimeStamp, OrganizationBase):
+class OrganizationReadWithRelationships(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
     """Read schema for organizations, including relationships."""
 
-    members: list["UserRead"] = Field(default_factory=list, description="List of users in the organization.")
+    members: list[UserRead] = Field(default_factory=list, description="List of users in the organization.")
 
 
 class OrganizationUpdate(BaseUpdateSchema):
     """Update schema for organizations."""
 
-    name: str = Field(min_length=2, max_length=100)
+    name: str | None = Field(default=None, min_length=2, max_length=100)
     location: str | None = Field(default=None, max_length=100)
     description: str | None = Field(default=None, max_length=500)
-
-    # TODO: Handle transfer of ownership
+    owner_id: UUID4 | None = Field(
+        default=None,
+        description="ID of the member who should become the new owner.",
+    )
 
 
 ### Users ###
-class UserCreateBase(UserBase, schemas.BaseUserCreate):
+
+# Validation constraints for username field
+ValidatedUsername = Annotated[
+    str | None, StringConstraints(strip_whitespace=True, pattern=r"^\w+$", min_length=2, max_length=50)
+]
+
+RESERVED_USERNAMES = {
+    "me",
+    "self",
+    "admin",
+    "api",
+    "root",
+    "profile",
+    "profiles",
+    "newsletter",
+    "users",
+    "settings",
+    "health",
+    "docs",
+    "redoc",
+    "openapi.json",
+}
+
+
+def validate_username_not_reserved(v: str | None) -> str | None:
+    """Validate that the username is not on the reserved list."""
+    if v and v.lower() in RESERVED_USERNAMES:
+        err_msg = f"'{v}' is a reserved username."
+        raise ValueError(err_msg)
+    return v
+
+
+class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
     """Base schema for user creation."""
 
-    # Override for validation
-    username: Annotated[str | None, StringConstraints(strip_whitespace=True)] = None
+    # Override for username field validation
+    username: ValidatedUsername = None
+
+    @field_validator("username")
+    @classmethod
+    def username_not_reserved(cls, v: str | None) -> str | None:
+        """Reject reserved usernames."""
+        return validate_username_not_reserved(v)
 
     # Override for OpenAPI schema configuration
-    password: str = Field(json_schema_extra={"format": "password"})
+    password: str = Field(json_schema_extra={"format": "password"}, min_length=8)
 
 
 class UserCreate(UserCreateBase):
@@ -66,41 +128,25 @@ class UserCreate(UserCreateBase):
 
     organization_id: UUID4 | None = None
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "email": "user@example.com",
-                        "password": "fakepassword",
-                        "username": "username",
-                        "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
 class UserCreateWithOrganization(UserCreateBase):
     """Create schema for users with organization to create and own."""
 
-    organization: "OrganizationCreate"
+    organization: OrganizationCreate
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "email": "user@example.com",
-                        "password": "fakepassword",
-                        "username": "username",
-                        "organization": {"name": "organization", "location": "location", "description": "description"},
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_CREATE_WITH_ORGANIZATION_EXAMPLES})
+
+
+class OAuthAccountRead(BaseModel):
+    """Read schema for OAuth accounts."""
+
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+    oauth_name: str
+    account_id: str
+    account_email: str
 
 
 class UserReadPublic(UserBase):
@@ -109,62 +155,76 @@ class UserReadPublic(UserBase):
     email: EmailStr
 
 
-class UserRead(UserBase, schemas.BaseUser[uuid.UUID]):
+class UserReadProfile(UserBase):
+    """Basic public profile info."""
+
+    created_at: datetime | None
+
+
+class PublicProfileView(UserReadProfile):
+    """Detailed public profile view with aggregated stats."""
+
+    product_count: int = Field(default=0, description="Number of products registered.")
+    total_weight_kg: float = Field(default=0.0, description="Aggregate weight of products in kg.")
+    image_count: int = Field(default=0, description="Total images uploaded.")
+    top_category: str = Field(default="None", description="Most common product type.")
+
+
+class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "email": "user@example.com",
-                        "is_active": True,
-                        "is_superuser": False,
-                        "is_verified": True,
-                        "username": "username",
-                    }
-                ]
-            }
-        }
+    oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
+    preferences: dict[str, object] = Field(
+        default_factory=dict,
+        description="User preferences.",
     )
+
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
 
 class UserReadWithOrganization(UserRead):
     """Read schema for users with organization."""
 
-    organization: Optional["OrganizationRead"] = Field(default=None, description="Organization the user belongs to.")
+    organization: OrganizationRead | None = Field(default=None, description="Organization the user belongs to.")
 
 
-class UserReadWithRelationships(UserReadWithOrganization):
-    """Read schema for users, including relationships."""
-
-    products: list[ProductRead] = Field(default_factory=list, description="List of products owned by the user.")
-
-
-class UserUpdate(UserBase, schemas.BaseUserUpdate):
+class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
-    username: Annotated[str | None, StringConstraints(strip_whitespace=True)] = None
+    # Override for username field validation
+    username: ValidatedUsername = None
+
+    @field_validator("username")
+    @classmethod
+    def username_not_reserved(cls, v: str | None) -> str | None:
+        """Reject reserved usernames."""
+        return validate_username_not_reserved(v)
+
     organization_id: UUID4 | None = None
 
     # Override password field to include password format in JSON schema
-    password: str | None = Field(default=None, json_schema_extra={"format": "password"})
+    password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "password": "newpassword",
-                        "email": "user@example.com",
-                        "is_active": True,
-                        "is_superuser": True,
-                        "is_verified": True,
-                        "username": "username",
-                        "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
-                    }
-                ]
-            }
-        }
-    )
+    preferences: dict[str, object] | None = Field(default=None, description="User preferences (partial merge).")
+
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
+
+
+### Authentication & Sessions ###
+class RefreshTokenRequest(BaseModel):
+    """Request schema for refreshing access token."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": REFRESH_TOKEN_REQUEST_EXAMPLES})
+
+    refresh_token: SecretStr = Field(description="Refresh token obtained from login")
+
+
+class RefreshTokenResponse(BaseModel):
+    """Response for token refresh."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": REFRESH_TOKEN_RESPONSE_EXAMPLES})
+
+    access_token: str = Field(description="New JWT access token")
+    refresh_token: str = Field(description="Rotated refresh token")
+    token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
+    expires_in: int = Field(description="Access token expiration time in seconds")

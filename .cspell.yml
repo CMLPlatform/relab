@@ -1,0 +1,120 @@
+version: "0.2"
+dictionaries:
+  - coding-terms
+  - cpp-compound-words
+  - data-science
+  - docker
+  - en-gb
+  - en-us
+  - filetypes
+  - fullstack
+  - npm
+  - python
+  - python-common
+  - software-tools
+enabled: true
+enabledFileTypes:
+  "*": true
+dot: true
+useGitignore: true
+cache:
+  useCache: true
+  cacheStrategy: content
+ignorePaths:
+  - .cspell.yml
+  - .cspellcache
+  - .devcontainer
+  - .dockerignore
+  - .git
+  - .gitignore
+  - .trivyignore
+  - .vscode
+  - package-lock.json
+  - pnpm-lock.yaml
+  - uv.lock
+  - backend/app/api/auth/resources/disposable_email_domains.txt
+  - frontend-app/src/assets/data/**
+  - frontend-app/src/types/api.generated.ts
+
+language: en_us
+words:
+  # Proper nouns
+  - Donati
+  - Lierde
+  - RELab
+
+  # Font names
+  - grotesk
+
+  # Technical terms
+  - linkinator
+  - LogQL
+  - mpegurl
+  - nosniff
+  - OTLP
+  - shellcheck
+  - subrepo
+  - subrepos
+  - trivyignores
+  - trixie
+  - tsvector
+
+  # Miscellaneous
+  - orcid
+  - refurbishers
+  - remanufacturability
+  - remanufacturable
+  - repairability
+  - zenodo
+
+ignoreWords:
+  - USEPOLLING
+
+overrides:
+  - filename: "{backend,docs}/**"
+    words:
+      # Model terms
+      - categorymateriallink
+      - categoryproducttypelink
+      - circularityproperties
+      - fileparenttype
+      - imageparenttype
+      - materialproductlink
+      - newslettersubscriber
+      - organizationrole
+      - oauthaccount
+      - physicalproperties
+      - producttype
+      - subcomponent
+      - subcomponents
+      - supercategory
+      - taxonomydomain
+
+  - filename: "backend/**"
+    words:
+      # Technical terms
+      - instrumentor
+      - instrumentors
+      - piexif
+      - PYTHONDONTWRITEBYTECODE
+      - PYTHONUNBUFFERED
+      - primaryjoin
+      - selectinload
+      - tsquery
+      - uninstrument
+      - xdist
+      - zxcvbn
+
+  - filename: "docs/**"
+    words:
+      - RTMP
+      - HIBP
+
+  - filename: "frontend-app/**"
+    words:
+      # Technical terms
+      - ellipsize
+      - pressable
+      - pressables
+      - refetches
+      - worklets

@@ -2,7 +2,7 @@
 
 from pydantic import Field, PositiveInt
 
-from app.api.common.models.associations import MaterialProductLinkBase
+from app.api.common.models.associations import MaterialProductLinkBaseSchema as MaterialProductLinkBase
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.base import (
     AssociationModelReadSchemaWithTimeStamp,

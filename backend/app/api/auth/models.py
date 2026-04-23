@@ -1,66 +1,94 @@
 """Database models related to platform users."""
 
 import uuid
-from enum import Enum
-from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, Optional
+from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped annotations
+from enum import StrEnum
+from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
-from fastapi_users_db_sqlmodel import SQLModelBaseOAuthAccount, SQLModelBaseUserDB
-from pydantic import UUID4, BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey
-from sqlmodel import Column, Field, Relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.api.common.models.base import CustomBase, CustomBaseBare, TimeStampMixinBare
+from app.api.auth.services.user_database import BaseOAuthAccountDB, BaseUserDB
+from app.api.common.models.base import Base, TimeStampMixinBare
 
-if TYPE_CHECKING:
-    from app.api.data_collection.models import Product
+# Note: Keeping auth models together avoids circular imports in SQLAlchemy/Pydantic schema building.
 
 
-# TODO: Refactor into separate files for each model.
-# This is tricky due to circular imports and the way SQLAlchemy and Pydantic handle schema building.
 ### Enums ###
-class OrganizationRole(str, Enum):
+class OrganizationRole(StrEnum):
     """Enum for organization roles."""
 
     OWNER = "owner"
     MEMBER = "member"
 
 
-### User Model ###
+### Pydantic base schemas (shared with schemas.py) ###
 class UserBase(BaseModel):
-    """Base schema for user data."""
+    """Base schema for user data. Used by Pydantic schemas only, not ORM."""
 
-    username: Annotated[
-        str | None,
-        StringConstraints(strip_whitespace=True, pattern=r"^[\w]+$"),  # Allows only letters, numbers, and underscores
-    ] = Field(index=True, unique=True, default=None)
+    username: str | None = None
 
-    model_config = ConfigDict(use_enum_values=True)  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
+    model_config = {"use_enum_values": True}
 
 
-class User(UserBase, CustomBaseBare, TimeStampMixinBare, SQLModelBaseUserDB, table=True):
+class OrganizationBase(BaseModel):
+    """Base schema for organization data. Used by Pydantic schemas only, not ORM."""
+
+    name: str
+    location: str | None = None
+    description: str | None = None
+
+
+class User(BaseUserDB, TimeStampMixinBare):
     """Database model for platform users."""
 
+    # Override __tablename__ from base (both set "user", this is explicit)
+    __tablename__ = "user"
+
+    username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)
+
+    # Login tracking
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    last_login_ip: Mapped[str | None] = mapped_column(String(45), default=None)
+
+    # Flexible user preferences (UI settings, feature toggles, etc.)
+    preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
+
+    # Pre-computed statistics (product count, total weight, top categories, etc.)
+    stats_cache: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
+
     # One-to-many relationship with OAuthAccount
-    oauth_accounts: list["OAuthAccount"] = Relationship(
+    oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
         back_populates="user",
-        sa_relationship_kwargs={"lazy": "joined"},  # Required because of FastAPI-Users OAuth implementation
+        lazy="joined",  # Required because of FastAPI-Users OAuth implementation
+        foreign_keys="[OAuthAccount.user_id]",
     )
-    products: list["Product"] = Relationship(back_populates="owner")
 
     # Many-to-one relationship with Organization
-    organization_id: UUID4 | None = Field(
+    organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("organization.id", use_alter=True, name="fk_user_organization"),
         default=None,
-        sa_column=Column(ForeignKey("organization.id", use_alter=True, name="fk_user_organization"), nullable=True),
     )
-    organization: Optional["Organization"] = Relationship(
-        back_populates="members", sa_relationship_kwargs={"lazy": "selectin", "foreign_keys": "[User.organization_id]"}
+    organization: Mapped[Organization | None] = relationship(
+        back_populates="members",
+        lazy="selectin",
+        foreign_keys="[User.organization_id]",
     )
-    organization_role: OrganizationRole | None = Field(default=None, sa_column=Column(SAEnum(OrganizationRole)))
+    organization_role: Mapped[OrganizationRole | None] = mapped_column(SAEnum(OrganizationRole), default=None)
 
-    @cached_property
+    # One-to-one relationship with owned Organization
+    owned_organization: Mapped[Organization | None] = relationship(
+        back_populates="owner",
+        uselist=False,
+        foreign_keys="[Organization.owner_id]",
+    )
+
+    @property
     def is_organization_owner(self) -> bool:
+        """Check if the user is an organization owner."""
         return self.organization_role == OrganizationRole.OWNER
 
     def __str__(self) -> str:
@@ -68,43 +96,49 @@ class User(UserBase, CustomBaseBare, TimeStampMixinBare, SQLModelBaseUserDB, tab
 
 
 ### OAuthAccount Model ###
-class OAuthAccount(SQLModelBaseOAuthAccount, CustomBaseBare, TimeStampMixinBare, table=True):
-    """Database model for OAuth accounts. Note that the main implementation is in the base class."""
+class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
+    """Database model for OAuth accounts."""
+
+    __tablename__ = "oauthaccount"
+
+    # Redefine user_id to ensure the ForeignKey survives mixin inheritance.
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
 
     # Many-to-one relationship with User
-    user: User = Relationship(back_populates="oauth_accounts")
+    user: Mapped[User] = relationship(
+        back_populates="oauth_accounts",
+        foreign_keys="[OAuthAccount.user_id]",
+    )
+
+    __table_args__ = (UniqueConstraint("oauth_name", "account_id", name="uq_oauth_account_identity"),)
 
 
 ### Organization Model ###
-class OrganizationBase(CustomBase):
-    """Base schema for organization data."""
-
-    name: str = Field(index=True, unique=True, min_length=2, max_length=100)
-    location: str | None = Field(default=None, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-
-
-class Organization(OrganizationBase, TimeStampMixinBare, table=True):
+class Organization(TimeStampMixinBare, Base):
     """Database model for organizations."""
 
-    id: UUID4 = Field(default_factory=uuid.uuid4, primary_key=True, nullable=False)
+    __tablename__ = "organization"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100), index=True, unique=True)
+    location: Mapped[str | None] = mapped_column(String(100), default=None)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
 
     # One-to-one relationship with owner User
-    owner_id: UUID4 = Field(
-        sa_column=Column(ForeignKey("user.id", use_alter=True, name="fk_organization_owner"), nullable=False),
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", use_alter=True, name="fk_organization_owner"), nullable=False
     )
-    owner: User = Relationship(
-        back_populates="organization",
-        sa_relationship_kwargs={"primaryjoin": "Organization.owner_id == User.id", "foreign_keys": "[User.id]"},
+    owner: Mapped[User] = relationship(
+        back_populates="owned_organization",
+        uselist=False,
+        foreign_keys="[Organization.owner_id]",
+        post_update=True,
     )
 
     # One-to-many relationship with member Users
-    members: list["User"] = Relationship(
+    members: Mapped[list[User]] = relationship(
         back_populates="organization",
-        sa_relationship_kwargs={
-            "primaryjoin": "Organization.id == User.organization_id",
-            "foreign_keys": "[User.organization_id]",
-        },
+        foreign_keys="[User.organization_id]",
     )
 
     def __str__(self) -> str:

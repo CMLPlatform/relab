@@ -1,0 +1,366 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# spell-checker: ignore rhysd
+
+name: Validate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  merge_group:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run-policy: ${{ steps.detect.outputs.run-policy }}
+      run-backend: ${{ steps.detect.outputs.run-backend }}
+      run-frontend-web: ${{ steps.detect.outputs.run-frontend-web }}
+      run-frontend-app: ${{ steps.detect.outputs.run-frontend-app }}
+      run-docs: ${{ steps.detect.outputs.run-docs }}
+      run-e2e: ${{ steps.detect.outputs.run-e2e }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Detect changes
+        id: detect
+        uses: ./.github/actions/detect-ci-changes
+
+  automation:
+    name: Automation and Compose Policy
+    needs: [ changes ]
+    if: github.event_name != 'schedule' && needs.changes.outputs.run-policy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          setup-node: "true"
+          uv-cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+            backend/uv.lock
+
+      - name: Compute pre-commit cache key
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pre-commit checks
+        run: just pre-commit
+
+      - name: Check shared dep version alignment
+        run: pnpm run syncpack:check
+
+      - name: Validate Compose stacks
+        run: just compose-config
+
+      - name: Publish summary
+        run: |
+          {
+            echo "### Validation automation"
+            echo
+            echo "- repository policy checks passed"
+            echo "- shared dep versions aligned across subrepos"
+            echo "- Compose configs rendered successfully"
+            echo "- GitHub workflow lint passed via pre-commit"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  backend:
+    name: Backend
+    needs: [ changes ]
+    if: needs.changes.outputs.run-backend == 'true' && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: just backend/install
+
+      - name: Run check
+        run: just backend/check
+
+      - name: Run CI test suite
+        run: just backend/test-ci
+
+      - name: Upload coverage
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/upload-codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./backend/reports/coverage/coverage.xml
+          flags: backend
+          name: validate-backend-coverage
+
+      - name: Archive backend reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validate-backend-reports
+          path: |
+            backend/reports/coverage/html/
+            backend/reports/coverage/coverage.xml
+          retention-days: 7
+
+  frontend-web:
+    name: Frontend Web
+    needs: [ changes ]
+    if: needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just frontend-web/install
+
+      - name: Run check
+        run: just frontend-web/check
+
+      - name: Run CI test suite
+        run: just frontend-web/test-ci
+
+      - name: Upload coverage
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/upload-codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend-web/coverage/lcov.info
+          flags: frontend-web
+          name: validate-frontend-web-coverage
+          disable-search: "true"
+          network-prefix: frontend-web/
+
+      - name: Archive frontend-web coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validate-frontend-web-coverage
+          path: frontend-web/coverage/
+          retention-days: 7
+
+  e2e-frontend-web:
+    name: Frontend Web E2E
+    needs: [ changes ]
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just frontend-web/install
+
+      - name: Build site
+        run: just frontend-web/build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+        working-directory: frontend-web
+
+      - name: Run browser E2E tests
+        run: just frontend-web/test-e2e
+
+      - name: Archive Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validate-frontend-web-playwright
+          path: frontend-web/playwright-report/
+          retention-days: 7
+
+  frontend-app:
+    name: Frontend App
+    needs: [ changes ]
+    if: needs.changes.outputs.run-frontend-app == 'true' && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just frontend-app/install
+
+      - name: Run check
+        run: just frontend-app/check
+
+      - name: Run CI test suite
+        run: just frontend-app/test-ci
+
+      - name: Upload coverage
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: ./.github/actions/upload-codecov
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend-app/coverage/lcov.info
+          flags: frontend-app
+          name: validate-frontend-app-coverage
+          disable-search: "true"
+          network-prefix: frontend-app/
+
+      - name: Archive frontend-app coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validate-frontend-app-coverage
+          path: frontend-app/coverage/
+          retention-days: 7
+
+  docs:
+    name: Docs
+    needs: [ changes ]
+    if: needs.changes.outputs.run-docs == 'true' && github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just docs/install
+
+      - name: Run docs check
+        run: just docs/check
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: docs
+
+      - name: Run docs CI test suite
+        run: just docs/test-ci
+
+  e2e-full-stack:
+    name: Frontend App Full-Stack E2E
+    needs: [ changes ]
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'push' || github.event_name == 'merge_group'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      E2E_BACKEND_PORT: "18432"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-app/pnpm-lock.yaml
+
+      - name: Install frontend-app dependencies
+        run: just frontend-app/install
+
+      - name: Build Expo web app for local E2E backend
+        run: just frontend-app/build-web
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: frontend-app
+
+      - name: Run full-stack E2E tests
+        run: just test-e2e-full-stack
+
+      - name: Archive Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validate-frontend-app-e2e
+          path: frontend-app/playwright-report/
+          retention-days: 7
+
+  docker-smoke:
+    name: Docker Smoke (${{ matrix.recipe }})
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe:
+          - docker-smoke-backend
+          - docker-orchestration-smoke
+          - docker-smoke-frontend-web
+          - docker-smoke-frontend-app
+          - docker-smoke-docs
+          - docker-smoke-user-upload-backups
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Run smoke test
+        run: just ${{ matrix.recipe }}

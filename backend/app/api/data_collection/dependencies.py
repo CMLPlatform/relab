@@ -7,12 +7,11 @@ from fastapi_filter import FilterDepends
 from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
-from app.api.auth.exceptions import UserOwnershipError
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
-from app.api.common.models.custom_types import IDT
+from app.api.common.crud.query import require_model
+from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.filters import MaterialProductLinkFilter, ProductFilterWithRelationships
-from app.api.data_collection.models import Product
+from app.api.data_collection.models.product import Product
 
 ### FastAPI-Filters ###
 MaterialProductLinkFilterDep = Annotated[MaterialProductLinkFilter, FilterDepends(MaterialProductLinkFilter)]
@@ -27,25 +26,26 @@ async def get_product_by_id(
     session: AsyncSessionDep,
 ) -> Product:
     """Verify that a product with a given ID exists."""
-    return await db_get_model_with_id_if_it_exists(session, Product, product_id)
+    return await require_model(session, Product, product_id)
 
 
 ProductByIDDep = Annotated[Product, Depends(get_product_by_id)]
 
 
 async def get_user_owned_product(
-    product: ProductByIDDep,
+    product_id: Annotated[PositiveInt, Path()],
+    session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
     """Verify that the current user owns the specified product."""
-    if product.owner_id == current_user.id:
-        return product
-    raise UserOwnershipError(model_type=Product, model_id=product.id, user_id=current_user.id) from None
+    if current_user.is_superuser:
+        return await require_model(session, Product, product_id)
+    return await get_user_owned_object(session, Product, product_id, current_user.id)
 
 
 UserOwnedProductDep = Annotated[Product, Depends(get_user_owned_product)]
 
 
-async def get_user_owned_product_id(user_owned_product: UserOwnedProductDep) -> IDT | None:
+async def get_user_owned_product_id(user_owned_product: UserOwnedProductDep) -> int | None:
     """Get the ID of a user owned product."""
     return user_owned_product.id

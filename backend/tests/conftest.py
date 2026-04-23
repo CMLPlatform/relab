@@ -1,96 +1,298 @@
-"""Test configuration file.
+"""Root test configuration with containerized Postgres test database setup.
 
-Inspired by https://medium.com/@gnetkov/testing-fastapi-application-with-pytest-57080960fd62.
+This conftest provides:
+- Ephemeral Postgres via Testcontainers (session-scoped)
+- Database setup with transaction isolation
+- Cross-suite logging glue
+- Minimal global safety fixtures
+
+Key Fixtures:
+- db_session: Isolated async database session with transaction rollback
+
+Architecture:
+- Testcontainers starts lazily when a DB-backed fixture is first requested
+- Container coordinates are written to environment variables
+- Application settings load from these env vars when DB fixtures build URLs
+- This keeps pure unit test runs from paying the Docker startup cost
 """
 
+from __future__ import annotations
+
+# spell-checker: ignore datname, collectonly
+import asyncio
 import logging
-from collections.abc import AsyncGenerator, Generator
+import os
+import re
+import sys
+from contextlib import suppress
 from pathlib import Path
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
+
+# Ensure settings modules load from .env.test before any app imports happen.
+# This must run before pytest_plugins triggers fixture-module imports and before
+# importing app modules that instantiate settings at module level.
+os.environ.setdefault("ENVIRONMENT", "testing")
 
 import pytest
 from alembic import command
 from alembic.config import Config
-from app.core.config import settings
-from app.main import app
-from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine, text
-from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.ext.asyncio.engine import AsyncEngine
-from sqlmodel.ext.asyncio.session import AsyncSession
+from loguru import logger as loguru_logger
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
+from testcontainers.postgres import PostgresContainer
 
-# Set up logger
-logger: logging.Logger = logging.getLogger(__name__)
+from app.core.logging import LOG_FORMAT, setup_logging
 
-# Set up sync engine for test database construction
-sync_engine: Engine = create_engine(settings.sync_database_url, isolation_level="AUTOCOMMIT")
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Generator
 
-# Set up an async test engine for the actual
-TEST_SQLALCHEMY_DATABASE_URL: str = settings.async_test_database_url
-TEST_DATABASE_NAME: str = settings.postgres_test_db
-async_engine: AsyncEngine = create_async_engine(TEST_SQLALCHEMY_DATABASE_URL, echo=settings.debug)
+    from pytest_mock import MockerFixture
 
-async_session_local = async_sessionmaker(
-    bind=async_engine, autocommit=False, autoflush=False, class_=AsyncSession, expire_on_commit=False
-)
+logger = logging.getLogger(__name__)
+
+pytest_plugins = [
+    "tests.fixtures.auth",
+    "tests.fixtures.client",
+    "tests.fixtures.data",
+    "tests.fixtures.migrations",
+    "tests.fixtures.redis",
+]
+
+_DEFAULT_TEST_DB_NAME = "test_relab"
+_MASTER_WORKER = "master"
+_SAFE_DB_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-### Set up bare test database using sync engine
-def create_test_database() -> None:
-    """Create the test database if it doesn't exist."""
+# Global container instance for entire test session
+class _PostgresContainerState:
+    """Mutable holder for the session Postgres container."""
+
+    container: PostgresContainer | None = None
+
+
+_POSTGRES_CONTAINER_STATE = _PostgresContainerState()
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Configure logging before test collection."""
+    if config.option.collectonly:
+        return
+
+    # Initialize logging for the test session
+    setup_logging()
+    # Remove all sinks initially to prevent logs from bypassing pytest's capture/filtering
+    loguru_logger.remove()
+
+    # If -s (no capture) is active, add back a stderr sink for live output
+    if config.getoption("capture") == "no":
+        loguru_logger.add(sys.stderr, format=LOG_FORMAT, level="INFO")
+
+
+def _ensure_testcontainers_postgres() -> None:
+    """Start Testcontainers Postgres once and publish its coordinates."""
+    if _POSTGRES_CONTAINER_STATE.container is not None:
+        return
+
+    logger.info("Starting Testcontainers Postgres...")
+    _POSTGRES_CONTAINER_STATE.container = PostgresContainer(
+        "postgres:18-alpine",
+        username="postgres",
+        password="postgres",  # Test-password only
+        dbname="postgres",
+    )
+    _POSTGRES_CONTAINER_STATE.container.start()
+
+    host = _POSTGRES_CONTAINER_STATE.container.get_container_host_ip()
+    port = _POSTGRES_CONTAINER_STATE.container.get_exposed_port(5432)
+
+    os.environ["DATABASE_HOST"] = str(host)
+    os.environ["DATABASE_PORT"] = str(port)
+    os.environ["POSTGRES_USER"] = "postgres"
+    os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
+    os.environ["POSTGRES_DB"] = "postgres"
+
+    logger.info("Testcontainers Postgres started: %s:%s", host, port)
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    """Stop Testcontainers after all tests complete."""
+    del config
+    if _POSTGRES_CONTAINER_STATE.container:
+        logger.info("Stopping Testcontainers Postgres...")
+        _POSTGRES_CONTAINER_STATE.container.stop()
+        _POSTGRES_CONTAINER_STATE.container = None
+
+
+def _get_worker_test_db_name() -> str:
+    """Generate worker-specific test database name for pytest-xdist parallelism."""
+    base_name = os.getenv("POSTGRES_TEST_DB", _DEFAULT_TEST_DB_NAME)
+    worker_id = os.getenv("PYTEST_XDIST_WORKER")
+
+    db_name = base_name
+    if worker_id and worker_id != _MASTER_WORKER:
+        db_name = f"{base_name}_{worker_id}"
+
+    if not _SAFE_DB_NAME.match(db_name):
+        err = f"Unsafe test database name: {db_name!r}"
+        raise ValueError(err)
+
+    return db_name
+
+
+def _build_database_url(driver: str, database_name: str) -> str:
+    """Build database URL from environment variables set by pytest_configure."""
+    host = os.environ["DATABASE_HOST"]
+    port = int(os.environ["DATABASE_PORT"])
+    user = os.environ["POSTGRES_USER"]
+    password = os.environ["POSTGRES_PASSWORD"]
+    return URL.create(
+        f"postgresql+{driver}",
+        username=user,
+        password=password,
+        host=host,
+        port=port,
+        database=database_name,
+    ).render_as_string(hide_password=False)
+
+
+def _drop_test_database(test_database_name: str) -> None:
+    """Terminate connections and drop the test database."""
+    sync_admin_url = _build_database_url("psycopg", "postgres")
+    sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
+
     with sync_engine.connect() as connection:
-        try:
-            connection.execute(text(f"CREATE DATABASE {TEST_DATABASE_NAME}"))
-            logger.info("Test database created successfully.")
-        except ProgrammingError:
-            logger.info("Test database already exists, continuing...")
+        term_query = text("""
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = :db_name
+            AND pid <> pg_backend_pid();
+        """)
+        connection.execute(term_query, {"db_name": test_database_name})
+        connection.execute(text(f"DROP DATABASE IF EXISTS {test_database_name}"))
+
+    sync_engine.dispose()
 
 
-def get_alembic_config() -> Config:
-    """Get Alembic config for tests."""
-    alembic_cfg = Config()
+def create_test_database(test_database_name: str) -> None:
+    """Create the test database. Recreate if it exists."""
+    _drop_test_database(test_database_name)
+
+    sync_admin_url = _build_database_url("psycopg", "postgres")
+    sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
+    with sync_engine.connect() as connection:
+        connection.execute(text(f"CREATE DATABASE {test_database_name}"))
+    sync_engine.dispose()
+
+    logger.info("Test database created successfully: %s", test_database_name)
+
+
+def get_alembic_config(test_database_name: str) -> Config:
+    """Get Alembic config for running migrations on the test database schema."""
+    sync_test_database_url = _build_database_url("psycopg", test_database_name)
+
     project_root: Path = Path(__file__).parents[1]
+    alembic_cfg = Config(toml_file=str(project_root / "pyproject.toml"))
     alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
-    alembic_cfg.set_main_option("sqlalchemy.url", TEST_SQLALCHEMY_DATABASE_URL)
+    alembic_cfg.set_main_option("is_test", "true")
+    alembic_cfg.set_main_option("sqlalchemy.url", sync_test_database_url)
     return alembic_cfg
 
 
-@pytest.fixture(scope="session", autouse=True)
-def setup_test_database() -> Generator:
-    """Create test database, run migrations, and cleanup after tests."""
-    create_test_database()  # Create empty database
+@pytest.fixture(scope="session", name="test_database_name")
+def _test_database_name_fixture() -> str:
+    """Get worker-specific test database name."""
+    _ensure_testcontainers_postgres()
+    return _get_worker_test_db_name()
 
-    # Run migrations
-    alembic_cfg: Config = get_alembic_config()
+
+@pytest.fixture(scope="session")
+def relab_alembic_config(_setup_test_database: None, test_database_name: str) -> Config:
+    """Provide Alembic config for integration tests in this repository."""
+    return get_alembic_config(test_database_name)
+
+
+@pytest.fixture(scope="session")
+def async_engine(test_database_name: str) -> Generator[AsyncEngine]:
+    """Create async engine for test database."""
+    async_test_database_url = _build_database_url("asyncpg", test_database_name)
+
+    engine = create_async_engine(
+        async_test_database_url,
+        echo=False,
+        future=True,
+        poolclass=NullPool,
+    )
+    yield engine
+    asyncio.run(engine.dispose())
+
+
+@pytest.fixture(scope="session")
+def _setup_test_database(test_database_name: str) -> Generator[None]:
+    """Create test database and run migrations once per test session."""
+    create_test_database(test_database_name)
+
+    alembic_cfg = get_alembic_config(test_database_name)
+    logger.info("Running Alembic upgrade head...")
     command.upgrade(alembic_cfg, "head")
+    logger.info("Alembic upgrade complete.")
 
     yield
 
-    # Cleanup
-    with sync_engine.connect() as connection:
-        connection.execute(text("DROP DATABASE IF EXISTS " + TEST_DATABASE_NAME))
+    _drop_test_database(test_database_name)
 
 
-### Async test session generators
-@pytest.fixture(scope="function")
-async def get_async_session() -> AsyncGenerator[AsyncSession]:
-    """Create a new database session for each test and roll it back after the test."""
-    async with async_engine.begin() as connection, async_session_local(bind=connection) as session:
-        transaction = await connection.begin_nested()
-        yield session
-        await transaction.rollback()
+@pytest.fixture
+async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
+    """Provide isolated database session using transaction rollback."""
+    async with async_engine.connect() as connection:
+        transaction = await connection.begin()
+
+        session_factory = async_sessionmaker(
+            bind=connection,
+            class_=AsyncSession,
+            autocommit=False,
+            autoflush=False,
+            expire_on_commit=False,
+        )
+
+        async with session_factory() as db_session:
+            yield db_session
+            if transaction.is_active:
+                await transaction.rollback()
 
 
-@pytest.fixture(scope="function")
-async def client(db: AsyncSession) -> AsyncGenerator[TestClient]:
-    """Provide a TestClient that uses the test database session."""
+@pytest.fixture(autouse=True, scope="session")
+def cleanup_loguru() -> Generator[None]:
+    """Ensure Loguru background queues are closed cleanly after testing session."""
+    yield
+    loguru_logger.remove()
 
-    async def override_get_db() -> AsyncGenerator[AsyncSession]:
-        yield db
 
-    app.dependency_overrides[get_async_session] = override_get_db
+@pytest.fixture(autouse=True)
+def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
+    """Automatically mock email sending for all tests."""
+    return mocker.patch(
+        "app.api.auth.services.emails.fm.send_message",
+        new_callable=AsyncMock,
+    )
 
-    with TestClient(app) as c:
-        yield c
 
-    app.dependency_overrides.clear()
+@pytest.fixture(autouse=True)
+def caplog_loguru(caplog: pytest.LogCaptureFixture) -> Generator[None]:
+    """Propagate Loguru logs to Pytest's caplog handler.
+
+    This allows loguru logs to be captured by pytest and shown in the CLI
+    according to the log_cli settings in pyproject.toml.
+    """
+    sink_id = loguru_logger.add(
+        caplog.handler,
+        format="{message}",
+        level=0,
+        filter=lambda record: record["level"].no >= caplog.handler.level,
+    )
+    yield
+    with suppress(ValueError):
+        loguru_logger.remove(sink_id)

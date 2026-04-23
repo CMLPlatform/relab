@@ -1,0 +1,13 @@
+{
+  "name": "relab-frontend-web",
+  "dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
+  "service": "web-site",
+  "runServices": ["web-site"],
+  "workspaceFolder": "/opt/relab/frontend-web",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "overrideCommand": true,
+  "postAttachCommand": "echo 'RELab web devcontainer ready.\\nUse this for focused web work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nWeb: http://localhost:8010'",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  }
+}

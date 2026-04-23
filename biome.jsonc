@@ -1,0 +1,15 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "extends": ["./biome.base.jsonc"],
+  "files": {
+    "includes": [
+      // This root config covers the monorepo root itself.
+      // Each subrepo owns its own Biome surface through its local biome.jsonc.
+      "**",
+      "!backend",
+      "!frontend-app",
+      "!frontend-web",
+      "!docs"
+    ]
+  }
+}

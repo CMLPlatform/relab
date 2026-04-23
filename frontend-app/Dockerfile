@@ -1,42 +1,76 @@
-# Production Dockerfile for Web Frontend
-# --- Builder stage ---
-FROM node:24-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb AS builder
+# syntax=docker/dockerfile:1
 
-WORKDIR /opt/relab/frontend-app
+# Multi-target Dockerfile for the Expo frontend app
+#   - `dev`     → Metro dev server (use with `docker compose watch`)
+#   - `runtime` → caddy-served expo web export (default)
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --include prod
-
-# Copy source code and build
-COPY . ./
-RUN npx expo export -p web -c
-
-# --- Production stage ---
-FROM node:24-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb
-
-# Build arguments
+# spell-checker: ignore USEPOLLING
 ARG WORKDIR=/opt/relab/frontend-app
-ARG APP_USER=appuser
 
-# Set the working directory
+# --- Shared deps stage ---
+FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+
+ARG WORKDIR
 WORKDIR $WORKDIR
 
-# Install serve for static file serving
-RUN npm install -g serve
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
 
-# Set up a non-root user
-RUN useradd $APP_USER
+RUN corepack enable
 
-# Copy the build output
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/dist $WORKDIR/dist
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
+
+# --- Dev stage (Metro dev server) ---
+FROM deps AS dev
+
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+ENV CHOKIDAR_USEPOLLING=true \
+    CHOKIDAR_INTERVAL=500 \
+    WATCHPACK_POLLING=true
+
+COPY . .
 
 EXPOSE 8081
 
-USER $APP_USER
+# Keep Metro's cache across restarts; use the explicit dev-clean task when we
+# actually need a cold cache.
+CMD ["pnpm", "exec", "expo", "start", "--port", "8081", "--web"]
 
-# Serve the static build
-CMD ["serve", "-s", "dist", "-l", "8081"]
+# --- Build stage (expo web export) ---
+FROM deps AS build
+
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+ENV CI=1
+
+COPY app.json babel.config.js tsconfig.json ./
+COPY src/ ./src/
+
+# Set the env file for this build mode (Expo reads .env by default)
+ARG BUILD_MODE=production
+COPY ".env.$BUILD_MODE" .env
+
+RUN pnpm exec expo export -p web -c
+
+# --- Runtime stage (default) ---
+FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa AS runtime
+
+ARG WORKDIR
+
+# Default to the production API origin; staging overrides this at runtime.
+ENV CSP_API_ORIGIN=https://api.cml-relab.org
+
+COPY --link --from=build ${WORKDIR}/dist /srv
+COPY --link Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- http://localhost:8081/health || exit 1

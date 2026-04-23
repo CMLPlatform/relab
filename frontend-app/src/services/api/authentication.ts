@@ -1,139 +1,181 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '@/types/User';
+import { API_URL } from '@/config';
+import type { User } from '@/types/User';
+import { logError } from '@/utils/logging';
+import { extractApiErrorDetail } from './authHelpers';
+import { login as loginFlow, logout as logoutFlow } from './authLogin';
+import {
+  clearCachedAuthState,
+  fetchWithAuth as fetchWithAuthFlow,
+  getToken as getTokenFlow,
+  persistAccessToken,
+  refreshAuthToken as refreshAuthTokenFlow,
+} from './authRefresh';
+import { authRuntime } from './authRuntime';
+import { isWeb, hasWebSessionFlag as readWebSessionFlag, setWebSessionFlag } from './authSession';
+import { getUser as getUserFlow } from './authUser';
+import { fetchWithTimeout } from './request';
 
-const baseUrl = `${process.env.EXPO_PUBLIC_API_URL}`;
-let token: string | undefined;
-let user: User | undefined;
+const apiURL = API_URL;
 
-export async function login(username: string, password: string): Promise<string | undefined> {
-  const url = new URL(baseUrl + '/auth/bearer/login');
-  const headers = { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' };
-  const body = new URLSearchParams({ username, password }).toString();
+// ─────────────────────────────────────────────
+// Core auth helpers
+// ─────────────────────────────────────────────
 
-  try {
-    const response = await fetch(url, { method: 'POST', headers, body });
-    let data;
-    try {
-      data = await response.json();
-    } catch (err: any) {
-      throw new Error(err.message || 'Unable to parse server response.');
-    }
-    if (response.status === 400) {
-      // NOTE: FastAPI-User implementation of the backend returns 400 on invalid login
-      token = undefined;
-      return undefined;
-    }
-    if (!response.ok) {
-      // Throw error with HTTP status and message
-      throw new Error(`HTTP ${response.status}: ${data?.detail || JSON.stringify(data) || 'Login failed.'}`);
-    }
-    // TODO: use cookies for frontend auth instead of storing credentials in local storage
-    await AsyncStorage.setItem('username', username);
-    await AsyncStorage.setItem('password', password);
-    token = data.access_token;
-    return token;
-  } catch (err: any) {
-    console.error('[Login Fetch Error]:', err);
-    throw new Error('Unable to reach server. Please try again later.');
-  }
+export function markWebSessionActive(): void {
+  if (!isWeb()) return;
+  authRuntime.explicitlyLoggedOut = false;
+  setWebSessionFlag(true);
 }
 
-export async function logout(): Promise<void> {
-  token = undefined;
-  user = undefined;
-  await AsyncStorage.removeItem('username');
-  await AsyncStorage.removeItem('password');
+export function hasWebSessionFlag() {
+  return readWebSessionFlag();
 }
 
 export async function getToken(): Promise<string | undefined> {
-  if (token) {
-    return token;
-  }
-
-  const username = await AsyncStorage.getItem('username');
-  const password = await AsyncStorage.getItem('password');
-  if (!username || !password) {
-    return undefined;
-  }
-
-  try {
-    const success = await login(username, password);
-    if (!success) {
-      return undefined;
-    }
-    return token;
-  } catch (err) {
-    console.error('[GetToken Error]:', err);
-    return undefined;
-  }
+  return getTokenFlow();
 }
 
-export async function getUser(): Promise<User | undefined> {
-  try {
-    if (user) {
-      return user;
-    }
-
-    const url = new URL(baseUrl + '/users/me');
-    const authToken = await getToken();
-    if (!authToken) {
-      return undefined;
-    }
-
-    const headers = { Authorization: `Bearer ${authToken}`, Accept: 'application/json' };
-    const response = await fetch(url, { method: 'GET', headers });
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (jsonErr) {
-      console.error('[GetUser Fetch Error]: Unable to parse server response.', jsonErr);
-      return undefined;
-    }
-
-    if (!response.ok) {
-      console.error('[GetUser Fetch Error]:', data);
-      return undefined;
-    }
-
-    user = {
-      id: data.id,
-      email: data.email,
-      isActive: data.is_active,
-      isSuperuser: data.is_superuser,
-      isVerified: data.is_verified,
-      username: data.username || 'Username not defined',
-    };
-
-    return user;
-  } catch (error) {
-    console.error('[GetUser Fetch Error]:', error);
-    return undefined;
-  }
+export async function refreshAuthToken(): Promise<boolean> {
+  return refreshAuthTokenFlow(apiURL);
 }
 
-export async function register(username: string, email: string, password: string): Promise<boolean> {
-  const url = new URL(baseUrl + '/auth/register');
+export async function fetchWithAuth(
+  url: URL | string,
+  options: RequestInit = {},
+): Promise<Response> {
+  return fetchWithAuthFlow(apiURL, url, options);
+}
+
+export async function login(username: string, password: string): Promise<string | undefined> {
+  return loginFlow(apiURL, username, password, {
+    persistAccessToken,
+    getUser: (forceRefresh = false) => getUser(forceRefresh),
+    refreshAuthToken: () => refreshAuthToken(),
+  });
+}
+
+export async function logout(): Promise<void> {
+  await logoutFlow(apiURL, clearCachedAuthState);
+}
+
+export async function getUser(forceRefresh = false): Promise<User | undefined> {
+  return getUserFlow(apiURL, fetchWithAuthFlow, forceRefresh);
+}
+
+// Return the locally-cached user without making a network request.
+export function getCachedUser(): User | undefined {
+  return authRuntime.user;
+}
+
+export async function register(
+  username: string,
+  email: string,
+  password: string,
+): Promise<{ success: boolean; error?: string }> {
+  const url = new URL(`${apiURL}/auth/register`);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+  const body = { username, email, password };
 
-  const body = {
-    username: username,
-    email: email,
-    password: password,
-  };
+  try {
+    const response = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
-  return response.ok;
+    if (response.ok) return { success: true };
+
+    const errorData = await response.json().catch(() => null);
+    const errorMessage = extractApiErrorDetail(errorData, 'Registration failed. Please try again.');
+
+    return { success: false, error: errorMessage };
+  } catch (error) {
+    logError('[Register Error]:', error);
+    return { success: false, error: 'Network error. Please check your connection and try again.' };
+  }
 }
 
 export async function verify(email: string): Promise<boolean> {
-  const url = new URL(baseUrl + '/auth/request-verify-token');
+  const url = new URL(`${apiURL}/auth/request-verify-token`);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
-
-  const body = {
-    email: email,
-  };
-
-  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  const response = await fetchWithTimeout(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email }),
+  });
   return response.ok;
+}
+
+export async function updateUser(updates: Partial<User>): Promise<User | undefined> {
+  const url = new URL(`${apiURL}/users/me`);
+
+  try {
+    const response = await fetchWithAuth(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      const detail = errorData?.detail;
+      throw new Error(
+        typeof detail === 'string'
+          ? detail
+          : (detail?.message ??
+              detail?.reason ??
+              JSON.stringify(detail) ??
+              'Failed to update user profile'),
+      );
+    }
+
+    return await getUser(true);
+  } catch (error) {
+    logError('[UpdateUser Error]:', error);
+    throw error;
+  }
+}
+
+/**
+ * Exchange a Google ID token (obtained via expo-auth-session PKCE on web) for
+ * app session cookies.  Sets httpOnly auth + refresh_token cookies on success.
+ */
+export async function oauthLoginWithGoogleToken(
+  idToken: string,
+  accessToken: string | null,
+): Promise<void> {
+  const url = new URL(`${apiURL}/auth/oauth/google/cookie/token`);
+  const response = await fetchWithTimeout(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ id_token: idToken, access_token: accessToken }),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(extractApiErrorDetail(errorData, 'Google login failed. Please try again.'));
+  }
+}
+
+export async function unlinkOAuth(provider: string): Promise<boolean> {
+  const url = new URL(`${apiURL}/auth/oauth/${provider}/associate`);
+
+  try {
+    const response = await fetchWithAuth(url, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(extractApiErrorDetail(errorData, `Failed to unlink ${provider} account`));
+    }
+
+    authRuntime.user = undefined;
+    return true;
+  } catch (error) {
+    logError('[UnlinkOAuth Error]:', error);
+    throw error;
+  }
 }

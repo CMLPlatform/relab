@@ -3,15 +3,18 @@
 import csv
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
+from sqlalchemy import func, select
 
-# TODO: Fix circular import issue with User model in seeding scripts
-from app.api.auth.models import User  # noqa: F401 # Need to explictly import User for SQLModel relationships
 from app.api.background_data.models import Category, TaxonomyDomain
-from app.core.database import sync_session_context
-from scripts.seed.taxonomies.common import configure_logging, get_or_create_taxonomy, seed_categories_from_rows
+from app.core.logging import setup_logging
+from scripts.db.sync import sync_session_context
+from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
+
+if TYPE_CHECKING:
+    from typing import Any
 
 logger = logging.getLogger("seeding.taxonomies.harmonized_system")
 
@@ -63,7 +66,7 @@ def load_hs_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
 
             rows.append(
                 {
-                    "external_id": row["hscode"].strip(),
+                    "external_id": row["hscode"].strip(),  # spell-checker: ignore hscode
                     "name": row["description"].strip()[:250],  # Truncate to 250 chars to fit DB
                     "parent_id": row["parent"].strip(),
                 }
@@ -97,7 +100,10 @@ def seed_taxonomy() -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.query(Category).filter_by(taxonomy_id=taxonomy.id).count()
+        existing_count = session.execute(
+            select(func.count()).select_from(Category).where(Category.taxonomy_id == taxonomy.id)
+        ).scalar_one()
+
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
             return
@@ -106,7 +112,8 @@ def seed_taxonomy() -> None:
         rows = load_hs_rows_from_csv(CSV_PATH)
 
         # Seed categories
-        cat_count, rel_count = seed_categories_from_rows(session, taxonomy, rows, get_parent_id_fn=get_hs_parent_id)
+        taxonomy_id = taxonomy.id
+        cat_count, rel_count = seed_categories_from_rows(session, taxonomy_id, rows, get_parent_id_fn=get_hs_parent_id)
 
         # Commit
         session.commit()
@@ -120,5 +127,5 @@ def seed_taxonomy() -> None:
 
 
 if __name__ == "__main__":
-    configure_logging()
+    setup_logging()
     seed_taxonomy()

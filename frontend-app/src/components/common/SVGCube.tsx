@@ -1,7 +1,6 @@
-import React from 'react';
 import { Dimensions } from 'react-native';
-import Svg, { Rect, G } from 'react-native-svg';
-import { useTheme } from 'react-native-paper';
+import Svg, { G, Rect } from 'react-native-svg';
+import { useAppTheme } from '@/theme';
 
 type CubeProps = {
   width?: number; // width along X
@@ -11,7 +10,7 @@ type CubeProps = {
 
 export default function Cube({ width = 1, height = 1, depth = 1 }: CubeProps) {
   // Hooks
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   if (Number.isNaN(width)) width = 1;
   if (Number.isNaN(height)) height = 1;
@@ -31,19 +30,25 @@ export default function Cube({ width = 1, height = 1, depth = 1 }: CubeProps) {
   return (
     <Svg width="100%" height="250">
       <G transform={`translate(${gWidth} ${(250 - svgHeight) / 2})`}>
-        <Rect width={width} height={height} fill={theme.colors.primary} stroke="black" transform="skewY(30)" />
+        <Rect
+          width={width}
+          height={height}
+          fill={theme.colors.primary}
+          stroke={theme.colors.shadow}
+          transform="skewY(30)"
+        />
         <Rect
           width={depth}
           height={height}
           fill={theme.colors.secondary}
-          stroke="black"
+          stroke={theme.colors.shadow}
           transform={`skewY(-30) translate(${width} ${2 * (Math.tan(0.52) * width)})`}
         />
         <Rect
           width={width}
           height={depth}
           fill={theme.colors.primaryContainer}
-          stroke="black"
+          stroke={theme.colors.shadow}
           transform={`scale(1.41,.81) rotate(45) translate(0 -${depth})`}
         />
       </G>

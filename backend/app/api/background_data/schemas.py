@@ -2,6 +2,14 @@
 
 from pydantic import ConfigDict, Field, PositiveInt
 
+from app.api.background_data.examples import (
+    CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES,
+    CATEGORY_READ_EXAMPLES,
+    CATEGORY_READ_RECURSIVE_EXAMPLES,
+    CATEGORY_UPDATE_EXAMPLES,
+    TAXONOMY_READ_EXAMPLES,
+    TAXONOMY_READ_WITH_TREE_EXAMPLES,
+)
 from app.api.background_data.models import (
     CategoryBase,
     MaterialBase,
@@ -12,11 +20,12 @@ from app.api.background_data.models import (
 from app.api.common.schemas.associations import MaterialProductLinkReadWithinMaterial
 from app.api.common.schemas.base import (
     BaseCreateSchema,
-    BaseReadSchema,
     BaseUpdateSchema,
+    IntIdReadSchema,
+    IntIdReadSchemaWithTimeStamp,
     MaterialRead,
-    ProductRead,
 )
+from app.api.common.schemas.field_mixins import CategoryFields, ProductTypeFields, TaxonomyFields
 from app.api.file_storage.schemas import FileRead, ImageRead
 
 
@@ -33,8 +42,8 @@ class CategoryCreateWithinCategoryWithSubCategories(BaseCreateSchema, CategoryBa
     """Schema for creating a new category within a category, with optional subcategories."""
 
     # Database model has a None default, but Pydantic model has empty set default for consistent API type handling
-    subcategories: set["CategoryCreateWithinCategoryWithSubCategories"] = Field(
-        default_factory=set,
+    subcategories: list[CategoryCreateWithinCategoryWithSubCategories] = Field(
+        default_factory=list,
         description="List of subcategories",
     )
 
@@ -56,20 +65,10 @@ class CategoryCreateWithSubCategories(CategoryCreateWithinTaxonomyWithSubCategor
 
 
 ## Read Schemas ##
-class CategoryReadAsSubCategory(BaseReadSchema, CategoryBase):
+class CategoryReadAsSubCategory(IntIdReadSchema, CategoryFields):
     """Schema for reading subcategory information."""
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 2,
-                    "name": "Ferrous metals",
-                    "description": "Iron and its alloys",
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES})
 
 
 class CategoryRead(CategoryReadAsSubCategory):
@@ -78,26 +77,14 @@ class CategoryRead(CategoryReadAsSubCategory):
     taxonomy_id: PositiveInt = Field(description="ID of the taxonomy")
     supercategory_id: PositiveInt | None = None
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 2,
-                    "name": "Ferrous metals",
-                    "description": "Iron and its alloys",
-                    "taxonomy_id": 1,
-                    "supercategory_id": 1,
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_EXAMPLES})
 
 
 class CategoryReadWithRelationships(CategoryRead):
     """Schema for reading category information with all relationships."""
 
     materials: list[MaterialRead] = Field(default_factory=list, description="List of materials linked to the category")
-    product_types: list["ProductTypeRead"] = Field(
+    product_types: list[ProductTypeRead] = Field(
         default_factory=list, description="List of product types linked to the category"
     )
 
@@ -111,35 +98,11 @@ class CategoryReadWithRelationshipsAndFlatSubCategories(CategoryReadWithRelation
 class CategoryReadAsSubCategoryWithRecursiveSubCategories(CategoryReadAsSubCategory):
     """Schema for reading category information with recursive subcategories."""
 
-    subcategories: list["CategoryReadAsSubCategoryWithRecursiveSubCategories"] = Field(
+    subcategories: list[CategoryReadAsSubCategoryWithRecursiveSubCategories] = Field(
         default_factory=list, description="List of subcategories"
     )
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        json_schema_extra={
-            "examples": [
-                {
-                    "id": 1,
-                    "name": "Metals",
-                    "description": "All kinds of metals",
-                    "subcategories": [
-                        {
-                            "id": 2,
-                            "name": "Ferrous metals",
-                            "description": "Iron and its alloys",
-                            "subcategories": [
-                                {
-                                    "id": 3,
-                                    "name": "Steel",
-                                    "description": "Steel alloys",
-                                }
-                            ],
-                        }
-                    ],
-                }
-            ]
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_RECURSIVE_EXAMPLES})
 
 
 # # Rebuild schema to allow for nested subcategories
@@ -168,18 +131,7 @@ class CategoryUpdate(BaseUpdateSchema):
     name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the category")
     description: str | None = Field(default=None, max_length=500, description="Description of the category")
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "name": "Metals",
-                        "description": "All kinds of metals",
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_UPDATE_EXAMPLES})
 
 
 ### Taxonomy Schemas ###
@@ -191,29 +143,16 @@ class TaxonomyCreate(BaseCreateSchema, TaxonomyBase):
 class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
     """Schema for creating a new taxonomy, optionally with new categories."""
 
-    categories: set[CategoryCreateWithinTaxonomyWithSubCategories] = Field(
-        default_factory=set, description="Set of subcategories"
+    categories: list[CategoryCreateWithinTaxonomyWithSubCategories] = Field(
+        default_factory=list, description="Set of subcategories"
     )
 
 
 ## Read Schemas ##
-class TaxonomyRead(BaseReadSchema, TaxonomyBase):
+class TaxonomyRead(IntIdReadSchemaWithTimeStamp, TaxonomyFields):
     """Schema for reading minimal taxonomy information."""
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "name": "Materials Taxonomy",
-                        "description": "Taxonomy for materials",
-                        "domain": "materials",
-                        "source": "DOI:10.2345/12345",
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_EXAMPLES})
 
 
 class TaxonomyReadWithCategoryTree(TaxonomyRead):
@@ -223,34 +162,7 @@ class TaxonomyReadWithCategoryTree(TaxonomyRead):
         default_factory=set, description="Set of categories in the taxonomy"
     )
 
-    model_config: ConfigDict = ConfigDict(  # pyright: ignore [reportIncompatibleVariableOverride] # This is not a type override, see https://github.com/fastapi/sqlmodel/discussions/855
-        {
-            "json_schema_extra": {
-                "examples": [
-                    {
-                        "name": "Materials Taxonomy",
-                        "description": "Taxonomy for materials",
-                        "domain": "materials",
-                        "source": "DOI:10.2345/12345",
-                        "categories": [
-                            {
-                                "id": 1,
-                                "name": "Metals",
-                                "description": "All kinds of metals",
-                                "subcategories": [
-                                    {
-                                        "name": "Ferrous metals",
-                                        "description": "Iron and its alloys",
-                                        "subcategories": [{"name": "Steel", "description": "Steel alloys"}],
-                                    }
-                                ],
-                            }
-                        ],
-                    }
-                ]
-            }
-        }
-    )
+    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_WITH_TREE_EXAMPLES})
 
 
 class TaxonomyUpdate(BaseUpdateSchema):
@@ -260,7 +172,8 @@ class TaxonomyUpdate(BaseUpdateSchema):
     version: str | None = Field(default=None, min_length=1, max_length=50)
     description: str | None = Field(default=None, max_length=500)
     domains: set[TaxonomyDomain] | None = Field(
-        description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}"
+        default=None,
+        description="Domains of the taxonomy, e.g. {" + f"{', '.join([d.value for d in TaxonomyDomain][:3])}" + "}",
     )
 
     source: str | None = Field(default=None, max_length=50, description="Source of the taxonomy data")
@@ -299,12 +212,10 @@ class MaterialReadWithRelationships(MaterialRead):
 class MaterialUpdate(BaseUpdateSchema):
     """Schema for a partial update of a material."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the Material")
-    description: str | None = Field(default=None, max_length=500, description="Description of the Material")
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=500)
     source: str | None = Field(
-        default=None,
-        max_length=50,
-        description="Source of the material data, e.g. URL, IRI or citation key",
+        default=None, max_length=50, description="Source of the material data, e.g. URL, IRI or citation key"
     )
     density_kg_m3: float | None = Field(default=None, gt=0, description="Volumetric density (kg/m³) ")
     is_crm: bool | None = Field(default=None, description="Is this material a Critical Raw Material (CRM)?")
@@ -319,30 +230,25 @@ class ProductTypeCreate(BaseCreateSchema, ProductTypeBase):
 class ProductTypeCreateWithCategories(BaseCreateSchema, ProductTypeBase):
     """Schema for creating a product type with links to existing categories."""
 
-    category_ids: set[int] = Field(default_factory=set, description="List of category IDs")
+    category_ids: set[int] = Field(default_factory=set)
 
 
 ## Read Schemas ##
-class ProductTypeRead(BaseReadSchema, ProductTypeBase):
+class ProductTypeRead(IntIdReadSchema, ProductTypeFields):
     """Schema for reading flat product type information."""
 
 
 class ProductTypeReadWithRelationships(ProductTypeRead):
     """Schema for reading product type information with all relationships."""
 
-    products: list[ProductRead] = Field(
-        default_factory=list, description="List of products that have this product type"
-    )
-    categories: list[CategoryRead] = Field(
-        default_factory=list, description="List of categories linked to the product type"
-    )
-    images: list[ImageRead] = Field(default_factory=list, description="List of images for the product type")
-    files: list[FileRead] = Field(default_factory=list, description="List of files for the product type")
+    categories: list[CategoryRead] = Field(default_factory=list)
+    images: list[ImageRead] = Field(default_factory=list)
+    files: list[FileRead] = Field(default_factory=list)
 
 
 ## Update Schemas ##
 class ProductTypeUpdate(BaseUpdateSchema):
     """Schema for a partial update of a product type."""
 
-    name: str | None = Field(default=None, min_length=2, max_length=100, description="Name of the Product Type.")
-    description: str | None = Field(default=None, max_length=500, description="Description of the Product Type.")
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    description: str | None = Field(default=None, max_length=500)

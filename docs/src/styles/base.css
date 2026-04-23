@@ -1,0 +1,61 @@
+html,
+body {
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+body {
+  color: var(--relab-text);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("/images/bg-light.jpg") center / cover no-repeat;
+  opacity: 0.34;
+  filter: blur(8px) saturate(0.92);
+  transform: scale(1.035);
+}
+
+:root[data-theme="dark"] body::before {
+  background-image: url("/images/bg-dark.jpg");
+  opacity: 0.32;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--relab-surface-wash) 96%, white 4%) 0%,
+    color-mix(in srgb, var(--relab-surface-wash) 92%, transparent) 100%
+  );
+  backdrop-filter: blur(4px);
+}
+
+:root[data-theme="dark"] body::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--relab-surface-wash) 94%, #09111d 6%) 0%,
+    color-mix(in srgb, var(--relab-surface-wash) 90%, transparent) 100%
+  );
+}
+
+h1,
+h2,
+h3,
+h4,
+.site-title,
+.hero {
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  letter-spacing: -0.015em;
+}
+
+a {
+  color: var(--relab-primary);
+}

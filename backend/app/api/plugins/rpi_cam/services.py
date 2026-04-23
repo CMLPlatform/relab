@@ -1,82 +1,82 @@
 """Camera interaction services."""
 
+from __future__ import annotations
+
+import asyncio
+import logging
+import secrets
 from datetime import UTC, datetime
-from enum import Enum
-from io import BytesIO
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any
 
-from fastapi import UploadFile
-from fastapi.datastructures import Headers
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import Resource, build
-from googleapiclient.errors import HttpError
-from httpx_oauth.clients.google import GoogleOAuth2
-from pydantic import Field, PositiveInt
-from relab_rpi_cam_models.stream import YoutubeStreamConfig
-from sqlmodel.ext.asyncio.session import AsyncSession
+from httpx import AsyncClient, HTTPStatusError, RequestError, Response
+from pydantic import Field, SecretStr, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.config import settings
 from app.api.auth.models import OAuthAccount
-from app.api.auth.services.oauth import GOOGLE_YOUTUBE_SCOPES
-from app.api.common.crud.utils import db_get_model_with_id_if_it_exists
 from app.api.common.exceptions import APIError
 from app.api.common.schemas.base import serialize_datetime_with_z
-from app.api.data_collection.models import Product
-from app.api.file_storage.crud import create_image
-from app.api.file_storage.models.models import Image, ImageParentType
-from app.api.file_storage.schemas import ImageCreateInternal
-from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import HttpMethod, fetch_from_camera_url
+from app.api.plugins.rpi_cam.exceptions import GoogleOAuthAssociationRequiredError
+from app.api.plugins.rpi_cam.schemas.streaming import YoutubeStreamConfig
+from app.api.plugins.rpi_cam.schemas.youtube import (
+    YouTubeAPIErrorResponse,
+    YouTubeBroadcastContentDetailsCreate,
+    YouTubeBroadcastCreateRequest,
+    YouTubeBroadcastListResponse,
+    YouTubeBroadcastResponse,
+    YouTubeBroadcastStatusCreate,
+    YouTubeMonitorStreamResponse,
+    YouTubeSnippetCreate,
+    YouTubeStreamCDNCreate,
+    YouTubeStreamCreateRequest,
+    YouTubeStreamListResponse,
+    YouTubeStreamResponse,
+)
+from app.api.plugins.rpi_cam.service_runtime import (
+    TELEMETRY_CACHE_PREFIX,
+    TELEMETRY_CACHE_TTL_SECONDS,
+    YOUTUBE_RECORDING_SESSION_CACHE_PREFIX,
+    YOUTUBE_RECORDING_SESSION_TTL_SECONDS,
+    YouTubeRecordingSession,
+    build_recording_text,
+    capture_and_store_image,
+    clear_recording_session,
+    get_cached_telemetry,
+    get_camera_last_seen_cache_key,
+    get_camera_online_cache_key,
+    get_camera_status,
+    get_preview_thumbnail_urls_per_camera,
+    get_recording_session_cache_key,
+    get_telemetry_cache_key,
+    load_recording_session,
+    mark_camera_offline,
+    mark_camera_online,
+    serialize_stream_metadata,
+    store_recording_session,
+    store_telemetry,
+)
+
+if TYPE_CHECKING:
+    from httpx_oauth.clients.google import GoogleOAuth2
 
 
-async def capture_and_store_image(
-    session: AsyncSession,
-    camera: Camera,
-    *,
-    product_id: PositiveInt,
-    filename: str | None = None,
-    description: str | None = None,
-) -> Image:
-    """Capture image from camera and store in database. Optionally associate with a parent product."""
-    # Validate the product_id
-    if product_id:
-        await db_get_model_with_id_if_it_exists(session, Product, product_id)
+logger = logging.getLogger(__name__)
+YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3"
 
-    # Capture image
-    capture_response = await fetch_from_camera_url(
-        camera=camera,
-        endpoint="/images",
-        method=HttpMethod.POST,
-        error_msg="Failed to capture image",
-    )
-    capture_data = capture_response.json()
-
-    # Download image
-    image_response = await fetch_from_camera_url(
-        camera=camera,
-        endpoint=capture_data["image_url"],
-        method=HttpMethod.GET,
-        error_msg="Failed to download image",
-    )
-
-    # Create image data and store in database
-    timestamp_str = capture_data.get("metadata", {}).get("image_properties", {}).get("capture_time")
-    image_data = ImageCreateInternal(
-        file=UploadFile(
-            file=BytesIO(image_response.content),
-            filename=filename if filename else f"{camera.name}_{serialize_datetime_with_z(datetime.now(UTC))}.jpg",
-            size=len(image_response.content),
-            headers=Headers({"content-type": "image/jpeg"}),
-        ),
-        description=(description if description else f"Captured from camera {camera.name} at {timestamp_str}."),
-        image_metadata=capture_data.get("metadata"),
-        parent_type=ImageParentType.PRODUCT,
-        parent_id=product_id,
-    )
-
-    return await create_image(session, image_data)
+# Retry schedule for transient YouTube API failures. Each entry is the base delay
+# in seconds; jitter is added by ``_jittered_backoff_s``. Total worst-case wait is
+# ~3.75 s + jitter across 3 attempts (initial + 2 retries). Retryable statuses are
+# 429 / 5xx and any network-layer error; 4xx responses never retry.
+_YOUTUBE_RETRY_BACKOFF_S: tuple[float, ...] = (0.25, 1.0)
+_YOUTUBE_RETRYABLE_STATUSES: frozenset[int] = frozenset({429, 500, 502, 503, 504})
 
 
-### Youtube API ###
+def _jittered_backoff_s(base: float) -> float:
+    """Return ``base`` with up to 25% additive jitter from ``secrets.SystemRandom``."""
+    jitter = secrets.SystemRandom().random() * 0.25
+    return base * (1.0 + jitter)
+
+
 class YouTubeAPIError(APIError):
     """Custom exception for YouTube API errors."""
 
@@ -85,7 +85,7 @@ class YouTubeAPIError(APIError):
         super().__init__("YouTube API error.", details)
 
 
-class YouTubePrivacyStatus(str, Enum):
+class YouTubePrivacyStatus(StrEnum):
     """Enumeration of YouTube privacy statuses."""
 
     PUBLIC = "public"
@@ -102,30 +102,108 @@ class YoutubeStreamConfigWithID(YoutubeStreamConfig):
 class YouTubeService:
     """YouTube API service for creating and managing live streams."""
 
-    def __init__(self, oauth_account: OAuthAccount, google_oauth_client: GoogleOAuth2):
+    def __init__(
+        self,
+        oauth_account: OAuthAccount,
+        google_oauth_client: GoogleOAuth2,
+        session: AsyncSession,
+        http_client: AsyncClient,
+    ) -> None:
         self.oauth_account = oauth_account
         self.google_oauth_client = google_oauth_client
+        self.session = session
+        self.http_client = http_client
 
     async def refresh_token_if_needed(self) -> None:
-        """Refresh OAuth token if expired."""
+        """Refresh OAuth token if expired and persist to database."""
         if self.oauth_account.expires_at and self.oauth_account.expires_at < datetime.now(UTC).timestamp():
-            # TODO: if Refresh token is None, what to do? https://medium.com/starthinker/google-oauth-2-0-access-token-and-refresh-token-explained-cccf2fc0a6d9
+            if not self.oauth_account.refresh_token:
+                raise GoogleOAuthAssociationRequiredError from None
+
             new_token = await self.google_oauth_client.refresh_token(self.oauth_account.refresh_token)
             self.oauth_account.access_token = new_token["access_token"]
             self.oauth_account.expires_at = datetime.now(UTC).timestamp() + new_token["expires_in"]
 
-    def get_youtube_client(self) -> Resource:
-        """Get authenticated YouTube API client."""
-        # TODO: Make Google API client thread safe and async if possible (using asyncio/asyncer): https://github.com/googleapis/google-api-python-client/blob/main/docs/thread_safety.md
-        credentials = Credentials(
-            token=self.oauth_account.access_token,
-            refresh_token=self.oauth_account.refresh_token,
-            token_uri="https://oauth2.googleapis.com/token",  # noqa: S106 # No sensitive data in URL
-            client_id=settings.google_oauth_client_id,
-            client_secret=settings.google_oauth_client_secret,
-            scopes=GOOGLE_YOUTUBE_SCOPES,
-        )
-        return build("youtube", "v3", credentials=credentials)
+            self.session.add(self.oauth_account)
+            await self.session.commit()
+            await self.session.refresh(self.oauth_account)
+
+    async def request_youtube_api(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        params: dict[str, str] | None = None,
+        body: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Send an authenticated request to the YouTube Data API with retries."""
+        total_attempts = len(_YOUTUBE_RETRY_BACKOFF_S) + 1
+        for attempt in range(total_attempts):
+            if attempt:
+                await asyncio.sleep(_jittered_backoff_s(_YOUTUBE_RETRY_BACKOFF_S[attempt - 1]))
+            try:
+                response = await self.http_client.request(
+                    method,
+                    f"{YOUTUBE_API_BASE_URL}/{endpoint}",
+                    params=params,
+                    json=body,
+                    headers={"Authorization": f"Bearer {self.oauth_account.access_token}"},
+                )
+                response.raise_for_status()
+            except HTTPStatusError as e:
+                status = e.response.status_code
+                error = YouTubeAPIError(
+                    http_status_code=status,
+                    details=self._build_error_detail(endpoint, e.response),
+                )
+                if status in _YOUTUBE_RETRYABLE_STATUSES and attempt < total_attempts - 1:
+                    logger.warning(
+                        "YouTube API %s %s returned %d; retrying (%d/%d)",
+                        method,
+                        endpoint,
+                        status,
+                        attempt + 2,
+                        total_attempts,
+                    )
+                    continue
+                raise error from e
+            except RequestError as e:
+                if attempt < total_attempts - 1:
+                    logger.warning(
+                        "YouTube API %s %s network error; retrying (%d/%d): %s",
+                        method,
+                        endpoint,
+                        attempt + 2,
+                        total_attempts,
+                        e,
+                    )
+                    continue
+                raise YouTubeAPIError(
+                    http_status_code=503,
+                    details=f"Network error contacting YouTube API: {e}",
+                ) from e
+
+            if response.status_code == 204:
+                return {}
+            return response.json()
+
+        msg = f"YouTube API {method} {endpoint} exhausted retries without a terminal outcome"
+        raise RuntimeError(msg)
+
+    @staticmethod
+    def _build_error_detail(endpoint: str, response: Response) -> str:
+        """Build a useful error message from a failed YouTube API response."""
+        try:
+            error_payload = YouTubeAPIErrorResponse.model_validate(response.json())
+            error_message = error_payload.error.message if error_payload.error else None
+        except ValueError:
+            error_message = response.text
+        except ValidationError:
+            error_message = response.text
+
+        if error_message:
+            return f"Failed calling {endpoint}: {error_message}"
+        return f"Failed calling {endpoint}: HTTP {response.status_code}"
 
     async def setup_livestream(
         self,
@@ -135,81 +213,134 @@ class YouTubeService:
     ) -> YoutubeStreamConfigWithID:
         """Create a YouTube livestream and return stream configuration."""
         await self.refresh_token_if_needed()
-        youtube = self.get_youtube_client()
-
+        broadcast_payload = YouTubeBroadcastCreateRequest(
+            snippet=YouTubeSnippetCreate(
+                title=title,
+                scheduledStartTime=serialize_datetime_with_z(datetime.now(UTC)),
+                description=description or "",
+            ),
+            status=YouTubeBroadcastStatusCreate(privacyStatus=privacy_status.value),
+            contentDetails=YouTubeBroadcastContentDetailsCreate(),
+        )
+        broadcast = await self.request_youtube_api(
+            "POST",
+            "liveBroadcasts",
+            params={"part": "snippet,status,contentDetails"},
+            body=broadcast_payload.model_dump(mode="json"),
+        )
         try:
-            # Create broadcast
-            broadcast = (
-                youtube.liveBroadcasts()
-                .insert(
-                    part="snippet,status,contentDetails",
-                    body={
-                        "snippet": {
-                            "title": title,
-                            "scheduledStartTime": serialize_datetime_with_z(datetime.now(UTC)),
-                            "description": description or "",
-                        },
-                        "status": {"privacyStatus": privacy_status.value, "selfDeclaredMadeForKids": False},
-                        "contentDetails": {  # Enable auto start and stop of broadcast on stream start and stop
-                            # TODO: Investigate potential pause function, which would require manual start/stop
-                            "enableAutoStart": True,
-                            "enableAutoStop": True,
-                        },
-                    },
-                )
-                .execute()
-            )
+            broadcast_response = YouTubeBroadcastResponse.model_validate(broadcast)
+        except ValidationError as e:
+            raise YouTubeAPIError(details=f"Invalid YouTube broadcast response: {e}") from e
 
-            # Create stream
-            # TODO: Create one stream per camera and store key and id in camera model
-            stream = (
-                youtube.liveStreams()
-                .insert(
-                    part="snippet,cdn",
-                    body={
-                        "snippet": {"title": title},
-                        "cdn": {"frameRate": "30fps", "ingestionType": "hls", "resolution": "720p"},
-                        "description": description or "",
-                    },
-                )
-                .execute()
-            )
+        stream_payload = YouTubeStreamCreateRequest(
+            snippet=YouTubeSnippetCreate(title=title, description=description or ""),
+            cdn=YouTubeStreamCDNCreate(),
+            description=description or "",
+        )
+        stream = await self.request_youtube_api(
+            "POST",
+            "liveStreams",
+            params={"part": "snippet,cdn"},
+            body=stream_payload.model_dump(mode="json"),
+        )
+        try:
+            stream_response = YouTubeStreamResponse.model_validate(stream)
+        except ValidationError as e:
+            raise YouTubeAPIError(details=f"Invalid YouTube stream response: {e}") from e
 
-            # Bind them together
-            broadcast = (
-                youtube.liveBroadcasts()
-                .bind(id=broadcast["id"], part="id,contentDetails", streamId=stream["id"])
-                .execute()
-            )
+        broadcast = await self.request_youtube_api(
+            "POST",
+            "liveBroadcasts/bind",
+            params={"id": broadcast_response.id, "part": "id,contentDetails", "streamId": stream_response.id},
+        )
+        try:
+            bound_broadcast_response = YouTubeBroadcastResponse.model_validate(broadcast)
+        except ValidationError as e:
+            raise YouTubeAPIError(details=f"Invalid YouTube bind response: {e}") from e
 
-            return YoutubeStreamConfigWithID(
-                stream_key=stream["cdn"]["ingestionInfo"]["streamName"],
-                broadcast_key=broadcast["id"],
-                stream_id=stream["id"],
-            )
-
-        except HttpError as e:
-            raise YouTubeAPIError(http_status_code=e.status_code, details=f"Failed to create livestream: {e}") from e
+        return YoutubeStreamConfigWithID(
+            stream_key=SecretStr(stream_response.cdn.ingestionInfo.streamName),
+            broadcast_key=SecretStr(bound_broadcast_response.id),
+            stream_id=stream_response.id,
+        )
 
     async def validate_stream_status(self, stream_id: str) -> bool:
         """Check if a YouTube livestream is live."""
         await self.refresh_token_if_needed()
-        youtube = self.get_youtube_client()
 
         try:
-            response = youtube.liveStreams().list(part="status", id=stream_id).execute()
-            return response["items"][0]["status"]["streamStatus"] in ("active", "ready")
-        except HttpError as e:
-            raise YouTubeAPIError(http_status_code=e.status_code, details=f"Failed to validate livestream: {e}") from e
-        except KeyError as e:
-            raise YouTubeAPIError(details=f"Failed to validate livestream: {e}") from e
+            response = await self.request_youtube_api(
+                "GET",
+                "liveStreams",
+                params={"part": "status", "id": stream_id},
+            )
+            stream_list_response = YouTubeStreamListResponse.model_validate(response)
+            if not stream_list_response.items:
+                raise YouTubeAPIError(details="Failed to validate livestream: stream not found.")
+            return stream_list_response.items[0].status.streamStatus in ("active", "ready")
+        except ValidationError as e:
+            raise YouTubeAPIError(details=f"Invalid YouTube stream status response: {e}") from e
 
     async def end_livestream(self, broadcast_key: str) -> None:
-        """End a YouTube livestream."""
+        """End a YouTube livestream by transitioning to 'complete', preserving the recording."""
         await self.refresh_token_if_needed()
-        youtube = self.get_youtube_client()
+        await self.request_youtube_api(
+            "POST",
+            "liveBroadcasts/transition",
+            params={"broadcastStatus": "complete", "id": broadcast_key, "part": "status"},
+        )
+
+    async def get_broadcast_monitor_stream(self, broadcast_key: str) -> YouTubeMonitorStreamResponse:
+        """Get the monitor stream configuration for a YouTube livestream."""
+        await self.refresh_token_if_needed()
 
         try:
-            youtube.liveBroadcasts().delete(id=broadcast_key).execute()
-        except HttpError as e:
-            raise YouTubeAPIError(http_status_code=e.status_code, details=f"Failed to end livestream: {e}") from e
+            response = await self.request_youtube_api(
+                "GET",
+                "liveBroadcasts",
+                params={"part": "contentDetails", "id": broadcast_key},
+            )
+            broadcast_list_response = YouTubeBroadcastListResponse.model_validate(response)
+            if not broadcast_list_response.items:
+                raise YouTubeAPIError(details="Failed to fetch livestream monitor stream: broadcast not found.")
+
+            content_details = broadcast_list_response.items[0].contentDetails
+            if content_details is None or content_details.monitorStream is None:
+                raise YouTubeAPIError(
+                    details="Failed to fetch livestream monitor stream: monitor stream configuration missing."
+                )
+        except ValidationError as e:
+            raise YouTubeAPIError(details=f"Invalid YouTube broadcast response: {e}") from e
+        else:
+            return content_details.monitorStream
+
+
+__all__ = [
+    "TELEMETRY_CACHE_PREFIX",
+    "TELEMETRY_CACHE_TTL_SECONDS",
+    "YOUTUBE_API_BASE_URL",
+    "YOUTUBE_RECORDING_SESSION_CACHE_PREFIX",
+    "YOUTUBE_RECORDING_SESSION_TTL_SECONDS",
+    "YouTubeAPIError",
+    "YouTubePrivacyStatus",
+    "YouTubeRecordingSession",
+    "YouTubeService",
+    "YoutubeStreamConfigWithID",
+    "build_recording_text",
+    "capture_and_store_image",
+    "clear_recording_session",
+    "get_cached_telemetry",
+    "get_camera_last_seen_cache_key",
+    "get_camera_online_cache_key",
+    "get_camera_status",
+    "get_preview_thumbnail_urls_per_camera",
+    "get_recording_session_cache_key",
+    "get_telemetry_cache_key",
+    "load_recording_session",
+    "mark_camera_offline",
+    "mark_camera_online",
+    "serialize_stream_metadata",
+    "store_recording_session",
+    "store_telemetry",
+]

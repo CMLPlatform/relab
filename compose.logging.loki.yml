@@ -1,0 +1,50 @@
+# compose.logging.loki.yml (OPTIONAL OVERLAY — ship container logs to Loki)
+#
+# Overlays the Loki Docker log driver onto every prod/staging service. Include
+# this file ONLY when the host has a reachable Loki instance.
+#
+# Hosts without Loki: omit this file. Services fall back to Docker's default
+# json-file driver (logs readable via `docker logs`) — no config needed.
+#
+# Enable on a host:
+#   1. Install the driver plugin once per host:
+#        docker plugin install grafana/loki-docker-driver:latest \
+#          --alias loki --grant-all-permissions
+#   2. Set LOKI_URL in the host's root `.env`, e.g.:
+#        LOKI_URL=https://logs.cml-relab.org/loki/api/v1/push
+#
+# The justfile's `prod_compose` / `staging_compose` auto-include this overlay
+# when a non-empty LOKI_URL is present in `.env`.
+
+# --- Reusable fragment -------------------------------------------------------
+x-loki-logging: &loki-logging
+  driver: loki
+  options:
+    loki-url: ${LOKI_URL:?set LOKI_URL in .env to use the Loki logging overlay}
+    loki-retries: "5"
+    loki-batch-size: "400"
+    mode: non-blocking
+    max-buffer-size: 4m
+    loki-external-labels: "service={{.Name}},env=${APP_ENV},host=${COMPOSE_PROJECT_NAME}"
+
+services:
+  api:
+    logging: *loki-logging
+  migrator:
+    logging: *loki-logging
+  uploads-backup:
+    logging: *loki-logging
+  redis:
+    logging: *loki-logging
+  cloudflared:
+    logging: *loki-logging
+  postgres:
+    logging: *loki-logging
+  docs-site:
+    logging: *loki-logging
+  app-site:
+    logging: *loki-logging
+  web-site:
+    logging: *loki-logging
+  postgres-backup:
+    logging: *loki-logging

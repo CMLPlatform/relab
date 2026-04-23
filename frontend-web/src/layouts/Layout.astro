@@ -1,0 +1,85 @@
+---
+import '@/styles/fonts.css';
+import '@/styles/global.css';
+
+import SiteFooter from '@/components/SiteFooter.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { siteLinks, siteMeta } from '@/content/site-meta.ts';
+import { getThemeBootstrapScript } from '@/scripts/theme.ts';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  noIndex?: boolean;
+}
+
+const {
+  title,
+  description = siteMeta.defaultDescription,
+  image = '/images/logo.png',
+  noIndex = false,
+} = Astro.props;
+
+const publicSiteConfig = getPublicSiteConfig();
+const siteOrigin = publicSiteConfig.siteUrl;
+const canonicalUrl = siteOrigin ? new URL(Astro.url.pathname, siteOrigin).toString() : undefined;
+const pageTitle =
+  title === siteMeta.title || title.includes(siteMeta.name) ? title : `${title} | ${siteMeta.name}`;
+const socialImage = siteOrigin ? new URL(image, siteOrigin).toString() : image;
+const currentYear = new Date().getFullYear();
+const themeBootstrapScript = getThemeBootstrapScript();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#eef4f7" data-dynamic-theme />
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {noIndex && <meta name="robots" content="noindex, nofollow" />}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    <meta property="og:site_name" content={siteMeta.title} />
+    <meta property="og:image" content={socialImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
+    <title>{pageTitle}</title>
+    <script is:inline set:html={themeBootstrapScript}></script>
+  </head>
+  <body>
+    <div class="site-backdrop" aria-hidden="true">
+      <div class="site-glow site-glow-left"></div>
+      <div class="site-glow site-glow-right"></div>
+      <div class="site-grid"></div>
+    </div>
+
+    <SiteHeader />
+
+    <main class="page-shell">
+      <slot />
+    </main>
+
+    <SiteFooter
+      contactEmail={publicSiteConfig.contactEmail}
+      currentYear={currentYear}
+      githubUrl={siteLinks.github}
+      linkedInUrl={publicSiteConfig.linkedInUrl}
+    />
+
+    <script>
+      import { initClient } from '@/scripts/init.ts';
+
+      initClient();
+    </script>
+  </body>
+</html>

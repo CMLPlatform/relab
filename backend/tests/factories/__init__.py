@@ -1,1 +1,4 @@
-"""Factory-boy factories for generating test objects."""
+"""Factories package.
+
+Contains Polyfactory model factories and TypedDict factories.
+"""

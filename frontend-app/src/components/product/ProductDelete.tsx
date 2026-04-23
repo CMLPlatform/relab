@@ -1,6 +1,8 @@
+import { StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
-import { useDialog } from '@/components/common/DialogProvider';
-import { Product } from '@/types/Product';
+import { useDialog } from '@/components/common/dialogContext';
+import { useAppTheme } from '@/theme';
+import type { Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -9,8 +11,8 @@ interface Props {
 }
 
 export default function ProductDelete({ product, editMode, onDelete }: Props) {
-  // Hooks
   const dialog = useDialog();
+  const theme = useAppTheme();
 
   const onPressDelete = () => {
     dialog.alert({
@@ -32,19 +34,21 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
       mode="contained"
       onPress={onPressDelete}
       icon={'delete'}
-      style={{
-        marginTop: 10,
-        marginLeft: 19,
-        marginRight: 85,
-        height: 54,
-        backgroundColor: '#B00020',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 16,
-      }}
-      textColor={'white'}
+      style={[styles.button, { backgroundColor: theme.colors.error }]}
+      textColor={theme.colors.onError}
     >
       Delete product
     </Button>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    marginTop: 10,
+    marginHorizontal: 14,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+});

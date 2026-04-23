@@ -10,9 +10,6 @@ from collections.abc import Sequence
 from typing import Union
 
 import sqlalchemy as sa
-import sqlmodel
-
-import app.api.common.models.custom_types
 from alembic import op
 
 # revision identifiers, used by Alembic.

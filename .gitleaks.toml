@@ -1,0 +1,14 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for known false positives"
+paths = [
+  # Auto-generated OpenAPI types contain example JWTs from fastapi-users docs
+  '''frontend-app/src/types/api\.generated\.ts''',
+]
+regexTarget = "line"
+regexes = [
+  # PERF_IMAGE_ID is a sample image UUID used in perf-baseline docs, not a secret
+  '''PERF_IMAGE_ID=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
+]

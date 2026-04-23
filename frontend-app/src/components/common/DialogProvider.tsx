@@ -1,94 +1,90 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
-
-type DialogButton = {
-  text: string;
-  onPress?: (value?: string) => void;
-  disabled?: boolean | ((value: string) => boolean);
-};
-
-type DialogOptions = {
-  title?: string;
-  message?: string;
-  buttons?: DialogButton[];
-  input?: boolean;
-  defaultValue?: string;
-  placeholder?: string;
-  helperText?: string;
-  error?: boolean;
-};
-
-type DialogContextType = {
-  alert: (options: DialogOptions) => void;
-  input: (options: DialogOptions) => void;
-};
-
-const DialogContext = createContext<DialogContextType | undefined>(undefined);
-
-export function useDialog() {
-  const ctx = useContext(DialogContext);
-  if (!ctx) throw new Error('useDialog must be used within DialogProvider');
-  return ctx;
-}
+import { Button, Snackbar, Text, TextInput } from 'react-native-paper';
+import {
+  type DialogButton,
+  DialogContext,
+  type DialogContextType,
+  type DialogOptions,
+} from '@/components/common/dialogContext';
+import { useAppTheme } from '@/theme';
 
 export function DialogProvider({ children }: { children: ReactNode }) {
-  // States
+  const theme = useAppTheme();
   const [options, setOptions] = useState<DialogOptions | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [dialogVersion, setDialogVersion] = useState(0);
 
-  // Context functions
-  const alert: DialogContextType['alert'] = (options: DialogOptions) => {
+  const alert = useCallback<DialogContextType['alert']>((options: DialogOptions) => {
     setOptions({ ...options, input: false });
-  };
+    setDialogVersion((version) => version + 1);
+  }, []);
 
-  const input: DialogContextType['input'] = (options: DialogOptions) => {
+  const input = useCallback<DialogContextType['input']>((options: DialogOptions) => {
     setOptions({ ...options, input: true });
-  };
+    setDialogVersion((version) => version + 1);
+  }, []);
 
-  // Callbacks
-  const clear = () => {
+  const toast = useCallback<DialogContextType['toast']>((message: string) => {
+    setToastMessage(message);
+  }, []);
+
+  const clear = useCallback(() => {
     setOptions(null);
-  };
+  }, []);
 
-  // Render
+  const dismissToast = useCallback(() => {
+    setToastMessage(null);
+  }, []);
+
+  const contextValue = useMemo(() => ({ alert, input, toast }), [alert, input, toast]);
+
   return (
-    <DialogContext.Provider value={{ alert, input }}>
+    <DialogContext.Provider value={contextValue}>
       {children}
 
-      <Modal visible={!!options} transparent onRequestClose={clear}>
-        <Pressable style={styles.backdrop} onPress={clear}>
-          <Dialog options={options} onDismiss={clear} />
+      <Modal visible={Boolean(options)} transparent onRequestClose={clear}>
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: theme.tokens.overlay.scrim }]}
+          onPress={clear}
+        >
+          <Dialog key={dialogVersion} options={options} onDismiss={clear} />
         </Pressable>
       </Modal>
+      <Snackbar visible={Boolean(toastMessage)} onDismiss={dismissToast} duration={3000}>
+        {toastMessage ?? ''}
+      </Snackbar>
     </DialogContext.Provider>
   );
 }
 
 function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismiss?: () => void }) {
-  // Hooks
-  const theme = useTheme();
-
-  // States
+  const theme = useAppTheme();
   const [inputValue, setInputValue] = useState(options?.defaultValue || '');
 
-  // Callbacks
-  const handleClose = (btn?: DialogButton) => {
-    if (btn?.onPress) {
-      btn.onPress(options?.input ? inputValue : undefined);
-    }
-    setInputValue('');
-    onDismiss?.();
-  };
+  const handleClose = useCallback(
+    (btn?: DialogButton) => {
+      if (btn?.onPress) {
+        btn.onPress(options?.input ? inputValue : undefined);
+      }
+      setInputValue('');
+      onDismiss?.();
+    },
+    [inputValue, onDismiss, options?.input],
+  );
 
-  // Methods
-  const isButtonDisabled = (button: DialogButton) => {
-    if (typeof button.disabled === 'function') {
-      return button.disabled(inputValue);
-    }
-    return button.disabled ?? false;
-  };
+  const isButtonDisabled = useCallback(
+    (button: DialogButton) => {
+      if (typeof button.disabled === 'function') {
+        return button.disabled(inputValue);
+      }
+      return button.disabled ?? false;
+    },
+    [inputValue],
+  );
 
-  // Render
+  const buttons = options?.buttons ?? [{ text: 'OK' }];
+
   return (
     <Pressable
       style={{ backgroundColor: theme.colors.surface, ...styles.container }}
@@ -101,9 +97,7 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
         <TextInput
           value={inputValue}
           onChangeText={setInputValue}
-          onSubmitEditing={() =>
-            handleClose(options?.buttons ? options.buttons[options.buttons.length - 1] : undefined)
-          }
+          onSubmitEditing={() => handleClose(buttons[buttons.length - 1])}
           placeholder={options.placeholder}
           error={options.error}
           autoFocus
@@ -111,12 +105,19 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
       )}
 
       {options?.input && options?.helperText && (
-        <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>{options.helperText}</Text>
+        <Text style={[styles.helperText, options.error && { color: theme.colors.error }]}>
+          {options.helperText}
+        </Text>
       )}
 
       <View style={styles.buttonRow}>
-        {(options?.buttons || [{ text: 'OK' }]).map((btn, idx) => (
-          <Button key={idx} onPress={() => handleClose(btn)} disabled={isButtonDisabled(btn)} style={styles.button}>
+        {buttons.map((btn) => (
+          <Button
+            key={btn.text}
+            onPress={() => handleClose(btn)}
+            disabled={isButtonDisabled(btn)}
+            style={styles.button}
+          >
             {btn.text}
           </Button>
         ))}
@@ -129,7 +130,6 @@ function Dialog({ options, onDismiss }: { options: DialogOptions | null; onDismi
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -157,11 +157,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 15,
     marginLeft: 8,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
   },
   helperText: {
     fontSize: 12,

@@ -1,14 +1,8 @@
-"""Configuration for common API components."""
+"""Static OpenAPI metadata shared across common API routers."""
 
-from pathlib import Path
-
-from pydantic import BaseModel
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
 
 from app.__version__ import version
-
-# Set the project base directory and .env file
-BASE_DIR: Path = (Path(__file__).parents[3]).resolve()
 
 
 class OpenAPISettings(BaseModel):
@@ -21,11 +15,9 @@ class OpenAPISettings(BaseModel):
     x_tag_groups: list[dict[str, str | list[str]]]
 
 
-class APISettings(BaseSettings):
-    """Settings class to store settings related to common API components."""
-
-    # OpenAPI docs metadata
-    public_docs: OpenAPISettings = OpenAPISettings(
+def build_public_docs() -> OpenAPISettings:
+    """Build public OpenAPI metadata."""
+    return OpenAPISettings(
         title="Reverse Engineering Lab - Data Collection API",
         description="Data collection app for the reverse engineering lab project at CML.",
         version=version,
@@ -41,10 +33,20 @@ class APISettings(BaseSettings):
         ],
     )
 
-    full_docs: OpenAPISettings = public_docs.model_copy(
+
+def build_full_docs() -> OpenAPISettings:
+    """Build internal OpenAPI metadata from the public docs shape."""
+    public_docs = build_public_docs()
+    return public_docs.model_copy(
         update={"x_tag_groups": [*public_docs.x_tag_groups, {"name": "Admin", "tags": ["admin"]}]}
     )
 
 
-# Create a settings instance that can be imported throughout the app
+class APISettings(BaseModel):
+    """Static OpenAPI metadata shared across the API."""
+
+    public_docs: OpenAPISettings = Field(default_factory=build_public_docs)
+    full_docs: OpenAPISettings = Field(default_factory=build_full_docs)
+
+
 settings = APISettings()
