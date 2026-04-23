@@ -1,0 +1,86 @@
+# compose.e2e.yml (END-TO-END TESTING, used for testing the full stack in CI)
+#
+# Normal local entrypoint:
+#  just test-e2e-full-stack
+#
+# Frontends are intentionally NOT included here. They are built and served
+# on the host, so that Playwright runs on the host and can freely reach the
+# backend service on localhost.
+
+name: relab_e2e
+
+services:
+  api:
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    ports:
+      - "${E2E_BACKEND_PORT:-18432}:8000"
+    volumes:
+      # To ensure that the backend has access to user uploads (for testing upload functionality with real files)
+      - user_uploads:/opt/relab/backend/data/uploads
+    environment:
+      DATABASE_HOST: postgres
+      REDIS_HOST: redis
+    env_file: ./backend/.env.test
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/live', timeout=5)" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      start_interval: 5s
+      retries: 6
+
+  migrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.migrations
+      cache_from:
+        - type=gha
+      cache_to:
+        - type=gha,mode=max
+    restart: on-failure:3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Ensure migrations have access to user uploads (for seeding example images)
+      - user_uploads:/opt/relab/backend-migrations/data/uploads
+    environment:
+      DATABASE_HOST: postgres
+      REDIS_HOST: redis
+      # SEED_DUMMY_DATA is enabled for the migrations service in the E2E environment, to ensure that the database is seeded with realistic test data (including example images) before running tests.
+      SEED_DUMMY_DATA: True
+    env_file: ./backend/.env.test
+
+  redis:
+    image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep -q PONG" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      start_interval: 5s
+      retries: 5
+    # No password for test environment: simplifies healthcheck and connection strings
+    command: [ "redis-server", "--appendonly", "yes", "--save", "60", "1" ]
+
+  postgres:
+    image: postgres:18
+    env_file: ./backend/.env.test
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h localhost -U postgres -d relab_e2e_db" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 5s
+      start_interval: 5s
+      retries: 5
+
+volumes:
+  user_uploads:

@@ -2,28 +2,28 @@
 ## MacOS
 
 # General
-.DS_Store
-.AppleDouble
-.LSOverride
+**/.DS_Store
+**/.AppleDouble
+**/.LSOverride
 
 # Thumbnails
-._*
+**/._*
 
 # Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+**/.DocumentRevisions-V100
+**/.fseventsd
+**/.Spotlight-V100
+**/.TemporaryItems
+**/.Trashes
+**/.VolumeIcon.icns
+**/.com.apple.timemachine.donotpresent
 
 # Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+**/.AppleDB
+**/.AppleDesktop
+**/Network Trash Folder
+**/Temporary Items
+**/.apdisk
 
 ## Linux
 
@@ -41,6 +41,8 @@ Temporary Items
 
 ## VS Code
 .vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.code-workspace
 .history/
 
@@ -51,24 +53,40 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Environments
-.env
+# Virtual environments (uv uses .venv)
 .venv
-env/
-venv/
 
 # Ruff linter
-.ruff_cache/
+**/.ruff_cache/
+
+# Pytest cache
+**/.pytest_cache/
+
+## Node.js
+**/node_modules/
 
 ### Manual additions
-# Ignore all local .env files
-.env.local
-.env.*.local
-!.env.*
+# Local environment variable files (but allow example files)
+.env
+.env.*
+
+!.env.example
+!.env.*.example
+# Committed Compose interpolation vars per environment (non-secret only)
+!.env.*.compose
+
+# Local Docker Compose overrides
+compose.local.yml
 
 # Local architecture diagrams
 LOCAL_DIAGRAMS.md
 
-# VS Code settings
-!.vscode/settings.json
-!.vscode/extensions.json
+# LLM config
+.claude
+AGENTS.md
+
+# pnpm store
+.pnpm-store
+
+# Local cspell cache
+.cspellcache

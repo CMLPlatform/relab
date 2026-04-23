@@ -1,0 +1,25 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "relab",
+      "extra-files": [
+        "CITATION.cff",
+        "backend/app/__version__.py",
+        "backend/pyproject.toml",
+        "codemeta.json",
+        "docs/package.json",
+        "frontend-app/app.json",
+        "frontend-app/package.json",
+        "frontend-web/package.json",
+        "package.json",
+        "pyproject.toml"
+      ]
+    }
+  },
+  "plugins": [
+    {
+      "type": "sentence-case"
+    }
+  ]
+}

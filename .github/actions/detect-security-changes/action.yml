@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+# spell-checker: ignore dorny
+name: Detect Security Changes
+description: Determine which security jobs should run for this monorepo.
+
+outputs:
+  run-root-python:
+    description: Whether the root Python audit should run.
+    value: ${{ steps.decide.outputs.run-root-python }}
+  run-backend-python:
+    description: Whether the backend Python audit should run.
+    value: ${{ steps.decide.outputs.run-backend-python }}
+  run-docs-node:
+    description: Whether the docs Node audit should run.
+    value: ${{ steps.decide.outputs.run-docs-node }}
+  run-frontend-app-node:
+    description: Whether the frontend-app Node audit should run.
+    value: ${{ steps.decide.outputs.run-frontend-app-node }}
+  run-frontend-web-node:
+    description: Whether the frontend-web Node audit should run.
+    value: ${{ steps.decide.outputs.run-frontend-web-node }}
+  run-container-images:
+    description: Whether container image scanning and SBOM generation should run.
+    value: ${{ steps.decide.outputs.run-container-images }}
+  container-security-matrix:
+    description: JSON matrix describing which container images should be scanned.
+    value: ${{ steps.decide.outputs.container-security-matrix }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect changed paths
+      id: filter
+      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+      uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+      with:
+        filters: .github/path-filters.yml
+
+    - name: Decide which security jobs should run
+      id: decide
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        SHARED: ${{ steps.filter.outputs.shared }}
+        ROOT_PYTHON: ${{ steps.filter.outputs.root-python }}
+        BACKEND: ${{ steps.filter.outputs.backend }}
+        DOCS: ${{ steps.filter.outputs.docs }}
+        FRONTEND_APP: ${{ steps.filter.outputs.frontend-app }}
+        FRONTEND_WEB: ${{ steps.filter.outputs.frontend-web }}
+        CONTAINERS: ${{ steps.filter.outputs.containers }}
+      run: |
+        matrix_all='{"include":[
+          {"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"},
+          {"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"},
+          {"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"},
+          {"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}
+        ]}'
+
+        if [[ "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+          echo "run-root-python=true" >> "$GITHUB_OUTPUT"
+          echo "run-backend-python=true" >> "$GITHUB_OUTPUT"
+          echo "run-docs-node=true" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-app-node=true" >> "$GITHUB_OUTPUT"
+          echo "run-frontend-web-node=true" >> "$GITHUB_OUTPUT"
+          echo "run-container-images=true" >> "$GITHUB_OUTPUT"
+          echo "container-security-matrix=$matrix_all" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "run-root-python=$([[ "$SHARED" == "true" || "$ROOT_PYTHON" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-backend-python=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-docs-node=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "run-container-images=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$BACKEND" == "true" || "$DOCS" == "true" || "$FRONTEND_APP" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+        include_entries=()
+
+        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$BACKEND" == "true" ]]; then
+          include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"}')
+        fi
+
+        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$DOCS" == "true" ]]; then
+          include_entries+=('{"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"}')
+        fi
+
+        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$FRONTEND_APP" == "true" ]]; then
+          include_entries+=('{"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"}')
+        fi
+
+        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$FRONTEND_WEB" == "true" ]]; then
+          include_entries+=('{"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}')
+        fi
+
+        if ((${#include_entries[@]} == 0)); then
+          echo 'container-security-matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+        else
+          matrix_json=$(printf '%s\n' "${include_entries[@]}" | paste -sd, -)
+          echo "container-security-matrix={\"include\":[${matrix_json}]}" >> "$GITHUB_OUTPUT"
+        fi

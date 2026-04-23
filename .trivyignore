@@ -1,0 +1,23 @@
+# Trivy vulnerability allowlist.
+#
+# Format: one CVE per line. Comments document scope and review date so stale
+# entries can be pruned. Re-check whenever the Caddy base image is bumped.
+
+# --- caddy:2-alpine transitive Go deps ---
+# The Caddy binary statically links these; upstream has not yet published a
+# patched release (checked 2026-04-23). None of the vulnerable code paths are
+# reachable in our usage: the docs site serves static files over plain HTTP
+# on a single port with no step-CA, no gRPC, no JWE, and runs on Linux.
+# Drop these entries once caddy:2-alpine ships with the fixed versions.
+CVE-2026-34986  # go-jose JWE DoS — we don't use JWE
+CVE-2026-30836  # smallstep/certificates SCEP — we don't run an internal CA
+CVE-2026-39883  # opentelemetry-go BSD kenv PATH hijack — Linux-only runtime
+CVE-2026-33186  # grpc-go authz HTTP/2 path validation — we don't use gRPC authz
+
+# --- alpine 3.23 base packages ---
+# The Dockerfile runs `apk upgrade --no-cache`, but these fixes are not yet
+# published to the alpine 3.23 community/main repos (checked 2026-04-23).
+# Drop these entries once `apk upgrade` produces the fixed versions.
+CVE-2026-28390  # openssl libcrypto3/libssl3 CMS NULL-deref DoS — static docs server doesn't parse CMS
+CVE-2026-40200  # musl/musl-utils stack overflow — reachable only via locally run utils, not HTTP path
+CVE-2026-22184  # zlib untgz buffer overflow — utility CLI only, not linked into Caddy request path

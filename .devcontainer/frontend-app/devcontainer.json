@@ -1,0 +1,14 @@
+{
+  "name": "relab-frontend-app",
+  "dockerComposeFile": ["../../compose.yml", "../../compose.dev.yml"],
+  "service": "app-site",
+  "runServices": ["app-site"],
+  "workspaceFolder": "/opt/relab/frontend-app",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "overrideCommand": true,
+  "postAttachCommand": "echo 'RELab app devcontainer ready.\\nUse this for focused app work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nApp: http://localhost:8013'",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers-extra/features/expo-cli:1": {}
+  }
+}

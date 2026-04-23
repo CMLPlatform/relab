@@ -1,98 +1,46 @@
-# Python bytecode files and caches
-**/__pycache__
-**/*.py[cod]
-**/*$py.class
+# Virtual environment (created locally by uv)
+.venv/
 
-# Distribution / packaging
-.Python
-build
-develop-eggs
-dist
-downloads
-eggs
-.eggs
-lib
-lib64
-parts
-sdist
-var
-wheels
-share/python-wheels
-*.egg-info
-.installed.cfg
-*.egg
-MANIFEST
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
 
-# Unit test / coverage reports
-**/htmlcov
-**/.tox
-**/.nox
-**/.coverage
-**/.coverage.*
-**/.cache
-**/nosetests.xml
-**/coverage.xml
-*.cover
-*.py,cover
-**/.hypothesis
-**/.pytest_cache
-**/cover
+# Local runtime artifacts
+# Keep committed seed/reference payloads available to Docker builds, but ignore
+# generated uploads and other local runtime data.
+data/*
+!data/seed/
+!data/seed/**
+logs/
+reports/
 
-# Jupyter Notebook checkpoints
-**/.ipynb_checkpoints
+# Test code
+tests/
 
-# IPython config
-**/profile_default
-**/ipython_config.py
+# Dev tooling
+.vscode/
+.ruff_cache/
+justfile
+README.md
+local_setup.*
 
-# Environment folders and files
-**/env
-**/.env
-**/.env.*
-**/venv
-**/.venv
-# Keep the .env files in top-level directories
-!.env
-!*/.env
+# Secrets
+.env
+.env.*
 
-# Ruff cache
-**/.ruff_cache
+# Docker and git
+Dockerfile
+Dockerfile.*
+.dockerignore
+.git
+.gitignore
 
-# macOS system files
-**/.DS_Store
-**/.AppleDouble
-**/.LSOverride
-**/._*
-**/.DocumentRevisions-V100
-**/.fseventsd
-**/.Spotlight-V100
-**/.TemporaryItems
-**/.Trashes
-**/.VolumeIcon.icns
-**/.com.apple.timemachine.donotpresent
-**/.AppleDB
-**/.AppleDesktop
-**/Network Trash Folder
-**/Temporary Items
-**/.apdisk
+# macOS
+.DS_Store
 
 # Linux system files
 **/.fuse_hidden*
 **/.directory
 **/.Trash-*
 **/.nfs*
-
-# VS Code settings
-**/.vscode
-**/*.code-workspace
-**/.history
-
-# Debugging and local development files
-./playground.ipynb
-.local_setup.*
-
-# Locally uploaded user data
-./data
-
-# Local logs
-./logs

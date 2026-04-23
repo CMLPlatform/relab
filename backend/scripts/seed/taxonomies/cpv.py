@@ -6,20 +6,23 @@ import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import requests
-from sqlmodel import select
+from sqlalchemy import func, select
 
-from app.api.auth.models import User  # noqa: F401 # Need to explictly import User for SQLModel relationships
 from app.api.background_data.models import (
     Category,
     ProductType,  # Adjust import as needed
     TaxonomyDomain,
 )
-from app.core.database import sync_session_context
-from scripts.seed.taxonomies.common import configure_logging, get_or_create_taxonomy, seed_categories_from_rows
+from app.core.logging import setup_logging
+from scripts.db.sync import sync_session_context
+from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
+
+if TYPE_CHECKING:
+    from typing import Any
 
 logger = logging.getLogger("seeding.taxonomies.cpv")
 
@@ -47,7 +50,7 @@ RELEVANT_SECTIONS = {
     "32000000",  # Radio, television, communication, telecommunication and related equipment
     "33000000",  # Medical equipments, pharmaceuticals and personal care products
     "34000000",  # Transport equipment and auxiliary products to transportation
-    "35000000",  # Security, fire-fighting, police and defence equipment
+    "35000000",  # Security, fire-fighting, police and defense equipment
     "37000000",  # Musical instruments, sport goods, games, toys, handicraft, art materials and accessories
     "38000000",  # Laboratory, optical and precision equipments (excl. glasses)
     "42000000",  # Industrial machinery
@@ -55,20 +58,7 @@ RELEVANT_SECTIONS = {
     "44000000",  # Construction structures and materials; auxiliary products to construction (exc. electric apparatus)
 }
 
-# TODO: Replace this manual override with an automatic lookup of the higher parent
-# if no direct parent is present in the CPV taxonomy
-CPV_PARENT_CODE_OVERRIDES = {
-    "30192120": "30192000",
-    "34511000": "34510000",
-    "35611000": "35610000",
-    "35612000": "35610000",
-    "35811000": "35810000",
-    "38527000": "38520000",
-    "39250000": "39200000",
-    "42924000": "42920000",
-    "44115300": "44115000",
-    "44613100": "44613000",
-}
+# We now do an algorithmic lookup to find the closest parent.
 
 
 def download_cpv_excel(excel_path: Path = EXCEL_PATH, source_url: str = TAXONOMY_SOURCE) -> None:
@@ -133,17 +123,21 @@ def load_cpv_rows_from_excel(
     return df[["external_id", "name"]].to_dict(orient="records")
 
 
-def get_cpv_parent_id(row: dict[str, Any]) -> str | None:
-    """Get parent code by zeroing the rightmost non-zero digit."""
+def get_cpv_parent_id(row: dict[str, Any], available_codes: set[str] | None = None) -> str | None:
+    """Get parent code by recursively zeroing the rightmost non-zero digit until a valid parent is found."""
     code = str(row["external_id"])
 
-    # Use regex to replace the rightmost non-zero digit with '0'
-    parent_code = re.sub(r"([1-9])([^1-9]*)$", r"0\2", code)
-    if set(parent_code) == {"0"}:  # Top-level, no parent
-        return None
-    if parent_code in CPV_PARENT_CODE_OVERRIDES:
-        return CPV_PARENT_CODE_OVERRIDES[parent_code]
-    return parent_code
+    while True:
+        # Use regex to replace the rightmost non-zero digit with '0'
+        parent_code = re.sub(r"([1-9])([^1-9]*)$", r"0\2", code)
+
+        if set(parent_code) == {"0"}:  # Top-level, no parent
+            return None
+
+        if available_codes is None or parent_code in available_codes:
+            return parent_code
+
+        code = parent_code
 
 
 def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
@@ -165,7 +159,10 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         )
 
         # If taxonomy already existed, skip seeding
-        existing_count = session.query(Category).filter_by(taxonomy_id=taxonomy.id).count()
+        existing_count = session.execute(
+            select(func.count()).select_from(Category).where(Category.taxonomy_id == taxonomy.id)
+        ).scalar_one()
+
         if existing_count > 0:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
             return
@@ -175,7 +172,11 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         logger.info("Loaded %d CPV codes from Excel", len(rows))
 
         # Seed categories
-        cat_count, rel_count = seed_categories_from_rows(session, taxonomy, rows, get_parent_id_fn=get_cpv_parent_id)
+        available_codes = {row["external_id"] for row in rows}
+        taxonomy_id = taxonomy.id
+        cat_count, rel_count = seed_categories_from_rows(
+            session, taxonomy_id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
+        )
 
         # Commit
         session.commit()
@@ -201,7 +202,7 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
 
     with sync_session_context() as session:
-        existing_cpv = session.exec(select(ProductType).where(ProductType.name.startswith("CPV:"))).first()
+        existing_cpv = session.execute(select(ProductType).where(ProductType.name.startswith("CPV:"))).scalars().first()
         if existing_cpv:
             logger.info("CPV product types already exist, skipping seeding")
             return
@@ -212,10 +213,10 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
         for row in rows:
             # Remove trailing zeros for product type code for cosmetic reasons
             cpv_code = row["external_id"].rstrip("0")
-            cpv_description = row["name"]
+            cpv_name = row["name"]
 
             # Create product type
-            pt = ProductType(name=f"CPV: {cpv_code}", description=cpv_description)
+            pt = ProductType(name=cpv_name, description=f"CPV: {cpv_code}")
             session.add(pt)
             product_types_created += 1
 
@@ -224,7 +225,7 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
 
 
 if __name__ == "__main__":
-    configure_logging()
+    setup_logging()
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Seed CPV taxonomy and optionally product types")

@@ -1,24 +1,30 @@
 """Configuration for the Raspberry Pi Camera plugin."""
 
-from pathlib import Path
+from cryptography.fernet import Fernet
+from pydantic import model_validator
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
-# Set the project base directory and .env file
-BASE_DIR: Path = (Path(__file__).parents[4]).resolve()
+from app.core.config.models import Environment
+from app.core.env import RelabBaseSettings
 
 
-class RPiCamSettings(BaseSettings):
+class RPiCamSettings(RelabBaseSettings):
     """Settings class to store settings related to the Raspberry Pi Camera plugin."""
 
-    # Authentication settings
+    environment: Environment = Environment.DEV
     rpi_cam_plugin_secret: str = ""
 
-    # Initialize the settings configuration from the .env file
-    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
+    @model_validator(mode="after")
+    def validate_plugin_secret(self) -> RPiCamSettings:
+        """Require a valid Fernet key whenever the plugin may be active."""
+        if self.rpi_cam_plugin_secret:
+            Fernet(self.rpi_cam_plugin_secret.encode())
+            return self
 
-    api_key_header_name: str = "X-API-Key"
+        if self.environment in (Environment.STAGING, Environment.PROD):
+            msg = "RPI_CAM_PLUGIN_SECRET must not be empty in production/staging"
+            raise ValueError(msg)
+
+        return self
 
 
-# Create a settings instance that can be imported throughout the app
 settings = RPiCamSettings()

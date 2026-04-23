@@ -4,13 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reverse Engineering Labs API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/css/styles.css" />
-    <link rel="icon" href="/static/favicon.png" type="image/png" />
-    <link rel="shortcut icon" href="/static/favicon.png" type="image/png" />
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon" />
   </head>
   <body>
     <div class="container">
-      <h1>ReLab API</h1>
+      <h1>RELab API</h1>
       <p class="description">This is the backend API for the Reverse Engineering Lab.</p>
 
       <a href="{{ frontend_web_url }}" target="_blank" class="primary-btn">Go to the main website</a>
@@ -25,17 +28,10 @@
         {% endif %}
       </div>
 
-      {% if show_full_docs %}
-        <div class="section">
-          <h2>Administration</h2>
-          <a href="{{ admin_path }}" class="secondary-btn">Admin Dashboard</a>
-        </div>
-      {% endif %}
-
       <div class="section">
-        <h2>API Login</h2>
+        <h2>User Access</h2>
         {% if user %}
-          <a href="#" onclick="logout()" class="secondary-btn">Logout</a>
+          <a href="#" id="logoutLink" class="secondary-btn">Logout</a>
         {% else %}
           <a href="{{ url_for('login_page') }}" class="secondary-btn">Login</a>
         {% endif %}
@@ -43,13 +39,19 @@
     </div>
 
     <script>
-      async function logout() {
-        try {
-          await fetch('{{ url_for("auth:cookie.logout") }}', { method: 'POST', credentials: 'include' })
-          window.location.reload()
-        } catch (error) {
-          console.error('Logout failed:', error)
-        }
+      const logoutLink = document.getElementById('logoutLink')
+
+      if (logoutLink) {
+        logoutLink.addEventListener('click', async (event) => {
+          event.preventDefault()
+
+          try {
+            await fetch('{{ url_for("auth:logout") }}', { method: 'POST', credentials: 'include' })
+            window.location.reload()
+          } catch (error) {
+            console.error('Logout failed:', error)
+          }
+        })
       }
     </script>
   </body>

@@ -1,42 +1,69 @@
-# Production Dockerfile for Web Frontend
-# --- Builder stage ---
-FROM node:24-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb AS builder
+# syntax=docker/dockerfile:1
 
-WORKDIR /opt/relab/frontend-web
+# Multi-target Dockerfile for the Astro web frontend
+#   - `dev`     → hot-reload dev server (use with `docker compose watch`)
+#   - `runtime` → caddy-served static build (default)
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --include prod
-
-# Copy source code and build
-COPY . ./
-RUN npx expo export -p web -c
-
-# --- Production stage ---
-FROM node:24-slim@sha256:e8e2e91b1378f83c5b2dd15f0247f34110e2fe895f6ca7719dbb780f929368eb
-
-# Build arguments
 ARG WORKDIR=/opt/relab/frontend-web
-ARG APP_USER=appuser
 
-# Set the working directory
+# --- Shared deps stage ---
+FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+
+ARG WORKDIR
 WORKDIR $WORKDIR
 
-# Install serve for static file serving
-RUN npm install -g serve
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
 
-# Set up a non-root user
-RUN useradd $APP_USER
+RUN corepack enable
 
-# Copy the build output
-COPY --from=builder --chown=$APP_USER:$APP_USER $WORKDIR/dist $WORKDIR/dist
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
+
+# --- Dev stage (hot reload) ---
+FROM deps AS dev
+
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+COPY . .
 
 EXPOSE 8081
 
-USER $APP_USER
+CMD ["pnpm", "run", "dev"]
 
-# Serve the static build
-CMD ["serve", "-s", "dist", "-l", "8081"]
+# --- Build stage (prod static build) ---
+FROM deps AS build
+
+ARG WORKDIR
+WORKDIR $WORKDIR
+
+ENV CI=1
+
+COPY tsconfig.json astro.config.ts ./
+COPY public/ ./public/
+COPY src/ ./src/
+
+ARG BUILD_MODE=prod
+COPY ".env.$BUILD_MODE" ".env.$BUILD_MODE"
+
+RUN pnpm run build:$BUILD_MODE
+
+# --- Runtime stage (default) ---
+FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime
+
+ARG WORKDIR
+
+# Upgrade packages to get latest security patches (Caddy image is pretty minimal, so this is low-risk)
+RUN apk upgrade --no-cache
+
+COPY --link --from=build ${WORKDIR}/dist /srv
+COPY --link Caddyfile /etc/caddy/Caddyfile
+
+EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- http://localhost:8081/health || exit 1

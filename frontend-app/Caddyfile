@@ -1,0 +1,58 @@
+{
+	admin off
+}
+
+:8081 {
+	root * /srv
+	encode zstd gzip
+
+	handle /health {
+		respond "ok" 200
+	}
+
+	header {
+		# Prevent clickjacking
+		X-Frame-Options "DENY"
+		# Prevent MIME-type sniffing
+		X-Content-Type-Options "nosniff"
+		# Force HTTPS on subsequent visits
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# Restrict referrer information
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Content Security Policy
+		# - script-src 'unsafe-inline' 'unsafe-eval': Expo web export uses
+		#   inline bootstrap code and runtime eval-based module loading.
+		# - style-src 'unsafe-inline': React Native Web requires inline styles
+		# - img-src data: blob:: used for image previews before upload
+		# - connect-src blob:: Expo web uses blob-backed worker/runtime URLs
+		#   in addition to the API endpoint for data fetching.
+		# - worker-src blob:: proactively allow blob-backed workers if the
+		#   web runtime starts using them explicitly.
+		# - media-src blob:: covers blob-backed previews/snapshots without
+		#   opening media loading to arbitrary origins.
+		# - CSP_API_ORIGIN: injected by the container environment per deployment
+		-Content-Security-Policy
+		-Content-Security-Policy-Report-Only
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CSP_API_ORIGIN}; connect-src 'self' blob: {$CSP_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CSP_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+	}
+
+	# Hashed, content-addressed static assets — serve directly with no SPA fallback
+	# and cache immutably. Without this, a missing chunk would fall through to
+	# try_files and serve index.html as text/html, which nosniff then blocks as a
+	# MIME mismatch. A real 404 is unambiguous and fails fast.
+	@static_assets path /_expo/static/* /assets/*
+	handle @static_assets {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# SPA routing: fall back to index.html for navigation requests.
+	# no-cache ensures the browser always revalidates index.html after a deploy
+	# so it picks up the latest chunk hashes rather than loading a stale entry
+	# point that references chunks from the previous build.
+	handle {
+		header Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

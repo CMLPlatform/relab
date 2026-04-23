@@ -1,0 +1,251 @@
+# Backend Task Runner
+# Run `just --list` to see all available commands
+# Run from root: `just backend/<recipe>` or from backend/: `just <recipe>`
+
+# spell-checker: ignore esac, htmlcov
+
+# Show available recipes
+default:
+    @just --list
+
+# ============================================================================
+# Development
+# ============================================================================
+
+# Install and sync dependencies
+install:
+    uv sync --all-groups --frozen
+    @echo "✓ Backend dependencies installed"
+
+# Start development server
+dev PORT="8000":
+    uv run uvicorn app.main:app --reload --reload-dir app --port {{ PORT }}
+
+# Start production server
+serve:
+    uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# Open Python REPL with app context
+shell:
+    uv run python -i -c "from app.core.database import *; from app.api.auth.models import *; from app.api.data_collection.models.product import *"
+
+# ============================================================================
+# Linting & Formatting
+# ============================================================================
+
+pytest := "uv run pytest"
+
+# Lint backend Python code (allow TODOs with FIX002)
+lint:
+    uv run ruff check --ignore FIX002
+    @echo "✓ Backend linting passed"
+
+# Format backend Python code
+format:
+    uv run ruff format
+    @echo "✓ Backend code formatted"
+
+# Auto-fix lint issues and format code (allow TODOs with FIX002)
+fix:
+    uv run ruff check --fix --ignore FIX002
+    just format
+    @echo "✓ Backend code fixed and formatted"
+
+# Run static type checks (all groups synced so optional deps resolve)
+typecheck:
+    uv run --all-groups ty check
+    @echo "✓ Backend: Static type checks passed"
+
+# Verify formatting (no writes)
+format-check:
+    uv run ruff format --check
+    @echo "✓ Backend formatting verified"
+
+# Run the fast backend quality gate (no database required)
+check: lint typecheck format-check
+    @echo "✓ Backend checks passed"
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+# Run all tests
+test *ARGS:
+    {{ pytest }} {{ ARGS }}
+
+# Run tests with coverage report (FORMAT: html for local, xml for CI)
+test-cov FORMAT="html":
+    mkdir -p reports/coverage
+    {{ pytest }} --cov --cov-report={{ FORMAT }} --cov-report=term
+
+# Run only unit tests (fast, no Docker/database path)
+test-unit *ARGS:
+    {{ pytest }} tests/unit {{ ARGS }}
+
+# Run DB-backed persistence and schema tests
+test-integration-db *ARGS:
+    {{ pytest }} tests/integration/db tests/integration/models tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
+
+# Run only API tests
+test-api *ARGS:
+    {{ pytest }} tests/integration/api {{ ARGS }}
+
+# Run cross-boundary flow tests
+test-flows *ARGS:
+    {{ pytest }} tests/integration/flows {{ ARGS }}
+
+# Run all integration tests
+test-integration *ARGS:
+    {{ pytest }} tests/integration {{ ARGS }}
+
+# Run the backend CI test suite
+test-ci:
+    mkdir -p reports/coverage
+    {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --cov --cov-report=xml --cov-report=term
+    @echo "✓ Backend CI test suite passed"
+
+# Run the full backend CI pipeline locally
+ci: check test-ci
+    @echo "✓ Backend CI pipeline passed"
+
+# ============================================================================
+# Database & Migrations
+# ============================================================================
+
+# Apply all pending migrations
+migrate:
+    uv run alembic upgrade head
+
+# Rollback one migration
+migrate-down:
+    uv run alembic downgrade -1
+
+# Create new migration (use: just migrate-create "description")
+migrate-create MESSAGE:
+    uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
+
+# Check if migrations are up to date (requires a running database).
+
+# CI coverage for this behavior lives in the migration test suite.
+migrate-check:
+    uv run alembic check
+
+# Show migration history
+migrate-history:
+    uv run alembic history --verbose
+
+# Show current migration version
+migrate-current:
+    uv run alembic current
+
+# Reset database (down to base, then up to head)
+migrate-reset:
+    uv run alembic downgrade base
+    uv run alembic upgrade head
+
+# ============================================================================
+# Database Management
+# ============================================================================
+
+# Create superuser account
+create-superuser:
+    uv run python -m scripts.users.create_superuser
+
+# Check if database is empty
+db-is-empty:
+    uv run python -m scripts.db.is_empty
+
+# Seed database with dummy data
+seed-dummy-data:
+    uv run python -m scripts.seed.dummy_data
+
+# Clear Redis cache (specify namespace: background-data, docs)
+clear-cache NAMESPACE="background-data":
+    uv run python -m scripts.maintenance.clear_cache {{ NAMESPACE }}
+
+# Compile MJML email templates to HTML
+compile-email:
+    uv run python -m scripts.generate.compile_email_templates
+
+# Refresh the committed disposable-email fallback list from the upstream source
+refresh-disposable-email-domains:
+    uv run python -m scripts.maintenance.refresh_disposable_email_domains
+
+# Backfill user statistics cache for all users
+backfill-stats:
+    uv run python -m scripts.maintenance.backfill_user_stats
+
+# Run the backend k6 baseline performance suite (requires k6 installed)
+perf-baseline:
+    mkdir -p reports/performance
+    k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
+
+ci_compose := "docker compose -p relab_test -f ../compose.yml -f ../compose.ci.yml"
+k6_docker_image := "grafana/k6:latest"
+
+# Run the backend k6 baseline suite against the Docker CI stack.
+# Assumes the CI backend stack is already up and seeded with dummy data.
+_perf-ci IMAGE_ID="" BASE_URL="http://api:8000":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    image_id="{{ IMAGE_ID }}"
+    if [ -z "$image_id" ]; then
+        echo "→ No IMAGE_ID provided; running perf baseline without resized_image scenario."
+    fi
+    mkdir -p reports/performance
+    docker run --rm \
+        --network relab_test_default \
+        -v "$PWD/perf:/perf:ro" \
+        -v "$PWD/reports/performance:/reports" \
+        -e BASE_URL="{{ BASE_URL }}" \
+        -e PERF_USER_EMAIL="e2e-admin@example.com" \
+        -e PERF_USER_PASSWORD="E2eTestPass123!" \
+        -e PERF_IMAGE_ID="$image_id" \
+        {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
+
+# Write a dated CI baseline report from the latest k6 JSON summary export.
+_perf-report-ci DATE="" BASE_URL="http://api:8000":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    report_date="{{ DATE }}"
+    if [ -z "$report_date" ]; then
+        report_date="$(date +%F)"
+    fi
+    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url "{{ BASE_URL }}"
+
+# Recalibrate p95 thresholds in perf/k6-baseline.js from the latest k6 JSON summary export.
+_perf-thresholds-apply HEADROOM="1.15":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 -m scripts.perf.perf_ci apply-thresholds "{{ HEADROOM }}"
+
+# ============================================================================
+# Maintenance
+# ============================================================================
+
+# Update dependencies
+update:
+    uv lock --upgrade
+    @echo "✓ Backend dependencies updated"
+
+# Clean caches and build artifacts
+clean:
+    rm -rf __pycache__ .pytest_cache .ruff_cache htmlcov .coverage reports/coverage
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+    find . -type f -name "*.pyc" -delete 2>/dev/null || true
+    @echo "✓ Backend: Cleaned caches and build artifacts"
+
+# ============================================================================
+# Security
+# ============================================================================
+# Scan Python dependencies for known CVEs (SCOPE: default runtime or all groups)
+audit SCOPE="runtime":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ SCOPE }}" in
+      runtime) flag="--no-default-groups" ;;
+      all) flag="" ;;
+      *) echo "SCOPE must be 'runtime' or 'all'"; exit 1 ;;
+    esac
+    uv audit --preview-features audit --frozen $flag
+    echo "✓ Backend: {{ SCOPE }} dependency audit complete"

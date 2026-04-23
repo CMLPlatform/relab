@@ -1,2 +1,16 @@
-# MkDocs
+# Node dependencies
+node_modules/
+
+# Build output
+dist/
+.astro/
 site/
+
+# Local Python virtualenv left over from the retired docs stack
+.venv/
+
+# Local cache from the retired docs stack
+.cache/
+
+# Test results
+test-results/

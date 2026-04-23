@@ -1,0 +1,241 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# spell-checker: ignore anchore, aquasecurity, gacts
+
+name: Security
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run-root-python: ${{ steps.detect.outputs.run-root-python }}
+      run-backend-python: ${{ steps.detect.outputs.run-backend-python }}
+      run-docs-node: ${{ steps.detect.outputs.run-docs-node }}
+      run-frontend-app-node: ${{ steps.detect.outputs.run-frontend-app-node }}
+      run-frontend-web-node: ${{ steps.detect.outputs.run-frontend-web-node }}
+      run-container-images: ${{ steps.detect.outputs.run-container-images }}
+      container-security-matrix: ${{ steps.detect.outputs.container-security-matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Detect changes
+        id: detect
+        uses: ./.github/actions/detect-security-changes
+
+  secret-scan:
+    name: Secret Scan
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gacts/gitleaks@c9a0338361dc45a01aa7ebaaa5330179f3c62873
+        with:
+          version: 8.30.1
+
+  python-audit-root:
+    name: Python Audit (root)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-root-python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: uv.lock
+
+      - name: Install root dependencies
+        run: uv sync --frozen
+
+      - name: Run root dependency audit
+        run: just _audit-root
+
+  backend-python-audit:
+    name: Python Audit (backend)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-backend-python == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: just backend/install
+
+      - name: Run dependency audit
+        run: just backend/audit
+
+  docs-node-audit:
+    name: Node Audit (docs)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-docs-node == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: docs/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just docs/install
+
+      - name: Run dependency audit
+        run: |
+          set -o pipefail
+          output="$(just docs/audit 2>&1)"
+          status=$?
+          printf '%s\n' "$output"
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
+
+          if printf '%s\n' "$output" | grep -Eq '^Found [1-9][0-9]* known vulnerability|^Vulnerabilities:'; then
+            echo "::warning title=Docs dependency audit::Vulnerabilities were found in docs dependencies. Review the audit output above."
+            {
+              printf '### Docs dependency audit\n\n'
+              printf 'Warning: vulnerabilities were found in docs dependencies.\n\n'
+              printf 'This check is intentionally non-blocking so the pull request can still be merged.\n\n'
+              printf 'Review the audit output in the step log above.\n'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  frontend-app-node-audit:
+    name: Node Audit (frontend-app)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-frontend-app-node == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just frontend-app/install
+
+      - name: Run dependency audit
+        run: just frontend-app/audit
+
+  frontend-web-node-audit:
+    name: Node Audit (frontend-web)
+    needs: [ changes ]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.run-frontend-web-node == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: frontend-web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just frontend-web/install
+
+      - name: Run dependency audit
+        run: just frontend-web/audit
+
+  container-security:
+    name: Container Security (${{ matrix.service }})
+    needs: [ changes ]
+    if: needs.changes.outputs.run-container-images == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.container-security-matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Build image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          pull: true
+          tags: ${{ matrix.image_ref }}
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee
+        with:
+          image-ref: ${{ matrix.image_ref }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          trivyignores: .trivyignore
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          image: ${{ matrix.image_ref }}
+          format: spdx-json
+          output-file: sbom-${{ matrix.service }}.spdx.json
+
+      - name: Archive container security artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: security-${{ matrix.service }}-artifacts
+          path: sbom-${{ matrix.service }}.spdx.json
+          retention-days: 14

@@ -1,14 +1,12 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 ### Auto-generated
-# dependencies
+# Dependencies
 node_modules/
 
 # Expo
 .expo/
+expo-env.d.ts
 dist/
 web-build/
-expo-env.d.ts
 
 # Native
 .kotlin/
@@ -24,25 +22,36 @@ ios/
 # Metro
 .metro-health-check*
 
-# debug
+# TypeScript
+*.tsbuildinfo
+.eslintcache
+
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
 # macOS
-.DS_Store
 *.pem
 
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-#
-!lib/
+# Local env overrides
+.env.local
 
 ### Manual additions
 # VS Code settings
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Custom jest timing output files
+.jest-*.json
+
+# Env files (frontend env files are all public)
+!.env.development
+!.env.staging
+!.env.production
+!.env.test

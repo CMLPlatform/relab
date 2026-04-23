@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
-import RN, { Platform, Pressable } from 'react-native';
-import { Text, TextInput } from '@/components/base';
+import type RN from 'react-native';
+import { Platform, Pressable } from 'react-native';
+import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
 
 interface LocalizedFloatInputProps {
   value: number | undefined;
@@ -52,6 +54,18 @@ export default function LocalizedFloatInput({
   const decimalSeparator = getDecimalSeparator();
   const normalizedValue = value == null || Number.isNaN(value) ? undefined : value;
   const [text, setText] = useState(toLocalizedString(normalizedValue, decimalSeparator));
+  const inputStyle = {
+    textAlign: Platform.OS === 'web' ? 'right' : undefined,
+    height: 38,
+    paddingHorizontal: 10,
+    marginVertical: 2,
+    borderRadius: 50,
+    ...style,
+  } as RN.TextStyle;
+  const webOnlyInputStyle =
+    Platform.OS === 'web'
+      ? ({ outline: 'none', fieldSizing: 'content' } as unknown as RN.TextStyle)
+      : undefined;
 
   const decimalRegex = new RegExp(`^\\d*[${decimalSeparator.replace('.', '\\.')}]?\\d*$`);
 
@@ -70,7 +84,7 @@ export default function LocalizedFloatInput({
     const normalizedText = normalizeDecimalString(text, decimalSeparator);
     const numValue = parseFloat(normalizedText);
 
-    if (!isNaN(numValue) && numValue >= min) {
+    if (!Number.isNaN(numValue) && numValue >= min) {
       onChange?.(numValue);
     } else {
       setText(toLocalizedString(normalizedValue, decimalSeparator));
@@ -86,17 +100,7 @@ export default function LocalizedFloatInput({
   const inputContent = (
     <>
       <TextInput
-        style={{
-          textAlign: Platform.OS === 'web' ? 'right' : undefined,
-          outline: 'none',
-          height: 38,
-          paddingHorizontal: 10,
-          marginVertical: 2,
-          borderRadius: 50,
-          // @ts-ignore because this works on the web
-          fieldSizing: 'content',
-          ...style,
-        }}
+        style={[inputStyle, webOnlyInputStyle]}
         value={text}
         onChangeText={handleChangeText}
         onBlur={handleBlur}

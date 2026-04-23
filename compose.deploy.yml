@@ -1,0 +1,143 @@
+# compose.deploy.yml (DEPLOY — covers prod AND staging)
+#
+# Single artifact for both environments. APP_ENV (required) selects which.
+# Per-environment knobs live in committed `.env.<env>.compose` files at repo
+# root; per-host secrets live in the auto-loaded `.env` (gitignored).
+#
+# Invocation (see justfile `prod_compose` / `staging_compose`):
+#   docker compose --env-file .env --env-file .env.prod.compose \
+#                  -f compose.yml -f compose.deploy.yml up -d
+
+name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
+
+# --- Reusable fragments ------------------------------------------------------
+# Shipping container logs to a central Loki instance is opt-in: include
+# compose.logging.loki.yml alongside this file (the justfile does this
+# automatically when LOKI_URL is set in the host's root .env). Hosts without
+# Loki get Docker's default json-file driver — no config needed.
+
+x-env-backend: &env-backend
+  env_file: ./backend/.env.${APP_ENV:?APP_ENV must be set (prod|staging)}
+
+services:
+  api:
+    <<: *env-backend
+    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV}-local}
+    environment:
+      ENVIRONMENT: ${APP_ENV}
+      # Trust forwarded headers only from Docker-internal proxy addresses.
+      FORWARDED_ALLOW_IPS: 172.16.0.0/12
+      # OpenTelemetry — OTEL_EXPORTER_OTLP_ENDPOINT is the on/off switch;
+      # leave unset in root .env to disable. OTEL_SERVICE_NAME is read by the
+      # OTEL SDK automatically from the container env and matches the compose
+      # service name so traces group cleanly in the backend.
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      OTEL_SERVICE_NAME: relab-api
+      # ── Resource knobs ──────────────────────────────────────────────────────────
+      # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
+      # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
+      # Prod: 4, Staging: 2, small VMs: 1.
+      #
+      #                    per worker  x  workers  =  total (prod)
+      # Image threads:          5      x     4     =   20  (CPU-bound)
+      # DB connections:    10 + 10     x     4     =   80  (PostgreSQL default max=100)
+      # Outbound HTTP:        100      x     4     =  400  (mostly idle)
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      IMAGE_RESIZE_WORKERS: "5"
+      DB_POOL_SIZE: "10"
+      DB_POOL_MAX_OVERFLOW: "10"
+
+  migrator:
+    <<: *env-backend
+    image: ${RELAB_BACKEND_MIGRATIONS_IMAGE:-relab-backend-migrations:${APP_ENV}-local}
+
+  # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
+  uploads-backup:
+    # Automated user uploads backups to local file system
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.user-upload-backups
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    volumes:
+      - user_uploads:/data/uploads:ro
+      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
+    environment:
+      SCHEDULE: 0 2 * * * # Daily at 2am
+      UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
+      UPLOADS_BACKUP_DIR: /backups # NOTE: this is the path inside the container
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      MAX_TOTAL_GB: 100
+    profiles:
+      - backups
+
+  redis:
+    <<: *env-backend
+    volumes:
+      # Persist cache data in both prod and staging (AOF persistence).
+      - cache_data:/data
+
+  cloudflared:
+    # Cloudflared tunnel service
+    image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be set (in root .env on the deploy host)}
+    command: tunnel --no-autoupdate run
+    pull_policy: always
+
+  postgres:
+    <<: *env-backend
+
+  docs-site:
+    image: ${RELAB_DOCS_IMAGE:-relab-docs:${APP_ENV}-local}
+    build:
+      args:
+        BUILD_MODE: ${BUILD_MODE:-prod}
+        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
+
+  app-site:
+    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:${APP_ENV}-local}
+    build:
+      args:
+        BUILD_MODE: ${BUILD_MODE:-prod}
+    environment:
+      # Needed by Caddyfile to determine the API origin.
+      CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
+
+  web-site:
+    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:${APP_ENV}-local}
+    build:
+      args:
+        BUILD_MODE: ${BUILD_MODE:-prod}
+
+  postgres-backup:
+    # Automated database backups to local file system
+    image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f # spell-checker: ignore prodrigestivill
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_started
+    volumes:
+      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
+    environment:
+      SCHEDULE: 0 2 * * * # Daily at 2am
+      POSTGRES_HOST: postgres
+      POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+    env_file: ./backend/.env.${APP_ENV} # Load database connection settings
+    profiles:
+      - backups
+
+volumes:
+  cache_data:

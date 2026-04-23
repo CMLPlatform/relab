@@ -1,0 +1,43 @@
+name: Internal ticket
+description: Internal task for the team
+title: ""
+labels: []
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - backend
+        - frontend-web
+        - frontend-app
+        - docs
+        - infrastructure
+        - cross-cutting
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What are we trying to change or ship?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Links, constraints, dependencies, or prior discussion.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete, verifiable outcomes.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true

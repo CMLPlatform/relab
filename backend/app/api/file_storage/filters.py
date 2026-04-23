@@ -2,7 +2,7 @@
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 
-from app.api.file_storage.models.models import File, FileParentType, Image, ImageParentType, Video
+from app.api.file_storage.models import File, Image, MediaParentType, Video
 
 
 class FileFilter(Filter):
@@ -10,7 +10,7 @@ class FileFilter(Filter):
 
     filename__ilike: str | None = None
     description__ilike: str | None = None
-    parent_type: FileParentType | None = None
+    parent_type: MediaParentType | None = None
 
     search: str | None = None
 
@@ -18,7 +18,7 @@ class FileFilter(Filter):
         """FilterAPI class configuration."""
 
         model = File
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "filename",
             "description",
         ]
@@ -29,7 +29,7 @@ class ImageFilter(Filter):
 
     filename__ilike: str | None = None
     description__ilike: str | None = None
-    parent_type: ImageParentType | None = None
+    parent_type: MediaParentType | None = None
 
     search: str | None = None
 
@@ -37,7 +37,7 @@ class ImageFilter(Filter):
         """FilterAPI class configuration."""
 
         model = Image
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "filename",
             "description",
         ]
@@ -55,7 +55,7 @@ class VideoFilter(Filter):
         """FilterAPI class configuration."""
 
         model = Video
-        search_model_fields: list[str] = [  # noqa: RUF012 # Standard FastAPI-filter class override
+        search_model_fields: list[str] = [  # noqa: RUF012 # fastapi-filter excepts this syntax
             "url",
             "description",
         ]

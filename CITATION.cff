@@ -9,7 +9,7 @@ authors:
     given-names: "Franco"
     orcid: "https://orcid.org/0000-0002-8287-2413"
 title: "Reverse Engineering Lab - Data Collection Platform"
-version: 0.1.0
+version: 0.2.0
 identifiers:
   - type: doi
     value: 10.5281/zenodo.16637742

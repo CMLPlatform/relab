@@ -1,0 +1,140 @@
+.site-title img {
+  border-radius: 0.45rem;
+}
+
+.relab-section-intro {
+  padding: 1rem 1.1rem;
+  margin: 0.2rem 0 1.2rem;
+  border-left: 4px solid var(--relab-primary);
+  background: var(--relab-primary-soft);
+  border-radius: 0.8rem;
+}
+
+.relab-hero {
+  padding: 1.25rem 1.3rem;
+  margin: 0.2rem 0 1.4rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  border-radius: 1rem;
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--relab-accent) 14%, transparent),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--relab-primary) 10%, transparent),
+      transparent 55%
+    );
+}
+
+.relab-hero h1 {
+  margin: 0 0 0.55rem;
+}
+
+.relab-hero-title {
+  margin: 0 0 0.55rem;
+  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.relab-hero p:last-child {
+  margin-bottom: 0;
+}
+
+.relab-card-grid > ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  padding-left: 0;
+}
+
+.relab-card-grid > ul > li {
+  list-style: none;
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--relab-primary) 4%, transparent);
+}
+
+.relab-card-grid strong:first-child {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+}
+
+.sidebar-pane :where(a[aria-current="page"]) {
+  color: #12314b;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--relab-primary) 14%, white 86%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-primary) 18%, transparent);
+}
+
+.sidebar-pane :where(a[aria-current="page"] span) {
+  color: inherit;
+}
+
+:root[data-theme="dark"] .sidebar-pane :where(a[aria-current="page"]) {
+  color: #eaf7ff;
+  background: color-mix(in srgb, var(--relab-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
+}
+
+.right-sidebar-panel :where(h2) {
+  display: none;
+}
+
+.relab-toc-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, white 84%, var(--relab-primary) 8%);
+  color: var(--relab-text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.relab-toc-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 160ms ease;
+}
+
+.right-sidebar-panel[data-relab-toc-collapsed="true"] .relab-toc-toggle svg {
+  transform: rotate(-90deg);
+}
+
+.right-sidebar-panel[data-relab-toc-collapsed="true"] starlight-toc {
+  display: none;
+}
+
+:root[data-theme="dark"] .relab-toc-toggle {
+  background: color-mix(in srgb, rgba(15, 23, 42, 0.88) 88%, var(--relab-primary) 12%);
+  color: #eaf7ff;
+}
+
+.relab-mermaid {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--relab-primary) 16%, transparent);
+  background: color-mix(in srgb, white 88%, var(--relab-primary) 6%);
+}
+
+:root[data-theme="dark"] .relab-mermaid {
+  background: rgba(13, 23, 34, 0.88);
+}
+
+.relab-mermaid svg {
+  min-width: 100%;
+}

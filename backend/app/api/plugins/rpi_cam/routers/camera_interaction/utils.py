@@ -1,34 +1,32 @@
 """Utilities for the camera interaction endpoints."""
 
-from enum import Enum
-from urllib.parse import urljoin
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
-from httpx import AsyncClient, Headers, HTTPStatusError, QueryParams, Response
-from pydantic import UUID4
-from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api.common.utils import get_user_owned_object
+from app.api.common.ownership import get_user_owned_object
+from app.api.plugins.rpi_cam.constants import HttpMethod
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
+from app.api.plugins.rpi_cam.services import get_camera_status
+from app.api.plugins.rpi_cam.websocket.protocol import RelayResponse
+from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from pydantic import UUID4
+    from redis.asyncio import Redis
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class HttpMethod(str, Enum):
-    """HTTP method type."""
-
-    GET = "GET"
-    OPTIONS = "OPTIONS"
-    HEAD = "HEAD"
-    POST = "POST"
-    PUT = "PUT"
-    PATCH = "PATCH"
-    DELETE = "DELETE"
-
-
-async def get_user_owned_camera(session: AsyncSession, camera_id: UUID4, user_id: UUID4) -> Camera:
-    """Get a camera owned by a user."""
+async def get_user_owned_camera(
+    session: AsyncSession, camera_id: UUID4, user_id: UUID4, redis: Redis | None = None
+) -> Camera:
+    """Get a camera owned by a user, verifying it is connected."""
     camera = await get_user_owned_object(session, Camera, camera_id, user_id)
-
-    camera_status = await camera.get_status()
+    camera_status = await get_camera_status(redis, camera.id)
 
     if (camera_connection := camera_status.connection) != CameraConnectionStatus.ONLINE:
         status_code, msg = camera_connection.to_http_error()
@@ -41,32 +39,50 @@ async def fetch_from_camera_url(
     camera: Camera,
     endpoint: str,
     method: HttpMethod,
-    headers: Headers | None = None,
     error_msg: str | None = None,
-    query_params: QueryParams | None = None,
     body: dict | None = None,
     *,
-    follow_redirects: bool = True,
-) -> Response:
-    """Utility function to send HTTP requests to the camera API."""
-    # Add camera auth header to request
-    if headers is None:
-        headers = Headers()
-    headers.update(camera.auth_headers)
+    expect_binary: bool = False,
+    redis: Redis | None = None,
+) -> RelayResponse:
+    """Send a request to the camera through its active WebSocket relay."""
+    return await relay_via_websocket(
+        camera.id,
+        method.value,
+        endpoint,
+        body=body,
+        error_msg=error_msg,
+        expect_binary=expect_binary,
+        redis=redis,
+    )
 
-    async with AsyncClient(
-        headers=headers, timeout=5.0, verify=camera.verify_ssl, follow_redirects=follow_redirects
-    ) as client:
-        try:
-            url = urljoin(str(camera.url), endpoint)
-            response = await client.request(method.value, url, params=query_params, json=body)
-            response.raise_for_status()
-        except HTTPStatusError as e:
-            if error_msg is None:
-                error_msg = f"Failed to {method.value} {endpoint}"
-            raise HTTPException(
-                status_code=e.response.status_code,
-                detail={"main API": error_msg, "Camera API": e.response.json().get("detail")},
-            ) from e
-        else:
-            return response
+
+def build_camera_request(
+    camera: Camera,
+    redis: Redis | None = None,
+) -> Callable[..., Awaitable[RelayResponse]]:
+    """Build a reusable request callable bound to one camera.
+
+    Pass ``redis`` so the relay can fall back to the cross-worker bridge when
+    the camera's WebSocket is registered in a different Uvicorn worker process.
+    """
+
+    async def request(
+        endpoint: str,
+        method: HttpMethod,
+        error_msg: str | None = None,
+        body: dict | None = None,
+        *,
+        expect_binary: bool = False,
+    ) -> RelayResponse:
+        return await fetch_from_camera_url(
+            camera=camera,
+            endpoint=endpoint,
+            method=method,
+            error_msg=error_msg,
+            body=body,
+            expect_binary=expect_binary,
+            redis=redis,
+        )
+
+    return request

@@ -1,0 +1,22 @@
+# Node dependencies
+node_modules/
+
+# Build output
+dist/
+.astro/
+site/
+
+# Dev tooling
+.vscode/
+justfile
+README.md
+
+# Docker and git
+Dockerfile
+Dockerfile.*
+.dockerignore
+.git
+.gitignore
+
+# macOS
+.DS_Store

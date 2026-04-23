@@ -1,0 +1,33 @@
+---
+import { homeContent } from '@/content/home-content.ts';
+import PrimaryLinks from './PrimaryLinks.astro';
+
+interface Props {
+  appUrl: string;
+  docsUrl: string;
+  githubUrl: string;
+}
+
+const { appUrl, docsUrl, githubUrl } = Astro.props;
+---
+
+<section class="hero-panel card content-reveal">
+  <div class="hero-copy">
+    <h1>{homeContent.heroTitle}</h1>
+    <p class="hero-lead">{homeContent.heroBody}</p>
+    <p class="hero-secondary">{homeContent.heroSecondary}</p>
+
+    <div class="hero-actions">
+      <a href={appUrl} class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">
+        Open the App
+      </a>
+    </div>
+
+    <PrimaryLinks
+      links={[
+        { href: docsUrl, label: 'Read the Docs' },
+        { href: githubUrl, label: 'Browse GitHub' },
+      ]}
+    />
+  </div>
+</section>

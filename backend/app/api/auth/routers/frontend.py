@@ -6,7 +6,6 @@ from fastapi import APIRouter, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.api.admin.config import settings as admin_settings
 from app.api.auth.dependencies import OptionalCurrentActiveUserDep
 from app.core.config import settings as core_settings
 
@@ -18,10 +17,7 @@ router = APIRouter(include_in_schema=False)
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(
-    request: Request,
-    user: OptionalCurrentActiveUserDep,
-) -> HTMLResponse:
+async def index(request: Request, user: OptionalCurrentActiveUserDep) -> HTMLResponse:
     """Render the landing page."""
     return templates.TemplateResponse(
         "index.html",
@@ -30,7 +26,6 @@ async def index(
             "user": user,
             "show_full_docs": user.is_superuser if user else False,
             "frontend_web_url": core_settings.frontend_web_url,
-            "admin_path": admin_settings.admin_base_url,
         },
     )
 
@@ -49,6 +44,10 @@ async def login_page(
 ) -> Response:
     """Render the login page."""
     if user:
-        return RedirectResponse(url=(next_page or router.url_path_for("index")), status_code=302)
+        return RedirectResponse(url=str(router.url_path_for("index")), status_code=302)
+
+    # Only allow relative paths to prevent open redirect attacks
+    if next_page is not None and (not next_page.startswith("/") or next_page.startswith("//")):
+        next_page = None
 
     return templates.TemplateResponse("login.html", {"request": request, "next": next_page})

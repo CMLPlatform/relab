@@ -1,10 +1,9 @@
-import { Fragment } from 'react';
 import { View } from 'react-native';
 import { Divider } from 'react-native-paper';
-import { InfoTooltip, Text } from '@/components/base';
 import LocalizedFloatInput from '@/components/base/LocalizedFloatInput';
+import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import Cube from '@/components/common/SVGCube';
-import { PhysicalProperties, Product } from '@/types/Product';
+import type { PhysicalProperties, Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -13,7 +12,7 @@ interface Props {
 }
 
 const unitMap = {
-  weight: 'kg',
+  weight: 'g',
   height: 'cm',
   width: 'cm',
   depth: 'cm',
@@ -26,7 +25,11 @@ const nameMap = {
   depth: 'Depth',
 };
 
-export default function ProductPhysicalProperties({ product, editMode, onChangePhysicalProperties }: Props) {
+export default function ProductPhysicalProperties({
+  product,
+  editMode,
+  onChangePhysicalProperties,
+}: Props) {
   // Callbacks
   const onChangeProperty = (key: string, value: number | undefined) => {
     const newProperties = { ...product.physicalProperties, [key]: value };
@@ -36,24 +39,18 @@ export default function ProductPhysicalProperties({ product, editMode, onChangeP
   // Render
   return (
     <View>
-      <Text
-        style={{
-          marginBottom: 12,
-          paddingLeft: 14,
-          fontSize: 24,
-          fontWeight: 'bold',
-        }}
-      >
-        Physical Properties <InfoTooltip title="Must be greater than 0. Assume a bounding box for the dimensions." />
-      </Text>
+      <DetailSectionHeader
+        title="Physical Properties"
+        tooltipTitle="Must be greater than 0. Assume a bounding box for the dimensions."
+      />
 
       <Cube
         width={product.physicalProperties.width}
         height={product.physicalProperties.height}
         depth={product.physicalProperties.depth}
       />
-      {Object.keys(product.physicalProperties).map((prop, index) => (
-        <Fragment key={index}>
+      {Object.keys(product.physicalProperties).map((prop) => (
+        <View key={prop}>
           <Divider />
           <LocalizedFloatInput
             label={nameMap[prop as keyof PhysicalProperties]}
@@ -64,7 +61,7 @@ export default function ProductPhysicalProperties({ product, editMode, onChangeP
             min={0}
             placeholder="> 0"
           />
-        </Fragment>
+        </View>
       ))}
     </View>
   );

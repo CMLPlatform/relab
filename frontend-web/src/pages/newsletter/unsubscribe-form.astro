@@ -1,0 +1,33 @@
+---
+import ContentPage from '@/components/ContentPage.astro';
+import EmailForm from '@/components/EmailForm.astro';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { newsletterContent } from '@/content/newsletter-content.ts';
+import Layout from '@/layouts/Layout.astro';
+import { joinApiUrl } from '@/utils/url.ts';
+
+const newsletterRequestUnsubscribeUrl = joinApiUrl(
+  getPublicSiteConfig().apiUrl,
+  '/newsletter/request-unsubscribe',
+);
+---
+
+<Layout title={newsletterContent.unsubscribeForm.pageTitle}>
+  <ContentPage
+    title={newsletterContent.unsubscribeForm.pageTitle}
+    intro={newsletterContent.unsubscribeForm.intro}
+  >
+    <div class="card narrow-card content-reveal">
+      <EmailForm
+        apiUrl={newsletterRequestUnsubscribeUrl}
+        placeholder={newsletterContent.unsubscribeForm.placeholder}
+        buttonText={newsletterContent.unsubscribeForm.buttonText}
+        buttonVariant="btn-primary"
+      >
+        <p class="muted-text">
+          {newsletterContent.unsubscribeForm.helperText}
+        </p>
+      </EmailForm>
+    </div>
+  </ContentPage>
+</Layout>

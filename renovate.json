@@ -4,34 +4,93 @@
     "config:best-practices",
     ":approveMajorUpdates",
     ":maintainLockFilesWeekly",
+    ":preserveSemverRanges",
     "schedule:weekly"
   ],
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "platformAutomerge": true,
+  "configMigration": true,
+  "pep621": {
+    "enabled": true
+  },
+  "pre-commit": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
   "packageRules": [
     {
-      "groupName": "backend",
+      "groupName": "runtime-containers",
+      "matchManagers": ["docker-compose", "dockerfile"],
+      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "pinDigests": true,
+      "automerge": false,
+      "labels": ["runtime-risk", "containers"]
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchPackagePatterns": ["*"],
+      "automerge": true,
+      "labels": ["automerge"]
+    },
+    {
+      "groupName": "repo-tooling",
       "matchFileNames": [
-        "backend/pyproject.toml",
+        ".pre-commit-config.yaml",
+        ".github/**",
+        ".devcontainer/**",
+        ".vscode/**",
+        ".python-version",
         "backend/.python-version",
-        "backend/Dockerfile*"
+        "package.json",
+        "pnpm-lock.yaml",
+        "pyproject.toml",
+        "uv.lock",
+        "renovate.json"
+      ],
+      "labels": ["tooling"]
+    },
+    {
+      "groupName": "backend-python-runtime",
+      "matchFileNames": ["backend/pyproject.toml", "backend/uv.lock", "backend/Dockerfile*"]
+    },
+    {
+      "groupName": "docs-site-runtime-tooling",
+      "matchFileNames": ["docs/package.json", "docs/pnpm-lock.yaml", "docs/Dockerfile*"]
+    },
+    {
+      "groupName": "frontend-web-runtime-tooling",
+      "matchFileNames": [
+        "frontend-web/package.json",
+        "frontend-web/pnpm-lock.yaml",
+        "frontend-web/Dockerfile*"
       ]
     },
     {
-      "groupName": "frontend",
+      "groupName": "frontend-app-runtime-tooling",
       "matchFileNames": [
-        "frontend/package.json",
-        "frontend/Dockerfile*"
+        "frontend-app/package.json",
+        "frontend-app/pnpm-lock.yaml",
+        "frontend-app/Dockerfile*"
       ]
     },
     {
-      "groupName": "infrastructure",
-      "matchFileNames": [
-        "**/compose.*.yml",
-        "**/compose.yml"
-      ]
+      "groupName": "containers-compose",
+      "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
+      "pinDigests": true
+    },
+    {
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "pinDigests": true,
+      "automerge": true,
+      "labels": ["automerge", "github-actions"]
     }
   ],
-  "labels": [
-    "dependencies",
-    "renovate"
-  ]
+  "labels": ["dependencies", "renovate"]
 }

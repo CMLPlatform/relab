@@ -1,0 +1,85 @@
+# Frontend Web Task Runner
+# Run `just --list` to see all available commands.
+# For day-to-day work, `pnpm run <script>` works too — see package.json.
+# This file holds composite recipes and anything called from the root justfile.
+
+# Show available recipes
+default:
+    @just --list
+
+# Install dependencies
+install:
+    pnpm install --frozen-lockfile
+
+# Regenerate the lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
+# Upgrade Astro and official integrations, then apply in-range pnpm updates.
+# Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
+update:
+    pnpm dlx @astrojs/upgrade
+    pnpm up
+    pnpm dedupe
+    @echo "✓ Frontend-web dependencies updated"
+
+# Run lint checks
+lint:
+    pnpm run lint
+    @echo "✓ Frontend-web lint passed"
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+    @echo "✓ Frontend-web type checks passed"
+
+# Auto-format code with Biome
+format:
+    pnpm run format
+    @echo "✓ Frontend-web code formatted"
+
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+    @echo "✓ Frontend-web code fixed and formatted"
+
+# Run lint + typecheck
+check: lint typecheck
+    @echo "✓ Frontend-web checks passed"
+
+# Build the production site
+build:
+    pnpm run build
+    @echo "✓ Frontend-web built"
+
+# Run unit tests
+test:
+    pnpm run test
+
+# Run the frontend-web CI test suite
+test-ci:
+    pnpm run test:ci
+    @echo "✓ Frontend-web CI test suite passed"
+
+# Run browser end-to-end tests (always builds before preview)
+test-e2e:
+    pnpm run test:e2e
+
+# Run the full frontend-web CI pipeline locally
+ci: check test-ci
+    @echo "✓ Frontend-web CI pipeline passed"
+
+# Print a simple static output budget for local review
+size:
+    du -sh dist
+    find dist -type f | sort | xargs du -h
+
+# Scan dependencies for known vulnerabilities
+audit:
+    pnpm run audit
+    @echo "✓ Dependency audit complete"
+
+# Clean caches and build artifacts
+clean:
+    rm -rf .astro coverage dist playwright-report test-results
+    @echo "✓ Cleaned caches and build artifacts"

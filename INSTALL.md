@@ -1,161 +1,191 @@
 # Installation Guide
 
-## Overview
+## Hosted Use
 
-- [Use Our Platform (Recommended)](#use-our-platform-recommended)
-- [Self-Hosting](#self-hosting)
-  - [Docker Setup](#docker-setup)
-- [Production Deployment](#production-deployment)
-- [Raspberry Pi Camera Plugin](#raspberry-pi-camera-plugin)
-- [Need Help?](#need-help)
+If you just want to use RELab, start here:
 
-## Use Our Platform (Recommended)
+[app.cml-relab.org](https://app.cml-relab.org)
 
-**The easiest way to use Reverse Engineering Lab:**
-
-🌐 **[cml-relab.org](https://cml-relab.org)** - No installation required, just register and start collecting data.
-
-📱 **Mobile App** - Coming soon
-
-______________________________________________________________________
+No local setup is required.
 
 ## Self-Hosting
 
-Only needed for: custom development, institutional deployment, offline usage, or evaluation.
+Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. If your main goal is contributing code, [CONTRIBUTING.md](CONTRIBUTING.md) is the better starting point.
 
-- 🐳 **[Docker Setup](#docker-setup)** - Quick testing and evaluation
-- 🏢 **[Production Deployment](#production-deployment)** - Institutional hosting
+This page is about running the stack. For manifest conventions, tooling policy, and contributor workflow, use the engineering and contributing docs instead.
 
-> 💡Note: For contributing code or setting up a development environment, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-### Docker Setup
-
-**Prerequisites**:
+### Prerequisites
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
+- [`just`](https://just.systems/man/en/) is optional but recommended
 
-**Steps**:
+## Local Docker Setup
 
-1. **Clone the Repository**
+1. Clone the repository.
 
    ```bash
    git clone https://github.com/CMLPlatform/relab
    cd relab
    ```
 
-1. **Configure Environment**
+1. Install local tooling if you plan to modify code.
 
    ```bash
-   cd backend
-   cp .env.example .env
+   just setup
    ```
 
-   Set up the necessary values in `.env` (marked with 🔀).
-
-1. **Build and Run Containers**
-
-   To seed the database for the first time, run the `migrations` profile:
+1. Configure the backend environment.
 
    ```bash
-   docker compose --profile migrations up
+   cp backend/.env.dev.example backend/.env.dev
    ```
 
-   After the initial setup, you can start the application as usual:
+1. Run the first migration pass.
 
    ```bash
-   docker compose up
+   just dev-migrate
    ```
 
-1. **Access Your Local Instance**
+   If you also need CPV or HS taxonomy seeding in the migration container:
+
+   ```bash
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose --profile migrations up --build migrator
+   ```
+
+1. Start the stack.
+
+   ```bash
+   just dev
+   ```
+
+   If you do not want file watching, use `just dev-up` instead.
+
+1. Open the local services.
 
    - Platform: <http://127.0.0.1:8010>
-   - API Documentation: <http://127.0.0.1:8011>
-   - Documentation: <http://127.0.0.1:8012>
+   - API: <http://127.0.0.1:8011>
+   - Docs: <http://127.0.0.1:8012>
+   - App frontend: <http://127.0.0.1:8013>
 
-   Log in with the superuser credentials from your `backend/.env` file to explore the platform.
-
-______________________________________________________________________
-
-## Production Deployment
-
-**Perfect for**: Research institutions, universities, or organizations deploying for multiple users.
-
-To host the Reverse Engineering Lab platform using Cloudflare and Docker, follow these steps:
-
-1. **Configure Cloudflare Tunnel**
-
-   - Ensure you have set up a domain and [remotely managed tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/cloudflared-parameters/) with Cloudflare.
-
-   - Configure the tunnel to forward traffic directly from the docker services:
-
-     - `frontend:8081`
-     - `backend:8000`
-     - `docs:8000`
-
-   - Set the `TUNNEL_TOKEN` in your root directory [`.env`](.env) file.
-
-1. **Configure Backend Environment**
-
-   In the [`backend`](backend) directory, copy the example environment file:
+1. Verify the backend is healthy.
 
    ```bash
-   cd backend
+   curl http://127.0.0.1:8011/health
+   ```
+
+1. Run checks if needed.
+
+   ```bash
+   just ci
+   just test
+   ```
+
+## Production / Staging Deployment
+
+Deploys use a single compose overlay, [`compose.deploy.yml`](compose.deploy.yml). The host's root `.env` decides whether the stack comes up as prod or staging — one file, one command, no extra flags. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
+
+1. Configure a Cloudflare tunnel.
+
+   - Set up a domain and a remotely managed tunnel in Cloudflare.
+   - Forward traffic to `app-site:8081`, `web-site:8081`, `api:8000`, and `docs-site:8000`.
+
+1. Copy `.env.example` to `.env` and fill in values.
+
+   ```bash
    cp .env.example .env
    ```
 
-   Set up the necessary values in `.env` (marked with 🔀).
+   - **Prod host**: set `TUNNEL_TOKEN=<prod token>`; leave the commented "staging overrides" block commented. Defaults resolve to `ENVIRONMENT=prod`, `WEB_CONCURRENCY=4`, project `relab_prod`.
+   - **Staging host**: uncomment the staging block (`APP_ENV=staging`, `COMPOSE_PROJECT_NAME=relab_staging`, `WEB_CONCURRENCY=2`, `BUILD_MODE=staging`, `PUBLIC_SITE_URL=…`, `CSP_API_ORIGIN=…`) and set `TUNNEL_TOKEN=<staging token>`.
 
-1. **Build and Run Containers**
-
-   To deploy, run:
-
-   ```bash
-   docker compose -f compose.yml -f compose.prod.yml up -d
-   ```
-
-   The application will be available at your configured domain.
-
-1. **Seed the Database**
-
-   If this is your first launch or after schema changes, run the migrations profile:
+1. Configure the backend runtime environment for this host.
 
    ```bash
-   docker compose -f compose.yml -f compose.prod.yml --profile migrations up
+   cp backend/.env.prod.example backend/.env.prod          # on a prod host
+   # OR
+   cp backend/.env.staging.example backend/.env.staging    # on a staging host
    ```
 
-1. **Enable Backups (optional, but recommended):**
-   You can automate backups of user uploads and the database on the host machine.
-
-   - Set `BACKUP_DIR` in your root `.env` file.
-
-   - Run the backups profile:
-
-     ```bash
-     docker compose -f compose.yml -f compose.prod.yml --profile backups up -d
-     ```
-
-1. **Manage Containers**
-   To monitor logs, run:
+1. Start the stack.
 
    ```bash
-   docker compose -p relab_prod logs -f
+   just prod-up YES
    ```
 
-   To stop the application, run:
+   In the current setup, deployment is done directly on the server.
+
+1. Run migrations.
 
    ```bash
-   docker compose -p relab_prod down
+   just prod-migrate YES
    ```
 
-______________________________________________________________________
+   If you also need taxonomy seeding in the migration container:
+
+   ```bash
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yml -f compose.deploy.yml --profile migrations up --build migrator
+   ```
+
+1. Manage the running stack.
+
+   ```bash
+   just prod-logs
+   just prod-down YES
+   ```
+
+### Optional: central telemetry
+
+If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), prod and staging can ship to it without any code changes:
+
+1. Install the Loki Docker driver plugin on the host (once):
+
+   ```bash
+   docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+   ```
+
+1. Set `LOKI_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include [`compose.logging.loki.yml`](compose.logging.loki.yml) when `LOKI_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
+
+See the [engineering ops telemetry section](https://docs.cml-relab.org/architecture/engineering-ops/#telemetry) for the full flow.
+
+## Staging Deployment
+
+Staging is a first-class operational environment and follows the same manual server-side flow as production.
+
+1. Configure the backend staging environment.
+
+   ```bash
+   cp backend/.env.staging.example backend/.env.staging
+   ```
+
+1. Start the staging stack.
+
+   ```bash
+   just staging-up YES
+   ```
+
+1. Run migrations.
+
+   ```bash
+   just staging-migrate YES
+   ```
+
+1. Manage the running stack.
+
+   ```bash
+   just staging-logs
+   just staging-down YES
+   ```
 
 ## Raspberry Pi Camera Plugin
 
-If you want to use a Raspberry Pi Camera for image and video capture, see the [Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+If you want camera-assisted capture, see the external plugin repository:
 
-______________________________________________________________________
+[Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
+
+The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the displayed pairing code in the app. See the [plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md) and the [platform camera guide](https://docs.cml-relab.org/user-guides/rpi-cam/) for details.
+If the Pi is headless, you can read the pairing code either from its local `/setup` page or from the `PAIRING READY` log line over SSH, `docker compose logs`, or `journalctl`.
 
 ## Need Help?
 
-- 📖 Documentation: [docs.cml-relab.org](https://docs.cml-relab.org)
-- 📧 Contact: <relab@cml.leidenuniv.nl>
+- Docs: [docs.cml-relab.org](https://docs.cml-relab.org)
+- Contact: [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl)

@@ -1,11 +1,13 @@
 """Fastapi-filter schemas for filtering User and Organization models."""
 
-from typing import ClassVar
+from typing import TYPE_CHECKING
 
-from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
 
 from app.api.auth.models import Organization, User
+
+if TYPE_CHECKING:
+    from typing import ClassVar
 
 
 class UserFilter(Filter):
@@ -18,14 +20,17 @@ class UserFilter(Filter):
     is_superuser: bool | None = None
     is_verified: bool | None = None
 
-    search_model_fields: ClassVar[list[str]] = [
-        "email",
-        "username",
-        "organization",
-    ]
+    search: str | None = None
 
-    class Constants(Filter.Constants):  # noqa: D106 # Standard FastAPI-filter class
+    class Constants(Filter.Constants):
+        """Constants for UserFilter."""
+
         model = User
+
+        search_model_fields: ClassVar[list[str]] = [
+            "email",
+            "username",
+        ]
 
 
 class OrganizationFilter(Filter):
@@ -35,24 +40,17 @@ class OrganizationFilter(Filter):
     location__ilike: str | None = None
     description__ilike: str | None = None
 
-    search_model_fields: ClassVar[list[str]] = [
-        "name",
-        "location",
-        "description",
-    ]
+    search: str | None = None
 
-    class Constants(Filter.Constants):  # noqa: D106 # Standard FastAPI-filter class
+    order_by: list[str] | None = None
+
+    class Constants(Filter.Constants):
+        """Constants for OrganizationFilter."""
+
         model = Organization
 
-
-class UserFilterWithRelationships(UserFilter):
-    """FastAPI-filter class for User filtering with relationships."""
-
-    organization: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
-
-
-class OrganizationFilterWithRelationships(OrganizationFilter):
-    """FastAPI-filter class for Organization filtering with relationships."""
-
-    owner: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
-    members: UserFilter | None = FilterDepends(with_prefix("users", UserFilter))
+        search_model_fields: ClassVar[list[str]] = [
+            "name",
+            "location",
+            "description",
+        ]

@@ -4,26 +4,20 @@ from enum import Enum
 from typing import TypeVar
 from uuid import UUID
 
-from fastapi_filter.contrib.sqlalchemy import Filter
-
-from app.api.common.models.base import CustomBaseBare, CustomLinkingModelBase
-
-### Type aliases ###
-# Type alias for ID types
-IDT = int | UUID
+from app.api.common.models.base import Base
 
 ### TypeVars ###
-# TypeVar for models
-MT = TypeVar("MT", bound=CustomBaseBare)
+# ID type: constrains parameters that accept either integer or UUID primary keys
+IDT = TypeVar("IDT", bound=int | UUID)
 
-# Typevar for dependent models
-DT = TypeVar("DT", bound=CustomBaseBare)
+# Any model (id may be None; not yet persisted)
+MT = TypeVar("MT", bound=Base)
 
-# Typevar for linking models
-LMT = TypeVar("LMT", bound=CustomLinkingModelBase)
+# Dependent model in a nested relationship
+DT = TypeVar("DT", bound=Base)
 
-# Typevar for Enum classes
+# Linking / association model
+LMT = TypeVar("LMT", bound=Base)
+
+# Enum subclass
 ET = TypeVar("ET", bound=Enum)
-
-# Typevar for Filter classes
-FT = TypeVar("FT", bound=Filter)
