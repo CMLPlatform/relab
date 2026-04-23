@@ -57,9 +57,10 @@ def _init_log_export(resource: Resource, state: TelemetryState) -> None:
         return
 
     log_provider = logger_provider_cls(resource=resource)
-    log_provider.add_log_record_processor(
-        batch_log_processor_cls(otlp_log_exporter_cls(endpoint=settings.otel_exporter_otlp_endpoint))
-    )
+    # No explicit endpoint: the SDK reads OTEL_EXPORTER_OTLP_ENDPOINT from the
+    # env and auto-appends /v1/logs. Passing endpoint= would use it as-is (no
+    # path append) and hit 404 at the collector.
+    log_provider.add_log_record_processor(batch_log_processor_cls(otlp_log_exporter_cls()))
     set_logger_provider(log_provider)
 
     otel_handler = logging_handler_cls(level=logging.NOTSET, logger_provider=log_provider)
@@ -116,7 +117,9 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
     resource = resource_cls.create({"deployment.environment.name": settings.environment})
     tracer_provider = tracer_provider_cls(resource=resource)
 
-    exporter = otlp_span_exporter(endpoint=settings.otel_exporter_otlp_endpoint)
+    # No explicit endpoint: same reason as the log exporter below — the SDK
+    # auto-appends /v1/traces when reading OTEL_EXPORTER_OTLP_ENDPOINT from env.
+    exporter = otlp_span_exporter()
     tracer_provider.add_span_processor(batch_span_processor_cls(exporter))
     trace.set_tracer_provider(tracer_provider)
 
