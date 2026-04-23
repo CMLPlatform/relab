@@ -11,7 +11,11 @@ from pydantic import model_validator
 from sqlalchemy import ColumnElement, Select, asc, desc, func, select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
-from app.api.common.search_utils import TSVectorSearchMixin, build_text_search_clause, ts_rank_expr
+from app.api.common.search_utils import (
+    TSVectorSearchMixin,
+    apply_ts_rank_ordering,
+    build_text_search_clause,
+)
 from app.api.data_collection.models.product import MaterialProductLink, Product
 
 if TYPE_CHECKING:
@@ -130,7 +134,7 @@ class ProductFilter(TSVectorSearchMixin, Filter):
         is empty/None (user wants relevance) or has real fields (user chose an explicit sort).
         """
         if not (self.order_by or []):
-            return query.order_by(ts_rank_expr(self._search_vector_col(), search))
+            return apply_ts_rank_ordering(query, self._search_vector_col(), search)
         return query
 
     def sort(self, query: Any) -> Any:  # noqa: ANN401 # Any-type expected by fastapi-filter

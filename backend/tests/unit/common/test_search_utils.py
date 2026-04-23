@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import literal_column
+from sqlalchemy import literal_column, select
 from sqlalchemy.dialects import postgresql
 
-from app.api.common.search_utils import build_text_search_clause, ts_rank_expr
+from app.api.common.search_utils import apply_ts_rank_ordering, build_text_search_clause
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.elements import ClauseElement
@@ -75,12 +75,19 @@ class TestBuildTextSearchClause:
         assert " OR " in sql.upper()
 
 
-class TestTsRankExpr:
-    """Tests for ts_rank_expr."""
+class TestApplyTsRankOrdering:
+    """Tests for apply_ts_rank_ordering."""
 
-    def test_ts_rank_expression_structure(self) -> None:
-        """ts_rank_expr produces a ts_rank(…, websearch_to_tsquery(…)) DESC expression."""
-        sql = _sql(ts_rank_expr(_SEARCH_VECTOR, "hello world"))
+    def test_adds_rank_column_and_orders_by_it(self) -> None:
+        """Rank is added to the select list and used as the ORDER BY target.
+
+        This satisfies Postgres' rule that ORDER BY expressions under
+        SELECT DISTINCT must appear in the select list.
+        """
+        base = select(_NAME_COL)
+        sql = _sql(apply_ts_rank_ordering(base, _SEARCH_VECTOR, "hello world"))
         assert "ts_rank" in sql.lower()
         assert "websearch_to_tsquery" in sql
+        assert "ts_rank_score" in sql
+        assert "ORDER BY" in sql.upper()
         assert "DESC" in sql.upper()

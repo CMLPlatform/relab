@@ -31,7 +31,7 @@ Example:
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import ColumnElement, Select, desc, func, or_
+from sqlalchemy import ColumnElement, Select, func, or_
 from sqlalchemy.orm import Query
 
 if TYPE_CHECKING:
@@ -67,9 +67,17 @@ def build_text_search_clause(
     return or_(*conditions)
 
 
-def ts_rank_expr(search_vector_col: ColumnElement[Any], search: str) -> ColumnElement[Any]:
-    """Return a ``ts_rank(...).desc()`` ORDER BY expression."""
-    return desc(func.ts_rank(search_vector_col, func.websearch_to_tsquery("english", search)))
+def apply_ts_rank_ordering(query: Select[Any], search_vector_col: ColumnElement[Any], search: str) -> Select[Any]:
+    """Order *query* by ``ts_rank`` DESC, safe for use with ``SELECT DISTINCT``.
+
+    Postgres requires that every ORDER BY expression under ``SELECT DISTINCT``
+    appears in the select list. We label the rank expression and add it to the
+    select, then order by the label so the resulting SQL satisfies that rule.
+    The extra column is computed per-row from the tsvector + search, so
+    duplicate rows share the same rank and ``DISTINCT`` still collapses them.
+    """
+    rank = func.ts_rank(search_vector_col, func.websearch_to_tsquery("english", search)).label("ts_rank_score")
+    return query.add_columns(rank).order_by(rank.desc())
 
 
 # ─── Mixin ────────────────────────────────────────────────────────────────────
@@ -103,7 +111,7 @@ class TSVectorSearchMixin(_FilterBase):
 
     def _apply_rank_ordering(self, query: Select[Any], search: str) -> Select[Any]:
         """Append ``ts_rank`` ordering to *query*. Override to change the behaviour."""
-        return query.order_by(ts_rank_expr(self._search_vector_col(), search))
+        return apply_ts_rank_ordering(query, self._search_vector_col(), search)
 
     def filter(self, query: Query | Select[Any]) -> Query | Select[Any]:
         """Apply tsvector + trigram search, replacing fastapi-filter's default ILIKE logic."""
