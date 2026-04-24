@@ -53,5 +53,5 @@ test-results/
 # Env files (frontend env files are all public)
 !.env.development
 !.env.staging
-!.env.production
+!.env.prod
 !.env.test
