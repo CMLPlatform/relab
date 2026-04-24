@@ -22,7 +22,7 @@ x-env-backend: &env-backend
 services:
   api:
     <<: *env-backend
-    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV}-local}
+    image: relab-backend:${APP_ENV}-local
     environment:
       ENVIRONMENT: ${APP_ENV}
       # Trust forwarded headers only from Docker-internal proxy addresses.
@@ -50,7 +50,7 @@ services:
 
   migrator:
     <<: *env-backend
-    image: ${RELAB_BACKEND_MIGRATIONS_IMAGE:-relab-backend-migrations:${APP_ENV}-local}
+    image: relab-backend-migrations:${APP_ENV}-local
 
   # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
   uploads-backup:
@@ -98,14 +98,14 @@ services:
     <<: *env-backend
 
   docs-site:
-    image: ${RELAB_DOCS_IMAGE:-relab-docs:${APP_ENV}-local}
+    image: relab-docs:${APP_ENV}-local
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
         PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
 
   app-site:
-    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:${APP_ENV}-local}
+    image: relab-frontend-app:${APP_ENV}-local
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
@@ -114,7 +114,7 @@ services:
       CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
 
   web-site:
-    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:${APP_ENV}-local}
+    image: relab-frontend-web:${APP_ENV}-local
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
