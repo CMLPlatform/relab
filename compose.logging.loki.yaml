@@ -1,4 +1,4 @@
-# compose.logging.loki.yml (OPTIONAL OVERLAY — ship container logs to Loki)
+# compose.logging.loki.yaml (OPTIONAL OVERLAY — ship container logs to Loki)
 #
 # Overlays the Loki Docker log driver onto every prod/staging service. Include
 # this file ONLY when the host has a reachable Loki instance.

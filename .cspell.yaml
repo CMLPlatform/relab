@@ -21,13 +21,13 @@ cache:
   useCache: true
   cacheStrategy: content
 ignorePaths:
-  - .cspell.yml
+  - .cspell.yaml
   - .cspellcache
   - .devcontainer
   - .dockerignore
   - .git
   - .gitignore
-  - .trivyignore
+  - .github/trivyignore
   - .vscode
   - package-lock.json
   - pnpm-lock.yaml
@@ -55,6 +55,7 @@ words:
   - shellcheck
   - subrepo
   - subrepos
+  - tootallnate
   - trivyignores
   - trixie
   - tsvector

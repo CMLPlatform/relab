@@ -1,5 +1,5 @@
-# compose.dev.yml (DEVELOPMENT - explicit dev overlay)
-# Run with: docker compose -f compose.yml -f compose.dev.yml up
+# compose.dev.yaml (DEVELOPMENT - explicit dev overlay)
+# Run with: docker compose -f compose.yaml -f compose.dev.yaml up
 name: relab_dev
 
 services:

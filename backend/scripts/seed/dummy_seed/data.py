@@ -10,6 +10,16 @@ from app.core.env import BACKEND_DIR
 if TYPE_CHECKING:
     from typing import Any
 
+__all__ = [
+    "category_data",
+    "image_data",
+    "material_data",
+    "product_data",
+    "product_type_data",
+    "taxonomy_data",
+    "user_data",
+]
+
 data_file = BACKEND_DIR / "data" / "seed" / "dummy_data.json"
 with data_file.open("r") as f:
     _seed_data = json.load(f)

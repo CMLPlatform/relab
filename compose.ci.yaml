@@ -1,4 +1,4 @@
-# compose.ci.yml (CI environment for backend unit/integration tests)
+# compose.ci.yaml (CI environment for backend unit/integration tests)
 # Provides credentials via .env.test so services can start without real secrets.
 name: relab_test
 

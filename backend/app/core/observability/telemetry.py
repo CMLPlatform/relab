@@ -113,7 +113,7 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
         return False
 
     # service.name comes from OTEL_SERVICE_NAME in the container env (set in
-    # compose.deploy.yml), auto-merged by Resource.create().
+    # compose.deploy.yaml), auto-merged by Resource.create().
     resource = resource_cls.create({"deployment.environment.name": settings.environment})
     tracer_provider = tracer_provider_cls(resource=resource)
 

@@ -58,6 +58,7 @@ const SIDEBAR = [
       { label: 'Authentication', slug: 'architecture/auth' },
       { label: 'RPI Camera Plugin', slug: 'architecture/rpi-cam' },
       { label: 'Deployment', slug: 'architecture/deployment' },
+      { label: 'Install & Self-Host', slug: 'architecture/install' },
       { label: 'C4 Diagrams', slug: 'architecture/c4-diagrams' },
       { label: 'Engineering Config', slug: 'architecture/engineering-config' },
       { label: 'Engineering Ops', slug: 'architecture/engineering-ops' },

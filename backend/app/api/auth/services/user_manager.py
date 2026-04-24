@@ -52,10 +52,6 @@ RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
 
 
-_AUTH_COOKIE_PREFIX = "auth="
-_SET_COOKIE_HEADER = "set-cookie"
-
-
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
     """User manager class for FastAPI-Users."""
 
@@ -82,6 +78,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
             TypeAdapter(EmailStr).validate_python(credentials.username)
             is_email = True
         except ValidationError:
+            # Not a valid email; fall through to username lookup below.
             pass
 
         if not is_email:

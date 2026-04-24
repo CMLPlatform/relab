@@ -50,4 +50,4 @@ Primary product data — material makeup, component structure, circularity-relev
 - `frontend-web/`: Astro site for the public-facing web presence
 - `docs/`: Astro Starlight docs app for public, operator, and contributor-facing reference
 
-Canonical repo entry points live in [README.md](https://github.com/CMLPlatform/relab/blob/main/README.md), [INSTALL.md](https://github.com/CMLPlatform/relab/blob/main/INSTALL.md), and [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/CONTRIBUTING.md).
+Canonical repo entry points live in [README.md](https://github.com/CMLPlatform/relab/blob/main/README.md) and [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md). Install and self-hosting steps live on this site at [Install & Self-Host](/architecture/install/).
