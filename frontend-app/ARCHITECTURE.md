@@ -1,7 +1,6 @@
 # Architecture
 
-High-level map of `frontend-app`. Links into the code rather than duplicating it —
-prefer reading the source of truth over this document when they disagree.
+High-level map of `frontend-app`.
 
 ## Stack
 
