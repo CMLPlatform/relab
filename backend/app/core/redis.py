@@ -1,8 +1,8 @@
 """Redis connection management."""
+# spell-checker: ignore BLPOP, BRPOP, coro
 
-# spell-checker: ignore BLPOP, BRPOP
 import logging
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated, Any
 
 from fastapi import Depends, HTTPException, Request
 from redis.asyncio import Redis
@@ -18,6 +18,29 @@ if TYPE_CHECKING:
     from redis.typing import EncodableT
 
 logger = logging.getLogger(__name__)
+
+
+# Typed adapters for redis-py async operations.
+#
+# ``redis-py``'s methods are declared ``ResponseT = Any | Awaitable[Any]`` — the stubs don't
+# narrow by sync-vs-async client. These adapters await-and-coerce, centralizing the upstream
+# stub gap. ``coro: Any`` is deliberate; the helpers hide it from call sites.
+
+
+async def redis_bool(coro: Any) -> bool:  # noqa: ANN401 — upstream stub gap, see module docstring
+    """Await a redis-py coroutine and coerce the result to ``bool``."""
+    return bool(await coro)
+
+
+async def redis_int(coro: Any) -> int:  # noqa: ANN401
+    """Await a redis-py coroutine and coerce the result to ``int``."""
+    return int(await coro)
+
+
+async def redis_str_set(coro: Any) -> set[str]:  # noqa: ANN401
+    """Await a redis-py SMEMBERS-style coroutine and return a ``set[str]``."""
+    result = await coro
+    return set(result) if result else set()
 
 
 def _redis_from_request(request: Request) -> Redis | None:
@@ -64,7 +87,7 @@ async def init_redis() -> Redis | None:
         )
 
         # Verify connection on startup
-        await cast("Awaitable[bool]", redis_client.ping())
+        await redis_bool(redis_client.ping())
         logger.info("Redis client initialized and connected: %s:%s", settings.redis_host, settings.redis_port)
 
     except (TimeoutError, RedisError, OSError, ConnectionError) as e:
@@ -94,7 +117,7 @@ async def init_blocking_redis() -> Redis | None:
             socket_connect_timeout=5,
             socket_timeout=None,  # must be None for BLPOP — a finite timeout kills the socket mid-wait
         )
-        await cast("Awaitable[bool]", redis_client.ping())
+        await redis_bool(redis_client.ping())
         logger.info(
             "Blocking Redis client initialized and connected: %s:%s",
             settings.redis_host,
@@ -137,7 +160,7 @@ async def ping_redis(redis_client: Redis) -> bool:
     """
     return await _execute_redis_operation(
         "ping",
-        cast("Callable[[], Awaitable[bool]]", redis_client.ping),
+        lambda: redis_bool(redis_client.ping()),
         failure_result=False,
     )
 

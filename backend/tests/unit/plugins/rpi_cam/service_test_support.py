@@ -5,12 +5,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from app.api.plugins.rpi_cam.services import YouTubeService
+
+if TYPE_CHECKING:
+    from typing import Any
 
 FAKE_ACCESS_TOKEN = "fake_access_token"
 FAKE_REFRESH_TOKEN = "fake_refresh_token"
@@ -86,17 +89,20 @@ def mock_oauth_account() -> OAuthAccountStub:
     )
 
 
-@pytest.fixture
-def youtube_service(
-    mock_oauth_account: OAuthAccountStub,
-    mock_google_oauth_client: GoogleOAuthClientStub,
-    mock_session: SessionStub,
-    mock_http_client: HTTPClientStub,
-) -> YouTubeService:
-    """Return a YouTubeService instance with typed stub dependencies."""
-    return YouTubeService(
-        cast("Any", mock_oauth_account),
-        cast("Any", mock_google_oauth_client),
-        cast("Any", mock_session),
-        cast("Any", mock_http_client),
-    )
+@dataclass
+class YouTubeServiceFixture:
+    """Bundle the YouTubeService under test with its typed stub dependencies.
+
+    Tests read the service through ``service`` and assert on the stubs directly (e.g.
+    ``fx.google_client.refresh_token.assert_called_once()``) — no ``cast("Any", service.X)``
+    gymnastics to pierce the service's real types.
+
+    ``session`` is deliberately ``Any`` — the underlying fixture is an ``AsyncMock`` at the
+    pytest-session scope, shared with tests that expect a real AsyncSession shape.
+    """
+
+    service: YouTubeService
+    oauth_account: OAuthAccountStub
+    google_client: GoogleOAuthClientStub
+    session: Any
+    http_client: HTTPClientStub

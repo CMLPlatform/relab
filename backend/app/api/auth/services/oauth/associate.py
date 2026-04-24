@@ -1,7 +1,7 @@
 """OAuth account association router builder."""
 # spell-checker: ignore annotationlib
 
-from typing import TYPE_CHECKING, Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, Protocol, cast
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import Response as FastAPIResponse
@@ -11,6 +11,7 @@ from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token  # Used at runtime for FastAPI validation
 from pydantic import UUID4
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import (
     OAuthAccountAlreadyLinkedError,
@@ -35,6 +36,48 @@ if TYPE_CHECKING:
 
     from fastapi_users.authentication import Authenticator
     from fastapi_users.jwt import SecretType
+
+
+# Pure callback-flow helpers — extracted so each branch is directly testable with plain values,
+# without constructing a Request / User / UserManager.
+
+
+class _HasUserId(Protocol):
+    """Minimal shape of an OAuth account row the ownership check reads."""
+
+    user_id: UUID4
+
+
+def _require_state_belongs_to_user(state_data: dict[str, Any], user_id: UUID4) -> None:
+    """Raise OAuthInvalidStateError if the state's ``sub`` does not match ``user_id``."""
+    if state_data.get("sub") != str(user_id):
+        raise OAuthInvalidStateError
+
+
+def _require_account_email(account_email: str | None) -> str:
+    """Return the email or raise OAuthEmailUnavailableError."""
+    if account_email is None:
+        raise OAuthEmailUnavailableError
+    return account_email
+
+
+async def _find_existing_oauth_account(
+    session: AsyncSession, *, oauth_name: str, account_id: str
+) -> OAuthAccount | None:
+    """Look up an OAuth account by (provider name, provider account_id)."""
+    result = await session.execute(
+        select(OAuthAccount).where(
+            OAuthAccount.oauth_name == oauth_name,
+            OAuthAccount.account_id == account_id,
+        )
+    )
+    return result.scalars().first()
+
+
+def _require_account_not_linked_elsewhere(existing_account: _HasUserId | None, user_id: UUID4) -> None:
+    """Raise OAuthAccountAlreadyLinkedError if the account is already owned by a different user."""
+    if existing_account is not None and existing_account.user_id != user_id:
+        raise OAuthAccountAlreadyLinkedError
 
 
 class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
@@ -165,30 +208,17 @@ class CustomOAuthAssociateRouterBuilder(BaseOAuthRouterBuilder):
     ) -> Response | schemas.U:
         token, state = access_token_state
         state_data = self.verify_state(request, state)
-
-        if state_data.get("sub") != str(user.id):
-            raise OAuthInvalidStateError
+        _require_state_belongs_to_user(state_data, user.id)
 
         account_id, account_email = await self.oauth_client.get_id_email(token["access_token"])
-        if account_email is None:
-            raise OAuthEmailUnavailableError
+        _require_account_email(account_email)
 
-        session = user_manager.user_db.session
-        existing_account = (
-            (
-                await session.execute(
-                    select(OAuthAccount).where(
-                        OAuthAccount.oauth_name == self.oauth_client.name,
-                        OAuthAccount.account_id == account_id,
-                    )
-                )
-            )
-            .scalars()
-            .first()
+        existing_account = await _find_existing_oauth_account(
+            user_manager.user_db.session,
+            oauth_name=self.oauth_client.name,
+            account_id=account_id,
         )
-
-        if existing_account and existing_account.user_id != user.id:
-            raise OAuthAccountAlreadyLinkedError
+        _require_account_not_linked_elsewhere(existing_account, user.id)
 
         if existing_account:
             # Same user — upgrade the stored token in-place.

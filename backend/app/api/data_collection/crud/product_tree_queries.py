@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import QueryableAttribute
 
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_model
+from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import Product
 
@@ -49,18 +50,17 @@ async def get_product_trees(
         select(Product)
         .where(Product.parent_id == parent_id)
         .options(
-            selectinload(cast("QueryableAttribute[Any]", Product.components), recursion_depth=recursion_depth),
-            selectinload(cast("QueryableAttribute[Any]", Product.owner)),
-            selectinload(cast("QueryableAttribute[Any]", Product.product_type)),
-            selectinload(cast("QueryableAttribute[Any]", Product.videos)),
-            selectinload(cast("QueryableAttribute[Any]", Product.files)),
-            selectinload(cast("QueryableAttribute[Any]", Product.images)),
-            selectinload(cast("QueryableAttribute[Any]", Product.bill_of_materials)),
+            selectinload(orm_attr(Product.components), recursion_depth=recursion_depth),
+            selectinload(orm_attr(Product.owner)),
+            selectinload(orm_attr(Product.product_type)),
+            selectinload(orm_attr(Product.videos)),
+            selectinload(orm_attr(Product.files)),
+            selectinload(orm_attr(Product.images)),
+            selectinload(orm_attr(Product.bill_of_materials)),
         )
     )
 
-    if product_filter:
-        statement = cast("Select[tuple[Product]]", product_filter.filter(statement))
+    statement = apply_filter(statement, Product, product_filter)
 
     return list((await db.execute(statement)).scalars().all())
 
@@ -80,16 +80,15 @@ async def load_product_tree_data(
         select(Product)
         .where(Product.parent_id == parent_id)
         .options(
-            selectinload(cast("QueryableAttribute[Any]", Product.owner)),
-            selectinload(cast("QueryableAttribute[Any]", Product.product_type)),
-            selectinload(cast("QueryableAttribute[Any]", Product.videos)),
-            selectinload(cast("QueryableAttribute[Any]", Product.files)),
-            selectinload(cast("QueryableAttribute[Any]", Product.images)),
-            selectinload(cast("QueryableAttribute[Any]", Product.bill_of_materials)),
+            selectinload(orm_attr(Product.owner)),
+            selectinload(orm_attr(Product.product_type)),
+            selectinload(orm_attr(Product.videos)),
+            selectinload(orm_attr(Product.files)),
+            selectinload(orm_attr(Product.images)),
+            selectinload(orm_attr(Product.bill_of_materials)),
         )
     )
-    if product_filter is not None:
-        root_statement = cast("Select[tuple[Product]]", product_filter.filter(root_statement))
+    root_statement = apply_filter(root_statement, Product, product_filter)
 
     roots = list((await db.execute(root_statement)).scalars().unique().all())
     children_by_parent_id: dict[int, list[Product]] = {}

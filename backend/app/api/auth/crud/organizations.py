@@ -51,10 +51,7 @@ def _organization_statement(
     """Build the shared organization-listing query."""
     statement: Select[tuple[Organization]] = select(Organization)
     statement = apply_filter(statement, Organization, filters)
-    return cast(
-        "Select[tuple[Organization]]",
-        apply_loader_profile(statement, Organization, loaders, read_schema=read_schema),
-    )
+    return apply_loader_profile(statement, Organization, loaders, read_schema=read_schema)
 
 
 def _organization_members_statement(organization_id: UUID4) -> Select[tuple[User]]:
@@ -179,7 +176,7 @@ async def get_organizations(
 ) -> Page[Organization]:
     """Get organizations with optional filtering, relationships, and pagination."""
     statement = _organization_statement(loaders=loaders, filters=filters, read_schema=read_schema)
-    return cast("Page[Organization]", await paginate_select(db, statement, model=Organization))
+    return await paginate_select(db, statement, model=Organization)
 
 
 async def page_organization_members(
@@ -190,8 +187,8 @@ async def page_organization_members(
 ) -> Page[User]:
     """Get organization members in a paginated response."""
     statement = _organization_members_statement(organization_id)
-    statement = cast("Select[tuple[User]]", apply_loader_profile(statement, User, read_schema=read_schema))
-    return cast("Page[User]", await paginate_select(db, statement, model=User))
+    statement = apply_loader_profile(statement, User, read_schema=read_schema)
+    return await paginate_select(db, statement, model=User)
 
 
 ## Update Organization ##

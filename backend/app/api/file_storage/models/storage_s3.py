@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from anyio import to_thread
 
@@ -15,19 +15,14 @@ from app.core.config import settings
 from app.core.images import validate_image_file
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Protocol
+    from typing import BinaryIO
 
     from fastapi import UploadFile
 
-    class _S3Client(Protocol):
-        """Narrow protocol for the boto3 S3 client methods used by S3Storage."""
 
-        def head_object(self, *, bucket: str, key: str) -> dict: ...
-        def get_object(self, *, bucket: str, key: str) -> dict: ...
-        def upload_fileobj(self, fileobj: BinaryIO, *, bucket: str, key: str) -> None: ...
-
-
-def _import_boto3() -> object:
+# boto3 is an optional dep; its stubs live in boto3-stubs (heavy, not installed).
+# We expose the client as Any so the dynamic boto3 API doesn't require per-call casts.
+def _import_boto3() -> Any:  # noqa: ANN401
     """Import boto3 lazily so the optional dependency stays optional."""
     return import_module("boto3")
 
@@ -65,13 +60,13 @@ class S3Storage(BaseStorage):
         self._secret_access_key = secret_access_key or None
         self._endpoint_url = endpoint_url
         self._base_url = base_url.rstrip("/") if base_url else None
-        self._client: _S3Client | None = None
+        self._client: Any = None
 
-    def _get_client(self) -> _S3Client:
+    def _get_client(self) -> Any:  # noqa: ANN401
         """Return a cached boto3 S3 client, importing boto3 lazily."""
         if self._client is None:
             try:
-                boto3 = cast("Any", _import_boto3())
+                boto3 = _import_boto3()
             except ImportError:
                 msg = "boto3 is required for S3 storage. Install it with: uv sync --group s3"
                 raise ImportError(msg) from None
@@ -105,19 +100,19 @@ class S3Storage(BaseStorage):
 
     def get_size(self, name: str) -> int:
         """Return the object size in bytes via a HEAD request."""
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         response = client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
         return response["ContentLength"]
 
     def open(self, name: str) -> BinaryIO:
         """Download and return the object body as a BytesIO buffer."""
         client_error = _client_error_type()
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         try:
             response = client.get_object(Bucket=self._bucket, Key=self._s3_key(name))
             return io.BytesIO(response["Body"].read())
         except client_error as e:
-            error_response = cast("dict[str, Any]", getattr(e, "response", {}))
+            error_response: dict[str, Any] = getattr(e, "response", {})
             if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
                 details = str(e) if settings.debug else None
                 raise FastAPIStorageFileNotFoundError(name, details=details) from e
@@ -127,14 +122,14 @@ class S3Storage(BaseStorage):
         """Upload a binary file to S3 and return the stored name."""
         filename = self.get_name(name)
         file.seek(0)
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         client.upload_fileobj(file, Bucket=self._bucket, Key=self._s3_key(name))
         return filename
 
     def generate_new_filename(self, filename: str) -> str:
         """Return a collision-free key name by probing S3 with HEAD requests."""
         client_error = _client_error_type()
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         counter = 0
         stem, extension = Path(filename).stem, Path(filename).suffix
         name = filename
@@ -142,7 +137,7 @@ class S3Storage(BaseStorage):
             try:
                 client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
             except client_error as e:
-                error_response = cast("dict[str, Any]", getattr(e, "response", {}))
+                error_response: dict[str, Any] = getattr(e, "response", {})
                 if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
                     break
                 raise
@@ -154,7 +149,7 @@ class S3Storage(BaseStorage):
         """Upload a file to S3 using a background thread and return the stored name."""
         filename = self.get_name(name)
         await upload_file.seek(0)
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         bucket, key = self._bucket, self._s3_key(name)
         file_obj = upload_file.file
         await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, Bucket=bucket, Key=key))

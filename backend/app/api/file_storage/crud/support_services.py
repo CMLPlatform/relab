@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from anyio import to_thread
 from fastapi import UploadFile
@@ -85,10 +85,10 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             raise ValueError(msg)
 
         await validate_upload_size(payload.file, self.max_size_mb)
-        payload.file, file_id, original_filename = process_uploadfile_name(payload.file)
+        payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
 
-        stored_name = await self.write_upload(payload.file, cast("str", payload.file.filename))
+        stored_name = await self.write_upload(payload.file, stored_filename)
         db_item = build_storage_instance(
             model=self.model,
             file_id=file_id,

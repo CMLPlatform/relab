@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 from fastapi import status
@@ -33,7 +32,7 @@ class TestCreateExceptionHandler:
 
         assert response.status_code == 404
 
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Not found"
         assert body["request_id"] == "req-123"
         assert body["code"] == "APIError"
@@ -50,7 +49,7 @@ class TestCreateExceptionHandler:
         with patch("app.api.common.routers.exceptions.logger"):
             response = await handler(mock_request, exc)
 
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Bad input"
         assert body["errors"] == "field value is wrong"
 
@@ -70,7 +69,7 @@ class TestCreateExceptionHandler:
         mock_logger.opt.assert_called_once_with(exception=True)
         mock_logger.error.assert_called_once()
 
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Internal server error"
         assert body["request_id"] == "req-500"
 
@@ -100,7 +99,7 @@ class TestCreateExceptionHandler:
         with patch("app.api.common.routers.exceptions.logger", mock_logger):
             response = await handler(mock_request, exc)
 
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Internal server error"
         mock_logger.error.assert_called_once_with("InternalServerError: Database invariant failed for category link")
 
@@ -116,7 +115,7 @@ class TestRateLimitExceededHandler:
         response = rate_limit_exceeded_handler(mock_request, exc)
 
         assert response.status_code == 429
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Rate limit exceeded"
         assert body["status"] == 429
 
@@ -127,7 +126,7 @@ class TestRateLimitExceededHandler:
 
         response = rate_limit_exceeded_handler(mock_request, exc)
 
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Too many login attempts"
         assert body["code"] == "RateLimitExceeded"
 
@@ -146,6 +145,6 @@ class TestSharedExceptionFamilies:
             response = await handler(mock_request, exc)
 
         assert response.status_code == 503
-        body = json.loads(cast("bytes", response.body))
+        body = json.loads(bytes(response.body))
         assert body["detail"] == "Temporarily unavailable"
         assert body["errors"] == "redis offline"

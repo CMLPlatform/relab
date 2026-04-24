@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.background_data.filters import CategoryFilter, CategoryFilterWithRelationships
 from app.api.background_data.models import Category, Taxonomy, TaxonomyDomain
@@ -16,9 +15,11 @@ from app.api.background_data.schemas import (
     CategoryCreateWithSubCategories,
     CategoryUpdate,
 )
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_model
 from app.api.common.crud.utils import enum_format_id_set, format_id_set
 from app.api.common.exceptions import BadRequestError
+from app.api.common.sa_typing import orm_attr
 
 from .shared import delete_background_model, update_background_model
 
@@ -64,7 +65,7 @@ async def validate_category_taxonomy_domains(
         select(Category)
         .join(Taxonomy)
         .where(Category.id.in_(category_ids))
-        .options(selectinload(cast("QueryableAttribute[Any]", Category.taxonomy)))
+        .options(selectinload(orm_attr(Category.taxonomy)))
     )
     categories = list((await db.execute(categories_statement)).scalars().all())
 
@@ -111,11 +112,10 @@ async def get_category_trees(
     if taxonomy_id:
         statement = statement.where(Category.taxonomy_id == taxonomy_id)
 
-    if category_filter:
-        statement = cast("Select[tuple[Category]]", category_filter.filter(statement))
+    statement = apply_filter(statement, Category, category_filter)
 
     statement = statement.options(
-        selectinload(cast("QueryableAttribute[Any]", Category.subcategories), recursion_depth=recursion_depth)
+        selectinload(orm_attr(Category.subcategories), recursion_depth=recursion_depth)
     )
 
     return list((await db.execute(statement)).scalars().all())

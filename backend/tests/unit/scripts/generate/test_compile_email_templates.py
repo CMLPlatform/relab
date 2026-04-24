@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from scripts.generate import compile_email_templates as compile_email_templates_script
@@ -12,6 +12,13 @@ if TYPE_CHECKING:
 
     import pytest
     from pytest_mock import MockerFixture
+
+
+@dataclass(frozen=True)
+class _MJMLResult:
+    """Typed stand-in for ``mjml.mjml_to_html`` — matches the ``.html`` attribute callers read."""
+
+    html: str
 
 
 class TestCompileEmailTemplatesScript:
@@ -34,8 +41,8 @@ class TestCompileEmailTemplatesScript:
             compile_email_templates_script,
             "mjml_to_html",
             side_effect=[
-                SimpleNamespace(html="<html>welcome</html>"),
-                SimpleNamespace(html="<html>goodbye</html>"),
+                _MJMLResult(html="<html>welcome</html>"),
+                _MJMLResult(html="<html>goodbye</html>"),
             ],
         )
         monkeypatch.setattr(compile_email_templates_script, "SRC_DIR", src_dir)

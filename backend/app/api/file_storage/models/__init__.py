@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.api.common.models.base import Base, TimeStampMixinBare
+from app.api.file_storage.models.storage_core import StorageFile, StorageImage
 from app.api.file_storage.models.storage_types import FileType, ImageType
 
 
@@ -53,7 +54,7 @@ class File(TimeStampMixinBare, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(doc="Original file name of the file.")
-    file: Mapped[Any] = mapped_column(FileType, nullable=False, doc="Local file path to the file")
+    file: Mapped[StorageFile] = mapped_column(FileType, nullable=False, doc="Local file path to the file")
     description: Mapped[str | None] = mapped_column(default=None)
 
     parent_type: Mapped[MediaParentType] = mapped_column(SAEnum(MediaParentType, name="fileparenttype"), nullable=False)
@@ -68,7 +69,7 @@ class Image(TimeStampMixinBare, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(nullable=False, doc="Original file name of the image.")
-    file: Mapped[Any] = mapped_column(ImageType, nullable=False, doc="Local file path to the image")
+    file: Mapped[StorageImage] = mapped_column(ImageType, nullable=False, doc="Local file path to the image")
     description: Mapped[str | None] = mapped_column(default=None)
     image_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
 

@@ -38,16 +38,22 @@ def sanitize_filename(filename: str, max_length: int = 42) -> str:
     return f"{sanitized_filename}{''.join(path.suffixes)}"
 
 
-def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str]:
-    """Process an UploadFile for storing in the database."""
+def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, str]:
+    """Process an UploadFile for storing in the database.
+
+    Returns the (file, file_id, original_filename, stored_filename) tuple. ``stored_filename``
+    is the prefixed name assigned to ``file.filename`` — returning it lets callers use a
+    narrowly-typed ``str`` instead of the ``str | None`` attribute.
+    """
     if file.filename is None:
         msg = "File name is empty."
         raise ValueError(msg)
 
     original_filename = sanitize_filename(file.filename)
     file_id = uuid.uuid4()
-    file.filename = f"{file_id.hex}_{original_filename}"
-    return file, file_id, original_filename
+    stored_filename = f"{file_id.hex}_{original_filename}"
+    file.filename = stored_filename
+    return file, file_id, original_filename, stored_filename
 
 
 def _measure_file_size(file: BinaryIO) -> int:

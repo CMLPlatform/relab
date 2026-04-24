@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import secrets
 import time
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import UUID4
@@ -17,10 +17,9 @@ from pydantic import UUID4
 from app.api.auth.config import settings
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
 from app.core.constants import HOUR
+from app.core.redis import redis_int, redis_str_set
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
-
     from redis.asyncio import Redis
 
 
@@ -59,7 +58,7 @@ async def create_refresh_token(
     token_key = f"auth:rt:{token}"
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
     await redis.setex(token_key, ttl, str(user_id))
-    await cast("Awaitable[int]", redis.sadd(user_tokens_key, token))
+    await redis_int(redis.sadd(user_tokens_key, token))
     await redis.expire(user_tokens_key, ttl)
     return token
 
@@ -147,7 +146,7 @@ async def blacklist_token(
     # Remove from user's token set
     if user_id_str:
         user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
-        await cast("Awaitable[int]", redis.srem(user_tokens_key, token))
+        await redis_int(redis.srem(user_tokens_key, token))
 
 
 async def revoke_all_user_tokens(
@@ -169,7 +168,7 @@ async def revoke_all_user_tokens(
         return
 
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
-    tokens = await cast("Awaitable[set[str]]", redis.smembers(user_tokens_key))
+    tokens = await redis_str_set(redis.smembers(user_tokens_key))
     for token in tokens:
         token_key = f"auth:rt:{token}"
         ttl_seconds = await redis.ttl(token_key)

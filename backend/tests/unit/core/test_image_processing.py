@@ -3,7 +3,6 @@
 
 import io
 from pathlib import Path
-from typing import cast
 
 import piexif
 import pytest
@@ -119,7 +118,7 @@ def test_resize_image_accepts_anyio_path(sample_image: Path) -> None:
     """Resize should work with anyio.Path without touching async exists()."""
     async_path = AnyIOPath(str(sample_image))
 
-    resized_bytes = resize_image(cast("Path", async_path), width=100)
+    resized_bytes = resize_image(async_path, width=100)
 
     with PILImage.open(io.BytesIO(resized_bytes)) as img:
         assert img.width == 100
@@ -283,7 +282,7 @@ def test_process_image_accepts_anyio_path(tmp_path: Path) -> None:
     PILImage.new("RGB", (100, 100), color="green").save(path, format="JPEG")
     async_path = AnyIOPath(str(path))
 
-    process_image_for_storage(cast("Path", async_path))
+    process_image_for_storage(async_path)
 
     with PILImage.open(path) as result:
         assert result.size == (100, 100)

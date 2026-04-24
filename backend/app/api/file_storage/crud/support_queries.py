@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.exceptions import ModelNotFoundError
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.persistence import SupportsModelDump, update_and_commit
 from app.api.common.crud.query import require_model
 from app.api.common.models.base import Base
@@ -109,6 +110,5 @@ async def list_parent_storage_items[StorageModelT: StorageModel](
         model.parent_type == parent_type,
         model.parent_id == parent_id,
     )
-    if filter_params is not None:
-        statement = cast("Select[tuple[StorageModelT]]", filter_params.filter(statement))
+    statement = apply_filter(statement, model, filter_params)
     return list((await db.execute(statement)).scalars().all())

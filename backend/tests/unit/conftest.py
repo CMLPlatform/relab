@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
+if TYPE_CHECKING:
+    from typing import Any
 
 _FORBIDDEN_UNIT_FIXTURES = {
     "async_engine",
@@ -18,11 +21,12 @@ _FORBIDDEN_UNIT_FIXTURES = {
 
 
 @pytest.fixture
-def mock_session() -> AsyncMock:
+def mock_session() -> Any:  # noqa: ANN401
     """Async database session mock with common SQLAlchemy methods.
 
-    Synchronous methods (add, add_all) use MagicMock; async methods use AsyncMock.
-    Tests can further configure return values on this mock as needed.
+    Returns ``Any`` so the mock slots into parameters typed as ``AsyncSession`` (or anything
+    else) without per-call-site casts. Runtime shape is an ``AsyncMock`` with ``add``/
+    ``add_all`` as synchronous ``MagicMock`` attributes.
     """
     session = AsyncMock()
     # Synchronous in SQLAlchemy
@@ -40,7 +44,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
         if "tests/unit/" not in item_path.as_posix():
             continue
 
-        fixture_names = cast("list[str]", getattr(item, "fixturenames", []))
+        fixture_names: list[str] = getattr(item, "fixturenames", [])
         forbidden = sorted(_FORBIDDEN_UNIT_FIXTURES.intersection(fixture_names))
         if forbidden:
             violations.append(f"{item.nodeid}: forbidden fixtures in unit tier: {', '.join(forbidden)}")

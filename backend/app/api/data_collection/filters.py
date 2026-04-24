@@ -11,6 +11,7 @@ from pydantic import model_validator
 from sqlalchemy import ColumnElement, Select, asc, desc, func, select
 
 from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
+from app.api.common.sa_typing import column_expr
 from app.api.common.search_utils import (
     TSVectorSearchMixin,
     apply_ts_rank_ordering,
@@ -45,15 +46,15 @@ class MaterialProductLinkFilter(Filter):
 ORDER_DESC: Literal["desc"] = "desc"
 
 
-def get_brand_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select:
+def get_brand_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select[tuple[str]]:
     """Return a select statement for normalised, distinct brands with optional search and order."""
     brand_expr = func.trim(func.lower(Product.brand)).label("brand_norm")
-    statement = select(brand_expr).where(cast("ColumnElement[Any]", Product.brand).is_not(None))
+    statement = select(brand_expr).where(column_expr(Product.brand).is_not(None))
     if search:
         clause = build_text_search_clause(
             search.strip(),
-            cast("ColumnElement[Any]", Product.search_vector),
-            cast("ColumnElement[Any]", Product.brand),
+            column_expr(Product.search_vector),
+            column_expr(Product.brand),
         )
         statement = statement.where(clause)
     return statement.distinct().order_by(desc(brand_expr) if order == ORDER_DESC else asc(brand_expr))
@@ -106,6 +107,8 @@ class ProductFilter(TSVectorSearchMixin, Filter):
         """
         if not isinstance(data, dict):
             return data
+        # ty narrows isinstance(data, dict) to dict[Unknown, Unknown]; dict is invariant in its
+        # key type so a plain annotation can't widen it. Cast stays.
         fields = cast("dict[str, Any]", data)
         raw = fields.get("order_by")
         if isinstance(raw, str):
@@ -120,7 +123,7 @@ class ProductFilter(TSVectorSearchMixin, Filter):
 
     @classmethod
     def _search_vector_col(cls) -> ColumnElement[Any]:
-        return cast("ColumnElement[Any]", Product.search_vector)
+        return column_expr(Product.search_vector)
 
     @classmethod
     def _trigram_cols(cls) -> list[Any]:

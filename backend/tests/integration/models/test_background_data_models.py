@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.background_data.models import Category, Taxonomy
+from app.api.common.sa_typing import orm_attr
 from tests.factories.models import (
     CategoryFactory,
     CategoryMaterialLinkFactory,
@@ -83,8 +83,8 @@ async def test_material_and_product_type_links_round_trip(
         select(Category)
         .where(Category.id == db_category.id)
         .options(
-            selectinload(cast("QueryableAttribute[Any]", Category.materials)),
-            selectinload(cast("QueryableAttribute[Any]", Category.product_types)),
+            selectinload(orm_attr(Category.materials)),
+            selectinload(orm_attr(Category.product_types)),
         )
     )
     result = await db_session.execute(stmt)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Path
 from fastapi_filter import FilterDepends
@@ -101,11 +101,8 @@ async def _list_product_type_categories(
         .join(CategoryProductTypeLink, Category.id == CategoryProductTypeLink.category_id)
         .where(CategoryProductTypeLink.product_type_id == product_type_id)
     )
-    statement = cast("Select[tuple[Category]]", category_filter.filter(statement))
-    statement = cast(
-        "Select[tuple[Category]]",
-        apply_loader_profile(statement, Category, read_schema=CategoryRead),
-    )
+    statement = apply_filter(statement, Category, category_filter)
+    statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
     return list((await session.execute(statement)).scalars().unique().all())
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from fastapi_pagination import create_page
 from fastapi_pagination.api import resolve_params
@@ -10,7 +10,7 @@ from sqlalchemy import Select, func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.api.common.models.custom_types import MT
+from app.api.common.models.base import Base
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,20 +19,20 @@ if TYPE_CHECKING:
     from fastapi_pagination.bases import AbstractParams
 
 
-def _primary_key_column(model: type[MT]) -> ColumnElement[object] | None:
+def _primary_key_column(model: type[Base]) -> ColumnElement[object] | None:
     mapper = inspect(model)
     primary_keys = list(mapper.primary_key) if mapper else []
     return cast("ColumnElement[object]", primary_keys[0]) if len(primary_keys) == 1 else None
 
 
-async def paginate_select(
+async def paginate_select[T, ModelT: Base](
     db: AsyncSession,
-    statement: Select[Any],
+    statement: Select[tuple[T]],
     *,
-    model: type[MT] | None = None,
+    model: type[ModelT] | None = None,
     params: AbstractParams | None = None,
-    mutate_items: Callable[[list[Any]], None] | None = None,
-) -> Page[Any]:
+    mutate_items: Callable[[list[T]], None] | None = None,
+) -> Page[T]:
     """Paginate a select with distinct-safe counts for ORM entity queries."""
     resolved_params = resolve_params(params)
     raw_params = resolved_params.to_raw_params()
@@ -54,8 +54,8 @@ async def paginate_select(
     if offset is not None:
         paginated_statement = paginated_statement.offset(offset)
 
-    items = list((await db.execute(paginated_statement)).scalars().unique().all())
+    items: list[T] = list((await db.execute(paginated_statement)).scalars().unique().all())
     if mutate_items is not None:
         mutate_items(items)
 
-    return cast("Page[Any]", create_page(items, total=total, params=resolved_params))
+    return cast("Page[T]", create_page(items, total=total, params=resolved_params))

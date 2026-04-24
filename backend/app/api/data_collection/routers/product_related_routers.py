@@ -12,6 +12,7 @@ from sqlalchemy import select
 from app.api.background_data.models import Material
 from app.api.common.crud.associations import require_link
 from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -73,7 +74,7 @@ async def _list_product_videos(
 ) -> Sequence[Video]:
     """List videos scoped to one product."""
     statement: Select[tuple[Video]] = select(Video).where(Video.product_id == product_id)
-    statement = video_filter.filter(statement)
+    statement = apply_filter(statement, Video, video_filter)
     return list((await session.execute(statement)).scalars().unique().all())
 
 
@@ -87,7 +88,7 @@ async def _list_product_material_links(
     statement: Select[tuple[MaterialProductLink]] = (
         select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
     )
-    statement = material_filter.filter(statement)
+    statement = apply_filter(statement, MaterialProductLink, material_filter)
     return list((await session.execute(statement)).scalars().unique().all())
 
 

@@ -62,28 +62,28 @@ async def _page_taxonomy_categories(
     *,
     taxonomy_id: PositiveInt,
     category_filter: CategoryFilterDep,
-) -> Page[CategoryRead]:
-    """Page categories scoped to one taxonomy."""
+) -> Page[Category]:
+    """Page categories scoped to one taxonomy (serialized via ``CategoryRead`` by FastAPI)."""
     statement: Select[tuple[Category]] = select(Category).where(Category.taxonomy_id == taxonomy_id)
     statement = apply_filter(statement, Category, category_filter)
     statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
-    return cast("Page[CategoryRead]", await paginate_select(session, statement, model=Category))
+    return await paginate_select(session, statement, model=Category)
 
 
 async def _page_taxonomies(
     session: AsyncSessionDep,
     *,
     taxonomy_filter: TaxonomyFilterDep,
-) -> Page[TaxonomyRead]:
-    """Page public taxonomies from an explicit taxonomy query."""
+) -> Page[Taxonomy]:
+    """Page public taxonomies from an explicit taxonomy query (serialized via ``TaxonomyRead``)."""
     statement: Select[tuple[Taxonomy]] = select(Taxonomy)
     statement = apply_filter(statement, Taxonomy, taxonomy_filter)
     statement = apply_loader_profile(statement, Taxonomy, read_schema=TaxonomyRead)
-    return cast("Page[TaxonomyRead]", await paginate_select(session, statement, model=Taxonomy))
+    return await paginate_select(session, statement, model=Taxonomy)
 
 
 @router.get("", response_model=Page[TaxonomyRead])
-async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[TaxonomyRead]:
+async def get_taxonomies(taxonomy_filter: TaxonomyFilterDep, session: AsyncSessionDep) -> Page[Taxonomy]:
     """Get all taxonomies with optional filtering."""
     return await _page_taxonomies(session, taxonomy_filter=taxonomy_filter)
 
@@ -130,7 +130,7 @@ async def get_taxonomy_categories(
     taxonomy_id: PositiveInt,
     session: AsyncSessionDep,
     category_filter: CategoryFilterDep,
-) -> Page[CategoryRead]:
+) -> Page[Category]:
     """Get taxonomy categories with optional filtering."""
     await _require_taxonomy(session, taxonomy_id)
     return await _page_taxonomy_categories(session, taxonomy_id=taxonomy_id, category_filter=category_filter)

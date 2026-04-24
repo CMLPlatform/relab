@@ -170,14 +170,16 @@ def build_recording_text(
     return resolved_title, resolved_description
 
 
-def serialize_stream_metadata(metadata: object | None) -> dict[str, object] | None:
+def serialize_stream_metadata(metadata: object | None) -> dict[str, Any] | None:
     """Convert camera stream metadata into JSON-compatible data."""
     if metadata is None:
         return None
     if isinstance(metadata, BaseModel):
-        return cast("dict[str, object]", metadata.model_dump(mode="json"))
+        return metadata.model_dump(mode="json")
     if isinstance(metadata, dict):
-        return cast("dict[str, object]", metadata)
+        # ty narrows isinstance(metadata, dict) to dict[Unknown, Unknown]; dict is invariant
+        # so a plain annotation can't widen it. Cast stays.
+        return cast("dict[str, Any]", metadata)
     msg = "Unsupported stream metadata type."
     raise TypeError(msg)
 
