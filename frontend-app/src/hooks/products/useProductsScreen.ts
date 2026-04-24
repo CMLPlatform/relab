@@ -160,7 +160,10 @@ function useProductsListQuery({
   activeProductTypes: string[];
 }) {
   const queryPages = useMemo(
-    () => Array.from({ length: numColumns === 1 ? effectivePage : 1 }, (_, index) => index + 1),
+    () =>
+      numColumns === 1
+        ? Array.from({ length: effectivePage }, (_, index) => index + 1)
+        : [effectivePage],
     [effectivePage, numColumns],
   );
   const queries = useQueries({
