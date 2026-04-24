@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Docker Smoke
+description: |
+  Run a just-defined docker smoke recipe on a fresh checkout with Buildx. Shared by the
+  scheduled/dispatched ``docker-smoke`` matrix and the renovate major-PR smoke job — both
+  want the same checkout + runtime + buildx dance before invoking ``just <recipe>``.
+
+inputs:
+  recipe:
+    description: The just recipe to invoke (e.g. docker-smoke-backend).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+    - name: Set up runtime
+      uses: ./.github/actions/setup-runtime
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+    - name: Run smoke test
+      shell: bash
+      run: just ${{ inputs.recipe }}

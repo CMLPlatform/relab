@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+# spell-checker: ignore dorny
+name: Detect Changes
+description: |
+  Run dorny/paths-filter once and expose the raw per-area flags plus event metadata.
+  Each calling workflow builds its own job-level decision from these outputs — the
+  schedule/dispatch/renovate logic differs per workflow (CI vs security), so it lives
+  in the workflow, not here.
+
+outputs:
+  # --- raw path flags (from .github/path-filters.yml) ---
+  shared:
+    description: Shared files touching every subrepo (e.g. .github, compose, justfile).
+    value: ${{ steps.filter.outputs.shared }}
+  policy:
+    description: Policy/config files (pre-commit, prettier, editorconfig, etc.).
+    value: ${{ steps.filter.outputs.policy }}
+  root-python:
+    description: Root-level Python project files (pyproject.toml, uv.lock).
+    value: ${{ steps.filter.outputs.root-python }}
+  backend:
+    description: Backend source or compose files.
+    value: ${{ steps.filter.outputs.backend }}
+  frontend-web:
+    description: Frontend-web source or compose files.
+    value: ${{ steps.filter.outputs.frontend-web }}
+  frontend-app:
+    description: Frontend-app source or compose files.
+    value: ${{ steps.filter.outputs.frontend-app }}
+  docs:
+    description: Docs-site source or compose files.
+    value: ${{ steps.filter.outputs.docs }}
+  containers:
+    description: Dockerfile / lockfile changes relevant to container images.
+    value: ${{ steps.filter.outputs.containers }}
+
+  # --- event metadata (for schedule/dispatch/renovate routing) ---
+  is-schedule:
+    description: "'true' if the workflow was triggered by a schedule."
+    value: ${{ steps.event.outputs.is-schedule }}
+  is-dispatch:
+    description: "'true' if the workflow was triggered via workflow_dispatch."
+    value: ${{ steps.event.outputs.is-dispatch }}
+  is-renovate-pr:
+    description: "'true' if the current PR was opened by renovate[bot]."
+    value: ${{ steps.event.outputs.is-renovate-pr }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect changed paths
+      id: filter
+      if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+      uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+      with:
+        filters: .github/path-filters.yml
+
+    - name: Publish event metadata
+      id: event
+      shell: bash
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+      run: |
+        echo "is-schedule=$([[ "$EVENT_NAME" == "schedule" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "is-dispatch=$([[ "$EVENT_NAME" == "workflow_dispatch" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        echo "is-renovate-pr=$([[ "$EVENT_NAME" == "pull_request" && "$PR_AUTHOR" == "renovate[bot]" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
