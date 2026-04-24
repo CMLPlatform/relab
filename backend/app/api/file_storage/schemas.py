@@ -167,9 +167,7 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
         """Derive image and thumbnail URLs when the caller didn't supply them."""
         if self.image_url is None:
             file_path = getattr(self.file, "path", None)
-            self.image_url, self.thumbnail_url = _build_image_urls(
-                file_path, self.id, settings.image_storage_path
-            )
+            self.image_url, self.thumbnail_url = _build_image_urls(file_path, self.id, settings.image_storage_path)
         return self
 
 

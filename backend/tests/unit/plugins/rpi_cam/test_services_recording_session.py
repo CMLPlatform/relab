@@ -38,9 +38,7 @@ async def test_store_recording_session_raises_internal_error_when_redis_set_fail
 
 
 @patch("app.api.plugins.rpi_cam.service_runtime.set_redis_value", new_callable=AsyncMock, return_value=True)
-async def test_store_recording_session_uses_48_hour_ttl(
-    mock_set_redis_value: AsyncMock, mock_session: Any
-) -> None:
+async def test_store_recording_session_uses_48_hour_ttl(mock_set_redis_value: AsyncMock, mock_session: Any) -> None:
     """Recording sessions should live long enough for long-running broadcasts."""
     redis_mock = AsyncMock()
     camera_id = uuid4()
