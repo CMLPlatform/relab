@@ -9,12 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.background_data.filters import CategoryFilter, CategoryFilterWithRelationships
 from app.api.background_data.models import Category, Taxonomy, TaxonomyDomain
-from app.api.background_data.schemas import (
-    CategoryCreateWithinCategoryWithSubCategories,
-    CategoryCreateWithinTaxonomyWithSubCategories,
-    CategoryCreateWithSubCategories,
-    CategoryUpdate,
-)
+from app.api.background_data.schemas import CategoryCreate, CategoryUpdate
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_model
 from app.api.common.crud.utils import enum_format_id_set, format_id_set
@@ -28,32 +23,29 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def validate_category_creation(
+async def resolve_category_parents(
     db: AsyncSession,
-    category: CategoryCreateWithSubCategories
-    | CategoryCreateWithinCategoryWithSubCategories
-    | CategoryCreateWithinTaxonomyWithSubCategories,
+    category: CategoryCreate,
     taxonomy_id: int | None = None,
     supercategory_id: int | None = None,
 ) -> tuple[int, Category | None]:
-    """Validate category creation parameters and return taxonomy_id and supercategory."""
+    """Resolve the effective ``taxonomy_id`` and supercategory row for a new category.
+
+    When a supercategory is given, its taxonomy is inherited (the incoming
+    ``taxonomy_id`` is ignored — clients don't need to get it right). Root
+    categories must supply ``taxonomy_id`` explicitly.
+    """
+    supercategory_id = supercategory_id or category.supercategory_id
     if supercategory_id:
         supercategory: Category = await require_model(db, Category, supercategory_id)
+        return supercategory.taxonomy_id, supercategory
 
-        taxonomy_id = taxonomy_id or supercategory.taxonomy_id
-        if supercategory.taxonomy_id != taxonomy_id:
-            err_msg = f"Supercategory with id {supercategory_id} does not belong to taxonomy with id {taxonomy_id}"
-            raise BadRequestError(err_msg)
-        return taxonomy_id, supercategory
-
-    taxonomy_id = taxonomy_id or getattr(category, "taxonomy_id", None)
-
+    taxonomy_id = taxonomy_id or category.taxonomy_id
     if not taxonomy_id:
         err_msg = "Taxonomy ID is required for top-level categories"
         raise BadRequestError(err_msg)
 
     await require_model(db, Taxonomy, taxonomy_id)
-
     return taxonomy_id, None
 
 
@@ -121,23 +113,14 @@ async def get_category_trees(
 
 async def create_category(
     db: AsyncSession,
-    category: CategoryCreateWithSubCategories
-    | CategoryCreateWithinCategoryWithSubCategories
-    | CategoryCreateWithinTaxonomyWithSubCategories,
+    category: CategoryCreate,
     taxonomy_id: int | None = None,
     supercategory_id: int | None = None,
     *,
     _is_recursive_call: bool = False,
 ) -> Category:
     """Create a new category in the database and handle subcategory categories recursively."""
-    taxonomy_id, supercategory = await validate_category_creation(
-        db,
-        category,
-        taxonomy_id,
-        supercategory_id
-        if isinstance(category, CategoryCreateWithinCategoryWithSubCategories)
-        else category.supercategory_id,
-    )
+    taxonomy_id, supercategory = await resolve_category_parents(db, category, taxonomy_id, supercategory_id)
 
     db_category = Category(
         name=category.name,

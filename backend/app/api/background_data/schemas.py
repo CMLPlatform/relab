@@ -32,36 +32,24 @@ from app.api.file_storage.schemas import FileRead, ImageRead
 ### Category Schemas ###
 ## Create Schemas ##
 class CategoryCreate(BaseCreateSchema, CategoryBase):
-    """Schema for creating a new category without subcategories."""
+    """Schema for creating a category, optionally with nested subcategories.
+
+    - ``taxonomy_id`` is required for root categories and ignored when
+      ``supercategory_id`` is provided (the parent's taxonomy is inherited).
+    - ``supercategory_id`` is optional; when set the new category becomes a
+      nested category under that parent.
+    """
 
     taxonomy_id: PositiveInt | None = None
     supercategory_id: PositiveInt | None = None
-
-
-class CategoryCreateWithinCategoryWithSubCategories(BaseCreateSchema, CategoryBase):
-    """Schema for creating a new category within a category, with optional subcategories."""
-
-    # Database model has a None default, but Pydantic model has empty set default for consistent API type handling
-    subcategories: list[CategoryCreateWithinCategoryWithSubCategories] = Field(
+    subcategories: list[CategoryCreate] = Field(
         default_factory=list,
-        description="List of subcategories",
+        description="List of subcategories to create under this category",
     )
 
 
 # Rebuild schema to allow for nested subcategories
-CategoryCreateWithinCategoryWithSubCategories.model_rebuild()
-
-
-class CategoryCreateWithinTaxonomyWithSubCategories(CategoryCreateWithinCategoryWithSubCategories):
-    """Schema for creating a new category within a taxonomy, with optional subcategories."""
-
-    supercategory_id: PositiveInt | None = None
-
-
-class CategoryCreateWithSubCategories(CategoryCreateWithinTaxonomyWithSubCategories):
-    """Schema for creating a new category, with optional subcategories."""
-
-    taxonomy_id: PositiveInt | None = None
+CategoryCreate.model_rebuild()
 
 
 ## Read Schemas ##
@@ -143,9 +131,7 @@ class TaxonomyCreate(BaseCreateSchema, TaxonomyBase):
 class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
     """Schema for creating a new taxonomy, optionally with new categories."""
 
-    categories: list[CategoryCreateWithinTaxonomyWithSubCategories] = Field(
-        default_factory=list, description="Set of subcategories"
-    )
+    categories: list[CategoryCreate] = Field(default_factory=list, description="Categories to create in this taxonomy")
 
 
 ## Read Schemas ##

@@ -21,7 +21,6 @@ from app.api.background_data.schemas import (
     CategoryReadWithRecursiveSubCategories,
     CategoryReadWithRelationshipsAndFlatSubCategories,
 )
-from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
@@ -133,7 +132,7 @@ async def get_category(
 
 
 @router.get(
-    "{category_id}/subcategories",
+    "/{category_id}/subcategories",
     response_model=Page[CategoryReadWithRelationshipsAndFlatSubCategories],
     summary="Get category subcategories with optional filtering and all relationships",
 )
@@ -163,32 +162,3 @@ async def get_category_subtree(
         session, recursion_depth=recursion_depth, supercategory_id=category_id, category_filter=category_filter
     )
     return convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
-
-
-@router.get(
-    "/{category_id}/subcategories/{subcategory_id}",
-    response_model=CategoryReadWithRelationshipsAndFlatSubCategories,
-    summary="Get subcategory by ID with all relationships",
-)
-async def get_subcategory(
-    category_id: PositiveInt,
-    subcategory_id: PositiveInt,
-    session: AsyncSessionDep,
-) -> Category:
-    """Get subcategory by ID with all relationships loaded."""
-    await _require_category_with_relationships(session, category_id)
-    statement = select(Category).where(Category.id == subcategory_id, Category.supercategory_id == category_id)
-    statement = apply_loader_profile(
-        statement,
-        Category,
-        {"taxonomy", "subcategories", "materials", "product_types"},
-        read_schema=CategoryReadWithRelationshipsAndFlatSubCategories,
-    )
-    subcategory = (await session.execute(statement)).scalars().unique().one_or_none()
-    if subcategory is not None:
-        return subcategory
-
-    existing = await _require_category_with_relationships(session, subcategory_id)
-    if existing.supercategory_id != category_id:
-        raise DependentModelOwnershipError(Category, subcategory_id, Category, category_id)
-    return existing

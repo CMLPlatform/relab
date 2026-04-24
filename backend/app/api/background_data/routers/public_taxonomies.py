@@ -18,7 +18,6 @@ from app.api.background_data.routers.public_support import (
     convert_categories_to_tree,
 )
 from app.api.background_data.schemas import CategoryRead, CategoryReadWithRecursiveSubCategories, TaxonomyRead
-from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
@@ -36,25 +35,6 @@ router = BackgroundDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
 async def _require_taxonomy(session: AsyncSessionDep, taxonomy_id: PositiveInt) -> Taxonomy:
     """Load one taxonomy with the public read schema."""
     return await require_model(session, Taxonomy, taxonomy_id, read_schema=TaxonomyRead)
-
-
-async def _get_taxonomy_category(
-    session: AsyncSessionDep,
-    *,
-    taxonomy_id: PositiveInt,
-    category_id: PositiveInt,
-) -> Category:
-    """Load one category scoped to a taxonomy."""
-    statement = select(Category).where(Category.id == category_id, Category.taxonomy_id == taxonomy_id)
-    statement = apply_loader_profile(statement, Category, read_schema=CategoryRead)
-    scoped = (await session.execute(statement)).scalars().unique().one_or_none()
-    if scoped is not None:
-        return scoped
-
-    category = await require_model(session, Category, category_id)
-    if category.taxonomy_id != taxonomy_id:
-        raise DependentModelOwnershipError(Category, category_id, Taxonomy, taxonomy_id)
-    raise DependentModelOwnershipError(Category, category_id, Taxonomy, taxonomy_id)
 
 
 async def _page_taxonomy_categories(
@@ -134,17 +114,3 @@ async def get_taxonomy_categories(
     """Get taxonomy categories with optional filtering."""
     await _require_taxonomy(session, taxonomy_id)
     return await _page_taxonomy_categories(session, taxonomy_id=taxonomy_id, category_filter=category_filter)
-
-
-@router.get(
-    "/{taxonomy_id}/categories/{category_id}",
-    response_model=CategoryRead,
-    summary="Get category by ID",
-)
-async def get_taxonomy_category_by_id(
-    taxonomy_id: PositiveInt,
-    category_id: PositiveInt,
-    session: AsyncSessionDep,
-) -> Category:
-    """Get a taxonomy category by ID."""
-    return await _get_taxonomy_category(session, taxonomy_id=taxonomy_id, category_id=category_id)
