@@ -8,7 +8,7 @@ import pytest
 
 from app.api.background_data.crud.categories import (
     get_category_trees,
-    validate_category_creation,
+    resolve_category_parents,
     validate_category_taxonomy_domains,
 )
 from app.api.background_data.models import Category, Taxonomy, TaxonomyDomain
@@ -22,43 +22,34 @@ def _make_session() -> AsyncMock:
     return session
 
 
-class TestCategoryValidation:
-    """Cover category creation validation helpers."""
+class TestCategoryParentResolution:
+    """Cover parent resolution for category creation."""
 
-    async def test_validate_category_creation_with_supercategory(self, mock_session: AsyncMock) -> None:
-        """Accepts a matching supercategory within the same taxonomy."""
+    async def test_inherits_taxonomy_from_supercategory(self, mock_session: AsyncMock) -> None:
+        """When a supercategory is supplied, its taxonomy wins over any passed-in value."""
         category_create = AsyncMock()
         category_create.taxonomy_id = 99
+        category_create.supercategory_id = None
         super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
 
         with patch("app.api.background_data.crud.categories.require_model", return_value=super_category) as mock_get:
-            result_id, result_cat = await validate_category_creation(
-                mock_session, category_create, taxonomy_id=10, supercategory_id=1
+            result_id, result_cat = await resolve_category_parents(
+                mock_session, category_create, taxonomy_id=99, supercategory_id=1
             )
 
         assert result_id == 10
         assert result_cat == super_category
         mock_get.assert_called_with(mock_session, Category, 1)
 
-    async def test_validate_category_creation_supercategory_mismatch(self, mock_session: AsyncMock) -> None:
-        """Rejects a supercategory from a different taxonomy."""
-        category_create = AsyncMock()
-        super_category = CategoryFactory.build(id=1, taxonomy_id=10, name="Super")
-
-        with (
-            patch("app.api.background_data.crud.categories.require_model", return_value=super_category),
-            pytest.raises(BadRequestError, match="does not belong to taxonomy with id"),
-        ):
-            await validate_category_creation(mock_session, category_create, taxonomy_id=20, supercategory_id=1)
-
-    async def test_validate_category_creation_top_level(self, mock_session: AsyncMock) -> None:
+    async def test_top_level_requires_taxonomy(self, mock_session: AsyncMock) -> None:
         """Allows top-level categories when a taxonomy is provided."""
         category_create = AsyncMock()
         category_create.taxonomy_id = 10
+        category_create.supercategory_id = None
         mock_taxonomy = TaxonomyFactory.build(id=10, name="Tax")
 
         with patch("app.api.background_data.crud.categories.require_model", return_value=mock_taxonomy) as mock_get:
-            result_id, result_cat = await validate_category_creation(
+            result_id, result_cat = await resolve_category_parents(
                 mock_session, category_create, taxonomy_id=None, supercategory_id=None
             )
 
@@ -66,13 +57,14 @@ class TestCategoryValidation:
         assert result_cat is None
         mock_get.assert_called_with(mock_session, Taxonomy, 10)
 
-    async def test_validate_category_creation_missing_taxonomy(self, mock_session: AsyncMock) -> None:
+    async def test_top_level_missing_taxonomy_raises(self, mock_session: AsyncMock) -> None:
         """Rejects category creation without any taxonomy id."""
         category_create = AsyncMock()
         category_create.taxonomy_id = None
+        category_create.supercategory_id = None
 
         with pytest.raises(BadRequestError, match="Taxonomy ID is required"):
-            await validate_category_creation(mock_session, category_create, taxonomy_id=None, supercategory_id=None)
+            await resolve_category_parents(mock_session, category_create, taxonomy_id=None, supercategory_id=None)
 
 
 class TestTaxonomyDomainValidation:

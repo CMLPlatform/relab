@@ -165,6 +165,31 @@ async def test_admin_category_creation_supports_nested_subcategories(
     assert response.json()["name"] == PARENT_CATEGORY
 
 
+async def test_admin_category_creation_inherits_taxonomy_from_supercategory(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    db_taxonomy: Taxonomy,
+) -> None:
+    """Creating a nested category via ``POST /admin/categories`` must inherit the parent's taxonomy."""
+    parent = await CategoryFactory.create_async(db_session, taxonomy_id=db_taxonomy.id, name=PARENT_CATEGORY)
+    other_taxonomy = await TaxonomyFactory.create_async(
+        db_session, name="Other taxonomy", version="v1", domains={TaxonomyDomain.MATERIALS}
+    )
+
+    response = await api_client_superuser.post(
+        "/admin/categories",
+        json={
+            "name": CHILD_CATEGORY,
+            "taxonomy_id": other_taxonomy.id,  # should be ignored in favor of parent's taxonomy
+            "supercategory_id": parent.id,
+        },
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["taxonomy_id"] == db_taxonomy.id
+    assert response.json()["supercategory_id"] == parent.id
+
+
 async def test_material_validation_rejects_negative_density(api_client_superuser: AsyncClient) -> None:
     """Materials with negative density should fail schema validation."""
     response = await api_client_superuser.post(
