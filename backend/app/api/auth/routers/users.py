@@ -41,11 +41,14 @@ from app.api.auth.services.privacy import (
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
 )
+from app.api.auth.services.profile_cache import (
+    cache_public_profile,
+    get_cached_public_profile,
+)
 from app.api.auth.services.stats import recompute_user_stats
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
-from app.core.cache import cache
 
 ### User self-management routes ###
 
@@ -127,7 +130,6 @@ public_user_router = PublicAPIRouter(prefix="/users", tags=["users"])
     response_model=PublicProfileView,
     summary="Get public profile of a user",
 )
-@cache(expire=3600, namespace="profiles")
 async def get_public_profile(
     identifier: str,
     session: AsyncSessionDep,
@@ -166,6 +168,10 @@ async def get_public_profile(
         if not current_user:
             raise HTTPException(status_code=404, detail="Profile not found")
 
+    cached_profile = await get_cached_public_profile(user.id)
+    if cached_profile is not None:
+        return cached_profile
+
     # 3. Lazy initialization of stats if cache is empty
     stats = user.stats_cache
     if not stats:
@@ -173,7 +179,7 @@ async def get_public_profile(
         stats = await recompute_user_stats(session, user.id)
         await session.commit()
 
-    return PublicProfileView(
+    profile = PublicProfileView(
         username=user.username,
         created_at=user.created_at,
         product_count=stats.get("product_count", 0),
@@ -181,3 +187,5 @@ async def get_public_profile(
         image_count=stats.get("image_count", 0),
         top_category=stats.get("top_category", "None"),
     )
+    await cache_public_profile(user.id, profile)
+    return profile

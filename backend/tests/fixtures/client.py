@@ -21,7 +21,7 @@ from app.api.auth.dependencies import (
 from app.api.auth.models import User
 from app.api.auth.services.rate_limiter import limiter
 from app.api.auth.services.user_database import get_auth_async_session
-from app.core.cache import close_fastapi_cache, init_fastapi_cache
+from app.core.cache import close_cache, init_cache
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.main import create_app
@@ -132,7 +132,7 @@ async def api_client(
         patch("app.core.lifecycle.create_http_client", return_value=outbound_http_client),
     ):
         async with test_app.router.lifespan_context(test_app):
-            init_fastapi_cache(mock_redis_dependency)
+            init_cache(mock_redis_dependency)
 
             async with httpx.AsyncClient(
                 transport=ASGITransport(app=test_app),
@@ -142,7 +142,7 @@ async def api_client(
                 yield client
 
             # Cleanup
-            await close_fastapi_cache()
+            await close_cache()
             limiter.enabled = True
             test_app.dependency_overrides.clear()
 
@@ -178,7 +178,7 @@ async def api_client_light(
     test_app.dependency_overrides[get_auth_async_session] = override_get_session
 
     limiter.enabled = False
-    init_fastapi_cache(None)
+    init_cache(None)
 
     try:
         async with httpx.AsyncClient(
@@ -188,7 +188,7 @@ async def api_client_light(
         ) as client:
             yield client
     finally:
-        await close_fastapi_cache()
+        await close_cache()
         limiter.enabled = True
         test_app.dependency_overrides.clear()
 

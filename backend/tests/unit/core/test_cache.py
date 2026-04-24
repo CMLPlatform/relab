@@ -1,72 +1,24 @@
 """Unit tests for cache utilities."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from fastapi.responses import HTMLResponse
-
 from app.core.cache import (
-    HTMLCoder,
     _backend,
     _cache_state,
+    cache_delete,
+    cache_delete_pattern,
+    cache_get,
+    cache_namespace,
+    cache_set,
     clear_cache_namespace,
-    close_fastapi_cache,
-    init_fastapi_cache,
+    close_cache,
+    init_cache,
+    make_key,
 )
 
 
-class TestHTMLCoder:
-    """Tests for HTMLCoder encode/decode."""
-
-    def test_encode_html_response(self) -> None:
-        """Test encoding an HTMLResponse extracts body and metadata."""
-        response = HTMLResponse(content="<h1>Hello</h1>", status_code=200)
-        encoded = HTMLCoder.encode(response)
-
-        decoded = json.loads(encoded)
-        assert decoded["type"] == "HTMLResponse"
-        assert decoded["body"] == "<h1>Hello</h1>"
-        assert decoded["status_code"] == 200
-
-    def test_encode_dict(self) -> None:
-        """Test encoding a regular dict uses JSON."""
-        data = {"key": "value", "count": 42}
-        encoded = HTMLCoder.encode(data)
-
-        decoded = json.loads(encoded)
-        assert decoded == data
-
-    def test_decode_html_response(self) -> None:
-        """Test decoding reconstructs an HTMLResponse."""
-        payload = json.dumps(
-            {"type": "HTMLResponse", "body": "<p>Hi</p>", "status_code": 200, "media_type": "text/html", "headers": {}}
-        ).encode("utf-8")
-
-        result = HTMLCoder.decode(payload)
-
-        assert isinstance(result, HTMLResponse)
-
-    def test_decode_regular_data(self) -> None:
-        """Test decoding regular JSON data returns the original value."""
-        data = {"key": "value"}
-        encoded = json.dumps(data).encode("utf-8")
-
-        result = HTMLCoder.decode(encoded)
-
-        assert result == data
-
-    def test_decode_string_input(self) -> None:
-        """Test decoding handles string (not bytes) input."""
-        data = [1, 2, 3]
-        encoded_str = json.dumps(data)
-
-        result = HTMLCoder.decode(encoded_str)
-
-        assert result == data
-
-
-class TestInitFastapiCache:
-    """Tests for init_fastapi_cache."""
+class TestCacheLifecycle:
+    """Tests for init_cache."""
 
     def test_init_with_redis_client(self) -> None:
         """Test cache init uses Redis backend when redis_client is provided."""
@@ -76,7 +28,7 @@ class TestInitFastapiCache:
             mock_settings.enable_caching = True
             mock_settings.cache_url = "redis://cache"
             with patch.dict(_cache_state, {"initialized": False}):
-                init_fastapi_cache(redis_client)
+                init_cache(redis_client)
 
             mock_setup.assert_called_once_with("redis://cache")
 
@@ -85,7 +37,7 @@ class TestInitFastapiCache:
         with patch("app.core.cache.settings") as mock_settings, patch.object(_backend, "setup") as mock_setup:
             mock_settings.enable_caching = True
             with patch.dict(_cache_state, {"initialized": False}):
-                init_fastapi_cache(None)
+                init_cache(None)
 
             mock_setup.assert_called_once_with("mem://")
 
@@ -95,17 +47,17 @@ class TestInitFastapiCache:
             mock_settings.enable_caching = False
             mock_settings.environment = "testing"
             with patch.dict(_cache_state, {"initialized": False}):
-                init_fastapi_cache(None)
+                init_cache(None)
 
             mock_setup.assert_called_once_with("mem://")
 
-    async def test_close_fastapi_cache(self) -> None:
+    async def test_close_cache(self) -> None:
         """Closing the shared cache should close the backend when initialized."""
         with (
             patch.dict(_cache_state, {"initialized": True}),
             patch.object(_backend, "close", AsyncMock()) as mock_close,
         ):
-            await close_fastapi_cache()
+            await close_cache()
 
             mock_close.assert_awaited_once()
 
@@ -124,3 +76,44 @@ class TestClearCacheNamespace:
             await clear_cache_namespace("test-namespace")
 
             mock_delete.assert_awaited_once_with("test-cache:test-namespace:*")
+
+
+class TestCachePrimitives:
+    """Tests for the public key-value cache primitives."""
+
+    def test_cache_namespace_uses_configured_prefix(self) -> None:
+        """Namespaces should be rooted under the configured cache prefix."""
+        with patch("app.core.cache.settings") as mock_settings:
+            mock_settings.cache.prefix = "test-cache"
+
+            assert cache_namespace("profiles") == "test-cache:profiles"
+
+    def test_make_key_joins_namespace_and_parts(self) -> None:
+        """make_key should colon-join the namespace with stringified parts."""
+        with patch("app.core.cache.settings") as mock_settings:
+            mock_settings.cache.prefix = "test-cache"
+
+            assert make_key("profiles", "profile", 42) == "test-cache:profiles:profile:42"
+
+    async def test_cache_get_set_delete_exact_key(self) -> None:
+        """Exact key helpers should delegate to the shared backend."""
+        with (
+            patch.object(_backend, "get", AsyncMock(return_value={"value": 1})) as mock_get,
+            patch.object(_backend, "set", AsyncMock()) as mock_set,
+            patch.object(_backend, "delete", AsyncMock()) as mock_delete,
+        ):
+            await cache_set("key", {"value": 1}, expire=60)
+            value = await cache_get("key", default=None)
+            await cache_delete("key")
+
+            assert value == {"value": 1}
+            mock_set.assert_awaited_once_with("key", {"value": 1}, expire=60)
+            mock_get.assert_awaited_once_with("key", default=None)
+            mock_delete.assert_awaited_once_with("key")
+
+    async def test_cache_delete_pattern(self) -> None:
+        """Pattern deletion should delegate to backend delete_match."""
+        with patch.object(_backend, "delete_match", AsyncMock()) as mock_delete_match:
+            await cache_delete_pattern("test-cache:profiles:*")
+
+            mock_delete_match.assert_awaited_once_with("test-cache:profiles:*")

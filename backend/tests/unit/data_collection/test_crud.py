@@ -81,6 +81,7 @@ class TestProductCrud:
         with (
             patch("app.api.data_collection.crud.product_commands.require_models"),
             patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
+            patch("app.api.data_collection.crud.product_commands.invalidate_profile_cache") as invalidate_cache,
         ):
             result = await create_product(mock_session, product_create, owner_id)
 
@@ -90,6 +91,7 @@ class TestProductCrud:
 
         mock_session.add.assert_called()
         assert mock_session.commit.call_count >= 1
+        invalidate_cache.assert_awaited_once_with(owner_id)
 
     async def test_get_product_trees(self, mock_session: AsyncMock) -> None:
         """Test retrieving product trees."""
@@ -110,36 +112,43 @@ class TestProductCrud:
         product_update = ProductUpdate(name="Bosch GSR 18V-90 C")
 
         db_product = ProductFactory.build(id=product_id, name="Bosch PSR 1800 LI-2")
+        db_product.owner_id = uuid4()
 
         with (
             patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
             patch("app.api.data_collection.crud.product_commands.require_models", return_value=[]),
             patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
+            patch("app.api.data_collection.crud.product_commands.invalidate_profile_cache") as invalidate_cache,
         ):
             result = await update_product(mock_session, product_id, product_update)
             assert result.name == "Bosch GSR 18V-90 C"
             assert mock_session.add.call_count >= 1
             assert mock_session.commit.call_count >= 1
+            invalidate_cache.assert_awaited_once_with(db_product.owner_id)
 
     async def test_delete_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful product deletion."""
         product_id = 1
         db_product = ProductFactory.build(id=product_id)
+        db_product.owner_id = uuid4()
 
         with (
             patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
             patch("app.api.data_collection.crud.product_commands.delete_all_product_files"),
             patch("app.api.data_collection.crud.product_commands.delete_all_product_images"),
             patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
+            patch("app.api.data_collection.crud.product_commands.invalidate_profile_cache") as invalidate_cache,
         ):
             await delete_product(mock_session, product_id)
             mock_session.delete.assert_called_once_with(db_product)
             assert mock_session.commit.call_count >= 1
+            invalidate_cache.assert_awaited_once_with(db_product.owner_id)
 
     async def test_create_component_success(self, mock_session: AsyncMock) -> None:
         """Test successful component creation."""
         owner_id = uuid4()
         parent_product = ProductFactory.build(id=1, owner_id=owner_id)
+        parent_product.owner_id = owner_id
 
         comp_create = ComponentCreateWithComponents(
             name="Comp",
@@ -161,7 +170,9 @@ class TestProductCrud:
         with patch("app.api.data_collection.crud.product_commands.require_models"):
             res = await create_component(mock_session, comp_create, parent_product)
             assert res.name == "Comp"
+            # Components denormalize their parent's owner_id.
             assert res.owner_id == owner_id
+            assert res.parent is parent_product
 
     async def test_create_product_tree_requires_owner(self, mock_session: AsyncMock) -> None:
         """The shared tree helper should reject creation attempts without an owner id."""

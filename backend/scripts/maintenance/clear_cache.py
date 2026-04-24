@@ -14,7 +14,7 @@ import asyncio
 import logging
 import sys
 
-from app.core.cache import clear_cache_namespace, init_fastapi_cache
+from app.core.cache import clear_cache_namespace, init_cache
 from app.core.config import CacheNamespace
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
@@ -38,7 +38,7 @@ async def clear_cache(namespace: CacheNamespace) -> int:
         logger.warning("Redis unavailable; cache not cleared.")
         return 1
 
-    init_fastapi_cache(redis_client)
+    init_cache(redis_client)
     await clear_cache_namespace(namespace)
     await close_redis(redis_client)
 
