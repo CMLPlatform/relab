@@ -17,7 +17,7 @@ from app.api.common.routers.file_mounts import mount_static_directories, registe
 from app.api.file_storage.services.manager import FileCleanupManager
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager, set_connection_manager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import set_blocking_redis
-from app.core.cache import close_fastapi_cache, init_fastapi_cache
+from app.core.cache import close_cache, init_cache
 from app.core.clients import create_http_client
 from app.core.config import settings
 from app.core.database import async_engine, async_sessionmaker_factory
@@ -58,7 +58,7 @@ async def _initialize_cache_services(services: AppServices) -> None:
     """Initialize Redis-backed services."""
     services.redis = await init_redis()
     services.email_checker = await init_email_checker(services.redis)
-    init_fastapi_cache(services.redis)
+    init_cache(services.redis)
 
     services.blocking_redis = await init_blocking_redis()
     set_blocking_redis(services.blocking_redis)
@@ -121,7 +121,7 @@ async def _shutdown_cache_services(services: AppServices) -> None:
     await _close_redis_client(services.blocking_redis, "blocking")
 
     try:
-        await close_fastapi_cache()
+        await close_cache()
     except RuntimeError as e:
         logger.warning("Error closing endpoint cache: %s", e)
 

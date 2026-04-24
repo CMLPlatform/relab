@@ -20,39 +20,39 @@ async def recompute_user_stats(session: AsyncSession, user_id: UUID4) -> dict[st
     """Recompute statistics for a given user and update their stats_cache.
 
     Stats included:
-    - product_count: Total number of products owned.
-    - total_weight_kg: Sum of product weights in kilograms.
+    - product_count: Total number of base products owned.
+    - total_weight_kg: Sum of base product weights in kilograms.
     - image_count: Total images uploaded for all products.
     - top_category: Most frequent product type name.
     """
-    # 1. Product count and weight
+    # 1. Base product count and weight. Components are rows in the same table,
+    # so including them would count both a disassembled product and its parts.
     # We use coalesce(sum(...), 0) to handle users with no products
     stmt = select(
         func.count(Product.id).label("product_count"), func.sum(Product.weight_g).label("total_weight_g")
-    ).where(Product.owner_id == user_id)
+    ).where(Product.owner_id == user_id, Product.parent_id.is_(None))
 
     res = await session.execute(stmt)
     row = res.fetchone()
     product_count = row.product_count if row else 0
     total_weight_kg = (row.total_weight_g / 1000.0) if row and row.total_weight_g else 0.0
 
-    # 2. Image count
-    # Join with Product to only count images for products owned by this user
+    # 2. Image count. Every product row carries the denormalized owner (components
+    # inherit their base product's owner_id), so a flat join is enough.
     image_stmt = (
         select(func.count(Image.id))
         .join(Product, (Product.id == Image.parent_id) & (Image.parent_type == MediaParentType.PRODUCT))
         .where(Product.owner_id == user_id)
     )
-
     image_res = await session.execute(image_stmt)
     image_count = image_res.scalar_one_or_none() or 0
 
     # 3. Top category
-    # Find most frequent product_type_id among user's products
+    # Find most frequent product_type_id among user's base products.
     top_cat_stmt = (
         select(ProductType.name)
         .join(Product, Product.product_type_id == ProductType.id)
-        .where(Product.owner_id == user_id)
+        .where(Product.owner_id == user_id, Product.parent_id.is_(None))
         .group_by(ProductType.name)
         .order_by(func.count(Product.id).desc())
         .limit(1)

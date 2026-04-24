@@ -1,4 +1,4 @@
-"""Cache utilities for FastAPI endpoints and async methods.
+"""Cache utilities for async functions and FastAPI endpoints.
 
 This module keeps the app-facing cache API small and stable while using
 ``cashews`` underneath for storage and TTL handling.
@@ -7,13 +7,11 @@ This module keeps the app-facing cache API small and stable while using
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
 
 from cashews import Cache
-from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import Response
@@ -31,48 +29,12 @@ logger = logging.getLogger(__name__)
 P = ParamSpec("P")
 T = TypeVar("T")
 
-_HTML_RESPONSE_TYPE = "HTMLResponse"
 _MEMORY_CACHE_BACKEND = "mem://"
 _ETAG_WILDCARD = "*"
+_SUCCESS_STATUS_MAX = 299
 _MISSING = object()
 _backend = Cache()
 _cache_state = {"initialized": False}
-
-JSONValue = HTMLResponse | dict[str, Any] | list[Any] | str | float | bool | None
-
-
-class HTMLCoder:
-    """Custom coder for caching HTMLResponse objects."""
-
-    @classmethod
-    def encode(cls, value: JSONValue) -> bytes:
-        """Encode value to bytes, handling HTMLResponse objects specially."""
-        if isinstance(value, HTMLResponse):
-            data: dict[str, Any] = {
-                "type": _HTML_RESPONSE_TYPE,
-                "body": value.body.decode("utf-8") if isinstance(value.body, bytes) else value.body,
-                "status_code": value.status_code,
-                "media_type": value.media_type,
-                "headers": dict(value.headers),
-            }
-            return json.dumps(data).encode("utf-8")
-        return json.dumps(value).encode("utf-8")
-
-    @classmethod
-    def decode(cls, value: bytes | str) -> JSONValue:
-        """Decode bytes to Python object, reconstructing HTMLResponse objects."""
-        if isinstance(value, bytes):
-            value = value.decode("utf-8")
-
-        data = json.loads(value)
-        if isinstance(data, dict) and data.get("type") == _HTML_RESPONSE_TYPE:
-            return HTMLResponse(
-                content=data["body"],
-                status_code=data.get("status_code", 200),
-                media_type=data.get("media_type", "text/html"),
-                headers=data.get("headers"),
-            )
-        return data
 
 
 _EXCLUDED_TYPES = (AsyncSession, Request, Response)
@@ -97,28 +59,37 @@ def _log_cache_backend_selection(redis_client: Redis | None, backend_location: s
     logger.info("Endpoint cache initialized with Redis backend")
 
 
-async def _get_cached_result(key: str, coder: type[HTMLCoder] | None) -> T | JSONValue | object:
-    """Read and decode a cached result when present."""
-    cached_value = await _backend.get(key, default=_MISSING)
-    if cached_value is _MISSING:
-        return _MISSING
-    if coder is not None:
-        return coder.decode(cast("bytes | str", cached_value))
-    return cast("T", cached_value)
-
-
-async def _set_cached_result[T](key: str, result: T, *, expire: int, coder: type[HTMLCoder] | None) -> None:
-    """Encode and store a cached result."""
-    value_to_store = coder.encode(cast("JSONValue", result)) if coder is not None else result
-    await _backend.set(key, value_to_store, expire=expire)
-
-
-def _cache_namespace(namespace: str = "") -> str:
+def cache_namespace(namespace: str = "") -> str:
     """Build a storage namespace under the configured cache prefix."""
     return f"{settings.cache.prefix}:{namespace}" if namespace else settings.cache.prefix
 
 
-def key_builder_excluding_dependencies(
+def make_key(namespace: str, *parts: object) -> str:
+    """Build an exact cache key rooted under ``namespace``."""
+    return ":".join([cache_namespace(namespace), *(str(part) for part in parts)])
+
+
+async def cache_get[T](key: str, *, default: T | None = None) -> T | None:
+    """Return an exact cache entry, or ``default`` when missing."""
+    return await _backend.get(key, default=default)
+
+
+async def cache_set[T](key: str, value: T, *, expire: int) -> None:
+    """Store an exact cache entry."""
+    await _backend.set(key, value, expire=expire)
+
+
+async def cache_delete(key: str) -> None:
+    """Delete an exact cache entry."""
+    await _backend.delete(key)
+
+
+async def cache_delete_pattern(pattern: str) -> None:
+    """Delete cache entries matching a fully-qualified backend pattern."""
+    await _backend.delete_match(pattern)
+
+
+def _cache_key_excluding_dependencies(
     func: Callable[..., Any],
     namespace: str = "",
     *,
@@ -161,11 +132,15 @@ def _cached_not_modified_response(request: Request | None, cached_value: object)
     return Response(status_code=304, headers=dict(cached_value.headers))
 
 
+def _cacheable_result(result: object) -> bool:
+    """Return whether a function result should be stored as the canonical cached value."""
+    return not isinstance(result, Response) or result.status_code <= _SUCCESS_STATUS_MAX
+
+
 def cache(
     *,
     expire: int,
     namespace: str = "",
-    coder: type[HTMLCoder] | None = None,
 ) -> Callable[[Callable[P, Awaitable[T]]], Callable[P, Awaitable[T]]]:
     """Cache async endpoint/function results with ``cashews``."""
 
@@ -176,20 +151,21 @@ def cache(
             if not isinstance(request, Request):
                 request = next((arg for arg in args if isinstance(arg, Request)), None)
 
-            key = key_builder_excluding_dependencies(
+            key = _cache_key_excluding_dependencies(
                 func,
-                namespace=_cache_namespace(namespace),
+                namespace=cache_namespace(namespace),
                 args=args,
                 kwargs=dict(kwargs),
             )
-            cached_value = await _get_cached_result(key, coder)
+            cached_value = await _backend.get(key, default=_MISSING)
             if cached_value is not _MISSING:
                 if response := _cached_not_modified_response(request, cast("T", cached_value)):
                     return cast("T", response)
                 return cast("T", cached_value)
 
             result = await func(*args, **kwargs)
-            await _set_cached_result(key, result, expire=expire, coder=coder)
+            if _cacheable_result(result):
+                await cache_set(key, result, expire=expire)
             return result
 
         return wrapper
@@ -197,8 +173,8 @@ def cache(
     return decorator
 
 
-def init_fastapi_cache(redis_client: Redis | None) -> None:
-    """Initialize the shared cache backend for endpoint caching."""
+def init_cache(redis_client: Redis | None) -> None:
+    """Initialize the shared cache backend."""
     if _cache_state["initialized"]:
         return
 
@@ -213,7 +189,7 @@ def init_fastapi_cache(redis_client: Redis | None) -> None:
         _cache_state["initialized"] = True
 
 
-async def close_fastapi_cache() -> None:
+async def close_cache() -> None:
     """Close any open cache backend resources."""
     if not _cache_state["initialized"]:
         return
@@ -224,5 +200,5 @@ async def close_fastapi_cache() -> None:
 
 async def clear_cache_namespace(namespace: str) -> None:
     """Clear all cache entries for a specific namespace."""
-    await _backend.delete_match(f"{_cache_namespace(namespace)}:*")
+    await cache_delete_pattern(f"{cache_namespace(namespace)}:*")
     logger.info("Cleared cache namespace: %s", sanitize_log_value(namespace))

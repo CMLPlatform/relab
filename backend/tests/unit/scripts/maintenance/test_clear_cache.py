@@ -39,7 +39,7 @@ class TestClearCacheScript:
     ) -> None:
         """A valid Redis connection should initialize, clear, and close cleanly."""
         redis_client = object()
-        init_fastapi_cache_mock = mocker.patch.object(clear_cache_script, "init_fastapi_cache")
+        init_cache_mock = mocker.patch.object(clear_cache_script, "init_cache")
         clear_namespace_mock = mocker.AsyncMock()
         close_redis_mock = mocker.AsyncMock()
 
@@ -50,7 +50,7 @@ class TestClearCacheScript:
         exit_code = await clear_cache_script.clear_cache(CacheNamespace.BACKGROUND_DATA)
 
         assert exit_code == 0
-        init_fastapi_cache_mock.assert_called_once_with(redis_client)
+        init_cache_mock.assert_called_once_with(redis_client)
         clear_namespace_mock.assert_awaited_once_with(CacheNamespace.BACKGROUND_DATA)
         close_redis_mock.assert_awaited_once_with(redis_client)
 
