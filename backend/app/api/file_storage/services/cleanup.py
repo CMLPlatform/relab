@@ -3,7 +3,6 @@
 import logging
 import time
 from pathlib import Path
-from typing import cast
 
 from anyio import Path as AnyIOPath
 from sqlalchemy import select
@@ -14,6 +13,11 @@ from app.core.config import settings
 from app.core.images import THUMBNAIL_WIDTHS, thumbnail_path_for
 
 logger = logging.getLogger(__name__)
+
+
+def _path_as_str(path: AnyIOPath) -> str:
+    """Typed sort key for AnyIOPath — ``str`` itself is overloaded and confuses the checker."""
+    return str(path)
 
 
 async def _resolve_storage_path(path_like: object, *, storage_dir: Path | str | None = None) -> AnyIOPath | None:
@@ -106,7 +110,7 @@ async def get_unreferenced_files(session: AsyncSession) -> list[AnyIOPath]:
     """
     referenced = await get_referenced_files(session)
     on_disk = await get_files_on_disk()
-    return cast("list[AnyIOPath]", sorted(on_disk - referenced, key=str))
+    return sorted(on_disk - referenced, key=_path_as_str)
 
 
 async def cleanup_unreferenced_files(session: AsyncSession, *, dry_run: bool = True) -> list[AnyIOPath]:

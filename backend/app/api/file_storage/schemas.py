@@ -1,7 +1,7 @@
 """Pydantic models used to validate file storage CRUD operations."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, Self
 from urllib.parse import quote
 
 from fastapi import UploadFile
@@ -65,7 +65,7 @@ def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url
 
 def _build_image_urls(
     file_path: str | None,
-    image_id: int | None,
+    image_id: object,
     storage_root: Path,
 ) -> tuple[str | None, str | None]:
     """Build image_url and thumbnail_url with a single filesystem existence check.
@@ -112,33 +112,16 @@ class FileReadWithinParent(UUIDIdReadSchemaWithTimeStamp, FileBase):
     model_config = ConfigDict(json_schema_extra={"examples": FILE_READ_WITHIN_PARENT_EXAMPLES})
 
     filename: str
-    file_url: str | None
+    file: Any = Field(default=None, exclude=True)
+    file_url: str | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def populate_file_url(cls, data: object) -> object:
-        """Populate ``file_url`` when validating directly from an ORM row."""
-        if isinstance(data, dict):
-            payload = cast("dict[str, Any]", data)
-            if payload.get("file_url") is not None:
-                return payload
-            file_path = getattr(payload.get("file"), "path", None)
-            return {
-                **payload,
-                "file_url": _build_storage_url(file_path, settings.file_storage_path, "/uploads/files"),
-            }
-
-        file_path = getattr(getattr(data, "file", None), "path", None)
-        return {
-            "id": getattr(data, "id", None),
-            "description": getattr(data, "description", None),
-            "filename": getattr(data, "filename", None),
-            "file_url": _build_storage_url(file_path, settings.file_storage_path, "/uploads/files"),
-            "created_at": getattr(data, "created_at", None),
-            "updated_at": getattr(data, "updated_at", None),
-            "parent_id": getattr(data, "parent_id", None),
-            "parent_type": getattr(data, "parent_type", None),
-        }
+    @model_validator(mode="after")
+    def _derive_file_url(self) -> Self:
+        """Derive file_url from the underlying storage path when the caller didn't supply one."""
+        if self.file_url is None:
+            file_path = getattr(self.file, "path", None)
+            self.file_url = _build_storage_url(file_path, settings.file_storage_path, "/uploads/files")
+        return self
 
 
 class FileRead(FileReadWithinParent):
@@ -175,36 +158,19 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
     model_config = ConfigDict(json_schema_extra={"examples": IMAGE_READ_WITHIN_PARENT_EXAMPLES})
 
     filename: str
-    image_url: str | None
+    file: Any = Field(default=None, exclude=True)
+    image_url: str | None = None
     thumbnail_url: str | None = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def populate_image_urls(cls, data: object) -> object:
-        """Populate image URLs when validating directly from an ORM row."""
-        if isinstance(data, dict):
-            payload = cast("dict[str, Any]", data)
-            if payload.get("image_url") is not None:
-                return payload
-            file_path = getattr(payload.get("file"), "path", None)
-            image_url, thumbnail_url = _build_image_urls(file_path, payload.get("id"), settings.image_storage_path)
-            return {**payload, "image_url": image_url, "thumbnail_url": thumbnail_url}
-
-        item_id = getattr(data, "id", None)
-        file_path = getattr(getattr(data, "file", None), "path", None)
-        image_url, thumbnail_url = _build_image_urls(file_path, item_id, settings.image_storage_path)
-        return {
-            "id": item_id,
-            "description": getattr(data, "description", None),
-            "image_metadata": getattr(data, "image_metadata", None),
-            "filename": getattr(data, "filename", None),
-            "image_url": image_url,
-            "thumbnail_url": thumbnail_url,
-            "created_at": getattr(data, "created_at", None),
-            "updated_at": getattr(data, "updated_at", None),
-            "parent_id": getattr(data, "parent_id", None),
-            "parent_type": getattr(data, "parent_type", None),
-        }
+    @model_validator(mode="after")
+    def _derive_image_urls(self) -> Self:
+        """Derive image and thumbnail URLs when the caller didn't supply them."""
+        if self.image_url is None:
+            file_path = getattr(self.file, "path", None)
+            self.image_url, self.thumbnail_url = _build_image_urls(
+                file_path, self.id, settings.image_storage_path
+            )
+        return self
 
 
 class ImageRead(ImageReadWithinParent):

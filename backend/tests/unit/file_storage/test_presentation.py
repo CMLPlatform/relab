@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from app.api.file_storage.crud.support_paths import storage_item_exists
 from app.api.file_storage.models import File, Image, MediaParentType
-from app.api.file_storage.models.storage_types import FileType, ImageType
 from app.api.file_storage.schemas import FileReadWithinParent, ImageRead, ImageReadWithinParent
 from app.core.config import settings
 
@@ -16,6 +15,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     import pytest
+
+
+@dataclass(frozen=True)
+class FakeStoredFile:
+    """Typed stand-in for StorageFile/StorageImage — exposes only what helpers read."""
+
+    path: str
 
 
 def test_file_read_within_parent_model_validate_returns_public_url(
@@ -32,7 +38,7 @@ def test_file_read_within_parent_model_validate_returns_public_url(
     file = File(
         id=uuid4(),
         filename="example.txt",
-        file=cast("FileType", SimpleNamespace(path=str(stored_file))),
+        file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
@@ -56,7 +62,7 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
     image = Image(
         id=image_id,
         filename="example.png",
-        file=cast("ImageType", SimpleNamespace(path=str(stored_file))),
+        file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
@@ -80,7 +86,7 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
     image = Image(
         id=image_id,
         filename="example.png",
-        file=cast("ImageType", SimpleNamespace(path=str(stored_file))),
+        file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
@@ -101,7 +107,7 @@ def test_missing_storage_file_returns_no_urls(tmp_path: Path, monkeypatch: pytes
     file = File(
         id=uuid4(),
         filename="ghost.txt",
-        file=cast("FileType", SimpleNamespace(path=str(missing_path))),
+        file=FakeStoredFile(path=str(missing_path)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )

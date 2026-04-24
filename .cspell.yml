@@ -95,6 +95,7 @@ overrides:
       # Technical terms
       - instrumentor
       - instrumentors
+      - joinedload
       - piexif
       - PYTHONDONTWRITEBYTECODE
       - PYTHONUNBUFFERED

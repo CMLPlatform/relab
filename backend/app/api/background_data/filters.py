@@ -1,13 +1,18 @@
 """FastAPI-Filter schemas for filtering database queries on background data models."""
 
-from typing import Any, cast
+from typing import TYPE_CHECKING
 
 from fastapi_filter import FilterDepends, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
-from sqlalchemy import ColumnElement
 
 from app.api.background_data.models import Category, Material, ProductType, Taxonomy
+from app.api.common.sa_typing import column_expr
 from app.api.common.search_utils import TSVectorSearchMixin
+
+if TYPE_CHECKING:
+    from typing import Any
+
+    from sqlalchemy import ColumnElement
 
 
 class TaxonomyFilter(Filter):
@@ -49,7 +54,7 @@ class CategoryFilter(TSVectorSearchMixin, Filter):
 
     @classmethod
     def _search_vector_col(cls) -> ColumnElement[Any]:
-        return cast("ColumnElement[Any]", Category.search_vector)
+        return column_expr(Category.search_vector)
 
     @classmethod
     def _trigram_cols(cls) -> list[Any]:
@@ -85,7 +90,7 @@ class MaterialFilter(TSVectorSearchMixin, Filter):
 
     @classmethod
     def _search_vector_col(cls) -> ColumnElement[Any]:
-        return cast("ColumnElement[Any]", Material.search_vector)
+        return column_expr(Material.search_vector)
 
     @classmethod
     def _trigram_cols(cls) -> list[Any]:
@@ -118,7 +123,7 @@ class ProductTypeFilter(TSVectorSearchMixin, Filter):
 
     @classmethod
     def _search_vector_col(cls) -> ColumnElement[Any]:
-        return cast("ColumnElement[Any]", ProductType.search_vector)
+        return column_expr(ProductType.search_vector)
 
     @classmethod
     def _trigram_cols(cls) -> list[Any]:

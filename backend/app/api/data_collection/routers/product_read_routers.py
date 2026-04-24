@@ -226,7 +226,7 @@ async def _list_direct_components(
     """List direct child components for a product."""
     statement = select(Product).where(Product.parent_id == product_id)
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-    statement = product_filter.filter(statement)
+    statement = apply_filter(statement, Product, product_filter)
     return list((await session.execute(statement)).scalars().unique().all())
 
 

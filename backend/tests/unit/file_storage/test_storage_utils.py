@@ -37,11 +37,12 @@ class TestFileStorageCrudUtils:
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = MY_DOC_RAW
 
-        file, file_id, original = process_uploadfile_name(mock_file)
+        file, file_id, original, stored = process_uploadfile_name(mock_file)
 
         assert original == MY_DOC_PDF
         assert file_id is not None
-        assert file.filename == f"{file_id.hex}_{MY_DOC_PDF}"
+        assert stored == f"{file_id.hex}_{MY_DOC_PDF}"
+        assert file.filename == stored
 
     def test_process_uploadfile_name_empty(self) -> None:
         """Test UploadFile name processing with empty filename."""

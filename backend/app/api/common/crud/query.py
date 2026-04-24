@@ -13,6 +13,7 @@ from app.api.common.crud.loading import LoaderProfile, apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.models.custom_types import IDT, MT
+from app.api.common.sa_typing import column_expr
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -84,7 +85,7 @@ async def require_models(
         err_msg = f"{model} does not have an 'id' attribute"
         raise CRUDConfigurationError(err_msg)
 
-    statement = select(model).where(cast("Any", model).id.in_(model_ids))
+    statement = select(model).where(column_expr(model.id).in_(model_ids))  # type: ignore[attr-defined]
     found_models = list((await db.execute(statement)).scalars().all())
     if len(found_models) != len(model_ids):
         found_ids: set[int | UUID] = {cast("int | UUID", db_model.__dict__["id"]) for db_model in found_models}

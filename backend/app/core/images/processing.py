@@ -16,11 +16,11 @@ from .exif import _clean_exif_bytes, _get_exif_orientation
 from .validation import validate_image_dimensions
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from os import PathLike
     from typing import Any
 
 
-def process_image_for_storage(image_path: Path) -> None:
+def process_image_for_storage(image_path: PathLike[str]) -> None:
     """Process an uploaded image in-place for storage."""
     with PILImage.open(image_path) as img:
         original_format = img.format or FORMAT_JPEG
@@ -63,7 +63,7 @@ def process_image_for_storage(image_path: Path) -> None:
     processed.save(image_path, **save_kwargs)
 
 
-def resize_image(image_path: Path, width: int | None = None, height: int | None = None) -> bytes:
+def resize_image(image_path: PathLike[str], width: int | None = None, height: int | None = None) -> bytes:
     """Resize an image while maintaining aspect ratio, returning WebP bytes."""
     with PILImage.open(image_path) as img:
         current_width, current_height = img.size

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -14,32 +12,17 @@ from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
 from app.api.plugins.rpi_cam.services import YouTubeService
 from tests.factories.models import UserFactory
+from tests.unit.plugins.rpi_cam.service_test_support import (
+    GoogleOAuthClientStub,
+    HTTPClientStub,
+    OAuthAccountStub,
+    YouTubeServiceFixture,
+)
 
 if TYPE_CHECKING:
+    from unittest.mock import AsyncMock
+
     from app.api.auth.models import User
-
-
-@dataclass
-class OAuthAccountStub:
-    """Typed OAuth account stub for service tests."""
-
-    access_token: str
-    refresh_token: str | None
-    expires_at: float | None
-
-
-class GoogleOAuthClientStub:
-    """Typed Google OAuth client stub for service tests."""
-
-    def __init__(self) -> None:
-        self.refresh_token = AsyncMock()
-
-
-class HTTPClientStub:
-    """Typed HTTP client stub for service tests."""
-
-    def __init__(self) -> None:
-        self.request = AsyncMock()
 
 
 @pytest.fixture
@@ -65,18 +48,25 @@ def mock_oauth_account() -> OAuthAccountStub:
 
 
 @pytest.fixture
-def youtube_service(
+def youtube_fx(
     mock_oauth_account: OAuthAccountStub,
     mock_google_oauth_client: GoogleOAuthClientStub,
     mock_session: AsyncMock,
     mock_http_client: HTTPClientStub,
-) -> YouTubeService:
-    """Build a YouTubeService with stubbed dependencies."""
-    return YouTubeService(
+) -> YouTubeServiceFixture:
+    """Return a YouTubeService under test together with its typed stub dependencies."""
+    service = YouTubeService(
         cast("Any", mock_oauth_account),
         cast("Any", mock_google_oauth_client),
         cast("Any", mock_session),
         cast("Any", mock_http_client),
+    )
+    return YouTubeServiceFixture(
+        service=service,
+        oauth_account=mock_oauth_account,
+        google_client=mock_google_oauth_client,
+        session=cast("Any", mock_session),
+        http_client=mock_http_client,
     )
 
 

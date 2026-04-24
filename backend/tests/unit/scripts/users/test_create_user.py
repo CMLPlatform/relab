@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from argparse import Namespace
 from contextlib import asynccontextmanager
-from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -106,7 +106,7 @@ class TestCreateUserScript:
         """The CLI entrypoint should delegate to anyio.run with parsed args."""
         run_mock = mocker.patch.object(create_user_script.anyio, "run")
 
-        monkeypatch_ns = SimpleNamespace(email="x@y.com", username="bob", password="pw")
+        monkeypatch_ns = Namespace(email="x@y.com", username="bob", password="pw")
         mocker.patch.object(create_user_script, "parse_args", return_value=monkeypatch_ns)
 
         create_user_script.main()

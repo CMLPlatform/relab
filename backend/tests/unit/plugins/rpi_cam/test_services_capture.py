@@ -1,9 +1,10 @@
 """Unit tests for RPi Cam image capture service helpers."""
 # spell-checker: ignore excinfo
+# ruff: noqa: ANN401 — shared mock_session fixture is typed as Any by design
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -11,10 +12,13 @@ import pytest
 
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
 from app.api.plugins.rpi_cam.services import capture_and_store_image
-from tests.unit.plugins.rpi_cam.service_test_support import CAPTURE_TIME, SessionStub
+from tests.unit.plugins.rpi_cam.service_test_support import CAPTURE_TIME
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
-async def test_capture_and_store_image_success(mock_session: SessionStub) -> None:
+async def test_capture_and_store_image_success(mock_session: Any) -> None:
     """Happy path: Pi returns status=uploaded and the stored Image is fetched by id."""
     image_uuid = uuid4()
     expected_image = MagicMock()
@@ -31,7 +35,7 @@ async def test_capture_and_store_image_success(mock_session: SessionStub) -> Non
         mock_camera_request = AsyncMock(return_value=mock_capture_resp)
 
         result = await capture_and_store_image(
-            session=cast("Any", mock_session),
+            session=mock_session,
             camera_request=mock_camera_request,
             product_id=1,
             description="unit test",
@@ -47,7 +51,7 @@ async def test_capture_and_store_image_success(mock_session: SessionStub) -> Non
     assert result is expected_image
 
 
-async def test_capture_raises_when_pi_queued_the_image(mock_session: SessionStub) -> None:
+async def test_capture_raises_when_pi_queued_the_image(mock_session: Any) -> None:
     """A queued Pi response should surface as InvalidCameraResponseError."""
     with patch("app.api.plugins.rpi_cam.service_runtime.require_model"):
         mock_capture_resp = MagicMock()
@@ -61,7 +65,7 @@ async def test_capture_raises_when_pi_queued_the_image(mock_session: SessionStub
 
         with pytest.raises(InvalidCameraResponseError) as excinfo:
             await capture_and_store_image(
-                session=cast("Any", mock_session),
+                session=mock_session,
                 camera_request=mock_camera_request,
                 product_id=1,
             )
@@ -70,7 +74,7 @@ async def test_capture_raises_when_pi_queued_the_image(mock_session: SessionStub
     assert "queued" in excinfo.value.details
 
 
-async def test_capture_raises_when_image_missing_from_db(mock_session: SessionStub) -> None:
+async def test_capture_raises_when_image_missing_from_db(mock_session: Any) -> None:
     """If the backend DB has no row for the reported id, surface a clean error."""
     image_uuid = uuid4()
     mock_session.get = AsyncMock(return_value=None)
@@ -87,7 +91,7 @@ async def test_capture_raises_when_image_missing_from_db(mock_session: SessionSt
 
         with pytest.raises(InvalidCameraResponseError) as excinfo:
             await capture_and_store_image(
-                session=cast("Any", mock_session),
+                session=mock_session,
                 camera_request=mock_camera_request,
                 product_id=1,
             )

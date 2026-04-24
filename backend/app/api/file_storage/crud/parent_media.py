@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.common.models.custom_types import MT
+from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
     FastAPIStorageFileNotFoundError,
 )
@@ -46,7 +46,7 @@ def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
 async def list_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
@@ -76,7 +76,7 @@ async def list_parent_media[StorageModelT: StorageModel](
 async def get_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
     storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -84,7 +84,7 @@ async def get_parent_media[StorageModelT: StorageModel](
     """Get one storage item for a parent, raising when the file is missing."""
     db_item = await get_parent_owned_storage_item(
         db,
-        parent_model=cast("type[MT]", parent_model),
+        parent_model=parent_model,
         model=storage_model,
         parent_id=parent_id,
         item_id=item_id,
@@ -112,7 +112,7 @@ async def create_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
 async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
     storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -121,7 +121,7 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     """Delete one storage item from a parent."""
     await get_parent_owned_storage_item(
         db,
-        parent_model=cast("type[MT]", parent_model),
+        parent_model=parent_model,
         model=storage_model,
         parent_id=parent_id,
         item_id=item_id,
@@ -132,7 +132,7 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
 async def delete_all_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
@@ -157,7 +157,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
     def __init__(
         self,
         *,
-        parent_model: type[object],
+        parent_model: type[Base],
         parent_type: MediaParentType,
         storage_model: type[StorageModelT],
         storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
@@ -188,7 +188,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         """Get a specific storage item for a parent, raising an error if the file is missing."""
         return await get_parent_media(
             db,
-            parent_model=cast("type[MT]", self.parent_model),
+            parent_model=self.parent_model,
             storage_model=self.storage_model,
             parent_id=parent_id,
             item_id=item_id,
@@ -208,11 +208,11 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         """Delete a storage item from a parent."""
         await delete_parent_media(
             db,
-            parent_model=cast("type[MT]", self.parent_model),
+            parent_model=self.parent_model,
             storage_model=self.storage_model,
             parent_id=parent_id,
             item_id=item_id,
-            storage_service=cast("StoredMediaService[StorageModelT, StorageCreateSchema]", self.storage_service),
+            storage_service=self.storage_service,
         )
 
     async def delete_all(self, db: AsyncSession, parent_id: int) -> None:
@@ -223,5 +223,5 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             parent_type=self.parent_type,
             storage_model=self.storage_model,
             parent_id=parent_id,
-            storage_service=cast("StoredMediaService[StorageModelT, StorageCreateSchema]", self.storage_service),
+            storage_service=self.storage_service,
         )

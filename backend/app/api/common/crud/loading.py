@@ -1,5 +1,4 @@
 """Relationship loading helpers for SQLAlchemy CRUD queries."""
-# spell-checker: ignore joinedload
 
 from enum import StrEnum
 from typing import Any, Self, cast
@@ -10,6 +9,7 @@ from sqlalchemy.orm import joinedload, noload, selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.common.crud.exceptions import CRUDConfigurationError
+from app.api.common.models.base import Base
 from app.api.common.models.custom_types import MT
 
 
@@ -52,14 +52,14 @@ def relationship_attr(model: type[MT], name: str) -> QueryableAttribute[Any]:
         raise CRUDConfigurationError(err_msg) from exc
 
 
-def apply_loader_profile(
-    statement: Select,
-    model: type[MT],
+def apply_loader_profile[T, ModelT: Base](
+    statement: Select[tuple[T]],
+    model: type[ModelT],
     loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
     *,
     read_schema: type[BaseModel] | None = None,
     load_strategy: RelationshipLoadStrategy = RelationshipLoadStrategy.SELECTIN,
-) -> Select:
+) -> Select[tuple[T]]:
     """Apply eager/noload options for relationships selected by a loader profile."""
     relationships = _get_model_relationships(model)
     if not relationships:
