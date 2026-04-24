@@ -1,0 +1,9 @@
+name: "RELab CodeQL Config"
+
+queries:
+  - uses: security-and-quality
+
+# Alembic revision files intentionally expose module-level metadata variables such as `revision`
+# and `down_revision`, which trigger recurring false positives for `py/unused-global-variable`.
+paths-ignore:
+  - backend/alembic/**

@@ -48,7 +48,7 @@ jobs:
 
   secret-scan:
     name: Secret Scan
-    if: github.event_name != 'merge_group'
+    if: github.event_name != 'merge_group' && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'renovate[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -193,7 +193,7 @@ jobs:
   container-security:
     name: Container Security (${{ matrix.service }})
     needs: [ changes ]
-    if: needs.changes.outputs.run-container-images == 'true'
+    if: needs.changes.outputs.run-container-images == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'renovate[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:

@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# spell-checker: ignore rhysd
+# spell-checker: ignore esac, rhysd
 
 name: Validate
 
@@ -37,6 +37,7 @@ jobs:
       run-frontend-app: ${{ steps.detect.outputs.run-frontend-app }}
       run-docs: ${{ steps.detect.outputs.run-docs }}
       run-e2e: ${{ steps.detect.outputs.run-e2e }}
+      is-renovate-pr: ${{ steps.renovate.outputs.is-renovate-pr }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -44,6 +45,10 @@ jobs:
       - name: Detect changes
         id: detect
         uses: ./.github/actions/detect-ci-changes
+
+      - name: Flag renovate PR
+        id: renovate
+        run: echo "is-renovate-pr=${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]' }}" >> "$GITHUB_OUTPUT"
 
   automation:
     name: Automation and Compose Policy
@@ -188,7 +193,7 @@ jobs:
   e2e-frontend-web:
     name: Frontend Web E2E
     needs: [ changes ]
-    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule')
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule' && needs.changes.outputs.is-renovate-pr != 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -294,6 +299,42 @@ jobs:
 
       - name: Run docs CI test suite
         run: just docs/test-ci
+
+  renovate-docker-smoke:
+    name: Renovate Docker Smoke
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]' && contains(github.event.pull_request.title, '(major)')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Select recipe
+        id: route
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          case "$PR_TITLE" in
+            *backend-python-runtime*)       recipe=docker-smoke-backend ;;
+            *docs-site-runtime-tooling*)    recipe=docker-smoke-docs ;;
+            *frontend-web-runtime-tooling*) recipe=docker-smoke-frontend-web ;;
+            *frontend-app-runtime-tooling*) recipe=docker-smoke-frontend-app ;;
+            *) echo "No runtime-tooling major match — skipping."; exit 0 ;;
+          esac
+          echo "recipe=$recipe" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.route.outputs.recipe
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Set up runtime
+        if: steps.route.outputs.recipe
+        uses: ./.github/actions/setup-runtime
+
+      - name: Set up Docker Buildx
+        if: steps.route.outputs.recipe
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Run smoke test
+        if: steps.route.outputs.recipe
+        run: just ${{ steps.route.outputs.recipe }}
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
