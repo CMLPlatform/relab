@@ -2,7 +2,7 @@
   "name": "relab-frontend-app",
   "main": "expo-router/entry",
   "version": "0.2.0",
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@10.33.2",
   "engines": {
     "node": "24.x",
     "pnpm": "10.x"
@@ -44,7 +44,7 @@
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/elements": "^2.9.14",
     "@react-navigation/native": "^7.1.33",
-    "@tanstack/react-query": "^5.99.2",
+    "@tanstack/react-query": "^5.100.1",
     "expo": "~55.0.17",
     "expo-auth-session": "~55.0.15",
     "expo-blur": "~55.0.14",
@@ -85,7 +85,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
-    "@biomejs/biome": "^2.4.12",
+    "@biomejs/biome": "^2.4.13",
     "@jest/globals": "~29.7.0",
     "@playwright/test": "^1.59.1",
     "@testing-library/react-native": "^13.3.3",
