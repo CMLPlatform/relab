@@ -2,7 +2,7 @@
   "name": "relab",
   "private": true,
   "version": "0.2.0",
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "pnpm@10.33.2",
   "engines": {
     "node": "24.x",
     "pnpm": "10.x"
@@ -17,7 +17,7 @@
     "syncpack:check": "syncpack lint"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.12",
+    "@biomejs/biome": "^2.4.13",
     "cspell": "^10.0.0",
     "syncpack": "^14.3.0"
   },
