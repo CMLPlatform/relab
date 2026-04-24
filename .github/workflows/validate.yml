@@ -6,9 +6,9 @@ name: Validate
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   merge_group:
   workflow_dispatch:
   schedule:
@@ -31,24 +31,59 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run-policy: ${{ steps.detect.outputs.run-policy }}
-      run-backend: ${{ steps.detect.outputs.run-backend }}
-      run-frontend-web: ${{ steps.detect.outputs.run-frontend-web }}
-      run-frontend-app: ${{ steps.detect.outputs.run-frontend-app }}
-      run-docs: ${{ steps.detect.outputs.run-docs }}
-      run-e2e: ${{ steps.detect.outputs.run-e2e }}
-      is-renovate-pr: ${{ steps.renovate.outputs.is-renovate-pr }}
+      run-policy: ${{ steps.decide.outputs.run-policy }}
+      run-backend: ${{ steps.decide.outputs.run-backend }}
+      run-frontend-web: ${{ steps.decide.outputs.run-frontend-web }}
+      run-frontend-app: ${{ steps.decide.outputs.run-frontend-app }}
+      run-docs: ${{ steps.decide.outputs.run-docs }}
+      run-e2e: ${{ steps.decide.outputs.run-e2e }}
+      is-renovate-pr: ${{ steps.detect.outputs.is-renovate-pr }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Detect changes
         id: detect
-        uses: ./.github/actions/detect-ci-changes
+        uses: ./.github/actions/detect-changes
 
-      - name: Flag renovate PR
-        id: renovate
-        run: echo "is-renovate-pr=${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]' }}" >> "$GITHUB_OUTPUT"
+      - name: Decide which CI jobs should run
+        id: decide
+        shell: bash
+        env:
+          IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
+          IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
+          SHARED: ${{ steps.detect.outputs.shared }}
+          POLICY: ${{ steps.detect.outputs.policy }}
+          BACKEND: ${{ steps.detect.outputs.backend }}
+          FRONTEND_WEB: ${{ steps.detect.outputs.frontend-web }}
+          FRONTEND_APP: ${{ steps.detect.outputs.frontend-app }}
+          DOCS: ${{ steps.detect.outputs.docs }}
+        run: |
+          # Scheduled runs only exercise docker-smoke; skip all other jobs.
+          if [[ "$IS_SCHEDULE" == "true" ]]; then
+            for k in run-policy run-backend run-frontend-web run-frontend-app run-docs run-e2e; do
+              echo "$k=false" >> "$GITHUB_OUTPUT"
+            done
+            exit 0
+          fi
+
+          # Manual dispatch runs exercise everything.
+          if [[ "$IS_DISPATCH" == "true" ]]; then
+            for k in run-policy run-backend run-frontend-web run-frontend-app run-docs run-e2e; do
+              echo "$k=true" >> "$GITHUB_OUTPUT"
+            done
+            exit 0
+          fi
+
+          # Path-based filtering for push/pull_request events.
+          {
+            echo "run-policy=$([[ "$SHARED" == "true" || "$POLICY" == "true" ]] && echo true || echo false)"
+            echo "run-backend=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)"
+            echo "run-frontend-web=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)"
+            echo "run-frontend-app=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)"
+            echo "run-docs=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
+            echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
 
   automation:
     name: Automation and Compose Policy
@@ -321,21 +356,11 @@ jobs:
           esac
           echo "recipe=$recipe" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout
+      - name: Run smoke recipe
         if: steps.route.outputs.recipe
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        if: steps.route.outputs.recipe
-        uses: ./.github/actions/setup-runtime
-
-      - name: Set up Docker Buildx
-        if: steps.route.outputs.recipe
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
-
-      - name: Run smoke test
-        if: steps.route.outputs.recipe
-        run: just ${{ steps.route.outputs.recipe }}
+        uses: ./.github/actions/docker-smoke
+        with:
+          recipe: ${{ steps.route.outputs.recipe }}
 
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
@@ -395,14 +420,7 @@ jobs:
           - docker-smoke-docs
           - docker-smoke-user-upload-backups
     steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
-
-      - name: Run smoke test
-        run: just ${{ matrix.recipe }}
+      - name: Run smoke recipe
+        uses: ./.github/actions/docker-smoke
+        with:
+          recipe: ${{ matrix.recipe }}

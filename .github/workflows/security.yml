@@ -7,7 +7,7 @@ on:
   schedule:
     - cron: "0 2 * * 1"
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   push:
     branches: [ main ]
   workflow_dispatch:
@@ -31,20 +31,88 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run-root-python: ${{ steps.detect.outputs.run-root-python }}
-      run-backend-python: ${{ steps.detect.outputs.run-backend-python }}
-      run-docs-node: ${{ steps.detect.outputs.run-docs-node }}
-      run-frontend-app-node: ${{ steps.detect.outputs.run-frontend-app-node }}
-      run-frontend-web-node: ${{ steps.detect.outputs.run-frontend-web-node }}
-      run-container-images: ${{ steps.detect.outputs.run-container-images }}
-      container-security-matrix: ${{ steps.detect.outputs.container-security-matrix }}
+      run-root-python: ${{ steps.decide.outputs.run-root-python }}
+      run-backend-python: ${{ steps.decide.outputs.run-backend-python }}
+      run-docs-node: ${{ steps.decide.outputs.run-docs-node }}
+      run-frontend-app-node: ${{ steps.decide.outputs.run-frontend-app-node }}
+      run-frontend-web-node: ${{ steps.decide.outputs.run-frontend-web-node }}
+      run-container-images: ${{ steps.decide.outputs.run-container-images }}
+      container-security-matrix: ${{ steps.decide.outputs.container-security-matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Detect changes
         id: detect
-        uses: ./.github/actions/detect-security-changes
+        uses: ./.github/actions/detect-changes
+
+      - name: Decide which security jobs should run
+        id: decide
+        shell: bash
+        env:
+          IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
+          IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
+          IS_RENOVATE_PR: ${{ steps.detect.outputs.is-renovate-pr }}
+          SHARED: ${{ steps.detect.outputs.shared }}
+          ROOT_PYTHON: ${{ steps.detect.outputs.root-python }}
+          BACKEND: ${{ steps.detect.outputs.backend }}
+          DOCS: ${{ steps.detect.outputs.docs }}
+          FRONTEND_APP: ${{ steps.detect.outputs.frontend-app }}
+          FRONTEND_WEB: ${{ steps.detect.outputs.frontend-web }}
+          CONTAINERS: ${{ steps.detect.outputs.containers }}
+        run: |
+          matrix_all='{"include":[
+            {"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"},
+            {"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"},
+            {"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"},
+            {"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}
+          ]}'
+
+          # Scheduled or manual runs exercise every audit + scan every image.
+          if [[ "$IS_SCHEDULE" == "true" || "$IS_DISPATCH" == "true" ]]; then
+            for k in run-root-python run-backend-python run-docs-node run-frontend-app-node run-frontend-web-node run-container-images; do
+              echo "$k=true" >> "$GITHUB_OUTPUT"
+            done
+            echo "container-security-matrix=$matrix_all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "run-root-python=$([[ "$SHARED" == "true" || "$ROOT_PYTHON" == "true" ]] && echo true || echo false)"
+            echo "run-backend-python=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)"
+            echo "run-docs-node=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
+            echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)"
+            echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+
+          # Renovate PRs touch runtime tooling, not service source — skip container rebuilds on those PRs.
+          if [[ "$IS_RENOVATE_PR" == "true" ]]; then
+            BACKEND=false
+            DOCS=false
+            FRONTEND_APP=false
+            FRONTEND_WEB=false
+          fi
+
+          shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
+
+          include_entries=()
+          [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
+            include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && \
+            include_entries+=('{"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$FRONTEND_APP" == "true" ]] && \
+            include_entries+=('{"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$FRONTEND_WEB" == "true" ]] && \
+            include_entries+=('{"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}')
+
+          if ((${#include_entries[@]} == 0)); then
+            echo "run-container-images=false" >> "$GITHUB_OUTPUT"
+            echo 'container-security-matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+          else
+            matrix_json=$(printf '%s\n' "${include_entries[@]}" | paste -sd, -)
+            echo "run-container-images=true" >> "$GITHUB_OUTPUT"
+            echo "container-security-matrix={\"include\":[${matrix_json}]}" >> "$GITHUB_OUTPUT"
+          fi
 
   secret-scan:
     name: Secret Scan
@@ -63,6 +131,20 @@ jobs:
           version: 8.30.1
         env:
           GITLEAKS_CONFIG: .github/gitleaks.toml
+
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
 
   python-audit-root:
     name: Python Audit (root)
@@ -241,3 +323,38 @@ jobs:
           name: security-${{ matrix.service }}-artifacts
           path: sbom-${{ matrix.service }}.spdx.json
           retention-days: 14
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql-config.yml
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
