@@ -23,7 +23,6 @@ unit_subrepos := "backend frontend-app"
 #
 # `_loki_overlay` auto-includes compose.logging.loki.yaml when the host's `.env`
 # has a non-empty LOKI_URL. Hosts without Loki get Docker's default log driver.
-[private]
 _loki_overlay := `if [ -f .env ] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then printf -- ' -f compose.logging.loki.yaml'; fi`
 prod_compose    := "docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
 staging_compose := "docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
