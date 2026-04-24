@@ -60,9 +60,12 @@ COPY ".env.$BUILD_MODE" .env
 RUN pnpm exec expo export -p web -c
 
 # --- Runtime stage (default) ---
-FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa AS runtime
+FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime
 
 ARG WORKDIR
+
+# Upgrade packages to get latest security patches (Caddy image is pretty minimal, so this is low-risk)
+RUN apk upgrade --no-cache
 
 # Default to the production API origin; staging overrides this at runtime.
 ENV CSP_API_ORIGIN=https://api.cml-relab.org
