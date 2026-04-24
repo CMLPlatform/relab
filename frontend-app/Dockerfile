@@ -53,9 +53,13 @@ ENV CI=1
 COPY app.json babel.config.js tsconfig.json ./
 COPY src/ ./src/
 
-# Set the env file for this build mode (Expo reads .env by default)
-ARG BUILD_MODE=production
-COPY ".env.$BUILD_MODE" .env
+# Set the env file for this build mode (Expo reads .env by default).
+# Expo's local-dev convention names the prod file `.env.production`, so map
+# compose's short `BUILD_MODE=prod` to that filename. Other modes (staging)
+# already match, so no translation is needed.
+ARG BUILD_MODE=prod
+COPY .env.* ./
+RUN if [ "$BUILD_MODE" = "prod" ]; then mv .env.production .env; else mv ".env.$BUILD_MODE" .env; fi
 
 RUN pnpm exec expo export -p web -c
 
