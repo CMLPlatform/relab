@@ -114,9 +114,7 @@ async def get_category_trees(
 
     statement = apply_filter(statement, Category, category_filter)
 
-    statement = statement.options(
-        selectinload(orm_attr(Category.subcategories), recursion_depth=recursion_depth)
-    )
+    statement = statement.options(selectinload(orm_attr(Category.subcategories), recursion_depth=recursion_depth))
 
     return list((await db.execute(statement)).scalars().all())
 
