@@ -2,7 +2,7 @@
 
 Thanks for contributing. RELab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
 
-This page is for code and documentation changes. If you mainly want to run or deploy the stack, use [INSTALL.md](INSTALL.md).
+This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install & Self-Host](https://docs.cml-relab.org/architecture/install/).
 
 ## Start Here
 

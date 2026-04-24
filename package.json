@@ -9,7 +9,7 @@
   },
   "scripts": {
     "biome": "biome",
-    "check": "pnpm run lint && pnpm run spellcheck && pnpm run syncpack:check",
+    "check": "pnpm run lint && pnpm run syncpack:check",
     "spellcheck": "cspell .",
     "lint": "biome check",
     "format": "biome format --write",

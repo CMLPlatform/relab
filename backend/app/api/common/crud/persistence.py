@@ -15,7 +15,6 @@ class SupportsModelDump(Protocol):
         exclude: set[str] | None = None,
     ) -> dict[str, object]:
         """Return payload values for persistence."""
-        ...
 
 
 async def commit_and_refresh[ModelT](

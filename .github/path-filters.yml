@@ -7,7 +7,6 @@ shared:
   - 'backend/.env*.example'
   - 'justfile'
   - 'compose*.yml'
-  - 'renovate.json'
 
 policy:
   - '.github/**'
@@ -21,7 +20,6 @@ policy:
   - 'backend/.env*.example'
   - 'pyproject.toml'
   - 'justfile'
-  - 'renovate.json'
 
 root-python:
   - 'pyproject.toml'

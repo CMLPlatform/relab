@@ -5,6 +5,17 @@ from __future__ import annotations
 
 from PIL import Image as PILImage
 
+__all__ = [
+    "ALLOWED_IMAGE_MIME_TYPES",
+    "FORMAT_JPEG",
+    "FORMAT_WEBP",
+    "MAX_IMAGE_DIMENSION",
+    "RESAMPLE_FILTER",
+    "THUMBNAIL_WIDTHS",
+    "_EXIF_ORIENTATION_TAG",
+    "_SENSITIVE_EXIF_TAGS",
+]
+
 FORMAT_JPEG = "JPEG"
 FORMAT_WEBP = "WEBP"
 MAX_IMAGE_DIMENSION = 8000

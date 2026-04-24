@@ -11,9 +11,9 @@ This page documents the supported engineering and delivery path for RELab as of 
 ## Delivery Model
 
 - Docker Compose is the only supported runtime for staging and production.
-- `compose.yml` is the shared base topology.
-- `compose.dev.yml`, `compose.ci.yml`, and `compose.deploy.yml` are the supported environment overlays (dev, CI, long-lived deploys). `compose.e2e.yml` is a standalone full-stack E2E harness.
-- A single `compose.deploy.yml` covers **both prod and staging**. The host-level root `.env` provides secrets and optional telemetry endpoints; the committed `.env.prod.compose` / `.env.staging.compose` files provide the non-secret environment selection and build/runtime knobs.
+- `compose.yaml` is the shared base topology.
+- `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays (dev, CI, long-lived deploys). `compose.e2e.yaml` is a standalone full-stack E2E harness.
+- A single `compose.deploy.yaml` covers **both prod and staging**. The host-level root `.env` provides secrets and optional telemetry endpoints; the committed `.env.prod.compose` / `.env.staging.compose` files provide the non-secret environment selection and build/runtime knobs.
 - Docker Compose on the server remains the source of truth for deploy and runtime operations.
 - GitHub Actions currently handle validation, security checks, release management, and the backend performance baseline.
 
@@ -71,7 +71,7 @@ Use the prod compose env file alongside the host's root `.env`:
 just prod-up YES
 # or equivalently:
 #   docker compose --env-file .env --env-file .env.prod.compose \
-#     -f compose.yml -f compose.deploy.yml up --build -d
+#     -f compose.yaml -f compose.deploy.yaml up --build -d
 ```
 
 Brings up project `relab_prod` with `ENVIRONMENT=prod` and `WEB_CONCURRENCY=4`. Then `just prod-migrate YES`, verify `/live` and `/health`, and use `just prod-logs` / `just prod-down YES` as needed.
@@ -84,7 +84,7 @@ Use the staging compose env file alongside the same host-level `.env` pattern:
 just staging-up YES
 # or equivalently:
 #   docker compose --env-file .env --env-file .env.staging.compose \
-#     -f compose.yml -f compose.deploy.yml up --build -d
+#     -f compose.yaml -f compose.deploy.yaml up --build -d
 ```
 
 Brings up project `relab_staging` with `ENVIRONMENT=staging` and `WEB_CONCURRENCY=2`. Then `just staging-migrate YES`, verify health, and iterate.
@@ -118,13 +118,13 @@ Logs use the [Loki Docker log driver](https://grafana.com/docs/loki/latest/send-
 
 1. Set `LOKI_URL` in the host's root `.env` (the push endpoint of your central Loki).
 
-The root `justfile`'s `prod_compose` / `staging_compose` recipes auto-include [`compose.logging.loki.yml`](../../../../../compose.logging.loki.yml) when `LOKI_URL` is set. Hosts without `LOKI_URL` keep Docker's default `json-file` driver — no action required.
+The root `justfile`'s `prod_compose` / `staging_compose` recipes auto-include [`compose.logging.loki.yaml`](../../../../../compose.logging.loki.yaml) when `LOKI_URL` is set. Hosts without `LOKI_URL` keep Docker's default `json-file` driver — no action required.
 
 Logs carry labels for `service`, `env`, and `host`. Keep label cardinality low: use LogQL filters (`| json | user_id = "…"`) for high-cardinality fields rather than adding them as labels.
 
 ### Traces and metrics → OTLP
 
-The FastAPI backend exports OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set in the host's root `.env`. Leave it unset to disable. If your collector requires auth, also set `OTEL_EXPORTER_OTLP_HEADERS` in that same root `.env`; `compose.deploy.yml` passes the endpoint through to the backend container and the OTEL SDK reads the headers from the container environment.
+The FastAPI backend exports OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set in the host's root `.env`. Leave it unset to disable. If your collector requires auth, also set `OTEL_EXPORTER_OTLP_HEADERS` in that same root `.env`; `compose.deploy.yaml` passes the endpoint through to the backend container and the OTEL SDK reads the headers from the container environment.
 
 ### Hosting the monitoring stack
 

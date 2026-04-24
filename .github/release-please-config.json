@@ -11,7 +11,6 @@
         "CITATION.cff",
         "backend/app/__version__.py",
         "backend/pyproject.toml",
-        "codemeta.json",
         "docs/package.json",
         "frontend-app/app.json",
         "frontend-app/package.json",

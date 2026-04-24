@@ -5,15 +5,20 @@ authors:
   - family-names: "van Lierde"
     given-names: "Simon"
     orcid: "https://orcid.org/0009-0006-6953-909X"
+    email: "s.n.van.lierde@cml.leidenuniv.nl"
+    affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
   - family-names: "Donati"
     given-names: "Franco"
     orcid: "https://orcid.org/0000-0002-8287-2413"
+    email: "f.donati@cml.leidenuniv.nl"
+    affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
 title: "Reverse Engineering Lab - Data Collection Platform"
+abstract: "Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments."
 version: 0.2.0
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.16637742
-date-released: 2025-06-30
+    value: 10.5281/zenodo.19703316
+date-released: 2026-04-23
 url: https://cml-relab.org
 repository-code: "https://github.com/CMLPlatform/relab"
 license: "AGPL-3.0-or-later"
