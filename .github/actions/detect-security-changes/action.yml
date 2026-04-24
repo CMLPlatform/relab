@@ -41,6 +41,7 @@ runs:
       shell: bash
       env:
         EVENT_NAME: ${{ github.event_name }}
+        PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         SHARED: ${{ steps.filter.outputs.shared }}
         ROOT_PYTHON: ${{ steps.filter.outputs.root-python }}
         BACKEND: ${{ steps.filter.outputs.backend }}
@@ -72,29 +73,33 @@ runs:
         echo "run-docs-node=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
-        echo "run-container-images=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$BACKEND" == "true" || "$DOCS" == "true" || "$FRONTEND_APP" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+        # Renovate PRs touch runtime tooling, not service source — so source-only
+        # changes should not trigger container rebuilds on those PRs.
+        if [[ "$EVENT_NAME" == "pull_request" && "$PR_AUTHOR" == "renovate[bot]" ]]; then
+          BACKEND=false
+          DOCS=false
+          FRONTEND_APP=false
+          FRONTEND_WEB=false
+        fi
+
+        shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
 
         include_entries=()
-
-        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$BACKEND" == "true" ]]; then
+        [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
           include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"}')
-        fi
-
-        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$DOCS" == "true" ]]; then
+        [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && \
           include_entries+=('{"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"}')
-        fi
-
-        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$FRONTEND_APP" == "true" ]]; then
+        [[ "$shared_trigger" == "true" || "$FRONTEND_APP" == "true" ]] && \
           include_entries+=('{"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"}')
-        fi
-
-        if [[ "$SHARED" == "true" || "$CONTAINERS" == "true" || "$FRONTEND_WEB" == "true" ]]; then
+        [[ "$shared_trigger" == "true" || "$FRONTEND_WEB" == "true" ]] && \
           include_entries+=('{"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}')
-        fi
 
         if ((${#include_entries[@]} == 0)); then
+          echo "run-container-images=false" >> "$GITHUB_OUTPUT"
           echo 'container-security-matrix={"include":[]}' >> "$GITHUB_OUTPUT"
         else
           matrix_json=$(printf '%s\n' "${include_entries[@]}" | paste -sd, -)
+          echo "run-container-images=true" >> "$GITHUB_OUTPUT"
           echo "container-security-matrix={\"include\":[${matrix_json}]}" >> "$GITHUB_OUTPUT"
         fi
