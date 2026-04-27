@@ -51,7 +51,7 @@ repos:
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.9
+    rev: v4.13.10
     hooks:
       - id: commitizen
         stages: [ commit-msg ]
@@ -63,7 +63,7 @@ repos:
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.1
+    rev: 0.11.8
     hooks:
       - id: uv-lock
         name: uv-lock-root
