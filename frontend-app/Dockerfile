@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:2780b5c3bab67f1f76c781860de469442999ed1a0d7992a5efdf2cffc0e3d769
 
 # Multi-target Dockerfile for the Expo frontend app
 #   - `dev`     → Metro dev server (use with `docker compose watch`)
@@ -8,7 +8,7 @@
 ARG WORKDIR=/opt/relab/frontend-app
 
 # --- Shared deps stage ---
-FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+FROM node:24-slim@sha256:03eae3ef7e88a9de535496fb488d67e02b9d96a063a8967bae657744ecd513f2 AS deps
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -60,7 +60,7 @@ COPY ".env.$BUILD_MODE" .env
 RUN pnpm exec expo export -p web -c
 
 # --- Runtime stage (default) ---
-FROM caddy:2-alpine@sha256:fce4f15aad23222c0ac78a1220adf63bae7b94355d5ea28eee53910624acedfa AS runtime
+FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime
 
 ARG WORKDIR
 
