@@ -10,6 +10,7 @@ from sqlalchemy import exists, select
 
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import Organization, OrganizationRole, User
+from app.api.auth.preferences import merge_user_preferences
 from app.api.auth.schemas import (
     OrganizationCreate,
     UserCreate,
@@ -122,7 +123,9 @@ async def update_user_override(user_db: UserDatabaseAsync, user: User, user_upda
 
     # Merge preferences (shallow) instead of replacing the whole dict
     if user_update.preferences is not None:
-        merged = {**(user.preferences or {}), **user_update.preferences}
-        user_update.preferences = merged
+        user_update.preferences = merge_user_preferences(
+            user.preferences,
+            user_update.preferences,
+        ).model_dump(mode="json")
 
     return user_update

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
 from app.api.auth.services import refresh_token_service
+from app.api.auth.services.auth_backends import COOKIE_DOMAIN, COOKIE_PATH
 from app.core.config import settings as core_settings
 from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_services
@@ -43,6 +44,8 @@ async def maybe_set_refresh_token_cookie(user: User, request: Request | None, re
             key="refresh_token",
             value=refresh_token,
             max_age=auth_settings.refresh_token_expire_days * 86_400,
+            path=COOKIE_PATH,
+            domain=COOKIE_DOMAIN,
             httponly=True,
             secure=core_settings.secure_cookies,
             samesite="lax",

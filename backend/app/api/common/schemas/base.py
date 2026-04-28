@@ -109,19 +109,13 @@ class MaterialRead(IntIdReadSchema, MaterialFields):
 
 
 ## Product Schemas ##
-class ProductRead(IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, CircularityPropertiesFields):
-    """Base schema for reading product information."""
+class _ProductReadFields(
+    IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, CircularityPropertiesFields
+):
+    """Shared read fields for base products and components."""
 
     product_type_id: PositiveInt | None = None
-    owner_id: UUID4 | None = None
-    owner_username: str | None = None
-
     thumbnail_url: str | None = None
-
-    # Include component metadata here because the same read schema serves both base products and components.
-    # TODO: separate components and base products on the model level
-    parent_id: PositiveInt | None = None
-    amount_in_parent: int | None = Field(default=None, description="Quantity within parent product")
 
     @field_serializer("dismantling_time_start", "dismantling_time_end", when_used="unless-none")
     def serialize_timestamps(self, dt: datetime, _info: FieldSerializationInfo) -> str:
@@ -129,5 +123,27 @@ class ProductRead(IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertie
         return serialize_datetime_with_z(dt)
 
 
-class ComponentRead(ProductRead):
-    """Base schema for reading component information."""
+class ProductRead(_ProductReadFields):
+    """Read schema for base products (top of a product tree).
+
+    Base products carry an ``owner_id`` and never have a ``parent_id`` or
+    ``amount_in_parent``. Components are represented by :class:`ComponentRead`.
+    """
+
+    owner_id: UUID4 | None = None
+    owner_username: str | None = None
+
+
+class ComponentRead(_ProductReadFields):
+    """Read schema for components (nested inside a base product tree).
+
+    Components denormalize their root base product's ``owner_id``, but we
+    don't expose it to API clients (the role distinction belongs in the
+    response shape, not the payload). ``parent_id`` and ``amount_in_parent``
+    are required by the database's role invariant.
+    """
+
+    parent_id: PositiveInt
+    amount_in_parent: int = Field(description="Quantity within parent product")
+    # Exposed so privacy-respecting UIs can attribute components to the base product's owner.
+    owner_username: str | None = None
