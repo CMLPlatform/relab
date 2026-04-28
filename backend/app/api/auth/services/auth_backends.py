@@ -37,10 +37,17 @@ def build_cookie_domain(frontend_url: str) -> str | None:
         return None
 
 
+# Shared cookie scope. Any endpoint that sets or deletes the ``auth`` or
+# ``refresh_token`` cookies must pass the same ``domain`` (and ``path``) so
+# the browser treats them as the same storage slot — setting with one scope
+# and deleting without produces orphaned cookies that survive logout.
+COOKIE_DOMAIN: str | None = build_cookie_domain(str(core_settings.frontend_web_url))
+COOKIE_PATH: str = "/"
+
 cookie_transport = CookieTransport(
     cookie_name="auth",
     cookie_max_age=ACCESS_TOKEN_TTL,
-    cookie_domain=build_cookie_domain(str(core_settings.frontend_web_url)),
+    cookie_domain=COOKIE_DOMAIN,
     cookie_secure=core_settings.secure_cookies,
 )
 

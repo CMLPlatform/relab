@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from fastapi import status
+from pydantic import ValidationError
 
 from app.api.auth.crud.users import update_user_override
 from app.api.auth.exceptions import UserNameAlreadyExistsError
@@ -79,6 +80,37 @@ class TestUpdateUserValidation:
         user_db.session = db_session
         result = await update_user_override(user_db, user, UserUpdate(username=None))
         assert result.username is None
+
+    async def test_update_preferences_merges_with_existing_typed_values(self, db_session: AsyncSession) -> None:
+        """Preference updates should merge into the existing persisted JSON payload."""
+        user = await UserFactory.create_async(
+            db_session,
+            email=USER1_EMAIL,
+            username=USER1_USERNAME,
+            hashed_password="pw",
+            preferences={"profile_visibility": "private"},
+        )
+        user_db = MagicMock()
+        user_db.session = db_session
+
+        result = await update_user_override(
+            user_db,
+            user,
+            UserUpdate.model_validate({"preferences": {"theme_mode": "dark"}}),
+        )
+
+        assert result.preferences == {
+            "profile_visibility": "private",
+            "theme_mode": "dark",
+            "products_welcome_dismissed": False,
+            "rpi_camera_enabled": False,
+            "youtube_streaming_enabled": False,
+        }
+
+    def test_update_preferences_rejects_invalid_theme_mode(self) -> None:
+        """Preference validation should reject unsupported theme values."""
+        with pytest.raises(ValidationError):
+            UserUpdate.model_validate({"preferences": {"theme_mode": "sepia"}})
 
 
 class TestUpdateUserEndpoint:

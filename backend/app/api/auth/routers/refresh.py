@@ -14,6 +14,7 @@ from app.api.auth.schemas import (
     RefreshTokenResponse,
 )
 from app.api.auth.services import refresh_token_service
+from app.api.auth.services.auth_backends import COOKIE_DOMAIN, COOKIE_PATH
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
 from app.core.config import settings as core_settings
 from app.core.redis import OptionalRedisDep
@@ -99,6 +100,8 @@ async def refresh_access_token_cookie(
         key="auth",
         value=access_token,
         max_age=auth_settings.access_token_ttl_seconds,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
         httponly=True,
         secure=core_settings.secure_cookies,
         samesite="lax",
@@ -107,6 +110,8 @@ async def refresh_access_token_cookie(
         key="refresh_token",
         value=new_refresh_token,
         max_age=auth_settings.refresh_token_expire_days * 86_400,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
         httponly=True,
         secure=core_settings.secure_cookies,
         samesite="lax",
@@ -137,9 +142,25 @@ async def logout(
     if token:
         await strategy.destroy_token(token, current_user)
 
-    # 2. Clear cookies
-    response.delete_cookie("auth", secure=core_settings.secure_cookies, httponly=True, samesite="lax")
-    response.delete_cookie("refresh_token", secure=core_settings.secure_cookies, httponly=True, samesite="lax")
+    # 2. Clear cookies — must pass the same path + domain used at set time,
+    # otherwise the browser treats the deletion as a different cookie scope
+    # and the original cookie survives logout (RFC 6265).
+    response.delete_cookie(
+        "auth",
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+        secure=core_settings.secure_cookies,
+        httponly=True,
+        samesite="lax",
+    )
+    response.delete_cookie(
+        "refresh_token",
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+        secure=core_settings.secure_cookies,
+        httponly=True,
+        samesite="lax",
+    )
 
     # 3. Blacklist refresh token
     if cookie_refresh_token:

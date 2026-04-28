@@ -194,8 +194,8 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
     oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
-    preferences: dict[str, object] = Field(
-        default_factory=dict,
+    preferences: UserPreferences = Field(
+        default_factory=UserPreferences,
         description="User preferences.",
     )
 
@@ -220,12 +220,26 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
         """Reject reserved usernames."""
         return validate_username_not_reserved(v)
 
+    @field_validator("preferences", mode="before")
+    @classmethod
+    def validate_preferences(
+        cls,
+        value: UserPreferencesUpdate | dict[str, object] | None,
+    ) -> UserPreferencesUpdate | None:
+        """Validate known preference keys even when PATCH input is a raw dict."""
+        if isinstance(value, dict):
+            return UserPreferencesUpdate.model_validate(value)
+        return value
+
     organization_id: UUID4 | None = None
 
     # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
 
-    preferences: dict[str, object] | None = Field(default=None, description="User preferences (partial merge).")
+    preferences: UserPreferencesUpdate | None = Field(
+        default=None,
+        description="User preferences (partial merge).",
+    )
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
 

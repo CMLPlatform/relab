@@ -1,54 +1,41 @@
-"""Privacy and redaction utilities for the platform."""
+"""Privacy and redaction policy for public profile and ownership surfaces."""
 
-from sqlalchemy import inspect
-from sqlalchemy.exc import NoInspectionAvailable
-from sqlalchemy.orm.base import ATTR_EMPTY
+from __future__ import annotations
 
-from app.api.auth.models import User
-from app.api.data_collection.models.product import Product
+from typing import TYPE_CHECKING
 
-VISIBILITY_PUBLIC = "public"
-VISIBILITY_COMMUNITY = "community"
-VISIBILITY_PRIVATE = "private"
+from app.api.auth.preferences import ProfileVisibility, load_user_preferences
+
+if TYPE_CHECKING:
+    from app.api.auth.models import User
 
 
-def should_redact_owner(owner: User, viewer: User | None) -> bool:
-    """Return True when the owner's identity should be hidden from the viewer.
+def can_view_profile(owner: User, viewer: User | None) -> bool:
+    """Return whether ``viewer`` can see ``owner``'s public profile.
 
     Rules:
     - Admins always see everything.
-    - public  → never redact.
-    - community → redact only for unauthenticated guests.
-    - private   → redact for everyone except the owner themselves.
+    - public    → everyone can view.
+    - community → authenticated users can view.
+    - private   → only the owner and admins can view.
     """
     if viewer and viewer.is_superuser:
-        return False
+        return True
 
-    preferences: dict = owner.preferences or {}
-    visibility: str = preferences.get("profile_visibility", VISIBILITY_PUBLIC)
+    visibility = load_user_preferences(owner.preferences).profile_visibility
 
-    if visibility == VISIBILITY_PRIVATE:
-        return not viewer or viewer.id != owner.id
-    if visibility == VISIBILITY_COMMUNITY:
-        return viewer is None
-    return False  # public
+    if visibility == ProfileVisibility.PRIVATE:
+        return bool(viewer and viewer.id == owner.id)
+    if visibility == ProfileVisibility.COMMUNITY:
+        return viewer is not None
+    return True
 
 
-def redact_product_owner(product: Product, viewer: User | None) -> None:
-    """Null out the owner relationship on *product* when privacy rules require it.
+def should_redact_owner_identity(owner: User, viewer: User | None) -> bool:
+    """Return True when ``owner``'s product attribution should be hidden."""
+    return not can_view_profile(owner, viewer)
 
-    Operates in-place on the ORM model **before** Pydantic serialisation so
-    that ``owner_username`` (a @property that reads ``owner.username``) and
-    ``owner_id`` both become ``None`` naturally when the schema is built.
-    """
-    try:
-        product_state = inspect(product)
-    except NoInspectionAvailable:
-        return
 
-    owner = product_state.attrs[Product.owner.key].loaded_value
-    if owner is ATTR_EMPTY:
-        return
-    if owner and should_redact_owner(owner, viewer):
-        product.owner = None
-        product.owner_id = None
+def should_redact_owner(owner: User, viewer: User | None) -> bool:
+    """Backward-compatible alias for owner attribution redaction policy."""
+    return should_redact_owner_identity(owner, viewer)
