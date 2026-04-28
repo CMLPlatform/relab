@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
-from app.api.auth.services.profile_cache import invalidate_profile_cache
-from app.api.auth.services.stats import recompute_user_stats
+from app.api.auth.services.stats import recompute_user_profile_stats
 from app.api.background_data.models import ProductType
 from app.api.data_collection.models.product import Product
 
@@ -37,51 +38,48 @@ async def create_root_with_component(db_session: AsyncSession, user: User) -> No
     await db_session.flush()
 
 
-async def test_recompute_user_stats_counts_base_product_weight_only(
+async def test_recompute_user_profile_stats_counts_base_product_weight_only(
     db_session: AsyncSession,
     db_superuser: User,
 ) -> None:
     """Profile weight should not count component rows on top of the base product."""
     await create_root_with_component(db_session, db_superuser)
 
-    stats = await recompute_user_stats(db_session, db_superuser.id)
+    stats = await recompute_user_profile_stats(db_session, db_superuser.id)
 
-    assert stats["product_count"] == 1
-    assert stats["total_weight_kg"] == 35.0
+    assert stats.product_count == 1
+    assert stats.total_weight_g == 35_000
 
 
-async def test_public_profile_cache_uses_user_id_and_targeted_invalidation(
+@pytest.mark.usefixtures("db_session")
+async def test_public_profile_returns_latest_snapshot_without_external_cache(
     db_session: AsyncSession,
     api_client: AsyncClient,
     db_superuser: User,
 ) -> None:
-    """Username and UUID reads should share one user-id cache family."""
-    await invalidate_profile_cache(db_superuser.id)
-    db_superuser.stats_cache = {
+    """Profile reads should return the latest persisted snapshot without Redis invalidation."""
+    db_superuser.profile_stats = {
         "product_count": 1,
-        "total_weight_kg": 35.0,
+        "total_weight_g": 35_000,
         "image_count": 0,
         "top_category": "Profile Stats Tool",
     }
+    db_superuser.profile_stats_computed_at = datetime.now(UTC)
     await db_session.flush()
 
     response = await api_client.get(f"/users/{db_superuser.username}/profile")
     assert response.status_code == 200
     assert response.json()["total_weight_kg"] == 35.0
 
-    db_superuser.stats_cache = {
+    db_superuser.profile_stats = {
         "product_count": 1,
-        "total_weight_kg": 72.0,
+        "total_weight_g": 72_000,
         "image_count": 0,
         "top_category": "Profile Stats Tool",
     }
+    db_superuser.profile_stats_computed_at = datetime.now(UTC)
     await db_session.flush()
 
-    cached_response = await api_client.get(f"/users/{db_superuser.id}/profile")
-    assert cached_response.status_code == 200
-    assert cached_response.json()["total_weight_kg"] == 35.0
-
-    await invalidate_profile_cache(db_superuser.id)
     fresh_response = await api_client.get(f"/users/{db_superuser.id}/profile")
     assert fresh_response.status_code == 200
     assert fresh_response.json()["total_weight_kg"] == 72.0
