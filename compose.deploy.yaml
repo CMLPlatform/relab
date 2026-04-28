@@ -8,6 +8,8 @@
 #   docker compose --env-file .env --env-file .env.prod.compose \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
+# spell-checker: ignore prodrigestivill
+
 name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
 # --- Reusable fragments ------------------------------------------------------
@@ -121,7 +123,7 @@ services:
 
   postgres-backup:
     # Automated database backups to local file system
-    image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f # spell-checker: ignore prodrigestivill
+    image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f
     restart: unless-stopped
     depends_on:
       postgres:
@@ -132,10 +134,13 @@ services:
       SCHEDULE: 0 2 * * * # Daily at 2am
       POSTGRES_HOST: postgres
       POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
+      BACKUP_SUFFIX: ".sql.zst"
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
     env_file: ./backend/.env.${APP_ENV} # Load database connection settings
+    healthcheck:
+      start_period: 30s # Override image's 5min default so the first probe runs quickly after boot
     profiles:
       - backups
 
