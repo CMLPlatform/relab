@@ -57,8 +57,9 @@ class User(BaseUserDB, TimeStampMixinBare):
     # Flexible user preferences (UI settings, feature toggles, etc.)
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
 
-    # Pre-computed statistics (product count, total weight, top categories, etc.)
-    stats_cache: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
+    # Pre-computed public-profile statistics stored as a flexible JSONB snapshot.
+    profile_stats: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
+    profile_stats_computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     # One-to-many relationship with OAuthAccount
     oauth_accounts: Mapped[list[OAuthAccount]] = relationship(

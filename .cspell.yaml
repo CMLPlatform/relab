@@ -104,6 +104,7 @@ overrides:
       - selectinload
       - tsquery
       - uninstrument
+      - usefixtures
       - xdist
       - zxcvbn
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import HTTPException, Security
+from fastapi import HTTPException, Response, Security
 from fastapi_pagination import Page
 from sqlalchemy import select
 
@@ -36,16 +36,8 @@ from app.api.auth.schemas import (
     UserReadPublic,
     UserUpdate,
 )
-from app.api.auth.services.privacy import (
-    VISIBILITY_COMMUNITY,
-    VISIBILITY_PRIVATE,
-    VISIBILITY_PUBLIC,
-)
-from app.api.auth.services.profile_cache import (
-    cache_public_profile,
-    get_cached_public_profile,
-)
-from app.api.auth.services.stats import recompute_user_stats
+from app.api.auth.services.privacy import can_view_profile
+from app.api.auth.services.stats import get_profile_stats, recompute_user_profile_stats
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -132,6 +124,7 @@ public_user_router = PublicAPIRouter(prefix="/users", tags=["users"])
 )
 async def get_public_profile(
     identifier: str,
+    response: Response,
     session: AsyncSessionDep,
     current_user: Annotated[User | None, Security(optional_current_active_user)],
 ) -> PublicProfileView:
@@ -140,6 +133,10 @@ async def get_public_profile(
     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
     Includes lazy initialization of stats if they are missing.
     """
+    # Response is viewer-dependent (visibility rules change with auth state),
+    # so browsers and intermediaries must revalidate on every request.
+    response.headers["Cache-Control"] = "private, no-store"
+
     # 1. Look up user by UUID or Username
     user = None
     try:
@@ -156,36 +153,18 @@ async def get_public_profile(
         raise HTTPException(status_code=404, detail="Profile not found")
 
     # 2. Check privacy settings
-    profile_visibility = user.preferences.get("profile_visibility", VISIBILITY_PUBLIC)
+    if not can_view_profile(user, current_user):
+        raise HTTPException(status_code=404, detail="Profile not found")
 
-    if profile_visibility == VISIBILITY_PRIVATE:
-        is_self = current_user and current_user.id == user.id
-        is_admin = current_user and current_user.is_superuser
-        if not (is_self or is_admin):
-            raise HTTPException(status_code=404, detail="Profile not found")
-
-    elif profile_visibility == VISIBILITY_COMMUNITY:
-        if not current_user:
-            raise HTTPException(status_code=404, detail="Profile not found")
-
-    cached_profile = await get_cached_public_profile(user.id)
-    if cached_profile is not None:
-        return cached_profile
-
-    # 3. Lazy initialization of stats if cache is empty
-    stats = user.stats_cache
-    if not stats:
-        # Recompute on the fly and save to user
-        stats = await recompute_user_stats(session, user.id)
+    # 3. Lazy initialization of stats if no full snapshot exists yet
+    if user.profile_stats_computed_at is None or not user.profile_stats:
+        stats = await recompute_user_profile_stats(session, user.id)
         await session.commit()
+    else:
+        stats = get_profile_stats(user)
 
-    profile = PublicProfileView(
+    return PublicProfileView.from_profile_stats(
         username=user.username,
         created_at=user.created_at,
-        product_count=stats.get("product_count", 0),
-        total_weight_kg=stats.get("total_weight_kg", 0.0),
-        image_count=stats.get("image_count", 0),
-        top_category=stats.get("top_category", "None"),
+        stats=stats,
     )
-    await cache_public_profile(user.id, profile)
-    return profile

@@ -28,6 +28,8 @@ from app.api.auth.examples import (
     USER_UPDATE_EXAMPLES,
 )
 from app.api.auth.models import OrganizationBase, UserBase
+from app.api.auth.preferences import UserPreferences, UserPreferencesUpdate
+from app.api.auth.profile_stats import ProfileStatsData
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
@@ -168,6 +170,24 @@ class PublicProfileView(UserReadProfile):
     total_weight_kg: float = Field(default=0.0, description="Aggregate weight of products in kg.")
     image_count: int = Field(default=0, description="Total images uploaded.")
     top_category: str = Field(default="None", description="Most common product type.")
+
+    @classmethod
+    def from_profile_stats(
+        cls,
+        *,
+        username: str | None,
+        created_at: datetime | None,
+        stats: ProfileStatsData,
+    ) -> PublicProfileView:
+        """Build a public profile view from a typed profile-stats snapshot."""
+        return cls(
+            username=username,
+            created_at=created_at,
+            product_count=stats.product_count,
+            total_weight_kg=stats.total_weight_kg,
+            image_count=stats.image_count,
+            top_category=stats.top_category or "None",
+        )
 
 
 class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
