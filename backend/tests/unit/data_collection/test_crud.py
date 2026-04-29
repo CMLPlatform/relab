@@ -25,7 +25,6 @@ from app.api.data_collection.crud.products import (
     create_component,
     create_product,
     delete_product,
-    get_product_trees,
     update_product,
 )
 from app.api.data_collection.exceptions import (
@@ -38,7 +37,6 @@ from app.api.data_collection.schemas import (
     ProductCreateWithComponents,
     ProductUpdate,
 )
-from app.api.file_storage.schemas import VideoCreateWithinProduct
 from tests.factories.models import ProductFactory
 
 BRAND_BOSCH = "bosch"
@@ -80,8 +78,10 @@ class TestProductCrud:
 
         with (
             patch("app.api.data_collection.crud.product_commands.require_models"),
-            patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
-            patch("app.api.data_collection.crud.product_commands.invalidate_profile_cache") as invalidate_cache,
+            patch(
+                "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
+                AsyncMock(),
+            ) as apply_stats,
         ):
             result = await create_product(mock_session, product_create, owner_id)
 
@@ -91,20 +91,7 @@ class TestProductCrud:
 
         mock_session.add.assert_called()
         assert mock_session.commit.call_count >= 1
-        invalidate_cache.assert_awaited_once_with(owner_id)
-
-    async def test_get_product_trees(self, mock_session: AsyncMock) -> None:
-        """Test retrieving product trees."""
-        with patch("app.api.data_collection.crud.product_tree_queries.require_model"):
-            # Setup mock_session to return results for exec().all()
-            mock_scalars = MagicMock()
-            mock_scalars.all.return_value = ["Product 1"]
-            mock_result = MagicMock()
-            mock_result.scalars.return_value = mock_scalars
-            mock_session.execute = AsyncMock(return_value=mock_result)
-
-            res = await get_product_trees(mock_session, parent_id=1, product_filter=MagicMock())
-            assert res == ["Product 1"]
+        apply_stats.assert_awaited_once()
 
     async def test_update_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful product update."""
@@ -117,14 +104,16 @@ class TestProductCrud:
         with (
             patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
             patch("app.api.data_collection.crud.product_commands.require_models", return_value=[]),
-            patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
-            patch("app.api.data_collection.crud.product_commands.invalidate_profile_cache") as invalidate_cache,
+            patch(
+                "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
+                AsyncMock(),
+            ) as apply_stats,
         ):
             result = await update_product(mock_session, product_id, product_update)
             assert result.name == "Bosch GSR 18V-90 C"
             assert mock_session.add.call_count >= 1
             assert mock_session.commit.call_count >= 1
-            invalidate_cache.assert_awaited_once_with(db_product.owner_id)
+            apply_stats.assert_awaited_once()
 
     async def test_delete_product_success(self, mock_session: AsyncMock) -> None:
         """Test successful product deletion."""
@@ -136,13 +125,15 @@ class TestProductCrud:
             patch("app.api.data_collection.crud.product_commands.require_model", return_value=db_product),
             patch("app.api.data_collection.crud.product_commands.delete_all_product_files"),
             patch("app.api.data_collection.crud.product_commands.delete_all_product_images"),
-            patch("app.api.data_collection.crud.product_commands.recompute_user_stats"),
-            patch("app.api.data_collection.crud.product_commands.invalidate_profile_cache") as invalidate_cache,
+            patch(
+                "app.api.data_collection.crud.product_commands.refresh_profile_stats_after_mutation",
+                AsyncMock(),
+            ) as apply_stats,
         ):
             await delete_product(mock_session, product_id)
             mock_session.delete.assert_called_once_with(db_product)
             assert mock_session.commit.call_count >= 1
-            invalidate_cache.assert_awaited_once_with(db_product.owner_id)
+            apply_stats.assert_awaited_once()
 
     async def test_create_component_success(self, mock_session: AsyncMock) -> None:
         """Test successful component creation."""
@@ -163,7 +154,6 @@ class TestProductCrud:
                     bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
                 )
             ],
-            videos=[VideoCreateWithinProduct.model_validate({"url": "http://ok.com", "title": "Vid"})],
             bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1)],
         )
 

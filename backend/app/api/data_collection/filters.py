@@ -10,7 +10,6 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import model_validator
 from sqlalchemy import ColumnElement, Select, asc, desc, func, select
 
-from app.api.background_data.filters import MaterialFilter, ProductTypeFilter
 from app.api.common.sa_typing import column_expr
 from app.api.common.search_utils import (
     TSVectorSearchMixin,
@@ -18,6 +17,7 @@ from app.api.common.search_utils import (
     build_text_search_clause,
 )
 from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.reference_data.filters import MaterialFilter, ProductTypeFilter
 
 if TYPE_CHECKING:
     from sqlalchemy import Select
@@ -46,18 +46,50 @@ class MaterialProductLinkFilter(Filter):
 ORDER_DESC: Literal["desc"] = "desc"
 
 
-def get_brand_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select[tuple[str]]:
-    """Return a select statement for normalised, distinct brands with optional search and order."""
-    brand_expr = func.trim(func.lower(Product.brand)).label("brand_norm")
-    statement = select(brand_expr).where(column_expr(Product.brand).is_not(None))
+def _normalized_text_field(field: ColumnElement[str]) -> ColumnElement[str]:
+    """Return a normalized non-empty text expression for product helper queries."""
+    return func.trim(func.lower(field))
+
+
+def _product_text_field_statement(
+    field: ColumnElement[str],
+    *,
+    search: str | None = None,
+    order: Literal["asc", "desc"] = "asc",
+) -> Select[tuple[str]]:
+    field_expr = _normalized_text_field(field).label("field_norm")
+    statement = select(field_expr).where(field.is_not(None), field_expr != "")
     if search:
         clause = build_text_search_clause(
             search.strip(),
             column_expr(Product.search_vector),
-            column_expr(Product.brand),
+            field,
         )
         statement = statement.where(clause)
-    return statement.distinct().order_by(desc(brand_expr) if order == ORDER_DESC else asc(brand_expr))
+    return statement.distinct().order_by(desc(field_expr) if order == ORDER_DESC else asc(field_expr))
+
+
+def get_brand_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select[tuple[str]]:
+    """Return a select statement for normalised, distinct brands with optional search and order."""
+    return _product_text_field_statement(column_expr(Product.brand), search=search, order=order)
+
+
+def get_model_search_statement(search: str | None = None, order: Literal["asc", "desc"] = "asc") -> Select[tuple[str]]:
+    """Return a select statement for normalised, distinct model names with optional search and order."""
+    return _product_text_field_statement(column_expr(Product.model), search=search, order=order)
+
+
+def get_product_facet_statement(field_name: Literal["brand", "model"]) -> Select[tuple[str, int]]:
+    """Return a grouped product facet statement for a derived text field."""
+    field = column_expr(getattr(Product, field_name))
+    field_expr = _normalized_text_field(field).label("value")
+    count_expr = func.count(Product.id).label("count")
+    return (
+        select(field_expr, count_expr)
+        .where(field.is_not(None), field_expr != "")
+        .group_by(field_expr)
+        .order_by(desc(count_expr), asc(field_expr))
+    )
 
 
 ### Product Filters ###

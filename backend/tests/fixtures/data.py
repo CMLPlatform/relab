@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.background_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
 from app.api.data_collection.models.product import Product
+from app.api.reference_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
 from tests.constants import BRAND_X, COMPONENT_NAME, END_TIME, PRODUCT_BASE_NAME, START_TIME
 from tests.factories.models import (
     CategoryFactory,
@@ -119,6 +119,7 @@ async def setup_product_graph(db_session: AsyncSession, db_superuser: User) -> P
         dismantling_time_end=END_TIME,
         product_type=product_type,
         parent=product,
+        amount_in_parent=1,
     )
     db_session.add_all([product_type, product, component])
     await db_session.flush()

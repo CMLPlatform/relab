@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.api.background_data.models import CategoryMaterialLink
 from app.api.common.crud.associations import add_links, require_link
 from app.api.common.exceptions import BadRequestError
+from app.api.reference_data.models import CategoryMaterialLink
 
 
 class TestRequireLink:

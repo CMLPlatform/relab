@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import select
 
-from app.api.background_data.models import Category, Taxonomy
+from app.api.reference_data.models import Category, Taxonomy
 
 if TYPE_CHECKING:
     from collections.abc import Callable

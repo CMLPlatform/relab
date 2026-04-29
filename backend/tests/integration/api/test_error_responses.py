@@ -29,12 +29,12 @@ class TestUnauthenticated:
 
     async def test_create_product_without_auth_returns_401(self, api_client: AsyncClient) -> None:
         """POST /products requires a verified user; anonymous request → 401."""
-        response = await api_client.post("/products", json={})
+        response = await api_client.post("/v1/products", json={})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_get_me_without_auth_returns_401_with_detail(self, api_client: AsyncClient) -> None:
         """GET /users/me requires authentication and returns the standard error shape."""
-        response = await api_client.get("/users/me")
+        response = await api_client.get("/v1/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         body = response.json()
         assert "detail" in body
@@ -70,12 +70,12 @@ class TestForbidden:
     async def test_admin_taxonomy_create_as_regular_user_returns_403(self, regular_user_client: AsyncClient) -> None:
         """POST /admin/taxonomies is superuser-only; regular user → 403."""
         data = {"name": "Forbidden Taxonomy", "version": "v1", "domains": ["materials"]}
-        response = await regular_user_client.post("/admin/taxonomies", json=data)
+        response = await regular_user_client.post("/v1/admin/taxonomies", json=data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     async def test_403_response_has_detail_key(self, regular_user_client: AsyncClient) -> None:
         """403 responses must include a 'detail' key."""
-        response = await regular_user_client.post("/admin/taxonomies", json={})
+        response = await regular_user_client.post("/v1/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_403_FORBIDDEN
         body = response.json()
         assert "detail" in body
@@ -87,14 +87,14 @@ class TestNotFound:
 
     async def test_get_nonexistent_taxonomy_returns_404_with_detail(self, api_client_light: AsyncClient) -> None:
         """GET /taxonomies/{id} with an id that does not exist returns the standard error shape."""
-        response = await api_client_light.get("/taxonomies/999999")
+        response = await api_client_light.get("/v1/taxonomies/999999")
         assert response.status_code == status.HTTP_404_NOT_FOUND
         body = response.json()
         assert "detail" in body
 
     async def test_get_nonexistent_material_returns_404(self, api_client_light: AsyncClient) -> None:
         """GET /materials/{id} with an id that does not exist → 404."""
-        response = await api_client_light.get("/materials/999999")
+        response = await api_client_light.get("/v1/materials/999999")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -106,7 +106,7 @@ class TestUnprocessableEntity:
         self, api_client_superuser: AsyncClient
     ) -> None:
         """POST /admin/taxonomies with an empty body → 422 with validation error objects."""
-        response = await api_client_superuser.post("/admin/taxonomies", json={})
+        response = await api_client_superuser.post("/v1/admin/taxonomies", json={})
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         body = response.json()
         assert "detail" in body
@@ -121,5 +121,5 @@ class TestUnprocessableEntity:
     async def test_create_material_with_negative_density_returns_422(self, api_client_superuser: AsyncClient) -> None:
         """Materials with negative density must fail schema validation with 422."""
         data = {"name": "Bad Material", "density_kg_m3": -500.0}
-        response = await api_client_superuser.post("/admin/materials", json=data)
+        response = await api_client_superuser.post("/v1/admin/materials", json=data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

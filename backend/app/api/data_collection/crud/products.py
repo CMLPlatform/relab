@@ -21,8 +21,7 @@ from app.api.data_collection.crud.product_tree_queries import (
     PRODUCT_READ_DETAIL_RELATIONSHIPS,
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     ProductTreeData,
-    get_product_trees,
-    load_product_tree_data,
+    load_component_subtree,
 )
 
 __all__ = [
@@ -41,8 +40,7 @@ __all__ = [
     "delete_product",
     "delete_product_media",
     "get_owned_component",
-    "get_product_trees",
-    "load_product_tree_data",
+    "load_component_subtree",
     "product_payload",
     "update_product",
     "validate_product_type",

@@ -8,11 +8,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy import select
 
-from app.api.background_data.models import Material
 from app.api.common.crud.exceptions import CRUDConfigurationError
 from app.api.common.crud.filtering import filter_has_values
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.query import require_model
+from app.api.reference_data.models import Material
 
 
 class TestFilterHasValues:

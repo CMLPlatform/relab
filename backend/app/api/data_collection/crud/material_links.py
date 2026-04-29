@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from sqlalchemy import select
+
 from app.api.common.crud.associations import require_link
+from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.persistence import update_and_commit
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
 from app.api.common.exceptions import InternalServerError
@@ -14,12 +17,31 @@ from app.api.common.schemas.associations import (
     MaterialProductLinkUpdate,
 )
 from app.api.data_collection.exceptions import MaterialIDRequiredError
+from app.api.data_collection.filters import MaterialProductLinkFilter
 from app.api.data_collection.models.product import MaterialProductLink
+from app.api.reference_data.models import Material
 
 from .shared import get_material_links_for_product, get_product_with_bill_of_materials, validate_product_material_links
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from sqlalchemy import Select
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def list_material_links_for_product(
+    db: AsyncSession,
+    *,
+    product_id: int,
+    material_filter: MaterialProductLinkFilter,
+) -> Sequence[MaterialProductLink]:
+    """List bill-of-material rows scoped to one product/component row."""
+    statement: Select[tuple[MaterialProductLink]] = (
+        select(MaterialProductLink).join(Material).where(MaterialProductLink.product_id == product_id)
+    )
+    statement = apply_filter(statement, MaterialProductLink, material_filter)
+    return list((await db.execute(statement)).scalars().unique().all())
 
 
 async def add_materials_to_product(

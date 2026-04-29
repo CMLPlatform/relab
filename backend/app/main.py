@@ -11,8 +11,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.common.routers.exceptions import register_exception_handlers
 from app.api.common.routers.health import router as health_router
-from app.api.common.routers.main import router
 from app.api.common.routers.openapi import init_openapi_docs
+from app.api.v1.router import router as v1_router
 from app.core import lifecycle
 from app.core.config import settings
 from app.core.config.models import Environment
@@ -86,8 +86,8 @@ def create_app() -> FastAPI:
     # Include health check routes (liveness and readiness probes)
     app.include_router(health_router)
 
-    # Include main API routes
-    app.include_router(router)
+    # Include the canonical versioned API contract.
+    app.include_router(v1_router)
 
     # Initialize OpenAPI documentation
     init_openapi_docs(app)

@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
-from app.api.background_data.models import Material
 from app.api.common.crud.query import require_model, require_models
 from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
 )
+from app.api.reference_data.models import Material
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

@@ -8,7 +8,11 @@ from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import Organization, User
-from app.api.background_data.models import (
+from app.api.data_collection.models.product import (
+    MaterialProductLink,
+    Product,
+)
+from app.api.reference_data.models import (
     Category,
     CategoryMaterialLink,
     CategoryProductTypeLink,
@@ -16,10 +20,6 @@ from app.api.background_data.models import (
     ProductType,
     Taxonomy,
     TaxonomyDomain,
-)
-from app.api.data_collection.models.product import (
-    MaterialProductLink,
-    Product,
 )
 
 T = TypeVar("T")
@@ -65,6 +65,8 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         """Create a new instance, optionally using a provided session."""
         if session:
             instance = cls.build(**kwargs)
+            if "id" not in kwargs and getattr(instance, "id", None) == 0:
+                object.__setattr__(instance, "id", None)
             session.add(instance)
             await session.flush()
             if refresh_instance:

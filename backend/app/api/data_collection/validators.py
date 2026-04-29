@@ -13,10 +13,7 @@ if TYPE_CHECKING:
     from app.api.data_collection.models.product import Product
 
 ERR_PRODUCT_CYCLE = "Cycle detected: a product cannot contain itself directly or indirectly."
-ERR_BASE_PRODUCT_EMPTY = "A product must have at least one material or one component."
-ERR_BASE_PRODUCT_AMOUNT = "Base product must have amount_in_parent set to None."
-ERR_INTERMEDIATE_PRODUCT_AMOUNT = "Intermediate product must have amount_in_parent set."
-ERR_INTERMEDIATE_PRODUCT_EMPTY = "Intermediate product must have at least one material or one component."
+ERR_PRODUCT_EMPTY = "A product must have at least one material or one component."
 ERR_LEAF_COMPONENTS_WITHOUT_MATERIALS = "All leaf components must have a non-empty bill of materials."
 
 
@@ -31,30 +28,19 @@ class ProductValidationError(ValueError):
 def validate_product(product: Product) -> Product:
     """Validate the product hierarchy and bill of materials constraints.
 
-    Raises:
-        ValueError: If the product fails any business rule.
-    """
-    components = product.components
-    bill_of_materials = product.bill_of_materials
-    amount_in_parent = product.amount_in_parent
+    DB-level invariants enforce the role-specific shape of a row
+    (``parent_id``/``owner_id``/``amount_in_parent`` combinations), so this
+    validator only covers structural rules that span multiple rows.
 
+    Raises:
+        ProductValidationError: If the tree fails any structural business rule.
+    """
     if product.has_cycles():
         raise ProductValidationError(ERR_PRODUCT_CYCLE)
 
-    if product.is_base_product:
-        if not components and not bill_of_materials:
-            raise ProductValidationError(ERR_BASE_PRODUCT_EMPTY)
-        if amount_in_parent is not None:
-            raise ProductValidationError(ERR_BASE_PRODUCT_AMOUNT)
+    if not product.components and not product.bill_of_materials:
+        raise ProductValidationError(ERR_PRODUCT_EMPTY)
 
-    else:
-        # Intermediate product
-        if amount_in_parent is None:
-            raise ProductValidationError(ERR_INTERMEDIATE_PRODUCT_AMOUNT)
-        if not components and not bill_of_materials:
-            raise ProductValidationError(ERR_INTERMEDIATE_PRODUCT_EMPTY)
-
-    # Ensure all components ultimately resolve to materials
     if not product.components_resolve_to_materials():
         raise ProductValidationError(ERR_LEAF_COMPONENTS_WITHOUT_MATERIALS)
 

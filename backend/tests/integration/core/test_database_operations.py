@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
 
-from app.api.background_data.models import Taxonomy
+from app.api.reference_data.models import Taxonomy
 from tests.factories.models import CategoryFactory
 
 if TYPE_CHECKING:

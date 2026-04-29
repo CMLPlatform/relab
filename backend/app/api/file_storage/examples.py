@@ -2,14 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from app.api.common.openapi_examples import openapi_example, openapi_examples
-
-if TYPE_CHECKING:
-    from fastapi.openapi.models import Example
-
-
 FILE_READ_WITHIN_PARENT_EXAMPLES = [
     {
         "id": "12345678-cc4e-405c-8553-7806424de2a1",
@@ -26,7 +18,7 @@ IMAGE_READ_WITHIN_PARENT_EXAMPLES = [
         "image_metadata": {"camera_make": "Raspberry Pi", "orientation": "landscape"},
         "filename": "front-view.webp",
         "image_url": "/uploads/images/products/front-view.webp",
-        "thumbnail_url": "/images/12345678-cc4e-405c-8553-7806424de2a1/resized?width=200",
+        "thumbnail_url": "/uploads/images/products/front-view_thumb_200.webp",
     }
 ]
 
@@ -56,13 +48,3 @@ VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES = [
         "video_metadata": {"edited": True},
     }
 ]
-
-IMAGE_RESIZE_WIDTH_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    thumbnail=openapi_example(200, summary="Default thumbnail width"),
-    gallery=openapi_example(800, summary="Larger gallery preview"),
-)
-
-IMAGE_RESIZE_HEIGHT_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    unconstrained=openapi_example(None, summary="Preserve aspect ratio"),
-    portrait=openapi_example(1200, summary="Constrain height for portrait images"),
-)

@@ -36,7 +36,7 @@ class TestPaginationEnvelope:
         """The response must include the standard envelope and consistent totals."""
         for i in range(3):
             await MaterialFactory.create_async(session=db_session, name=f"PaginationMaterial{i}")
-        response = await api_client_light.get("/materials")
+        response = await api_client_light.get("/v1/materials")
         body = response.json()
         for key in ("total", "page", "size", "pages"):
             assert key in body, f"Missing pagination key: '{key}'"
@@ -48,7 +48,7 @@ class TestPaginationEnvelope:
         """Pagination parameters should limit returned items and report page counts."""
         for i in range(3):
             await MaterialFactory.create_async(session=db_session, name=f"PageMeta{i}")
-        response = await api_client_light.get("/materials?size=2&page=1")
+        response = await api_client_light.get("/v1/materials?size=2&page=1")
         body = response.json()
         assert body["total"] >= 3
         assert body["size"] == 2
@@ -60,7 +60,7 @@ class TestPaginationEnvelope:
     ) -> None:
         """Requesting a page past the last page must return an empty items list."""
         await MaterialFactory.create_async(session=db_session)
-        response = await api_client_light.get("/materials?size=1&page=9999")
+        response = await api_client_light.get("/v1/materials?size=1&page=9999")
         body = response.json()
         assert body["items"] == []
 
@@ -72,8 +72,8 @@ class TestPaginationSmoke:
     @pytest.mark.parametrize(
         ("path", "factory"),
         [
-            ("/taxonomies", TaxonomyFactory),
-            ("/product-types", ProductTypeFactory),
+            ("/v1/taxonomies", TaxonomyFactory),
+            ("/v1/product-types", ProductTypeFactory),
         ],
     )
     async def test_endpoint_returns_page_envelope(
@@ -95,12 +95,12 @@ class TestPaginationSmoke:
         """GET /organizations must return a Page envelope."""
         owner = await UserFactory.create_async(session=db_session)
         await OrganizationFactory.create_async(session=db_session, owner_id=owner.id)
-        response = await api_client_light.get("/organizations")
+        response = await api_client_light.get("/v1/organizations")
         assert response.status_code == status.HTTP_200_OK
         assert "items" in response.json()
 
     async def test_admin_users_returns_page_envelope(self, api_client_superuser_light: AsyncClient) -> None:
         """GET /admin/users must return a Page envelope."""
-        response = await api_client_superuser_light.get("/admin/users")
+        response = await api_client_superuser_light.get("/v1/admin/users")
         assert response.status_code == status.HTTP_200_OK
         assert "items" in response.json()

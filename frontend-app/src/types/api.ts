@@ -9,7 +9,16 @@ import type { components } from './api.generated';
 type ApiSchemaName = keyof components['schemas'];
 
 // ─── Products ────────────────────────────────────────────────────────────────
-export type ApiProductRead = components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
+// ``ApiBaseProductRead`` is the full base-product shape returned by
+// ``GET /products/{id}``. ``ApiComponentRead`` is returned by ``GET /components/{id}``
+// and includes parent_id + amount_in_parent but no owner_id.
+// ``ApiProductRead`` is a permissive union used by legacy call sites that
+// don't know the role at fetch time (e.g. deep links).
+export type ApiBaseProductRead =
+  components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
+export type ApiComponentRead =
+  components['schemas']['ComponentReadWithRelationshipsAndFlatComponents'];
+export type ApiProductRead = ApiBaseProductRead | ApiComponentRead;
 export type ApiProductCreate = components['schemas']['ProductCreateWithComponents'];
 export type ApiProductUpdate = components['schemas']['ProductUpdate'];
 // ─── Media ───────────────────────────────────────────────────────────────────
@@ -19,9 +28,6 @@ export type ApiVideoRead = components['schemas']['VideoReadWithinProduct'];
 // ─── Users ───────────────────────────────────────────────────────────────────
 export type ApiUserRead = components['schemas']['UserRead'];
 export type ApiOAuthAccountRead = components['schemas']['OAuthAccountRead'];
-
-// ─── Newsletter ──────────────────────────────────────────────────────────────
-export type ApiNewsletterPreferenceRead = components['schemas']['NewsletterPreferenceRead'];
 
 // ─── Product Types ───────────────────────────────────────────────────────────
 export type ApiProductTypeRead = components['schemas']['ProductTypeRead'];

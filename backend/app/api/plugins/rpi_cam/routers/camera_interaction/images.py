@@ -9,6 +9,7 @@ from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
+from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -33,6 +34,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 router = PublicAPIRouter()
+device_router = DeviceAPIRouter(tags=["rpi-cam-device"])
 
 
 def _unlink_quiet(path: Path) -> None:
@@ -54,7 +56,7 @@ def _write_preview_thumbnail_atomic(path: Path, image_bytes: bytes) -> None:
 
 ### Images ###
 @router.post(
-    "/{camera_id}/image",
+    "/{camera_id}/captures",
     response_model=ImageRead,
     summary="Capture a still image with a remote Raspberry Pi Camera",
     description=(
@@ -100,7 +102,7 @@ async def capture_image(
 ### Device-pushed uploads ###
 
 
-@router.post(
+@device_router.post(
     "/{camera_id}/image-upload",
     response_model=DeviceImageUploadAck,
     summary="Internal: receive an image pushed directly from a paired Raspberry Pi",
@@ -169,7 +171,7 @@ async def receive_camera_upload(
     return DeviceImageUploadAck(image_id=image.id.hex, image_url=image_read.image_url)
 
 
-@router.post(
+@device_router.post(
     "/{camera_id}/preview-thumbnail-upload",
     response_model=DevicePreviewThumbnailAck,
     summary="Internal: receive a cached preview thumbnail pushed directly from a paired Raspberry Pi",

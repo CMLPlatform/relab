@@ -84,7 +84,7 @@ class TestFileStorageEndpoints:
         request_kind = "file" if kind == "file" else "image"
         endpoint, files, data, filename, url_field = _upload_request(request_kind)
         response = await api_client_superuser.post(
-            f"/products/{setup_product_for_files.id}/{endpoint}",
+            f"/v1/products/{setup_product_for_files.id}/{endpoint}",
             files=files,
             data=data,
         )
@@ -106,18 +106,93 @@ class TestFileStorageEndpoints:
         """Deleting uploaded media should make follow-up reads return 404."""
         _, files, data, _, _ = _upload_request(kind)
         create_response = await api_client_superuser.post(
-            f"/products/{setup_product_for_files.id}/{endpoint}",
+            f"/v1/products/{setup_product_for_files.id}/{endpoint}",
             files=files,
             data=data,
         )
         media_id = create_response.json()["id"]
 
         response_del = await api_client_superuser.delete(
-            f"/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
+            f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
         )
         response_get_deleted = await api_client_superuser.get(
-            f"/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
+            f"/v1/products/{setup_product_for_files.id}/{endpoint}/{media_id}"
         )
 
         assert response_del.status_code == status.HTTP_204_NO_CONTENT
         assert response_get_deleted.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_product_media_routes_reject_component_ids(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """``/products/{id}/{files,images}`` 404s when the id is a component."""
+        _, files, data, _, _ = _upload_request(kind)
+        response = await api_client_superuser.post(
+            f"/v1/products/{setup_product_graph.component.id}/{endpoint}",
+            files=files,
+            data=data,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_component_media_upload_and_delete(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """``/components/{id}/{files,images}`` round-trips upload + delete."""
+        _, files, data, filename, url_field = _upload_request(kind)
+        create = await api_client_superuser.post(
+            f"/v1/components/{setup_product_graph.component.id}/{endpoint}",
+            files=files,
+            data=data,
+        )
+        assert create.status_code == status.HTTP_201_CREATED, create.text
+        created = create.json()
+        assert created["filename"].endswith(filename)
+        assert url_field in created
+
+        delete = await api_client_superuser.delete(
+            f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{created['id']}"
+        )
+        follow_up = await api_client_superuser.get(
+            f"/v1/components/{setup_product_graph.component.id}/{endpoint}/{created['id']}"
+        )
+
+        assert delete.status_code == status.HTTP_204_NO_CONTENT
+        assert follow_up.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.parametrize(
+        ("kind", "endpoint"),
+        [("file", "files"), ("image", "images")],
+    )
+    async def test_component_media_routes_reject_base_product_ids(
+        self,
+        api_client_superuser: AsyncClient,
+        setup_product_graph,  # noqa: ANN001 — fixture-typed in conftest
+        kind: str,
+        endpoint: str,
+    ) -> None:
+        """``/components/{id}/{files,images}`` 404s when the id is a base product."""
+        _, files, data, _, _ = _upload_request(kind)
+        response = await api_client_superuser.post(
+            f"/v1/components/{setup_product_graph.product.id}/{endpoint}",
+            files=files,
+            data=data,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND

@@ -8,6 +8,7 @@ from pydantic import UUID4
 from relab_rpi_cam_models import LocalAccessInfo
 from sqlalchemy import select
 
+from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 camera_router = PublicAPIRouter(tags=["rpi-cam-management"])
+device_router = DeviceAPIRouter(tags=["rpi-cam-device"])
 router = PublicAPIRouter()
 
 
@@ -180,15 +182,14 @@ async def delete_user_camera(
     background_tasks.add_task(_remove_preview_thumbnail, preview_thumbnail_path)
 
 
-@camera_router.delete(
+@device_router.delete(
     "/{camera_id}/self",
     summary="Pi-initiated self-unpair",
     status_code=204,
     description=(
         "Called by the Pi when the user triggers unpair from the local /setup page. "
         "Authenticates via the device's ES256 assertion. Deletes the camera from the "
-        "database so the backend no longer shows it as offline. Does NOT send a relay "
-        "message back to the Pi — the Pi is already unpairing itself."
+        "database so the backend no longer shows it as offline."
     ),
 )
 async def self_unpair_camera(
@@ -258,4 +259,3 @@ def _remove_preview_thumbnail(path: Path) -> None:
 
 
 router.include_router(camera_router, prefix="/plugins/rpi-cam/cameras")
-router.include_router(camera_router, prefix="/users/me/cameras")

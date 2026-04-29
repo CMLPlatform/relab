@@ -70,14 +70,6 @@ from app.api.file_storage.exceptions import (
     ParentStorageOwnershipError,
     UploadTooLargeError,
 )
-from app.api.newsletter.exceptions import (
-    NewsletterAlreadyConfirmedError,
-    NewsletterAlreadySubscribedError,
-    NewsletterConfirmationResentError,
-    NewsletterInvalidConfirmationTokenError,
-    NewsletterInvalidUnsubscribeTokenError,
-    NewsletterSubscriberNotFoundError,
-)
 from app.api.plugins.rpi_cam.exceptions import (
     CameraProxyRequestError,
     GoogleOAuthAssociationRequiredError,
@@ -119,12 +111,6 @@ __all__ = [
     "ModelFileNotFoundError",
     "ModelNotFoundError",
     "ModelsNotFoundError",
-    "NewsletterAlreadyConfirmedError",
-    "NewsletterAlreadySubscribedError",
-    "NewsletterConfirmationResentError",
-    "NewsletterInvalidConfirmationTokenError",
-    "NewsletterInvalidUnsubscribeTokenError",
-    "NewsletterSubscriberNotFoundError",
     "NoActiveYouTubeRecordingError",
     "NoLinkedItemsError",
     "NotFoundError",

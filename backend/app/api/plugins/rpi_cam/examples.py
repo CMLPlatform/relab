@@ -39,7 +39,8 @@ CAMERA_READ_EXAMPLES = [
         "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
         "relay_key_id": "cam-key-1",
         "relay_credential_status": "active",
-        "relay_last_seen_at": None,
+        "created_at": "2026-04-28T10:00:00Z",
+        "updated_at": "2026-04-28T10:00:00Z",
     }
 ]
 

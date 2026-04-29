@@ -57,10 +57,11 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
     stored_dir.mkdir(parents=True, exist_ok=True)
     stored_file = stored_dir / "example.png"
     stored_file.write_bytes(b"hello")
-    image_id = uuid4()
+    thumbnail_file = stored_dir / "example_thumb_200.webp"
+    thumbnail_file.write_bytes(b"thumb")
 
     image = Image(
-        id=image_id,
+        id=uuid4(),
         filename="example.png",
         file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
@@ -70,7 +71,7 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
     read_model = ImageReadWithinParent.model_validate(image)
 
     assert read_model.image_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
-    assert read_model.thumbnail_url == f"/images/{image_id}/resized?width=200"
+    assert read_model.thumbnail_url == f"/uploads/images/{thumbnail_file.relative_to(storage_root)}"
 
 
 def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,10 +82,9 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
     stored_dir.mkdir(parents=True, exist_ok=True)
     stored_file = stored_dir / "example.png"
     stored_file.write_bytes(b"hello")
-    image_id = uuid4()
 
     image = Image(
-        id=image_id,
+        id=uuid4(),
         filename="example.png",
         file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
@@ -94,7 +94,7 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
     read_model = ImageRead.model_validate(image)
 
     assert read_model.image_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
-    assert read_model.thumbnail_url == f"/images/{image_id}/resized?width=200"
+    assert read_model.thumbnail_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
     assert read_model.parent_id == 1
     assert read_model.parent_type == MediaParentType.PRODUCT
 

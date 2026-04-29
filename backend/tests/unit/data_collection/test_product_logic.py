@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
@@ -12,7 +12,6 @@ from tests.factories.models import MaterialProductLinkFactory, ProductFactory
 # Constants for test values to avoid magic value warnings
 AMOUNT_IN_PARENT_5 = 5
 ERR_MIN_CONTENT = "must have at least one material or one component"
-ERR_MISSING_AMOUNT = "must have amount_in_parent set"
 
 _VALIDATE_PRODUCT = validate_product
 
@@ -20,16 +19,8 @@ _VALIDATE_PRODUCT = validate_product
 class TestProductLogic:
     """Tests for product model business logic like cycle detection and validation."""
 
-    def test_thumbnail_url_uses_first_image_id(self) -> None:
-        """Test that thumbnail_url is derived from the mapped first image ID."""
-        product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
-        first_image_id = UUID("12345678-1234-5678-1234-567812345678")
-        object.__setattr__(product, "first_image_id", first_image_id)
-
-        assert product.thumbnail_url == f"/images/{first_image_id}/resized?width=200"
-
-    def test_thumbnail_url_is_none_without_first_image_id(self) -> None:
-        """Test that thumbnail_url is None when no first image is available."""
+    def test_thumbnail_url_is_none_without_preloaded_image_payload(self) -> None:
+        """Test that list-safe thumbnail URLs are supplied by read models, not resize aliases."""
         product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])
         object.__setattr__(product, "first_image_id", None)
 
@@ -124,21 +115,6 @@ class TestProductLogic:
             amount_in_parent=AMOUNT_IN_PARENT_5,
         )
         _VALIDATE_PRODUCT(p)
-
-    def test_validate_product_intermediate_missing_amount(self) -> None:
-        """Test validation fails for intermediate product without amount."""
-        link = MaterialProductLinkFactory.build()
-
-        p = ProductFactory.build(
-            name="No Amount Intermediate",
-            owner_id=uuid4(),
-            bill_of_materials=[link],
-            parent_id=uuid4(),
-            amount_in_parent=None,  # Missing
-        )
-
-        with pytest.raises(ValueError, match=ERR_MISSING_AMOUNT):
-            _VALIDATE_PRODUCT(p)
 
     def test_validate_cycle_detection_on_init(self) -> None:
         """Test that cycles are detected during validation."""

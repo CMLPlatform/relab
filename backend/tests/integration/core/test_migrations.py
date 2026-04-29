@@ -20,7 +20,7 @@ EXPECTED_TABLES = {
     "user",
     "oauthaccount",
     "organization",
-    # Background data
+    # Reference data
     "taxonomy",
     "category",
     "material",
@@ -34,8 +34,6 @@ EXPECTED_TABLES = {
     "file",
     "image",
     "video",
-    # Newsletter
-    "newslettersubscriber",
 }
 
 
@@ -54,7 +52,17 @@ def test_all_expected_tables_exist(migration_helper: MigrationHelper) -> None:
 def test_user_table_has_required_columns(migration_helper: MigrationHelper) -> None:
     """Core user columns must be present; guards against accidental column drops."""
     columns = set(migration_helper.get_table_columns("user"))
-    required = {"id", "email", "hashed_password", "is_active", "is_superuser", "created_at", "updated_at"}
+    required = {
+        "id",
+        "email",
+        "hashed_password",
+        "is_active",
+        "is_superuser",
+        "created_at",
+        "updated_at",
+        "profile_stats",
+        "profile_stats_computed_at",
+    }
     missing = required - columns
     assert not missing, f"user table is missing columns: {missing}"
 

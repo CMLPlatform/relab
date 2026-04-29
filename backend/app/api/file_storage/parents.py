@@ -1,10 +1,10 @@
 """File-storage parent model registry."""
 
-from app.api.background_data.models import Material, ProductType
 from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import Base
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import MediaParentType
+from app.api.reference_data.models import Material, ProductType
 
 
 def parent_model_for_type(parent_type: MediaParentType) -> type[Base]:

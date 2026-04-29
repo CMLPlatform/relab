@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 from sqlalchemy import func, select
 
-from app.api.background_data.models import (
+from app.api.reference_data.models import (
     Category,
     ProductType,  # Adjust import as needed
     TaxonomyDomain,

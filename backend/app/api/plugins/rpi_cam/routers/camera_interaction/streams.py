@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 
 ### Common endpoints ###
 @router.get(
-    "/{camera_id}/stream/status",
+    "/{camera_id}/recording-stream",
     summary="Get the active YouTube recording stream status",
     description="Fetch the current remote camera stream status from the Raspberry Pi camera plugin.",
 )
@@ -88,34 +88,12 @@ async def get_camera_stream_status(
         raise InvalidCameraResponseError(e.json()) from e
 
 
-@router.delete(
-    "/{camera_id}/stream/stop",
-    status_code=204,
-    summary="Stop the active YouTube recording stream",
-    description="Stop the currently active remote camera stream.",
-)
-async def stop_all_streams(
-    camera_id: UUID4,
-    session: AsyncSessionDep,
-    current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
-) -> None:
-    """Stop the currently active remote camera stream."""
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
-    camera_request = build_camera_request(camera, redis)
-    await camera_request(
-        endpoint=PLUGIN_STREAM_ENDPOINT,
-        method=HttpMethod.DELETE,
-        error_msg="Failed to stop the active stream",
-    )
-
-
 ### Recording to Youtube ###
 # We cache the recording session in Redis on start and finalize the Video row on stop.
 
 
 @router.post(
-    "/{camera_id}/stream/record/start", response_model=StreamView, status_code=201, summary="Start recording to YouTube"
+    "/{camera_id}/recording-stream", response_model=StreamView, status_code=201, summary="Start recording to YouTube"
 )
 async def start_recording(
     camera_id: UUID4,
@@ -302,7 +280,7 @@ async def _resolve_existing_recording(
 
 
 @router.delete(
-    "/{camera_id}/stream/record/stop",
+    "/{camera_id}/recording-stream",
     response_model=VideoRead,
     summary="Stop recording to YouTube",
 )
@@ -367,7 +345,7 @@ async def stop_recording(
 
 
 @router.get(
-    "/{camera_id}/stream/record/monitor",
+    "/{camera_id}/recording-stream/monitor",
     response_model=YouTubeMonitorStreamResponse,
     summary="Get YouTube livestream monitor stream",
 )

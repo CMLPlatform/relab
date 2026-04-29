@@ -1,11 +1,11 @@
-"""Dummy background-data seeding."""
+"""Dummy reference-data seeding."""
 
 from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.background_data.models import (
+from app.api.reference_data.models import (
     Category,
     CategoryMaterialLink,
     CategoryProductTypeLink,

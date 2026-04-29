@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Self
 from pydantic import (
     AfterValidator,
     AwareDatetime,
+    BaseModel,
     BeforeValidator,
     ConfigDict,
     Field,
@@ -15,7 +16,6 @@ from pydantic import (
     model_validator,
 )
 
-from app.api.background_data.schemas import ProductTypeRead
 from app.api.common.schemas.associations import (
     MaterialProductLinkCreateWithinProduct,
     MaterialProductLinkReadWithinProduct,
@@ -37,12 +37,14 @@ from app.api.file_storage.schemas import (
     VideoCreateWithinProduct,
     VideoReadWithinProduct,
 )
+from app.api.reference_data.schemas import ProductTypeRead
 
 if TYPE_CHECKING:
     from collections.abc import Collection
 
 
 logger = logging.getLogger(__name__)
+
 
 ### Constants ###
 MAX_TIMESTAMP_AGE: timedelta = timedelta(days=365)
@@ -119,7 +121,6 @@ class ProductCreateWithRelationships(ProductCreateBase):
 
     product_type_id: PositiveInt | None = None
 
-    videos: list[VideoCreateWithinProduct] = Field(default_factory=list, description="Disassembly videos")
     bill_of_materials: list[MaterialProductLinkCreateWithinProduct] = Field(
         default_factory=list, description="Bill of materials with quantities and units"
     )
@@ -129,6 +130,7 @@ class ProductCreateBaseProduct(ProductCreateWithRelationships):
     """Schema for creating a base product."""
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PRODUCT_CREATE_EXAMPLES})
+    videos: list[VideoCreateWithinProduct] = Field(default_factory=list, description="Disassembly videos")
 
 
 class ComponentCreate(ProductCreateWithRelationships):
@@ -165,6 +167,16 @@ class ComponentCreateWithComponents(ComponentCreate):
 ComponentCreateWithComponents.model_rebuild()
 
 
+class ProductFacetValue(BaseModel):
+    """One derived product facet option and its result count."""
+
+    value: str
+    count: int
+
+
+ProductFacetsRead = dict[str, list[ProductFacetValue]]
+
+
 class ProductCreateWithComponents(ProductCreateBaseProduct):
     """Schema for creating a base product with optional components."""
 
@@ -184,7 +196,7 @@ class ProductCreateWithComponents(ProductCreateBaseProduct):
 
 
 class ProductReadWithRelationships(ProductRead):
-    """Schema for reading product information with all relationships."""
+    """Schema for reading a base product with all relationships."""
 
     product_type: ProductTypeRead | None = None
     images: list[ImageRead] = Field(default_factory=list, description="Product images")
@@ -202,14 +214,38 @@ class ProductReadWithRelationships(ProductRead):
         return self
 
 
+class ComponentReadWithRelationships(ComponentRead):
+    """Schema for reading a component with all relationships."""
+
+    product_type: ProductTypeRead | None = None
+    images: list[ImageRead] = Field(default_factory=list, description="Product images")
+    files: list[FileRead] = Field(default_factory=list, description="Product files")
+    bill_of_materials: list[MaterialProductLinkReadWithinProduct] = Field(
+        default_factory=list, description="Bill of materials with quantities and units"
+    )
+
+    @model_validator(mode="after")
+    def populate_thumbnail_url_from_images(self) -> Self:
+        """Fill thumbnail_url from the first image when the field is otherwise unset."""
+        if self.thumbnail_url is None and self.images:
+            self.thumbnail_url = self.images[0].image_url
+        return self
+
+
 class ProductReadWithRelationshipsAndFlatComponents(ProductReadWithRelationships):
-    """Schema for reading product information with one level of components."""
+    """Base-product detail schema with one level of child components."""
 
     components: list[ComponentRead] = Field(default_factory=list, description="List of component products")
 
 
+class ComponentReadWithRelationshipsAndFlatComponents(ComponentReadWithRelationships):
+    """Component detail schema with one level of child components."""
+
+    components: list[ComponentRead] = Field(default_factory=list, description="List of sub-components")
+
+
 class ComponentReadWithRecursiveComponents(ComponentRead):
-    """Schema for reading product information with recursive components."""
+    """Component read schema with recursive sub-components."""
 
     components: list[ComponentReadWithRecursiveComponents] = Field(
         default_factory=list, description="List of component products"
@@ -218,14 +254,6 @@ class ComponentReadWithRecursiveComponents(ComponentRead):
 
 # Rebuild schema to allow for nested components
 ComponentReadWithRecursiveComponents.model_rebuild()
-
-
-class ProductReadWithRecursiveComponents(ProductReadWithRelationships):
-    """Schema for reading product information with recursive components."""
-
-    components: list[ComponentReadWithRecursiveComponents] = Field(
-        default_factory=list, description="List of component products"
-    )
 
 
 ### Update Schemas ###
@@ -237,7 +265,6 @@ class ProductUpdate(BaseUpdateSchema):
     brand: NormalizedBrand = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
 
-    dismantling_notes: str | None = Field(default=None, max_length=500, description="Notes on the dismantling process")
     dismantling_time_start: ValidDateTime = Field(
         default_factory=lambda: datetime.now(UTC),
         description="Start of the dismantling time, in ISO 8601 format with timezone info",

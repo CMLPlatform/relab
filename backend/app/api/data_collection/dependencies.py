@@ -32,6 +32,30 @@ async def get_product_by_id(
 ProductByIDDep = Annotated[Product, Depends(get_product_by_id)]
 
 
+async def get_base_product_by_id(product: ProductByIDDep) -> Product:
+    """Resolve a public base-product route and reject component IDs."""
+    if not product.is_base_product:
+        raise HTTPException(status_code=404, detail="Product is a component; use /components/{id} instead.")
+    return product
+
+
+BaseProductDep = Annotated[Product, Depends(get_base_product_by_id)]
+
+
+async def get_component_by_id(
+    component_id: Annotated[PositiveInt, Path()],
+    session: AsyncSessionDep,
+) -> Product:
+    """Resolve a public component route and reject base-product IDs."""
+    product = await require_model(session, Product, component_id)
+    if product.is_base_product:
+        raise HTTPException(status_code=404, detail="ID belongs to a base product; use /products/{id} instead.")
+    return product
+
+
+ComponentDep = Annotated[Product, Depends(get_component_by_id)]
+
+
 async def get_user_owned_product(
     product_id: Annotated[PositiveInt, Path()],
     session: AsyncSessionDep,
@@ -91,11 +115,6 @@ async def get_user_owned_component(
 
 
 UserOwnedComponentDep = Annotated[Product, Depends(get_user_owned_component)]
-
-
-async def get_user_owned_product_id(user_owned_product: UserOwnedProductDep) -> int | None:
-    """Get the ID of a user owned product."""
-    return user_owned_product.id
 
 
 async def get_user_owned_base_product_id(base_product: UserOwnedBaseProductDep) -> int:
