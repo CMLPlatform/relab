@@ -12,9 +12,9 @@ export const baseProduct: Product = {
   components: [],
   physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
   circularityProperties: {
-    recyclabilityObservation: '',
-    remanufacturabilityObservation: '',
-    repairabilityObservation: '',
+    recyclability: null,
+    disassemblability: null,
+    remanufacturability: null,
   },
   images: [],
   videos: [],

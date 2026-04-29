@@ -32,15 +32,9 @@ export type PhysicalProperties = {
 };
 
 export type CircularityProperties = {
-  recyclabilityComment?: string | null;
-  recyclabilityObservation: string;
-  recyclabilityReference?: string | null;
-  remanufacturabilityComment?: string | null;
-  remanufacturabilityObservation: string;
-  remanufacturabilityReference?: string | null;
-  repairabilityComment?: string | null;
-  repairabilityObservation: string;
-  repairabilityReference?: string | null;
+  recyclability?: string | null;
+  disassemblability?: string | null;
+  remanufacturability?: string | null;
 };
 
 export function entityLabel(product: Pick<Product, 'role'>): 'product' | 'component' {

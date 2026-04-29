@@ -8,9 +8,13 @@ without triggering the full data_collection/models.py import chain.
 from pydantic import BaseModel, computed_field
 from pydantic import Field as PydanticField
 from sqlalchemy import String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.api.common.schemas.field_mixins import CircularityPropertiesFields, PhysicalPropertiesFields
+from app.api.common.schemas.field_mixins import (
+    PhysicalPropertiesFields,
+    ProductCircularityPropertiesFields,
+)
 
 
 ### Properties Mixins ###
@@ -34,20 +38,7 @@ class PhysicalPropertiesMixin:
 class CircularityPropertiesMixin:
     """Mixin for circularity properties of a product."""
 
-    # Recyclability
-    recyclability_observation: Mapped[str | None] = mapped_column(String(500), default=None)
-    recyclability_comment: Mapped[str | None] = mapped_column(String(100), default=None)
-    recyclability_reference: Mapped[str | None] = mapped_column(String(100), default=None)
-
-    # Repairability
-    repairability_observation: Mapped[str | None] = mapped_column(String(500), default=None)
-    repairability_comment: Mapped[str | None] = mapped_column(String(100), default=None)
-    repairability_reference: Mapped[str | None] = mapped_column(String(100), default=None)
-
-    # Remanufacturability
-    remanufacturability_observation: Mapped[str | None] = mapped_column(String(500), default=None)
-    remanufacturability_comment: Mapped[str | None] = mapped_column(String(100), default=None)
-    remanufacturability_reference: Mapped[str | None] = mapped_column(String(100), default=None)
+    circularity_properties: Mapped[dict[str, str | None] | None] = mapped_column(JSONB, default=None)
 
 
 ### Product Mixin ###
@@ -61,7 +52,7 @@ class ProductFieldsMixin(PhysicalPropertiesMixin, CircularityPropertiesMixin):
 
 
 ### Pydantic base schema (shared with schemas.py) ###
-class ProductBase(PhysicalPropertiesFields, CircularityPropertiesFields, BaseModel):
+class ProductBase(PhysicalPropertiesFields, ProductCircularityPropertiesFields, BaseModel):
     """Base schema for Product. Used by Pydantic CREATE schemas, not ORM.
 
     Includes validation constraints (max_length, gt, min_length) for write operations.
@@ -77,14 +68,3 @@ class ProductBase(PhysicalPropertiesFields, CircularityPropertiesFields, BaseMod
     height_cm: float | None = PydanticField(default=None, gt=0)
     width_cm: float | None = PydanticField(default=None, gt=0)
     depth_cm: float | None = PydanticField(default=None, gt=0)
-
-    # Circularity properties with write-side constraints
-    recyclability_observation: str | None = PydanticField(default=None, max_length=500)
-    recyclability_comment: str | None = PydanticField(default=None, max_length=100)
-    recyclability_reference: str | None = PydanticField(default=None, max_length=100)
-    repairability_observation: str | None = PydanticField(default=None, max_length=500)
-    repairability_comment: str | None = PydanticField(default=None, max_length=100)
-    repairability_reference: str | None = PydanticField(default=None, max_length=100)
-    remanufacturability_observation: str | None = PydanticField(default=None, max_length=500)
-    remanufacturability_comment: str | None = PydanticField(default=None, max_length=100)
-    remanufacturability_reference: str | None = PydanticField(default=None, max_length=100)

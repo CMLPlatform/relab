@@ -3418,6 +3418,18 @@ export interface components {
       description?: string | null;
     };
     /**
+     * CircularityPropertiesFields
+     * @description Circularity note fields stored as a product JSON object.
+     */
+    CircularityPropertiesFields: {
+      /** Recyclability */
+      recyclability?: string | null;
+      /** Disassemblability */
+      disassemblability?: string | null;
+      /** Remanufacturability */
+      remanufacturability?: string | null;
+    };
+    /**
      * ComponentCreateWithComponents
      * @description Schema for creating a component with optional sub-components.
      *
@@ -3426,24 +3438,7 @@ export interface components {
      *     Owner ID and parent ID are inferred from the parent product within the CRUD layer.
      */
     ComponentCreateWithComponents: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -3462,8 +3457,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /**
-      /**
       /** Product Type Id */
       product_type_id?: number | null;
       /**
@@ -3492,24 +3485,7 @@ export interface components {
      *     are required by the database's role invariant.
      */
     ComponentRead: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -3529,9 +3505,9 @@ export interface components {
       /** Model */
       model?: string | null;
       /** Created At */
-      created_at?: string | null;
+      created_at?: string;
       /** Updated At */
-      updated_at?: string | null;
+      updated_at?: string;
       /** Id */
       id: number;
       /** Product Type Id */
@@ -3553,24 +3529,7 @@ export interface components {
      * @description Component read schema with recursive sub-components.
      */
     ComponentReadWithRecursiveComponents: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -3590,9 +3549,9 @@ export interface components {
       /** Model */
       model?: string | null;
       /** Created At */
-      created_at?: string | null;
+      created_at?: string;
       /** Updated At */
-      updated_at?: string | null;
+      updated_at?: string;
       /** Id */
       id: number;
       /** Product Type Id */
@@ -3619,24 +3578,7 @@ export interface components {
      * @description Component detail schema with one level of child components.
      */
     ComponentReadWithRelationshipsAndFlatComponents: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -3656,9 +3598,9 @@ export interface components {
       /** Model */
       model?: string | null;
       /** Created At */
-      created_at?: string | null;
+      created_at?: string;
       /** Updated At */
-      updated_at?: string | null;
+      updated_at?: string;
       /** Id */
       id: number;
       /** Product Type Id */
@@ -4570,6 +4512,10 @@ export interface components {
      *         }
      *       ],
      *       "brand": "Brand 1",
+     *       "circularity_properties": {
+     *         "disassemblability": "Most fasteners are visible and non-destructive to remove.",
+     *         "recyclability": "Metal frame and plastic shell can be separated with basic tools."
+     *       },
      *       "depth_cm": 50,
      *       "description": "Complete chair assembly",
      *       "height_cm": 150,
@@ -4587,24 +4533,7 @@ export interface components {
      *     }
      */
     ProductCreateWithComponents: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -4623,8 +4552,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /**
-      /**
       /** Product Type Id */
       product_type_id?: number | null;
       /**
@@ -4661,24 +4588,7 @@ export interface components {
      *     ``amount_in_parent``. Components are represented by :class:`ComponentRead`.
      */
     ProductRead: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -4698,9 +4608,9 @@ export interface components {
       /** Model */
       model?: string | null;
       /** Created At */
-      created_at?: string | null;
+      created_at?: string;
       /** Updated At */
-      updated_at?: string | null;
+      updated_at?: string;
       /** Id */
       id: number;
       /** Product Type Id */
@@ -4717,24 +4627,7 @@ export interface components {
      * @description Base-product detail schema with one level of child components.
      */
     ProductReadWithRelationshipsAndFlatComponents: {
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Weight G */
       weight_g?: number | null;
       /** Height Cm */
@@ -4754,9 +4647,9 @@ export interface components {
       /** Model */
       model?: string | null;
       /** Created At */
-      created_at?: string | null;
+      created_at?: string;
       /** Updated At */
-      updated_at?: string | null;
+      updated_at?: string;
       /** Id */
       id: number;
       /** Product Type Id */
@@ -4863,6 +4756,7 @@ export interface components {
      * @description Schema for updating product information including physical and circularity properties.
      */
     ProductUpdate: {
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
       /** Name */
       name?: string | null;
       /** Description */
@@ -4871,8 +4765,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /**
-      /**
       /** Product Type Id */
       product_type_id?: number | null;
       /**
@@ -4888,24 +4780,6 @@ export interface components {
       width_cm?: number | null;
       /** Depth Cm */
       depth_cm?: number | null;
-      /** Recyclability Observation */
-      recyclability_observation?: string | null;
-      /** Recyclability Comment */
-      recyclability_comment?: string | null;
-      /** Recyclability Reference */
-      recyclability_reference?: string | null;
-      /** Repairability Observation */
-      repairability_observation?: string | null;
-      /** Repairability Comment */
-      repairability_comment?: string | null;
-      /** Repairability Reference */
-      repairability_reference?: string | null;
-      /** Remanufacturability Observation */
-      remanufacturability_observation?: string | null;
-      /** Remanufacturability Comment */
-      remanufacturability_comment?: string | null;
-      /** Remanufacturability Reference */
-      remanufacturability_reference?: string | null;
     };
     /**
      * ProfileVisibility

@@ -6,7 +6,7 @@ request schemas can evolve independently from persistence models.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.api.reference_data.models import TaxonomyDomain
 
@@ -26,20 +26,39 @@ class PhysicalPropertiesFields(BaseModel):
 
 
 class CircularityPropertiesFields(BaseModel):
-    """Shared circularity property fields for read schemas.
+    """Circularity note fields stored as a product JSON object."""
 
-    No max_length constraints here — validation belongs on write schemas / model base.
-    """
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    recyclability_observation: str | None = None
-    recyclability_comment: str | None = None
-    recyclability_reference: str | None = None
-    repairability_observation: str | None = None
-    repairability_comment: str | None = None
-    repairability_reference: str | None = None
-    remanufacturability_observation: str | None = None
-    remanufacturability_comment: str | None = None
-    remanufacturability_reference: str | None = None
+    recyclability: str | None = Field(default=None, max_length=500)
+    disassemblability: str | None = Field(default=None, max_length=500)
+    remanufacturability: str | None = Field(default=None, max_length=500)
+
+    @field_validator("recyclability", "disassemblability", "remanufacturability", mode="after")
+    @classmethod
+    def normalize_empty_note(cls, value: str | None) -> str | None:
+        """Treat empty note strings as absent values."""
+        if value == "":
+            return None
+        return value
+
+
+class ProductCircularityPropertiesFields(BaseModel):
+    """Shared product field for circularity notes."""
+
+    circularity_properties: CircularityPropertiesFields | None = None
+
+    @field_validator("circularity_properties", mode="after")
+    @classmethod
+    def normalize_empty_circularity_properties(
+        cls, value: CircularityPropertiesFields | None
+    ) -> CircularityPropertiesFields | None:
+        """Use null as the canonical empty circularity-properties value."""
+        if value is None:
+            return None
+        if value.model_dump(exclude_none=True) == {}:
+            return None
+        return value
 
 
 class ProductFields(BaseModel):

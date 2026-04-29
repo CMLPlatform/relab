@@ -40,6 +40,7 @@ If you would photograph it separately and write notes about it specifically, it 
 
 - Use parent-child product links to represent the physical breakdown of the object.
 - Keep free-text notes for uncertainty, unusual joins, damage, or ambiguous materials.
+- Use circularity notes for concise observations about recyclability, disassemblability, and remanufacturability. Leave them empty when there is no useful observation yet.
 - Treat images as part of the research record, not as decorative attachments.
 
 !!! note "Partial is fine"

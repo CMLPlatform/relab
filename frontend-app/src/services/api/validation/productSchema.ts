@@ -70,15 +70,9 @@ const physicalPropertiesSchema = z.object({
 });
 
 const circularityPropertiesSchema = z.object({
-  recyclabilityComment: z.string().nullish(),
-  recyclabilityObservation: z.string(),
-  recyclabilityReference: z.string().nullish(),
-  remanufacturabilityComment: z.string().nullish(),
-  remanufacturabilityObservation: z.string(),
-  remanufacturabilityReference: z.string().nullish(),
-  repairabilityComment: z.string().nullish(),
-  repairabilityObservation: z.string(),
-  repairabilityReference: z.string().nullish(),
+  recyclability: z.string().max(500).nullish(),
+  disassemblability: z.string().max(500).nullish(),
+  remanufacturability: z.string().max(500).nullish(),
 });
 
 const videoSchema = z.object({

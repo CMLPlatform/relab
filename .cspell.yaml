@@ -95,9 +95,11 @@ overrides:
   - filename: "backend/**"
     words:
       # Technical terms
+      - astext
       - instrumentor
       - instrumentors
       - joinedload
+      - ondelete
       - piexif
       - PYTHONDONTWRITEBYTECODE
       - PYTHONUNBUFFERED

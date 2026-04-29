@@ -1,31 +1,37 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Chip } from '@/components/base/Chip';
 import { Text } from '@/components/base/Text';
+import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
-import { CircularityPropertySection } from '@/components/product/circularity/CircularityPropertySection';
-import {
-  type CircularityField,
-  type CircularityPropertyConfig,
-  type CircularityPropertyType,
-  PROPERTY_CONFIGS,
-} from '@/components/product/circularity/config';
-import {
-  addCircularityProperty,
-  getHiddenSummary,
-  hasPropertyData,
-  removeCircularityProperty,
-  updateCircularityField,
-} from '@/components/product/circularity/helpers';
 import { styles } from '@/components/product/circularity/styles';
 import { useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
+
+type CircularityNoteKey = keyof CircularityProperties;
+
+const NOTE_FIELDS: readonly { key: CircularityNoteKey; label: string }[] = [
+  { key: 'recyclability', label: 'Recyclability' },
+  { key: 'disassemblability', label: 'Disassemblability' },
+  { key: 'remanufacturability', label: 'Remanufacturability' },
+];
 
 interface Props {
   product: Product;
   editMode: boolean;
   onChangeCircularityProperties?: (newProperties: CircularityProperties) => void;
+}
+
+function hasContent(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function visibleNoteCount(properties: CircularityProperties): number {
+  return NOTE_FIELDS.filter(({ key }) => hasContent(properties[key])).length;
+}
+
+function getHiddenSummary(count: number): string {
+  if (count === 0) return 'No associated circularity properties.';
+  return `${count} ${count === 1 ? 'property' : 'properties'} hidden.`;
 }
 
 export default function ProductCircularityProperties({
@@ -35,46 +41,22 @@ export default function ProductCircularityProperties({
 }: Props) {
   const { colors } = useAppTheme();
   const [isSectionExpanded, setIsSectionExpanded] = useState(false);
-  const [expandedProperty, setExpandedProperty] = useState<CircularityPropertyType | null>(null);
-
-  const chipsToShow = editMode
-    ? PROPERTY_CONFIGS.filter((config) => !hasPropertyData(product.circularityProperties, config))
-    : [];
-  const visibleProperties = PROPERTY_CONFIGS.filter((config) =>
-    hasPropertyData(product.circularityProperties, config),
-  );
-
-  const updateField = (
-    config: CircularityPropertyConfig,
-    field: CircularityField,
-    value: string,
-  ) => {
-    if (!product.circularityProperties) return;
-    onChangeCircularityProperties?.(
-      updateCircularityField(product.circularityProperties, config, field, value),
-    );
-  };
-
-  const addProperty = (config: CircularityPropertyConfig) => {
-    onChangeCircularityProperties?.(addCircularityProperty(product.circularityProperties, config));
-    setExpandedProperty(config.type);
-  };
-
-  const removeProperty = (config: CircularityPropertyConfig) => {
-    if (!product.circularityProperties) return;
-    onChangeCircularityProperties?.(
-      removeCircularityProperty(product.circularityProperties, config),
-    );
-    setExpandedProperty(null);
-  };
-
+  const circularityProperties = product.circularityProperties;
+  const noteCount = visibleNoteCount(circularityProperties);
   const toggleSectionLabel = isSectionExpanded ? 'Hide' : 'Show';
+
+  const updateNote = (key: CircularityNoteKey, value: string) => {
+    onChangeCircularityProperties?.({
+      ...circularityProperties,
+      [key]: value,
+    });
+  };
 
   return (
     <View>
       <DetailSectionHeader
         title="Circularity Properties"
-        tooltipTitle="Add recyclability, remanufacturability, and repairability information. Observation fields are required."
+        tooltipTitle="Add optional recyclability, disassemblability, and remanufacturability notes."
         rightElement={
           <Pressable
             onPress={() => setIsSectionExpanded((value) => !value)}
@@ -87,44 +69,43 @@ export default function ProductCircularityProperties({
       />
 
       {!isSectionExpanded ? (
-        <Text style={styles.sectionSummary}>{getHiddenSummary(visibleProperties.length)}</Text>
+        <Text style={styles.sectionSummary}>{getHiddenSummary(noteCount)}</Text>
       ) : (
-        <>
-          {visibleProperties.length === 0 && !editMode ? (
+        <View style={styles.propertyFields}>
+          {NOTE_FIELDS.map(({ key, label }) => {
+            const value = circularityProperties[key] ?? '';
+            if (!editMode && !hasContent(value)) return null;
+
+            return (
+              <View key={key} style={styles.propertySection}>
+                <Text style={styles.propertyTitle}>{label}</Text>
+                {editMode ? (
+                  <TextInput
+                    value={value}
+                    onChangeText={(text) => updateNote(key, text)}
+                    multiline
+                    numberOfLines={3}
+                    maxLength={500}
+                    style={[
+                      styles.input,
+                      styles.multilineInput,
+                      {
+                        borderColor: colors.outline,
+                        backgroundColor: colors.surface,
+                        color: colors.onSurface,
+                      },
+                    ]}
+                  />
+                ) : (
+                  <Text style={[styles.sectionSummary, { color: colors.onSurface }]}>{value}</Text>
+                )}
+              </View>
+            );
+          })}
+          {!editMode && noteCount === 0 ? (
             <Text style={styles.sectionSummary}>No associated circularity properties.</Text>
           ) : null}
-
-          {chipsToShow.length > 0 ? (
-            <View style={styles.chipContainer}>
-              {chipsToShow.map((config) => (
-                <Chip
-                  key={config.type}
-                  onPress={() => addProperty(config)}
-                  icon={<MaterialCommunityIcons name="plus" size={16} color={colors.onPrimary} />}
-                >
-                  {config.label}
-                </Chip>
-              ))}
-            </View>
-          ) : null}
-
-          {visibleProperties.map((config) =>
-            product.circularityProperties ? (
-              <CircularityPropertySection
-                key={config.type}
-                config={config}
-                circularityProperties={product.circularityProperties}
-                editMode={editMode}
-                isExpanded={expandedProperty === config.type}
-                onToggleExpanded={() =>
-                  setExpandedProperty((current) => (current === config.type ? null : config.type))
-                }
-                onRemove={() => removeProperty(config)}
-                onUpdateField={(field, value) => updateField(config, field, value)}
-              />
-            ) : null,
-          )}
-        </>
+        </View>
       )}
     </View>
   );
