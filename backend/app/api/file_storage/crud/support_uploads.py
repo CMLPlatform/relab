@@ -11,6 +11,7 @@ from fastapi import UploadFile
 from pydantic import UUID4
 from slugify import slugify
 
+from app.api.common.exceptions import BadRequestError
 from app.api.file_storage.exceptions import UploadTooLargeError
 from app.api.file_storage.schemas import ImageCreateFromForm, ImageCreateInternal
 
@@ -47,7 +48,7 @@ def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, s
     """
     if file.filename is None:
         msg = "File name is empty."
-        raise ValueError(msg)
+        raise BadRequestError(msg)
 
     original_filename = sanitize_filename(file.filename)
     file_id = uuid.uuid4()
@@ -73,7 +74,7 @@ async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> Non
 
     if file_size == 0:
         msg = "File size is zero."
-        raise ValueError(msg)
+        raise BadRequestError(msg)
     if file_size > max_size_mb * 1024 * 1024:
         raise UploadTooLargeError(file_size_bytes=file_size, max_size_mb=max_size_mb)
 

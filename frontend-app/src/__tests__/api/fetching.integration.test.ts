@@ -61,15 +61,11 @@ const rawProductData = {
   height_cm: 10,
   width_cm: 5,
   depth_cm: 3,
-  recyclability_comment: null,
-  recyclability_observation: 'low',
-  recyclability_reference: null,
-  remanufacturability_comment: null,
-  remanufacturability_observation: 'medium',
-  remanufacturability_reference: null,
-  repairability_comment: null,
-  repairability_observation: 'high',
-  repairability_reference: null,
+  circularity_properties: {
+    recyclability: 'low',
+    remanufacturability: 'medium',
+    disassemblability: 'high',
+  },
   components: [{ id: 1, name: 'Part A', parent_id: 42, amount_in_parent: 2, description: '' }],
   images: [{ id: 10, image_url: '/media/img.jpg', description: 'Main image' }],
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
@@ -212,24 +208,16 @@ describe('Fetching API Service logic', () => {
       expect(p.ownedBy).toBe('other-user-id');
     });
 
-    it('uses empty circularity defaults when circularity fields are null', async () => {
+    it('uses empty circularity defaults when circularity properties are null', async () => {
       const noCircularity = {
         ...rawProductData,
-        recyclability_observation: null,
-        recyclability_comment: null,
-        recyclability_reference: null,
-        remanufacturability_observation: null,
-        remanufacturability_comment: null,
-        remanufacturability_reference: null,
-        repairability_observation: null,
-        repairability_comment: null,
-        repairability_reference: null,
+        circularity_properties: null,
       };
       server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(noCircularity)));
 
       const p = await getBaseProduct(42);
 
-      expect(p.circularityProperties.recyclabilityObservation).toBe('');
+      expect(p.circularityProperties.recyclability).toBeNull();
     });
 
     it('throws ProductNotFoundError when the base product is missing', async () => {
@@ -262,9 +250,7 @@ describe('Fetching API Service logic', () => {
             amount_in_parent: 1,
             components: [],
             images: [],
-            recyclability_observation: '',
-            remanufacturability_observation: '',
-            repairability_observation: '',
+            circularity_properties: null,
           }),
         ),
       );

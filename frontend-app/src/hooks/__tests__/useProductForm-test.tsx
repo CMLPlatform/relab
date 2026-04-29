@@ -67,9 +67,9 @@ const mockProduct = {
   components: [],
   physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
   circularityProperties: {
-    recyclabilityObservation: '',
-    remanufacturabilityObservation: '',
-    repairabilityObservation: '',
+    recyclability: null,
+    disassemblability: null,
+    remanufacturability: null,
   },
   images: [],
   videos: [],

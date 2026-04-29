@@ -163,23 +163,6 @@ async def send_templated_email(
         logger.info("Email sent to %s using template %s", mask_email_for_log(to_email), template_name)
 
 
-async def send_email_with_template(
-    to_email: EmailStr,
-    subject: str,
-    template_name: EmailTemplateName,
-    template_body: EmailTemplateBody,
-    background_tasks: BackgroundTasks | None = None,
-) -> None:
-    """Backward-compatible wrapper around the shared templated delivery helper."""
-    await send_templated_email(
-        to_email=to_email,
-        subject=subject,
-        template_name=template_name,
-        template_body=template_body,
-        background_tasks=background_tasks,
-    )
-
-
 async def send_registration_email(
     to_email: EmailStr,
     username: str | None,

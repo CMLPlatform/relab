@@ -67,9 +67,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     # Rate limiting
     app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
 
-    # Temporary compatibility handler for legacy domain validation paths.
-    # Avoid catching RuntimeError broadly so programmer errors still surface normally.
-    app.add_exception_handler(ValueError, create_exception_handler(status.HTTP_400_BAD_REQUEST))
-
     # NOTE: This is a validation error for internal logic, not for user input
     app.add_exception_handler(ValidationError, create_exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR))

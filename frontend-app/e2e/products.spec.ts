@@ -10,11 +10,25 @@
  */
 
 import { expect, test } from '@playwright/test';
-import {
-  dismissProductsInfoCard,
-  loginAndReachProducts,
-  openProductCreationDialog,
-} from './helpers';
+import { dismissProductsInfoCard, loginAndReachProducts, openNewProductPage } from './helpers';
+
+const PRODUCTS_URL_PATTERN = /products/;
+
+async function registerNewUserAndReachProducts(page: import('@playwright/test').Page) {
+  const unique = Date.now();
+  const username = `empty${unique}`;
+  const email = `empty-${unique}@example.com`;
+  const password = 'E2eNewPass123!';
+
+  await page.goto('/new-account');
+  await page.getByPlaceholder('Username', { exact: true }).fill(username);
+  await page.getByTestId('username-next').click();
+  await page.getByPlaceholder('Email address').fill(email);
+  await page.getByTestId('email-next').click();
+  await page.getByPlaceholder('Password').fill(password);
+  await page.getByRole('button', { name: 'Create Account' }).click();
+  await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 30_000 });
+}
 
 test.describe('Guest access', () => {
   test('products page is publicly accessible without signing in', {
@@ -41,16 +55,16 @@ test.describe('Products page', () => {
   });
 
   test('empty state is shown when no products exist', async ({ page }) => {
-    await loginAndReachProducts(page);
+    await registerNewUserAndReachProducts(page);
     await page.getByText('Mine', { exact: true }).click();
     await expect(page.getByText("You haven't created any products yet. Tap the")).toBeVisible({
       timeout: 10_000,
     });
   });
 
-  test('product creation dialog opens for a verified user', async ({ page }) => {
+  test('new product page opens for a verified user', async ({ page }) => {
     await loginAndReachProducts(page);
-    await openProductCreationDialog(page);
+    await openNewProductPage(page);
   });
 });
 

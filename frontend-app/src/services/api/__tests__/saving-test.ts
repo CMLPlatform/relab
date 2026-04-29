@@ -33,15 +33,9 @@ const baseProduct: Product = {
   components: [],
   physicalProperties: { weight: 500, width: 10, height: 5, depth: 3 },
   circularityProperties: {
-    recyclabilityComment: null,
-    recyclabilityObservation: 'low',
-    recyclabilityReference: null,
-    remanufacturabilityComment: null,
-    remanufacturabilityObservation: 'medium',
-    remanufacturabilityReference: null,
-    repairabilityComment: null,
-    repairabilityObservation: 'high',
-    repairabilityReference: null,
+    recyclability: 'low',
+    remanufacturability: 'medium',
+    disassemblability: 'high',
   },
   images: [],
   videos: [],
@@ -189,8 +183,30 @@ describe('Saving API Service', () => {
       const body = JSON.parse(patchCall?.[1]?.body as string);
       expect(body.weight_g).toBe(500);
       expect(body.height_cm).toBe(5);
-      expect(body.recyclability_observation).toBe('low');
-      expect(body.circularity_properties).toBeUndefined();
+      expect(body.circularity_properties).toEqual({
+        recyclability: 'low',
+        remanufacturability: 'medium',
+        disassemblability: 'high',
+      });
+    });
+
+    it('sends null circularity_properties when notes are empty', async () => {
+      mockApiFetchOk({ id: 42 });
+
+      await saveProduct({
+        ...existingProduct,
+        circularityProperties: {
+          recyclability: '',
+          remanufacturability: null,
+          disassemblability: '   ',
+        },
+      });
+
+      const patchCall = mockApiFetch.mock.calls.find(
+        (c) => (c[0] as URL).href.includes('/products/42') && c[1]?.method === 'PATCH',
+      );
+      const body = JSON.parse(patchCall?.[1]?.body as string);
+      expect(body.circularity_properties).toBeNull();
     });
 
     it('throws when product PATCH fails', async () => {

@@ -61,6 +61,7 @@ words:
   - tsvector
 
   # Miscellaneous
+  - disassemblability
   - orcid
   - refurbishers
   - remanufacturability

@@ -13,9 +13,9 @@ from pydantic import (
 )
 
 from app.api.common.schemas.field_mixins import (
-    CircularityPropertiesFields,
     MaterialFields,
     PhysicalPropertiesFields,
+    ProductCircularityPropertiesFields,
     ProductFields,
 )
 
@@ -110,7 +110,7 @@ class MaterialRead(IntIdReadSchema, MaterialFields):
 
 ## Product Schemas ##
 class _ProductReadFields(
-    IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, CircularityPropertiesFields
+    IntIdReadSchemaWithTimeStamp, ProductFields, PhysicalPropertiesFields, ProductCircularityPropertiesFields
 ):
     """Shared read fields for base products and components."""
 

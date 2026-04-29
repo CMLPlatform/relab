@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from app.api.file_storage.models.storage_filesystem import FileSystemStorage
-from app.main import ensure_storage_directories
+from app.core.lifecycle import ensure_storage_directories
 
 if TYPE_CHECKING:
     from pathlib import Path

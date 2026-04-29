@@ -1,7 +1,14 @@
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import { getCachedUser, getToken, getUser } from '@/services/api/authentication';
-import type { ApiComponentRead, ApiImageRead, ApiProductRead, ApiVideoRead } from '@/types/api';
+import type {
+  ApiBaseProductDetail,
+  ApiBaseProductPageItem,
+  ApiComponentChildItem,
+  ApiComponentDetail,
+  ApiImageRead,
+  ApiVideoRead,
+} from '@/types/api';
 import type { Product } from '@/types/Product';
 import { apiFetch } from './client';
 import { resolveApiMediaUrl } from './media';
@@ -31,21 +38,22 @@ export function isProductNotFoundError(error: unknown): error is ProductNotFound
   return error instanceof ProductNotFoundError;
 }
 
-function isComponentPayload(data: ApiProductRead): data is ApiComponentRead {
-  return 'parent_id' in data && typeof (data as ApiComponentRead).parent_id === 'number';
-}
+type ProductMapperPayload =
+  | ApiBaseProductDetail
+  | ApiBaseProductPageItem
+  | ApiComponentChildItem
+  | ApiComponentDetail;
 
-function toProduct(data: ApiProductRead, meId?: string): Product {
-  const isComponent = isComponentPayload(data);
-  const parentID = isComponent ? data.parent_id : undefined;
-  const amountInParent = isComponent ? data.amount_in_parent : undefined;
-  const ownerId = isComponent ? undefined : data.owner_id;
+function toBaseProduct(
+  data: ApiBaseProductDetail | ApiBaseProductPageItem,
+  meId?: string,
+): Product {
+  const ownerId = data.owner_id;
   const components =
-    data.components?.map((component) => toProduct(component as ApiProductRead, meId)) ?? [];
+    'components' in data ? (data.components?.map((component) => toComponent(component)) ?? []) : [];
   return {
     id: Number(data.id),
-    role: isComponent ? 'component' : 'product',
-    parentID,
+    role: 'product',
     name: data.name,
     brand: data.brand ?? undefined,
     model: data.model ?? undefined,
@@ -54,7 +62,7 @@ function toProduct(data: ApiProductRead, meId?: string): Product {
     updatedAt: data.updated_at ?? undefined,
     productTypeID: data.product_type_id ?? undefined,
     ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
-    amountInParent,
+    amountInParent: undefined,
     physicalProperties: {
       weight: data.weight_g ?? NaN,
       height: data.height_cm ?? NaN,
@@ -62,21 +70,15 @@ function toProduct(data: ApiProductRead, meId?: string): Product {
       depth: data.depth_cm ?? NaN,
     },
     circularityProperties: {
-      recyclabilityComment: data.recyclability_comment ?? null,
-      recyclabilityObservation: data.recyclability_observation ?? '',
-      recyclabilityReference: data.recyclability_reference ?? null,
-      remanufacturabilityComment: data.remanufacturability_comment ?? null,
-      remanufacturabilityObservation: data.remanufacturability_observation ?? '',
-      remanufacturabilityReference: data.remanufacturability_reference ?? null,
-      repairabilityComment: data.repairability_comment ?? null,
-      repairabilityObservation: data.repairability_observation ?? '',
-      repairabilityReference: data.repairability_reference ?? null,
+      recyclability: data.circularity_properties?.recyclability ?? null,
+      disassemblability: data.circularity_properties?.disassemblability ?? null,
+      remanufacturability: data.circularity_properties?.remanufacturability ?? null,
     },
     ownerUsername: data.owner_username ?? undefined,
     componentIDs: components.map(({ id }) => Number(id)).filter((id) => Number.isFinite(id)),
     components,
     images:
-      data.images?.map((img: ApiImageRead) => ({
+      ('images' in data ? data.images : undefined)?.map((img: ApiImageRead) => ({
         id: String(img.id),
         url: resolveApiMediaUrl(img.image_url) ?? img.image_url ?? '',
         thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
@@ -84,21 +86,68 @@ function toProduct(data: ApiProductRead, meId?: string): Product {
       })) ?? [],
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     videos:
-      (isComponent ? [] : data.videos)?.map((vid: ApiVideoRead) => ({
+      ('videos' in data ? data.videos : undefined)?.map((vid: ApiVideoRead) => ({
         id: Number(vid.id),
         url: vid.url,
         description: vid.description ?? '',
         title: vid.title ?? '',
       })) ?? [],
-    ...(data.product_type?.name ? { productTypeName: data.product_type.name } : {}),
+    ...('product_type' in data && data.product_type?.name
+      ? { productTypeName: data.product_type.name }
+      : {}),
   };
 }
 
-async function fetchOne(url: URL): Promise<ApiProductRead | null> {
+function toComponent(data: ApiComponentChildItem | ApiComponentDetail): Product {
+  const components =
+    'components' in data ? (data.components?.map((component) => toComponent(component)) ?? []) : [];
+  return {
+    id: Number(data.id),
+    role: 'component',
+    parentID: data.parent_id,
+    name: data.name,
+    brand: data.brand ?? undefined,
+    model: data.model ?? undefined,
+    description: data.description ?? undefined,
+    createdAt: data.created_at ?? undefined,
+    updatedAt: data.updated_at ?? undefined,
+    productTypeID: data.product_type_id ?? undefined,
+    ownedBy: '',
+    amountInParent: data.amount_in_parent,
+    physicalProperties: {
+      weight: data.weight_g ?? NaN,
+      height: data.height_cm ?? NaN,
+      width: data.width_cm ?? NaN,
+      depth: data.depth_cm ?? NaN,
+    },
+    circularityProperties: {
+      recyclability: data.circularity_properties?.recyclability ?? null,
+      disassemblability: data.circularity_properties?.disassemblability ?? null,
+      remanufacturability: data.circularity_properties?.remanufacturability ?? null,
+    },
+    ownerUsername: data.owner_username ?? undefined,
+    componentIDs: components.map(({ id }) => Number(id)).filter((id) => Number.isFinite(id)),
+    components,
+    images:
+      ('images' in data ? data.images : undefined)?.map((img: ApiImageRead) => ({
+        id: String(img.id),
+        url: resolveApiMediaUrl(img.image_url) ?? img.image_url ?? '',
+        thumbnailUrl: resolveApiMediaUrl(img.thumbnail_url),
+        description: img.description ?? '',
+      })) ?? [],
+    thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
+    videos: [],
+    ...('product_type' in data && data.product_type?.name
+      ? { productTypeName: data.product_type.name }
+      : {}),
+  };
+}
+
+async function fetchOne<T extends ProductMapperPayload>(url: URL): Promise<T | null> {
   const response = await apiFetch(url, { method: 'GET' });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-  return (await response.json()) as ApiProductRead;
+  return (await response.json()) as T;
 }
 
 async function resolveMeId(): Promise<string | undefined> {
@@ -111,16 +160,16 @@ async function resolveMeId(): Promise<string | undefined> {
 
 /** Fetch a base product by id. 404s on component ids. */
 export async function getBaseProduct(id: number) {
-  const data = await fetchOne(new URL(`${baseUrl}/products/${id}`));
+  const data = await fetchOne<ApiBaseProductDetail>(new URL(`${baseUrl}/products/${id}`));
   if (!data) throw new ProductNotFoundError(id);
-  return toProduct(data, await resolveMeId());
+  return toBaseProduct(data, await resolveMeId());
 }
 
 /** Fetch a component by id. 404s on base-product ids. */
 export async function getComponent(id: number) {
-  const data = await fetchOne(new URL(`${baseUrl}/components/${id}`));
+  const data = await fetchOne<ApiComponentDetail>(new URL(`${baseUrl}/components/${id}`));
   if (!data) throw new ProductNotFoundError(id);
-  return toProduct(data, await resolveMeId());
+  return toComponent(data);
 }
 
 export function newProduct(
@@ -147,15 +196,9 @@ export function newProduct(
       depth: NaN,
     },
     circularityProperties: {
-      recyclabilityComment: '',
-      recyclabilityObservation: '',
-      recyclabilityReference: '',
-      remanufacturabilityComment: '',
-      remanufacturabilityObservation: '',
-      remanufacturabilityReference: '',
-      repairabilityComment: '',
-      repairabilityObservation: '',
-      repairabilityReference: '',
+      recyclability: null,
+      disassemblability: null,
+      remanufacturability: null,
     },
     componentIDs: [],
     components: [],
@@ -190,7 +233,7 @@ function buildProductsUrl(
 }
 
 async function parseProductsResponse(data: {
-  items: ApiProductRead[];
+  items: ApiBaseProductPageItem[];
   total: number;
   page: number;
   size: number;
@@ -202,7 +245,7 @@ async function parseProductsResponse(data: {
   } else {
     meId = await getUser().then((u) => u?.id);
   }
-  const items = data.items.map((item) => toProduct(item, meId));
+  const items = data.items.map((item) => toBaseProduct(item, meId));
   return { items, total: data.total, page: data.page, size: data.size, pages: data.pages };
 }
 

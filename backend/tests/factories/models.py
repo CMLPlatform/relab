@@ -323,6 +323,11 @@ class ProductFactory(BaseModelFactory[Product]):
         """Generate mock value."""
         return []
 
+    @classmethod
+    def circularity_properties(cls) -> None:
+        """Generate mock value."""
+        return
+
 
 class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
     """Factory for creating MaterialProductLink instances."""

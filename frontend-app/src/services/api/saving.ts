@@ -52,15 +52,7 @@ type ProductPayload = {
   height_cm: number | null;
   width_cm: number | null;
   depth_cm: number | null;
-  recyclability_comment?: string | null;
-  recyclability_observation?: string | null;
-  recyclability_reference?: string | null;
-  remanufacturability_comment?: string | null;
-  remanufacturability_observation?: string | null;
-  remanufacturability_reference?: string | null;
-  repairability_comment?: string | null;
-  repairability_observation?: string | null;
-  repairability_reference?: string | null;
+  circularity_properties: Product['circularityProperties'] | null;
 };
 
 type NewProductPayload = ProductPayload & {
@@ -83,25 +75,9 @@ function toProductPayload(product: Product): ProductPayload {
   const component = isComponent(product);
 
   const circularityOut = {
-    recyclability_comment: toNullableText(product.circularityProperties.recyclabilityComment),
-    recyclability_observation: toNullableText(
-      product.circularityProperties.recyclabilityObservation,
-    ),
-    recyclability_reference: toNullableText(product.circularityProperties.recyclabilityReference),
-    remanufacturability_comment: toNullableText(
-      product.circularityProperties.remanufacturabilityComment,
-    ),
-    remanufacturability_observation: toNullableText(
-      product.circularityProperties.remanufacturabilityObservation,
-    ),
-    remanufacturability_reference: toNullableText(
-      product.circularityProperties.remanufacturabilityReference,
-    ),
-    repairability_comment: toNullableText(product.circularityProperties.repairabilityComment),
-    repairability_observation: toNullableText(
-      product.circularityProperties.repairabilityObservation,
-    ),
-    repairability_reference: toNullableText(product.circularityProperties.repairabilityReference),
+    recyclability: toNullableText(product.circularityProperties.recyclability),
+    disassemblability: toNullableText(product.circularityProperties.disassemblability),
+    remanufacturability: toNullableText(product.circularityProperties.remanufacturability),
   };
 
   const hasCircularity = Object.values(circularityOut).some((v) => v !== null);
@@ -117,7 +93,7 @@ function toProductPayload(product: Product): ProductPayload {
     height_cm: toNullableNumber(product.physicalProperties.height),
     width_cm: toNullableNumber(product.physicalProperties.width),
     depth_cm: toNullableNumber(product.physicalProperties.depth),
-    ...(hasCircularity ? circularityOut : {}),
+    circularity_properties: hasCircularity ? circularityOut : null,
   };
 }
 

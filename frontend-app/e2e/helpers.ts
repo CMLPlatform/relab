@@ -5,6 +5,7 @@ const PASSWORD = 'E2eTestPass123!';
 const PRODUCTS_URL_PATTERN = /products/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 const PROFILE_URL_PATTERN = /profile/;
+const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const VIEW_IMAGE_LABEL_PATTERN = /^View image \d+$/;
@@ -89,10 +90,13 @@ export async function loginAndGoToProfile(page: Page) {
   await expect(page).toHaveURL(PROFILE_URL_PATTERN, { timeout: 10_000 });
 }
 
-export async function openProductCreationDialog(page: Page) {
+export async function openNewProductPage(page: Page) {
   await page.getByRole('button', { name: 'Create new product' }).click();
-  await expect(page.getByText('Create New Product')).toBeVisible({
-    timeout: 5_000,
+  await expect(page).toHaveURL(NEW_PRODUCT_URL_PATTERN, {
+    timeout: 10_000,
+  });
+  await expect(page.getByRole('textbox', { name: 'Product name' })).toBeVisible({
+    timeout: 10_000,
   });
 }
 

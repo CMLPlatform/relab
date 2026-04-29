@@ -25,11 +25,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def ensure_storage_directories() -> None:
-    """Backward-compatible export for storage directory setup helpers."""
-    lifecycle.ensure_storage_directories()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     """Manage application lifespan: startup and shutdown events."""

@@ -11,6 +11,7 @@ from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.query import require_model
+from app.api.common.exceptions import BadRequestError
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
@@ -46,7 +47,7 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
     except (ValueError, OSError) as e:
         logger.warning("Image processing failed for image %s, rolling back: %s", db_image.id, e)
         await delete_image_record(db, db_image.id)
-        raise ValueError(str(e)) from e
+        raise BadRequestError(str(e)) from e
 
     try:
         await to_thread.run_sync(generate_thumbnails, image_path)
@@ -82,7 +83,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         """Create a file-backed model, store the upload, and persist the DB row."""
         if payload.file.filename is None:
             msg = "File name is empty"
-            raise ValueError(msg)
+            raise BadRequestError(msg)
 
         await validate_upload_size(payload.file, self.max_size_mb)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
