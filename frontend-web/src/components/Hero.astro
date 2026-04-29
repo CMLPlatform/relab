@@ -13,20 +13,27 @@ const { appUrl, docsUrl, githubUrl } = Astro.props;
 
 <section class="hero-panel card content-reveal">
   <div class="hero-copy">
+    <p class="section-kicker hero-kicker">{homeContent.heroEyebrow}</p>
     <h1>{homeContent.heroTitle}</h1>
     <p class="hero-lead">{homeContent.heroBody}</p>
     <p class="hero-secondary">{homeContent.heroSecondary}</p>
+    <p class="hero-badge">{homeContent.heroBadge}</p>
 
     <div class="hero-actions">
       <a href={appUrl} class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">
-        Open the App
+        {homeContent.primaryCtas.app}
       </a>
     </div>
 
+    <ul class="hero-highlight-list">
+      {homeContent.heroHighlights.map((highlight) => <li>{highlight}</li>)}
+    </ul>
+
     <PrimaryLinks
+      label="App, documentation, and source:"
       links={[
-        { href: docsUrl, label: 'Read the Docs' },
-        { href: githubUrl, label: 'Browse GitHub' },
+        { href: docsUrl, label: homeContent.primaryCtas.docs },
+        { href: githubUrl, label: homeContent.primaryCtas.github },
       ]}
     />
   </div>

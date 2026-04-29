@@ -99,7 +99,8 @@ just staging-up YES   # staging host
 
 ### Optional profiles
 
-- Backups: append `--profile backups` to the `up` command (or use `just prod-backup-up YES`).
+- Production backups: run `just prod-up YES backups` or `just _prod-backups-up YES`.
+- Deploy migrations: run `just prod-up YES migrations` or `just staging-up YES migrations`.
 - Telemetry: see [Telemetry](#telemetry) below.
 
 ## Telemetry

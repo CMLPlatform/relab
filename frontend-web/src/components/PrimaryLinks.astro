@@ -5,14 +5,15 @@ interface LinkItem {
 }
 
 interface Props {
+  label?: string;
   links: LinkItem[];
 }
 
-const { links } = Astro.props;
+const { label = 'Need more context?', links } = Astro.props;
 ---
 
 <div class="support-links">
-  <p class="support-links-label">Need more context?</p>
+  <p class="support-links-label">{label}</p>
   <ul class="primary-links" aria-label="Supporting links">
   {
     links.map((link) => (

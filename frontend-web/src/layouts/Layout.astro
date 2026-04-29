@@ -13,6 +13,7 @@ interface Props {
   description?: string;
   image?: string;
   noIndex?: boolean;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const {
@@ -20,6 +21,7 @@ const {
   description = siteMeta.defaultDescription,
   image = '/images/logo.png',
   noIndex = false,
+  structuredData,
 } = Astro.props;
 
 const publicSiteConfig = getPublicSiteConfig();
@@ -30,6 +32,8 @@ const pageTitle =
 const socialImage = siteOrigin ? new URL(image, siteOrigin).toString() : image;
 const currentYear = new Date().getFullYear();
 const themeBootstrapScript = getThemeBootstrapScript();
+const structuredDataJson =
+  structuredData === undefined ? undefined : JSON.stringify(structuredData, null, 2);
 ---
 
 <!doctype html>
@@ -54,6 +58,9 @@ const themeBootstrapScript = getThemeBootstrapScript();
     <meta name="twitter:image" content={socialImage} />
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
     <title>{pageTitle}</title>
+    {structuredDataJson && (
+      <script type="application/ld+json" set:html={structuredDataJson}></script>
+    )}
     <script is:inline set:html={themeBootstrapScript}></script>
   </head>
   <body>

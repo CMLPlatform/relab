@@ -29,7 +29,7 @@ Interoperability is part of the roadmap too: keep identifiers, APIs, and dataset
 - [ ] stabilize a dataset publication workflow separate from the live application database
 - [ ] make that publication workflow suitable for stable public release
 - [ ] support later reuse through stable identifiers, APIs, and dataset exports
-- [ ] improve admin and background-data maintenance workflows
+- [ ] improve admin and reference-data maintenance workflows
 - [ ] make camera-assisted capture easier to operate in repeated lab workflows
 - [ ] improve API guidance for external analysis scripts and reproducible exports
 - [ ] explore assistance features for AI-supported collection and validation workflows

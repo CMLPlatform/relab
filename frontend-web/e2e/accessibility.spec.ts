@@ -30,10 +30,4 @@ test.describe('Accessibility', () => {
     const results = await analyzePage(page);
     expect(results.violations).toEqual([]);
   });
-
-  test('newsletter unsubscribe form has no critical a11y violations', async ({ page }) => {
-    await page.goto('/newsletter/unsubscribe-form');
-    const results = await analyzePage(page);
-    expect(results.violations).toEqual([]);
-  });
 });

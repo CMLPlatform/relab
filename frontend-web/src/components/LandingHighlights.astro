@@ -1,0 +1,22 @@
+---
+import { homeContent } from '@/content/home-content.ts';
+---
+
+<section class="card content-section content-reveal">
+  <div class="section-copy">
+    <p class="section-kicker">{homeContent.capabilitiesTitle}</p>
+    <h2>{homeContent.capabilitiesTitle}</h2>
+    <p>{homeContent.capabilitiesIntro}</p>
+  </div>
+
+  <div class="capability-grid" aria-label="RELab capabilities">
+    {
+      homeContent.capabilities.map((capability) => (
+        <article class="capability-card">
+          <h3>{capability.title}</h3>
+          <p>{capability.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>

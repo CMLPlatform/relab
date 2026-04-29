@@ -10,9 +10,8 @@ const vitestConfig = defineConfig({
         'node_modules/**',
         'e2e/**',
         'src/**/*.test.ts',
-        // Thin DOM-wiring entry points — exercised by Playwright, not unit tests.
+        // Thin DOM-wiring entry point — exercised by Playwright, not unit tests.
         'src/scripts/init.ts',
-        'src/scripts/token-action.ts',
       ],
       reporter: ['text', 'lcov', 'json'],
       thresholds: {

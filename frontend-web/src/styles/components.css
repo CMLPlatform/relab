@@ -36,7 +36,8 @@
 
 .hero-copy,
 .newsletter-copy,
-.newsletter-form-shell,
+.section-copy,
+.trust-details,
 .page-intro,
 .empty-state {
   display: grid;
@@ -68,6 +69,14 @@
   font-size: 1.05rem;
 }
 
+.section-kicker {
+  color: var(--color-primary-strong);
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .hero-lead {
   font-weight: 460;
 }
@@ -75,6 +84,52 @@
 .hero-secondary {
   color: var(--color-text);
   line-height: var(--line-height-body);
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary-soft) 72%, transparent);
+  color: var(--color-on-surface);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.hero-highlight-list,
+.fact-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-highlight-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.hero-highlight-list li,
+.fact-list li {
+  position: relative;
+  padding-left: 1.2rem;
+  color: var(--color-text);
+  line-height: var(--line-height-body-compact);
+}
+
+.hero-highlight-list li::before,
+.fact-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary-soft) 72%, transparent);
 }
 
 .hero-actions,
@@ -115,10 +170,37 @@
 }
 
 .newsletter-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.content-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr);
-  gap: 1.25rem;
-  align-items: start;
+  gap: 1.4rem;
+}
+
+.capability-grid,
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.capability-card,
+.workflow-card {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 1.05rem;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface-strong) 90%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+:root[data-theme="dark"] .capability-card,
+:root[data-theme="dark"] .workflow-card {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .newsletter-copy h2,
@@ -127,8 +209,51 @@
   font-size: clamp(1.6rem, 2.4vw, 2.2rem);
 }
 
-.newsletter-form-shell {
+.card h3 {
+  font-size: 1.08rem;
+}
+
+.section-copy p,
+.capability-card p,
+.workflow-card p,
+.trust-details p,
+.follow-shell p {
+  color: var(--color-text);
+  line-height: var(--line-height-body);
+}
+
+.workflow-shell {
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--color-primary-soft) 72%, transparent) 0%,
+      transparent 42%
+    ),
+    color-mix(in srgb, var(--color-surface-raised) 98%, transparent);
+}
+
+.workflow-label {
+  color: var(--color-primary-strong);
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.trust-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.fact-list {
+  display: grid;
   gap: 0.8rem;
+}
+
+.follow-shell {
+  gap: 0.85rem;
 }
 
 .btn {
@@ -206,7 +331,9 @@
 }
 
 @media (max-width: 980px) {
-  .newsletter-shell {
+  .capability-grid,
+  .workflow-grid,
+  .trust-shell {
     grid-template-columns: 1fr;
   }
 }
@@ -242,7 +369,8 @@
 
   .hero-copy,
   .newsletter-copy,
-  .newsletter-form-shell,
+  .section-copy,
+  .trust-details,
   .page-intro,
   .empty-state {
     gap: 0.8rem;
@@ -252,6 +380,7 @@
   .hero-secondary,
   .page-intro p,
   .newsletter-copy p,
+  .section-copy p,
   .muted-text {
     font-size: 0.98rem;
     line-height: 1.62;
@@ -272,8 +401,13 @@
     font-size: clamp(1.35rem, 8vw, 1.95rem);
   }
 
-  .newsletter-copy h2 {
-    max-width: 12ch;
+  .hero-badge {
+    font-size: 0.88rem;
+  }
+
+  .capability-card,
+  .workflow-card {
+    padding: 0.95rem;
   }
 }
 

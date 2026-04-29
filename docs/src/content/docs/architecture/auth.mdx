@@ -20,7 +20,7 @@ In development and tests, the access-token strategy can fall back to signed JWTs
 ## Supported Flows
 
 - Email/password login
-- Cookie-based login for web sessions
+- Session-cookie login for web sessions
 - Bearer-token login for programmatic clients
 - Refresh-token rotation
 - Logout and token revocation
@@ -37,7 +37,7 @@ sequenceDiagram
     participant TokenStore as Redis/JWT
     participant DB as Database
 
-    User->>API: POST /auth/bearer/login or /auth/cookie/login
+    User->>API: POST /v1/auth/login or /v1/auth/session/login
     API->>DB: Validate credentials
     API->>DB: Update last login metadata
     API->>TokenStore: Create access token
@@ -59,8 +59,8 @@ Login also:
 
 Refresh-token rotation happens through dedicated endpoints:
 
-- `POST /auth/refresh` for bearer-style clients
-- `POST /auth/cookie/refresh` for browser sessions
+- `POST /v1/auth/refresh` for bearer-style clients
+- `POST /v1/auth/session/refresh` for browser sessions
 
 Logout clears the access cookie, deletes the refresh cookie, and blacklists the refresh token when present.
 
@@ -69,7 +69,7 @@ Logout clears the access cookie, deletes the refresh cookie, and blacklists the 
 OAuth login is available for Google and GitHub. Each provider supports:
 
 - a token-based callback flow
-- a cookie-based callback flow
+- a session-cookie callback flow
 - account linking for existing users
 
 Google accounts may be auto-linked by email because Google verifies ownership. GitHub linking is stricter and requires explicit association.
@@ -77,6 +77,17 @@ Google accounts may be auto-linked by email because Google verifies ownership. G
 ### Backend-mediated flow (GitHub all platforms, Google on native)
 
 OAuth callbacks use a CSRF cookie and a signed state token. Redirect targets are restricted by allowlists in the auth settings.
+
+The public backend origin is configured with `BACKEND_API_URL`, for example `https://api.cml-relab.org`.
+Provider callback URLs are versioned API routes and must be registered in the provider consoles with the `/v1/oauth` prefix:
+
+- `https://api.cml-relab.org/v1/oauth/google/session/callback`
+- `https://api.cml-relab.org/v1/oauth/google/associate/callback`
+- `https://api.cml-relab.org/v1/oauth/google-youtube/associate/callback`
+- `https://api.cml-relab.org/v1/oauth/github/session/callback`
+- `https://api.cml-relab.org/v1/oauth/github/associate/callback`
+
+The bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when that transport is enabled for a client.
 
 ```mermaid
 sequenceDiagram
@@ -111,7 +122,7 @@ sequenceDiagram
     Frontend->>Google: Open PKCE auth popup (expo-auth-session)
     User->>Google: Approve login
     Google-->>Frontend: ID token + access token
-    Frontend->>API: POST /auth/oauth/google/cookie/token {id_token}
+    Frontend->>API: POST /v1/oauth/google/session/token {id_token}
     API->>Google: Verify ID token via JWKS
     API->>API: Create or link user account
     API-->>Frontend: Set session cookies (204)
@@ -119,24 +130,24 @@ sequenceDiagram
 
 The backend exposes two token-exchange endpoints:
 
-- `POST /auth/oauth/google/cookie/token` — sets httpOnly session cookies (used by the web app)
-- `POST /auth/oauth/google/bearer/token` — returns bearer + refresh tokens (for API clients)
+- `POST /v1/oauth/google/session/token` — sets httpOnly session cookies (used by the web app)
+- `POST /v1/oauth/google/bearer/token` — returns bearer + refresh tokens (for API clients)
 
 ## User-Facing Endpoints
 
 ??? note "Expand endpoint list"
-\- `POST /auth/bearer/login`
-\- `POST /auth/cookie/login`
-\- `POST /auth/refresh`
-\- `POST /auth/cookie/refresh`
-\- `POST /auth/logout`
-\- `POST /auth/register`
-\- `POST /auth/verify`
-\- `POST /auth/forgot-password`
-\- `POST /auth/reset-password`
-\- `GET /auth/validate-email`
-\- `GET /auth/oauth/*`
-\- `POST /auth/oauth/google/cookie/token`
-\- `POST /auth/oauth/google/bearer/token`
+\- `POST /v1/auth/login`
+\- `POST /v1/auth/session/login`
+\- `POST /v1/auth/refresh`
+\- `POST /v1/auth/session/refresh`
+\- `POST /v1/auth/logout`
+\- `POST /v1/auth/register`
+\- `POST /v1/auth/verify`
+\- `POST /v1/auth/forgot-password`
+\- `POST /v1/auth/reset-password`
+\- `GET /v1/auth/validate-email`
+\- `GET /v1/oauth/*`
+\- `POST /v1/oauth/google/session/token`
+\- `POST /v1/oauth/google/bearer/token`
 
 For the full live surface, see the [interactive API docs](https://api.cml-relab.org/docs#tag/auth).
