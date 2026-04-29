@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.persistence import commit_and_refresh, delete_and_commit, update_and_commit
 from app.api.common.crud.query import require_model
+from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Video
 from app.api.file_storage.schemas import VideoCreate, VideoCreateWithinProduct, VideoUpdate, VideoUpdateWithinProduct
@@ -21,7 +22,7 @@ async def create_video(
         product_id = video.product_id
     if product_id is None:
         err_msg = "Product ID is required."
-        raise ValueError(err_msg)
+        raise BadRequestError(err_msg)
     await require_model(db, Product, product_id)
 
     db_video = Video(

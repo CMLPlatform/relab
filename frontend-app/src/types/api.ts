@@ -9,16 +9,15 @@ import type { components } from './api.generated';
 type ApiSchemaName = keyof components['schemas'];
 
 // ─── Products ────────────────────────────────────────────────────────────────
-// ``ApiBaseProductRead`` is the full base-product shape returned by
-// ``GET /products/{id}``. ``ApiComponentRead`` is returned by ``GET /components/{id}``
-// and includes parent_id + amount_in_parent but no owner_id.
-// ``ApiProductRead`` is a permissive union used by legacy call sites that
-// don't know the role at fetch time (e.g. deep links).
-export type ApiBaseProductRead =
+// Detail payloads returned by the stable role-specific resource URLs.
+export type ApiBaseProductDetail =
   components['schemas']['ProductReadWithRelationshipsAndFlatComponents'];
-export type ApiComponentRead =
+export type ApiComponentDetail =
   components['schemas']['ComponentReadWithRelationshipsAndFlatComponents'];
-export type ApiProductRead = ApiBaseProductRead | ApiComponentRead;
+
+// Collection and nested-component payloads.
+export type ApiBaseProductPageItem = components['schemas']['ProductRead'];
+export type ApiComponentChildItem = components['schemas']['ComponentRead'];
 export type ApiProductCreate = components['schemas']['ProductCreateWithComponents'];
 export type ApiProductUpdate = components['schemas']['ProductUpdate'];
 // ─── Media ───────────────────────────────────────────────────────────────────
@@ -33,11 +32,7 @@ export type ApiOAuthAccountRead = components['schemas']['OAuthAccountRead'];
 export type ApiProductTypeRead = components['schemas']['ProductTypeRead'];
 
 // ─── Pagination ──────────────────────────────────────────────────────────────
-type ProductPageSchemaName = Extract<
-  ApiSchemaName,
-  | 'Page_TypeVar_Customized_ProductRead_'
-  | 'Page_TypeVar_Customized_ProductReadWithRelationshipsAndFlatComponents_'
->;
+type ProductPageSchemaName = Extract<ApiSchemaName, 'Page_TypeVar_Customized_ProductRead_'>;
 type StringPageSchemaName = Extract<ApiSchemaName, 'Page_TypeVar_Customized_str_'>;
 
 export type ApiPaginatedProducts = components['schemas'][ProductPageSchemaName];

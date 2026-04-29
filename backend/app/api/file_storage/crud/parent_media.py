@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.common.exceptions import BadRequestError
 from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
     FastAPIStorageFileNotFoundError,
@@ -37,10 +38,10 @@ def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
     """Ensure the payload is already scoped to this parent."""
     if item_data.parent_id != parent_id:
         msg = f"Parent ID mismatch: expected {parent_id}, got {item_data.parent_id}"
-        raise ValueError(msg)
+        raise BadRequestError(msg)
     if item_data.parent_type != parent_type:
         msg = f"Parent type mismatch: expected {parent_type}, got {item_data.parent_type}"
-        raise ValueError(msg)
+        raise BadRequestError(msg)
 
 
 async def list_parent_media[StorageModelT: StorageModel](

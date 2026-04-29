@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from fastapi import Request
-from pydantic import EmailStr, ValidationError
+from pydantic import ValidationError
 from sqlalchemy import exists, select
 
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
@@ -18,6 +18,7 @@ from app.api.auth.schemas import (
     UserUpdate,
 )
 from app.api.common.crud.query import require_model
+from app.api.common.exceptions import BadRequestError, NotFoundError
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +51,7 @@ async def validate_user_create(
             OrganizationCreate.model_validate(user_create.organization)
         except ValidationError as e:
             err_msg = f"Invalid organization data: {e}"
-            raise ValueError(err_msg) from e
+            raise BadRequestError(err_msg) from e
 
         # Turn UserCreateWithOrganization into UserCreate (organization is created after user creation)
         user_create = UserCreate(**user_create.model_dump(exclude={"organization"}), organization_id=None)
@@ -102,9 +103,8 @@ async def get_user_by_username(session: AsyncSession, username: str) -> User:
     statement = select(User).where(User.username == username)
 
     if not (user := (await session.execute(statement)).scalars().unique().one_or_none()):
-        err_msg: EmailStr = f"User not found with username: {username}"
-
-        raise ValueError(err_msg)
+        err_msg = f"User not found with username: {username}"
+        raise NotFoundError(err_msg)
     return user
 
 

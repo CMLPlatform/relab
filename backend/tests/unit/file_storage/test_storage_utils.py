@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import UploadFile
 
+from app.api.common.exceptions import BadRequestError
 from app.api.file_storage.crud.support_paths import delete_image_from_storage
 from app.api.file_storage.crud.support_uploads import process_uploadfile_name, sanitize_filename
 
@@ -49,7 +50,7 @@ class TestFileStorageCrudUtils:
         mock_file = MagicMock(spec=UploadFile)
         mock_file.filename = None
 
-        with pytest.raises(ValueError, match="File name is empty"):
+        with pytest.raises(BadRequestError, match="File name is empty"):
             process_uploadfile_name(mock_file)
 
     async def test_delete_image_from_storage_removes_thumbnails_and_original(self) -> None:

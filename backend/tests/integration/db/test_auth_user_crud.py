@@ -16,6 +16,7 @@ from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsE
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import OrganizationCreate, UserCreate, UserCreateWithOrganization
 from app.api.auth.services.user_database import UserDatabaseAsync
+from app.api.common.exceptions import NotFoundError
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -101,7 +102,7 @@ class TestValidateUserCreate:
 
 
 class TestGetUserByUsername:
-    """get_user_by_username returns the user or raises ValueError."""
+    """get_user_by_username returns the user or raises NotFoundError."""
 
     async def test_returns_user_when_found(self, db_session: AsyncSession) -> None:
         """Existing username → returns the matching User instance."""
@@ -113,6 +114,6 @@ class TestGetUserByUsername:
         assert result.username == "find_me"
 
     async def test_raises_when_username_not_found(self, db_session: AsyncSession) -> None:
-        """Non-existent username → raises ValueError with descriptive message."""
-        with pytest.raises(ValueError, match="not found"):
+        """Non-existent username → raises NotFoundError with descriptive message."""
+        with pytest.raises(NotFoundError, match="not found"):
             await get_user_by_username(db_session, "ghost_user")

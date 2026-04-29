@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from fastapi import UploadFile
 
+from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import ParentMediaCrud
 from app.api.file_storage.exceptions import ParentStorageOwnershipError
@@ -38,7 +39,7 @@ class TestParentStorageCrud:
             parent_type=MediaParentType.MATERIAL,
         )
 
-        with pytest.raises(ValueError, match="Parent ID mismatch"):
+        with pytest.raises(BadRequestError, match="Parent ID mismatch"):
             await operations.create(mock_session, 1, image_create)
 
     async def test_delete_removes_db_record_when_storage_file_is_missing(self, mock_session: AsyncMock) -> None:

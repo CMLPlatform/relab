@@ -33,8 +33,6 @@ def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
         (ProductCreateBaseProduct, "description", 500),
         (ProductCreateBaseProduct, "brand", 100),
         (ProductCreateBaseProduct, "model", 100),
-        (ProductCreateBaseProduct, "recyclability_observation", 500),
-        (ProductCreateBaseProduct, "recyclability_comment", 100),
     ],
     ids=lambda v: v if isinstance(v, str) else "",
 )
@@ -50,6 +48,64 @@ def test_field_max_length_enforced(schema_cls: type[BaseModel], field: str, max_
     data_bad = {**base, field: "a" * (max_len + 1)}
     with pytest.raises(ValidationError):
         _validate_model(schema_cls, data_bad)
+
+
+@pytest.mark.parametrize("field", ["recyclability", "disassemblability", "remanufacturability"])
+def test_circularity_property_notes_max_length_enforced(field: str) -> None:
+    """Circularity JSON note fields reject inputs that are too long."""
+    base = {"name": "Bosch IXO 7 Screwdriver"}
+
+    data_ok = {**base, "circularity_properties": {field: "a" * 500}}
+    result = _validate_model(ProductCreateBaseProduct, data_ok)
+    assert getattr(result.circularity_properties, field) == "a" * 500
+
+    data_bad = {**base, "circularity_properties": {field: "a" * 501}}
+    with pytest.raises(ValidationError):
+        _validate_model(ProductCreateBaseProduct, data_bad)
+
+
+def test_circularity_properties_reject_unknown_nested_keys() -> None:
+    """Circularity JSON API shape is restricted to the supported note fields."""
+    with pytest.raises(ValidationError):
+        _validate_model(
+            ProductCreateBaseProduct,
+            {
+                "name": "Bosch IXO 7 Screwdriver",
+                "circularity_properties": {"repairability": "old field name"},
+            },
+        )
+
+
+def test_circularity_properties_trim_strings() -> None:
+    """Circularity note strings are stripped consistently with other input strings."""
+    product = _validate_model(
+        ProductCreateBaseProduct,
+        {
+            "name": "Bosch IXO 7 Screwdriver",
+            "circularity_properties": {"recyclability": "  easy to sort  "},
+        },
+    )
+
+    assert product.circularity_properties is not None
+    assert product.circularity_properties.recyclability == "easy to sort"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {},
+        {"recyclability": None, "disassemblability": None, "remanufacturability": None},
+        {"recyclability": "", "disassemblability": "  ", "remanufacturability": None},
+    ],
+)
+def test_empty_circularity_properties_normalize_to_none(value: object) -> None:
+    """Empty circularity JSON payloads are canonicalized to null."""
+    product = _validate_model(
+        ProductCreateBaseProduct,
+        {"name": "Bosch IXO 7 Screwdriver", "circularity_properties": value},
+    )
+
+    assert product.circularity_properties is None
 
 
 def test_product_name_min_length() -> None:

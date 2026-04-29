@@ -11,7 +11,7 @@
 import { expect, test } from '@playwright/test';
 import {
   loginAndReachProducts,
-  openProductCreationDialog,
+  openNewProductPage,
   openSeededProductFromProductsPage,
   reachProductsPage,
 } from './helpers';
@@ -20,17 +20,33 @@ test.setTimeout(60_000);
 
 const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const NEW_OR_PRODUCT_DETAIL_URL_PATTERN = /products\/(new|\d+)/;
+const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 const BACK_LINK_NAME_PATTERN = /back/i;
 
-/** Create a product via the FAB dialog and return the product name used. */
-async function createProductViaDialog(
+async function fillProductName(page: import('@playwright/test').Page, name: string): Promise<void> {
+  const nameInput = page.getByRole('textbox', { name: 'Product name' });
+  await nameInput.fill(name);
+  await nameInput.blur();
+}
+
+async function fillRequiredProductFields(
   page: import('@playwright/test').Page,
   name: string,
 ): Promise<void> {
-  await openProductCreationDialog(page);
-  await page.getByPlaceholder('Product Name').fill(name);
-  await page.getByRole('button', { name: 'OK' }).click();
+  await fillProductName(page, name);
+  const weightInput = page.getByPlaceholder('> 0').first();
+  await weightInput.fill('42');
+  await weightInput.blur();
+}
+
+async function saveNewProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
+  await openNewProductPage(page);
+  await fillRequiredProductFields(page, name);
+  await expect(page.getByRole('button', { name: 'Save Product' })).toBeEnabled({
+    timeout: 5_000,
+  });
+  await page.getByRole('button', { name: 'Save Product' }).click();
 }
 
 // ─── Product detail navigation ─────────────────────────────────────────────────
@@ -55,58 +71,61 @@ test.describe('Product detail: navigation', () => {
 // ─── Product creation flow ─────────────────────────────────────────────────────
 
 test.describe('Product creation', () => {
-  test('FAB opens the Create New Product dialog', { tag: '@cross-browser' }, async ({ page }) => {
+  test('FAB opens the new product page in edit mode', { tag: '@cross-browser' }, async ({
+    page,
+  }) => {
     await loginAndReachProducts(page);
-    await openProductCreationDialog(page);
-    await expect(page.getByPlaceholder('Product Name')).toBeVisible();
-    // OK button is disabled until the name meets the 2-character minimum
-    await expect(page.getByRole('button', { name: 'OK' })).toBeDisabled();
+    await openNewProductPage(page);
+    await expect(page.getByRole('textbox', { name: 'Product name' })).toBeVisible();
+    // Save is disabled until the name meets the 2-character minimum.
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeDisabled();
   });
 
-  test('OK button is disabled for names shorter than 2 characters', async ({ page }) => {
+  test('Save button is disabled for names shorter than 2 characters', async ({ page }) => {
     await loginAndReachProducts(page);
-    await openProductCreationDialog(page);
-    await page.getByPlaceholder('Product Name').fill('x');
-    await expect(page.getByRole('button', { name: 'OK' })).toBeDisabled();
+    await openNewProductPage(page);
+    await fillProductName(page, 'x');
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeDisabled();
   });
 
-  test('OK button is disabled for names longer than 100 characters', async ({ page }) => {
+  test('Product name input caps names at 100 characters', async ({ page }) => {
     await loginAndReachProducts(page);
-    await openProductCreationDialog(page);
-    await page.getByPlaceholder('Product Name').fill('x'.repeat(101));
-    await expect(page.getByRole('button', { name: 'OK' })).toBeDisabled();
+    await openNewProductPage(page);
+    const nameInput = page.getByRole('textbox', { name: 'Product name' });
+    await nameInput.fill('x'.repeat(101));
+    await expect(nameInput).toHaveValue('x'.repeat(100));
   });
 
-  test('OK button becomes enabled for a valid product name', async ({ page }) => {
+  test('Save button becomes enabled after required fields are valid', async ({ page }) => {
     await loginAndReachProducts(page);
-    await openProductCreationDialog(page);
-    await page.getByPlaceholder('Product Name').fill('My Test Product');
-    await expect(page.getByRole('button', { name: 'OK' })).toBeEnabled({
+    await openNewProductPage(page);
+    await fillRequiredProductFields(page, 'My Test Product');
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeEnabled({
       timeout: 2_000,
     });
   });
 
-  test('submitting the dialog navigates to the new product detail page in edit mode', async ({
-    page,
-  }) => {
+  test('saving the new product navigates to the created product detail page', async ({ page }) => {
     await loginAndReachProducts(page);
     const productName = `E2E Test ${Date.now()}`;
-    await createProductViaDialog(page, productName);
+    await saveNewProduct(page, productName);
 
-    // The app navigates to /products/new (then redirects to the created product's ID)
-    await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
-    await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
+    await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: productName })).toBeVisible({
       timeout: 10_000,
     });
   });
 
-  test('canceling the dialog stays on the products page', async ({ page }) => {
+  test('discarding the new draft returns to the products page', async ({ page }) => {
     await loginAndReachProducts(page);
-    await openProductCreationDialog(page);
-    await page.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByText('Create New Product')).not.toBeVisible();
+    await openNewProductPage(page);
+    await page.getByRole('link', { name: BACK_LINK_NAME_PATTERN }).click();
+    await expect(page.getByText('Discard changes?')).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.getByRole('button', { name: 'Discard' }).click();
     await expect(page).toHaveURL(PRODUCTS_LIST_URL_PATTERN, {
-      timeout: 2_000,
+      timeout: 10_000,
     });
   });
 });
@@ -116,8 +135,7 @@ test.describe('Product creation', () => {
 test.describe('Product detail: edit mode', () => {
   test('new product page opens in edit mode with all major sections', async ({ page }) => {
     await loginAndReachProducts(page);
-    const productName = `E2E Edit Test ${Date.now()}`;
-    await createProductViaDialog(page, productName);
+    await openNewProductPage(page);
     await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
 
     // Key sections that should be visible in edit mode
@@ -135,8 +153,7 @@ test.describe('Product detail: edit mode', () => {
 
   test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
     await loginAndReachProducts(page);
-    const productName = `E2E Guard Test ${Date.now()}`;
-    await createProductViaDialog(page, productName);
+    await openNewProductPage(page);
     await expect(page).toHaveURL(NEW_OR_PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
     await expect(page.getByPlaceholder('Add a product description')).toBeVisible({
       timeout: 10_000,
