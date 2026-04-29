@@ -47,11 +47,11 @@ class TestClearCacheScript:
         monkeypatch.setattr(clear_cache_script, "clear_cache_namespace", clear_namespace_mock)
         monkeypatch.setattr(clear_cache_script, "close_redis", close_redis_mock)
 
-        exit_code = await clear_cache_script.clear_cache(CacheNamespace.BACKGROUND_DATA)
+        exit_code = await clear_cache_script.clear_cache(CacheNamespace.REFERENCE_DATA)
 
         assert exit_code == 0
         init_cache_mock.assert_called_once_with(redis_client)
-        clear_namespace_mock.assert_awaited_once_with(CacheNamespace.BACKGROUND_DATA)
+        clear_namespace_mock.assert_awaited_once_with(CacheNamespace.REFERENCE_DATA)
         close_redis_mock.assert_awaited_once_with(redis_client)
 
     def test_main_exits_for_invalid_namespace(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -74,4 +74,4 @@ class TestClearCacheScript:
             clear_cache_script.main()
 
         assert exc_info.value.code == 0
-        clear_cache_mock.assert_awaited_once_with(CacheNamespace.BACKGROUND_DATA)
+        clear_cache_mock.assert_awaited_once_with(CacheNamespace.REFERENCE_DATA)

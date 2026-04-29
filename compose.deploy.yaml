@@ -138,6 +138,7 @@ services:
       BACKUP_KEEP_DAYS: 7
       BACKUP_KEEP_WEEKS: 4
       BACKUP_KEEP_MONTHS: 6
+      BACKUP_ON_START: "TRUE"
     env_file: ./backend/.env.${APP_ENV} # Load database connection settings
     healthcheck:
       start_period: 30s # Override image's 5min default so the first probe runs quickly after boot

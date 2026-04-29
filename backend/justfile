@@ -129,12 +129,12 @@ k6_docker_image := "grafana/k6:latest"
 
 # Run the backend k6 baseline suite against the Docker CI stack.
 # Assumes the CI backend stack is already up and seeded with dummy data.
-_perf-ci IMAGE_ID="" BASE_URL="http://api:8000":
+_perf-ci MEDIA_URL="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    image_id="{{ IMAGE_ID }}"
-    if [ -z "$image_id" ]; then
-        echo "→ No IMAGE_ID provided; running perf baseline without resized_image scenario."
+    media_url="{{ MEDIA_URL }}"
+    if [ -z "$media_url" ]; then
+        echo "→ No MEDIA_URL provided; running perf baseline without media_url_read scenario."
     fi
     mkdir -p reports/performance
     docker run --rm \
@@ -144,7 +144,7 @@ _perf-ci IMAGE_ID="" BASE_URL="http://api:8000":
         -e BASE_URL="{{ BASE_URL }}" \
         -e PERF_USER_EMAIL="e2e-admin@example.com" \
         -e PERF_USER_PASSWORD="E2eTestPass123!" \
-        -e PERF_IMAGE_ID="$image_id" \
+        -e PERF_MEDIA_URL="$media_url" \
         {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
 
 # Write a dated CI baseline report from the latest k6 JSON summary export.

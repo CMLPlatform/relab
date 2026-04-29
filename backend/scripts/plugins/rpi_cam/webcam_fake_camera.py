@@ -9,7 +9,7 @@ Supports both connection modes:
 
   WebSocket mode:
     uv run python scripts/plugins/rpi-cam/webcam_fake_camera.py ws \
-        --backend-url ws://localhost:8000/plugins/rpi-cam/ws/connect \
+        --backend-url ws://localhost:8000/v1/plugins/rpi-cam/ws/connect \
         --camera-id <uuid> \
         --api-key <key>
     → Connects outbound to the backend WebSocket relay.
@@ -317,7 +317,7 @@ examples:
 
   # WebSocket mode — connects to the backend relay
   python scripts/webcam_fake_camera.py ws \\
-      --backend-url ws://localhost:8000/plugins/rpi-cam/ws/connect \\
+      --backend-url ws://localhost:8000/v1/plugins/rpi-cam/ws/connect \\
       --camera-id 550e8400-e29b-41d4-a716-446655440000 \\
       --api-key abc123
         """,

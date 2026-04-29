@@ -6,7 +6,7 @@ This script can be used to clear cache for specific namespaces.
 Run with: python -m scripts.maintenance.clear_cache [namespace]
 
 Available namespaces:
-- background-data (default): All background data GET endpoints
+- reference-data (default): All reference data GET endpoints
 - docs: OpenAPI documentation endpoints
 """
 
@@ -48,8 +48,8 @@ async def clear_cache(namespace: CacheNamespace) -> int:
 
 def main() -> None:
     """Run the cache clearing script."""
-    # Parse namespace from command line argument, default to background-data
-    namespace_arg = sys.argv[1] if len(sys.argv) > 1 else CacheNamespace.BACKGROUND_DATA
+    # Parse namespace from command line argument, default to reference-data
+    namespace_arg = sys.argv[1] if len(sys.argv) > 1 else CacheNamespace.REFERENCE_DATA
 
     # Validate namespace
     try:
