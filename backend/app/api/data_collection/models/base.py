@@ -5,22 +5,12 @@ other model imports) and can therefore be imported by common/schemas/base.py
 without triggering the full data_collection/models.py import chain.
 """
 
-from datetime import UTC, datetime
-
 from pydantic import BaseModel, computed_field
 from pydantic import Field as PydanticField
-from sqlalchemy import TIMESTAMP, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.api.common.schemas.field_mixins import CircularityPropertiesFields, PhysicalPropertiesFields
-
-
-### Validation Utilities ###
-def validate_start_and_end_time(start_time: datetime, end_time: datetime | None) -> None:
-    """Validate that end time is after start time if both are set."""
-    if start_time and end_time and end_time < start_time:
-        err_msg: str = f"End time {end_time:%Y-%m-%d %H:%M} must be after start time {start_time:%Y-%m-%d %H:%M}"
-        raise ValueError(err_msg)
 
 
 ### Properties Mixins ###
@@ -69,16 +59,6 @@ class ProductFieldsMixin(PhysicalPropertiesMixin, CircularityPropertiesMixin):
     brand: Mapped[str | None] = mapped_column(String(100), default=None)
     model: Mapped[str | None] = mapped_column(String(100), default=None)
 
-    dismantling_time_start: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
-    )
-    dismantling_time_end: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), default=None)
-
-
-# Backward compat aliases
-PhysicalPropertiesBase = PhysicalPropertiesMixin
-CircularityPropertiesBase = CircularityPropertiesMixin
-
 
 ### Pydantic base schema (shared with schemas.py) ###
 class ProductBase(PhysicalPropertiesFields, CircularityPropertiesFields, BaseModel):
@@ -91,8 +71,6 @@ class ProductBase(PhysicalPropertiesFields, CircularityPropertiesFields, BaseMod
     description: str | None = PydanticField(default=None, max_length=500)
     brand: str | None = PydanticField(default=None, max_length=100)
     model: str | None = PydanticField(default=None, max_length=100)
-    dismantling_time_start: datetime = PydanticField(default_factory=lambda: datetime.now(UTC))
-    dismantling_time_end: datetime | None = None
 
     # Physical properties with write-side constraints
     weight_g: float | None = PydanticField(default=None, gt=0)

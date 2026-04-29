@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
-from tests.constants import BRAND_X, COMPONENT_NAME, END_TIME, PRODUCT_BASE_NAME, START_TIME
+from tests.constants import BRAND_X, COMPONENT_NAME, PRODUCT_BASE_NAME
 from tests.factories.models import (
     CategoryFactory,
     MaterialFactory,
@@ -88,8 +88,6 @@ async def setup_product(db_session: AsyncSession, db_superuser: User) -> Product
         owner_id=db_superuser.id,
         name=PRODUCT_BASE_NAME,
         brand=BRAND_X,
-        dismantling_time_start=START_TIME,
-        dismantling_time_end=END_TIME,
         product_type=product_type,
     )
     db_session.add_all([product_type, product])
@@ -108,15 +106,11 @@ async def setup_product_graph(db_session: AsyncSession, db_superuser: User) -> P
         owner_id=db_superuser.id,
         name=PRODUCT_BASE_NAME,
         brand=BRAND_X,
-        dismantling_time_start=START_TIME,
-        dismantling_time_end=END_TIME,
         product_type=product_type,
     )
     component = Product(
         owner_id=db_superuser.id,
         name=COMPONENT_NAME,
-        dismantling_time_start=START_TIME,
-        dismantling_time_end=END_TIME,
         product_type=product_type,
         parent=product,
         amount_in_parent=1,

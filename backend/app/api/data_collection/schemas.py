@@ -1,17 +1,13 @@
 """Pydantic models used to validate CRUD operations for data collection data."""
 
 import logging
-from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import (
-    AfterValidator,
-    AwareDatetime,
     BaseModel,
     BeforeValidator,
     ConfigDict,
     Field,
-    PastDatetime,
     PositiveInt,
     model_validator,
 )
@@ -27,10 +23,7 @@ from app.api.common.schemas.base import (
     ProductRead,
 )
 from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
-from app.api.data_collection.models.base import (
-    ProductBase,
-    validate_start_and_end_time,
-)
+from app.api.data_collection.models.base import ProductBase
 from app.api.file_storage.schemas import (
     FileRead,
     ImageRead,
@@ -46,38 +39,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-### Constants ###
-MAX_TIMESTAMP_AGE: timedelta = timedelta(days=365)
-
 # Normalizes brand strings: strips whitespace and lowercases; empty string becomes None
 NormalizedBrand = Annotated[
     str | None,
     BeforeValidator(lambda v: v.strip().lower() or None if isinstance(v, str) else v),
-]
-
-
-### Common Validators ###
-def not_too_old(dt: datetime, time_delta: timedelta = MAX_TIMESTAMP_AGE) -> datetime:
-    """Ensure datetime is not older than time_delta."""
-    if dt and dt < datetime.now(UTC) - time_delta:
-        err_msg: str = f"Timestamp cannot be more than {time_delta.days} days in past: {dt:%Y-%m-%d %H:%M}"
-        raise ValueError(err_msg)
-    return dt
-
-
-def ensure_timezone(dt: datetime) -> AwareDatetime:
-    """Ensure datetime has timezone."""
-    if dt and not dt.tzinfo:
-        err_msg: str = "Datetime must have timezone info"
-        raise ValueError(err_msg)
-    return dt
-
-
-# Pydantic Type to ensure datetime is in the past and timezone-aware and not too far in the past
-ValidDateTime = Annotated[
-    PastDatetime,
-    AfterValidator(ensure_timezone),
-    AfterValidator(not_too_old),
 ]
 
 
@@ -99,21 +64,6 @@ class ProductCreateBase(BaseCreateSchema, ProductBase):
     """Base schema for product and component creation."""
 
     brand: NormalizedBrand = Field(default=None, max_length=100)
-
-    # Override base model start and end time to for validation purposes
-    dismantling_time_start: ValidDateTime = Field(
-        default_factory=lambda: datetime.now(UTC),
-        description="Start of the dismantling time, in ISO 8601 format with timezone info",
-    )
-    dismantling_time_end: ValidDateTime | None = Field(
-        default=None, description="End of the dismantling time, in ISO 8601 format with timezone info"
-    )
-
-    @model_validator(mode="after")
-    def validate_times(self) -> Self:
-        """Ensure end time is after start time if both are set."""
-        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
-        return self
 
 
 class ProductCreateWithRelationships(ProductCreateBase):
@@ -265,13 +215,6 @@ class ProductUpdate(BaseUpdateSchema):
     brand: NormalizedBrand = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
 
-    dismantling_time_start: ValidDateTime = Field(
-        default_factory=lambda: datetime.now(UTC),
-        description="Start of the dismantling time, in ISO 8601 format with timezone info",
-    )
-    dismantling_time_end: ValidDateTime | None = Field(
-        default=None, description="End of the dismantling time, in ISO 8601 format with timezone info"
-    )
     product_type_id: PositiveInt | None = None
 
     amount_in_parent: int | None = Field(
@@ -294,9 +237,3 @@ class ProductUpdate(BaseUpdateSchema):
     remanufacturability_observation: str | None = Field(default=None, max_length=500)
     remanufacturability_comment: str | None = Field(default=None, max_length=100)
     remanufacturability_reference: str | None = Field(default=None, max_length=100)
-
-    @model_validator(mode="after")
-    def validate_times(self) -> Self:
-        """Ensure end time is after start time if both are set."""
-        validate_start_and_end_time(self.dismantling_time_start, self.dismantling_time_end)
-        return self

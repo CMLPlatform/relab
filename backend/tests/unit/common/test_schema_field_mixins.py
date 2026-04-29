@@ -4,18 +4,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-from pydantic import ValidationError
-
-from app.api.common.models.enums import Unit
-from app.api.common.schemas.associations import MaterialProductLinkCreateWithinProduct
 from app.api.common.schemas.base import ComponentRead, MaterialRead, ProductRead
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.presentation.product_reads import render_component_tree, to_component_read, to_product_read
 from app.api.data_collection.schemas import (
     ComponentReadWithRecursiveComponents,
     ComponentReadWithRelationshipsAndFlatComponents,
-    ProductCreateBaseProduct,
     ProductReadWithRelationshipsAndFlatComponents,
 )
 from app.api.reference_data.schemas import CategoryReadAsSubCategory, ProductTypeRead, TaxonomyRead
@@ -60,8 +54,6 @@ def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> Non
         description = "Chair"
         brand = "Brand"
         model = "M1"
-        dismantling_time_start = datetime(2026, 3, 29, 10, 11, 12, tzinfo=UTC)
-        dismantling_time_end = datetime(2026, 3, 29, 10, 12, 13, tzinfo=UTC)
         owner_id = "4f4b34bc-4b3d-4324-a58f-8fb59428df2a"
         created_at = datetime(2026, 3, 30, 10, 11, 12, tzinfo=UTC)
         updated_at = datetime(2026, 3, 30, 10, 12, 13, tzinfo=UTC)
@@ -77,6 +69,8 @@ def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> Non
     assert TaxonomyRead.model_validate(TaxonomyRow()).domains == {"materials"}
     assert ProductRead.model_validate(ProductRow()).owner_username == "simon"
     assert "dismantling_notes" not in ProductRead.model_fields
+    assert "dismantling_time_start" not in ProductRead.model_fields
+    assert "dismantling_time_end" not in ProductRead.model_fields
 
 
 def test_product_read_schema_does_not_apply_privacy_context() -> None:
@@ -86,7 +80,6 @@ def test_product_read_schema_does_not_apply_privacy_context() -> None:
         "name": "Office Chair",
         "owner_id": "4f4b34bc-4b3d-4324-a58f-8fb59428df2a",
         "owner_username": "simon",
-        "dismantling_time_start": datetime(2026, 3, 29, 10, 11, 12, tzinfo=UTC),
     }
 
     result = ProductRead.model_validate(raw, context={"redact_owner": True})
@@ -103,7 +96,6 @@ def test_component_read_schema_does_not_apply_privacy_context() -> None:
         "parent_id": 10,
         "amount_in_parent": 4,
         "owner_username": "simon",
-        "dismantling_time_start": datetime(2026, 3, 29, 10, 11, 12, tzinfo=UTC),
     }
 
     result = ComponentRead.model_validate(raw, context={"redact_owner": True})
@@ -205,14 +197,3 @@ def test_component_tree_renderer_redacts_recursive_components() -> None:
     assert isinstance(result[0], ComponentReadWithRecursiveComponents)
     assert result[0].owner_username is None
     assert result[0].components[0].owner_username is None
-
-
-def test_product_create_schema_still_validates_end_after_start() -> None:
-    """Timestamp validation should now live in schema validation, not the ORM base."""
-    with pytest.raises(ValidationError):
-        ProductCreateBaseProduct(
-            name="Chair",
-            dismantling_time_start=datetime(2026, 3, 30, 10, 0, tzinfo=UTC),
-            dismantling_time_end=datetime(2026, 3, 30, 9, 0, tzinfo=UTC),
-            bill_of_materials=[MaterialProductLinkCreateWithinProduct(material_id=1, quantity=1, unit=Unit.GRAM)],
-        )

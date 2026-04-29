@@ -13,13 +13,11 @@ from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
     BRAND_X,
-    END_TIME,
     HEIGHT_10,
     NEW_PRODUCT_NAME,
     PRODUCT_BASE_NAME,
     PRODUCT_DESC,
     RECYCLABILITY_GOOD,
-    START_TIME,
     UPDATED_PRODUCT_NAME,
     WEIGHT_500,
 )
@@ -41,8 +39,6 @@ async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, d
         owner_id=db_superuser.id,
         name=PRODUCT_BASE_NAME,
         brand=BRAND_X,
-        dismantling_time_start=START_TIME,
-        dismantling_time_end=END_TIME,
         product_type=product_type,
     )
     db_session.add_all([product_type, product])

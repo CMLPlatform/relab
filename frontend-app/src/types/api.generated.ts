@@ -3463,16 +3463,7 @@ export interface components {
       /** Model */
       model?: string | null;
       /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
       /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
       /** Product Type Id */
       product_type_id?: number | null;
       /**
@@ -3537,10 +3528,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -3602,10 +3589,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -3672,10 +3655,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -4593,8 +4572,6 @@ export interface components {
      *       "brand": "Brand 1",
      *       "depth_cm": 50,
      *       "description": "Complete chair assembly",
-     *       "dismantling_time_end": "2025-09-22T16:30:45Z",
-     *       "dismantling_time_start": "2025-09-22T14:30:45Z",
      *       "height_cm": 150,
      *       "model": "Model 1",
      *       "name": "Office Chair",
@@ -4647,16 +4624,7 @@ export interface components {
       /** Model */
       model?: string | null;
       /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
       /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
       /** Product Type Id */
       product_type_id?: number | null;
       /**
@@ -4729,10 +4697,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -4789,10 +4753,6 @@ export interface components {
       brand?: string | null;
       /** Model */
       model?: string | null;
-      /** Dismantling Time Start */
-      dismantling_time_start?: string;
-      /** Dismantling Time End */
-      dismantling_time_end?: string;
       /** Created At */
       created_at?: string | null;
       /** Updated At */
@@ -4912,16 +4872,7 @@ export interface components {
       /** Model */
       model?: string | null;
       /**
-       * Dismantling Time Start
-       * Format: date-time
-       * @description Start of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_start?: string;
       /**
-       * Dismantling Time End
-       * @description End of the dismantling time, in ISO 8601 format with timezone info
-       */
-      dismantling_time_end?: string | null;
       /** Product Type Id */
       product_type_id?: number | null;
       /**
@@ -7557,10 +7508,6 @@ export interface operations {
         brand__ilike?: string | null;
         brand__in?: string | null;
         model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
         created_at__gte?: string | null;
         created_at__lte?: string | null;
         updated_at__gte?: string | null;
@@ -7623,10 +7570,6 @@ export interface operations {
         brand__ilike?: string | null;
         brand__in?: string | null;
         model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
         created_at__gte?: string | null;
         created_at__lte?: string | null;
         updated_at__gte?: string | null;
@@ -7815,10 +7758,6 @@ export interface operations {
         brand__ilike?: string | null;
         brand__in?: string | null;
         model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
         created_at__gte?: string | null;
         created_at__lte?: string | null;
         updated_at__gte?: string | null;
@@ -7875,10 +7814,6 @@ export interface operations {
         brand__ilike?: string | null;
         brand__in?: string | null;
         model__ilike?: string | null;
-        dismantling_time_start__gte?: string | null;
-        dismantling_time_start__lte?: string | null;
-        dismantling_time_end__gte?: string | null;
-        dismantling_time_end__lte?: string | null;
         created_at__gte?: string | null;
         created_at__lte?: string | null;
         updated_at__gte?: string | null;

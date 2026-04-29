@@ -7,7 +7,7 @@ Pydantic built-in behavior (required fields, optional defaults, roundtrip) is no
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -16,9 +16,6 @@ from pydantic import BaseModel, ValidationError
 from app.api.data_collection.schemas import (
     ProductCreateBaseProduct,
     ProductReadWithRelationships,
-    ValidDateTime,
-    ensure_timezone,
-    not_too_old,
 )
 from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.schemas import ImageRead
@@ -27,47 +24,6 @@ from app.api.file_storage.schemas import ImageRead
 def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
     """Validate schema data without unpacking loosely typed dicts."""
     return schema.model_validate(data)
-
-
-class TestValidatorsCommon:
-    """Tests for custom validators used across schemas."""
-
-    def test_ensure_timezone_with_aware_datetime(self) -> None:
-        """Verify ensure_timezone accepts timezone-aware datetime."""
-        dt = datetime.now(UTC)
-        result = ensure_timezone(dt)
-        assert result == dt
-        assert result.tzinfo is not None
-
-    def test_ensure_timezone_rejects_naive_datetime(self) -> None:
-        """Verify ensure_timezone rejects naive datetime."""
-        dt = datetime.now(UTC).replace(tzinfo=None)
-        with pytest.raises(ValueError, match="timezone"):
-            ensure_timezone(dt)
-
-    def test_not_too_old_recent_datetime(self) -> None:
-        """Verify not_too_old accepts recent datetime."""
-        dt = datetime.now(UTC) - timedelta(days=30)
-        result = not_too_old(dt)
-        assert result == dt
-
-    def test_not_too_old_rejects_old_datetime(self) -> None:
-        """Verify not_too_old rejects datetime older than 365 days."""
-        dt = datetime.now(UTC) - timedelta(days=366)
-        with pytest.raises(ValueError, match="365"):
-            not_too_old(dt)
-
-    def test_not_too_old_accepts_boundary_date(self) -> None:
-        """Verify not_too_old accepts datetime within 365 days."""
-        dt = datetime.now(UTC) - timedelta(days=364)
-        result = not_too_old(dt)
-        assert result == dt
-
-    def test_not_too_old_with_custom_delta(self) -> None:
-        """Verify not_too_old respects custom time delta."""
-        old_dt = datetime.now(UTC) - timedelta(days=61)
-        with pytest.raises(ValueError, match="in past"):
-            not_too_old(old_dt, time_delta=timedelta(days=30))
 
 
 @pytest.mark.parametrize(
@@ -102,26 +58,6 @@ def test_product_name_min_length() -> None:
         _validate_model(ProductCreateBaseProduct, {"name": "A"})
 
 
-class TestProductTimeValidation:
-    """Tests for dismantling time custom validators."""
-
-    def test_dismantling_time_start_must_be_in_past(self) -> None:
-        """Verify dismantling_time_start rejects future datetimes."""
-        future = datetime.now(UTC) + timedelta(days=1)
-        with pytest.raises(ValidationError):
-            _validate_model(ProductCreateBaseProduct, {"name": "IKEA KALLAX Shelf", "dismantling_time_start": future})
-
-    def test_dismantling_time_end_must_be_after_start(self) -> None:
-        """Verify dismantling_time_end must be after dismantling_time_start."""
-        start = datetime.now(UTC) - timedelta(hours=2)
-        end = start - timedelta(hours=1)
-        with pytest.raises(ValidationError):
-            _validate_model(
-                ProductCreateBaseProduct,
-                {"name": "IKEA KALLAX Shelf", "dismantling_time_start": start, "dismantling_time_end": end},
-            )
-
-
 def test_product_list_fields_default_to_empty() -> None:
     """Videos and bill_of_materials default to empty lists."""
     product = _validate_model(ProductCreateBaseProduct, {"name": "Dyson V15 Detect"})
@@ -136,50 +72,6 @@ def test_product_brand_lowercased() -> None:
         {"name": "Cordless Drill", "brand": "Bosch"},
     )
     assert product.brand == "bosch"
-
-
-class TestValidDatetimeType:
-    """Tests for ValidDateTime custom type."""
-
-    def test_valid_recent_past_datetime(self) -> None:
-        """Verify ValidDateTime accepts recent past datetime."""
-        dt = datetime.now(UTC) - timedelta(days=30)
-
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
-
-        model = TestModel(event_time=dt)
-        assert model.event_time == dt
-
-    def test_valid_datetime_rejects_future(self) -> None:
-        """Verify ValidDateTime rejects future datetime."""
-        dt = datetime.now(UTC) + timedelta(hours=1)
-
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
-
-        with pytest.raises(ValidationError):
-            TestModel(event_time=dt)
-
-    def test_valid_datetime_requires_timezone(self) -> None:
-        """Verify ValidDateTime requires timezone-aware datetime."""
-        dt = datetime.now(UTC).replace(tzinfo=None)
-
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
-
-        with pytest.raises(ValidationError):
-            TestModel(event_time=dt)
-
-    def test_valid_datetime_rejects_too_old(self) -> None:
-        """Verify ValidDateTime rejects datetime older than 365 days."""
-        dt = datetime.now(UTC) - timedelta(days=400)
-
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
-
-        with pytest.raises(ValidationError):
-            TestModel(event_time=dt)
 
 
 def test_product_read_thumbnail_url_with_images() -> None:
@@ -217,7 +109,6 @@ def test_product_read_thumbnail_url_with_images() -> None:
             "owner_id": uuid4(),
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
-            "dismantling_time_start": datetime.now(UTC),
             "images": [image1, image2],
         },
     )
@@ -235,7 +126,6 @@ def test_product_read_thumbnail_url_without_images() -> None:
             "owner_id": uuid4(),
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
-            "dismantling_time_start": datetime.now(UTC),
             "images": [],
         },
     )
