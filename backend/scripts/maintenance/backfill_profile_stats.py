@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
+"""Backfill user profile statistics in the profile_stats snapshot for all users.
 
-"""Backfill user statistics in the stats_cache for all users.
-
-Run with: python -m scripts.maintenance.backfill_user_stats
+Run with: python -m scripts.maintenance.backfill_profile_stats
 """
 
 import asyncio
@@ -11,7 +9,7 @@ import logging
 from sqlalchemy import select
 
 from app.api.auth.models import User
-from app.api.auth.services.stats import recompute_user_stats
+from app.api.auth.services.stats import recompute_user_profile_stats
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging
 
@@ -20,8 +18,8 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-async def backfill_stats() -> int:
-    """Iterate through all users and recompute their stats_cache."""
+async def backfill_profile_stats() -> int:
+    """Iterate through all users and recompute their profile_stats snapshot."""
     logger.info("Starting backfill of user statistics...")
 
     async with async_session_context() as session:
@@ -35,7 +33,7 @@ async def backfill_stats() -> int:
         processed = 0
         for user_id in user_ids:
             try:
-                await recompute_user_stats(session, user_id)
+                await recompute_user_profile_stats(session, user_id)
                 # Commit after each user to ensure progress is saved
                 await session.commit()
                 processed += 1
@@ -52,7 +50,7 @@ async def backfill_stats() -> int:
 
 def main() -> None:
     """Run the backfill script."""
-    raise SystemExit(asyncio.run(backfill_stats()))
+    raise SystemExit(asyncio.run(backfill_profile_stats()))
 
 
 if __name__ == "__main__":

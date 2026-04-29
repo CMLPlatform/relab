@@ -1,5 +1,4 @@
 """Behavior-focused tests for public organization endpoints."""
-# spell-checker: ignore usefixtures
 
 from __future__ import annotations
 
@@ -28,7 +27,7 @@ class TestGetOrganizations:
         owner = await UserFactory.create_async(session=db_session)
         await OrganizationFactory.create_async(session=db_session, name="Test Corp", owner_id=owner.id)
 
-        response = await api_client_light.get("/organizations")
+        response = await api_client_light.get("/v1/organizations")
 
         assert response.status_code == status.HTTP_200_OK
         names = [item["name"] for item in response.json()["items"]]
@@ -43,14 +42,14 @@ class TestGetOrganizationById:
         owner = await UserFactory.create_async(session=db_session)
         org = await OrganizationFactory.create_async(session=db_session, name="My Org", owner_id=owner.id)
 
-        response = await api_client_light.get(f"/organizations/{org.id}")
+        response = await api_client_light.get(f"/v1/organizations/{org.id}")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["name"] == "My Org"
 
     async def test_returns_404_for_unknown_id(self, api_client_light: AsyncClient) -> None:
         """Returns 404 for an unknown organization id."""
-        response = await api_client_light.get(f"/organizations/{uuid.uuid4()}")
+        response = await api_client_light.get(f"/v1/organizations/{uuid.uuid4()}")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -59,7 +58,7 @@ class TestCreateOrganization:
 
     async def test_create_organization_success(self, verified_user_client: AsyncClient, verified_user: User) -> None:
         """Creates an organization for an eligible verified user."""
-        response = await verified_user_client.post("/organizations", json={"name": "New Corp"})
+        response = await verified_user_client.post("/v1/organizations", json={"name": "New Corp"})
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -69,5 +68,5 @@ class TestCreateOrganization:
     @pytest.mark.usefixtures("org_with_owner")
     async def test_create_organization_already_member_raises(self, verified_user_client: AsyncClient) -> None:
         """Rejects creation when the user is already in an organization."""
-        response = await verified_user_client.post("/organizations", json={"name": "Conflict Org"})
+        response = await verified_user_client.post("/v1/organizations", json={"name": "Conflict Org"})
         assert response.status_code == status.HTTP_409_CONFLICT

@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { Icon } from 'react-native-paper';
+import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { createProfileSectionStyles } from '@/components/profile/sections/styles';
 import { useAppTheme } from '@/theme';
@@ -115,6 +115,41 @@ export function ProfileVisibilitySection({
             </Pressable>
           );
         })}
+      </View>
+    </>
+  );
+}
+
+type ProfileEmailUpdatesSectionProps = {
+  enabled: boolean;
+  saving: boolean;
+  onSetEnabled: (enabled: boolean) => void;
+};
+
+export function ProfileEmailUpdatesSection({
+  enabled,
+  saving,
+  onSetEnabled,
+}: ProfileEmailUpdatesSectionProps) {
+  const theme = useAppTheme();
+  const styles = createProfileSectionStyles(theme);
+
+  return (
+    <>
+      <ProfileSectionHeader title="Email Updates" />
+      <View style={styles.section}>
+        <View style={styles.newsletterRow}>
+          <View style={styles.newsletterCopy}>
+            <Text style={styles.actionTitle}>Receive RELab account updates</Text>
+            <Text style={styles.actionSubtitle}>
+              Opt in to occasional product and project updates tied to your account.
+            </Text>
+            <Text style={styles.newsletterState}>
+              {enabled ? 'Currently enabled.' : 'Currently disabled.'}
+            </Text>
+          </View>
+          <Switch value={enabled} onValueChange={onSetEnabled} disabled={saving} />
+        </View>
       </View>
     </>
   );

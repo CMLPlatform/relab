@@ -1,6 +1,6 @@
 # RELab Backend
 
-The backend provides the API, authentication flows, product and component data model, media handling, newsletter endpoints, and plugin integrations. It is built with [FastAPI](https://fastapi.tiangolo.com/), PostgreSQL, Redis, and `uv`.
+The backend provides the API, authentication flows, product and component data model, media handling, shared email infrastructure, and plugin integrations. It is built with [FastAPI](https://fastapi.tiangolo.com/), PostgreSQL, Redis, and `uv`.
 
 ## Quick Start
 
@@ -13,8 +13,8 @@ just dev
 
 The API is then available at <http://localhost:8000>.
 
-- Public API docs: <http://localhost:8000/docs>
-- Full API docs: <http://localhost:8000/docs/full> after authenticating as a superuser
+- API docs: <http://localhost:8000/docs>
+- Filtered OpenAPI schemas: <http://localhost:8000/openapi.public.json>, <http://localhost:8000/openapi.admin.json>, and <http://localhost:8000/openapi.device.json>
 
 ## Common Commands
 
@@ -44,7 +44,7 @@ The backend is intentionally moving toward explicit, domain-owned seams instead 
 - Routers should stay thin orchestration layers.
 - Domain read paths should prefer small local `select(...).where(...)` helpers over generic query-builder indirection.
 - The shared CRUD/query kernel is intentionally small: keep `require_model`, `require_models`, `page_models`, `exists`, and persistence helpers. Older convenience helpers such as `QueryOptions`, `build_query`, and `list_models` are retired.
-- Recursive endpoints such as `/products/tree` and `/categories/tree` remain supported public APIs, but they should use bounded tree loaders plus pure serialization, never lazy ORM traversal during response assembly.
+- Recursive endpoints such as `/v1/categories/tree` and `/v1/products/{product_id}/components/tree` remain supported public APIs, but they should use bounded tree loaders plus pure serialization, never lazy ORM traversal during response assembly.
 
 Two examples of the preferred shape:
 
@@ -59,6 +59,16 @@ The Raspberry Pi camera integration has two intentional contract layers:
 - **Private device seam**: `relab-rpi-cam-models` owns the backend\<->plugin transport DTOs for pairing, relay envelopes, local-access bootstrap, and direct upload acknowledgements
 
 Frontend code should keep consuming backend-generated OpenAPI types rather than importing private device-seam DTOs directly.
+
+## Email Templates
+
+Transactional email templates are authored as MJML in [app/templates/emails/src/](app/templates/emails/src/) and compiled to committed HTML templates in [app/templates/emails/build/](app/templates/emails/build/):
+
+```bash
+just compile-email
+```
+
+Runtime code should send mail through `app/api/auth/services/emails.py` so template names and context payloads stay typed in one place. Recurring newsletter delivery is not part of the runtime API; add it back only with a real sender workflow, unsubscribe handling, and preference-center support.
 
 ## More
 

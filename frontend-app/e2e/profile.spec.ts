@@ -14,7 +14,7 @@ import { EMAIL, finishOnboardingIfVisible, loginAndGoToProfile, PASSWORD } from 
 const LOGIN_URL_PATTERN = /login/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 const PROFILE_URL_PATTERN = /profile/;
-const NEWSLETTER_STATUS_PATTERN = /You are (not )?subscribed\./;
+const EMAIL_UPDATES_STATUS_PATTERN = /Currently (enabled|disabled)\./;
 const GOOGLE_LINK_PATTERN = /^(Link Google Account|Unlink Google)$/;
 const GITHUB_LINK_PATTERN = /^(Link GitHub Account|Unlink GitHub)$/;
 const PRODUCTS_URL_PATTERN = /products/;
@@ -67,10 +67,9 @@ test.describe('Profile: content', () => {
     await expect(page.getByText('Danger Zone')).toBeVisible();
   });
 
-  test('newsletter subscription status text is displayed', async ({ page }) => {
+  test('email updates status text is displayed', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // After loading, one of these must be visible
-    await expect(page.getByText(NEWSLETTER_STATUS_PATTERN)).toBeVisible({
+    await expect(page.getByText(EMAIL_UPDATES_STATUS_PATTERN)).toBeVisible({
       timeout: 10_000,
     });
   });

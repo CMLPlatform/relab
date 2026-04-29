@@ -4,13 +4,13 @@ import {
   ProfileAccountSection,
   ProfileDangerZoneSection,
   ProfileLinkedAccountsSection,
-  ProfileNewsletterSection,
 } from '@/components/profile/sections/AccountSections';
 import { ProfileDialogs } from '@/components/profile/sections/Dialogs';
 import { ProfileHero, ProfileStatsSection } from '@/components/profile/sections/HeroStats';
 import { ProfileIntegrationsSection } from '@/components/profile/sections/Integrations';
 import {
   ProfileAppearanceSection,
+  ProfileEmailUpdatesSection,
   ProfileVisibilitySection,
 } from '@/components/profile/sections/Preferences';
 import { ProfileLayout } from '@/components/profile/sections/shared';
@@ -20,7 +20,7 @@ maybeCompleteAuthSession({ skipRedirectCheck: true });
 
 export default function ProfileTab() {
   const router = useRouter();
-  const { profile, integrations, newsletter, dialogs, actions } = useProfileScreen();
+  const { profile, integrations, dialogs, actions } = useProfileScreen();
 
   if (!profile.profile) return null;
 
@@ -52,19 +52,16 @@ export default function ProfileTab() {
         onChangeVisibility={profile.handleVisibilityChange}
       />
 
+      <ProfileEmailUpdatesSection
+        enabled={profile.emailUpdatesEnabled}
+        saving={profile.emailUpdatesSaving}
+        onSetEnabled={profile.handleEmailUpdatesChange}
+      />
+
       <ProfileAccountSection
         isVerified={profile.profile.isVerified}
         onLogout={actions.onLogout}
         onVerifyAccount={actions.onVerifyAccount}
-      />
-
-      <ProfileNewsletterSection
-        newsletterSubscribed={newsletter.newsletterSubscribed}
-        newsletterLoading={newsletter.newsletterLoading}
-        newsletterSaving={newsletter.newsletterSaving}
-        newsletterError={newsletter.newsletterError}
-        onToggleNewsletter={newsletter.handleNewsletterToggle}
-        onReloadNewsletterPreference={newsletter.loadNewsletterPreference}
       />
 
       <ProfileLinkedAccountsSection

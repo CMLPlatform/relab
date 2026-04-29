@@ -1,5 +1,4 @@
 """Behavior-focused tests for organization membership endpoints."""
-# spell-checker: ignore usefixtures
 
 from __future__ import annotations
 
@@ -28,7 +27,7 @@ class TestGetOrganizationMembers:
         self, verified_user_client: AsyncClient, org_with_owner: Organization
     ) -> None:
         """Allows members to view their organization's member list."""
-        response = await verified_user_client.get(f"/organizations/{org_with_owner.id}/members")
+        response = await verified_user_client.get(f"/v1/organizations/{org_with_owner.id}/members")
 
         assert response.status_code == status.HTTP_200_OK
         assert "items" in response.json()
@@ -47,7 +46,7 @@ class TestGetOrganizationMembers:
         db_session.add(verified_user)
         await db_session.flush()
 
-        response = await verified_user_client.get(f"/organizations/{other_org.id}/members")
+        response = await verified_user_client.get(f"/v1/organizations/{other_org.id}/members")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     async def test_superuser_can_list_any_org_members(
@@ -58,7 +57,7 @@ class TestGetOrganizationMembers:
     ) -> None:
         """Allows a superuser to inspect any organization's members."""
         org = await OrganizationFactory.create_async(session=db_session, owner_id=db_superuser.id)
-        response = await api_client_superuser.get(f"/organizations/{org.id}/members")
+        response = await api_client_superuser.get(f"/v1/organizations/{org.id}/members")
         assert response.status_code == status.HTTP_200_OK
 
 
@@ -74,7 +73,7 @@ class TestJoinOrganization:
         other_owner = await UserFactory.create_async(session=db_session)
         org = await OrganizationFactory.create_async(session=db_session, owner_id=other_owner.id)
 
-        response = await verified_user_client.post(f"/organizations/{org.id}/members/me")
+        response = await verified_user_client.post(f"/v1/organizations/{org.id}/members/me")
 
         assert response.status_code == status.HTTP_201_CREATED
         assert "email" in response.json()
@@ -91,12 +90,12 @@ class TestJoinOrganization:
         other_owner = await UserFactory.create_async(session=db_session)
         other_org = await OrganizationFactory.create_async(session=db_session, owner_id=other_owner.id)
 
-        response = await verified_user_client.post(f"/organizations/{other_org.id}/members/me")
+        response = await verified_user_client.post(f"/v1/organizations/{other_org.id}/members/me")
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.json()["organization"]["name"] == other_org.name
 
-        old_org_response = await api_client.get(f"/organizations/{org_with_owner.id}")
+        old_org_response = await api_client.get(f"/v1/organizations/{org_with_owner.id}")
         assert old_org_response.status_code == status.HTTP_404_NOT_FOUND
 
 
@@ -117,7 +116,7 @@ class TestUpdateOrganization:
             organization_role=OrganizationRole.MEMBER,
         )
 
-        response = await verified_user_client.patch("/users/me/organization", json={"owner_id": str(new_owner.id)})
+        response = await verified_user_client.patch("/v1/users/me/organization", json={"owner_id": str(new_owner.id)})
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["owner_id"] == str(new_owner.id)
@@ -135,7 +134,7 @@ class TestUpdateOrganization:
         """Rejects ownership transfer to a user outside the organization."""
         outsider = await UserFactory.create_async(session=db_session)
 
-        response = await verified_user_client.patch("/users/me/organization", json={"owner_id": str(outsider.id)})
+        response = await verified_user_client.patch("/v1/users/me/organization", json={"owner_id": str(outsider.id)})
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -145,7 +144,7 @@ class TestUserOrganizationMembers:
 
     async def test_returns_404_when_user_has_no_organization(self, verified_user_client: AsyncClient) -> None:
         """Returns 404 when the current user does not belong to an organization."""
-        response = await verified_user_client.get("/users/me/organization/members")
+        response = await verified_user_client.get("/v1/users/me/organization/members")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "organization" in detail_text(response.json()).lower()

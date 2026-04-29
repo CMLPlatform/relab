@@ -92,7 +92,7 @@ graph TD
     classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
     classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
     classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
-    classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
+    classDef auth fill:#f8fafc,stroke:#475569,stroke-width:1.5px,color:#1e293b
     classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
 
     class Researcher,PublicUser,Admin actor
@@ -136,10 +136,9 @@ The backend is organised mainly by domain rather than by HTTP verb alone:
 app/
 ├── api/
 │   ├── auth/             # Login, registration, OAuth, users, organizations
-│   ├── background_data/  # Taxonomies, categories, materials, product types, units
+│   ├── reference_data/   # Taxonomies, categories, materials, product types, units
 │   ├── data_collection/  # Products, components, search, related properties
 │   ├── file_storage/     # Uploaded files, images, linked media records
-│   ├── newsletter/       # Newsletter subscription flows
 │   ├── plugins/          # Optional integrations such as rpi_cam
 │   └── common/           # Shared routers, helpers, exceptions
 ├── core/                 # Runtime configuration, DB, cache, logging, HTTP clients

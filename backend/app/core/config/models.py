@@ -13,7 +13,7 @@ DEFAULT_CORS_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d
 class CacheNamespace(StrEnum):
     """Cache namespace identifiers for different application areas."""
 
-    BACKGROUND_DATA = "background-data"
+    REFERENCE_DATA = "reference-data"
     DOCS = "docs"
 
 
@@ -23,7 +23,7 @@ class CacheSettings(BaseModel):
     prefix: str = "fastapi-cache"
     ttls: dict[CacheNamespace, int] = Field(
         default_factory=lambda: {
-            CacheNamespace.BACKGROUND_DATA: DAY,
+            CacheNamespace.REFERENCE_DATA: DAY,
             CacheNamespace.DOCS: HOUR,
         }
     )

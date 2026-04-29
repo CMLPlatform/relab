@@ -6,7 +6,7 @@ from functools import cached_property
 from pydantic import EmailStr, Field, NameEmail, SecretStr, TypeAdapter, model_validator
 
 from app.core.config.models import Environment
-from app.core.constants import DAY, HOUR, MINUTE, MONTH
+from app.core.constants import DAY, HOUR, MINUTE
 from app.core.env import RelabBaseSettings, is_production_like_environment
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
@@ -43,7 +43,6 @@ class AuthSettings(RelabBaseSettings):
 
     # Authentication settings
     fastapi_users_secret: SecretStr = SecretStr("")
-    newsletter_secret: SecretStr = SecretStr("")
 
     # OAuth settings
     google_oauth_client_id: SecretStr = SecretStr("")
@@ -72,7 +71,6 @@ class AuthSettings(RelabBaseSettings):
     oauth_state_token_ttl_seconds: int = 10 * MINUTE  # 10 minutes
     reset_password_token_ttl_seconds: int = HOUR  # 1 hour
     verification_token_ttl_seconds: int = DAY  # 1 day
-    newsletter_unsubscription_token_ttl_seconds: int = MONTH  # 30 days
 
     # Auth settings - Refresh tokens and sessions
     refresh_token_expire_days: int = 30  # 30 days for long-lived refresh tokens
@@ -116,7 +114,6 @@ class AuthSettings(RelabBaseSettings):
         errors: list[str] = []
         required_secrets = {
             "FASTAPI_USERS_SECRET": self.fastapi_users_secret.get_secret_value(),
-            "NEWSLETTER_SECRET": self.newsletter_secret.get_secret_value(),
             "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id.get_secret_value(),
             "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret.get_secret_value(),
             "GITHUB_OAUTH_CLIENT_ID": self.github_oauth_client_id.get_secret_value(),

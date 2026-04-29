@@ -10,9 +10,9 @@ from sqlalchemy import func, select
 
 from app.api.auth.models import User
 from app.api.auth.profile_stats import ProfileStatsData, dump_profile_stats, load_profile_stats
-from app.api.background_data.models import ProductType
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image, MediaParentType
+from app.api.reference_data.models import ProductType
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

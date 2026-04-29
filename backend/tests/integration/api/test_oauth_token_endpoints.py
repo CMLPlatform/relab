@@ -5,8 +5,8 @@ expo-auth-session (PKCE) and exchange it for an app session without any
 backend OAuth redirect.
 
 Covered:
-  POST /auth/oauth/google/cookie/token  — sets httpOnly session cookies
-  POST /auth/oauth/google/bearer/token  — returns bearer + refresh tokens
+  POST /oauth/google/session/token  — sets httpOnly session cookies
+  POST /oauth/google/bearer/token  — returns bearer + refresh tokens
 """
 
 from __future__ import annotations
@@ -36,8 +36,8 @@ _VALID_GOOGLE_PAYLOAD = {
     "exp": 2_000_000_000,
 }
 
-_COOKIE_ENDPOINT = "/auth/oauth/google/cookie/token"
-_BEARER_ENDPOINT = "/auth/oauth/google/bearer/token"
+_SESSION_ENDPOINT = "/v1/oauth/google/session/token"
+_BEARER_ENDPOINT = "/v1/oauth/google/bearer/token"
 
 
 def _patch_verify(
@@ -52,24 +52,24 @@ def _patch_verify(
 
 
 # ---------------------------------------------------------------------------
-# Cookie endpoint
+# Session endpoint
 # ---------------------------------------------------------------------------
 
 
-class TestGoogleCookieTokenEndpoint:
-    """Tests for POST /auth/oauth/google/cookie/token."""
+class TestGoogleSessionTokenEndpoint:
+    """Tests for POST /oauth/google/session/token."""
 
     async def test_valid_token_returns_204(self, api_client: AsyncClient) -> None:
         """A valid Google ID token should create the user and set session cookies."""
         with _patch_verify(_VALID_GOOGLE_PAYLOAD):
-            response = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "mock-id-token"})
+            response = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "mock-id-token"})
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
     async def test_valid_token_sets_auth_cookie(self, api_client: AsyncClient) -> None:
         """The response should set an 'auth' cookie for the browser session."""
         with _patch_verify(_VALID_GOOGLE_PAYLOAD):
-            response = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "mock-id-token"})
+            response = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "mock-id-token"})
 
         set_cookie_headers = response.headers.get_list("set-cookie")
         assert any("auth=" in header for header in set_cookie_headers), "Expected an 'auth' session cookie to be set"
@@ -78,7 +78,7 @@ class TestGoogleCookieTokenEndpoint:
         """Providing access_token alongside id_token should succeed."""
         with _patch_verify(_VALID_GOOGLE_PAYLOAD):
             response = await api_client.post(
-                _COOKIE_ENDPOINT,
+                _SESSION_ENDPOINT,
                 json={"id_token": "mock-id-token", "access_token": "mock-access-token"},
             )
 
@@ -87,9 +87,9 @@ class TestGoogleCookieTokenEndpoint:
     async def test_second_login_with_same_sub_returns_204(self, api_client: AsyncClient) -> None:
         """Calling the endpoint twice with the same Google sub should link to the same user account."""
         with _patch_verify(_VALID_GOOGLE_PAYLOAD):
-            resp1 = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "mock-id-token"})
+            resp1 = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "mock-id-token"})
         with _patch_verify(_VALID_GOOGLE_PAYLOAD):
-            resp2 = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "mock-id-token"})
+            resp2 = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "mock-id-token"})
 
         assert resp1.status_code == status.HTTP_204_NO_CONTENT
         assert resp2.status_code == status.HTTP_204_NO_CONTENT
@@ -97,27 +97,27 @@ class TestGoogleCookieTokenEndpoint:
     async def test_expired_token_returns_400(self, api_client: AsyncClient) -> None:
         """An expired ID token should return 400."""
         with _patch_verify(side_effect=OAuthStateExpiredError):
-            response = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "expired-token"})
+            response = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "expired-token"})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_invalid_token_returns_400(self, api_client: AsyncClient) -> None:
         """A malformed or untrusted ID token should return 400."""
         with _patch_verify(side_effect=OAuthStateDecodeError):
-            response = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "garbage"})
+            response = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "garbage"})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     async def test_missing_id_token_returns_422(self, api_client: AsyncClient) -> None:
         """A request with no body should fail schema validation."""
-        response = await api_client.post(_COOKIE_ENDPOINT, json={})
+        response = await api_client.post(_SESSION_ENDPOINT, json={})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     async def test_endpoint_is_public(self, api_client: AsyncClient) -> None:
         """The endpoint must be reachable without an existing session (it *is* the login flow)."""
         with _patch_verify(side_effect=OAuthStateDecodeError):
-            response = await api_client.post(_COOKIE_ENDPOINT, json={"id_token": "any"})
+            response = await api_client.post(_SESSION_ENDPOINT, json={"id_token": "any"})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -128,7 +128,7 @@ class TestGoogleCookieTokenEndpoint:
 
 
 class TestGoogleBearerTokenEndpoint:
-    """Tests for POST /auth/oauth/google/bearer/token."""
+    """Tests for POST /oauth/google/bearer/token."""
 
     async def test_valid_token_returns_201_with_token_response(self, api_client: AsyncClient) -> None:
         """A valid Google ID token should return bearer + refresh tokens."""

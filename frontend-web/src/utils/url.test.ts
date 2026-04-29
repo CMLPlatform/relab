@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { joinApiUrl } from './url.ts';
+import { joinApiUrl, joinVersionedApiUrl } from './url.ts';
 
 describe('joinApiUrl', () => {
   it('joins a base URL and absolute path', () => {
-    expect(joinApiUrl('https://api.example.com', '/newsletter/subscribe')).toBe(
-      'https://api.example.com/newsletter/subscribe',
+    expect(joinApiUrl('https://api.example.com', '/products/suggestions/brands')).toBe(
+      'https://api.example.com/products/suggestions/brands',
     );
   });
 
   it('removes duplicate trailing slashes from base URL', () => {
-    expect(joinApiUrl('https://api.example.com///', '/newsletter/subscribe')).toBe(
-      'https://api.example.com/newsletter/subscribe',
+    expect(joinApiUrl('https://api.example.com///', '/products/suggestions/brands')).toBe(
+      'https://api.example.com/products/suggestions/brands',
     );
   });
 
   it('adds a leading slash when path is relative', () => {
-    expect(joinApiUrl('https://api.example.com', 'newsletter/subscribe')).toBe(
-      'https://api.example.com/newsletter/subscribe',
+    expect(joinApiUrl('https://api.example.com', 'products/suggestions/brands')).toBe(
+      'https://api.example.com/products/suggestions/brands',
     );
   });
 
@@ -44,6 +44,20 @@ describe('joinApiUrl', () => {
   it('preserves existing path segments on the base URL', () => {
     expect(joinApiUrl('https://api.example.com/v1', '/users')).toBe(
       'https://api.example.com/v1/users',
+    );
+  });
+});
+
+describe('joinVersionedApiUrl', () => {
+  it('adds /v1 between the API origin and path', () => {
+    expect(joinVersionedApiUrl('https://api.example.com', '/products/suggestions/brands')).toBe(
+      'https://api.example.com/v1/products/suggestions/brands',
+    );
+  });
+
+  it('does not duplicate /v1 when the base URL already includes it', () => {
+    expect(joinVersionedApiUrl('https://api.example.com/v1', '/products/suggestions/brands')).toBe(
+      'https://api.example.com/v1/products/suggestions/brands',
     );
   });
 });

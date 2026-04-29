@@ -1,6 +1,4 @@
 import { View } from 'react-native';
-import { Button, Switch } from 'react-native-paper';
-import { Text } from '@/components/base/Text';
 import { createProfileSectionStyles } from '@/components/profile/sections/styles';
 import { useAppTheme } from '@/theme';
 import { type OAuthAccount, ProfileAction, ProfileSectionHeader } from './shared';
@@ -34,67 +32,6 @@ export function ProfileAccountSection({
             onPress={onVerifyAccount}
           />
         ) : null}
-      </View>
-    </>
-  );
-}
-
-type ProfileNewsletterSectionProps = {
-  newsletterSubscribed: boolean;
-  newsletterLoading: boolean;
-  newsletterSaving: boolean;
-  newsletterError: string;
-  onToggleNewsletter: (enabled: boolean) => void;
-  onReloadNewsletterPreference: () => void;
-};
-
-export function ProfileNewsletterSection({
-  newsletterSubscribed,
-  newsletterLoading,
-  newsletterSaving,
-  newsletterError,
-  onToggleNewsletter,
-  onReloadNewsletterPreference,
-}: ProfileNewsletterSectionProps) {
-  const styles = createProfileSectionStyles(useAppTheme());
-  return (
-    <>
-      <ProfileSectionHeader title="Email updates" />
-      <View style={styles.section}>
-        <View style={styles.newsletterRow}>
-          <View style={styles.newsletterCopy}>
-            <Text style={styles.actionTitle}>Product updates</Text>
-            <Text style={styles.actionSubtitle}>
-              Occasional research and product emails, separate from your account.
-            </Text>
-            <Text style={styles.newsletterState}>
-              {newsletterLoading
-                ? 'Checking your preference...'
-                : newsletterSubscribed
-                  ? 'You are subscribed.'
-                  : 'You are not subscribed.'}
-            </Text>
-          </View>
-          <Switch
-            testID="newsletter-switch"
-            value={newsletterSubscribed}
-            onValueChange={onToggleNewsletter}
-            disabled={newsletterLoading || newsletterSaving}
-          />
-        </View>
-        <View style={styles.newsletterFooter}>
-          {newsletterError ? <Text style={styles.newsletterError}>{newsletterError}</Text> : null}
-          {newsletterError ? (
-            <Button
-              mode="text"
-              compact
-              onPress={onReloadNewsletterPreference}
-              disabled={newsletterLoading || newsletterSaving}
-            >
-              Try again
-            </Button>
-          ) : null}
-        </View>
       </View>
     </>
   );

@@ -34,7 +34,7 @@ class TestOAuthRedirectValidation:
 
         mock_request = MagicMock()
         mock_request.query_params = {"redirect_uri": "https://evil.example.org/auth/callback"}
-        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         with pytest.raises(HTTPException) as exc_info:
             await builder._get_authorize_handler(mock_request, Response(), scopes=None)
@@ -59,7 +59,7 @@ class TestOAuthRedirectValidation:
 
         mock_request = MagicMock()
         mock_request.query_params = {"redirect_uri": "https://app.example.com/auth/callback"}
-        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
@@ -81,7 +81,7 @@ class TestOAuthRedirectValidation:
 
         mock_request = MagicMock()
         mock_request.query_params = {"redirect_uri": "http://192.168.1.50:3000/auth/callback"}
-        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
@@ -100,7 +100,7 @@ class TestOAuthRedirectValidation:
 
         mock_request = MagicMock()
         mock_request.query_params = {"redirect_uri": "relab://oauth-callback"}
-        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         result = await builder._get_authorize_handler(mock_request, Response(), scopes=None)
         assert result.authorization_url == "https://github.com/login/oauth/authorize"
@@ -124,7 +124,7 @@ class TestOAuthRedirectValidation:
 
         mock_request = MagicMock()
         mock_request.query_params = {"redirect_uri": "https://user:pass@app.example.com/auth/callback"}
-        mock_request.url_for.return_value = "https://api.example.com/auth/oauth/callback"
+        mock_request.url_for.return_value = "https://api.example.com/oauth/callback"
 
         with pytest.raises(HTTPException) as exc_info:
             await builder._get_authorize_handler(mock_request, Response(), scopes=None)

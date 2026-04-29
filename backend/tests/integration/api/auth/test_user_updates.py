@@ -102,6 +102,34 @@ class TestUpdateUserValidation:
         assert result.preferences == {
             "profile_visibility": "private",
             "theme_mode": "dark",
+            "email_updates_enabled": False,
+            "products_welcome_dismissed": False,
+            "rpi_camera_enabled": False,
+            "youtube_streaming_enabled": False,
+        }
+
+    async def test_update_preferences_can_enable_email_updates(self, db_session: AsyncSession) -> None:
+        """Preference updates should persist the recurring email opt-in flag."""
+        user = await UserFactory.create_async(
+            db_session,
+            email=USER1_EMAIL,
+            username=USER1_USERNAME,
+            hashed_password="pw",
+            preferences={"theme_mode": "light"},
+        )
+        user_db = MagicMock()
+        user_db.session = db_session
+
+        result = await update_user_override(
+            user_db,
+            user,
+            UserUpdate.model_validate({"preferences": {"email_updates_enabled": True}}),
+        )
+
+        assert result.preferences == {
+            "profile_visibility": "public",
+            "theme_mode": "light",
+            "email_updates_enabled": True,
             "products_welcome_dismissed": False,
             "rpi_camera_enabled": False,
             "youtube_streaming_enabled": False,
@@ -118,10 +146,10 @@ class TestUpdateUserEndpoint:
 
     async def test_update_user_unauthenticated_returns_401(self, api_client: AsyncClient) -> None:
         """Test that updating a user without authentication returns 401."""
-        response = await api_client.patch("/users/me", json={"username": "any_name"})
+        response = await api_client.patch("/v1/users/me", json={"username": "any_name"})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     async def test_get_me_unauthenticated_returns_401(self, api_client: AsyncClient) -> None:
         """Test that getting user info without authentication returns 401."""
-        response = await api_client.get("/users/me")
+        response = await api_client.get("/v1/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED

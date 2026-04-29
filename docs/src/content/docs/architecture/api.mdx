@@ -18,31 +18,47 @@ For the live schema and request models, use the [interactive API documentation](
 
 ### Authentication & User Management
 
-- `/auth/*` — login, logout, refresh, registration, verification, password reset, and OAuth
-- `/users/*` and `/organizations/*` — authenticated user and organization operations
-- `/admin/users/*` and `/admin/organizations/*` — superuser administration
+- `/v1/auth/*` — login, logout, refresh, registration, verification, and password reset
+- `/v1/oauth/*` — Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
+- `/v1/users/*` and `/v1/organizations/*` — authenticated user and organization operations
+- `/v1/admin/users/*` and `/v1/admin/organizations/*` — superuser administration
 
 ### Data Collection
 
-- `/products/*` — product creation, reads, updates, search, and parent-child component relations
-- `/users/me/products/*` and `/users/{user_id}/products/*` — user-scoped product access
+- `/v1/products/*` — base-product creation, reads, updates, search, owner filters, base-product media, videos, bill-of-materials, and parent-scoped component lists
+- `/v1/components/*` — stable component reads, updates, component-scoped media, and component bill-of-materials
+- `/v1/products?owner=me` and `/v1/users/{user_id}/products/*` — user-scoped product access
 
 ### Reference Data
 
-- public `/taxonomies`, `/categories`, `/materials`, `/product-types`, and `/units` endpoints for reference lookups
-- `/admin/*` variants for controlled management of background data
+- public `/v1/taxonomies`, `/v1/categories`, `/v1/materials`, `/v1/product-types`, and `/v1/units` endpoints for reference lookups
+- `/v1/admin/*` variants for controlled management of reference data
 
 ### Media
 
-- `/images/*` and related file-storage endpoints for uploads, linked media, and retrieval
+- image/file payloads expose generated `/uploads/*` media URLs, including precomputed thumbnails when available
+- base-product media remains under `/v1/products/{id}/images` and `/v1/products/{id}/files`
+- component media uses `/v1/components/{id}/images` and `/v1/components/{id}/files`
+- videos are base-product-only under `/v1/products/{id}/videos`
+
+## Product and Component Resources
+
+Base products and components share the same database table, but they are separate API resources:
+
+- base products are addressed through `/v1/products/{id}`
+- components are addressed through `/v1/components/{id}`
+- new components are created in parent context: use `POST /v1/products/{id}/components` for a base-product parent and `POST /v1/components/{id}/components` for a component parent
+- direct children and bounded base-product subtrees are listed with `/v1/products/{id}/components` and `/v1/products/{id}/components/tree`
+- bill-of-materials routes follow the addressed resource: `/v1/products/{id}/materials` for base products and `/v1/components/{id}/materials` for components
+
+Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
 
 ### Hardware Integration
 
-- `/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
+- `/v1/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
 
 ### Supporting Services
 
-- `/newsletter/*` — newsletter subscription operations
 - health and readiness endpoints for deployment checks
 
 ## Design Notes

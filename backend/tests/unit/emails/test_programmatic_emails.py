@@ -12,6 +12,10 @@ from fastapi import BackgroundTasks
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.emails import (
+    ACCOUNT_RECOVERY_TEMPLATE,
+    POST_VERIFICATION_TEMPLATE,
+    REGISTRATION_TEMPLATE,
+    VERIFICATION_TEMPLATE,
     generate_token_link,
     send_post_verification_email,
     send_registration_email,
@@ -114,6 +118,22 @@ async def test_send_registration_email_no_username(email_data: dict[str, str], m
     mock_email_sending.assert_called_once()
 
 
+async def test_send_registration_email_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Registration emails pass the expected template and context."""
+    await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert await_args.kwargs["template_name"] == REGISTRATION_TEMPLATE
+    assert message.template_body == {
+        "username": email_data["username"],
+        "verification_link": generate_token_link(email_data["token"], "/verify"),
+    }
+
+
 async def test_send_registration_email_with_background_tasks(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -134,6 +154,22 @@ async def test_send_reset_password_email(email_data: dict[str, str], mock_email_
     """Test password reset email is sent."""
     await send_reset_password_email(email_data["email"], email_data["username"], email_data["token"])
     mock_email_sending.assert_called_once()
+
+
+async def test_send_reset_password_email_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Password-reset emails pass the expected template and context."""
+    await send_reset_password_email(email_data["email"], email_data["username"], email_data["token"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert await_args.kwargs["template_name"] == ACCOUNT_RECOVERY_TEMPLATE
+    assert message.template_body == {
+        "username": email_data["username"],
+        "reset_link": generate_token_link(email_data["token"], "/reset-password"),
+    }
 
 
 async def test_send_reset_password_email_with_background_tasks(
@@ -157,6 +193,22 @@ async def test_send_verification_email(email_data: dict[str, str], mock_email_se
     mock_email_sending.assert_called_once()
 
 
+async def test_send_verification_email_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Verification emails pass the expected template and context."""
+    await send_verification_email(email_data["email"], email_data["username"], email_data["token"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert await_args.kwargs["template_name"] == VERIFICATION_TEMPLATE
+    assert message.template_body == {
+        "username": email_data["username"],
+        "verification_link": generate_token_link(email_data["token"], "/verify"),
+    }
+
+
 async def test_send_verification_email_with_background_tasks(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
@@ -176,6 +228,19 @@ async def test_send_post_verification_email(email_data: dict[str, str], mock_ema
     """Test post-verification email is sent."""
     await send_post_verification_email(email_data["email"], email_data["username"])
     mock_email_sending.assert_called_once()
+
+
+async def test_send_post_verification_email_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Post-verification emails pass the expected template and context."""
+    await send_post_verification_email(email_data["email"], email_data["username"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert await_args.kwargs["template_name"] == POST_VERIFICATION_TEMPLATE
+    assert message.template_body == {"username": email_data["username"]}
 
 
 async def test_send_post_verification_email_no_username(

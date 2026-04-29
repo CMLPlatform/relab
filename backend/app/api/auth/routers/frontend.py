@@ -24,7 +24,6 @@ async def index(request: Request, user: OptionalCurrentActiveUserDep) -> HTMLRes
         {
             "request": request,
             "user": user,
-            "show_full_docs": user.is_superuser if user else False,
             "frontend_web_url": core_settings.frontend_web_url,
         },
     )

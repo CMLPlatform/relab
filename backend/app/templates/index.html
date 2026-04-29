@@ -22,10 +22,6 @@
         <h2>API Documentation</h2>
         <a href="{{ url_for('get_swagger_docs') }}" class="secondary-btn">API Documentation (Swagger)</a>
         <a href="{{ url_for('get_redoc_docs') }}" class="secondary-btn">API Documentation (ReDoc)</a>
-        {% if show_full_docs %}
-          <a href="{{ url_for('get_full_swagger_docs') }}" class="secondary-btn">Full API Documentation (Swagger)</a>
-          <a href="{{ url_for('get_full_redoc_docs') }}" class="secondary-btn">Full API Documentation (ReDoc)</a>
-        {% endif %}
       </div>
 
       <div class="section">

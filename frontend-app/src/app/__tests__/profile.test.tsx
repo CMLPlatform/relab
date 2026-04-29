@@ -55,11 +55,6 @@ jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: () => 'light',
 }));
 
-jest.mock('@/services/api/newsletter', () => ({
-  getNewsletterPreference: jest.fn(),
-  setNewsletterPreference: jest.fn(),
-}));
-
 jest.mock('@/services/api/profiles', () => ({
   getPublicProfile: jest.fn(),
 }));
@@ -196,12 +191,26 @@ jest.mock('@/components/profile/sections/Preferences', () => {
           React.createElement(Text, null, 'Community'),
         ),
       ),
+    ProfileEmailUpdatesSection: ({ onSetEnabled }: { onSetEnabled: (enabled: boolean) => void }) =>
+      React.createElement(
+        View,
+        null,
+        React.createElement(
+          Pressable,
+          {
+            accessibilityRole: 'switch',
+            accessibilityLabel: 'Receive RELab account updates',
+            onPress: () => onSetEnabled(true),
+          },
+          React.createElement(Text, null, 'Receive RELab account updates'),
+        ),
+      ),
   };
 });
 
 jest.mock('@/components/profile/sections/AccountSections', () => {
   const React = require('react');
-  const { Pressable, Switch, Text, View } = require('react-native');
+  const { Pressable, Text, View } = require('react-native');
 
   return {
     ProfileAccountSection: ({
@@ -283,43 +292,6 @@ jest.mock('@/components/profile/sections/AccountSections', () => {
               { accessibilityRole: 'button', onPress: () => onLinkOAuth('github') },
               React.createElement(Text, null, 'Link GitHub Account'),
             ),
-      ),
-    ProfileNewsletterSection: ({
-      newsletterSubscribed,
-      newsletterLoading,
-      newsletterError,
-      onToggleNewsletter,
-      onReloadNewsletterPreference,
-    }: {
-      newsletterSubscribed: boolean;
-      newsletterLoading: boolean;
-      newsletterError: string | null;
-      onToggleNewsletter: (value: boolean) => void;
-      onReloadNewsletterPreference: () => void;
-    }) =>
-      React.createElement(
-        View,
-        null,
-        newsletterLoading
-          ? React.createElement(Text, null, 'Loading newsletter')
-          : React.createElement(
-              Text,
-              null,
-              newsletterSubscribed ? 'You are subscribed.' : 'You are not subscribed.',
-            ),
-        React.createElement(Switch, {
-          accessibilityRole: 'switch',
-          value: newsletterSubscribed,
-          onValueChange: onToggleNewsletter,
-        }),
-        newsletterError ? React.createElement(Text, null, newsletterError) : null,
-        newsletterError
-          ? React.createElement(
-              Pressable,
-              { accessibilityRole: 'button', onPress: onReloadNewsletterPreference },
-              React.createElement(Text, null, 'Try again'),
-            )
-          : null,
       ),
   };
 });
@@ -456,7 +428,7 @@ const defaultUser = {
   isSuperuser: false,
   isVerified: false,
   oauth_accounts: [],
-  preferences: { profile_visibility: 'public', theme_mode: 'auto' },
+  preferences: { profile_visibility: 'public', theme_mode: 'auto', email_updates_enabled: false },
 };
 
 /** Render the profile tab and wait for all initial async effects to settle. */
@@ -465,7 +437,7 @@ async function renderProfile() {
   const result = render(<ProfileTab />, {
     wrapper: ({ children }) => <PaperProvider>{children}</PaperProvider>,
   });
-  // Flush pending microtasks so newsletter/stats loading effects settle
+  // Flush pending microtasks so profile stats loading effects settle
   // inside act() and don't trigger "not wrapped in act" warnings.
   await act(async () => {});
   return result;
@@ -486,13 +458,6 @@ describe('ProfileTab', () => {
       const options = args[1] as { onSuccess?: () => void } | undefined;
       options?.onSuccess?.();
     });
-
-    const { getNewsletterPreference, setNewsletterPreference } =
-      require('@/services/api/newsletter.ts');
-    (getNewsletterPreference as jest.Mock).mockResolvedValue({ subscribed: false });
-    (setNewsletterPreference as jest.Mock).mockImplementation(async (v: boolean) => ({
-      subscribed: v,
-    }));
 
     const { getPublicProfile } = require('@/services/api/profiles.ts');
     (getPublicProfile as jest.Mock).mockResolvedValue({
@@ -556,7 +521,7 @@ describe('ProfileTab', () => {
       });
       // statsLoading=true renders '...' for each of the four stat values
       expect(getAllByText('...').length).toBeGreaterThanOrEqual(1);
-      // Settle the newsletter effect to avoid act() warnings
+      // Settle the stats effect to avoid act() warnings
       await act(async () => {});
     });
   });
@@ -606,6 +571,20 @@ describe('ProfileTab', () => {
           }),
         );
         expect(mockRefetch).toHaveBeenCalledWith(false);
+      });
+    });
+  });
+
+  describe('email updates', () => {
+    it('calls updateUser when the email updates switch is toggled', async () => {
+      const { findByRole } = await renderProfile();
+      fireEvent.press(await findByRole('switch', { name: 'Receive RELab account updates' }));
+      await waitFor(() => {
+        expect(mockUpdateUser).toHaveBeenCalledWith(
+          expect.objectContaining({
+            preferences: expect.objectContaining({ email_updates_enabled: true }),
+          }),
+        );
       });
     });
   });
@@ -667,21 +646,6 @@ describe('ProfileTab', () => {
       const { findByLabelText, findByText } = await renderProfile();
       fireEvent.press(await findByLabelText('Unlink Google'));
       expect(await findByText('Unlink Account')).toBeTruthy();
-    });
-  });
-
-  describe('newsletter', () => {
-    it('shows subscription status after loading', async () => {
-      const { findByText } = await renderProfile();
-      expect(await findByText('You are not subscribed.')).toBeTruthy();
-    });
-
-    it('shows error and retry button when getNewsletterPreference fails', async () => {
-      const { getNewsletterPreference } = require('@/services/api/newsletter.ts');
-      (getNewsletterPreference as jest.Mock).mockRejectedValue(new Error('Network error'));
-
-      const { findByText } = await renderProfile();
-      expect(await findByText('Try again')).toBeTruthy();
     });
   });
 });

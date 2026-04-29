@@ -91,7 +91,6 @@ RESERVED_USERNAMES = {
     "root",
     "profile",
     "profiles",
-    "newsletter",
     "users",
     "settings",
     "health",
