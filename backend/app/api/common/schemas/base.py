@@ -117,11 +117,6 @@ class _ProductReadFields(
     product_type_id: PositiveInt | None = None
     thumbnail_url: str | None = None
 
-    @field_serializer("dismantling_time_start", "dismantling_time_end", when_used="unless-none")
-    def serialize_timestamps(self, dt: datetime, _info: FieldSerializationInfo) -> str:
-        """Serialize timestamps for read operations."""
-        return serialize_datetime_with_z(dt)
-
 
 class ProductRead(_ProductReadFields):
     """Read schema for base products (top of a product tree).

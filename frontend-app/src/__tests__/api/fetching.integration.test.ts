@@ -260,8 +260,6 @@ describe('Fetching API Service logic', () => {
             name: 'Component Seven',
             parent_id: 10,
             amount_in_parent: 1,
-            dismantling_time_start: '2024-01-01T00:00:00Z',
-            dismantling_time_end: null,
             components: [],
             images: [],
             recyclability_observation: '',

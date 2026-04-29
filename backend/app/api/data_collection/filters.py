@@ -108,10 +108,6 @@ class ProductFilter(TSVectorSearchMixin, Filter):
     brand__ilike: str | None = None
     brand__in: list[str] | None = None
     model__ilike: str | None = None
-    dismantling_time_start__gte: datetime | None = None
-    dismantling_time_start__lte: datetime | None = None
-    dismantling_time_end__gte: datetime | None = None
-    dismantling_time_end__lte: datetime | None = None
     created_at__gte: datetime | None = None
     created_at__lte: datetime | None = None
     updated_at__gte: datetime | None = None
