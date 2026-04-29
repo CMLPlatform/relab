@@ -181,7 +181,8 @@ The data collection model is centred on `Product`, which is used both for top-le
 Important characteristics:
 
 - a product can have a parent product, enabling component hierarchies
-- physical and circularity-related properties are stored separately from the core product record
+- physical measurements are first-class product fields
+- circularity notes are stored on the product as nullable JSON with optional `recyclability`, `disassemblability`, and `remanufacturability` fields
 - ownership is attached to the user level
 - materials, product types, and media can be linked without making every field mandatory
 
@@ -203,6 +204,7 @@ erDiagram
         varchar description
         varchar brand
         varchar model
+        jsonb circularity_properties
         integer parent_id FK
         integer amount_in_parent
         integer product_type_id FK

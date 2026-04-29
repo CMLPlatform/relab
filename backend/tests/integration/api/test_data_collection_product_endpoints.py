@@ -99,7 +99,7 @@ async def test_create_product(api_client_superuser: AsyncClient, db_session: Asy
         "product_type_id": product_type.id,
         "weight_g": WEIGHT_500,
         "height_cm": HEIGHT_10,
-        "recyclability_observation": RECYCLABILITY_GOOD,
+        "circularity_properties": {"recyclability": RECYCLABILITY_GOOD},
         "bill_of_materials": [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
     }
 
@@ -108,7 +108,28 @@ async def test_create_product(api_client_superuser: AsyncClient, db_session: Asy
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["name"] == NEW_PRODUCT_NAME
+    assert data["circularity_properties"]["recyclability"] == RECYCLABILITY_GOOD
     assert "id" in data
+
+
+async def test_create_product_normalizes_empty_circularity_properties(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """POST /products returns null for empty circularity JSON."""
+    material = Material(name="Steel")
+    db_session.add(material)
+    await db_session.flush()
+    payload = {
+        "name": NEW_PRODUCT_NAME,
+        "circularity_properties": {},
+        "bill_of_materials": [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
+    }
+
+    response = await api_client_superuser.post("/v1/products", json=payload)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["circularity_properties"] is None
 
 
 async def test_update_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:

@@ -22,6 +22,7 @@ from app.api.common.schemas.base import (
     ComponentRead,
     ProductRead,
 )
+from app.api.common.schemas.field_mixins import ProductCircularityPropertiesFields
 from app.api.data_collection.examples import PRODUCT_CREATE_EXAMPLES
 from app.api.data_collection.models.base import ProductBase
 from app.api.file_storage.schemas import (
@@ -207,7 +208,7 @@ ComponentReadWithRecursiveComponents.model_rebuild()
 
 
 ### Update Schemas ###
-class ProductUpdate(BaseUpdateSchema):
+class ProductUpdate(BaseUpdateSchema, ProductCircularityPropertiesFields):
     """Schema for updating product information including physical and circularity properties."""
 
     name: str | None = Field(default=None, min_length=2, max_length=100)
@@ -226,14 +227,3 @@ class ProductUpdate(BaseUpdateSchema):
     height_cm: float | None = Field(default=None, gt=0)
     width_cm: float | None = Field(default=None, gt=0)
     depth_cm: float | None = Field(default=None, gt=0)
-
-    # Circularity properties
-    recyclability_observation: str | None = Field(default=None, max_length=500)
-    recyclability_comment: str | None = Field(default=None, max_length=100)
-    recyclability_reference: str | None = Field(default=None, max_length=100)
-    repairability_observation: str | None = Field(default=None, max_length=500)
-    repairability_comment: str | None = Field(default=None, max_length=100)
-    repairability_reference: str | None = Field(default=None, max_length=100)
-    remanufacturability_observation: str | None = Field(default=None, max_length=500)
-    remanufacturability_comment: str | None = Field(default=None, max_length=100)
-    remanufacturability_reference: str | None = Field(default=None, max_length=100)

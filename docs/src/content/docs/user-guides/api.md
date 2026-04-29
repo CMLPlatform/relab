@@ -37,5 +37,6 @@ Public reference data (taxonomies, materials, product types) is accessible witho
 ## Integration Advice
 
 - Build against the live OpenAPI schema rather than copying examples from old documentation.
+- For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
 - Treat uploads and image handling as first-class API operations, not afterthoughts.
 - If you need a stable exported dataset rather than live application access, check the [Dataset Documentation](../../project/dataset/) first.

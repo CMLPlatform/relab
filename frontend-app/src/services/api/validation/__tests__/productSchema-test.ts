@@ -17,15 +17,9 @@ const validBase = {
     depth: 3,
   },
   circularityProperties: {
-    recyclabilityObservation: 'low',
-    recyclabilityComment: null as string | null | undefined,
-    recyclabilityReference: null as string | null | undefined,
-    remanufacturabilityObservation: 'medium',
-    remanufacturabilityComment: null as string | null | undefined,
-    remanufacturabilityReference: null as string | null | undefined,
-    repairabilityObservation: 'high',
-    repairabilityComment: null as string | null | undefined,
-    repairabilityReference: null as string | null | undefined,
+    recyclability: 'low',
+    disassemblability: 'high',
+    remanufacturability: 'medium',
   },
   images: [] as { id?: string; url: string; description: string }[],
   videos: [] as { id?: number; url: string; title: string; description: string }[],
@@ -74,6 +68,18 @@ describe('productSchema', () => {
     };
     const result = productSchema.safeParse(minimal);
     expect(result.success).toBe(true);
+  });
+
+  it('rejects circularity notes longer than 500 characters', () => {
+    const result = productSchema.safeParse({
+      ...validBase,
+      circularityProperties: {
+        ...validBase.circularityProperties,
+        recyclability: 'a'.repeat(501),
+      },
+    });
+
+    expect(result.success).toBe(false);
   });
 
   // ─── video schema ─────────────────────────────────────────────────

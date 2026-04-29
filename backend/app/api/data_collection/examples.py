@@ -20,6 +20,10 @@ PRODUCT_CREATE_BASE_EXAMPLE = {
     "height_cm": 150,
     "width_cm": 70,
     "depth_cm": 50,
+    "circularity_properties": {
+        "recyclability": "Metal frame and plastic shell can be separated with basic tools.",
+        "disassemblability": "Most fasteners are visible and non-destructive to remove.",
+    },
     "videos": [{"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}],
     "bill_of_materials": [
         {"quantity": 0.3, "unit": "g", "material_id": 1},
