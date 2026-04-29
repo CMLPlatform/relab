@@ -5,7 +5,7 @@ Revises: cb66f26a9893
 Create Date: 2026-04-13 16:34:01.731636
 
 """
-# spell-checker: ignore astext, cameracredentialstatus
+# spell-checker: ignore cameracredentialstatus
 
 from collections.abc import Sequence
 
