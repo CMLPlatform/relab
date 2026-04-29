@@ -34,8 +34,3 @@ def can_view_profile(owner: User, viewer: User | None) -> bool:
 def should_redact_owner_identity(owner: User, viewer: User | None) -> bool:
     """Return True when ``owner``'s product attribution should be hidden."""
     return not can_view_profile(owner, viewer)
-
-
-def should_redact_owner(owner: User, viewer: User | None) -> bool:
-    """Backward-compatible alias for owner attribution redaction policy."""
-    return should_redact_owner_identity(owner, viewer)

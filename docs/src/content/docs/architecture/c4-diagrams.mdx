@@ -102,9 +102,8 @@ C4Component
     Container_Boundary(backend, "FastAPI Backend") {
         Component(auth, "Auth Module", "FastAPI-Users", "Login, registration, OAuth, email verification, password reset, user and organisation management")
         Component(datacollection, "Data Collection", "SQLAlchemy / FastAPI", "Products, components, associations, search, user-scoped CRUD")
-        Component(backgrounddata, "Background Data", "SQLAlchemy / FastAPI", "Taxonomies, categories, materials, product types — cached reference data")
-        Component(filestorage, "File Storage", "FastAPI", "File and image upload, on-the-fly resizing, WebP conversion, periodic orphan cleanup")
-        Component(newsletter, "Newsletter", "FastAPI", "Subscription management, double opt-in confirmation, broadcast emails")
+        Component(referencedata, "Reference Data", "SQLAlchemy / FastAPI", "Taxonomies, categories, materials, product types — cached reference data")
+        Component(filestorage, "File Storage", "FastAPI", "File and image upload, generated media URLs, WebP conversion, periodic orphan cleanup")
         Component(rpi-cam, "RPI Camera Plugin", "FastAPI", "Camera CRUD, remote capture, YouTube live stream integration, recording sessions")
         Component(common, "Common Infrastructure", "FastAPI", "Shared CRUD utilities, health checks, error handling, OpenAPI helpers, file serving")
         Component(core, "Core", "Python", "Config, database engine, Redis client, cache, HTTP client, telemetry, background task runner")
@@ -120,19 +119,17 @@ C4Component
     System_Ext(rpi, "RPi Cameras", "")
 
     Rel(auth, core, "Sessions, config, email")
-    Rel(datacollection, backgrounddata, "References categories, materials, types")
+    Rel(datacollection, referencedata, "References categories, materials, types")
     Rel(datacollection, filestorage, "Product images")
     Rel(rpi-cam, filestorage, "Stores captured images")
     Rel(rpi-cam, datacollection, "Links cameras to products")
     Rel(rpi-cam, auth, "YouTube OAuth tokens")
-    Rel(newsletter, auth, "Email sending infrastructure")
 
     Rel(core, postgres, "Async connection pool", "asyncpg")
     Rel(core, redis, "Cache + token storage", "TCP")
     Rel(filestorage, filestorage_vol, "Read / write media")
     Rel(auth, oauth, "Social login", "HTTPS")
     Rel(auth, smtp, "Verification and reset emails", "SMTP")
-    Rel(newsletter, smtp, "Subscription and broadcast emails", "SMTP")
     Rel(rpi-cam, youtube, "Stream management", "HTTPS")
     Rel(rpi-cam, rpi, "Image capture and control", "HTTP")
 ```

@@ -30,7 +30,7 @@ class TestAdminUserRouters:
         user1 = await UserFactory.create_async(db_session, email="user1@example.com", username="user1")
         user2 = await UserFactory.create_async(db_session, email="user2@example.com", username="user2")
 
-        response = await api_client_superuser_light.get("/admin/users")
+        response = await api_client_superuser_light.get("/v1/admin/users")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -52,7 +52,7 @@ class TestAdminUserRouters:
             await UserFactory.create_async(db_session, email=f"pag{i}@example.com", username=f"pag_user_{i}")
 
         # Request with page size 2
-        response = await api_client_superuser_light.get("/admin/users?page=1&size=2")
+        response = await api_client_superuser_light.get("/v1/admin/users?page=1&size=2")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -66,7 +66,7 @@ class TestAdminUserRouters:
         """Superuser can retrieve a user by ID."""
         user = await UserFactory.create_async(db_session, email="getbyid@example.com", username="getbyid_user")
 
-        response = await api_client_superuser.get(f"/admin/users/{user.id}")
+        response = await api_client_superuser.get(f"/v1/admin/users/{user.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -83,7 +83,7 @@ class TestAdminUserRouters:
         # Use unauthenticated client (since there's no regular user auth fixture)
         # Admin endpoints should 403 without superuser
 
-        response = await api_client.get("/admin/users")
+        response = await api_client.get("/v1/admin/users")
 
         # Without authentication, should be 403 or similar (depends on auth middleware)
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
@@ -103,7 +103,7 @@ class TestAdminOrganizationRouters:
             db_session, name="Org2", location="Location2", owner_id=db_superuser.id
         )
 
-        response = await api_client_superuser_light.get("/admin/organizations")
+        response = await api_client_superuser_light.get("/v1/admin/organizations")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -128,7 +128,7 @@ class TestAdminOrganizationRouters:
             db_session, email="member2@example.com", username="member2", organization_id=org.id
         )
 
-        response = await api_client_superuser_light.get("/admin/organizations")
+        response = await api_client_superuser_light.get("/v1/admin/organizations")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -152,7 +152,7 @@ class TestAdminOrganizationRouters:
             db_session, email="org_member@example.com", username="org_member", organization_id=org.id
         )
 
-        response = await api_client_superuser_light.get(f"/admin/organizations/{org.id}")
+        response = await api_client_superuser_light.get(f"/v1/admin/organizations/{org.id}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -165,6 +165,6 @@ class TestAdminOrganizationRouters:
 
     async def test_admin_organizations_requires_superuser(self, api_client: AsyncClient) -> None:
         """Admin organization endpoints require superuser role."""
-        response = await api_client.get("/admin/organizations")
+        response = await api_client.get("/v1/admin/organizations")
 
         assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)

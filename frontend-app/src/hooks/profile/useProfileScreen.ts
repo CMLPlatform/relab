@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useThemeMode } from '@/context/themeMode';
-import { useNewsletterPreference } from '@/hooks/profile/useNewsletterPreference';
 import { useOAuthAssociations } from '@/hooks/profile/useOAuthAssociations';
 import { useOwnProfileStats } from '@/hooks/profile/useOwnProfileStats';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
@@ -210,6 +209,34 @@ async function updateProfileVisibility({
   }
 }
 
+async function updateProfileEmailUpdates({
+  profile,
+  enabled,
+  feedback,
+  refetch,
+}: {
+  profile: { preferences?: Record<string, unknown> | null };
+  enabled: boolean;
+  feedback: ReturnType<typeof useAppFeedback>;
+  refetch: (forceRefresh?: boolean) => Promise<unknown>;
+}) {
+  try {
+    await updateUser({
+      preferences: {
+        ...(profile.preferences ?? {}),
+        email_updates_enabled: enabled,
+      },
+    });
+    await refetch(false);
+    feedback.toast(enabled ? 'Email updates enabled.' : 'Email updates disabled.');
+  } catch (error) {
+    feedback.error(
+      `Failed to update email preferences: ${getErrorMessage(error, 'Unknown error')}`,
+      'Email preference update failed',
+    );
+  }
+}
+
 async function confirmOAuthUnlink({
   provider,
   youtubeEnabled,
@@ -396,6 +423,7 @@ export function useProfileScreen() {
   const { themeMode, setThemeMode } = useThemeMode();
   const { activeStream, setActiveStream } = useStreamSession();
   const stopStreamMutation = useStopYouTubeStreamMutation(activeStream?.cameraId ?? '');
+  const [emailUpdatesSaving, setEmailUpdatesSaving] = useState(false);
   const [visibilitySaving, setVisibilitySaving] = useState(false);
 
   useProfileAuthRedirect({ profile, router, isLoggingOut });
@@ -413,7 +441,6 @@ export function useProfileScreen() {
     setYoutubeEnabled,
   });
 
-  const newsletter = useNewsletterPreference(!!profile);
   const ownProfileStats = useOwnProfileStats(profile?.username);
   const oauthAssociations = useOAuthAssociations({
     feedback,
@@ -434,6 +461,19 @@ export function useProfileScreen() {
     [feedback, profile, refetch, visibilitySaving],
   );
 
+  const handleEmailUpdatesChange = useCallback(
+    async (enabled: boolean) => {
+      if (!profile || emailUpdatesSaving) return;
+      setEmailUpdatesSaving(true);
+      try {
+        await updateProfileEmailUpdates({ profile, enabled, feedback, refetch });
+      } finally {
+        setEmailUpdatesSaving(false);
+      }
+    },
+    [emailUpdatesSaving, feedback, profile, refetch],
+  );
+
   const linkedAccounts = useProfileLinkedAccounts(profile);
 
   return {
@@ -443,8 +483,11 @@ export function useProfileScreen() {
       setThemeMode: setThemeMode as (mode: ThemeMode) => Promise<void>,
       ownStats: ownProfileStats.state.stats,
       statsLoading: ownProfileStats.state.loading,
+      emailUpdatesEnabled: profile?.preferences?.email_updates_enabled === true,
+      emailUpdatesSaving,
       visibilitySaving,
       openEditUsername: dialogs.editUsername.open,
+      handleEmailUpdatesChange,
       handleVisibilityChange,
     },
     integrations: {
@@ -464,14 +507,6 @@ export function useProfileScreen() {
       linkGoogle: oauthAssociations.actions.linkGoogle,
       linkGithub: oauthAssociations.actions.linkGithub,
       handleUnlinkOAuthConfirm: actions.handleUnlinkOAuthConfirm,
-    },
-    newsletter: {
-      newsletterSubscribed: newsletter.state.subscribed,
-      newsletterLoading: newsletter.state.loading,
-      newsletterSaving: newsletter.state.saving,
-      newsletterError: newsletter.state.error,
-      handleNewsletterToggle: newsletter.actions.toggle,
-      loadNewsletterPreference: newsletter.actions.reload,
     },
     dialogs,
     actions,

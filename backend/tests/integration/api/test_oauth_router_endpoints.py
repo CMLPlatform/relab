@@ -43,18 +43,18 @@ async def active_user_client(
 
 
 class TestRemoveOAuthAssociation:
-    """Tests for DELETE /auth/oauth/{provider}/associate."""
+    """Tests for DELETE /v1/oauth/{provider}/associate."""
 
     async def test_rejects_invalid_provider(self, active_user_client: AsyncClient) -> None:
         """Unsupported providers should return a stable 400 response."""
-        response = await active_user_client.delete("/auth/oauth/discord/associate")
+        response = await active_user_client.delete("/v1/oauth/discord/associate")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "invalid oauth provider" in _detail_text(response.json()).lower()
 
     async def test_returns_404_when_account_not_linked(self, active_user_client: AsyncClient) -> None:
         """Deleting a missing OAuth association should return 404."""
-        response = await active_user_client.delete("/auth/oauth/google/associate")
+        response = await active_user_client.delete("/v1/oauth/google/associate")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not linked" in _detail_text(response.json()).lower()
@@ -78,7 +78,7 @@ class TestRemoveOAuthAssociation:
         db_session.add(oauth_account)
         await db_session.flush()
 
-        response = await active_user_client.delete("/auth/oauth/google/associate")
+        response = await active_user_client.delete("/v1/oauth/google/associate")
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert await db_session.get(OAuthAccount, oauth_account.id) is None

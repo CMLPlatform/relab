@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.models import User
 from app.api.auth.services.stats import recompute_user_profile_stats
-from app.api.background_data.models import ProductType
 from app.api.data_collection.models.product import Product
+from app.api.reference_data.models import ProductType
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -67,7 +67,7 @@ async def test_public_profile_returns_latest_snapshot_without_external_cache(
     db_superuser.profile_stats_computed_at = datetime.now(UTC)
     await db_session.flush()
 
-    response = await api_client.get(f"/users/{db_superuser.username}/profile")
+    response = await api_client.get(f"/v1/users/{db_superuser.username}/profile")
     assert response.status_code == 200
     assert response.json()["total_weight_kg"] == 35.0
 
@@ -80,6 +80,6 @@ async def test_public_profile_returns_latest_snapshot_without_external_cache(
     db_superuser.profile_stats_computed_at = datetime.now(UTC)
     await db_session.flush()
 
-    fresh_response = await api_client.get(f"/users/{db_superuser.id}/profile")
+    fresh_response = await api_client.get(f"/v1/users/{db_superuser.id}/profile")
     assert fresh_response.status_code == 200
     assert fresh_response.json()["total_weight_kg"] == 72.0

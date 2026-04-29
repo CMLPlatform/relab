@@ -51,7 +51,7 @@ cookie_transport = CookieTransport(
     cookie_secure=core_settings.secure_cookies,
 )
 
-bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
+bearer_transport = BearerTransport(tokenUrl="auth/login")
 
 
 def get_token_strategy(redis: OptionalRedisDep) -> Strategy[User, UUID4]:

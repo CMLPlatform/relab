@@ -30,6 +30,7 @@ class ThemeMode(StrEnum):
 class UserPreferences(BaseModel):
     """Typed user preferences persisted as JSONB."""
 
+    email_updates_enabled: bool = False
     profile_visibility: ProfileVisibility = ProfileVisibility.PUBLIC
     theme_mode: ThemeMode = ThemeMode.AUTO
     products_welcome_dismissed: bool = False
@@ -42,6 +43,7 @@ class UserPreferences(BaseModel):
 class UserPreferencesUpdate(BaseModel):
     """Patch model for user preferences updates."""
 
+    email_updates_enabled: bool | None = None
     profile_visibility: ProfileVisibility | None = None
     theme_mode: ThemeMode | None = None
     products_welcome_dismissed: bool | None = None
@@ -70,13 +72,12 @@ def load_user_preferences(payload: object | None) -> UserPreferences:
 
 def merge_user_preferences(
     current: object | None,
-    update: UserPreferencesUpdate | dict[str, object],
+    update: UserPreferencesUpdate,
 ) -> UserPreferences:
     """Merge a patch into the current stored preferences."""
     current_preferences = load_user_preferences(current)
-    update_model = update if isinstance(update, UserPreferencesUpdate) else UserPreferencesUpdate.model_validate(update)
     payload: dict[str, Any] = {
         **current_preferences.model_dump(mode="json"),
-        **update_model.model_dump(mode="json", exclude_unset=True),
+        **update.model_dump(mode="json", exclude_unset=True),
     }
     return UserPreferences.model_validate(payload)

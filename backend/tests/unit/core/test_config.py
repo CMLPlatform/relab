@@ -189,7 +189,6 @@ class TestModuleSettingsValidation:
             AuthSettings(
                 environment=Environment.PROD,
                 fastapi_users_secret=SecretStr(""),
-                newsletter_secret=SecretStr(""),
                 google_oauth_client_id=SecretStr(""),
                 google_oauth_client_secret=SecretStr(""),
                 github_oauth_client_id=SecretStr(""),

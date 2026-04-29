@@ -145,7 +145,7 @@ describe('useOAuthAssociations', () => {
     });
 
     expect(fetchOAuthAuthorizationUrl).toHaveBeenCalledWith(
-      expect.stringContaining('/auth/oauth/google/associate/authorize'),
+      expect.stringContaining('/oauth/google/associate/authorize'),
       { Authorization: 'Bearer token-123' },
     );
     expect(mockRefetch).toHaveBeenCalled();

@@ -167,7 +167,7 @@ async def api_client_light(
     services or auth/session wiring, including:
     - Optional/guest auth resolution that still passes through auth backends
     - Cookie/session/refresh/OAuth flows
-    - Newsletter, file-storage, and other runtime-service-heavy paths
+    - File-storage and other runtime-service-heavy paths
     """
     _configure_test_storage(tmp_path, monkeypatch)
 
@@ -176,6 +176,10 @@ async def api_client_light(
 
     test_app.dependency_overrides[get_async_session] = override_get_session
     test_app.dependency_overrides[get_auth_async_session] = override_get_session
+    # The real optional_current_active_user Security dep hits the auth backend
+    # (Redis), which api_client_light deliberately does not start. Default to
+    # "guest"; per-test override_authenticated_user replaces this when needed.
+    test_app.dependency_overrides[optional_current_active_user] = lambda: None
 
     limiter.enabled = False
     init_cache(None)

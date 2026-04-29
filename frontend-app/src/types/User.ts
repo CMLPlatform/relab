@@ -5,8 +5,11 @@ import type { ApiUserRead } from '@/types/api';
  * The API returns ApiUserRead (snake_case); conversion happens in authentication.ts.
  */
 export type ThemeMode = 'light' | 'dark' | 'auto';
+export type ProfileVisibility = 'public' | 'community' | 'private';
 
 export type UserPreferences = {
+  email_updates_enabled?: boolean;
+  profile_visibility?: ProfileVisibility;
   rpi_camera_enabled?: boolean;
   youtube_streaming_enabled?: boolean;
   products_welcome_dismissed?: boolean;

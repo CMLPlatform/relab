@@ -4,8 +4,8 @@ These endpoints receive tokens obtained by the frontend via expo-auth-session
 (PKCE, no backend redirect required) and exchange them for app sessions.
 
 Currently supported:
-  POST /auth/oauth/google/bearer/token  — returns bearer + refresh tokens
-  POST /auth/oauth/google/cookie/token  — sets httpOnly session cookies
+  POST /v1/oauth/google/bearer/token  — returns bearer + refresh tokens
+  POST /v1/oauth/google/session/token  — sets httpOnly session cookies
 
 GitHub keeps using the backend-mediated flow (its OAuth token exchange requires
 a client secret and cannot be done client-side).
@@ -50,7 +50,7 @@ _GOOGLE_ISSUERS = frozenset({"https://accounts.google.com", "accounts.google.com
 # PyJWKClient fetches and caches Google's public keys automatically.
 _google_jwks_client = PyJWKClient(_GOOGLE_JWKS_URL, cache_keys=True)
 
-router = APIRouter(prefix="/auth/oauth", tags=["oauth"])
+router = APIRouter(prefix="/oauth", tags=["oauth"])
 
 
 class GoogleTokenRequest(BaseModel):
@@ -167,11 +167,11 @@ async def google_bearer_token(
 
 
 @router.post(
-    "/google/cookie/token",
+    "/google/session/token",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Exchange Google ID token for session cookies (PKCE flow)",
 )
-async def google_cookie_token(
+async def google_session_token(
     body: GoogleTokenRequest,
     user_manager: UserManagerDep,
     strategy: Annotated[Strategy[User, UUID4], Depends(cookie_auth_backend.get_strategy)],

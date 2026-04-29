@@ -19,7 +19,7 @@ from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_
 from app.core.config import settings as core_settings
 from app.core.redis import OptionalRedisDep
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/bearer/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
 router = APIRouter()
 
@@ -66,8 +66,8 @@ async def refresh_access_token(
 
 
 @router.post(
-    "/cookie/refresh",
-    name="auth:cookie.refresh",
+    "/session/refresh",
+    name="auth:session.refresh",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def refresh_access_token_cookie(

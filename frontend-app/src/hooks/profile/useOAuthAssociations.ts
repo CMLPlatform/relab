@@ -68,7 +68,7 @@ export function useOAuthAssociations({
 
     setYoutubeAuthPending(true);
     try {
-      const result = await startAssociationFlow('/auth/oauth/google-youtube/associate/authorize');
+      const result = await startAssociationFlow('/oauth/google-youtube/associate/authorize');
       if (result.type === 'success' && result.url?.includes('success=true')) {
         await setYoutubeEnabled(true);
         await refetch(false);
@@ -94,7 +94,7 @@ export function useOAuthAssociations({
 
   const linkOAuth = async (provider: OAuthProvider) => {
     try {
-      const result = await startAssociationFlow(`/auth/oauth/${provider}/associate/authorize`);
+      const result = await startAssociationFlow(`/oauth/${provider}/associate/authorize`);
       if (result.type === 'success') {
         await refetch();
       }

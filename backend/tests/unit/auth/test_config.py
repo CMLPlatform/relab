@@ -54,7 +54,6 @@ class TestAuthSettingsDefaults:
         assert settings.oauth_state_token_ttl_seconds == 60 * 10  # 10 min
         assert settings.reset_password_token_ttl_seconds == 60 * 60  # 1 h
         assert settings.verification_token_ttl_seconds == 60 * 60 * 24  # 1 day
-        assert settings.newsletter_unsubscription_token_ttl_seconds == 60 * 60 * 24 * 30  # 30 days
 
     def test_session_defaults(self) -> None:
         """Session and refresh-token defaults are sensible."""
@@ -87,7 +86,7 @@ class TestAuthSettingsOverrides:
 
     def test_oauth_redirect_paths_can_be_set(self) -> None:
         """OAuth allowed paths can be configured via constructor."""
-        paths = ["/auth/callback", "/oauth/complete"]
+        paths = ["/v1/auth/callback", "/oauth/complete"]
         settings = AuthSettings(oauth_allowed_redirect_paths=paths)
         assert settings.oauth_allowed_redirect_paths == paths
 

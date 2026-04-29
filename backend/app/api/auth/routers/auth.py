@@ -1,9 +1,12 @@
 """Authentication, registration, and login routes."""
 
-from typing import Annotated
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends
 from fastapi.routing import APIRoute
+from fastapi_users.router.common import ErrorModel
 from pydantic import EmailStr  # Needed for Fastapi dependency injection
 
 from app.api.auth.routers import refresh, register
@@ -17,8 +20,12 @@ from app.api.auth.services.user_manager import (
 )
 from app.api.common.routers.openapi import mark_router_routes_public
 
+if TYPE_CHECKING:
+    from typing import Any
+
 LOGIN_PATH = "/login"
 REQUEST_VERIFY_TOKEN_PATH = "/request-verify-token"  # noqa: S105 # This value is not a secret
+AUTH_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {400: {"model": ErrorModel}}
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,8 +43,16 @@ for route in cookie_router.routes:
     if isinstance(route, APIRoute) and route.path == LOGIN_PATH:
         route.endpoint = limiter.limit(LOGIN_RATE_LIMIT)(route.endpoint)
 
-router.include_router(bearer_router, prefix="/bearer", tags=["auth"])
-router.include_router(cookie_router, prefix="/cookie", tags=["auth"])
+router.add_api_route(
+    LOGIN_PATH,
+    next(route.endpoint for route in bearer_router.routes if isinstance(route, APIRoute) and route.path == LOGIN_PATH),
+    methods=["POST"],
+    name="auth:login",
+    tags=["auth"],
+    responses=AUTH_ERROR_RESPONSES,
+    summary="Login with email and password",
+)
+router.include_router(cookie_router, prefix="/session", tags=["auth"])
 
 # Custom registration route
 router.include_router(register.router, tags=["auth"])

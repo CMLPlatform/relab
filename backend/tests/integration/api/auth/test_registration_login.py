@@ -58,7 +58,7 @@ class TestRegistrationEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            response = await api_client.post("/auth/register", json=user_data)
+            response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -77,7 +77,7 @@ class TestRegistrationEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            await api_client.post("/auth/register", json=user_data)
+            await api_client.post("/v1/auth/register", json=user_data)
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
             mock_create_override.return_value = UserCreate(
@@ -94,7 +94,7 @@ class TestRegistrationEndpoint:
                     yield mock_manager
 
                 mock_get_manager.return_value = get_manager()
-                response = await api_client.post("/auth/register", json=user_data)
+                response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "already exists" in response.json()["detail"].lower()
@@ -105,7 +105,7 @@ class TestRegistrationEndpoint:
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
             mock_create_override.side_effect = UserNameAlreadyExistsError(user_data["username"])
-            response = await api_client.post("/auth/register", json=user_data)
+            response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_409_CONFLICT
         assert "username" in response.json()["detail"].lower()
@@ -116,7 +116,7 @@ class TestRegistrationEndpoint:
 
         with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
             mock_create_override.side_effect = DisposableEmailError(user_data["email"])
-            response = await api_client.post("/auth/register", json=user_data)
+            response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "disposable" in response.json()["detail"].lower()
@@ -124,7 +124,7 @@ class TestRegistrationEndpoint:
     async def test_register_weak_password(self, api_client: AsyncClient) -> None:
         """Test registering with a weak password."""
         user_data = {"email": "user@example.com", "password": WEAK_PASSWORD, "username": "user"}
-        response = await api_client.post("/auth/register", json=user_data)
+        response = await api_client.post("/v1/auth/register", json=user_data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     async def test_register_with_organization(self, api_client: AsyncClient) -> None:
@@ -142,7 +142,7 @@ class TestRegistrationEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            response = await api_client.post("/auth/register", json=user_data)
+            response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -173,7 +173,7 @@ class TestRegistrationEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            response = await api_client.post("/auth/register", json=user_data)
+            response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -191,10 +191,10 @@ class TestLoginEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            await api_client.post("/auth/register", json=user_data)
+            await api_client.post("/v1/auth/register", json=user_data)
 
         response = await api_client.post(
-            "/auth/bearer/login",
+            "/v1/auth/login",
             data={"username": user_data["email"], "password": user_data["password"]},
         )
 
@@ -203,15 +203,35 @@ class TestLoginEndpoint:
         assert "access_token" in data
         assert "refresh_token" in response.cookies or "set-cookie" in response.headers
 
+    async def test_login_with_email_alias(self, api_client: AsyncClient) -> None:
+        """Test logging in through the canonical v1 login route."""
+        user_data = {"email": "alias@example.com", "password": TEST_PASSWORD, "username": "alias_user"}
+
+        with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
+            await api_client.post("/v1/auth/register", json=user_data)
+
+        response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": user_data["email"], "password": user_data["password"]},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "access_token" in response.json()
+
     async def test_bearer_login_invalid_credentials(self, api_client: AsyncClient) -> None:
         """Test logging in with invalid credentials."""
         response = await api_client.post(
-            "/auth/bearer/login",
+            "/v1/auth/login",
             data={"username": INVALID_EMAIL, "password": INVALID_PASSWORD},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    async def test_cookie_login(self, api_client: AsyncClient) -> None:
+    async def test_session_cookie_login(self, api_client: AsyncClient) -> None:
         """Test logging in with email and password to get session cookies."""
         user_data = {"email": COOKIE_EMAIL, "password": TEST_PASSWORD, "username": COOKIE_USERNAME}
 
@@ -221,10 +241,30 @@ class TestLoginEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            await api_client.post("/auth/register", json=user_data)
+            await api_client.post("/v1/auth/register", json=user_data)
 
         response = await api_client.post(
-            "/auth/cookie/login",
+            "/v1/auth/session/login",
+            data={"username": user_data["email"], "password": user_data["password"]},
+        )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert len(response.cookies) > 0 or "set-cookie" in response.headers
+
+    async def test_session_login(self, api_client: AsyncClient) -> None:
+        """Test logging in through the canonical v1 session route."""
+        user_data = {"email": "session@example.com", "password": TEST_PASSWORD, "username": "sessionuser"}
+
+        with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
+            mock_create_override.return_value = UserCreate(
+                email=user_data["email"],
+                password=user_data["password"],
+                username=user_data["username"],
+            )
+            await api_client.post("/v1/auth/register", json=user_data)
+
+        response = await api_client.post(
+            "/v1/auth/session/login",
             data={"username": user_data["email"], "password": user_data["password"]},
         )
 
@@ -250,7 +290,7 @@ class TestLoginEndpoint:
                 password=user_data["password"],
                 username=user_data["username"],
             )
-            registration_response = await api_client.post("/auth/register", json=user_data)
+            registration_response = await api_client.post("/v1/auth/register", json=user_data)
 
         assert registration_response.status_code == status.HTTP_201_CREATED
 
@@ -263,7 +303,7 @@ class TestLoginEndpoint:
         monkeypatch.setattr(UserDatabaseAsync, "get", asserted_get)
 
         login_response = await api_client.post(
-            "/auth/bearer/login",
+            "/v1/auth/login",
             data={"username": user_data["email"], "password": TEST_PASSWORD},
         )
 
@@ -274,7 +314,7 @@ class TestLoginEndpoint:
         if not access_token:
             pytest.skip("Bearer login did not return an access token")
 
-        response = await api_client.get("/users/me", headers={"Authorization": f"Bearer {access_token}"})
+        response = await api_client.get("/v1/users/me", headers={"Authorization": f"Bearer {access_token}"})
 
         assert response.status_code == status.HTTP_200_OK
 
@@ -282,14 +322,14 @@ class TestLoginEndpoint:
 class TestLogoutEndpoint:
     """Tests for FastAPI-Users logout endpoints."""
 
-    async def test_bearer_logout_unauthenticated(self, api_client: AsyncClient) -> None:
-        """Test logging out of bearer auth without credentials."""
-        response = await api_client.post("/auth/bearer/logout")
+    async def test_logout_unauthenticated(self, api_client: AsyncClient) -> None:
+        """Test logging out without credentials."""
+        response = await api_client.post("/v1/auth/logout")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_cookie_logout(self, api_client: AsyncClient) -> None:
-        """Test logging out of cookie auth."""
-        response = await api_client.post("/auth/cookie/logout")
+    async def test_session_logout(self, api_client: AsyncClient) -> None:
+        """Test logging out of session auth."""
+        response = await api_client.post("/v1/auth/session/logout")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -301,7 +341,7 @@ class TestRateLimiting:
         responses = []
         for _ in range(10):
             response = await api_client.post(
-                "/auth/bearer/login",
+                "/v1/auth/login",
                 data={"username": INVALID_EMAIL, "password": "WrongPassword"},
             )
             responses.append(response.status_code)

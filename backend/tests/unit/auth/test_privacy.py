@@ -51,12 +51,21 @@ def test_user_preferences_keep_enum_instances_at_runtime() -> None:
         {
             "profile_visibility": "private",
             "theme_mode": "dark",
+            "email_updates_enabled": True,
         }
     )
 
     assert preferences.profile_visibility is ProfileVisibility.PRIVATE
     assert preferences.theme_mode is ThemeMode.DARK
+    assert preferences.email_updates_enabled is True
     assert preferences.model_dump(mode="json")["profile_visibility"] == "private"
+
+
+def test_user_preferences_default_email_updates_to_disabled() -> None:
+    """Recurring email updates should default to opt-out until a workflow exists."""
+    preferences = UserPreferences()
+
+    assert preferences.email_updates_enabled is False
 
 
 def test_malformed_stored_profile_visibility_falls_back_closed_for_privacy() -> None:
