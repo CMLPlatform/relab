@@ -1,9 +1,9 @@
 export const privacyContent = {
-  description: 'Privacy information for RELab accounts, uploads, and newsletter updates.',
+  description: 'Privacy information for RELab accounts, uploads, and account email preferences.',
   title: 'Privacy Policy',
   lastUpdated: 'Last updated: April 14, 2026',
   intro:
-    'This policy explains what we collect, how we use it, and the choices available to RELab users and newsletter subscribers.',
+    'This policy explains what we collect, how we use it, and the choices available to RELab users.',
   sections: [
     {
       title: 'User Information',
@@ -33,7 +33,7 @@ export const privacyContent = {
     {
       title: 'Your Rights',
       htmlParagraphs: [
-        '<strong>Newsletter:</strong> You can <a href="/newsletter/unsubscribe-form">unsubscribe</a> at any time.',
+        '<strong>Updates:</strong> Public-facing project updates are shared on GitHub and LinkedIn. Optional recurring account update emails will stay tied to authenticated user preferences.',
         '<strong>Account holders:</strong> You may access and update your details, and request deletion of your account and associated data.',
         'Contact <a href="mailto:relab@cml.leidenuniv.nl">relab@cml.leidenuniv.nl</a> for questions or data requests.',
       ],

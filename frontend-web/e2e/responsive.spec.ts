@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const SUBSCRIBE_BUTTON_NAME = /subscribe/i;
+const FOLLOW_LINKEDIN_LINK_NAME = /follow linkedin/i;
 
 test.describe('Responsive layout', () => {
   test('landing page is usable on mobile viewport', async ({ page }) => {
@@ -12,7 +12,8 @@ test.describe('Responsive layout', () => {
         level: 1,
       }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: SUBSCRIBE_BUTTON_NAME })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What you can do', level: 2 })).toBeVisible();
+    await expect(page.getByRole('link', { name: FOLLOW_LINKEDIN_LINK_NAME })).toBeVisible();
   });
 
   test('landing page is usable on tablet viewport', async ({ page }) => {
@@ -24,7 +25,10 @@ test.describe('Responsive layout', () => {
         level: 1,
       }),
     ).toBeVisible();
-    await expect(page.getByRole('button', { name: SUBSCRIBE_BUTTON_NAME })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'How RELab fits the workflow', level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: FOLLOW_LINKEDIN_LINK_NAME })).toBeVisible();
   });
 
   test('privacy page is readable on mobile', async ({ page }) => {

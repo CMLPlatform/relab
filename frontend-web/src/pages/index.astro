@@ -1,22 +1,42 @@
 ---
+import FollowUpdates from '@/components/FollowUpdates.astro';
 import Hero from '@/components/Hero.astro';
-import NewsletterSignup from '@/components/NewsletterSignup.astro';
+import LandingHighlights from '@/components/LandingHighlights.astro';
+import TrustPanel from '@/components/TrustPanel.astro';
+import WorkflowPanels from '@/components/WorkflowPanels.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { homeContent } from '@/content/home-content.ts';
-import { siteLinks } from '@/content/site-meta.ts';
+import { buildHomeStructuredData, siteLinks } from '@/content/site-meta.ts';
 import Layout from '@/layouts/Layout.astro';
-import { joinApiUrl } from '@/utils/url.ts';
 
 const publicSiteConfig = getPublicSiteConfig();
-const newsletterSubscribeUrl = joinApiUrl(publicSiteConfig.apiUrl, '/newsletter/subscribe');
+const structuredData = buildHomeStructuredData({
+  appUrl: publicSiteConfig.appUrl,
+  docsUrl: publicSiteConfig.docsUrl,
+  linkedInUrl: publicSiteConfig.linkedInUrl,
+  siteUrl: publicSiteConfig.siteUrl,
+});
 ---
 
-<Layout title="Reverse Engineering Lab" description={homeContent.heroBody}>
+<Layout
+  title="RELab | Reverse engineering platform for product data and disassembly records"
+  description={homeContent.heroBody}
+  structuredData={structuredData}
+>
   <Hero
     appUrl={publicSiteConfig.appUrl}
     docsUrl={publicSiteConfig.docsUrl}
     githubUrl={siteLinks.github}
   />
 
-  <NewsletterSignup apiUrl={newsletterSubscribeUrl} />
+  <LandingHighlights />
+
+  <WorkflowPanels />
+
+  <TrustPanel docsUrl={publicSiteConfig.docsUrl} githubUrl={siteLinks.github} />
+
+  <FollowUpdates
+    githubUrl={siteLinks.github}
+    linkedInUrl={publicSiteConfig.linkedInUrl}
+  />
 </Layout>

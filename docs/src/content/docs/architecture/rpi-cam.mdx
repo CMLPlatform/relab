@@ -3,11 +3,11 @@ title: RPI Camera Plugin Architecture
 description: How the RELab Raspberry Pi camera plugin talks to the backend and app clients.
 owner: docs
 status: reviewed
-lastReviewed: '2026-04-15'
+lastReviewed: '2026-04-29'
 ---
 
 <div class="relab-section-intro">
-An optional plugin that connects camera devices to RELab for remote capture, LL-HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the RELab app can optionally switch to direct local access for lower-latency preview and capture.
+An optional plugin that connects camera devices to RELab for remote capture, HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the RELab app can optionally switch to direct local access for lower-latency preview and capture.
 </div>
 
 For platform-side setup and day-to-day usage, see the [RPI Camera User Guide](../../user-guides/rpi-cam/). For device installation and deployment, see the [RPI Camera Plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
@@ -19,16 +19,16 @@ graph TD
     Researcher[Researcher] -->|Capture workflow| FrontendApp[Expo App]
     FrontendApp -->|API requests| MainAPI[FastAPI Backend]
 
-    MainAPI -->|Relay commands + backend APIs| RpiCamAPI[RPI Camera API]
-    FrontendApp -->|Optional local direct mode| RpiCamAPI
+    MainAPI -->|WebSocket relay| RpiCamAPI[RPI Camera API]
+    FrontendApp -.->|LAN direct| RpiCamAPI
     RpiCamAPI -->|Controls| Camera[Camera Hardware]
 
-    RpiCamAPI -->|LL-HLS preview| Researcher
-    RpiCamAPI -->|RTMP stream| YouTube[YouTube API]
-    RpiCamAPI -->|Captured image + metadata| MainAPI
+    RpiCamAPI -->|HLS preview| FrontendApp
+    RpiCamAPI -.->|Stream egress| YouTube[YouTube API]
+    RpiCamAPI -->|Image upload| MainAPI
 
-    GoogleOAuth[Google OAuth] -->|User tokens| MainAPI
-    MainAPI -->|Livestream management| YouTube
+    GoogleOAuth[Google OAuth] -.->|User tokens| MainAPI
+    MainAPI -.->|Livestream management| YouTube
 
     subgraph DataStores ["Data Stores"]
         Database[(PostgreSQL)]
@@ -36,9 +36,9 @@ graph TD
         Redis[(Redis)]
     end
 
-    MainAPI -->|Store file metadata| Database
-    MainAPI -->|Store captured images| FileStorage
-    MainAPI -->|Recording session state| Redis
+    MainAPI -->|Metadata| Database
+    MainAPI -->|Images| FileStorage
+    MainAPI -->|Session state| Redis
 ```
 
 ??? info "Styled diagram (ELK layout)"
@@ -49,16 +49,16 @@ graph TD
     Researcher["fa:fa-flask Researcher"] -->|Capture workflow| FrontendApp["fa:fa-mobile-screen Expo App"]
     FrontendApp -->|API requests| MainAPI["fa:fa-bolt FastAPI Backend"]
 
-    MainAPI -->|Relay commands + backend APIs| RpiCamAPI["fa:fa-microchip RPI Camera API"]
-    FrontendApp -->|Optional local direct mode| RpiCamAPI
+    MainAPI -->|WebSocket relay| RpiCamAPI["fa:fa-microchip RPI Camera API"]
+    FrontendApp -.->|LAN direct| RpiCamAPI
     RpiCamAPI -->|Controls| Camera["fa:fa-camera Camera Hardware"]
 
-    RpiCamAPI -->|LL-HLS preview| Researcher
-    RpiCamAPI -->|RTMP stream| YouTube["fa:fa-video YouTube API"]
-    RpiCamAPI -->|Captured image + metadata| MainAPI
+    RpiCamAPI -->|HLS preview| FrontendApp
+    RpiCamAPI -.->|Stream egress| YouTube["fa:fa-video YouTube API"]
+    RpiCamAPI -->|Image upload| MainAPI
 
-    GoogleOAuth["fa:fa-right-to-bracket Google OAuth"] -->|User tokens| MainAPI
-    MainAPI -->|Livestream management| YouTube
+    GoogleOAuth["fa:fa-right-to-bracket Google OAuth"] -.->|User tokens| MainAPI
+    MainAPI -.->|Livestream management| YouTube
 
     subgraph DataStores ["Data Stores"]
         Database[("fa:fa-database PostgreSQL")]
@@ -66,22 +66,22 @@ graph TD
         Redis[("fa:fa-gauge-high Redis")]
     end
 
-    MainAPI -->|Store file metadata| Database
-    MainAPI -->|Store captured images| FileStorage
-    MainAPI -->|Recording session state| Redis
+    MainAPI -->|Metadata| Database
+    MainAPI -->|Images| FileStorage
+    MainAPI -->|Session state| Redis
 
     classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
     classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
     classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
     classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
     classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
-    classDef hardware fill:#e2e8f0,stroke:#4a5568,stroke-width:2px,color:#1a202c
+    classDef hardware fill:#fed7e2,stroke:#b83280,stroke-width:2px,color:#702459
+    classDef auth fill:#f8fafc,stroke:#475569,stroke-width:1.5px,color:#1e293b
 
     class Researcher actor
     class FrontendApp frontend
     class MainAPI backend
     class Database,FileStorage,Redis datastore
-    classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
 
     class YouTube external
     class GoogleOAuth auth
@@ -111,10 +111,10 @@ sequenceDiagram
     %% Image Capture Flow
     Researcher->>App: Request image capture
     App->>Backend: Request image capture
-    Backend->>RPiCamAPI: Forward request via relay
+    Backend->>RPiCamAPI: Forward allowlisted command via relay
     RPiCamAPI->>Camera: Control camera
     Camera->>RPiCamAPI: Image data
-    RPiCamAPI-->>Backend: Image data & metadata
+    RPiCamAPI-->>Backend: Device callback upload with image & metadata
     Backend->>Backend: Store in database & link to product
     Backend-->>App: Return image
     App-->>Researcher: Show image
@@ -123,7 +123,7 @@ sequenceDiagram
     Researcher->>App: Open paired camera on same LAN
     App->>Backend: Fetch camera status
     Backend-->>App: Relay state + local bootstrap info
-    App->>RPiCamAPI: Optional direct local requests (X-API-Key)
+    App->>RPiCamAPI: Optional LAN direct requests (X-API-Key)
     RPiCamAPI-->>App: Lower-latency preview/capture responses
 
     %% YouTube Streaming Flow
@@ -133,7 +133,7 @@ sequenceDiagram
     YouTubeAPI-->>Backend: Stream key & broadcast info
     Backend->>RPiCamAPI: Start stream with YouTube config
     RPiCamAPI->>Camera: Start recording
-    RPiCamAPI->>YouTubeAPI: Direct stream to YouTube
+    RPiCamAPI->>YouTubeAPI: Stream egress via MediaMTX
     Backend->>Backend: Save video record in database
     Backend-->>App: Return video details
     App-->>Researcher: Show video details
@@ -145,9 +145,9 @@ sequenceDiagram
     RPiCamAPI->>Camera: Start streaming
     RPiCamAPI-->>Backend: Stream info
     Backend-->>App: Stream viewer URL
-    App-->>Researcher: Open preview
-    Researcher->>RPiCamAPI: Direct HLS requests
-    RPiCamAPI-->>Researcher: Stream content
+    App->>RPiCamAPI: HLS requests
+    RPiCamAPI-->>App: Stream content
+    App-->>Researcher: Render preview
 
     %% Stop Streaming
     Researcher->>App: Stop recording or preview
@@ -160,7 +160,7 @@ sequenceDiagram
 
 - **Backend as control plane**: Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend.
 - **Two contract layers**: backend OpenAPI remains the public app-facing contract, while a smaller shared private device contract covers pairing payloads, relay envelopes, local-access bootstrap, and Pi-initiated upload acknowledgements.
-- **Optional local direct mode**: After pairing, the app can switch to LAN-direct access for lower-latency preview and capture when the device is reachable locally.
+- **Optional local direct mode**: After pairing, the app can switch to LAN-direct access with a device-local API key for lower-latency preview and capture when the device is reachable locally.
 - **Relay-first registration**: Cameras pair through a short-lived code and receive runtime relay credentials from the backend; operators do not manually copy long-lived API keys in the normal path.
 - **Media storage**: Captured images are stored in RELab's file storage and linked to the originating product or component record automatically.
 - **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorised.
@@ -170,3 +170,55 @@ sequenceDiagram
 - **Frontend -> backend** uses only backend-owned public routes and schemas.
 - **Backend -> plugin** uses a smaller private device seam: pairing register/poll payloads, relay command/response envelopes, local-access info, and direct upload/self-unpair acknowledgements.
 - **Shared models** exist to keep that private seam typed and versioned without leaking plugin implementation details into the frontend contract.
+
+## Protocol Boundaries
+
+The plugin uses three separate contracts:
+
+- **App REST API**: `/v1/plugins/rpi-cam/cameras/*` for app-facing camera CRUD, status, capture commands, telemetry, local-access bootstrap, and stream controls.
+- **Device REST API**: `/v1/plugins/rpi-cam/device/cameras/*` for Pi-originated callbacks such as image upload, preview thumbnail upload, and self-unpair. These routes authenticate with short-lived device assertions rather than a user session.
+- **Device WebSocket protocol**: `/v1/plugins/rpi-cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend.
+
+OpenAPI covers the HTTP routes. The WebSocket tunnel is a protocol contract and should be treated separately from generated REST clients.
+
+### WebSocket Relay Envelope
+
+The backend sends command envelopes to the device:
+
+```json
+{
+  "id": "request-id",
+  "method": "POST",
+  "path": "/captures",
+  "params": {},
+  "body": {
+    "product_id": 123,
+    "description": "Front panel"
+  },
+  "headers": {}
+}
+```
+
+The device replies with a matching response envelope. The shared model package owns the exact envelope schema so the backend and plugin stay in lockstep.
+
+The relay allowlist is intentionally small:
+
+- `GET /camera`
+- `POST /captures`
+- `GET|POST|DELETE /streams/youtube`
+- `GET /system/telemetry`
+- `GET /system/local-access`
+- `DELETE /pairing`
+- `GET /preview/hls/*`
+
+Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`.
+
+### Device Callback Routes
+
+Pi-originated HTTP callbacks are plugin-scoped instead of using a generic `/device` namespace because RELab currently has one device family:
+
+- `POST /v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`
+- `POST /v1/plugins/rpi-cam/device/cameras/{camera_id}/preview-thumbnail-upload`
+- `DELETE /v1/plugins/rpi-cam/device/cameras/{camera_id}/self`
+
+If RELab adds multiple device families later, the protocol docs can be split by plugin while keeping this same audience model.

@@ -56,14 +56,14 @@ graph TD
     classDef DataCollectionFill fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
     class Product,PhysicalProperties,Camera DataCollectionFill;
 
-    classDef BackgroundDataFill fill:#f5f5f5,stroke:#8d6e63,stroke-width:2px;
-    class Taxonomy,Material,Category,ProductType BackgroundDataFill;
+    classDef ReferenceDataFill fill:#f5f5f5,stroke:#8d6e63,stroke-width:2px;
+    class Taxonomy,Material,Category,ProductType ReferenceDataFill;
 
     classDef MediaFill fill:#c8e6c9,stroke:#43a047,stroke-width:2px;
     class File,Image,Video MediaFill;
 ```
 
-The full data schema is broken up into four modules: user management, background data management, data collection, and file storage.
+The full data schema is broken up into four modules: user management, reference data management, data collection, and file storage.
 
 ## User management
 
@@ -107,7 +107,7 @@ erDiagram
     USER ||--o{ OAUTHACCOUNT : "has"
 ```
 
-## Background data
+## Reference data
 
 This part contains the shared reference layer used to keep records more consistent: taxonomies, categories and subcategories, materials, product types, and units.
 

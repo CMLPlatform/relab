@@ -1,7 +1,7 @@
 - main:
   - heading "Privacy Policy" [level=1]
-  - paragraph: "/Last updated: April \\d+, \\d+/"
-  - paragraph: This policy explains what we collect, how we use it, and the choices available to RELab users and newsletter subscribers.
+  - paragraph: "Last updated: April 14, 2026"
+  - paragraph: This policy explains what we collect, how we use it, and the choices available to RELab users.
   - article:
     - heading "User Information" [level=2]
     - paragraph: When you register, we collect a username, email address, and password for authentication. Passwords are stored only in hashed form. Your email is used for authentication and important service notifications.
@@ -18,11 +18,8 @@
   - article:
     - heading "Your Rights" [level=2]
     - paragraph:
-      - strong: "Newsletter:"
-      - text: You can
-      - link "unsubscribe":
-        - /url: /newsletter/unsubscribe-form
-      - text: at any time.
+      - strong: "Updates:"
+      - text: Public-facing project updates are shared on GitHub and LinkedIn. Optional recurring account update emails will stay tied to authenticated user preferences.
     - paragraph:
       - strong: "Account holders:"
       - text: You may access and update your details, and request deletion of your account and associated data.

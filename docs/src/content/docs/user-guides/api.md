@@ -8,6 +8,8 @@ lastReviewed: '2026-04-15'
 
 For the authoritative schema, request models, and full endpoint list, use the [interactive API documentation](https://api.cml-relab.org/docs). For how the API is designed internally, see [API Structure](../../architecture/api/).
 
+The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
+
 ## When to Use the API Directly
 
 - scripted or batch access to structured research data
@@ -17,8 +19,8 @@ For the authoritative schema, request models, and full endpoint list, use the [i
 
 ## Authentication
 
-- **Browsers** use cookies (`POST /auth/cookie/login`)
-- **Apps and scripts** use bearer tokens (`POST /auth/bearer/login`)
+- **Browsers** use cookies (`POST /v1/auth/session/login`)
+- **Apps and scripts** use bearer tokens (`POST /v1/auth/login`)
 - Refresh-token handling depends on the Redis-backed auth path (see [Authentication](../../architecture/auth/))
 
 !!! note "Public vs. authenticated routes"
