@@ -263,6 +263,11 @@ compose-config:
 # Docker: Targeted Development (subset of services with hot reload)
 # ============================================================================
 
+
+# Start only the development database and cache infrastructure and wait for readiness
+_dev-db:
+    {{ dev_compose }} up -d --wait postgres redis
+
 # Start backend + its infrastructure (database, cache) with hot reload
 _dev-backend:
     {{ dev_compose }} up --watch api
@@ -314,63 +319,77 @@ _dev-reset confirm='':
 
 # ============================================================================
 # Docker: Deploy stacks (prod + staging)
-#
-# `_stack-up` / `_stack-down` parse YES/profile args and delegate to the
-# matching compose command. `_stack-build` takes a default-profiles string and
-# respects `NO_CACHE=1` for no-cache builds.
 # ============================================================================
-
-# Internal: confirmed start of a deploy stack with optional profiles.
-_stack-up STACK COMPOSE *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to start the {{ STACK }} stack without explicit confirmation."
-        echo "Use 'just {{ STACK }}-up YES [profiles...]' or 'FORCE=1 just {{ STACK }}-up [profiles...]'."
-        exit 1
-    fi
-    {{ COMPOSE }} $flags up -d
-
-# Internal: confirmed stop of a deploy stack with optional profiles.
-_stack-down STACK COMPOSE *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to stop the {{ STACK }} stack without explicit confirmation."
-        echo "Use 'just {{ STACK }}-down YES [profiles...]' or 'FORCE=1 just {{ STACK }}-down [profiles...]'."
-        exit 1
-    fi
-    {{ COMPOSE }} $flags down
-
-# Internal: build deploy-stack images. NO_CACHE=1 forces a no-cache build.
-_stack-build COMPOSE DEFAULT_PROFILES *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="{{ DEFAULT_PROFILES }}"
-    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
-    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
-    {{ COMPOSE }} $flags build $nc
 
 # ============================================================================
 # Docker: Production
 # ============================================================================
 
 # Start production stack (optional profiles: backups, migrations)
-prod-up *PROFILES: (_stack-up "prod" prod_compose PROFILES)
+prod-up *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false
+    flags=""
+    for p in {{ PROFILES }}; do
+        case "$p" in
+            YES) confirmed=true ;;
+            migrations|backups) flags+=" --profile $p" ;;
+            *)
+                echo "Unknown profile '$p' for the prod stack."
+                echo "Allowed profiles: migrations backups"
+                exit 1
+                ;;
+        esac
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to start the prod stack without explicit confirmation."
+        echo "Use 'just prod-up YES [profiles...]' or 'FORCE=1 just prod-up [profiles...]'."
+        exit 1
+    fi
+    {{ prod_compose }} $flags up -d
 
 # Stop production stack (optional profiles: backups)
-prod-down *PROFILES: (_stack-down "prod" prod_compose PROFILES)
+prod-down *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false
+    flags=""
+    for p in {{ PROFILES }}; do
+        case "$p" in
+            YES) confirmed=true ;;
+            migrations|backups) flags+=" --profile $p" ;;
+            *)
+                echo "Unknown profile '$p' for the prod stack."
+                echo "Allowed profiles: migrations backups"
+                exit 1
+                ;;
+        esac
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to stop the prod stack without explicit confirmation."
+        echo "Use 'just prod-down YES [profiles...]' or 'FORCE=1 just prod-down [profiles...]'."
+        exit 1
+    fi
+    {{ prod_compose }} $flags down
 
 # Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
-prod-build *PROFILES: (_stack-build prod_compose "--profile migrations --profile backups" PROFILES)
+prod-build *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="--profile migrations --profile backups"
+    for p in {{ PROFILES }}; do
+        case "$p" in
+            migrations|backups) flags+=" --profile $p" ;;
+            *)
+                echo "Unknown profile '$p' for the prod stack."
+                echo "Allowed profiles: migrations backups"
+                exit 1
+                ;;
+        esac
+    done
+    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
+    {{ prod_compose }} $flags build $nc
 
 # Tail production logs
 prod-logs:
@@ -391,13 +410,70 @@ _prod-backups-up confirm='':
 # ============================================================================
 
 # Start staging stack (optional profiles: migrations)
-staging-up *PROFILES: (_stack-up "staging" staging_compose PROFILES)
+staging-up *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false
+    flags=""
+    for p in {{ PROFILES }}; do
+        case "$p" in
+            YES) confirmed=true ;;
+            migrations) flags+=" --profile $p" ;;
+            *)
+                echo "Unknown profile '$p' for the staging stack."
+                echo "Allowed profiles: migrations"
+                exit 1
+                ;;
+        esac
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to start the staging stack without explicit confirmation."
+        echo "Use 'just staging-up YES [profiles...]' or 'FORCE=1 just staging-up [profiles...]'."
+        exit 1
+    fi
+    {{ staging_compose }} $flags up -d
 
 # Stop staging stack (optional profiles: migrations)
-staging-down *PROFILES: (_stack-down "staging" staging_compose PROFILES)
+staging-down *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    confirmed=false
+    flags=""
+    for p in {{ PROFILES }}; do
+        case "$p" in
+            YES) confirmed=true ;;
+            migrations) flags+=" --profile $p" ;;
+            *)
+                echo "Unknown profile '$p' for the staging stack."
+                echo "Allowed profiles: migrations"
+                exit 1
+                ;;
+        esac
+    done
+    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
+        echo "Refusing to stop the staging stack without explicit confirmation."
+        echo "Use 'just staging-down YES [profiles...]' or 'FORCE=1 just staging-down [profiles...]'."
+        exit 1
+    fi
+    {{ staging_compose }} $flags down
 
 # Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: migrations)
-staging-build *PROFILES: (_stack-build staging_compose "--profile migrations" PROFILES)
+staging-build *PROFILES:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    flags="--profile migrations"
+    for p in {{ PROFILES }}; do
+        case "$p" in
+            migrations) flags+=" --profile $p" ;;
+            *)
+                echo "Unknown profile '$p' for the staging stack."
+                echo "Allowed profiles: migrations"
+                exit 1
+                ;;
+        esac
+    done
+    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
+    {{ staging_compose }} $flags build $nc
 
 # Tail staging logs
 staging-logs:

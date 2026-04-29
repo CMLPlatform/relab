@@ -55,14 +55,41 @@ services:
       - "8012:8000"
     develop:
       watch:
+        # Keep watch scope explicit for Node-based subrepos: sync only source and
+        # runtime config, and rebuild on dependency manifest changes.
         - action: sync
-          path: ./docs
-          target: /opt/relab/docs
-          ignore:
-            - node_modules/
-            - .astro/
-            - dist/
-            - site/
+          path: ./docs/src
+          target: /opt/relab/docs/src
+        - action: sync
+          path: ./docs/public
+          target: /opt/relab/docs/public
+        - action: sync
+          path: ./docs/site
+          target: /opt/relab/docs/site
+        - action: sync
+          path: ./docs/scripts
+          target: /opt/relab/docs/scripts
+        - action: sync
+          path: ./docs/astro.config.mjs
+          target: /opt/relab/docs/astro.config.mjs
+        - action: sync
+          path: ./docs/tsconfig.json
+          target: /opt/relab/docs/tsconfig.json
+        - action: sync
+          path: ./docs/Caddyfile
+          target: /opt/relab/docs/Caddyfile
+        - action: sync
+          path: ./docs/README.md
+          target: /opt/relab/docs/README.md
+        - action: sync
+          path: ./docs/.markdownlint-cli2.mjs
+          target: /opt/relab/docs/.markdownlint-cli2.mjs
+        - action: sync
+          path: ./docs/biome.jsonc
+          target: /opt/relab/docs/biome.jsonc
+        - action: sync
+          path: ./docs/playwright.config.ts
+          target: /opt/relab/docs/playwright.config.ts
         - action: rebuild
           path: ./docs/pnpm-lock.yaml
         - action: rebuild
@@ -80,22 +107,48 @@ services:
       EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
     develop:
       watch:
+        # Avoid watching the whole frontend-app tree. Recursive watches can walk
+        # into large dependency/cache directories on the host and exhaust inotify.
         - action: sync
-          path: ./frontend-app
-          target: /opt/relab/frontend-app
-          ignore:
-            - node_modules/
-            - .expo/
-            - dist/
-            - web-build/
-            - coverage/
-            - test-results/
-            - playwright-report/
-            - e2e/
-            - jest.config.ts
-            - jest.setup.ts
+          path: ./frontend-app/src
+          target: /opt/relab/frontend-app/src
+        - action: sync
+          path: ./frontend-app/config
+          target: /opt/relab/frontend-app/config
+        - action: sync
+          path: ./frontend-app/scripts
+          target: /opt/relab/frontend-app/scripts
+        - action: sync
+          path: ./frontend-app/app.json
+          target: /opt/relab/frontend-app/app.json
+        - action: sync
+          path: ./frontend-app/babel.config.js
+          target: /opt/relab/frontend-app/babel.config.js
+        - action: sync
+          path: ./frontend-app/biome.jsonc
+          target: /opt/relab/frontend-app/biome.jsonc
+        - action: sync
+          path: ./frontend-app/eslint.config.mjs
+          target: /opt/relab/frontend-app/eslint.config.mjs
+        - action: sync
+          path: ./frontend-app/expo-env.d.ts
+          target: /opt/relab/frontend-app/expo-env.d.ts
+        - action: sync
+          path: ./frontend-app/jest.config.cjs
+          target: /opt/relab/frontend-app/jest.config.cjs
+        - action: sync
+          path: ./frontend-app/playwright.config.ts
+          target: /opt/relab/frontend-app/playwright.config.ts
+        - action: sync
+          path: ./frontend-app/README.md
+          target: /opt/relab/frontend-app/README.md
+        - action: sync
+          path: ./frontend-app/tsconfig.json
+          target: /opt/relab/frontend-app/tsconfig.json
         - action: rebuild
           path: ./frontend-app/pnpm-lock.yaml
+        - action: rebuild
+          path: ./frontend-app/package.json
 
   web-site:
     build:
@@ -110,12 +163,35 @@ services:
       PUBLIC_APP_URL: "http://localhost:8013"
     develop:
       watch:
+        # Same rule here: explicit source/config syncs only, rebuild for deps.
         - action: sync
-          path: ./frontend-web
-          target: /opt/relab/frontend-web
-          ignore:
-            - node_modules/
-            - .astro/
-            - dist/
+          path: ./frontend-web/src
+          target: /opt/relab/frontend-web/src
+        - action: sync
+          path: ./frontend-web/public
+          target: /opt/relab/frontend-web/public
+        - action: sync
+          path: ./frontend-web/config
+          target: /opt/relab/frontend-web/config
+        - action: sync
+          path: ./frontend-web/astro.config.ts
+          target: /opt/relab/frontend-web/astro.config.ts
+        - action: sync
+          path: ./frontend-web/biome.jsonc
+          target: /opt/relab/frontend-web/biome.jsonc
+        - action: sync
+          path: ./frontend-web/Caddyfile
+          target: /opt/relab/frontend-web/Caddyfile
+        - action: sync
+          path: ./frontend-web/playwright.config.ts
+          target: /opt/relab/frontend-web/playwright.config.ts
+        - action: sync
+          path: ./frontend-web/README.md
+          target: /opt/relab/frontend-web/README.md
+        - action: sync
+          path: ./frontend-web/tsconfig.json
+          target: /opt/relab/frontend-web/tsconfig.json
         - action: rebuild
           path: ./frontend-web/pnpm-lock.yaml
+        - action: rebuild
+          path: ./frontend-web/package.json

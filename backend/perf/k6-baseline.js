@@ -2,12 +2,11 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 
 const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8000";
-const productTreePath = __ENV.PERF_PRODUCT_TREE_PATH || "/products/tree?recursion_depth=2";
+const productListPath = __ENV.PERF_PRODUCT_LIST_PATH || "/v1/products?size=20";
 const livePath = __ENV.PERF_LIVE_PATH || "/live";
 const loginEmail = __ENV.PERF_USER_EMAIL;
 const loginPassword = __ENV.PERF_USER_PASSWORD;
-const imageId = __ENV.PERF_IMAGE_ID;
-const imageWidth = __ENV.PERF_IMAGE_WIDTH || "200";
+const mediaUrl = __ENV.PERF_MEDIA_URL;
 
 const scenarios = {
   live_probe: {
@@ -16,19 +15,19 @@ const scenarios = {
     vus: Number(__ENV.PERF_LIVE_VUS || 2),
     duration: __ENV.PERF_LIVE_DURATION || "30s",
   },
-  product_tree_read: {
+  product_list_read: {
     executor: "constant-vus",
-    exec: "productTreeRead",
-    vus: Number(__ENV.PERF_PRODUCT_TREE_VUS || 5),
-    duration: __ENV.PERF_PRODUCT_TREE_DURATION || "30s",
+    exec: "productListRead",
+    vus: Number(__ENV.PERF_PRODUCT_LIST_VUS || 5),
+    duration: __ENV.PERF_PRODUCT_LIST_DURATION || "30s",
   },
 };
 
 const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
   "http_req_duration{scenario:live_probe}": ["p(95)<1200"],
-  "http_req_failed{scenario:product_tree_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_tree_read}": ["p(95)<1800"],
+  "http_req_failed{scenario:product_list_read}": ["rate<0.01"],
+  "http_req_duration{scenario:product_list_read}": ["p(95)<1800"],
 };
 
 if (loginEmail && loginPassword) {
@@ -42,15 +41,15 @@ if (loginEmail && loginPassword) {
   thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<1600"];
 }
 
-if (imageId) {
-  scenarios.resized_image = {
+if (mediaUrl) {
+  scenarios.media_url_read = {
     executor: "constant-vus",
-    exec: "resizedImage",
-    vus: Number(__ENV.PERF_IMAGE_VUS || 2),
-    duration: __ENV.PERF_IMAGE_DURATION || "30s",
+    exec: "mediaUrlRead",
+    vus: Number(__ENV.PERF_MEDIA_VUS || 2),
+    duration: __ENV.PERF_MEDIA_DURATION || "30s",
   };
-  thresholds["http_req_failed{scenario:resized_image}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:resized_image}"] = ["p(95)<1400"];
+  thresholds["http_req_failed{scenario:media_url_read}"] = ["rate<0.01"];
+  thresholds["http_req_duration{scenario:media_url_read}"] = ["p(95)<1400"];
 }
 
 export const options = {
@@ -71,14 +70,14 @@ export function liveProbe() {
   sleep(1);
 }
 
-export function productTreeRead() {
-  const response = http.get(`${baseUrl}${productTreePath}`, {
-    tags: { scenario: "product_tree_read" },
+export function productListRead() {
+  const response = http.get(`${baseUrl}${productListPath}`, {
+    tags: { scenario: "product_list_read" },
   });
 
   check(response, {
-    "product tree returned 200": (res) => res.status === 200,
-    "product tree returned array": (res) => Array.isArray(res.json()),
+    "product list returned 200": (res) => res.status === 200,
+    "product list returned items": (res) => Array.isArray(res.json("items")),
   });
 
   sleep(1);
@@ -86,7 +85,7 @@ export function productTreeRead() {
 
 export function bearerLogin() {
   const response = http.post(
-    `${baseUrl}/auth/bearer/login`,
+    `${baseUrl}/v1/auth/login`,
     {
       username: loginEmail,
       password: loginPassword,
@@ -105,14 +104,14 @@ export function bearerLogin() {
   sleep(1);
 }
 
-export function resizedImage() {
-  const response = http.get(`${baseUrl}/images/${imageId}/resized?width=${imageWidth}`, {
-    tags: { scenario: "resized_image" },
+export function mediaUrlRead() {
+  const response = http.get(mediaUrl, {
+    tags: { scenario: "media_url_read" },
   });
 
   check(response, {
-    "resized image returned 200": (res) => res.status === 200,
-    "resized image has body": (res) => res.body && res.body.length > 0,
+    "media URL returned 200": (res) => res.status === 200,
+    "media URL has body": (res) => res.body && res.body.length > 0,
   });
 
   sleep(1);

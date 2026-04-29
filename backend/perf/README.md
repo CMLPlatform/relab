@@ -13,24 +13,24 @@ This directory contains a small `k6` baseline suite for the RELab backend.
 - `live_probe`
   - always enabled
   - exercises the liveness path via `/live`
-- `product_tree_read`
+- `product_list_read`
   - always enabled
-  - exercises the public recursive product read path via `/products/tree`
+  - exercises the public product list path via `/v1/products`
 - `bearer_login`
   - enabled only when `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` are set
   - exercises the auth login path
-- `resized_image`
-  - enabled only when `PERF_IMAGE_ID` is explicitly set or discovered by the Docker CI perf helper
-  - exercises the image resize hot path
+- `media_url_read`
+  - enabled only when `PERF_MEDIA_URL` is explicitly set
+  - exercises the media URL hot path
 
 ## Thresholds
 
 These thresholds are intentionally conservative and serve as a regression tripwire, not a capacity target.
 
 - `live_probe`: `p(95) < 1200ms`
-- `product_tree_read`: `p(95) < 3800ms`
-- `bearer_login`: `p(95) < 3400ms`
-- `resized_image`: `p(95) < 3400ms`
+- `product_list_read`: `p(95) < 1800ms`
+- `bearer_login`: `p(95) < 1600ms`
+- `media_url_read`: `p(95) < 1400ms`
 - all enabled scenarios: failed request rate `< 1%`
 
 ## Recommended Target
@@ -69,10 +69,10 @@ PERF_USER_PASSWORD=secret \
 just perf-baseline
 ```
 
-Enable image resize coverage when you have a sample image id:
+Enable media URL coverage when you have a sample uploaded media URL:
 
 ```bash
-PERF_IMAGE_ID=123 \
+PERF_MEDIA_URL=https://api-test.cml-relab.org/uploads/images/sample.webp \
 just perf-baseline
 ```
 
@@ -81,7 +81,7 @@ Run all scenarios together:
 ```bash
 PERF_USER_EMAIL=user@example.com \
 PERF_USER_PASSWORD=secret \
-PERF_IMAGE_ID=123 \
+PERF_MEDIA_URL=https://api-test.cml-relab.org/uploads/images/sample.webp \
 just perf-baseline
 ```
 
@@ -95,27 +95,26 @@ just perf-baseline
 ## Useful Environment Variables
 
 - `BASE_URL`
-- `PERF_PRODUCT_TREE_PATH`
+- `PERF_PRODUCT_LIST_PATH`
 - `PERF_LIVE_PATH`
 - `PERF_USER_EMAIL`
 - `PERF_USER_PASSWORD`
-- `PERF_IMAGE_ID`
-- `PERF_IMAGE_WIDTH`
-- `PERF_PRODUCT_TREE_VUS`
-- `PERF_PRODUCT_TREE_DURATION`
+- `PERF_MEDIA_URL`
+- `PERF_PRODUCT_LIST_VUS`
+- `PERF_PRODUCT_LIST_DURATION`
 - `PERF_LIVE_VUS`
 - `PERF_LIVE_DURATION`
 - `PERF_LOGIN_VUS`
 - `PERF_LOGIN_DURATION`
-- `PERF_IMAGE_VUS`
-- `PERF_IMAGE_DURATION`
+- `PERF_MEDIA_VUS`
+- `PERF_MEDIA_DURATION`
 
 ## Recommended Baseline Inputs
 
 - Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products before the k6 run starts.
-- `live_probe` and `product_tree_read` are the baseline scenarios and should always remain runnable.
-- `resized_image` is opportunistic rather than required. The Docker CI helper will try to discover a usable image automatically, but the baseline must still run cleanly if no image is available.
-- Use `/products/tree?recursion_depth=2` as the default product-read baseline unless you intentionally want a deeper tree.
+- `live_probe` and `product_list_read` are the baseline scenarios and should always remain runnable.
+- `media_url_read` is opportunistic rather than required. The baseline must still run cleanly if no media URL is provided.
+- Use `/v1/products?size=20` as the default product-read baseline unless you intentionally want a different page size.
 - Reuse the CI superuser from `backend/.env.test` for login measurements unless you explicitly need another account.
 
 ## Recording Results
@@ -148,9 +147,8 @@ Treat that new CI report as the canonical baseline and keep older docker-dev rep
 
 ## Notes On What We Measure
 
-- `/products/tree` is intentionally part of the baseline because it is a supported public hierarchical read, not just an internal implementation detail.
-- Tree performance should reflect the explicit bounded tree loader, not ORM lazy-loading side effects.
-- Do not make the perf workflow depend on embedded image data in `/products`; the baseline must stay useful even when no seeded image is present.
+- `/v1/products` is intentionally part of the baseline because it is a supported public catalog read, not just an internal implementation detail.
+- Do not make the perf workflow depend on embedded image data in `/v1/products`; the baseline must stay useful even when no seeded media URL is present.
 
 ## Maintainer Note
 
