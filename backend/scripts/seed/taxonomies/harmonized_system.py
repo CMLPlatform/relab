@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from sqlalchemy import func, select
 
-from app.api.background_data.models import Category, TaxonomyDomain
+from app.api.reference_data.models import Category, TaxonomyDomain
 from app.core.logging import setup_logging
 from scripts.db.sync import sync_session_context
 from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows

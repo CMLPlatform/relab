@@ -99,14 +99,13 @@ class TestMapperWithRegistry:
         configure_mappers()
 
         from app.api.auth.models import Organization, User
-        from app.api.background_data.models import Category, Material, ProductType, Taxonomy
         from app.api.data_collection.models.product import (
             MaterialProductLink,
             Product,
         )
         from app.api.file_storage.models import File, Image, Video
-        from app.api.newsletter.models import NewsletterSubscriber
         from app.api.plugins.rpi_cam.models import Camera
+        from app.api.reference_data.models import Category, Material, ProductType, Taxonomy
 
         for model in [
             User,
@@ -120,7 +119,6 @@ class TestMapperWithRegistry:
             File,
             Image,
             Video,
-            NewsletterSubscriber,
             Camera,
         ]:
             mapper = class_mapper(model)
@@ -141,7 +139,7 @@ class TestModuleIsolation:
         ok, msg = _run_isolated(
             (
                 "app.api.auth.models",
-                "app.api.background_data.models",
+                "app.api.reference_data.models",
                 "app.api.data_collection.models.product",
                 "app.api.file_storage.models",
             )

@@ -270,7 +270,7 @@ class TestAppCacheIntegration:
             headers={"ETag": '"v1"', "X-Custom": "keep-me"},
         )
 
-        restored = pickle.loads(pickle.dumps(original))
+        restored = pickle.loads(pickle.dumps(original))  # noqa: S301 # Pickling is fine in this test context
 
         assert isinstance(restored, JSONResponse)
         assert restored.status_code == original.status_code

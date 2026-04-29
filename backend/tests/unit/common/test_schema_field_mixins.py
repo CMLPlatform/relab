@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from app.api.background_data.schemas import CategoryReadAsSubCategory, ProductTypeRead, TaxonomyRead
 from app.api.common.models.enums import Unit
 from app.api.common.schemas.associations import MaterialProductLinkCreateWithinProduct
 from app.api.common.schemas.base import ComponentRead, MaterialRead, ProductRead
@@ -19,6 +18,7 @@ from app.api.data_collection.schemas import (
     ProductCreateBaseProduct,
     ProductReadWithRelationshipsAndFlatComponents,
 )
+from app.api.reference_data.schemas import CategoryReadAsSubCategory, ProductTypeRead, TaxonomyRead
 from tests.factories.models import ProductFactory, UserFactory
 
 
@@ -60,7 +60,6 @@ def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> Non
         description = "Chair"
         brand = "Brand"
         model = "M1"
-        dismantling_notes = None
         dismantling_time_start = datetime(2026, 3, 29, 10, 11, 12, tzinfo=UTC)
         dismantling_time_end = datetime(2026, 3, 29, 10, 12, 13, tzinfo=UTC)
         owner_id = "4f4b34bc-4b3d-4324-a58f-8fb59428df2a"
@@ -77,6 +76,7 @@ def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> Non
     assert CategoryReadAsSubCategory.model_validate(CategoryRow()).external_id == "cat-1"
     assert TaxonomyRead.model_validate(TaxonomyRow()).domains == {"materials"}
     assert ProductRead.model_validate(ProductRow()).owner_username == "simon"
+    assert "dismantling_notes" not in ProductRead.model_fields
 
 
 def test_product_read_schema_does_not_apply_privacy_context() -> None:

@@ -77,7 +77,6 @@ class TestValidatorsCommon:
         (ProductCreateBaseProduct, "description", 500),
         (ProductCreateBaseProduct, "brand", 100),
         (ProductCreateBaseProduct, "model", 100),
-        (ProductCreateBaseProduct, "dismantling_notes", 500),
         (ProductCreateBaseProduct, "recyclability_observation", 500),
         (ProductCreateBaseProduct, "recyclability_comment", 100),
     ],

@@ -52,7 +52,7 @@ async def test_camera_lifecycle_and_constraints(api_client_superuser: AsyncClien
     # 1. Create Camera
     camera_data = build_camera_payload()
 
-    response = await api_client_superuser.post("/plugins/rpi-cam/cameras", json=camera_data)
+    response = await api_client_superuser.post("/v1/plugins/rpi-cam/cameras", json=camera_data)
 
     assert response.status_code == status.HTTP_201_CREATED
     created_camera = response.json()
@@ -64,40 +64,40 @@ async def test_camera_lifecycle_and_constraints(api_client_superuser: AsyncClien
     assert created_camera["owner_id"] == str(db_superuser.id)
 
     # 2. Read Camera (List and Detail)
-    response = await api_client_superuser.get(f"/plugins/rpi-cam/cameras/{camera_id}")
+    response = await api_client_superuser.get(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["id"] == camera_id
 
     # 3. Update Camera
     update_data = {"name": UPDATED_CAM_NAME}
-    response = await api_client_superuser.patch(f"/plugins/rpi-cam/cameras/{camera_id}", json=update_data)
+    response = await api_client_superuser.patch(f"/v1/plugins/rpi-cam/cameras/{camera_id}", json=update_data)
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == UPDATED_CAM_NAME
 
     # 4. Delete Camera
-    response = await api_client_superuser.delete(f"/plugins/rpi-cam/cameras/{camera_id}")
+    response = await api_client_superuser.delete(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
     # Verify deletion
-    response = await api_client_superuser.get(f"/plugins/rpi-cam/cameras/{camera_id}")
+    response = await api_client_superuser.get(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-async def test_current_user_camera_alias_routes(api_client_superuser: AsyncClient) -> None:
-    """The user-scoped camera alias should expose the same CRUD flow."""
+async def test_plugin_camera_routes(api_client_superuser: AsyncClient) -> None:
+    """The plugin-scoped camera route should expose the CRUD flow."""
     camera_data = build_camera_payload()
 
-    response = await api_client_superuser.post("/users/me/cameras", json=camera_data)
+    response = await api_client_superuser.post("/v1/plugins/rpi-cam/cameras", json=camera_data)
     assert response.status_code == status.HTTP_201_CREATED
     camera_id = response.json()["id"]
 
-    response = await api_client_superuser.get("/users/me/cameras")
+    response = await api_client_superuser.get("/v1/plugins/rpi-cam/cameras")
     assert response.status_code == status.HTTP_200_OK
 
-    response = await api_client_superuser.get(f"/users/me/cameras/{camera_id}")
+    response = await api_client_superuser.get(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = await api_client_superuser.delete(f"/users/me/cameras/{camera_id}")
+    response = await api_client_superuser.delete(f"/v1/plugins/rpi-cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
@@ -106,11 +106,11 @@ async def test_camera_unique_constraints(api_client_superuser: AsyncClient) -> N
     camera_data = build_camera_payload(name=DUPLICATE_CAM_NAME)
 
     # First camera
-    response = await api_client_superuser.post("/plugins/rpi-cam/cameras", json=camera_data)
+    response = await api_client_superuser.post("/v1/plugins/rpi-cam/cameras", json=camera_data)
     assert response.status_code == status.HTTP_201_CREATED
 
     # Second camera
-    response = await api_client_superuser.post("/plugins/rpi-cam/cameras", json=camera_data)
+    response = await api_client_superuser.post("/v1/plugins/rpi-cam/cameras", json=camera_data)
     assert response.status_code == status.HTTP_201_CREATED
 
 
@@ -119,5 +119,5 @@ async def test_camera_required_fields(api_client_superuser: AsyncClient) -> None
     camera_data = {
         "name": INVALID_CAM_NAME,
     }
-    response = await api_client_superuser.post("/plugins/rpi-cam/cameras", json=camera_data)
+    response = await api_client_superuser.post("/v1/plugins/rpi-cam/cameras", json=camera_data)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

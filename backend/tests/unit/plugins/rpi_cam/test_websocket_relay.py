@@ -262,7 +262,7 @@ class TestRelayCommandAllowlist:
         [
             ("DELETE", "/camera"),
             ("PUT", "/streams/youtube"),
-            ("GET", "/admin"),
+            ("GET", "/v1/admin"),
             ("GET", "/captures/preview"),
             ("PATCH", "/camera"),
             ("GET", "/"),

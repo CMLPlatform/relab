@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import UUID4
 from sqlalchemy import select
 
-from app.api.auth.services.stats import recompute_user_stats
-from app.api.background_data.models import Material, ProductType
+from app.api.auth.services.stats import refresh_profile_stats_after_mutation
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_model, require_models
@@ -17,6 +16,7 @@ from app.api.data_collection.exceptions import ProductOwnerRequiredError
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.data_collection.schemas import ComponentCreateWithComponents, ProductCreateWithComponents, ProductUpdate
 from app.api.file_storage.models import Video
+from app.api.reference_data.models import Material, ProductType
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +43,11 @@ async def create_product_record(
     owner_id: UUID4,
     parent_product: Product | None = None,
 ) -> Product:
-    """Create the base Product row and flush it so dependent rows can reference it."""
+    """Create a Product row and flush it so dependent rows can reference it.
+
+    ``owner_id`` is stored on every row; components denormalize their root
+    base product's owner (their caller passes ``parent_product.owner_id``).
+    """
     db_product = Product(
         **product_payload(product_data),
         owner_id=owner_id,
@@ -60,7 +64,7 @@ def create_product_videos(
     db_product: Product,
 ) -> None:
     """Create video rows linked to the product."""
-    if not product_data.videos:
+    if not isinstance(product_data, ProductCreateWithComponents) or not product_data.videos:
         return
 
     videos: list[Video] = db_product.videos if db_product.videos is not None else []
@@ -95,7 +99,11 @@ async def create_product_components(
     owner_id: UUID4,
     db_product: Product,
 ) -> None:
-    """Recursively create child components for a product."""
+    """Recursively create child components for a product.
+
+    Components denormalize the root's ``owner_id`` so downstream queries
+    (ownership, stats, per-user listings) stay single-table, single-filter.
+    """
     for component in product_data.components:
         await create_product_tree(db, component, owner_id=owner_id, parent_product=db_product)
 
@@ -138,7 +146,7 @@ async def create_component(
     component: ComponentCreateWithComponents,
     parent_product: Product,
 ) -> Product:
-    """Add a component to a product."""
+    """Add a component to a product (denormalized owner_id inherited from the parent)."""
     return await create_and_persist_product_tree(
         db,
         component,
@@ -155,7 +163,7 @@ async def create_product(
     """Create a new product in the database."""
     db_product = await create_and_persist_product_tree(db, product, owner_id=owner_id)
     if owner_id:
-        await recompute_user_stats(db, owner_id)
+        await refresh_profile_stats_after_mutation(db, owner_id)
         await db.commit()
     return db_product
 
@@ -194,7 +202,7 @@ async def update_product(db: AsyncSession, product_id: int, product: ProductUpda
 
     res = await commit_and_refresh(db, db_product)
     if db_product.owner_id is not None:
-        await recompute_user_stats(db, db_product.owner_id)
+        await refresh_profile_stats_after_mutation(db, db_product.owner_id)
         await db.commit()
     return res
 
@@ -214,5 +222,5 @@ async def delete_product(db: AsyncSession, product_id: int) -> None:
     await db.delete(db_product)
     await db.commit()
     if owner_id is not None:
-        await recompute_user_stats(db, owner_id)
+        await refresh_profile_stats_after_mutation(db, owner_id)
         await db.commit()

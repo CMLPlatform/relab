@@ -23,7 +23,7 @@ from app.api.file_storage.examples import (
 )
 from app.api.file_storage.models import FileBase, ImageBase, MediaParentType, VideoBase
 from app.core.config import settings
-from app.core.images import validate_image_mime_type
+from app.core.images import thumbnail_path_for, validate_image_mime_type
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -65,12 +65,11 @@ def _build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url
 
 def _build_image_urls(
     file_path: str | None,
-    image_id: object,
     storage_root: Path,
 ) -> tuple[str | None, str | None]:
-    """Build image_url and thumbnail_url with a single filesystem existence check.
+    """Build generated image and thumbnail URLs with filesystem existence checks.
 
-    Returns (image_url, thumbnail_url) — both None if the file does not exist.
+    Returns (image_url, thumbnail_url) — both None if the original file does not exist.
     """
     if file_path is None:
         return None, None
@@ -78,7 +77,12 @@ def _build_image_urls(
     if not path.exists():
         return None, None
     relative_path = path.relative_to(storage_root)
-    return f"/uploads/images/{quote(str(relative_path))}", f"/images/{image_id}/resized?width=200"
+    image_url = f"/uploads/images/{quote(str(relative_path))}"
+    thumbnail_path = thumbnail_path_for(path, 200)
+    if not thumbnail_path.exists():
+        return image_url, image_url
+    thumbnail_relative_path = thumbnail_path.relative_to(storage_root)
+    return image_url, f"/uploads/images/{quote(str(thumbnail_relative_path))}"
 
 
 FileUpload = Annotated[
@@ -167,7 +171,7 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
         """Derive image and thumbnail URLs when the caller didn't supply them."""
         if self.image_url is None:
             file_path = getattr(self.file, "path", None)
-            self.image_url, self.thumbnail_url = _build_image_urls(file_path, self.id, settings.image_storage_path)
+            self.image_url, self.thumbnail_url = _build_image_urls(file_path, settings.image_storage_path)
         return self
 
 

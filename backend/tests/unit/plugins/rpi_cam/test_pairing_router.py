@@ -10,7 +10,12 @@ from fakeredis.aioredis import FakeRedis
 from starlette.requests import Request
 
 from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.routers.pairing import claim_pairing_code, poll_pairing_status, register_pairing_code
+from app.api.plugins.rpi_cam.routers.pairing import (
+    _build_ws_url,
+    claim_pairing_code,
+    poll_pairing_status,
+    register_pairing_code,
+)
 from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
 from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingRegisterRequest
 from tests.factories.models import UserFactory
@@ -23,6 +28,11 @@ PUBLIC_JWK = {
     "kid": "key-12345",
 }
 KEY_ID = "key-12345"
+
+
+def test_build_ws_url_uses_canonical_v1_plugin_route() -> None:
+    """Pairing bootstrap should send the Pi to the canonical versioned WebSocket route."""
+    assert _build_ws_url().endswith("/v1/plugins/rpi-cam/ws/connect")
 
 
 def build_camera() -> Camera:

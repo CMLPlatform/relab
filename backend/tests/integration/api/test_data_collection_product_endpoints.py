@@ -7,9 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
-from app.api.background_data.models import Material, ProductType
-from app.api.common.models.enums import Unit
-from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.data_collection.models.product import Product
+from app.api.reference_data.models import Material, ProductType
 from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
@@ -49,7 +48,7 @@ async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, d
     db_session.add_all([product_type, product])
     await db_session.flush()
 
-    response = await api_client.get("/products")
+    response = await api_client.get("/v1/products")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -57,35 +56,20 @@ async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, d
     assert data["items"][0]["name"] == PRODUCT_BASE_NAME
 
 
-async def test_get_products_tree(api_client: AsyncClient, setup_product: Product) -> None:
-    """GET /products/tree returns the product hierarchy."""
-    response = await api_client.get("/products/tree?recursion_depth=1")
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert isinstance(data, list)
-    if data:
-        tree_product = next((item for item in data if item["id"] == setup_product.id), None)
-        assert tree_product is not None
-        assert tree_product["name"] == PRODUCT_BASE_NAME
-
-
-async def test_get_products_tree_includes_nested_components_without_async_lazy_loads(
+async def test_get_product_components_tree_includes_nested_components(
     api_client: AsyncClient,
     setup_product_graph: ProductGraph,
 ) -> None:
-    """GET /products/tree returns nested components at bounded depth without crashing."""
-    response = await api_client.get("/products/tree?recursion_depth=2")
+    """GET /products/{id}/components/tree returns nested components at bounded depth."""
+    response = await api_client.get(f"/v1/products/{setup_product_graph.product.id}/components/tree?recursion_depth=2")
 
     assert response.status_code == status.HTTP_200_OK
-    tree_product = next((item for item in response.json() if item["id"] == setup_product_graph.product.id), None)
-    assert tree_product is not None
-    assert [component["id"] for component in tree_product["components"]] == [setup_product_graph.component.id]
+    assert [component["id"] for component in response.json()] == [setup_product_graph.component.id]
 
 
 async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns the requested product."""
-    response = await api_client.get(f"/products/{setup_product.id}")
+    response = await api_client.get(f"/v1/products/{setup_product.id}")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -95,57 +79,16 @@ async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product
 
 async def test_get_product_by_id_supports_conditional_get(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns 304 when the entity tag matches."""
-    first_response = await api_client.get(f"/products/{setup_product.id}")
+    first_response = await api_client.get(f"/v1/products/{setup_product.id}")
     assert first_response.status_code == status.HTTP_200_OK
     assert "etag" in first_response.headers
 
     second_response = await api_client.get(
-        f"/products/{setup_product.id}",
+        f"/v1/products/{setup_product.id}",
         headers={"If-None-Match": first_response.headers["etag"]},
     )
 
     assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
-
-
-async def test_validate_product_tree(
-    api_client: AsyncClient,
-    db_session: AsyncSession,
-    db_superuser: User,
-) -> None:
-    """POST /products/{id}/validate handles a fully loaded tree."""
-    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
-    root = Product(
-        owner_id=db_superuser.id,
-        name=f"{PRODUCT_BASE_NAME} Root",
-        product_type=product_type,
-    )
-    child = Product(
-        owner_id=db_superuser.id,
-        name=f"{PRODUCT_BASE_NAME} Child",
-        parent=root,
-        product_type=product_type,
-    )
-    material = Material(name="Steel")
-    db_session.add_all(
-        [
-            product_type,
-            root,
-            child,
-            material,
-            MaterialProductLink(
-                material=material,
-                product=child,
-                quantity=1.0,
-                unit=Unit.GRAM,
-            ),
-        ]
-    )
-    await db_session.flush()
-
-    response = await api_client.post(f"/products/{root.id}/validate")
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()["valid"] is True
 
 
 async def test_create_product(api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
@@ -164,7 +107,7 @@ async def test_create_product(api_client_superuser: AsyncClient, db_session: Asy
         "bill_of_materials": [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
     }
 
-    response = await api_client_superuser.post("/products", json=payload)
+    response = await api_client_superuser.post("/v1/products", json=payload)
 
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
@@ -174,7 +117,7 @@ async def test_create_product(api_client_superuser: AsyncClient, db_session: Asy
 
 async def test_update_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} updates a product."""
-    response = await api_client_superuser.patch(f"/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+    response = await api_client_superuser.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == UPDATED_PRODUCT_NAME
@@ -182,14 +125,43 @@ async def test_update_product(api_client_superuser: AsyncClient, setup_product: 
 
 async def test_delete_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """DELETE /products/{id} removes the product."""
-    response = await api_client_superuser.delete(f"/products/{setup_product.id}")
+    response = await api_client_superuser.delete(f"/v1/products/{setup_product.id}")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
-async def test_user_products_redirect(api_client_superuser: AsyncClient, db_superuser: User) -> None:
-    """GET /users/me/products follows the redirect to the user's products."""
+async def test_product_media_reads_are_public(api_client: AsyncClient, setup_product: Product) -> None:
+    """Base-product media reads should not require ownership."""
+    files_response = await api_client.get(f"/v1/products/{setup_product.id}/files")
+    images_response = await api_client.get(f"/v1/products/{setup_product.id}/images")
+
+    assert files_response.status_code == status.HTTP_200_OK
+    assert images_response.status_code == status.HTTP_200_OK
+
+
+async def test_current_user_products_filter(api_client_superuser: AsyncClient, db_superuser: User) -> None:
+    """GET /v1/products?owner=me returns the authenticated user's products."""
     del db_superuser
-    response = await api_client_superuser.get("/users/me/products")
+    response = await api_client_superuser.get("/v1/products?owner=me")
 
     assert response.status_code == status.HTTP_200_OK
+
+
+async def test_product_materials_reject_component_ids(
+    api_client_superuser: AsyncClient,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """Product material routes are scoped to base products only."""
+    response = await api_client_superuser.get(f"/v1/products/{setup_product_graph.component.id}/materials")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_product_videos_reject_component_ids(
+    api_client_superuser: AsyncClient,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """Product video routes are scoped to base products only."""
+    response = await api_client_superuser.get(f"/v1/products/{setup_product_graph.component.id}/videos")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND

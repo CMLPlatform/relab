@@ -27,7 +27,7 @@ def build_public_docs() -> OpenAPISettings:
         },
         x_tag_groups=[
             {"name": "Auth", "tags": ["auth", "organizations", "users"]},
-            {"name": "Background Data", "tags": ["categories", "taxonomies", "materials", "product-types"]},
+            {"name": "Reference Data", "tags": ["categories", "taxonomies", "materials", "product-types"]},
             {"name": "Data Collection", "tags": ["products"]},
             {"name": "Plugins", "tags": ["rpi-cam-management", "rpi-cam-interaction"]},
         ],

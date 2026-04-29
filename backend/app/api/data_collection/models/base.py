@@ -69,8 +69,6 @@ class ProductFieldsMixin(PhysicalPropertiesMixin, CircularityPropertiesMixin):
     brand: Mapped[str | None] = mapped_column(String(100), default=None)
     model: Mapped[str | None] = mapped_column(String(100), default=None)
 
-    # Dismantling information
-    dismantling_notes: Mapped[str | None] = mapped_column(String(500), default=None)
     dismantling_time_start: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
@@ -93,7 +91,6 @@ class ProductBase(PhysicalPropertiesFields, CircularityPropertiesFields, BaseMod
     description: str | None = PydanticField(default=None, max_length=500)
     brand: str | None = PydanticField(default=None, max_length=100)
     model: str | None = PydanticField(default=None, max_length=100)
-    dismantling_notes: str | None = PydanticField(default=None, max_length=500)
     dismantling_time_start: datetime = PydanticField(default_factory=lambda: datetime.now(UTC))
     dismantling_time_end: datetime | None = None
 

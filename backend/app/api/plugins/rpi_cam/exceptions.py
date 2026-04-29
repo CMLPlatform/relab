@@ -39,7 +39,7 @@ class GoogleOAuthAssociationRequiredError(ForbiddenError):
     def __init__(self) -> None:
         super().__init__(
             "Google OAuth account association required for YouTube streaming. "
-            "Use /api/auth/oauth/google/associate/authorize."
+            "Use /v1/oauth/google-youtube/associate/authorize."
         )
 
 

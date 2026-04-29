@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.api.background_data.models import TaxonomyDomain
+from app.api.reference_data.models import TaxonomyDomain
 
 
 class PhysicalPropertiesFields(BaseModel):
@@ -51,11 +51,6 @@ class ProductFields(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     brand: str | None = Field(default=None, max_length=100)
     model: str | None = Field(default=None, max_length=100)
-    dismantling_notes: str | None = Field(
-        default=None,
-        max_length=500,
-        description="Notes on the dismantling process of the product.",
-    )
     dismantling_time_start: datetime = Field(default_factory=lambda: datetime.now(UTC))
     dismantling_time_end: datetime | None = None
 

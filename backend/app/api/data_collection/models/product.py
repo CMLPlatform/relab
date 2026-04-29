@@ -1,8 +1,8 @@
 """Database models for data collection on products."""
 # spell-checker: ignore trgm
 
-from pydantic import UUID4, computed_field
-from sqlalchemy import Computed, ForeignKey, Index, and_, asc, select
+from pydantic import UUID4
+from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, select, text
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import (
@@ -16,11 +16,11 @@ from sqlalchemy.orm import (
 )
 
 from app.api.auth.models import User
-from app.api.background_data.models import Material, ProductType
 from app.api.common.models.associations import MaterialProductLinkBase
 from app.api.common.models.base import Base, TimeStampMixinBare
 from app.api.data_collection.models.base import ProductFieldsMixin
 from app.api.file_storage.models import File, Image, MediaParentType, Video
+from app.api.reference_data.models import Material, ProductType
 
 
 class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
@@ -34,6 +34,12 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         Index("product_search_vector_idx", "search_vector", postgresql_using="gin"),
         Index("product_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
         Index("product_brand_trgm_idx", "brand", postgresql_using="gin", postgresql_ops={"brand": "gin_trgm_ops"}),
+        Index("ix_product_base_owner_id", "owner_id", postgresql_where=text("parent_id IS NULL")),
+        CheckConstraint(
+            "(parent_id IS NULL AND amount_in_parent IS NULL) "
+            "OR (parent_id IS NOT NULL AND amount_in_parent IS NOT NULL)",
+            name="product_role_invariants",
+        ),
     )
 
     search_vector: Mapped[str | None] = mapped_column(
@@ -96,9 +102,12 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     )
     videos: Mapped[list[Video] | None] = relationship(cascade="all, delete-orphan")
 
-    # Many-to-one: owner
-    # nullable=False preserves the NOT NULL DB constraint; the Python type allows None
-    # so that pre-serialisation privacy redaction can null out the owner without a cast.
+    # Many-to-one: owner. NOT NULL on every row — components denormalize their
+    # root base product's owner so ownership and per-owner queries stay O(1).
+    # The Pydantic ComponentRead schema hides owner_id from clients to keep
+    # the "components are nested under a base product" abstraction clean;
+    # BaseProductRead exposes it.
+    # Python type allows None so privacy redaction can clear it in memory.
     owner_id: Mapped[UUID4 | None] = mapped_column(ForeignKey("user.id"), nullable=False)
     owner: Mapped[User | None] = relationship(
         uselist=False,
@@ -117,18 +126,14 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
 
     @property
     def thumbnail_url(self) -> str | None:
-        """Return thumbnail URL from the first image."""
-        if first_image_id := self.first_image_id:
-            return f"/images/{first_image_id}/resized?width=200"
+        """Return a list-safe thumbnail URL when one is preloaded by presentation code."""
         return None
 
-    @computed_field
     @property
     def is_leaf_node(self) -> bool:
         """Check if the product is a leaf node (no components)."""
         return self.components is None or len(self.components) == 0
 
-    @computed_field
     @property
     def is_base_product(self) -> bool:
         """Check if the product is a base product (no parent)."""
