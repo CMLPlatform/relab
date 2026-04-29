@@ -9,5 +9,5 @@
     },
     "types": ["@types/jest", "expo-router/types/expect"]
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

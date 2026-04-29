@@ -16,7 +16,7 @@ import {
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { resolveEffectiveCameraConnection } from '@/hooks/useEffectiveCameraConnection';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
-import { useProductQuery } from '@/hooks/useProductQueries';
+import { useBaseProductQuery } from '@/hooks/useProductQueries';
 import { useCamerasQuery, useCaptureAllMutation } from '@/hooks/useRpiCameras';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 
@@ -148,7 +148,7 @@ export function useCamerasScreen() {
   const { effectiveConnectionByCameraId, handleEffectiveConnectionChange } =
     useCameraConnectionSnapshots();
   const selection = useCameraSelectionController();
-  const { data: streamProduct } = useProductQuery(streamProductId ?? 'new');
+  const { data: streamProduct } = useBaseProductQuery(streamProductId ?? undefined);
   const {
     data: cameras,
     isLoading,

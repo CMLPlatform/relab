@@ -2,14 +2,21 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
-import { searchBrands } from '@/services/api/brands';
-import { allProducts, getProduct, myProducts, ProductNotFoundError } from '@/services/api/products';
+import { searchProductBrands } from '@/services/api/productSuggestions';
+import {
+  allProducts,
+  getBaseProduct,
+  getComponent,
+  myProducts,
+  ProductNotFoundError,
+} from '@/services/api/products';
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 import {
+  useBaseProductQuery,
+  useComponentQuery,
   useDeleteProductMutation,
-  useProductQuery,
   useProductsQuery,
   useProductTypesQuery,
   useSaveProductMutation,
@@ -17,9 +24,9 @@ import {
   useSearchProductTypesQuery,
 } from '../useProductQueries';
 
-jest.mock('@/services/api/brands', () => ({
-  allBrands: jest.fn(),
-  searchBrands: jest.fn(),
+jest.mock('@/services/api/productSuggestions', () => ({
+  allProductBrands: jest.fn(),
+  searchProductBrands: jest.fn(),
 }));
 
 type ProductsModule = typeof import('@/services/api/products');
@@ -29,7 +36,8 @@ jest.mock('@/services/api/products', () => {
   return {
     ...actual,
     allProducts: jest.fn(),
-    getProduct: jest.fn(),
+    getBaseProduct: jest.fn(),
+    getComponent: jest.fn(),
     myProducts: jest.fn(),
   };
 });
@@ -55,16 +63,19 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('useProductQueries', () => {
   const mockedAllProducts = jest.mocked(allProducts);
   const mockedMyProducts = jest.mocked(myProducts);
-  const mockedSearchBrands = jest.mocked(searchBrands);
+  const mockedSearchBrands = jest.mocked(searchProductBrands);
   const mockedSearchProductTypes = jest.mocked(searchProductTypes);
   const mockedAllProductTypes = jest.mocked(allProductTypes);
-  const mockedGetProduct = jest.mocked(getProduct);
+  const mockedGetBaseProduct = jest.mocked(getBaseProduct);
+  const mockedGetComponent = jest.mocked(getComponent);
   const mockedSaveProduct = jest.mocked(saveProduct);
   const mockedDeleteProduct = jest.mocked(deleteProduct);
   const existingProduct: Product = {
     id: 123,
+    role: 'product',
     name: 'Test',
     componentIDs: [],
+    components: [],
     physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
     circularityProperties: {
       recyclabilityObservation: '',
@@ -76,9 +87,11 @@ describe('useProductQueries', () => {
     ownedBy: 'me',
   };
   const newProductDraft: Product = {
-    id: 'new',
+    id: undefined,
+    role: 'product',
     name: 'Draft',
     componentIDs: [],
+    components: [],
     physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
     circularityProperties: {
       recyclabilityObservation: '',
@@ -133,7 +146,6 @@ describe('useProductQueries', () => {
 
     await waitFor(() => expect(allProducts).toHaveBeenCalled());
     expect(allProducts).toHaveBeenCalledWith(
-      undefined,
       2,
       24,
       'lamp',
@@ -151,8 +163,8 @@ describe('useProductQueries', () => {
     renderHook(() => useSearchBrandsQuery(''), { wrapper });
     renderHook(() => useSearchProductTypesQuery(''), { wrapper });
 
-    await waitFor(() => expect(searchBrands).toHaveBeenCalled());
-    expect(searchBrands).toHaveBeenCalledWith(undefined, 1, 50);
+    await waitFor(() => expect(searchProductBrands).toHaveBeenCalled());
+    expect(searchProductBrands).toHaveBeenCalledWith(undefined, 1, 50);
     expect(searchProductTypes).toHaveBeenCalledWith(undefined, 1, 50);
   });
 
@@ -165,37 +177,56 @@ describe('useProductQueries', () => {
     expect(allProductTypes).toHaveBeenCalled();
   });
 
-  it('useProductQuery calls getProduct and respects enabled state', async () => {
-    mockedGetProduct.mockResolvedValue(existingProduct);
+  it('useBaseProductQuery calls getBaseProduct and respects enabled state', async () => {
+    mockedGetBaseProduct.mockResolvedValue(existingProduct);
 
     const { result, rerender } = renderHook<
-      ReturnType<typeof useProductQuery>,
-      { id: number | 'new' }
-    >(({ id }: { id: number | 'new' }) => useProductQuery(id), {
+      ReturnType<typeof useBaseProductQuery>,
+      { id: number | undefined }
+    >(({ id }: { id: number | undefined }) => useBaseProductQuery(id), {
       wrapper,
-      initialProps: { id: 'new' },
+      initialProps: { id: undefined },
     });
 
-    // Should not run for 'new'
     expect(result.current.isLoading).toBe(false);
-    expect(getProduct).not.toHaveBeenCalled();
+    expect(getBaseProduct).not.toHaveBeenCalled();
 
     rerender({ id: 123 });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(getProduct).toHaveBeenCalledWith(123);
+    expect(getBaseProduct).toHaveBeenCalledWith(123);
   });
 
-  it('useProductQuery does not retry when the product is missing', async () => {
-    mockedGetProduct.mockRejectedValue(new ProductNotFoundError(123));
+  it('useComponentQuery calls getComponent and respects enabled state', async () => {
+    mockedGetComponent.mockResolvedValue(existingProduct);
 
-    const { result } = renderHook(() => useProductQuery(123), { wrapper });
+    const { result, rerender } = renderHook<
+      ReturnType<typeof useComponentQuery>,
+      { id: number | undefined }
+    >(({ id }: { id: number | undefined }) => useComponentQuery(id), {
+      wrapper,
+      initialProps: { id: undefined },
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(getComponent).not.toHaveBeenCalled();
+
+    rerender({ id: 77 });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getComponent).toHaveBeenCalledWith(77);
+  });
+
+  it('useBaseProductQuery does not retry when the product is missing', async () => {
+    mockedGetBaseProduct.mockRejectedValue(new ProductNotFoundError(123));
+
+    const { result } = renderHook(() => useBaseProductQuery(123), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(getProduct).toHaveBeenCalledTimes(1);
+    expect(getBaseProduct).toHaveBeenCalledTimes(1);
   });
 
-  it('useSaveProductMutation calls saveProduct and invalidates queries', async () => {
+  it('useSaveProductMutation invalidates the base-product cache for a saved product', async () => {
     const mockSavedId = 456;
     mockedSaveProduct.mockResolvedValue(mockSavedId);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
@@ -212,19 +243,19 @@ describe('useProductQueries', () => {
 
     expect(saveProduct).toHaveBeenCalled();
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['product', mockSavedId] }),
+      expect.objectContaining({ queryKey: ['baseProduct', mockSavedId] }),
     );
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
   });
 
-  it('useSaveProductMutation invalidates parent and new-product cache when needed', async () => {
+  it('useSaveProductMutation invalidates the component cache and the parent when saving a component', async () => {
     mockedSaveProduct.mockResolvedValue(789);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
     const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
-      product: { ...newProductDraft, name: 'Child', parentID: 321 },
+      product: { ...newProductDraft, role: 'component', name: 'Child', parentID: 321 },
       originalImages: [],
       originalVideos: [],
     });
@@ -232,14 +263,17 @@ describe('useProductQueries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['product', 321] }),
+      expect.objectContaining({ queryKey: ['component', 789] }),
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['product', 'new'] }),
+      expect.objectContaining({ queryKey: ['baseProduct', 321] }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['component', 321] }),
     );
   });
 
-  it('useDeleteProductMutation removes old products and keeps new drafts cached', async () => {
+  it('useDeleteProductMutation removes both role caches for an existing entity', async () => {
     mockedDeleteProduct.mockResolvedValue(undefined);
     const removeSpy = jest.spyOn(queryClient, 'removeQueries');
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
@@ -250,17 +284,12 @@ describe('useProductQueries', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(removeSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['product', 123] }));
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
-
-    jest.clearAllMocks();
-    const { result: newResult } = renderHook(() => useDeleteProductMutation(), { wrapper });
-    newResult.current.mutate(newProductDraft);
-
-    await waitFor(() => expect(newResult.current.isSuccess).toBe(true));
-
-    expect(removeSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['product', 'new'] }),
+    expect(removeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['baseProduct', 123] }),
     );
+    expect(removeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['component', 123] }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
   });
 });

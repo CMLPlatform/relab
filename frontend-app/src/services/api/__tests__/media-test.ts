@@ -10,7 +10,7 @@ const ORIGINAL_ENV = process.env.EXPO_PUBLIC_API_URL;
 
 describe('resolveApiMediaUrl', () => {
   beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000/api';
+    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
   });
 
   afterEach(() => {
@@ -35,26 +35,26 @@ describe('resolveApiMediaUrl', () => {
 
   it('prepends the API base URL to root-relative paths', () => {
     expect(resolveApiMediaUrl('/uploads/images/test.jpg')).toBe(
-      'http://localhost:8000/api/uploads/images/test.jpg',
+      'http://localhost:8000/uploads/images/test.jpg',
     );
   });
 
   it('prepends the API base URL to relative paths without a leading slash', () => {
     expect(resolveApiMediaUrl('static/images/placeholder.png')).toBe(
-      'http://localhost:8000/api/static/images/placeholder.png',
+      'http://localhost:8000/static/images/placeholder.png',
     );
   });
 
   it('normalizes the placeholder constant', () => {
     expect(resolveApiMediaUrl(API_PLACEHOLDER_IMAGE_PATH)).toBe(
-      'http://localhost:8000/api/static/images/placeholder.png',
+      'http://localhost:8000/static/images/placeholder.png',
     );
   });
 });
 
 describe('getPlaceholderImageUrl', () => {
   beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000/api';
+    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
   });
 
   afterEach(() => {
@@ -62,29 +62,27 @@ describe('getPlaceholderImageUrl', () => {
   });
 
   it('returns the API-prefixed placeholder path', () => {
-    expect(getPlaceholderImageUrl()).toBe(
-      'http://localhost:8000/api/static/images/placeholder.png',
-    );
+    expect(getPlaceholderImageUrl()).toBe('http://localhost:8000/static/images/placeholder.png');
   });
 });
 
 describe('getResizedImageUrl', () => {
   beforeEach(() => {
-    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000/api';
+    process.env.EXPO_PUBLIC_API_URL = 'http://localhost:8000';
   });
 
   afterEach(() => {
     process.env.EXPO_PUBLIC_API_URL = ORIGINAL_ENV;
   });
 
-  it('returns a resized URL when imageId is provided', () => {
+  it('returns the resolved image URL when imageId is provided', () => {
     const result = getResizedImageUrl('/uploads/img.jpg', '7', 400);
-    expect(result).toBe('http://localhost:8000/api/images/7/resized?width=400');
+    expect(result).toBe('http://localhost:8000/uploads/img.jpg');
   });
 
   it('returns resolved original URL when imageId is undefined', () => {
     const result = getResizedImageUrl('/uploads/img.jpg', undefined, 400);
-    expect(result).toBe('http://localhost:8000/api/uploads/img.jpg');
+    expect(result).toBe('http://localhost:8000/uploads/img.jpg');
   });
 
   it('returns resolved original URL for blob: URI (no resize)', () => {

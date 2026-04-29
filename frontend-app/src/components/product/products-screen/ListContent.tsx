@@ -240,7 +240,7 @@ export function ProductsListContent({
       refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
       data={productList}
       extraData={showOwner}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item) => (item.id ?? 'draft').toString()}
       renderItem={renderProduct}
       ListFooterComponent={listFooter}
       ListEmptyComponent={

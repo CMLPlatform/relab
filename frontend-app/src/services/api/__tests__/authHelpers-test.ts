@@ -9,12 +9,12 @@ import {
 
 describe('authHelpers', () => {
   it('returns the correct login path for web and native', () => {
-    expect(getAuthLoginPath(true)).toBe('/auth/cookie/login');
-    expect(getAuthLoginPath(false)).toBe('/auth/bearer/login');
+    expect(getAuthLoginPath(true)).toBe('/auth/session/login');
+    expect(getAuthLoginPath(false)).toBe('/auth/login');
   });
 
   it('returns the correct refresh path for web and native', () => {
-    expect(getAuthRefreshPath(true)).toBe('/auth/cookie/refresh');
+    expect(getAuthRefreshPath(true)).toBe('/auth/session/refresh');
     expect(getAuthRefreshPath(false)).toBe('/auth/refresh');
   });
 

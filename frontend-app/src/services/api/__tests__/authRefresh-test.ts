@@ -41,7 +41,7 @@ describe('authRefresh', () => {
       json: async () => ({ access_token: 'fresh-token' }),
     } as never);
 
-    await expect(refreshAuthToken('http://localhost:8000/api')).resolves.toBe(true);
+    await expect(refreshAuthToken('http://localhost:8000')).resolves.toBe(true);
     expect(authRuntime.token).toBe('fresh-token');
     expect(persistStoredAccessToken).toHaveBeenCalledWith('fresh-token');
   });
@@ -61,7 +61,7 @@ describe('authRefresh', () => {
       } as never)
       .mockResolvedValueOnce({ status: 200, ok: true } as never);
 
-    const response = await fetchWithAuth('http://localhost:8000/api', 'http://example.test', {
+    const response = await fetchWithAuth('http://localhost:8000', 'http://example.test', {
       method: 'GET',
       headers: { Accept: 'application/json' },
     });

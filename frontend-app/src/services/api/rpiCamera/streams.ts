@@ -1,14 +1,9 @@
 import { fetchWithAuth } from '@/services/api/authentication';
 import type { StartYouTubeStreamParams, StreamView } from './shared';
-import { CAMERA_BASE, streamBase } from './shared';
+import { CAMERA_BASE } from './shared';
 
-function streamActionUrl(cameraId: string, action: 'start' | 'stop' | 'status') {
-  const suffixByAction = {
-    start: '/record/start',
-    stop: '/record/stop',
-    status: '/status',
-  } as const;
-  return `${streamBase(cameraId)}${suffixByAction[action]}`;
+function recordingStreamUrl(cameraId: string) {
+  return `${CAMERA_BASE}/${cameraId}/recording-stream`;
 }
 
 function throwStreamRequestError(action: 'start' | 'stop' | 'fetch', status: number): never {
@@ -28,7 +23,7 @@ export async function startYouTubeStream(
   cameraId: string,
   params: StartYouTubeStreamParams,
 ): Promise<StreamView> {
-  const resp = await fetchWithAuth(streamActionUrl(cameraId, 'start'), {
+  const resp = await fetchWithAuth(recordingStreamUrl(cameraId), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(params),
@@ -40,7 +35,7 @@ export async function startYouTubeStream(
 }
 
 export async function stopYouTubeStream(cameraId: string): Promise<void> {
-  const resp = await fetchWithAuth(streamActionUrl(cameraId, 'stop'), {
+  const resp = await fetchWithAuth(recordingStreamUrl(cameraId), {
     method: 'DELETE',
     headers: { Accept: 'application/json' },
   });
@@ -48,7 +43,7 @@ export async function stopYouTubeStream(cameraId: string): Promise<void> {
 }
 
 export async function getStreamStatus(cameraId: string): Promise<StreamView | null> {
-  const resp = await fetchWithAuth(streamActionUrl(cameraId, 'status'), {
+  const resp = await fetchWithAuth(recordingStreamUrl(cameraId), {
     method: 'GET',
     headers: { Accept: 'application/json' },
   });

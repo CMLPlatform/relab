@@ -9,7 +9,7 @@ export async function captureImageFromCamera(
   cameraId: string,
   productId: number,
 ): Promise<CapturedImage> {
-  const resp = await fetchWithAuth(`${CAMERA_BASE}/${cameraId}/image`, {
+  const resp = await fetchWithAuth(`${CAMERA_BASE}/${cameraId}/captures`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ product_id: productId }),

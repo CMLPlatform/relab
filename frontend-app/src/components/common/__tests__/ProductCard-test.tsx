@@ -131,7 +131,22 @@ describe('ProductCard', () => {
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/products/[id]',
-      params: { id: baseProduct.id },
+      params: { id: String(baseProduct.id) },
+    });
+  });
+
+  it('navigates to the component detail page for component entities', async () => {
+    const mockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+
+    renderWithProviders(
+      <ProductCard product={{ ...baseProduct, role: 'component', parentID: 7 }} />,
+    );
+    await user.press(screen.getByText('Recycled Aluminum Laptop Stand'));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/components/[id]',
+      params: { id: String(baseProduct.id) },
     });
   });
 

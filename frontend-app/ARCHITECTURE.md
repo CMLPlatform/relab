@@ -44,7 +44,7 @@ products, profile, users live directly under `src/app/`.
 
 ## Data flow
 
-1. Backend exposes OpenAPI at `$EXPO_PUBLIC_API_URL/openapi_full.json`.
+1. Backend exposes OpenAPI at `$EXPO_PUBLIC_API_URL/openapi.json`; runtime API helpers append `/v1` for application routes.
 1. `just codegen` regenerates [src/types/api.generated.ts](src/types/api.generated.ts)
    and runs `scripts/redact_api.js` to strip JWT examples before commit.
 1. Request helpers live in [src/services/api](src/services/api); feature hooks
@@ -53,8 +53,8 @@ products, profile, users live directly under `src/app/`.
    tests so component code is identical in prod and test.
 
 Client-only state (wizard progress, transient UI) lives in Zustand stores
-co-located with the feature (e.g. `services/newProductStore.ts`). Server state
-stays in TanStack Query — don't mirror it into Zustand.
+co-located with the feature when needed. Server state stays in TanStack Query —
+don't mirror it into Zustand.
 
 ## Testing layers
 

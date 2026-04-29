@@ -48,8 +48,12 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   const hasMetadata = createdAgo !== null || ownerLabel !== null;
 
   const navigateToProduct = useCallback(() => {
-    router.push({ pathname: '/products/[id]', params: { id: product.id } });
-  }, [product.id, router]);
+    if (typeof product.id !== 'number') return;
+    router.push({
+      pathname: product.role === 'component' ? '/components/[id]' : '/products/[id]',
+      params: { id: product.id.toString() },
+    });
+  }, [product.id, product.role, router]);
 
   const navigateToOwner = useCallback(() => {
     if (!product.ownerUsername) return;

@@ -11,11 +11,18 @@ const LAST_UPDATED_PATTERN = /Last Updated:/;
 const OWNER_PATTERN = /Owner:/;
 const ANONYMOUS_PATTERN = /Anonymous/;
 const TESTUSER_PATTERN = /testuser/;
+const COMPONENT_ID_PATTERN = /Component ID: 42/;
 
 describe('ProductMetaData', () => {
   it('shows the product ID', () => {
     renderWithProviders(<ProductMetaData product={baseProduct} />);
     expect(screen.getByText(PRODUCT_ID_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('shows the component ID for components', () => {
+    const component = { ...baseProduct, role: 'component' as const, parentID: 1 };
+    renderWithProviders(<ProductMetaData product={component} />);
+    expect(screen.getByText(COMPONENT_ID_PATTERN)).toBeOnTheScreen();
   });
 
   it('shows creation date when createdAt is present', () => {

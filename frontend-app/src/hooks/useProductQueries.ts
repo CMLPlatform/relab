@@ -1,14 +1,17 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { searchBrands } from '@/services/api/brands';
+import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   allProducts,
-  getProduct,
+  getBaseProduct,
+  getComponent,
   isProductNotFoundError,
   myProducts,
 } from '@/services/api/products';
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, saveProduct } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
+
+export type ProductRole = 'product' | 'component';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,7 +56,6 @@ export const productsQueryOptions = (
     queryFn: () => {
       const fn = filter === 'mine' ? myProducts : allProducts;
       return fn(
-        undefined,
         page,
         24,
         search || undefined,
@@ -66,23 +68,31 @@ export const productsQueryOptions = (
     placeholderData: (previousData) => previousData,
   });
 
-export const productQueryOptions = (id: number | 'new') =>
+const shouldRetry = (failureCount: number, error: unknown) => {
+  if (isProductNotFoundError(error)) return false;
+  return failureCount < 1;
+};
+
+export const baseProductQueryOptions = (id: number | undefined) =>
   queryOptions({
-    queryKey: ['product', id] as const,
-    queryFn: () => getProduct(id),
-    enabled: id !== 'new',
-    retry: (failureCount, error) => {
-      if (isProductNotFoundError(error)) {
-        return false;
-      }
-      return failureCount < 1;
-    },
+    queryKey: ['baseProduct', id ?? null] as const,
+    queryFn: () => getBaseProduct(id as number),
+    enabled: typeof id === 'number',
+    retry: shouldRetry,
+  });
+
+export const componentQueryOptions = (id: number | undefined) =>
+  queryOptions({
+    queryKey: ['component', id ?? null] as const,
+    queryFn: () => getComponent(id as number),
+    enabled: typeof id === 'number',
+    retry: shouldRetry,
   });
 
 export const brandsSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['brands', 'search', search] as const,
-    queryFn: () => searchBrands(search || undefined, 1, 50),
+    queryFn: () => searchProductBrands(search || undefined, 1, 50),
     staleTime: 2 * 60_000,
   });
 
@@ -113,8 +123,12 @@ export function useProductsQuery(
   return useQuery(productsQueryOptions(filter, page, search, sortBy, extra));
 }
 
-export function useProductQuery(id: number | 'new') {
-  return useQuery(productQueryOptions(id));
+export function useBaseProductQuery(id: number | undefined) {
+  return useQuery(baseProductQueryOptions(id));
+}
+
+export function useComponentQuery(id: number | undefined) {
+  return useQuery(componentQueryOptions(id));
 }
 
 export function useSearchBrandsQuery(search: string) {
@@ -146,20 +160,25 @@ export function useSaveProductMutation() {
     }) => saveProduct(product, originalImages, originalVideos),
 
     onSuccess: (savedId, { product }) => {
-      // Invalidate the saved product so any subsequent view loads fresh data
-      queryClient.invalidateQueries({ queryKey: productQueryOptions(savedId).queryKey });
-      // Invalidate all product lists so the list reflects name/brand changes
+      const isComponent = product.role === 'component';
+      const savedKey = isComponent
+        ? componentQueryOptions(savedId).queryKey
+        : baseProductQueryOptions(savedId).queryKey;
+      // Invalidate the saved entity so any subsequent view loads fresh data.
+      queryClient.invalidateQueries({ queryKey: savedKey });
+      // Invalidate all product lists so the list reflects name/brand changes.
       queryClient.invalidateQueries({ queryKey: ['products'] });
 
-      // If this product is a component, also refresh its parent so the parent's
-      // components list shows the new child immediately when navigating back.
-      if (typeof product.parentID === 'number' && !Number.isNaN(product.parentID)) {
-        queryClient.invalidateQueries({ queryKey: productQueryOptions(product.parentID).queryKey });
-      }
-
-      // If we just created a new product, also seed the cache for the new id
-      if (product.id === 'new') {
-        queryClient.invalidateQueries({ queryKey: productQueryOptions('new').queryKey });
+      // For components, also refresh the parent so its components list picks up
+      // the new child immediately when navigating back. Parent's role is
+      // unknown at this point, so invalidate both cache entries.
+      if (isComponent && typeof product.parentID === 'number') {
+        queryClient.invalidateQueries({
+          queryKey: baseProductQueryOptions(product.parentID).queryKey,
+        });
+        queryClient.invalidateQueries({
+          queryKey: componentQueryOptions(product.parentID).queryKey,
+        });
       }
     },
   });
@@ -171,8 +190,9 @@ export function useDeleteProductMutation() {
   return useMutation({
     mutationFn: (product: Product) => deleteProduct(product),
     onSuccess: (_data, product) => {
-      if (product.id !== 'new') {
-        queryClient.removeQueries({ queryKey: productQueryOptions(product.id).queryKey });
+      if (typeof product.id === 'number') {
+        queryClient.removeQueries({ queryKey: baseProductQueryOptions(product.id).queryKey });
+        queryClient.removeQueries({ queryKey: componentQueryOptions(product.id).queryKey });
       }
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },

@@ -4,8 +4,10 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
 import ProductPage from '@/app/products/[id]';
+import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
+import { useAncestorTrail } from '@/hooks/products/useAncestorTrail';
 import { useProductForm } from '@/hooks/useProductForm';
-import { useProductQuery } from '@/hooks/useProductQueries';
+import { useBaseProductQuery } from '@/hooks/useProductQueries';
 import { ProductNotFoundError } from '@/services/api/products';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 
@@ -15,7 +17,8 @@ const LONG_PRODUCT_NAME_PATTERN = /A very long product name/;
 const LONG_PRODUCT_NAME_PREFIX_PATTERN = /^A very long product name/;
 
 const mockUseProductForm = jest.mocked(useProductForm);
-const mockUseProductQuery = jest.mocked(useProductQuery);
+const mockUseBaseProductQuery = jest.mocked(useBaseProductQuery);
+const mockUseAncestorTrail = jest.mocked(useAncestorTrail);
 const mockUseAuth = jest.fn();
 const mockSetOptions = jest.fn();
 const mockReplace = jest.fn();
@@ -31,7 +34,6 @@ const baseFormReturn = {
   editMode: false,
   isNew: false,
   isProductComponent: false,
-  justCreated: false,
   validationResult: { isValid: true, error: '' },
   isLoading: false,
   isError: false,
@@ -49,7 +51,7 @@ const baseFormReturn = {
   onImagesChange: jest.fn(),
   onAmountInParentChange: jest.fn(),
   onVideoChange: jest.fn(),
-  toggleEditMode: jest.fn(),
+  saveAndExit: jest.fn(),
   onProductDelete: jest.fn(),
 };
 
@@ -62,7 +64,12 @@ jest.mock('@/hooks/useProductForm', () => ({
 }));
 
 jest.mock('@/hooks/useProductQueries', () => ({
-  useProductQuery: jest.fn(),
+  useBaseProductQuery: jest.fn(),
+  useComponentQuery: jest.fn(),
+}));
+
+jest.mock('@/hooks/products/useAncestorTrail', () => ({
+  useAncestorTrail: jest.fn(),
 }));
 
 function mockCreateSectionStub(label: string) {
@@ -181,10 +188,6 @@ jest.mock('@/components/product/ProductType', () => mockCreateSectionStub('Produ
 jest.mock('@/components/product/ProductVideo', () => mockCreateSectionStub('ProductVideo'));
 
 describe('ProductPage state handling', () => {
-  type HeaderOptions = {
-    headerRight?: () => ReactNode;
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue({
@@ -216,12 +219,13 @@ describe('ProductPage state handling', () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
     } as never);
-    mockUseProductQuery.mockReturnValue({
+    mockUseBaseProductQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: false,
       error: null,
     } as never);
+    mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
   });
 
   it('shows the saved FAB icon after a successful save', async () => {
@@ -277,6 +281,23 @@ describe('ProductPage state handling', () => {
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
+  it('renders the not-found state with component copy on component routes', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      isError: true,
+      error: new ProductNotFoundError(42),
+    } as never);
+
+    renderWithProviders(<ProductDetailScreen formOptions={{ role: 'component' }} />, {
+      withDialog: true,
+    });
+
+    expect(screen.getByText('Component not found')).toBeOnTheScreen();
+    expect(
+      screen.getByText('This component may have been removed or the link is no longer valid.'),
+    ).toBeOnTheScreen();
+  });
+
   it('collapses the FAB label on scroll down and restores it on scroll up', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
@@ -327,42 +348,6 @@ describe('ProductPage state handling', () => {
     }
   });
 
-  it('opens the edit-name dialog from the header and saves the trimmed value', async () => {
-    const onProductNameChange = jest.fn();
-    const product = { ...baseProduct, name: 'Original Name', ownedBy: 'me' };
-
-    mockUseProductForm.mockReturnValue({
-      ...baseFormReturn,
-      product,
-      editMode: true,
-      onProductNameChange,
-    } as never);
-
-    renderWithProviders(<ProductPage />, { withDialog: true });
-
-    await waitFor(() => {
-      expect(mockSetOptions).toHaveBeenCalled();
-    });
-
-    const setOptionsArg = mockSetOptions.mock.calls.at(-1)?.[0] as HeaderOptions | undefined;
-    expect(setOptionsArg?.headerRight).toBeInstanceOf(Function);
-
-    renderWithProviders(setOptionsArg?.headerRight?.() as ReactElement, { withDialog: true });
-
-    fireEvent.press(screen.getByText('Edit name'));
-
-    expect(screen.getByPlaceholderText('Product Name')).toBeOnTheScreen();
-    expect(
-      screen.getByText('Enter a descriptive name between 2 and 100 characters'),
-    ).toBeOnTheScreen();
-    expect(screen.getByDisplayValue('Original Name')).toBeOnTheScreen();
-
-    fireEvent.changeText(screen.getByDisplayValue('Original Name'), '  Updated Name  ');
-    fireEvent.press(screen.getByText('OK'));
-
-    expect(onProductNameChange).toHaveBeenCalledWith('Updated Name');
-  });
-
   it('truncates long header labels, renders the component header, and uses the fallback back action', async () => {
     const longProductName =
       'A very long product name that absolutely needs truncation for the navigation bar';
@@ -378,12 +363,16 @@ describe('ProductPage state handling', () => {
       },
       isProductComponent: true,
     } as never);
-    mockUseProductQuery.mockReturnValue({
+    mockUseBaseProductQuery.mockReturnValue({
       data: { ...baseProduct, id: 17, name: longParentName },
       isLoading: false,
       isError: false,
       error: null,
     } as never);
+    mockUseAncestorTrail.mockReturnValue({
+      ancestors: [{ id: 17, name: longParentName, role: 'product' }],
+      isLoading: false,
+    });
 
     (useNavigation as jest.Mock).mockReturnValue({
       setOptions: mockSetOptions,
@@ -425,6 +414,23 @@ describe('ProductPage state handling', () => {
         params: { id: '17' },
       });
     });
+  });
+
+  it('does not render the video card for components', () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: {
+        ...baseProduct,
+        id: 99,
+        role: 'component',
+        parentID: 17,
+      },
+      isProductComponent: true,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    expect(screen.queryByText('ProductVideo')).toBeNull();
   });
 
   it('truncates the navigation title for regular products', async () => {
@@ -493,6 +499,34 @@ describe('ProductPage state handling', () => {
 
     expect(preventDefault).toHaveBeenCalled();
     expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
+  });
+
+  it('flips ?edit=1 on the same screen when the detail FAB is pressed in view mode', async () => {
+    const mockSetParams = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({
+      push: jest.fn(),
+      replace: mockReplace,
+      back: jest.fn(),
+      setParams: mockSetParams,
+      dismissTo: jest.fn(),
+    });
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: 42, ownedBy: 'me' },
+      editMode: false,
+      isNew: false,
+    } as never);
+
+    renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByText('Edit Product:pencil')).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByText('Edit Product:pencil'));
+
+    expect(mockSetParams).toHaveBeenCalledWith({ edit: '1' });
+    expect(baseFormReturn.saveAndExit).not.toHaveBeenCalled();
   });
 
   it('collapses the FAB when the product list is scrolled', async () => {

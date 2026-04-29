@@ -36,8 +36,10 @@ jest.mock('@/components/cameras/CameraStreamPicker', () => ({
 
 const DISABLED_FALSE = /disabled=false/;
 const DISABLED_TRUE = /disabled=true/;
+const EDIT_COMPONENT_PATTERN = /Edit Component/;
 
 const baseProps = {
+  entityRole: 'product' as const,
   editMode: false,
   ownedByMe: true,
   productName: 'Test',
@@ -45,6 +47,7 @@ const baseProps = {
   validationValid: true,
   isSaving: false,
   isDirty: false,
+  isNew: false,
   onPrimaryFabPress: jest.fn(),
   streamPickerVisible: false,
   onDismissStreamPicker: jest.fn(),
@@ -103,8 +106,29 @@ describe('ProductFabControls — primary FAB enabled state', () => {
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_TRUE);
   });
 
+  it('disables the FAB for a new product with no edits when validation fails', () => {
+    render(
+      <ProductFabControls
+        {...baseProps}
+        editMode={true}
+        isNew={true}
+        isDirty={false}
+        validationValid={false}
+        validationError="Name is required"
+      />,
+    );
+    const fab = screen.getByTestId('primary-fab');
+    expect(fab).toHaveTextContent(DISABLED_TRUE);
+    expect(screen.getByTestId('tooltip')).toHaveTextContent('Name is required');
+  });
+
   it('enables the FAB in view mode (validation is irrelevant)', () => {
     render(<ProductFabControls {...baseProps} editMode={false} validationValid={false} />);
     expect(screen.getByTestId('primary-fab')).toHaveTextContent(DISABLED_FALSE);
+  });
+
+  it('uses component labels for component pages', () => {
+    render(<ProductFabControls {...baseProps} entityRole="component" editMode={false} />);
+    expect(screen.getByTestId('primary-fab')).toHaveTextContent(EDIT_COMPONENT_PATTERN);
   });
 });

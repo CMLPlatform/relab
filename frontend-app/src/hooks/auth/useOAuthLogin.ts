@@ -185,7 +185,7 @@ async function startOAuthLogin({
     const transport = 'session';
     const redirectUri = createURL('/login');
     const authUrl = buildOAuthAuthorizeUrl(
-      `${API_URL}/auth/oauth/${provider}/${transport}/authorize`,
+      `${API_URL}/oauth/${provider}/${transport}/authorize`,
       redirectUri,
     );
     const authorization = await fetchOAuthAuthorizationUrl(authUrl);

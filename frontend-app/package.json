@@ -32,7 +32,7 @@
     "test:e2e:cross-browser": "playwright test --project=chromium --project=firefox --project=webkit --project=mobile-chrome --project=mobile-safari",
     "test:e2e:ui": "playwright test --ui",
     "ci": "pnpm run check && pnpm run test:ci",
-    "codegen:api": "openapi-typescript ${EXPO_PUBLIC_API_URL:-http://localhost:8011}/openapi_full.json -o src/types/api.generated.ts",
+    "codegen:api": "openapi-typescript ${EXPO_PUBLIC_API_URL:-http://localhost:8011}/openapi.json -o src/types/api.generated.ts",
     "codegen:api:redact": "pnpm run codegen:api && node scripts/redact_api.js",
     "codegen": "pnpm run codegen:api:redact"
   },

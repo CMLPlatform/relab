@@ -1,6 +1,5 @@
 import type { ComponentProps } from 'react';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { Card, Text } from 'react-native-paper';
 import DetailCard from '@/components/common/DetailCard';
 import ProductCircularityProperties from '@/components/product/ProductCircularityProperties';
 import ProductComponents from '@/components/product/ProductComponents';
@@ -20,7 +19,6 @@ type ProductPageContentProps = {
   editMode: boolean;
   isNew: boolean;
   isProductComponent: boolean;
-  justCreated: boolean;
   onScroll: ComponentProps<typeof KeyboardAwareScrollView>['onScroll'];
   onNavigateToProfile: () => void;
   onImagesChange: ComponentProps<typeof ProductImageGallery>['onImagesChange'];
@@ -45,12 +43,6 @@ type ProductPageContentProps = {
   activeStream: StreamSession | null;
   onGoLivePress: () => void;
   onNavigateToActiveStream: () => void;
-  themeColors: {
-    secondaryContainer: string;
-    onSecondaryContainer: string;
-    surfaceVariant: string;
-    onSurfaceVariant: string;
-  };
 };
 
 export function ProductPageContent({
@@ -58,7 +50,6 @@ export function ProductPageContent({
   editMode,
   isNew,
   isProductComponent,
-  justCreated,
   onScroll,
   onNavigateToProfile,
   onImagesChange,
@@ -79,7 +70,6 @@ export function ProductPageContent({
   activeStream,
   onGoLivePress,
   onNavigateToActiveStream,
-  themeColors,
 }: ProductPageContentProps) {
   return (
     <KeyboardAwareScrollView
@@ -110,25 +100,27 @@ export function ProductPageContent({
       <DetailCard>
         <ProductType product={product} editMode={editMode} onTypeChange={onTypeChange} />
       </DetailCard>
-      <DetailCard>
-        <ProductVideo
-          product={product}
-          editMode={editMode}
-          onVideoChange={onVideoChange}
-          streamingThisProduct={streamingThisProduct}
-          activeStream={activeStream}
-          rpiEnabled={rpiEnabled}
-          youtubeEnabled={youtubeEnabled}
-          isGoogleLinked={isGoogleLinked}
-          ownedByMe={product.ownedBy === 'me'}
-          isNew={isNew}
-          isProductComponent={isProductComponent}
-          onGoLivePress={onGoLivePress}
-          onNavigateToProfile={onNavigateToProfile}
-          streamingOtherProduct={streamingOtherProduct}
-          onNavigateToActiveStream={onNavigateToActiveStream}
-        />
-      </DetailCard>
+      {!isProductComponent ? (
+        <DetailCard>
+          <ProductVideo
+            product={product}
+            editMode={editMode}
+            onVideoChange={onVideoChange}
+            streamingThisProduct={streamingThisProduct}
+            activeStream={activeStream}
+            rpiEnabled={rpiEnabled}
+            youtubeEnabled={youtubeEnabled}
+            isGoogleLinked={isGoogleLinked}
+            ownedByMe={product.ownedBy === 'me'}
+            isNew={isNew}
+            isProductComponent={isProductComponent}
+            onGoLivePress={onGoLivePress}
+            onNavigateToProfile={onNavigateToProfile}
+            streamingOtherProduct={streamingOtherProduct}
+            onNavigateToActiveStream={onNavigateToActiveStream}
+          />
+        </DetailCard>
+      ) : null}
       <DetailCard>
         <ProductPhysicalProperties
           product={product}
@@ -144,24 +136,9 @@ export function ProductPageContent({
         />
       </DetailCard>
       {!isNew ? (
-        <>
-          {justCreated ? (
-            <Card
-              style={{ marginHorizontal: 14, backgroundColor: themeColors.secondaryContainer }}
-              mode="contained"
-            >
-              <Card.Content>
-                <Text variant="bodyMedium" style={{ color: themeColors.onSecondaryContainer }}>
-                  Product saved! Want to track sub-components (e.g. battery, screen)? Use the
-                  &quot;Add component&quot; button below.
-                </Text>
-              </Card.Content>
-            </Card>
-          ) : null}
-          <DetailCard>
-            <ProductComponents product={product} editMode={editMode} />
-          </DetailCard>
-        </>
+        <DetailCard>
+          <ProductComponents product={product} editMode={editMode} />
+        </DetailCard>
       ) : null}
       <DetailCard>
         <ProductMetaData product={product} />

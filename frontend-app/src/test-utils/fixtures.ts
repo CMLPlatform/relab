@@ -6,8 +6,10 @@ import type { Product } from '@/types/Product';
  */
 export const baseProduct: Product = {
   id: 1,
+  role: 'product',
   name: 'Recycled Aluminum Laptop Stand',
   componentIDs: [],
+  components: [],
   physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
   circularityProperties: {
     recyclabilityObservation: '',

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { Product } from '@/types/Product';
 import { getToken } from '../authentication';
 import { apiFetch } from '../client';
-import { getProduct } from '../products';
+import { getBaseProduct } from '../products';
 import { deleteProduct, saveProduct } from '../saving';
 
 // Mock dependencies
@@ -13,22 +13,24 @@ jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn(),
 }));
 jest.mock('@/services/api/products', () => ({
-  getProduct: jest.fn(),
+  getBaseProduct: jest.fn(),
 }));
 
 const mockGetToken = jest.mocked(getToken);
 const mockApiFetch = jest.mocked(apiFetch);
-const mockGetProduct = jest.mocked(getProduct);
+const mockGetProduct = jest.mocked(getBaseProduct);
 const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 
 // Minimal valid product
 const baseProduct: Product = {
-  id: 'new',
+  id: undefined,
+  role: 'product',
   name: 'Test Widget',
   brand: 'CircularTech',
   model: 'X1',
   description: 'A test product',
   componentIDs: [],
+  components: [],
   physicalProperties: { weight: 500, width: 10, height: 5, depth: 3 },
   circularityProperties: {
     recyclabilityComment: null,
@@ -67,7 +69,7 @@ describe('Saving API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetToken.mockResolvedValue('test-token');
-    // Default: getProduct returns a product with no images or videos
+    // Default: getBaseProduct returns a product with no images or videos
     mockGetProduct.mockResolvedValue({
       ...baseProduct,
       id: 1,
@@ -81,8 +83,8 @@ describe('Saving API Service', () => {
   describe('saveProduct (new product)', () => {
     it('POSTs to /products and returns the new id', async () => {
       mockApiFetchOk({ id: 99 }); // POST /products
-      // updateProductImages: getProduct → no images to manage
-      // updateProductVideos: getProduct → no videos to manage
+      // updateProductImages: getBaseProduct → no images to manage
+      // updateProductVideos: getBaseProduct → no videos to manage
 
       const id = await saveProduct({ ...baseProduct });
 
@@ -93,10 +95,12 @@ describe('Saving API Service', () => {
       );
     });
 
-    it('POSTs to /products/:parentID/components when product has parentID', async () => {
+    it('POSTs to /products/:parentID/components when parent is a base product', async () => {
       const componentProduct = {
         ...baseProduct,
+        role: 'component' as const,
         parentID: 5,
+        parentRole: 'product' as const,
         amountInParent: 2,
       };
       mockApiFetchOk({ id: 100 });
@@ -107,9 +111,39 @@ describe('Saving API Service', () => {
       expect(calledUrl).toContain('/products/5/components');
     });
 
+    it('POSTs to /components/:parentID/components when parent is a component', async () => {
+      const componentProduct = {
+        ...baseProduct,
+        role: 'component' as const,
+        parentID: 7,
+        parentRole: 'component' as const,
+        amountInParent: 2,
+      };
+      mockApiFetchOk({ id: 100 });
+
+      await saveProduct(componentProduct);
+
+      const calledUrl = (mockApiFetch.mock.calls[0]?.[0] as URL).href;
+      expect(calledUrl).toContain('/components/7/components');
+    });
+
+    it('throws before POSTing when a new component has no parent', async () => {
+      const componentProduct = {
+        ...baseProduct,
+        role: 'component' as const,
+        parentID: undefined,
+      };
+
+      await expect(saveProduct(componentProduct)).rejects.toThrow(
+        'Cannot create a component without a parent.',
+      );
+      expect(mockApiFetch).not.toHaveBeenCalled();
+    });
+
     it('includes amount_in_parent in body when product is a component', async () => {
       const componentProduct = {
         ...baseProduct,
+        role: 'component' as const,
         parentID: 5,
         amountInParent: 3,
       };
@@ -140,7 +174,7 @@ describe('Saving API Service', () => {
   // ─── saveProduct (existing) ──────────────────────────────
 
   describe('saveProduct (existing product)', () => {
-    const existingProduct = { ...baseProduct, id: 42 as number | 'new' };
+    const existingProduct = { ...baseProduct, id: 42 };
 
     it('PATCHes product with properties in a single request', async () => {
       mockApiFetchOk({ id: 42 }); // PATCH /products/42
@@ -173,7 +207,7 @@ describe('Saving API Service', () => {
       const originalImages = [{ id: '10', url: 'http://example.com/img.jpg', description: 'old' }];
       const productWithExistingImage = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         images: [], // no images in new version
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
@@ -196,7 +230,7 @@ describe('Saving API Service', () => {
 
       const productWithNewImage = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         images: [{ url: 'https://example.com/new.jpg', description: 'new' }],
       };
       mockGetProduct.mockResolvedValue({
@@ -228,7 +262,7 @@ describe('Saving API Service', () => {
       };
       const product = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         videos: [newVideo],
       };
       mockGetProduct.mockResolvedValue({
@@ -251,7 +285,7 @@ describe('Saving API Service', () => {
 
     it('deletes removed videos', async () => {
       const originalVideos = [{ id: 5, url: 'https://old.com', description: '', title: 'Old' }];
-      const product = { ...baseProduct, id: 42 as number | 'new', videos: [] };
+      const product = { ...baseProduct, id: 42, videos: [] };
 
       mockApiFetchOk({ id: 42 }); // product PATCH
       mockApiFetchOk({}); // DELETE video
@@ -276,7 +310,7 @@ describe('Saving API Service', () => {
       };
       const product = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         videos: [updated],
       };
 
@@ -303,7 +337,7 @@ describe('Saving API Service', () => {
 
       const product = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         images: [{ url: 'https://example.com/new.jpg', description: 'test' }],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
@@ -329,7 +363,7 @@ describe('Saving API Service', () => {
       };
       const product = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         images: [image],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
@@ -348,7 +382,7 @@ describe('Saving API Service', () => {
 
       const product = {
         ...baseProduct,
-        id: 42 as number | 'new',
+        id: 42,
         images: [{ url: dataUri, description: 'tiny png' }],
       };
       mockApiFetchOk({ id: 42 }); // PATCH product
@@ -368,7 +402,7 @@ describe('Saving API Service', () => {
 
   describe('deleteProduct', () => {
     it('returns immediately for a new product without calling apiFetch', async () => {
-      await deleteProduct({ ...baseProduct, id: 'new' });
+      await deleteProduct({ ...baseProduct, id: undefined });
 
       expect(mockApiFetch).not.toHaveBeenCalled();
     });

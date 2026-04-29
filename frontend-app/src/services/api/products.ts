@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import { getCachedUser, getToken, getUser } from '@/services/api/authentication';
-import type { ApiImageRead, ApiProductRead, ApiVideoRead } from '@/types/api';
+import type { ApiComponentRead, ApiImageRead, ApiProductRead, ApiVideoRead } from '@/types/api';
 import type { Product } from '@/types/Product';
 import { apiFetch } from './client';
 import { resolveApiMediaUrl } from './media';
@@ -31,10 +31,21 @@ export function isProductNotFoundError(error: unknown): error is ProductNotFound
   return error instanceof ProductNotFoundError;
 }
 
-async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> {
+function isComponentPayload(data: ApiProductRead): data is ApiComponentRead {
+  return 'parent_id' in data && typeof (data as ApiComponentRead).parent_id === 'number';
+}
+
+function toProduct(data: ApiProductRead, meId?: string): Product {
+  const isComponent = isComponentPayload(data);
+  const parentID = isComponent ? data.parent_id : undefined;
+  const amountInParent = isComponent ? data.amount_in_parent : undefined;
+  const ownerId = isComponent ? undefined : data.owner_id;
+  const components =
+    data.components?.map((component) => toProduct(component as ApiProductRead, meId)) ?? [];
   return {
     id: Number(data.id),
-    parentID: data.parent_id ?? undefined,
+    role: isComponent ? 'component' : 'product',
+    parentID,
     name: data.name,
     brand: data.brand ?? undefined,
     model: data.model ?? undefined,
@@ -42,8 +53,8 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
     createdAt: data.created_at ?? undefined,
     updatedAt: data.updated_at ?? undefined,
     productTypeID: data.product_type_id ?? undefined,
-    ownedBy: data.owner_id && data.owner_id === meId ? 'me' : (data.owner_id ?? ''),
-    amountInParent: data.amount_in_parent ?? undefined,
+    ownedBy: ownerId && ownerId === meId ? 'me' : (ownerId ?? ''),
+    amountInParent,
     physicalProperties: {
       weight: data.weight_g ?? NaN,
       height: data.height_cm ?? NaN,
@@ -62,7 +73,8 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
       repairabilityReference: data.repairability_reference ?? null,
     },
     ownerUsername: data.owner_username ?? undefined,
-    componentIDs: data.components?.map(({ id }) => Number(id)) ?? [],
+    componentIDs: components.map(({ id }) => Number(id)).filter((id) => Number.isFinite(id)),
+    components,
     images:
       data.images?.map((img: ApiImageRead) => ({
         id: String(img.id),
@@ -72,7 +84,7 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
       })) ?? [],
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     videos:
-      data.videos?.map((vid: ApiVideoRead) => ({
+      (isComponent ? [] : data.videos)?.map((vid: ApiVideoRead) => ({
         id: Number(vid.id),
         url: vid.url,
         description: vid.description ?? '',
@@ -82,55 +94,52 @@ async function toProduct(data: ApiProductRead, meId?: string): Promise<Product> 
   };
 }
 
-export const FULL_PRODUCT_INCLUDES = ['images', 'product_type', 'components', 'videos'];
-
-export async function getProduct(
-  id: number | 'new',
-  includes: string[] = FULL_PRODUCT_INCLUDES,
-): Promise<Product> {
-  if (id === 'new') {
-    return newProduct();
-  }
-  const url = new URL(`${baseUrl}/products/${id}`);
-  for (const inc of includes) {
-    url.searchParams.append('include', inc);
-  }
-
+async function fetchOne(url: URL): Promise<ApiProductRead | null> {
   const response = await apiFetch(url, { method: 'GET' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+  return (await response.json()) as ApiProductRead;
+}
 
-  if (response.status === 404) {
-    throw new ProductNotFoundError(id);
-  }
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! Status: ${response.status}`);
-  }
-
-  const data = await response.json();
+async function resolveMeId(): Promise<string | undefined> {
   // Prefer the in-memory cached user on web to avoid triggering cookie-based
   // auth requests for unauthenticated visitors. If no cached user exists and
   // we're on native, fall back to a network fetch.
-  let meId: string | undefined;
-  if (Platform.OS === 'web') {
-    meId = getCachedUser()?.id;
-  } else {
-    meId = await getUser().then((u) => u?.id);
-  }
-  return toProduct(data as ApiProductRead, meId);
+  if (Platform.OS === 'web') return getCachedUser()?.id;
+  return (await getUser())?.id;
+}
+
+/** Fetch a base product by id. 404s on component ids. */
+export async function getBaseProduct(id: number) {
+  const data = await fetchOne(new URL(`${baseUrl}/products/${id}`));
+  if (!data) throw new ProductNotFoundError(id);
+  return toProduct(data, await resolveMeId());
+}
+
+/** Fetch a component by id. 404s on base-product ids. */
+export async function getComponent(id: number) {
+  const data = await fetchOne(new URL(`${baseUrl}/components/${id}`));
+  if (!data) throw new ProductNotFoundError(id);
+  return toProduct(data, await resolveMeId());
 }
 
 export function newProduct(
-  name: string = '',
-  parentID: number = NaN,
-  brand: string | undefined = undefined,
-  model: string | undefined = undefined,
+  seed: {
+    name?: string;
+    parentID?: number;
+    parentRole?: 'product' | 'component';
+    brand?: string;
+    model?: string;
+  } = {},
 ): Product {
   return {
-    id: 'new',
-    parentID: Number.isNaN(parentID) ? undefined : parentID,
-    name: name,
-    brand: brand,
-    model: model,
+    id: undefined,
+    role: typeof seed.parentID === 'number' ? 'component' : 'product',
+    parentID: seed.parentID,
+    parentRole: seed.parentRole,
+    name: seed.name ?? '',
+    brand: seed.brand,
+    model: seed.model,
     physicalProperties: {
       weight: NaN,
       height: NaN,
@@ -149,6 +158,7 @@ export function newProduct(
       repairabilityReference: '',
     },
     componentIDs: [],
+    components: [],
     images: [],
     videos: [],
     ownedBy: 'me',
@@ -157,7 +167,6 @@ export function newProduct(
 
 function buildProductsUrl(
   path: string,
-  include: string[],
   page: number,
   size: number,
   search?: string,
@@ -165,11 +174,9 @@ function buildProductsUrl(
   brands?: string[],
   createdAfter?: Date,
   productTypeNames?: string[],
+  owner?: 'me',
 ): URL {
   const url = new URL(baseUrl + path);
-  for (const inc of include) {
-    url.searchParams.append('include', inc);
-  }
   url.searchParams.append('page', page.toString());
   url.searchParams.append('size', size.toString());
   if (search) url.searchParams.append('search', search);
@@ -178,6 +185,7 @@ function buildProductsUrl(
   if (productTypeNames?.length)
     url.searchParams.append('product_type__name__in', productTypeNames.join(','));
   if (orderBy?.length) url.searchParams.append('order_by', orderBy.join(','));
+  if (owner) url.searchParams.append('owner', owner);
   return url;
 }
 
@@ -194,13 +202,12 @@ async function parseProductsResponse(data: {
   } else {
     meId = await getUser().then((u) => u?.id);
   }
-  const items = await Promise.all(data.items.map((item) => toProduct(item, meId)));
+  const items = data.items.map((item) => toProduct(item, meId));
   return { items, total: data.total, page: data.page, size: data.size, pages: data.pages };
 }
 
 async function fetchProducts(
   path: string,
-  include = ['product_type'],
   page = 1,
   size = 50,
   search?: string,
@@ -208,11 +215,10 @@ async function fetchProducts(
   brands?: string[],
   createdAfter?: Date,
   productTypeNames?: string[],
-  options?: { authenticated?: boolean },
+  options?: { authenticated?: boolean; owner?: 'me' },
 ): Promise<PaginatedResponse<Product>> {
   const url = buildProductsUrl(
     path,
-    include,
     page,
     size,
     search,
@@ -220,6 +226,7 @@ async function fetchProducts(
     brands,
     createdAfter,
     productTypeNames,
+    options?.owner,
   );
   const headers: Record<string, string> = { Accept: 'application/json' };
 
@@ -245,7 +252,6 @@ async function fetchProducts(
 }
 
 export async function allProducts(
-  include = ['product_type'],
   page = 1,
   size = 50,
   search?: string,
@@ -256,7 +262,6 @@ export async function allProducts(
 ): Promise<PaginatedResponse<Product>> {
   return fetchProducts(
     '/products',
-    include,
     page,
     size,
     search,
@@ -268,7 +273,6 @@ export async function allProducts(
 }
 
 export async function myProducts(
-  include = ['product_type'],
   page = 1,
   size = 50,
   search?: string,
@@ -278,8 +282,7 @@ export async function myProducts(
   productTypeNames?: string[],
 ): Promise<PaginatedResponse<Product>> {
   return fetchProducts(
-    '/users/me/products',
-    include,
+    '/products',
     page,
     size,
     search,
@@ -289,14 +292,9 @@ export async function myProducts(
     productTypeNames,
     {
       authenticated: true,
+      owner: 'me',
     },
   );
-}
-
-// ProductCard only needs product_type (for productTypeName) and thumbnail_url
-// (computed from first_image_id, available without include=images)
-export async function productComponents(product: Product): Promise<Product[]> {
-  return Promise.all(product.componentIDs.map((id) => getProduct(id, ['product_type'])));
 }
 
 export async function addProductVideo(

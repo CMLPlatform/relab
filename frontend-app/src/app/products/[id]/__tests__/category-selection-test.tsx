@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
-import CategorySelection from '../category_selection';
+import CategorySelection from '../category-selection';
 
 const mockUseAuth = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);

@@ -1,18 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HeaderBackButton, type HeaderBackButtonProps } from '@react-navigation/elements';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import type { MD3Theme } from 'react-native-paper';
-import { Text } from 'react-native-paper';
-import { EditNameButton } from '@/hooks/products/EditNameButton';
+import { AncestorTrailHeader } from '@/hooks/products/AncestorTrailHeader';
+import { ProductNameHeader } from '@/hooks/products/ProductNameHeader';
+import { truncateHeaderLabel } from '@/hooks/products/truncateHeaderLabel';
+import type { AncestorCrumb } from '@/hooks/products/useAncestorTrail';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { Product } from '@/types/Product';
 
-export function truncateHeaderLabel(value: string | undefined, maxLength: number): string {
-  if (!value) return 'Product';
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
-}
+export { truncateHeaderLabel };
 
 export function useSlowLoading(isLoading: boolean) {
   const [slowLoading, setSlowLoading] = useState(false);
@@ -78,7 +76,7 @@ export function useProductPageHeader({
   navigation,
   goBackWithGuards,
   product,
-  parentProduct,
+  ancestors,
   isProductComponent,
   theme,
   editMode,
@@ -94,55 +92,57 @@ export function useProductPageHeader({
   };
   goBackWithGuards: () => void;
   product: Product;
-  parentProduct?: Product;
+  ancestors: AncestorCrumb[];
   isProductComponent: boolean;
   theme: MD3Theme;
   editMode: boolean;
   onProductNameChange?: (newName: string) => void;
 }) {
   useEffect(() => {
-    const truncatedProductName = truncateHeaderLabel(product?.name, 36);
-    const truncatedParentName = truncateHeaderLabel(parentProduct?.name, 20);
+    const name = product?.name ?? '';
+    const showTrail = isProductComponent && ancestors.length > 0;
+    // In edit mode the header *is* the name field, so always render a custom
+    // title (input). In view mode, a plain-string title is enough for base
+    // products; components fall through to the ancestor trail.
+    const needsCustomTitle = editMode || showTrail;
+
+    const titleSlot = (
+      <ProductNameHeader
+        name={name}
+        editMode={editMode}
+        theme={theme}
+        onProductNameChange={onProductNameChange}
+      />
+    );
 
     navigation.setOptions({
-      title: isProductComponent ? undefined : truncatedProductName,
+      title: needsCustomTitle ? undefined : truncateHeaderLabel(name, 36),
       headerLeft: (props: HeaderBackButtonProps) => (
         <HeaderBackButton {...props} onPress={goBackWithGuards} />
       ),
-      headerTitle:
-        isProductComponent && parentProduct?.name && typeof product.parentID === 'number'
-          ? () => (
-              <View style={{ maxWidth: 260, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text
-                  numberOfLines={1}
-                  style={{ maxWidth: 100, fontSize: 13, opacity: 0.7, fontWeight: '600' }}
-                >
-                  {truncatedParentName}
-                </Text>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={16}
-                  color={theme.colors.onSurfaceVariant}
-                />
-                <Text numberOfLines={1} style={{ flexShrink: 1, fontSize: 16, fontWeight: '700' }}>
-                  {truncatedProductName}
-                </Text>
-              </View>
+      headerTitle: needsCustomTitle
+        ? () =>
+            showTrail ? (
+              <AncestorTrailHeader
+                ancestors={ancestors}
+                currentNameSlot={titleSlot}
+                theme={theme}
+              />
+            ) : (
+              titleSlot
             )
-          : undefined,
-      headerRight: editMode
-        ? () => <EditNameButton product={product} onProductNameChange={onProductNameChange} />
         : undefined,
+      headerRight: undefined,
     });
   }, [
+    ancestors,
     editMode,
     goBackWithGuards,
     isProductComponent,
     navigation,
     onProductNameChange,
-    parentProduct?.name,
     product,
-    theme.colors.onSurfaceVariant,
+    theme,
   ]);
 }
 
@@ -154,7 +154,6 @@ export function getProductCapabilities({
   isGoogleLinked,
   isNew,
   isProductComponent,
-  justCreated,
 }: {
   product: Product;
   activeStream: { productId: number } | null;
@@ -163,7 +162,6 @@ export function getProductCapabilities({
   isGoogleLinked: boolean;
   isNew: boolean;
   isProductComponent: boolean;
-  justCreated: boolean;
 }) {
   const streamingThisProduct =
     typeof product.id === 'number' && activeStream?.productId === product.id;
@@ -171,7 +169,6 @@ export function getProductCapabilities({
   return {
     isNew,
     isProductComponent,
-    justCreated,
     rpiEnabled,
     youtubeEnabled,
     isGoogleLinked,

@@ -11,7 +11,6 @@ const mockInput: jest.Mock = jest.fn();
 const mockSetLocalItem: jest.Mock = jest.fn();
 const mockGetLocalItem: jest.Mock = jest.fn();
 const mockRefetchUser: jest.Mock = jest.fn();
-const mockSetNewProductIntent: jest.Mock = jest.fn();
 const mockRouter = {
   setParams: mockSetParams,
   push: mockPush,
@@ -68,10 +67,6 @@ jest.mock('@/hooks/useProductQueries', () => ({
 
 jest.mock('@/services/api/authentication', () => ({
   updateUser: jest.fn(),
-}));
-
-jest.mock('@/services/newProductStore', () => ({
-  setNewProductIntent: (...args: unknown[]) => mockSetNewProductIntent(...args),
 }));
 
 jest.mock('@/services/storage', () => ({
@@ -133,7 +128,6 @@ describe('useProductsScreen', () => {
       }),
     );
     expect(mockInput).not.toHaveBeenCalled();
-    expect(mockSetNewProductIntent).not.toHaveBeenCalled();
   });
 
   it('returns grouped screen, search, filters, list, and action domains', async () => {
@@ -144,6 +138,26 @@ describe('useProductsScreen', () => {
     expect(result.current.filters.brandResults).toEqual([]);
     expect(result.current.list.productList).toEqual([]);
     expect(typeof result.current.actions.createProduct).toBe('function');
+  });
+
+  it('re-queries products for the new page after setPage updates URL params (desktop)', async () => {
+    const { result, rerender } = await renderUseProductsScreen();
+    jest.mocked(productsQueryOptions).mockClear();
+
+    act(() => {
+      result.current.list.setPage(3);
+    });
+    expect(mockSetParams).toHaveBeenCalledWith({ page: '3' });
+
+    // Simulate URL params updating in response to setParams
+    mockSearchParams = { page: '3' };
+    rerender({});
+
+    const calls = jest.mocked(productsQueryOptions).mock.calls;
+    const lastPage = calls[calls.length - 1][1];
+    expect(lastPage).toBe(3);
+
+    mockSearchParams = {};
   });
 
   it('applies filter and pagination actions through named handlers', async () => {

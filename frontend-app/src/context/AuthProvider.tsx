@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { AuthContext } from '@/context/auth';
 import { getToken, getUser, hasWebSessionFlag } from '@/services/api/authentication';
@@ -8,6 +9,20 @@ import { logError } from '@/utils/logging';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const prevUserIdRef = useRef<string | undefined>(undefined);
+
+  // When the signed-in user changes, the `ownedBy: 'me'` mapping baked into
+  // cached products/components is stale. Invalidate product caches so every
+  // list and detail refetches with the new "me" id (or undefined on logout).
+  useEffect(() => {
+    if (isLoading) return;
+    if (prevUserIdRef.current === user?.id) return;
+    prevUserIdRef.current = user?.id;
+    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['baseProduct'] });
+    queryClient.invalidateQueries({ queryKey: ['component'] });
+  }, [user?.id, isLoading, queryClient]);
 
   // Check token and load user if valid
   useEffect(() => {

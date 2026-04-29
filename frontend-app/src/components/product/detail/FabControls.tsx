@@ -4,6 +4,7 @@ import { AnimatedFAB, Tooltip } from 'react-native-paper';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 
 type ProductFabControlsProps = {
+  entityRole: 'product' | 'component';
   editMode: boolean;
   ownedByMe: boolean;
   productId?: number;
@@ -13,6 +14,7 @@ type ProductFabControlsProps = {
   validationValid: boolean;
   isSaving: boolean;
   isDirty: boolean;
+  isNew: boolean;
   onPrimaryFabPress: () => void;
   streamPickerVisible: boolean;
   onDismissStreamPicker: () => void;
@@ -20,6 +22,7 @@ type ProductFabControlsProps = {
 };
 
 export function ProductFabControls({
+  entityRole,
   editMode,
   ownedByMe,
   productId,
@@ -29,6 +32,7 @@ export function ProductFabControls({
   validationValid,
   isSaving,
   isDirty,
+  isNew,
   onPrimaryFabPress,
   streamPickerVisible,
   onDismissStreamPicker,
@@ -37,6 +41,7 @@ export function ProductFabControls({
   return (
     <>
       <PrimaryProductFab
+        entityRole={entityRole}
         icon={primaryFabIcon}
         onPress={onPrimaryFabPress}
         fabExtended={fabExtended}
@@ -44,6 +49,7 @@ export function ProductFabControls({
         validationValid={validationValid}
         isSaving={isSaving}
         isDirty={isDirty}
+        isNew={isNew}
         ownedByMe={ownedByMe}
         editMode={editMode}
       />
@@ -60,6 +66,7 @@ export function ProductFabControls({
 }
 
 function PrimaryProductFab({
+  entityRole,
   icon,
   onPress,
   fabExtended,
@@ -67,9 +74,11 @@ function PrimaryProductFab({
   validationValid,
   isSaving,
   isDirty,
+  isNew,
   ownedByMe,
   editMode,
 }: {
+  entityRole: 'product' | 'component';
   icon: ComponentProps<typeof AnimatedFAB>['icon'];
   onPress: () => void;
   fabExtended: boolean;
@@ -77,12 +86,14 @@ function PrimaryProductFab({
   validationValid: boolean;
   isSaving: boolean;
   isDirty: boolean;
+  isNew: boolean;
   ownedByMe: boolean;
   editMode: boolean;
 }) {
-  // Validation only matters when pressing the FAB would actually save
-  // (i.e. dirty). Otherwise the FAB just exits edit mode / discards a draft.
-  const wouldSave = editMode && isDirty;
+  // Validation gates the FAB whenever pressing it would save: dirty edits, or
+  // a new product (which has no "exit edit mode" state to fall back to).
+  const wouldSave = editMode && (isDirty || isNew);
+  const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   const fab = (
     <AnimatedFAB
       icon={icon}
@@ -90,14 +101,18 @@ function PrimaryProductFab({
       style={styles.rightFab}
       disabled={(wouldSave && !validationValid) || isSaving}
       extended={fabExtended}
-      label={editMode ? 'Save Product' : 'Edit Product'}
+      label={editMode ? `Save ${titleLabel}` : `Edit ${titleLabel}`}
       visible={ownedByMe}
     />
   );
 
-  if (wouldSave && validationError) {
+  // On web, the tooltip surfaces why the disabled save-FAB is disabled. Fall back
+  // to a generic hint when the form is invalid but no specific error has been
+  // computed yet (e.g. brand-new draft before the user has touched any field).
+  if (wouldSave && !validationValid) {
+    const tooltipTitle = validationError ?? 'Fill in the required fields to save';
     return (
-      <Tooltip title={validationError} enterTouchDelay={0} leaveTouchDelay={1500}>
+      <Tooltip title={tooltipTitle} enterTouchDelay={0} leaveTouchDelay={1500}>
         {fab}
       </Tooltip>
     );

@@ -11,6 +11,7 @@ const mockAlert = jest.fn();
 const mockFeedbackAlert = jest.fn();
 const mockUseProductForm = jest.fn();
 const mockUseProductQuery = jest.fn();
+const mockUseAncestorTrail = jest.fn();
 let beforeRemoveListener:
   | ((event: { preventDefault: () => void; data: { action: { type: string } } }) => void)
   | undefined;
@@ -75,7 +76,12 @@ jest.mock('@/hooks/useProductForm', () => ({
 }));
 
 jest.mock('@/hooks/useProductQueries', () => ({
-  useProductQuery: (...args: unknown[]) => mockUseProductQuery(...args),
+  useBaseProductQuery: (...args: unknown[]) => mockUseProductQuery(...args),
+  useComponentQuery: (...args: unknown[]) => mockUseProductQuery(...args),
+}));
+
+jest.mock('@/hooks/products/useAncestorTrail', () => ({
+  useAncestorTrail: (...args: unknown[]) => mockUseAncestorTrail(...args),
 }));
 
 jest.mock('react-native-paper', () => {
@@ -104,7 +110,6 @@ const baseFormReturn = {
   isDirty: false,
   isNew: false,
   isProductComponent: false,
-  justCreated: false,
   validationResult: { isValid: true, error: '' },
   isLoading: false,
   isError: false,
@@ -122,7 +127,7 @@ const baseFormReturn = {
   onImagesChange: jest.fn(),
   onAmountInParentChange: jest.fn(),
   onVideoChange: jest.fn(),
-  toggleEditMode: jest.fn(),
+  saveAndExit: jest.fn(),
   onProductDelete: jest.fn(),
 };
 
@@ -137,21 +142,22 @@ describe('useProductPageScreen', () => {
       return jest.fn();
     });
     mockUseProductQuery.mockReturnValue({ data: undefined });
+    mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
     mockUseProductForm.mockReturnValue(baseFormReturn);
   });
 
   it('returns grouped screen, editing, streaming, capabilities, and actions domains', () => {
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.screen.product).toEqual(baseProduct);
     expect(result.current.editing.editMode).toBe(false);
     expect(result.current.streaming.streamingOtherProduct).toBe(true);
     expect(result.current.capabilities.ownedByMe).toBe(true);
-    expect(typeof result.current.actions.toggleEditMode).toBe('function');
+    expect(typeof result.current.actions.saveAndExit).toBe('function');
   });
 
   it('opens and closes the stream picker through named actions', () => {
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.streaming.streamPickerVisible).toBe(false);
 
@@ -167,7 +173,7 @@ describe('useProductPageScreen', () => {
   });
 
   it('navigates back immediately when not editing', () => {
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     act(() => {
       result.current.actions.goBackWithGuards();
@@ -184,7 +190,7 @@ describe('useProductPageScreen', () => {
       isDirty: true,
     });
 
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     act(() => {
       result.current.actions.goBackWithGuards();
@@ -205,7 +211,7 @@ describe('useProductPageScreen', () => {
       isDirty: false,
     });
 
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     act(() => {
       result.current.actions.goBackWithGuards();
@@ -213,6 +219,31 @@ describe('useProductPageScreen', () => {
 
     expect(mockReplace).toHaveBeenCalledWith('/products');
     expect(mockAlert).not.toHaveBeenCalled();
+  });
+
+  it('uses the component parent role when navigating back before ancestor crumbs load', () => {
+    mockUseProductForm.mockReturnValueOnce({
+      ...baseFormReturn,
+      product: {
+        ...baseProduct,
+        role: 'component',
+        parentID: 17,
+        parentRole: 'component',
+      },
+      isProductComponent: true,
+    });
+    mockUseAncestorTrail.mockReturnValueOnce({ ancestors: [], isLoading: true });
+
+    const { result } = renderHook(() => useProductPageScreen({ role: 'component' }));
+
+    act(() => {
+      result.current.actions.goBackWithGuards();
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/components/[id]',
+      params: { id: '17' },
+    });
   });
 
   it('prompts before navigating back from a new (unsaved) product even with no edits', () => {
@@ -223,7 +254,7 @@ describe('useProductPageScreen', () => {
       isNew: true,
     });
 
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     act(() => {
       result.current.actions.goBackWithGuards();
@@ -240,7 +271,7 @@ describe('useProductPageScreen', () => {
       isDirty: true,
     });
 
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     act(() => {
       result.current.actions.goBackWithGuards();
@@ -272,7 +303,7 @@ describe('useProductPageScreen', () => {
   });
 
   it('navigates to the active stream product and profile setup routes', () => {
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     act(() => {
       result.current.actions.goToActiveStreamProduct();
@@ -287,7 +318,7 @@ describe('useProductPageScreen', () => {
   });
 
   it('collapses the FAB when the hook receives a downward scroll event', () => {
-    const { result } = renderHook(() => useProductPageScreen());
+    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.editing.fabExtended).toBe(true);
 

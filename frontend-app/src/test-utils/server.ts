@@ -1,8 +1,7 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+import { API_URL } from '@/config';
 import { mockUser } from './api-mocks';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 /**
  * Default happy-path handlers for the relab API.
@@ -34,21 +33,6 @@ export const handlers = [
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
   http.get(`${API_URL}/products`, () => HttpResponse.json([])),
-  http.get(`${API_URL}/newsletter/me`, () =>
-    HttpResponse.json({
-      email: 'test@example.com',
-      subscribed: false,
-      is_confirmed: false,
-    }),
-  ),
-  http.put(`${API_URL}/newsletter/me`, async ({ request }) => {
-    const body = (await request.json()) as { subscribed?: boolean };
-    return HttpResponse.json({
-      email: 'test@example.com',
-      subscribed: Boolean(body.subscribed),
-      is_confirmed: Boolean(body.subscribed),
-    });
-  }),
   http.get(`${API_URL}/users/:username/profile`, () => {
     return HttpResponse.json({
       username: 'testuser',
@@ -75,7 +59,7 @@ export const handlers = [
   }),
   http.post(`${API_URL}/auth/verify`, () => HttpResponse.json({ message: 'Verified' })),
   http.post(`${API_URL}/auth/request-verify-token`, () => HttpResponse.json({ message: 'Sent' })),
-  http.delete(`${API_URL}/auth/oauth/:provider/associate`, () =>
+  http.delete(`${API_URL}/oauth/:provider/associate`, () =>
     HttpResponse.json({ message: 'Unlinked' }),
   ),
   http.get(`${API_URL}/plugins/rpi-cam/cameras/:cameraId/local-access`, () =>
@@ -87,7 +71,7 @@ export const handlers = [
   ),
   http.get('http://192.168.7.1:8018/camera', () => HttpResponse.json({ ok: true })),
   // Handle OAuth authorize redirects used by Expo Auth Session in tests
-  http.get(`${API_URL}/auth/oauth/:provider/session/authorize`, async (resolverParams: unknown) => {
+  http.get(`${API_URL}/oauth/:provider/session/authorize`, async (resolverParams: unknown) => {
     // The resolver param shape can vary between interceptor implementations:
     // - `{ url }` where `url` is a URL instance
     // - `{ request }` where `request.url` is a string

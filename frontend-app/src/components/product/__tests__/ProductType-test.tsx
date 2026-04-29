@@ -55,6 +55,13 @@ describe('ProductType', () => {
     expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
   });
 
+  it('uses component tooltip wording for components', async () => {
+    const component = { ...baseProduct, role: 'component' as const, parentID: 1 };
+    renderWithProviders(<ProductType product={component} editMode={false} />);
+    expect(await screen.findByText(TYPE_OR_MATERIAL_PATTERN)).toBeOnTheScreen();
+    expect(screen.queryByText('Select a fitting category for the product.')).toBeNull();
+  });
+
   it('renders the root category when productTypeID is undefined', async () => {
     renderWithProviders(<ProductType product={baseProduct} editMode={false} />);
     expect(await screen.findByText('All categories')).toBeOnTheScreen();
@@ -91,7 +98,7 @@ describe('ProductType', () => {
     await user.press(await screen.findByText('All categories'));
     expect(mockPush).toHaveBeenCalledWith(
       expect.objectContaining({
-        pathname: '/products/[id]/category_selection',
+        pathname: '/products/[id]/category-selection',
       }),
     );
   });

@@ -1,6 +1,9 @@
 export type Product = {
-  id: number | 'new';
+  /** Undefined for unsaved drafts. Populated once the backend assigns an id on save. */
+  id?: number;
+  role: 'product' | 'component';
   parentID?: number;
+  parentRole?: 'product' | 'component';
   name: string;
   brand?: string;
   model?: string;
@@ -10,6 +13,7 @@ export type Product = {
   productTypeID?: number;
   productTypeName?: string;
   componentIDs: number[];
+  components: Product[];
   ownerUsername?: string;
   physicalProperties: PhysicalProperties;
   circularityProperties: CircularityProperties;
@@ -38,3 +42,11 @@ export type CircularityProperties = {
   repairabilityObservation: string;
   repairabilityReference?: string | null;
 };
+
+export function entityLabel(product: Pick<Product, 'role'>): 'product' | 'component' {
+  return product.role === 'component' ? 'component' : 'product';
+}
+
+export function entityLabelTitle(product: Pick<Product, 'role'>): 'Product' | 'Component' {
+  return product.role === 'component' ? 'Component' : 'Product';
+}
