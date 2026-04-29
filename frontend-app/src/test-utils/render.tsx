@@ -67,10 +67,8 @@ export function renderWithProviders(
     const withSafeArea = (
       <SafeAreaProvider initialMetrics={safeAreaMetrics}>{withPaper}</SafeAreaProvider>
     );
-    const withQuery = (
-      <QueryClientProvider client={queryClient}>{withSafeArea}</QueryClientProvider>
-    );
-    return needsAuth ? <AuthProvider>{withQuery}</AuthProvider> : withQuery;
+    const withAuth = needsAuth ? <AuthProvider>{withSafeArea}</AuthProvider> : withSafeArea;
+    return <QueryClientProvider client={queryClient}>{withAuth}</QueryClientProvider>;
   }
 
   return render(ui, { wrapper: Wrapper, ...options });

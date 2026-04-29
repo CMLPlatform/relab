@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import { TextInput } from '@/components/base/TextInput';
 
-import type { Product } from '@/types/Product';
+import { entityLabel, type Product } from '@/types/Product';
 
 const COLLAPSED_DESCRIPTION_LINES = 6;
 const APPROX_CHARS_PER_LINE = 55;
@@ -63,7 +63,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
   return (
     <TextInput
       style={{ padding: 14, fontSize: 16, lineHeight: 26 }}
-      placeholder={'Add a product description'}
+      placeholder={`Add a ${entityLabel(product)} description`}
       value={draftText}
       onChangeText={setDraftText}
       onBlur={() => onChangeDescription?.(draftText)}

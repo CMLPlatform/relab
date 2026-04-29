@@ -2,8 +2,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View } from 'react-native';
 import { Button, Card, Text } from 'react-native-paper';
 import ProductDetailsSkeleton from '@/components/common/ProductDetailsSkeleton';
+import { entityLabel, entityLabelTitle } from '@/types/Product';
 
 type ProductPageErrorStateProps = {
+  entityRole: 'product' | 'component';
   error: unknown;
   isNotFound: boolean;
   onBack: () => void;
@@ -15,12 +17,16 @@ type ProductPageErrorStateProps = {
 };
 
 export function ProductPageErrorState({
+  entityRole,
   error,
   isNotFound,
   onBack,
   onRetry,
   themeColors,
 }: ProductPageErrorStateProps) {
+  const entity = entityLabel({ role: entityRole });
+  const entityTitle = entityLabelTitle({ role: entityRole });
+
   if (isNotFound) {
     return (
       <View style={styles.centerState}>
@@ -30,10 +36,10 @@ export function ProductPageErrorState({
           color={themeColors.onSurfaceVariant}
         />
         <Text variant="headlineSmall" style={styles.centerText}>
-          Product not found
+          {entityTitle} not found
         </Text>
         <Text variant="bodyMedium" style={styles.subtleCenterText}>
-          This product may have been removed or the link is no longer valid.
+          This {entity} may have been removed or the link is no longer valid.
         </Text>
         <Button mode="contained" onPress={onBack} style={{ marginTop: 8 }}>
           Back to products
@@ -49,7 +55,7 @@ export function ProductPageErrorState({
         Oops! Something went wrong
       </Text>
       <Text variant="bodyMedium" style={styles.subtleCenterText}>
-        {String(error) || 'We encountered an error while loading the product details.'}
+        {String(error) || `We encountered an error while loading the ${entity} details.`}
       </Text>
       <Button mode="contained" onPress={onRetry} style={{ marginTop: 8 }}>
         Try Again

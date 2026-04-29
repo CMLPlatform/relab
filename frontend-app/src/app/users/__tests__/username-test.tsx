@@ -41,14 +41,14 @@ describe('UserProfileScreen', () => {
 
   it('shows loading spinner while the profile is being fetched', async () => {
     mockGetPublicProfile.mockReturnValue(new Promise(() => {})); // never resolves
-    renderWithProviders(<UserProfileScreen />);
-    expect(screen.getByTestId('activity-indicator')).toBeOnTheScreen();
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
+    await waitFor(() => expect(screen.getByTestId('activity-indicator')).toBeOnTheScreen());
     expect(screen.queryByText('alice')).toBeNull();
   });
 
   it('renders the profile card with all stats on success', async () => {
     mockGetPublicProfile.mockResolvedValue(profileFixture);
-    renderWithProviders(<UserProfileScreen />);
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(screen.getByText('alice')).toBeOnTheScreen());
 
@@ -68,7 +68,7 @@ describe('UserProfileScreen', () => {
 
   it('shows generic error message when fetch fails', async () => {
     mockGetPublicProfile.mockRejectedValue(new Error('Network error'));
-    renderWithProviders(<UserProfileScreen />);
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(screen.getByText('Network error')).toBeOnTheScreen());
     expect(screen.queryByTestId('activity-indicator')).toBeNull();
@@ -76,7 +76,7 @@ describe('UserProfileScreen', () => {
 
   it('shows friendly privacy message for "Profile not found" error', async () => {
     mockGetPublicProfile.mockRejectedValue(new Error('Profile not found'));
-    renderWithProviders(<UserProfileScreen />);
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() =>
       expect(screen.getByText('This profile is private or does not exist.')).toBeOnTheScreen(),
@@ -86,7 +86,7 @@ describe('UserProfileScreen', () => {
   it('does not call getPublicProfile when username param is undefined', async () => {
     (useGlobalSearchParams as jest.Mock).mockReturnValue({ username: undefined });
 
-    renderWithProviders(<UserProfileScreen />);
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     // loading=true is set initially, but fetchProfile returns early without calling API
     // The loading state stays true since setLoading(false) is in finally of the skipped block
@@ -98,7 +98,7 @@ describe('UserProfileScreen', () => {
   it('does not call getPublicProfile when username is an array', async () => {
     (useGlobalSearchParams as jest.Mock).mockReturnValue({ username: ['alice', 'bob'] });
 
-    renderWithProviders(<UserProfileScreen />);
+    renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
     expect(screen.queryByText('Products')).toBeNull();

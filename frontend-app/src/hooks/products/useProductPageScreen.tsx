@@ -12,9 +12,9 @@ import {
   useSlowLoading,
   useStreamPrompt,
 } from '@/hooks/products/productPageHelpers';
+import { useAncestorTrail } from '@/hooks/products/useAncestorTrail';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useProductForm } from '@/hooks/useProductForm';
-import { useProductQuery } from '@/hooks/useProductQueries';
+import { type UseProductFormOptions, useProductForm } from '@/hooks/useProductForm';
 import { useRpiIntegration } from '@/hooks/useRpiIntegration';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
 import { useAppTheme } from '@/theme';
@@ -24,7 +24,7 @@ type SearchParams = {
 };
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: product-page orchestration is intentionally exposed through one screen hook.
-export function useProductPageScreen() {
+export function useProductPageScreen(formOptions: UseProductFormOptions) {
   const { id } = useLocalSearchParams<SearchParams>();
   const navigation = useNavigation();
   const router = useRouter();
@@ -42,13 +42,27 @@ export function useProductPageScreen() {
   const [streamPickerVisible, setStreamPickerVisible] = useState(false);
   const skipNextBeforeRemoveRef = useRef(false);
 
+  // Wrap the caller's onSaveSuccess so a successful save bypasses the unsaved-
+  // changes guard: immediately after mutation resolves the form is still
+  // `isDirty` (and new drafts stay `isNew` for their whole session), so the
+  // guard would otherwise block the navigation the caller just requested.
+  const wrappedFormOptions = useMemo<UseProductFormOptions>(() => {
+    const callerOnSaveSuccess = formOptions.onSaveSuccess;
+    return {
+      ...formOptions,
+      onSaveSuccess: (savedId: number) => {
+        skipNextBeforeRemoveRef.current = true;
+        callerOnSaveSuccess?.(savedId);
+      },
+    };
+  }, [formOptions]);
+
   const {
     product,
     editMode,
     isDirty,
     isNew,
     isProductComponent,
-    justCreated,
     validationResult,
     isLoading,
     isError,
@@ -66,15 +80,13 @@ export function useProductPageScreen() {
     onImagesChange,
     onAmountInParentChange,
     onVideoChange,
-    toggleEditMode,
+    saveAndExit,
     onProductDelete,
-  } = useProductForm(id);
+  } = useProductForm(id, wrappedFormOptions);
 
-  const parentProductId =
-    typeof product.parentID === 'number' && !Number.isNaN(product.parentID)
-      ? product.parentID
-      : undefined;
-  const { data: parentProduct } = useProductQuery(parentProductId ?? 'new');
+  const parentProductId = product.role === 'component' ? product.parentID : undefined;
+  const { ancestors } = useAncestorTrail(parentProductId);
+  const directParent = ancestors.length > 0 ? ancestors[ancestors.length - 1] : undefined;
 
   const slowLoading = useSlowLoading(isLoading);
   const showSavedIcon = useSavedIndicator(justSaved);
@@ -125,30 +137,22 @@ export function useProductPageScreen() {
         isGoogleLinked,
         isNew,
         isProductComponent,
-        justCreated,
       }),
-    [
-      product,
-      activeStream,
-      rpiEnabled,
-      youtubeEnabled,
-      isGoogleLinked,
-      isNew,
-      isProductComponent,
-      justCreated,
-    ],
+    [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isNew, isProductComponent],
   );
 
   const navigateBack = useCallback(() => {
     if (isProductComponent && product.parentID) {
+      const parentRole = product.parentRole ?? directParent?.role;
+      const parentIsComponent = parentRole === 'component';
       router.replace({
-        pathname: '/products/[id]',
+        pathname: parentIsComponent ? '/components/[id]' : '/products/[id]',
         params: { id: product.parentID.toString() },
       });
     } else {
       router.replace('/products');
     }
-  }, [isProductComponent, product.parentID, router]);
+  }, [directParent?.role, isProductComponent, product.parentID, product.parentRole, router]);
 
   const goBackWithGuards = useCallback(() => {
     if (hasUnsavedChanges || capabilities.streamingThisProduct) {
@@ -162,7 +166,7 @@ export function useProductPageScreen() {
     navigation,
     goBackWithGuards,
     product,
-    parentProduct,
+    ancestors,
     isProductComponent,
     theme,
     editMode,
@@ -189,7 +193,7 @@ export function useProductPageScreen() {
     theme,
     screen: {
       product,
-      parentProduct,
+      ancestors,
       isLoading,
       isError,
       error,
@@ -231,7 +235,7 @@ export function useProductPageScreen() {
       onChangeCircularityProperties,
       onVideoChange,
       onProductDelete,
-      toggleEditMode,
+      saveAndExit,
       goBackWithGuards,
       goToActiveStreamProduct: () => {
         if (!activeStream) return;

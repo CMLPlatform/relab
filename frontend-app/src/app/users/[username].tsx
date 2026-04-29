@@ -5,6 +5,7 @@ import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react
 import { Card, Icon } from 'react-native-paper';
 
 import { Text } from '@/components/base/Text';
+import { useAuth } from '@/context/auth';
 import { getPublicProfile, type PublicProfileView } from '@/services/api/profiles';
 import { alpha, useAppTheme } from '@/theme';
 
@@ -14,13 +15,19 @@ export default function UserProfileScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const usernameValue = typeof username === 'string' ? username : null;
+  // Auth state drives visibility — a community/private profile must refetch
+  // when the viewer logs in or out so stale "allowed" views don't linger.
+  const { user: viewer } = useAuth();
+  const viewerId = viewer?.id ?? null;
 
   const [profileState, setProfileState] = useState<{
     loadedUsername: string | null;
+    loadedViewerId: string | null;
     profile: PublicProfileView | null;
     error: string | null;
   }>({
     loadedUsername: null,
+    loadedViewerId: null,
     profile: null,
     error: null,
   });
@@ -30,6 +37,7 @@ export default function UserProfileScreen() {
       return;
     }
     const nextUsername = usernameValue;
+    const nextViewerId = viewerId;
 
     let cancelled = false;
 
@@ -39,6 +47,7 @@ export default function UserProfileScreen() {
         if (!cancelled) {
           setProfileState({
             loadedUsername: nextUsername,
+            loadedViewerId: nextViewerId,
             profile: data,
             error: null,
           });
@@ -47,6 +56,7 @@ export default function UserProfileScreen() {
         if (!cancelled) {
           setProfileState({
             loadedUsername: nextUsername,
+            loadedViewerId: nextViewerId,
             profile: null,
             error: err instanceof Error ? err.message : 'Failed to fetch profile.',
           });
@@ -61,11 +71,13 @@ export default function UserProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [usernameValue]);
+  }, [usernameValue, viewerId]);
 
-  const loading = Boolean(usernameValue) && profileState.loadedUsername !== usernameValue;
-  const profile = profileState.loadedUsername === usernameValue ? profileState.profile : null;
-  const error = profileState.loadedUsername === usernameValue ? profileState.error : null;
+  const matchesCurrentRequest =
+    profileState.loadedUsername === usernameValue && profileState.loadedViewerId === viewerId;
+  const loading = Boolean(usernameValue) && !matchesCurrentRequest;
+  const profile = matchesCurrentRequest ? profileState.profile : null;
+  const error = matchesCurrentRequest ? profileState.error : null;
 
   return (
     <>

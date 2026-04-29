@@ -4,10 +4,49 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDebounce } from 'use-debounce';
+import type { DialogContextType } from '@/components/common/dialogContext';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAuth } from '@/context/auth';
-import { useNewProductAction } from '@/hooks/products/useNewProductAction';
 import { useProductsWelcomeCard } from '@/hooks/products/useProductsWelcomeCard';
+
+type CurrentUser = { isVerified: boolean };
+
+/**
+ * Sign-in/verify gating for the "Add product" FAB. Drops straight into
+ * `/products/new` once the gating passes — the form validates the name itself.
+ */
+function createProductAction({
+  dialog,
+  router,
+  currentUser,
+}: {
+  dialog: DialogContextType;
+  router: ReturnType<typeof useRouter>;
+  currentUser: CurrentUser | null | undefined;
+}) {
+  if (!currentUser) {
+    dialog.alert({
+      title: 'Sign In Required',
+      message: 'Sign in to add new products and manage your own submissions.',
+      buttons: [
+        { text: 'Cancel' },
+        { text: 'Sign in', onPress: () => router.push('/login?redirectTo=/products') },
+      ],
+    });
+    return;
+  }
+  if (!currentUser.isVerified) {
+    dialog.alert({
+      title: 'Email Verification Required',
+      message:
+        'Please verify your email address before creating products. Check your inbox for the verification link or go to your Profile to resend it.',
+      buttons: [{ text: 'OK' }, { text: 'Go to Profile', onPress: () => router.push('/profile') }],
+    });
+    return;
+  }
+  router.push('/products/new');
+}
+
 import {
   DEFAULT_PRODUCT_SORT,
   PRODUCT_SORT_OPTIONS,
@@ -369,7 +408,7 @@ function buildProductsScreenState({
   refetch: ReturnType<typeof useProductsListQuery>['refetch'];
   setPage: (nextPage: number) => void;
   dismissInfoCard: () => void;
-  newProduct: ReturnType<typeof useNewProductAction>;
+  newProduct: () => void;
 }) {
   return {
     screen: {
@@ -444,6 +483,7 @@ function buildProductsScreenState({
   };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: products-screen orchestration is intentionally exposed through one screen hook.
 export function useProductsScreen(numColumns: number) {
   const dialog = useDialog();
   const router = useRouter();
@@ -470,7 +510,10 @@ export function useProductsScreen(numColumns: number) {
   const filterUi = useProductsFilterUiState();
   const header = useProductsHeaderState();
   const isAuthenticated = !!currentUser;
-  const newProduct = useNewProductAction({ dialog, router, currentUser });
+  const newProduct = useCallback(
+    () => createProductAction({ dialog, router, currentUser }),
+    [dialog, router, currentUser],
+  );
   const updateParams = useCallback(
     (newParams: RouterSetParams) => router.setParams(newParams),
     [router],

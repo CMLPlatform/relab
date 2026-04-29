@@ -211,13 +211,13 @@ describe('Authentication API Service', () => {
       secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(200, { ok: true }) as Response);
 
-      await auth.fetchWithAuth('http://localhost:8000/api/test', {
+      await auth.fetchWithAuth('http://localhost:8000/test', {
         method: 'GET',
         headers: { Accept: 'application/json' },
       });
 
       expect(fetchMock()).toHaveBeenCalledWith(
-        'http://localhost:8000/api/test',
+        'http://localhost:8000/test',
         expect.objectContaining({
           method: 'GET',
           credentials: 'include',
@@ -609,7 +609,7 @@ describe('Authentication API Service', () => {
 
         expect(result).toBe(true);
         expect(fetchMock()).toHaveBeenCalledWith(
-          expect.objectContaining({ href: expect.stringContaining('/auth/cookie/refresh') }),
+          expect.objectContaining({ href: expect.stringContaining('/auth/session/refresh') }),
           expect.anything(),
         );
       });
@@ -642,7 +642,7 @@ describe('Authentication API Service', () => {
 
         expect(result).toBe('success');
         expect(fetchMock()).toHaveBeenCalledWith(
-          expect.objectContaining({ href: expect.stringContaining('/auth/cookie/login') }),
+          expect.objectContaining({ href: expect.stringContaining('/auth/session/login') }),
           expect.anything(),
         );
       });

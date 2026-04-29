@@ -97,7 +97,7 @@ function AppStack({ isDark, router }: { isDark: boolean; router: ReturnType<type
       <Stack.Screen name="(auth)/forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)/reset-password" options={{ headerShown: false }} />
       <Stack.Screen
-        name="products/[id]/category_selection"
+        name="products/[id]/category-selection"
         options={{ title: 'Select Category' }}
       />
       <Stack.Screen name="cameras/index" options={{ title: 'My Cameras' }} />

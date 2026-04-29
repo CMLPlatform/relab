@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/base/Text';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useAppTheme } from '@/theme';
-import type { Product } from '@/types/Product';
+import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -13,7 +13,10 @@ export default function ProductMetaData({ product }: Props) {
   const theme = useAppTheme();
   return (
     <View>
-      <DetailSectionHeader title="Metadata" tooltipTitle="Auto-generated metadata of the product" />
+      <DetailSectionHeader
+        title="Metadata"
+        tooltipTitle={`Auto-generated metadata of the ${entityLabel(product)}`}
+      />
 
       <View style={{ gap: 8, marginBottom: 8 }}>
         {product.createdAt && (
@@ -39,7 +42,9 @@ export default function ProductMetaData({ product }: Props) {
             'Anonymous'
           )}
         </Text>
-        <Text style={{ opacity: 0.7 }}>Product ID: {product.id}</Text>
+        <Text style={{ opacity: 0.7 }}>
+          {entityLabelTitle(product)} ID: {product.id}
+        </Text>
       </View>
     </View>
   );

@@ -120,7 +120,7 @@ describe('rpiCamera API service', () => {
       description: 'Fresh capture',
     });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-6/image'),
+      expect.stringContaining('/plugins/rpi-cam/cameras/cam-6/captures'),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ product_id: 42 }),
@@ -297,7 +297,7 @@ describe('rpiCamera API service', () => {
     const result = await fetchCameras(true);
 
     expect(result[0]?.preview_thumbnail_url).toBe(
-      'http://localhost:8000/api/uploads/images/rpi-cam-preview/cam-1.jpg',
+      'http://localhost:8000/uploads/images/rpi-cam-preview/cam-1.jpg',
     );
   });
 

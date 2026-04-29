@@ -144,7 +144,7 @@ export async function oauthLoginWithGoogleToken(
   idToken: string,
   accessToken: string | null,
 ): Promise<void> {
-  const url = new URL(`${apiURL}/auth/oauth/google/cookie/token`);
+  const url = new URL(`${apiURL}/oauth/google/session/token`);
   const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -159,7 +159,7 @@ export async function oauthLoginWithGoogleToken(
 }
 
 export async function unlinkOAuth(provider: string): Promise<boolean> {
-  const url = new URL(`${apiURL}/auth/oauth/${provider}/associate`);
+  const url = new URL(`${apiURL}/oauth/${provider}/associate`);
 
   try {
     const response = await fetchWithAuth(url, {

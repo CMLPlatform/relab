@@ -47,7 +47,7 @@ jest.mock('@/hooks/useIsDesktop', () => ({
 }));
 
 jest.mock('@/hooks/useProductQueries', () => ({
-  useProductQuery: () => ({ data: null }),
+  useBaseProductQuery: () => ({ data: null }),
 }));
 
 const mockCamerasQueryData = [

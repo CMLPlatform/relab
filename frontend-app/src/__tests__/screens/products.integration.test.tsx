@@ -136,10 +136,6 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: View };
 });
 
-jest.mock('@/services/newProductStore', () => ({
-  setNewProductIntent: jest.fn(),
-}));
-
 jest.mock('@/components/common/ProductCard', () => {
   return function ProductCardMock({ product }: { product: { name: string } }) {
     const React = jest.requireActual<typeof import('react')>('react');
@@ -395,13 +391,12 @@ describe('FAB and new-product flow', () => {
     );
   });
 
-  it('shows create-product dialog when verified user presses FAB', async () => {
+  it('navigates to /products/new when verified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     renderProducts();
     fireEvent.press(screen.getByLabelText('Create new product'));
-    expect(mockDialogApi.input).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Create New Product' }),
-    );
+    expect(mockDialogApi.input).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/products/new');
   });
 
   it('shows email-verification dialog when unverified user presses FAB', async () => {

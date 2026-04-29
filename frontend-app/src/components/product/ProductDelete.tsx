@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
 import { useDialog } from '@/components/common/dialogContext';
 import { useAppTheme } from '@/theme';
-import type { Product } from '@/types/Product';
+import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -13,11 +13,13 @@ interface Props {
 export default function ProductDelete({ product, editMode, onDelete }: Props) {
   const dialog = useDialog();
   const theme = useAppTheme();
+  const label = entityLabel(product);
+  const titleLabel = entityLabelTitle(product);
 
   const onPressDelete = () => {
     dialog.alert({
-      title: 'Delete Product',
-      message: 'Are you sure you want to delete this product? This action cannot be undone.',
+      title: `Delete ${titleLabel}`,
+      message: `Are you sure you want to delete this ${label}? This action cannot be undone.`,
       buttons: [
         { text: 'Cancel', onPress: () => {} },
         { text: 'Delete', onPress: onDelete },
@@ -25,7 +27,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
     });
   };
 
-  if (product?.id === 'new' || !editMode) {
+  if (typeof product?.id !== 'number' || !editMode) {
     return null;
   }
 
@@ -37,7 +39,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
       style={[styles.button, { backgroundColor: theme.colors.error }]}
       textColor={theme.colors.onError}
     >
-      Delete product
+      Delete {label}
     </Button>
   );
 }

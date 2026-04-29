@@ -3,11 +3,11 @@ import { screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import type { ScrollView as RNScrollView, Text as RNText } from 'react-native';
-import { getProduct, newProduct } from '@/services/api/products';
+import { getBaseProduct, newProduct } from '@/services/api/products';
 import { renderWithProviders } from '@/test-utils/index';
 import ProductPage from '../index';
 
-const mockedGetProduct = jest.mocked(getProduct);
+const mockedGetProduct = jest.mocked(getBaseProduct);
 const mockedNewProduct = jest.mocked(newProduct);
 const mockUseAuth = jest.fn();
 
@@ -16,7 +16,7 @@ jest.mock('@/context/auth', () => ({
 }));
 
 jest.mock('@/services/api/products', () => ({
-  getProduct: jest.fn(),
+  getBaseProduct: jest.fn(),
   newProduct: jest.fn(),
 }));
 
@@ -32,7 +32,7 @@ jest.mock('@/services/api/validation/productSchema', () => {
 
   return {
     ...actual,
-    getProductNameHelperText: jest.fn(() => 'help text'),
+    getBaseProductNameHelperText: jest.fn(() => 'help text'),
   };
 });
 
@@ -118,10 +118,12 @@ const mockAddListener = jest.fn(() => jest.fn());
 
 const existingProduct = {
   id: 42,
+  role: 'product' as const,
   name: 'Existing Product',
   description: 'Loaded from API',
   productTypeID: undefined,
   componentIDs: [],
+  components: [],
   physicalProperties: { weight: 1, width: 1, height: 1, depth: 1 },
   circularityProperties: {
     recyclabilityObservation: '',
@@ -134,11 +136,13 @@ const existingProduct = {
 };
 
 const newProductDraft = {
-  id: 'new' as const,
+  id: undefined,
+  role: 'product' as const,
   name: 'Draft Product',
   description: '',
   productTypeID: undefined,
   componentIDs: [],
+  components: [],
   physicalProperties: { weight: 1, width: 1, height: 1, depth: 1 },
   circularityProperties: {
     recyclabilityObservation: '',
@@ -171,44 +175,6 @@ describe('ProductPage route protection', () => {
     mockedGetProduct.mockResolvedValue(existingProduct);
   });
 
-  it('redirects guests to login and back to /products when deep-linking to /products/new', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new', name: 'Draft Product' });
-    mockUseAuth.mockReturnValue({ user: null });
-
-    renderWithProviders(<ProductPage />, { withDialog: true });
-
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith({
-        pathname: '/login',
-        params: { redirectTo: '/products' },
-      });
-    });
-  });
-
-  it('allows authenticated users to open /products/new', async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ id: 'new', name: 'Draft Product' });
-    mockUseAuth.mockReturnValue({
-      user: {
-        id: '1',
-        username: 'owner',
-        email: 'owner@example.com',
-        isActive: true,
-        isVerified: true,
-        isSuperuser: false,
-        oauth_accounts: [],
-      },
-    });
-
-    renderWithProviders(<ProductPage />, { withDialog: true });
-
-    await waitFor(() => {
-      expect(newProduct).toHaveBeenCalledWith(undefined, NaN, undefined, undefined);
-      expect(screen.getByText('Description:Draft Product')).toBeOnTheScreen();
-      expect(screen.getByText('Save Product')).toBeOnTheScreen();
-    });
-    expect(mockReplace).not.toHaveBeenCalled();
-  });
-
   it('allows guests to view an existing product route without redirecting', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '42' });
     mockUseAuth.mockReturnValue({ user: null });
@@ -216,7 +182,7 @@ describe('ProductPage route protection', () => {
     renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(getProduct).toHaveBeenCalledWith(42);
+      expect(getBaseProduct).toHaveBeenCalledWith(42);
       expect(screen.getByText('Description:Existing Product')).toBeOnTheScreen();
     });
     expect(mockReplace).not.toHaveBeenCalled();

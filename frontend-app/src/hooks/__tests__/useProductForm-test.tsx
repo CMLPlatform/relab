@@ -3,12 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { useAuth } from '@/context/auth';
-import { consumeNewProductIntent } from '@/services/newProductStore';
 import type { Product } from '@/types/Product';
 import { useProductForm } from '../useProductForm';
 import {
+  useBaseProductQuery,
   useDeleteProductMutation,
-  useProductQuery,
   useSaveProductMutation,
 } from '../useProductQueries';
 
@@ -31,36 +30,41 @@ jest.mock('@/components/common/dialogContext', () => {
 });
 
 jest.mock('../useProductQueries', () => ({
-  useProductQuery: jest.fn(),
+  useBaseProductQuery: jest.fn(() => ({ data: undefined, isLoading: false })),
+  useComponentQuery: jest.fn(() => ({ data: undefined, isLoading: false })),
   useSaveProductMutation: jest.fn(),
   useDeleteProductMutation: jest.fn(),
 }));
 
-jest.mock('@/services/newProductStore', () => ({
-  consumeNewProductIntent: jest.fn(),
-}));
-
 jest.mock('@/services/api/products', () => ({
-  newProduct: jest.fn((name) => ({ name, parentID: NaN, images: [], videos: [] })),
+  newProduct: jest.fn((seed: { name?: string; parentID?: number } = {}) => ({
+    role: typeof seed.parentID === 'number' ? 'component' : 'product',
+    name: seed.name ?? '',
+    parentID: seed.parentID,
+    componentIDs: [],
+    components: [],
+    images: [],
+    videos: [],
+  })),
 }));
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
-const mockSetParams = jest.fn();
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({
     push: mockPush,
     replace: mockReplace,
-    setParams: mockSetParams,
   })),
 }));
 
 const mockProduct = {
   id: 123,
+  role: 'product',
   name: 'Recycled Aluminum Laptop Stand',
   brand: 'CircularTech',
   componentIDs: [],
+  components: [],
   physicalProperties: { weight: 0, width: 0, height: 0, depth: 0 },
   circularityProperties: {
     recyclabilityObservation: '',
@@ -86,14 +90,11 @@ describe('useProductForm', () => {
   });
 
   it('initializes with existing product data', async () => {
-    (useProductQuery as jest.Mock).mockReturnValue({
-      data: mockProduct,
-      isLoading: false,
-    });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 
-    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
 
     await waitFor(() => {
       expect(result.current.product.id).toBe(123);
@@ -103,12 +104,19 @@ describe('useProductForm', () => {
   });
 
   it('initializes for a new product if id is "new"', async () => {
-    (useProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (consumeNewProductIntent as jest.Mock).mockReturnValue({ name: 'New Intent' });
 
-    const { result } = renderHook(() => useProductForm('new'), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useProductForm(undefined, {
+          role: 'product',
+          isNew: true,
+          draftSeed: { name: 'New Intent' },
+        }),
+      { wrapper },
+    );
 
     expect(result.current.product.images).toEqual([]);
 
@@ -119,6 +127,28 @@ describe('useProductForm', () => {
     });
   });
 
+  it('forces new-draft mode when options.isNew is set regardless of the id arg', async () => {
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+
+    const { result } = renderHook(
+      () =>
+        useProductForm(undefined, {
+          role: 'product',
+          isNew: true,
+          draftSeed: { name: 'Seeded' },
+        }),
+      { wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isNew).toBe(true);
+      expect(result.current.editMode).toBe(true);
+      expect(result.current.product.name).toBe('Seeded');
+    });
+  });
+
   it('redirects guests away from the new-product flow', async () => {
     const mockedUseAuth = jest.mocked(useAuth);
     mockedUseAuth.mockReturnValue({
@@ -126,11 +156,11 @@ describe('useProductForm', () => {
       isLoading: false,
       refetch: jest.fn(async () => {}),
     });
-    (useProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 
-    renderHook(() => useProductForm('new'), { wrapper });
+    renderHook(() => useProductForm(undefined, { role: 'product', isNew: true }), { wrapper });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -141,11 +171,11 @@ describe('useProductForm', () => {
   });
 
   it('handles field changes', async () => {
-    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 
-    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
 
     await waitFor(() => {
       expect(result.current.product.name).toBe('Recycled Aluminum Laptop Stand');
@@ -158,31 +188,26 @@ describe('useProductForm', () => {
     expect(result.current.product.name).toBe('Updated Name');
   });
 
-  it('triggers save mutation when toggleEditMode is called after edits', async () => {
+  it('triggers save mutation when saveAndExit is called with a dirty form', async () => {
     const mockMutate = jest.fn();
-    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 
-    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
 
-    // Wait for initialization
     await waitFor(() => expect(result.current.product.id).toBe(123));
-
-    // Enable edit mode first
-    await act(async () => {
-      result.current.toggleEditMode();
-    });
     expect(result.current.editMode).toBe(true);
 
-    // Make a change so the form is dirty
     await act(async () => {
       result.current.onProductNameChange('Edited Name');
     });
 
-    // Call toggle again to save
     await act(async () => {
-      result.current.toggleEditMode();
+      result.current.saveAndExit();
     });
 
     expect(mockMutate).toHaveBeenCalledWith(
@@ -193,44 +218,41 @@ describe('useProductForm', () => {
     );
   });
 
-  it('exits edit mode without saving when toggleEditMode is called with no edits', async () => {
-    const mockMutate = jest.fn();
-    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
-    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
+  it('calls onSaveSuccess with the current id when saveAndExit is called on a clean existing entity', async () => {
+    const onSaveSuccess = jest.fn();
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 
-    const { result } = renderHook(() => useProductForm('123'), { wrapper });
-
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
+      { wrapper },
+    );
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     await act(async () => {
-      result.current.toggleEditMode();
-    });
-    expect(result.current.editMode).toBe(true);
-
-    await act(async () => {
-      result.current.toggleEditMode();
+      result.current.saveAndExit();
     });
 
-    expect(mockMutate).not.toHaveBeenCalled();
-    expect(result.current.editMode).toBe(false);
+    expect(onSaveSuccess).toHaveBeenCalledWith(123);
   });
 
-  it('navigates back to /products when toggleEditMode is called on a new product with no edits', async () => {
-    // The navigation-guard in useProductPageScreen surfaces the discard dialog
-    // when isNew; this hook just initiates the navigation.
+  it('discards to /products when saveAndExit is called on a clean new draft', async () => {
     const mockMutate = jest.fn();
-    (useProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (consumeNewProductIntent as jest.Mock).mockReturnValue({ name: 'Draft' });
 
-    const { result } = renderHook(() => useProductForm('new'), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useProductForm(undefined, { role: 'product', isNew: true, draftSeed: { name: 'Draft' } }),
+      { wrapper },
+    );
 
     await waitFor(() => expect(result.current.isNew).toBe(true));
 
     await act(async () => {
-      result.current.toggleEditMode();
+      result.current.saveAndExit();
     });
 
     expect(mockReplace).toHaveBeenCalledWith('/products');
@@ -244,27 +266,22 @@ describe('useProductForm', () => {
         options: { onSuccess?: (id: number) => void; onError?: (err: Error) => void },
       ) => options.onError?.(new Error('Network failure')),
     );
-    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
 
-    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    const { result } = renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
-    // Enter edit mode
-    await act(async () => {
-      result.current.toggleEditMode();
-    });
-    expect(result.current.editMode).toBe(true);
-
-    // Make a change so the form is dirty and save is triggered
     await act(async () => {
       result.current.onProductNameChange('Edited Name');
     });
 
-    // Trigger save — the onError callback fires
     await act(async () => {
-      result.current.toggleEditMode();
+      result.current.saveAndExit();
     });
 
     expect(mockMutate).toHaveBeenCalledWith(
@@ -277,11 +294,11 @@ describe('useProductForm', () => {
     const mockDeleteMutate = jest.fn((_payload: unknown, options: { onSuccess?: () => void }) =>
       options.onSuccess?.(),
     );
-    (useProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: mockDeleteMutate });
 
-    const { result } = renderHook(() => useProductForm('123'), { wrapper });
+    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     await act(async () => {
@@ -295,37 +312,38 @@ describe('useProductForm', () => {
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
-  it('sets the new id and marks the draft as just created after saving a new product', async () => {
+  it('calls onSaveSuccess with the savedId after saving a new draft', async () => {
     const mockMutate = jest.fn(
       (_payload: unknown, options: { onSuccess?: (savedId: number) => void }) =>
         options.onSuccess?.(987),
     );
-    (useProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
+    const onSaveSuccess = jest.fn();
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutate: mockMutate });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutate: jest.fn() });
-    (consumeNewProductIntent as jest.Mock).mockReturnValue({
-      name: 'Draft',
-      isComponent: true,
-      parentID: 42,
-    });
 
-    const { result } = renderHook(() => useProductForm('new'), { wrapper });
+    const { result } = renderHook(
+      () =>
+        useProductForm(undefined, {
+          role: 'component',
+          isNew: true,
+          draftSeed: { name: 'Draft', parentID: 42 },
+          onSaveSuccess,
+        }),
+      { wrapper },
+    );
 
     await waitFor(() => expect(result.current.isNew).toBe(true));
 
-    // Make a change so the form is dirty and save is triggered
     await act(async () => {
       result.current.onProductNameChange('Filled Draft');
     });
 
     await act(async () => {
-      result.current.toggleEditMode();
+      result.current.saveAndExit();
     });
 
     expect(mockMutate).toHaveBeenCalled();
-    expect(mockSetParams).toHaveBeenCalledWith({ id: '987' });
-    await waitFor(() => {
-      expect(result.current.justCreated).toBe(true);
-    });
+    expect(onSaveSuccess).toHaveBeenCalledWith(987);
   });
 });

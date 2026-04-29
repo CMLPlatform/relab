@@ -38,7 +38,7 @@ describe('authLogin', () => {
     const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(false);
 
     await expect(
-      login('http://localhost:8000/api', 'user', 'pass', {
+      login('http://localhost:8000', 'user', 'pass', {
         persistAccessToken,
         getUser,
         refreshAuthToken,
@@ -65,7 +65,7 @@ describe('authLogin', () => {
     const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(true);
 
     await expect(
-      login('http://localhost:8000/api', 'user', 'pass', {
+      login('http://localhost:8000', 'user', 'pass', {
         persistAccessToken,
         getUser,
         refreshAuthToken,
@@ -93,7 +93,7 @@ describe('authLogin', () => {
     const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
     const refreshAuthToken = jest.fn<() => Promise<boolean>>().mockResolvedValue(false);
 
-    const promise = login('http://localhost:8000/api', 'user', 'pass', {
+    const promise = login('http://localhost:8000', 'user', 'pass', {
       persistAccessToken,
       getUser,
       refreshAuthToken,
@@ -114,7 +114,7 @@ describe('authLogin', () => {
     const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 200 } as never);
 
-    await logout('http://localhost:8000/api', clearCachedAuthState);
+    await logout('http://localhost:8000', clearCachedAuthState);
 
     expect(clearCachedAuthState).toHaveBeenCalled();
     expect(fetchWithTimeout).toHaveBeenCalledWith(

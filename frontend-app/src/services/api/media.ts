@@ -1,7 +1,6 @@
-import { API_URL } from '@/config';
+import { API_ORIGIN_URL } from '@/config';
 
-const apiBaseUrl = API_URL.replace(/\/+$/, '');
-const LOCAL_MEDIA_SCHEME_PATTERN = /^(file:|blob:|data:)/;
+const apiBaseUrl = API_ORIGIN_URL.replace(/\/+$/, '');
 
 export const API_PLACEHOLDER_IMAGE_PATH = '/static/images/placeholder.png';
 
@@ -33,12 +32,7 @@ export function getResizedImageUrl(
   imageId: string | undefined,
   width: number,
 ): string {
-  if (!imageId || LOCAL_MEDIA_SCHEME_PATTERN.test(imageUrl)) {
-    return resolveApiMediaUrl(imageUrl) ?? imageUrl;
-  }
-  return (
-    resolveApiMediaUrl(`/images/${imageId}/resized?width=${width}`) ??
-    resolveApiMediaUrl(imageUrl) ??
-    imageUrl
-  );
+  void imageId;
+  void width;
+  return resolveApiMediaUrl(imageUrl) ?? imageUrl;
 }

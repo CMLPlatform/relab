@@ -3,8 +3,8 @@ import { apiFetch } from './client';
 
 const baseUrl = API_URL;
 
-export async function searchBrands(search?: string, page = 1, size = 50): Promise<string[]> {
-  const url = new URL(`${baseUrl}/brands`);
+export async function searchProductBrands(search?: string, page = 1, size = 50): Promise<string[]> {
+  const url = new URL(`${baseUrl}/products/suggestions/brands`);
   if (search) url.searchParams.set('search', search);
   url.searchParams.set('page', page.toString());
   url.searchParams.set('size', size.toString());
@@ -14,6 +14,6 @@ export async function searchBrands(search?: string, page = 1, size = 50): Promis
   return (data.items ?? []) as string[];
 }
 
-export async function allBrands(): Promise<string[]> {
-  return searchBrands(undefined, 1, 50);
+export async function allProductBrands(): Promise<string[]> {
+  return searchProductBrands(undefined, 1, 50);
 }

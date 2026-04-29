@@ -98,11 +98,6 @@ jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn(),
 }));
 
-jest.mock('@/services/api/newsletter', () => ({
-  getNewsletterPreference: jest.fn(async () => ({ subscribed: false })),
-  setNewsletterPreference: jest.fn(async () => ({ subscribed: true })),
-}));
-
 jest.mock('@/services/api/profiles', () => ({
   getPublicProfile: jest.fn(async () => ({
     product_count: 1,
@@ -146,6 +141,20 @@ describe('useProfileScreen', () => {
     expect(mockFeedback.toast).toHaveBeenCalledWith(
       'Verification email sent. Please check your inbox.',
     );
+  });
+
+  it('updates the recurring email preference and refetches the profile', async () => {
+    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+
+    await act(async () => {
+      await result.current.profile.handleEmailUpdatesChange(true);
+    });
+
+    expect(mockUpdateUser).toHaveBeenCalledWith({
+      preferences: { email_updates_enabled: true },
+    });
+    expect(mockRefetch).toHaveBeenCalledWith(false);
+    expect(mockFeedback.toast).toHaveBeenCalledWith('Email updates enabled.');
   });
 
   it('rejects too-short usernames before calling updateUser', async () => {

@@ -18,6 +18,12 @@ describe('ProductDescription', () => {
     expect(screen.getByPlaceholderText('Add a product description')).toBeOnTheScreen();
   });
 
+  it('uses component wording for component drafts', () => {
+    const component = { ...baseProduct, role: 'component' as const, description: undefined };
+    render(<ProductDescription product={component} editMode={true} />);
+    expect(screen.getByPlaceholderText('Add a component description')).toBeOnTheScreen();
+  });
+
   it('calls onChangeDescription on blur', () => {
     const onChangeDescription = jest.fn();
     render(

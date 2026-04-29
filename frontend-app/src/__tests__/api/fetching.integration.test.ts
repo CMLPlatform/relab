@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
+import { API_URL } from '@/config';
 import { getToken, getUser } from '@/services/api/authentication';
-import { allBrands, searchBrands } from '@/services/api/brands';
+import { allProductBrands, searchProductBrands } from '@/services/api/productSuggestions';
 import {
   allProducts,
-  getProduct,
+  getBaseProduct,
+  getComponent,
   isProductNotFoundError,
   myProducts,
   newProduct,
   ProductNotFoundError,
-  productComponents,
 } from '@/services/api/products';
 import { allProductTypes, searchProductTypes } from '@/services/api/productTypes';
 import { mockUser, server } from '@/test-utils/index';
@@ -24,8 +25,6 @@ jest.mock('@/services/api/authentication', () => {
     getUser: jest.fn(),
   };
 });
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
 function makePage<T>(
   items: T[],
@@ -71,7 +70,7 @@ const rawProductData = {
   repairability_comment: null,
   repairability_observation: 'high',
   repairability_reference: null,
-  components: [{ id: 1, name: 'Part A', description: '' }],
+  components: [{ id: 1, name: 'Part A', parent_id: 42, amount_in_parent: 2, description: '' }],
   images: [{ id: 10, image_url: '/media/img.jpg', description: 'Main image' }],
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
 };
@@ -89,11 +88,13 @@ describe('Fetching API Service logic', () => {
   // ─── newProduct ─────────────────────────────────────────
 
   describe('newProduct', () => {
-    it('returns an exact clean product template', () => {
-      const p = newProduct('Fresh Product');
-      expect(p.id).toBe('new');
+    it('returns a clean draft template', () => {
+      const p = newProduct({ name: 'Fresh Product' });
+      expect(p.id).toBeUndefined();
       expect(p.name).toBe('Fresh Product');
+      expect(p.role).toBe('product');
       expect(p.componentIDs).toEqual([]);
+      expect(p.components).toEqual([]);
       expect(p.ownedBy).toBe('me');
     });
 
@@ -103,28 +104,29 @@ describe('Fetching API Service logic', () => {
     });
 
     it('includes parentID when provided', () => {
-      const p = newProduct('Sub', 5);
+      const p = newProduct({ name: 'Sub', parentID: 5 });
       expect(p.parentID).toBe(5);
+      expect(p.role).toBe('component');
     });
 
-    it('leaves parentID undefined when NaN', () => {
-      const p = newProduct('Sub', NaN);
+    it('leaves parentID undefined by default', () => {
+      const p = newProduct({ name: 'Sub' });
       expect(p.parentID).toBeUndefined();
     });
 
     it('includes brand and model when provided', () => {
-      const p = newProduct('Product', NaN, 'CircularTech', 'X1');
+      const p = newProduct({ name: 'Product', brand: 'CircularTech', model: 'X1' });
       expect(p.brand).toBe('CircularTech');
       expect(p.model).toBe('X1');
     });
   });
 
-  // ─── allBrands / searchBrands ───────────────────────────
+  // ─── allProductBrands / searchProductBrands ───────────────────────────
 
-  describe('allBrands', () => {
+  describe('allProductBrands', () => {
     it('performs fetch and returns array of strings', async () => {
       server.use(
-        http.get(`${API_URL}/brands`, () =>
+        http.get(`${API_URL}/products/suggestions/brands`, () =>
           HttpResponse.json({
             items: ['Samsung', 'Apple', 'Nokia'],
             total: 3,
@@ -135,54 +137,52 @@ describe('Fetching API Service logic', () => {
         ),
       );
 
-      const brands = await allBrands();
+      const brands = await allProductBrands();
 
       expect(brands).toContain('Apple');
       expect(brands.length).toBe(3);
     });
 
     it('returns empty array when items is absent', async () => {
-      server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({})));
+      server.use(http.get(`${API_URL}/products/suggestions/brands`, () => HttpResponse.json({})));
 
-      const brands = await allBrands();
+      const brands = await allProductBrands();
 
       expect(brands).toEqual([]);
     });
 
     it('throws on HTTP error', async () => {
-      server.use(http.get(`${API_URL}/brands`, () => HttpResponse.json({}, { status: 500 })));
+      server.use(
+        http.get(`${API_URL}/products/suggestions/brands`, () =>
+          HttpResponse.json({}, { status: 500 }),
+        ),
+      );
 
-      await expect(allBrands()).rejects.toThrow('HTTP error');
+      await expect(allProductBrands()).rejects.toThrow('HTTP error');
     });
 
     it('sends search param when searching brands', async () => {
       let capturedUrl: URL | undefined;
       server.use(
-        http.get(`${API_URL}/brands`, ({ request }) => {
+        http.get(`${API_URL}/products/suggestions/brands`, ({ request }) => {
           capturedUrl = new URL(request.url);
           return HttpResponse.json({ items: ['Samsung'] });
         }),
       );
 
-      await searchBrands('Samsung');
+      await searchProductBrands('Samsung');
 
       expect(capturedUrl?.searchParams.get('search')).toBe('Samsung');
     });
   });
 
-  // ─── getProduct ─────────────────────────────────────────
+  // ─── getBaseProduct / getComponent ──────────────────────
 
-  describe('getProduct', () => {
-    it("returns a clean product template for id='new'", async () => {
-      const p = await getProduct('new');
-      expect(p.id).toBe('new');
-      expect(p.componentIDs).toEqual([]);
-    });
-
-    it('fetches and maps a product by id', async () => {
+  describe('getBaseProduct', () => {
+    it('fetches and maps a base product by id', async () => {
       server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(rawProductData)));
 
-      const p = await getProduct(42);
+      const p = await getBaseProduct(42);
 
       expect(p.id).toBe(42);
       expect(p.name).toBe('Recycled Aluminum Laptop Stand');
@@ -190,6 +190,14 @@ describe('Fetching API Service logic', () => {
       expect(p.physicalProperties.weight).toBe(100);
       expect(p.physicalProperties.height).toBe(10);
       expect(p.componentIDs).toEqual([1]);
+      expect(p.components).toHaveLength(1);
+      expect(p.components[0]).toMatchObject({
+        id: 1,
+        name: 'Part A',
+        role: 'component',
+        parentID: 42,
+        amountInParent: 2,
+      });
       expect(p.images[0].description).toBe('Main image');
       expect(p.videos[0].title).toBe('Demo');
       expect(p.ownedBy).toBe('me');
@@ -199,7 +207,7 @@ describe('Fetching API Service logic', () => {
       const otherUserProduct = { ...rawProductData, owner_id: 'other-user-id' };
       server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(otherUserProduct)));
 
-      const p = await getProduct(42);
+      const p = await getBaseProduct(42);
 
       expect(p.ownedBy).toBe('other-user-id');
     });
@@ -219,27 +227,63 @@ describe('Fetching API Service logic', () => {
       };
       server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(noCircularity)));
 
-      const p = await getProduct(42);
+      const p = await getBaseProduct(42);
 
       expect(p.circularityProperties.recyclabilityObservation).toBe('');
     });
 
-    it('throws ProductNotFoundError on 404', async () => {
+    it('throws ProductNotFoundError when the base product is missing', async () => {
       server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 404 })));
 
-      await expect(getProduct(99)).rejects.toBeInstanceOf(ProductNotFoundError);
+      await expect(getBaseProduct(99)).rejects.toBeInstanceOf(ProductNotFoundError);
 
       try {
-        await getProduct(99);
+        await getBaseProduct(99);
       } catch (error) {
         expect(isProductNotFoundError(error)).toBe(true);
       }
     });
 
-    it('still throws a generic HTTP error for non-404 failures', async () => {
+    it('throws a generic HTTP error for non-404 failures', async () => {
       server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(getProduct(99)).rejects.toThrow('HTTP error! Status: 500');
+      await expect(getBaseProduct(99)).rejects.toThrow('HTTP error! Status: 500');
+    });
+  });
+
+  describe('getComponent', () => {
+    it('fetches and maps a component by id', async () => {
+      server.use(
+        http.get(`${API_URL}/components/77`, () =>
+          HttpResponse.json({
+            id: 77,
+            name: 'Component Seven',
+            parent_id: 10,
+            amount_in_parent: 1,
+            dismantling_time_start: '2024-01-01T00:00:00Z',
+            dismantling_time_end: null,
+            components: [],
+            images: [],
+            recyclability_observation: '',
+            remanufacturability_observation: '',
+            repairability_observation: '',
+          }),
+        ),
+      );
+
+      const product = await getComponent(77);
+      expect(product.id).toBe(77);
+      expect(product.role).toBe('component');
+      expect(product.parentID).toBe(10);
+      expect(product.videos).toEqual([]);
+    });
+
+    it('throws ProductNotFoundError when the component is missing', async () => {
+      server.use(
+        http.get(`${API_URL}/components/99`, () => HttpResponse.json({}, { status: 404 })),
+      );
+
+      await expect(getComponent(99)).rejects.toBeInstanceOf(ProductNotFoundError);
     });
   });
 
@@ -282,7 +326,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(['product_type'], 1, 50, undefined, undefined, ['Dell', 'Apple']);
+      await allProducts(1, 50, undefined, undefined, ['Dell', 'Apple']);
 
       expect(capturedUrl?.searchParams.get('brand__in')).toBe('Dell,Apple');
       expect(capturedUrl?.searchParams.getAll('brand__in')).toHaveLength(1);
@@ -297,7 +341,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(['product_type'], 1, 50, undefined, ['-created_at', 'name']);
+      await allProducts(1, 50, undefined, ['-created_at', 'name']);
 
       expect(capturedUrl?.searchParams.get('order_by')).toBe('-created_at,name');
       expect(capturedUrl?.searchParams.getAll('order_by')).toHaveLength(1);
@@ -312,7 +356,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(['product_type'], 1, 50, undefined, undefined, undefined, undefined, [
+      await allProducts(1, 50, undefined, undefined, undefined, undefined, [
         'Electronics',
         'Furniture',
       ]);
@@ -330,7 +374,7 @@ describe('Fetching API Service logic', () => {
         }),
       );
 
-      await allProducts(['product_type'], 1, 50, undefined, [], [], undefined, []);
+      await allProducts(1, 50, undefined, [], [], undefined, []);
 
       expect(capturedUrl?.searchParams.has('brand__in')).toBe(false);
       expect(capturedUrl?.searchParams.has('order_by')).toBe(false);
@@ -364,7 +408,7 @@ describe('Fetching API Service logic', () => {
     it('returns an empty paginated response on 401 response', async () => {
       jest.mocked(getToken).mockResolvedValueOnce('test-token');
       server.use(
-        http.get(`${API_URL}/users/me/products`, () =>
+        http.get(`${API_URL}/products`, () =>
           HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
         ),
       );
@@ -383,9 +427,7 @@ describe('Fetching API Service logic', () => {
     it('fetches and returns mapped products in a paginated response', async () => {
       jest.mocked(getToken).mockResolvedValueOnce('test-token');
       server.use(
-        http.get(`${API_URL}/users/me/products`, () =>
-          HttpResponse.json(makePage([rawProductData])),
-        ),
+        http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))),
       );
 
       const products = await myProducts();
@@ -402,23 +444,22 @@ describe('Fetching API Service logic', () => {
       jest.mocked(getToken).mockResolvedValueOnce('test-token');
       let capturedUrl: URL | undefined;
       server.use(
-        http.get(`${API_URL}/users/me/products`, ({ request }) => {
+        http.get(`${API_URL}/products`, ({ request }) => {
           capturedUrl = new URL(request.url);
           return HttpResponse.json(makePage([]));
         }),
       );
 
-      await myProducts(['product_type'], 1, 50, undefined, undefined, ['Dell', 'Apple']);
+      await myProducts(1, 50, undefined, undefined, ['Dell', 'Apple']);
 
+      expect(capturedUrl?.searchParams.get('owner')).toBe('me');
       expect(capturedUrl?.searchParams.get('brand__in')).toBe('Dell,Apple');
       expect(capturedUrl?.searchParams.getAll('brand__in')).toHaveLength(1);
     });
 
     it('throws on non-401 HTTP error', async () => {
       jest.mocked(getToken).mockResolvedValueOnce('test-token');
-      server.use(
-        http.get(`${API_URL}/users/me/products`, () => HttpResponse.json({}, { status: 500 })),
-      );
+      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json({}, { status: 500 })));
 
       await expect(myProducts()).rejects.toThrow('HTTP error');
     });
@@ -455,26 +496,17 @@ describe('Fetching API Service logic', () => {
     });
   });
 
-  // ─── productComponents ──────────────────────────────────
+  it('uses the versioned API base URL', async () => {
+    let capturedUrl: URL | undefined;
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        capturedUrl = new URL(request.url);
+        return HttpResponse.json(makePage([]));
+      }),
+    );
 
-  describe('productComponents', () => {
-    it('returns empty array for product with no components', async () => {
-      const product = { ...newProduct(), componentIDs: [] };
+    await allProducts();
 
-      const result = await productComponents(product);
-
-      expect(result).toEqual([]);
-    });
-
-    it('fetches each component by id', async () => {
-      const componentData = { ...rawProductData, id: 1, name: 'Component A' };
-      server.use(http.get(`${API_URL}/products/1`, () => HttpResponse.json(componentData)));
-
-      const product = { ...newProduct(), componentIDs: [1] };
-      const result = await productComponents(product);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('Component A');
-    });
+    expect(capturedUrl?.pathname).toBe('/v1/products');
   });
 });

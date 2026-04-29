@@ -56,7 +56,7 @@ describe('rpiCamera streams service', () => {
     ).resolves.toEqual(payload);
 
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-1/stream/record/start'),
+      expect.stringContaining('/plugins/rpi-cam/cameras/cam-1/recording-stream'),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -111,7 +111,7 @@ describe('rpiCamera streams service', () => {
     await expect(getStreamStatus('cam-4')).resolves.toEqual(payload);
 
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-4/stream/status'),
+      expect.stringContaining('/plugins/rpi-cam/cameras/cam-4/recording-stream'),
       expect.objectContaining({
         method: 'GET',
         headers: { Accept: 'application/json' },

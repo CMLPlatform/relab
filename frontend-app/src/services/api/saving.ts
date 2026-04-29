@@ -5,6 +5,40 @@ import type { Product } from '@/types/Product';
 
 const baseUrl = API_URL;
 
+// Flat URL scheme after the products/components split:
+// - Base products live under /products/{id}
+// - Components live under /components/{id}
+// Parent path is used only as a creation scope:
+//   POST /products/{id}/components for base-product parents
+//   POST /components/{id}/components for component parents
+// Product media stays under the same resource root: base-product media under
+// /products/{id}, component media under /components/{id}.
+function isComponent(product: Product): boolean {
+  return product.role === 'component';
+}
+
+function productRootUrl(product: Product): URL {
+  return isComponent(product)
+    ? new URL(`${baseUrl}/components/${product.id}`)
+    : new URL(`${baseUrl}/products/${product.id}`);
+}
+
+function productImagesUrl(product: Product): URL {
+  return new URL(`${productRootUrl(product).toString()}/images`);
+}
+
+function productImageUrl(product: Product, imageId: string): URL {
+  return new URL(`${productRootUrl(product).toString()}/images/${imageId}`);
+}
+
+function componentCreateUrl(product: Product): URL {
+  if (typeof product.parentID !== 'number') {
+    throw new Error('Cannot create a component without a parent.');
+  }
+  const parentRoot = product.parentRole === 'component' ? 'components' : 'products';
+  return new URL(`${baseUrl}/${parentRoot}/${product.parentID}/components`);
+}
+
 // ─── API payload types (derived from generated OpenAPI types) ─────────────────
 
 type ProductPayload = {
@@ -30,7 +64,7 @@ type ProductPayload = {
 };
 
 type NewProductPayload = ProductPayload & {
-  videos: Product['videos'];
+  videos?: Product['videos'];
 };
 
 // ─── Serialization helpers ────────────────────────────────────────────────────
@@ -46,7 +80,7 @@ function toNullableText(value: string | null | undefined): string | null {
 }
 
 function toProductPayload(product: Product): ProductPayload {
-  const isComponent = typeof product.parentID === 'number' && !Number.isNaN(product.parentID);
+  const component = isComponent(product);
 
   const circularityOut = {
     recyclability_comment: toNullableText(product.circularityProperties.recyclabilityComment),
@@ -78,7 +112,7 @@ function toProductPayload(product: Product): ProductPayload {
     model: product.model,
     description: product.description,
     product_type_id: product.productTypeID ? product.productTypeID : null,
-    ...(isComponent && { amount_in_parent: product.amountInParent ?? 1 }),
+    ...(component && { amount_in_parent: product.amountInParent ?? 1 }),
     weight_g: toNullableNumber(product.physicalProperties.weight),
     height_cm: toNullableNumber(product.physicalProperties.height),
     width_cm: toNullableNumber(product.physicalProperties.width),
@@ -90,7 +124,7 @@ function toProductPayload(product: Product): ProductPayload {
 function toNewProductPayload(product: Product): NewProductPayload {
   return {
     ...toProductPayload(product),
-    videos: product.videos,
+    ...(isComponent(product) ? {} : { videos: product.videos }),
   };
 }
 
@@ -121,18 +155,16 @@ export async function saveProduct(
 ): Promise<number> {
   const token = await getToken();
 
-  if (product.id === 'new') {
+  if (typeof product.id !== 'number') {
     return await saveNewProduct(product, token);
-  } else {
-    return await updateProduct(product, originalImages, originalVideos, token);
   }
+  return await updateProduct(product, originalImages, originalVideos, token);
 }
 
 async function saveNewProduct(product: Product, token: string | undefined): Promise<number> {
-  const url =
-    typeof product.parentID === 'number' && !Number.isNaN(product.parentID)
-      ? new URL(`${baseUrl}/products/${product.parentID}/components`)
-      : new URL(`${baseUrl}/products`);
+  // Creation scope: components are created under their parent (can be base or component);
+  // base products are created flat under /products.
+  const url = isComponent(product) ? componentCreateUrl(product) : new URL(`${baseUrl}/products`);
 
   const headers = authHeaders(token);
   const response = await apiFetch(url, {
@@ -162,8 +194,8 @@ async function updateProduct(
 ): Promise<number> {
   const headers = authHeaders(token);
 
-  // Single PATCH request — properties are now flat on the product
-  const productRes = await apiFetch(new URL(`${baseUrl}/products/${product.id}`), {
+  // Single PATCH request — targets /products/{id} for base products, /components/{id} for components.
+  const productRes = await apiFetch(productRootUrl(product), {
     method: 'PATCH',
     headers,
     body: JSON.stringify(toProductPayload(product)),
@@ -203,8 +235,7 @@ async function updateProductImages(
 }
 
 async function deleteImage(product: Product, image: { id: string }, token: string | undefined) {
-  const url = new URL(`${baseUrl}/products/${product.id}/images/${image.id}`);
-  return await apiFetch(url, {
+  return await apiFetch(productImageUrl(product, image.id), {
     method: 'DELETE',
     headers: { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
@@ -224,7 +255,7 @@ async function addImage(
   image: { url: string; description: string; id?: string },
   token: string | undefined,
 ) {
-  const url = new URL(`${baseUrl}/products/${product.id}/images`);
+  const url = productImagesUrl(product);
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -307,6 +338,9 @@ async function updateProductVideos(
   originalVideos: Product['videos'],
   token: string | undefined,
 ) {
+  // Videos live only on base products (disassembly captures whole products).
+  if (isComponent(product)) return;
+
   const currentVideos = originalVideos || [];
   const videosToDelete = currentVideos.filter(
     (vid) => !product.videos.some((v) => v.id === vid.id),
@@ -357,15 +391,12 @@ async function updateProductVideos(
 }
 
 export async function deleteProduct(product: Product): Promise<void> {
-  if (product.id === 'new') {
-    return;
-  } // New products are not saved yet
-  const url = new URL(`${baseUrl}/products/${product.id}`);
+  if (typeof product.id !== 'number') return; // Unsaved drafts: nothing to delete.
   const token = await getToken();
   const headers = {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
-  await apiFetch(url, { method: 'DELETE', headers: headers });
+  await apiFetch(productRootUrl(product), { method: 'DELETE', headers });
   return;
 }

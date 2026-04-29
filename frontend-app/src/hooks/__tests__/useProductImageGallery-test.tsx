@@ -85,7 +85,7 @@ describe('useProductImageGallery', () => {
   it('alerts when trying to capture from an RPi camera before the product is saved', () => {
     const { result } = renderHook(() =>
       useProductImageGallery({
-        product: { ...baseProduct, id: 'new' } as Product,
+        product: { ...baseProduct, id: undefined } as Product,
         editMode: true,
         onImagesChange: jest.fn(),
       }),

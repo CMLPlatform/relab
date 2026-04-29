@@ -38,8 +38,8 @@ describe('productSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts 'new' as id", () => {
-    const result = productSchema.safeParse({ ...validBase, id: 'new' });
+  it('accepts undefined id (unsaved draft)', () => {
+    const result = productSchema.safeParse({ ...validBase, id: undefined });
     expect(result.success).toBe(true);
   });
 

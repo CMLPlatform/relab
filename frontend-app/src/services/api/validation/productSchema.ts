@@ -109,7 +109,7 @@ const imageSchema = z.object({
 });
 
 export const productSchema = z.object({
-  id: z.union([z.number(), z.literal('new')]),
+  id: z.number().optional(),
   parentID: z.number().optional(),
   name: z
     .string()

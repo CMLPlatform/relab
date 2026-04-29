@@ -5,7 +5,7 @@ import CPVCard from '@/components/common/CPVCard';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
-import type { Product } from '@/types/Product';
+import { entityLabel, type Product } from '@/types/Product';
 
 type searchParams = {
   typeSelection?: string;
@@ -48,8 +48,11 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   // Callback
   const onTypeSelectionStart = () => {
     if (!editMode) return;
-    const params = { id: product.id };
-    router.push({ pathname: '/products/[id]/category_selection', params: params });
+    if (typeof product.id !== 'number') return;
+    router.push({
+      pathname: '/products/[id]/category-selection',
+      params: { id: product.id.toString() },
+    });
   };
 
   // Render
@@ -57,7 +60,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     <View>
       <DetailSectionHeader
         title="Type or Material"
-        tooltipTitle="Select a fitting category for the product."
+        tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
       />
       {selectedType ? (
         <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} />

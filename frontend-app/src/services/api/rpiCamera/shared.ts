@@ -89,5 +89,3 @@ export function isLocalAccessInfo(value: unknown): value is LocalAccessInfo {
     (candidate.mdns_name === null || typeof candidate.mdns_name === 'string')
   );
 }
-
-export const streamBase = (cameraId: string) => `${CAMERA_BASE}/${cameraId}/stream`;

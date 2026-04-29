@@ -1,4 +1,18 @@
-export const API_URL = `${process.env.EXPO_PUBLIC_API_URL}`;
+const API_VERSION_PATH = '/v1';
+const DEFAULT_API_ORIGIN_URL = 'http://localhost:8000';
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
+function appendApiVersion(baseUrl: string | undefined): string {
+  const normalizedBase = `${baseUrl ?? ''}`.replace(TRAILING_SLASHES_PATTERN, '');
+  if (!normalizedBase) return API_VERSION_PATH;
+  return normalizedBase.endsWith(API_VERSION_PATH)
+    ? normalizedBase
+    : `${normalizedBase}${API_VERSION_PATH}`;
+}
+
+export const API_ORIGIN_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_ORIGIN_URL;
+
+export const API_URL = appendApiVersion(API_ORIGIN_URL);
 
 export const WEBSITE_URL = process.env.EXPO_PUBLIC_WEBSITE_URL ?? '';
 

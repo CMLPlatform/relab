@@ -12,7 +12,7 @@ describe('ProductDelete', () => {
   const user = setupUser();
 
   it("returns null when product.id is 'new'", () => {
-    const product = { ...existingProduct, id: 'new' as const };
+    const product = { ...existingProduct, id: undefined };
     renderWithProviders(<ProductDelete product={product} editMode={true} />, { withDialog: true });
     expect(screen.queryByText('Delete product')).toBeNull();
   });
@@ -29,6 +29,22 @@ describe('ProductDelete', () => {
       withDialog: true,
     });
     expect(screen.getByText('Delete product')).toBeOnTheScreen();
+  });
+
+  it('uses component wording for components', async () => {
+    const component = { ...existingProduct, role: 'component' as const, parentID: 1 };
+    renderWithProviders(<ProductDelete product={component} editMode={true} />, {
+      withDialog: true,
+    });
+
+    await user.press(screen.getByText('Delete component'));
+
+    expect(screen.getByText('Delete Component')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Are you sure you want to delete this component? This action cannot be undone.',
+      ),
+    ).toBeOnTheScreen();
   });
 
   it('shows confirmation dialog when delete button is pressed', async () => {

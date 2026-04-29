@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HttpResponse, http } from 'msw';
+import { API_URL } from '@/config';
 import { getToken, getUser } from '@/services/api/authentication';
 import { renderWithProviders } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
@@ -13,7 +14,6 @@ jest.mock('@/services/api/authentication', () => ({
   hasWebSessionFlag: jest.fn().mockReturnValue(false),
 }));
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 const NO_VERIFICATION_TOKEN_PATTERN = /No verification token/;
 const EMAIL_VERIFIED_SUCCESS_PATTERN = /Email verified successfully/;
 const GENERIC_VERIFY_ERROR_PATTERN = /An error occurred/;
