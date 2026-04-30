@@ -73,7 +73,11 @@ Run via `just test-unit`, `just test-integration`, `just test-e2e`. See
 - **Dev (native):** `pnpm android` / `pnpm ios`.
 - **Web build:** `just build-web` runs `expo export -p web -c` → `dist/`.
 - **Runtime:** Caddy serves `dist/` with CSP templated from
-  `CSP_API_ORIGIN`. See [Dockerfile](Dockerfile) and [Caddyfile](Caddyfile).
+  `CSP_API_ORIGIN`. The enforced policy keeps temporary Expo web allowances for
+  inline/eval script execution, permits product embeds only from
+  `https://www.youtube-nocookie.com`, and sends a stricter report-only policy as
+  the hardening target. See [Dockerfile](Dockerfile) and
+  [Caddyfile](Caddyfile).
 - **Native releases:** not containerised; use Expo's native build flow from a
   developer machine.
 

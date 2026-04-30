@@ -48,6 +48,7 @@ words:
 
   # Technical terms
   - ASVS
+  - Caddyfiles
   - linkinator
   - LogQL
   - MASVS
