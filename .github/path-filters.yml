@@ -22,10 +22,6 @@ policy:
   - 'pyproject.toml'
   - 'justfile'
 
-root-python:
-  - 'pyproject.toml'
-  - 'uv.lock'
-
 backend:
   - 'backend/**'
   - 'compose*.yml'
