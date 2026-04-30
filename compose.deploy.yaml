@@ -1,13 +1,15 @@
 # compose.deploy.yaml (DEPLOY — covers prod AND staging)
 #
 # Single artifact for both environments. APP_ENV (required) selects which.
-# Per-environment knobs live in committed `.env.<env>.compose` files at repo
-# root; per-host secrets live in the auto-loaded `.env` (gitignored).
+# Per-environment non-secret knobs live in committed `deploy/env/*.compose.env`
+# files; per-host secret/local interpolation lives in the root `.env`
+# (gitignored).
 #
-# Invocation (see justfile `prod_compose` / `staging_compose`):
-#   docker compose --env-file .env --env-file .env.prod.compose \
+# Invocation (normally through root just recipes):
+#   docker compose --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
+# spell-checker: ignore REDISCLI, requirepass
 
 name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
@@ -20,10 +22,17 @@ name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod,
 x-env-backend: &env-backend
   env_file: ./backend/.env.${APP_ENV:?APP_ENV must be set (prod|staging)}
 
+x-backend-runtime-secrets: &backend-runtime-secrets
+  - database_app_password
+  - database_migration_password
+  - database_backup_password
+  - redis_password
+
 services:
   api:
     <<: *env-backend
     image: relab-backend:${APP_ENV}-local
+    secrets: *backend-runtime-secrets
     environment:
       ENVIRONMENT: ${APP_ENV}
       # Trust forwarded headers only from Docker-internal proxy addresses.
@@ -53,6 +62,7 @@ services:
   migrator:
     <<: *env-backend
     image: relab-backend-migrations:${APP_ENV}-local
+    secrets: *backend-runtime-secrets
 
   relab-backup:
     # Encrypted logical PostgreSQL + user upload backups.
@@ -85,12 +95,24 @@ services:
       - restic_password
     profiles:
       - backups
+    networks:
+      - data
 
   redis:
     <<: *env-backend
+    secrets:
+      - redis_password
     volumes:
       # Persist cache data in both prod and staging (AOF persistence).
       - cache_data:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG" ]
+    command:
+      - sh
+      - -c
+      - |
+        redis_password="$$(cat /run/secrets/redis_password)"
+        exec redis-server --appendonly yes --save 60 1 --requirepass "$$redis_password"
 
   cloudflared:
     # Cloudflared tunnel service
@@ -103,19 +125,31 @@ services:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be set (in root .env on the deploy host)}
     command: tunnel --no-autoupdate run
     pull_policy: always
+    networks:
+      - edge
 
   postgres:
     <<: *env-backend
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      DATABASE_APP_PASSWORD_FILE: /run/secrets/database_app_password
+      DATABASE_MIGRATION_PASSWORD_FILE: /run/secrets/database_migration_password
+      DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
+    secrets:
+      - postgres_password
+      - database_app_password
+      - database_migration_password
+      - database_backup_password
 
-  docs-site:
+  docs:
     image: relab-docs:${APP_ENV}-local
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
         PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
 
-  app-site:
-    image: relab-frontend-app:${APP_ENV}-local
+  app:
+    image: relab-app:${APP_ENV}-local
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
@@ -123,8 +157,8 @@ services:
       # Needed by Caddyfile to determine the API origin.
       CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
 
-  web-site:
-    image: relab-frontend-web:${APP_ENV}-local
+  www:
+    image: relab-www:${APP_ENV}-local
     build:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
@@ -133,7 +167,15 @@ volumes:
   cache_data:
 
 secrets:
+  postgres_password:
+    file: ./secrets/${APP_ENV}/postgres_password
+  database_app_password:
+    file: ./secrets/${APP_ENV}/database_app_password
+  database_migration_password:
+    file: ./secrets/${APP_ENV}/database_migration_password
   database_backup_password:
     file: ./secrets/${APP_ENV}/database_backup_password
+  redis_password:
+    file: ./secrets/${APP_ENV}/redis_password
   restic_password:
     file: ./secrets/${APP_ENV}/restic_password

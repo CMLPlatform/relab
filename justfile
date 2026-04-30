@@ -14,18 +14,9 @@ subrepos := "backend docs frontend-web frontend-app"
 # Subset of subrepos that implement test-unit / test-integration.
 unit_subrepos := "backend frontend-app"
 
-# Deploy overlay — same file for prod and staging. Per-env non-secret config
-# lives in committed `.env.<env>.compose`; per-host secrets (TUNNEL_TOKEN, …)
-# live in the auto-loaded root `.env` (gitignored). Both `--env-file` flags are
-# required because specifying any `--env-file` disables Compose's auto-load.
-# `COMPOSE_PROJECT_NAME` is set inside each `.env.<env>.compose`, so laptop-
-# driven staging ops no longer need to override the host `.env`.
-#
-# `_loki_overlay` auto-includes compose.logging.loki.yaml when the host's `.env`
-# has a non-empty LOKI_URL. Hosts without Loki get Docker's default log driver.
-_loki_overlay := `if [ -f .env ] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then printf -- ' -f compose.logging.loki.yaml'; fi`
-prod_compose    := "docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
-staging_compose := "docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
+# Deploy overlay operations live in scripts/deploy_ops.sh. The justfile keeps
+# stable public recipes while the script owns Compose env-file paths, profiles,
+# and validation details.
 
 # ============================================================================
 # Setup
@@ -157,7 +148,7 @@ test-e2e:
     @echo "✅ All E2E tests passed"
 
 # Canonical CI pipeline: policy, quality checks, CI tests, compose validation
-ci: pre-commit check test-ci compose-config
+ci: pre-commit check test-ci compose-config compose-policy-check deploy-secrets-check
     @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
@@ -210,54 +201,19 @@ security: audit
 
 # Validate every supported Compose stack shape
 compose-config:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    created_prod_env=false
-    created_staging_env=false
-    created_dev_env=false
-    created_root_env=false
-    if [[ ! -f backend/.env.prod && -f backend/.env.prod.example ]]; then
-        cp backend/.env.prod.example backend/.env.prod
-        created_prod_env=true
-    fi
-    if [[ ! -f backend/.env.staging && -f backend/.env.staging.example ]]; then
-        cp backend/.env.staging.example backend/.env.staging
-        created_staging_env=true
-    fi
-    if [[ ! -f backend/.env.dev && -f backend/.env.dev.example ]]; then
-        cp backend/.env.dev.example backend/.env.dev
-        created_dev_env=true
-    fi
-    # Root .env holds deploy-host secrets (TUNNEL_TOKEN, …). Stub it for
-    # validation-only runs (e.g. CI) so `--env-file .env` doesn't error on
-    # a missing file. Values are placeholders; real secrets stay on the VM.
-    # Stub root .env if absent (e.g. CI) so `--env-file .env` doesn't fail.
-    if [[ ! -f .env ]]; then
-        : > .env
-        created_root_env=true
-    fi
-    trap '
-        [[ "$created_prod_env" == true ]] && rm -f backend/.env.prod
-        [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging
-        [[ "$created_dev_env" == true ]] && rm -f backend/.env.dev
-        [[ "$created_root_env" == true ]] && rm -f .env
-    ' EXIT
-    # Placeholder secrets for validation-only runs. Real values come from the
-    # deploy host's root .env. Shell env fills gaps left by --env-file inputs.
-    # LOKI_URL is only consumed when the Loki overlay is included; export
-    # a placeholder so the "with-Loki" validation path renders too.
-    export TUNNEL_TOKEN="${TUNNEL_TOKEN:-placeholder}"
-    export LOKI_URL="${LOKI_URL:-http://placeholder/loki/api/v1/push}"
-    {{ dev_compose }} config >/dev/null
-    {{ ci_compose }} config >/dev/null
-    {{ staging_compose }} config >/dev/null
-    {{ prod_compose }} config >/dev/null
-    # Exercise the Loki-on path explicitly so CI catches regressions regardless
-    # of whether the local .env happens to have LOKI_URL set.
-    docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
-    docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
-    docker compose -p relab_e2e -f compose.e2e.yaml config >/dev/null
-    echo "✓ Compose configurations validated"
+    @bash scripts/deploy_ops.sh compose-config
+
+# Validate deploy secret definitions against the required secret manifest
+deploy-secrets-check:
+    @bash scripts/deploy_ops.sh deploy-secrets-check
+
+# Create missing deploy secret files for an environment (prod or staging)
+deploy-secrets-template env:
+    @bash scripts/deploy_ops.sh deploy-secrets-template "{{ env }}"
+
+# Validate Docker Compose network and port exposure policy
+compose-policy-check:
+    @bash scripts/deploy_ops.sh compose-policy-check
 
 # ============================================================================
 # Docker: Targeted Development (subset of services with hot reload)
@@ -327,162 +283,47 @@ _dev-reset confirm='':
 
 # Start production stack (optional profiles: backups, migrations)
 prod-up *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false
-    flags=""
-    for p in {{ PROFILES }}; do
-        case "$p" in
-            YES) confirmed=true ;;
-            migrations|backups) flags+=" --profile $p" ;;
-            *)
-                echo "Unknown profile '$p' for the prod stack."
-                echo "Allowed profiles: migrations backups"
-                exit 1
-                ;;
-        esac
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to start the prod stack without explicit confirmation."
-        echo "Use 'just prod-up YES [profiles...]' or 'FORCE=1 just prod-up [profiles...]'."
-        exit 1
-    fi
-    {{ prod_compose }} $flags up -d
+    @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
 
-# Stop production stack (optional profiles: backups)
+# Stop production stack (optional profiles: backups, migrations)
 prod-down *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false
-    flags=""
-    for p in {{ PROFILES }}; do
-        case "$p" in
-            YES) confirmed=true ;;
-            migrations|backups) flags+=" --profile $p" ;;
-            *)
-                echo "Unknown profile '$p' for the prod stack."
-                echo "Allowed profiles: migrations backups"
-                exit 1
-                ;;
-        esac
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to stop the prod stack without explicit confirmation."
-        echo "Use 'just prod-down YES [profiles...]' or 'FORCE=1 just prod-down [profiles...]'."
-        exit 1
-    fi
-    {{ prod_compose }} $flags down
+    @bash scripts/deploy_ops.sh stack prod down {{ PROFILES }}
 
 # Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
 prod-build *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="--profile migrations --profile backups"
-    for p in {{ PROFILES }}; do
-        case "$p" in
-            migrations|backups) flags+=" --profile $p" ;;
-            *)
-                echo "Unknown profile '$p' for the prod stack."
-                echo "Allowed profiles: migrations backups"
-                exit 1
-                ;;
-        esac
-    done
-    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
-    {{ prod_compose }} $flags build $nc
+    @bash scripts/deploy_ops.sh stack prod build {{ PROFILES }}
 
 # Tail production logs
 prod-logs:
-    {{ prod_compose }} logs -f
+    @bash scripts/deploy_ops.sh stack prod logs
 
 # Run database migrations (prod); required on first deploy and after schema changes
 prod-migrate confirm='':
-    @just _require-confirm "run production database migrations" "just prod-migrate YES" "FORCE=1 just prod-migrate" "{{ confirm }}"
-    {{ prod_compose }} --profile migrations up migrator
-
-# Enable automated database + upload backups (prod)
-_prod-backups-up confirm='':
-    @just _require-confirm "start the production backup services" "just _prod-backups-up YES" "FORCE=1 just _prod-backups-up" "{{ confirm }}"
-    {{ prod_compose }} --profile backups up -d
+    @bash scripts/deploy_ops.sh stack prod migrate "{{ confirm }}"
 
 # ============================================================================
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (optional profiles: migrations)
+# Start staging stack (optional profiles: backups, migrations)
 staging-up *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false
-    flags=""
-    for p in {{ PROFILES }}; do
-        case "$p" in
-            YES) confirmed=true ;;
-            migrations) flags+=" --profile $p" ;;
-            *)
-                echo "Unknown profile '$p' for the staging stack."
-                echo "Allowed profiles: migrations"
-                exit 1
-                ;;
-        esac
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to start the staging stack without explicit confirmation."
-        echo "Use 'just staging-up YES [profiles...]' or 'FORCE=1 just staging-up [profiles...]'."
-        exit 1
-    fi
-    {{ staging_compose }} $flags up -d
+    @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
 
-# Stop staging stack (optional profiles: migrations)
+# Stop staging stack (optional profiles: backups, migrations)
 staging-down *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false
-    flags=""
-    for p in {{ PROFILES }}; do
-        case "$p" in
-            YES) confirmed=true ;;
-            migrations) flags+=" --profile $p" ;;
-            *)
-                echo "Unknown profile '$p' for the staging stack."
-                echo "Allowed profiles: migrations"
-                exit 1
-                ;;
-        esac
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to stop the staging stack without explicit confirmation."
-        echo "Use 'just staging-down YES [profiles...]' or 'FORCE=1 just staging-down [profiles...]'."
-        exit 1
-    fi
-    {{ staging_compose }} $flags down
+    @bash scripts/deploy_ops.sh stack staging down {{ PROFILES }}
 
-# Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: migrations)
+# Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
 staging-build *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="--profile migrations"
-    for p in {{ PROFILES }}; do
-        case "$p" in
-            migrations) flags+=" --profile $p" ;;
-            *)
-                echo "Unknown profile '$p' for the staging stack."
-                echo "Allowed profiles: migrations"
-                exit 1
-                ;;
-        esac
-    done
-    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
-    {{ staging_compose }} $flags build $nc
+    @bash scripts/deploy_ops.sh stack staging build {{ PROFILES }}
 
 # Tail staging logs
 staging-logs:
-    {{ staging_compose }} logs -f
+    @bash scripts/deploy_ops.sh stack staging logs
 
 # Run database migrations and seed dummy data (staging)
 staging-migrate confirm='':
-    @just _require-confirm "run staging database migrations" "just staging-migrate YES" "FORCE=1 just staging-migrate" "{{ confirm }}"
-    {{ staging_compose }} --profile migrations up migrator
+    @bash scripts/deploy_ops.sh stack staging migrate "{{ confirm }}"
 
 # ============================================================================
 # Docker: Test / CI
