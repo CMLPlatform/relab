@@ -1,9 +1,9 @@
-import { openURL } from 'expo-linking';
 import { View } from 'react-native';
 import { Icon, Switch } from 'react-native-paper';
 import { Text } from '@/components/base/Text';
 import { createProfileSectionStyles } from '@/components/profile/sections/styles';
 import { DOCS_URL } from '@/config';
+import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import { ProfileAction, ProfileSectionHeader } from './shared';
 
@@ -44,7 +44,11 @@ export function ProfileIntegrationsSection({
               Capture images with a Raspberry Pi camera during disassembly.{' '}
               <Text
                 style={styles.docsLink}
-                onPress={() => openURL(`${DOCS_URL}/user-guides/rpi-cam`)}
+                onPress={() => {
+                  if (DOCS_URL) {
+                    void openExternalUrl(new URL('/user-guides/rpi-cam', DOCS_URL).toString());
+                  }
+                }}
               >
                 Learn more
               </Text>

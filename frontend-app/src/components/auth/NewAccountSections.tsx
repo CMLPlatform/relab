@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import { WEBSITE_URL } from '@/config';
 import type { NewAccountFormValues } from '@/services/api/validation/userSchema';
+import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 
 const styles = StyleSheet.create({
@@ -96,7 +97,7 @@ type SharedStepProps = {
 
 export function PrivacyPolicy() {
   const theme = useAppTheme();
-  const url = WEBSITE_URL ? `${WEBSITE_URL}/privacy` : '/privacy';
+  const url = WEBSITE_URL ? new URL('/privacy', WEBSITE_URL).toString() : '';
   const textColor = theme.colors.onBackground;
 
   return (
@@ -104,7 +105,9 @@ export function PrivacyPolicy() {
       By creating an account, you agree to our{' '}
       <Text
         style={[styles.privacyLink, { color: textColor }]}
-        onPress={() => Linking.openURL(url)}
+        onPress={() => {
+          if (url) void openExternalUrl(url);
+        }}
         accessibilityRole="link"
       >
         Privacy Policy
