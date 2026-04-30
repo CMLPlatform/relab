@@ -15,8 +15,22 @@ import Layout from '@/layouts/Layout.astro';
         privacyContent.sections.map((section) => (
           <article class="card stack-sm">
             <h2>{section.title}</h2>
-            {section.paragraphs?.map((paragraph) => <p>{paragraph}</p>)}
-            {section.htmlParagraphs?.map((paragraph) => <p set:html={paragraph}></p>)}
+            {section.paragraphs.map((paragraph) =>
+              typeof paragraph === 'string' ? (
+                <p>{paragraph}</p>
+              ) : (
+                <p>
+                  <strong>{paragraph.label}:</strong>{' '}
+                  {paragraph.link ? (
+                    <>
+                      <a href={paragraph.link.href}>{paragraph.link.text}</a> {paragraph.text}
+                    </>
+                  ) : (
+                    paragraph.text
+                  )}
+                </p>
+              ),
+            )}
           </article>
         ))
       }

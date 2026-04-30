@@ -85,4 +85,18 @@ describe('readPublicSiteConfig', () => {
       'Missing required public env var: PUBLIC_APP_URL',
     );
   });
+
+  it('rejects non-http public URL configuration', () => {
+    expect(() =>
+      readPublicSiteConfig(publicEnv([['PUBLIC_APP_URL', 'javascript:alert(1)']])),
+    ).toThrow('PUBLIC_APP_URL must be an http(s) URL');
+    expect(() =>
+      readPublicSiteConfig(publicEnv([['PUBLIC_DOCS_URL', 'mailto:team@example.com']])),
+    ).toThrow('PUBLIC_DOCS_URL must be an http(s) URL');
+    expect(() =>
+      readPublicSiteConfig(
+        publicEnv([['PUBLIC_LINKEDIN_URL', 'data:text/html,<script>alert(1)</script>']]),
+      ),
+    ).toThrow('PUBLIC_LINKEDIN_URL must be an http(s) URL');
+  });
 });

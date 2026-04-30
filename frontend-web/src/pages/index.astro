@@ -1,22 +1,15 @@
 ---
 import Hero from '@/components/Hero.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
-import { buildHomeStructuredData, siteLinks, siteMeta } from '@/content/site-meta.ts';
+import { siteLinks, siteMeta } from '@/content/site-meta.ts';
 import Layout from '@/layouts/Layout.astro';
 
 const publicSiteConfig = getPublicSiteConfig();
-const structuredData = buildHomeStructuredData({
-  appUrl: publicSiteConfig.appUrl,
-  docsUrl: publicSiteConfig.docsUrl,
-  linkedInUrl: publicSiteConfig.linkedInUrl,
-  siteUrl: publicSiteConfig.siteUrl,
-});
 ---
 
 <Layout
   title="RELab | Reverse engineering platform for product data and disassembly records"
   description={siteMeta.defaultDescription}
-  structuredData={structuredData}
 >
   <Hero
     appUrl={publicSiteConfig.appUrl}
