@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.common.models.base import Base, TimeStampMixinBare
+from app.core.crypto.sqlalchemy import EncryptedString
 
 if TYPE_CHECKING:
     from app.api.auth.models import User
@@ -111,7 +112,7 @@ class RecordingSession(TimeStampMixinBare, Base):
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
     stream_url: Mapped[str] = mapped_column(String, nullable=False)
-    broadcast_key: Mapped[str] = mapped_column(String, nullable=False)
+    broadcast_key: Mapped[str] = mapped_column(EncryptedString(), nullable=False)
     video_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
 
     camera: Mapped[Camera] = relationship(

@@ -12,12 +12,13 @@ from pydantic_core import ValidationError
 from sqlalchemy.engine import make_url
 
 from app.api.auth.config import AuthSettings
-from app.api.plugins.rpi_cam.config import RPiCamSettings
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
 from app.core.env import get_env_file
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
 
 class TestCoreSettingsCors:
@@ -44,6 +45,7 @@ class TestCoreSettingsCors:
             redis_password=SecretStr("test-password"),
             superuser_password=SecretStr("test-password"),
             superuser_email="test@example.com",
+            data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
         )
 
         assert settings.allowed_origins == [
@@ -68,6 +70,7 @@ class TestCoreSettingsCors:
             redis_password=SecretStr("test-password"),
             superuser_password=SecretStr("test-password"),
             superuser_email="test@example.com",
+            data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
         )
 
         assert settings.allowed_hosts == [
@@ -87,6 +90,7 @@ class TestCoreSettingsCors:
                 redis_password=SecretStr("test-password"),
                 superuser_password=SecretStr("test-password"),
                 superuser_email="test@example.com",
+                data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
             )
 
     def test_production_requires_non_default_secrets(self) -> None:
@@ -151,6 +155,7 @@ class TestCoreSettingsCors:
             redis_password=SecretStr("test-password"),
             superuser_password=SecretStr("test-password"),
             superuser_email="test@example.com",
+            data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
         )
         assert settings.async_database_connect_args == {"ssl": True}
 
@@ -166,6 +171,7 @@ class TestCoreSettingsCors:
                 redis_password=SecretStr("test-password"),
                 superuser_password=SecretStr("test-password"),
                 superuser_email="test@example.com",
+                data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
             )
 
     def test_otel_enabled_tracks_endpoint(self) -> None:
@@ -199,11 +205,6 @@ class TestModuleSettingsValidation:
                 email_from="",
                 email_reply_to="",
             )
-
-    def test_rpi_cam_secret_must_be_valid_fernet_key(self) -> None:
-        """Plugin secret should be validated as a Fernet key when provided."""
-        with pytest.raises(ValidationError):
-            RPiCamSettings(environment=Environment.DEV, rpi_cam_plugin_secret="not-a-fernet-key")
 
 
 class TestGetEnvFile:

@@ -89,9 +89,7 @@ Staging follows the same pattern with the staging env files and `staging-*` reci
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
 
-The backend uses `DATA_ENCRYPTION_KEYS` only for reversible sensitive values it must recover later, currently OAuth provider tokens and active YouTube broadcast keys. Keep those keys in the host runtime environment, not in committed files.
-
-For rotation, prepend a new key to `DATA_ENCRYPTION_KEYS`, deploy, run `just reencrypt-sensitive-fields` from `backend/`, and keep retired keys until old backups no longer need online decryption.
+The backend uses `DATA_ENCRYPTION_KEYS` only for reversible sensitive values it must recover later, currently OAuth provider tokens and active YouTube broadcast keys. Keep those keys in the host runtime environment, not in committed files. If key rotation becomes operationally necessary after production launch, add a focused re-encryption task then.
 
 If a real secret is exposed outside the intended host, rotate it and treat existing encrypted backups as still depending on the old key until the backup retention window passes.
 
