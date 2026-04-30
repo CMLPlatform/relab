@@ -16,7 +16,7 @@ from app.api.auth.models import User
 from app.api.auth.schemas import UserCreate, UserUpdate
 from app.api.auth.services import refresh_token_service
 from app.api.auth.services.auth_backends import build_authentication_backends
-from app.api.auth.services.emails import (
+from app.api.auth.services.email import (
     send_post_verification_email,
     send_reset_password_email,
     send_verification_email,

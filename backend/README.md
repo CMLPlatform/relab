@@ -60,7 +60,7 @@ The Raspberry Pi camera integration has two intentional contract layers:
 
 Frontend code should keep consuming backend-generated OpenAPI types rather than importing private device-seam DTOs directly.
 
-## Email Templates
+## Email Delivery
 
 Transactional email templates are authored as MJML in [app/templates/emails/src/](app/templates/emails/src/) and compiled to committed HTML templates in [app/templates/emails/build/](app/templates/emails/build/):
 
@@ -68,7 +68,41 @@ Transactional email templates are authored as MJML in [app/templates/emails/src/
 just compile-email
 ```
 
-Runtime code should send mail through `app/api/auth/services/emails.py` so template names and context payloads stay typed in one place. Recurring newsletter delivery is not part of the runtime API; add it back only with a real sender workflow, unsubscribe handling, and preference-center support.
+Runtime code should send mail through `app/api/auth/services/email/`. Templates are rendered once before provider dispatch, so SMTP and Microsoft Graph receive the same internal message shape.
+
+### Google SMTP / Workspace SMTP Relay
+
+Use the default provider:
+
+```env
+EMAIL_PROVIDER=smtp
+EMAIL_HOST=smtp.gmail.com
+EMAIL_USERNAME=sender@example.com
+EMAIL_PASSWORD=app-password-or-relay-secret
+EMAIL_FROM=Reverse Engineering Lab <sender@example.com>
+EMAIL_REPLY_TO=relab@example.com
+```
+
+For a personal/free Google account, use an app password when available. For Workspace, prefer the Workspace SMTP relay when the domain policy allows it. Keep SPF, DKIM, and DMARC aligned for the sending domain. Google references: [send email with SMTP](https://support.google.com/a/answer/176600) and [email authentication](https://support.google.com/a/answer/10583557).
+
+### Microsoft Entra + Graph
+
+Use Graph when sending from a Microsoft 365 mailbox:
+
+```env
+EMAIL_PROVIDER=microsoft_graph
+EMAIL_FROM=Reverse Engineering Lab <relab@example.edu>
+EMAIL_REPLY_TO=relab@example.edu
+MICROSOFT_GRAPH_TENANT_ID=00000000-0000-0000-0000-000000000000
+MICROSOFT_GRAPH_CLIENT_ID=00000000-0000-0000-0000-000000000000
+MICROSOFT_GRAPH_CLIENT_SECRET=...
+MICROSOFT_GRAPH_SENDER_USER=relab@example.edu
+MICROSOFT_GRAPH_SAVE_TO_SENT_ITEMS=false
+```
+
+Create a dedicated mailbox, register an Entra app, grant Microsoft Graph application permission `Mail.Send`, and restrict the app to that mailbox with an application access policy before production use. Microsoft references: [send mail with Graph](https://learn.microsoft.com/en-us/graph/api/user-sendmail), [client credentials](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow), and [application access policies](https://learn.microsoft.com/en-us/graph/auth-limit-mailbox-access).
+
+Recurring newsletter delivery is not part of the runtime API; add it back only with a real sender workflow, unsubscribe handling, and preference-center support.
 
 ## More
 
