@@ -1,10 +1,8 @@
 """Authentication backend and transport wiring."""
 
-import ipaddress
 from typing import cast
-from urllib.parse import urlparse
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -25,31 +23,51 @@ ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 SECRET: SecretStr = auth_settings.fastapi_users_secret
 
 
-def build_cookie_domain(frontend_url: str) -> str | None:
-    """Build a cookie domain from the configured frontend URL."""
-    hostname = urlparse(frontend_url).hostname or ""
-    try:
-        ipaddress.ip_address(hostname)
-    except ValueError:
-        parts = hostname.split(".")
-        return f".{'.'.join(parts[-2:])}" if len(parts) >= 2 else None
-    else:
-        return None
-
-
-# Shared cookie scope. Any endpoint that sets or deletes the ``auth`` or
-# ``refresh_token`` cookies must pass the same ``domain`` (and ``path``) so
-# the browser treats them as the same storage slot — setting with one scope
-# and deleting without produces orphaned cookies that survive logout.
-COOKIE_DOMAIN: str | None = build_cookie_domain(str(core_settings.frontend_web_url))
+# Session cookies are host-only to avoid exposing credentials to sibling subdomains.
+COOKIE_DOMAIN: str | None = None
 COOKIE_PATH: str = "/"
+AUTH_COOKIE_NAME = "auth"
+REFRESH_COOKIE_NAME = "refresh_token"
+AUTH_COOKIE_NAMES = (AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME)
 
 cookie_transport = CookieTransport(
-    cookie_name="auth",
+    cookie_name=AUTH_COOKIE_NAME,
     cookie_max_age=ACCESS_TOKEN_TTL,
     cookie_domain=COOKIE_DOMAIN,
     cookie_secure=core_settings.secure_cookies,
 )
+
+
+def set_browser_auth_cookie(response: Response, *, key: str, value: str, max_age: int) -> None:
+    """Attach a host-only browser auth cookie."""
+    response.set_cookie(
+        key=key,
+        value=value,
+        max_age=max_age,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+        httponly=True,
+        secure=core_settings.secure_cookies,
+        samesite="lax",
+    )
+
+
+def _delete_cookie(response: Response, name: str, domain: str | None) -> None:
+    response.delete_cookie(
+        name,
+        path=COOKIE_PATH,
+        domain=domain,
+        secure=core_settings.secure_cookies,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+def clear_auth_cookies(response: Response) -> None:
+    """Delete browser auth cookies from the current scope."""
+    for name in AUTH_COOKIE_NAMES:
+        _delete_cookie(response, name, COOKIE_DOMAIN)
+
 
 bearer_transport = BearerTransport(tokenUrl="auth/login")
 

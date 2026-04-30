@@ -14,9 +14,13 @@ from app.api.auth.schemas import (
     RefreshTokenResponse,
 )
 from app.api.auth.services import refresh_token_service
-from app.api.auth.services.auth_backends import COOKIE_DOMAIN, COOKIE_PATH
+from app.api.auth.services.auth_backends import (
+    AUTH_COOKIE_NAME,
+    REFRESH_COOKIE_NAME,
+    clear_auth_cookies,
+    set_browser_auth_cookie,
+)
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
-from app.core.config import settings as core_settings
 from app.core.redis import OptionalRedisDep
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
@@ -96,25 +100,17 @@ async def refresh_access_token_cookie(
     # Generate new access token and set cookie
     access_token = await strategy.write_token(user)
     new_refresh_token = await refresh_token_service.rotate_refresh_token(redis, refresh_token)
-    response.set_cookie(
-        key="auth",
+    set_browser_auth_cookie(
+        response,
+        key=AUTH_COOKIE_NAME,
         value=access_token,
         max_age=auth_settings.access_token_ttl_seconds,
-        path=COOKIE_PATH,
-        domain=COOKIE_DOMAIN,
-        httponly=True,
-        secure=core_settings.secure_cookies,
-        samesite="lax",
     )
-    response.set_cookie(
-        key="refresh_token",
+    set_browser_auth_cookie(
+        response,
+        key=REFRESH_COOKIE_NAME,
         value=new_refresh_token,
         max_age=auth_settings.refresh_token_expire_days * 86_400,
-        path=COOKIE_PATH,
-        domain=COOKIE_DOMAIN,
-        httponly=True,
-        secure=core_settings.secure_cookies,
-        samesite="lax",
     )
 
 
@@ -145,22 +141,7 @@ async def logout(
     # 2. Clear cookies — must pass the same path + domain used at set time,
     # otherwise the browser treats the deletion as a different cookie scope
     # and the original cookie survives logout (RFC 6265).
-    response.delete_cookie(
-        "auth",
-        path=COOKIE_PATH,
-        domain=COOKIE_DOMAIN,
-        secure=core_settings.secure_cookies,
-        httponly=True,
-        samesite="lax",
-    )
-    response.delete_cookie(
-        "refresh_token",
-        path=COOKIE_PATH,
-        domain=COOKIE_DOMAIN,
-        secure=core_settings.secure_cookies,
-        httponly=True,
-        samesite="lax",
-    )
+    clear_auth_cookies(response)
 
     # 3. Blacklist refresh token
     if cookie_refresh_token:
