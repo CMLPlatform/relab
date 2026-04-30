@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request, status
-from loguru import logger
 from pydantic import ValidationError
 
 from app.api.auth.services.rate_limiter import RateLimitExceededError, rate_limit_exceeded_handler
@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     from starlette.responses import Response
 
 ### Generic exception handlers ###
+
+logger = logging.getLogger(__name__)
 
 
 def create_exception_handler(
@@ -41,11 +43,16 @@ def create_exception_handler(
 
         # Log based on status code severity. Can be made more granular if needed.
         if status_code >= 500:
-            logger.opt(exception=True).error(f"{exc.__class__.__name__}: {log_message}")
+            logger.error(
+                "%s: %s",
+                exc.__class__.__name__,
+                log_message,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )  # FastAPI gives handlers the exception object outside an except block.
         elif status_code >= 400 and status_code != 404:
-            logger.warning(f"{exc.__class__.__name__}: {log_message}")
+            logger.warning("%s: %s", exc.__class__.__name__, log_message)
         else:
-            logger.info(f"{exc.__class__.__name__}: {log_message}")
+            logger.info("%s: %s", exc.__class__.__name__, log_message)
 
         return build_problem_response(
             request=request,

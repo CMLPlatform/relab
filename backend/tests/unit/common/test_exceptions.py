@@ -54,20 +54,23 @@ class TestCreateExceptionHandler:
         assert body["errors"] == "field value is wrong"
 
     async def test_server_error_logs_at_error_level(self) -> None:
-        """Test that 5xx errors are logged with opt(exception=True).error (line 37)."""
+        """Test that 5xx errors are logged with exception information."""
         handler = create_exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)
         mock_request = MagicMock()
         mock_request.state.request_id = "req-500"
         exc = RuntimeError("Something broke")
 
         mock_logger = MagicMock()
-        mock_logger.opt.return_value = mock_logger
         with patch("app.api.common.routers.exceptions.logger", mock_logger):
             response = await handler(mock_request, exc)
 
         assert response.status_code == 500
-        mock_logger.opt.assert_called_once_with(exception=True)
-        mock_logger.error.assert_called_once()
+        mock_logger.error.assert_called_once_with(
+            "%s: %s",
+            "RuntimeError",
+            "Something broke",
+            exc_info=(RuntimeError, exc, exc.__traceback__),
+        )
 
         body = json.loads(bytes(response.body))
         assert body["detail"] == "Internal server error"
@@ -95,13 +98,17 @@ class TestCreateExceptionHandler:
         exc = InternalServerError(log_message="Database invariant failed for category link")
 
         mock_logger = MagicMock()
-        mock_logger.opt.return_value = mock_logger
         with patch("app.api.common.routers.exceptions.logger", mock_logger):
             response = await handler(mock_request, exc)
 
         body = json.loads(bytes(response.body))
         assert body["detail"] == "Internal server error"
-        mock_logger.error.assert_called_once_with("InternalServerError: Database invariant failed for category link")
+        mock_logger.error.assert_called_once_with(
+            "%s: %s",
+            "InternalServerError",
+            "Database invariant failed for category link",
+            exc_info=(InternalServerError, exc, exc.__traceback__),
+        )
 
 
 class TestRateLimitExceededHandler:

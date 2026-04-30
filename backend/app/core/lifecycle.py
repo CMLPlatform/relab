@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 import anyio
 from fastapi import FastAPI
 from httpx import CloseError
-from loguru import logger as structured_logger
 
 from app.api.auth.services.email_checker import init_email_checker
 from app.api.common.routers.file_mounts import mount_static_directories, register_favicon_route
@@ -95,7 +94,7 @@ async def initialize_runtime_services(app: FastAPI) -> AppServices:
     await _initialize_camera_services(services)
     await _initialize_storage_services(app, services)
     _initialize_http_and_observability(app, services)
-    structured_logger.info("Application services initialized")
+    logger.info("Application services initialized")
     return services
 
 
