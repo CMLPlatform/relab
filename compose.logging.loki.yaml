@@ -40,9 +40,9 @@ services:
     logging: *loki-logging
   postgres:
     logging: *loki-logging
-  docs-site:
+  docs:
     logging: *loki-logging
-  app-site:
+  app:
     logging: *loki-logging
-  web-site:
+  www:
     logging: *loki-logging

@@ -90,7 +90,7 @@
       "automerge": false
     },
     {
-      "groupName": "docs-site-runtime-tooling",
+      "groupName": "docs-runtime-tooling",
       "matchFileNames": [
         "docs/package.json",
         "docs/pnpm-lock.yaml",
@@ -99,27 +99,27 @@
       "automerge": false
     },
     {
-      "groupName": "frontend-web-runtime-tooling",
+      "groupName": "www-runtime-tooling",
       "matchFileNames": [
-        "frontend-web/package.json",
-        "frontend-web/pnpm-lock.yaml",
-        "frontend-web/Dockerfile*"
+        "www/package.json",
+        "www/pnpm-lock.yaml",
+        "www/Dockerfile*"
       ],
       "automerge": false
     },
     {
-      "groupName": "frontend-app-runtime-tooling",
+      "groupName": "app-runtime-tooling",
       "matchFileNames": [
-        "frontend-app/package.json",
-        "frontend-app/pnpm-lock.yaml",
-        "frontend-app/Dockerfile*"
+        "app/package.json",
+        "app/pnpm-lock.yaml",
+        "app/Dockerfile*"
       ],
       "automerge": false
     },
     {
       "matchFileNames": [
-        "frontend-app/package.json",
-        "frontend-app/pnpm-lock.yaml"
+        "app/package.json",
+        "app/pnpm-lock.yaml"
       ],
       "matchPackageNames": [
         "expo",
@@ -161,8 +161,8 @@
       "matchFileNames": [
         "pnpm-lock.yaml",
         "docs/pnpm-lock.yaml",
-        "frontend-web/pnpm-lock.yaml",
-        "frontend-app/pnpm-lock.yaml"
+        "www/pnpm-lock.yaml",
+        "app/pnpm-lock.yaml"
       ],
       "automerge": false
     },

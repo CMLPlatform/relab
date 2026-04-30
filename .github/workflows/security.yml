@@ -51,8 +51,8 @@ jobs:
           SHARED: ${{ steps.detect.outputs.shared }}
           BACKEND: ${{ steps.detect.outputs.backend }}
           DOCS: ${{ steps.detect.outputs.docs }}
-          FRONTEND_APP: ${{ steps.detect.outputs.frontend-app }}
-          FRONTEND_WEB: ${{ steps.detect.outputs.frontend-web }}
+          APP: ${{ steps.detect.outputs.app }}
+          WWW: ${{ steps.detect.outputs.www }}
           CONTAINERS: ${{ steps.detect.outputs.containers }}
         run: |
           # Scheduled or manual runs scan every runtime image and emit SBOMs.
@@ -70,11 +70,11 @@ jobs:
           [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
             include_entries+=('{"service":"relab-backup","context":"./backend","dockerfile":"./backend/Dockerfile.backups","image_ref":"relab-backup:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && \
-            include_entries+=('{"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab-docs:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$FRONTEND_APP" == "true" ]] && \
-            include_entries+=('{"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab-frontend-app:${{ github.sha }}"}')
-          [[ "$shared_trigger" == "true" || "$FRONTEND_WEB" == "true" ]] && \
-            include_entries+=('{"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab-frontend-web:${{ github.sha }}"}')
+            include_entries+=('{"service":"docs","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab-docs:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$APP" == "true" ]] && \
+            include_entries+=('{"service":"app","context":"./app","dockerfile":"./app/Dockerfile","image_ref":"relab-app:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$WWW" == "true" ]] && \
+            include_entries+=('{"service":"www","context":"./www","dockerfile":"./www/Dockerfile","image_ref":"relab-www:${{ github.sha }}"}')
 
           if ((${#include_entries[@]} == 0)); then
             echo "run-container-images=false" >> "$GITHUB_OUTPUT"

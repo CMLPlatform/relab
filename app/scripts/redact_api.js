@@ -18,7 +18,7 @@
   - Only writes the file if a change was made.
 
   Usage:
-    # from frontend-app
+    # from app
     pnpm run codegen:api:redact
     # or directly
     node scripts/redact_api.js
@@ -33,12 +33,12 @@ async function main() {
   // Try common locations relative to the current working directory.
   const candidates = [
     path.resolve('src', 'types', 'api.generated.ts'),
-    path.resolve('frontend-app', 'src', 'types', 'api.generated.ts'),
+    path.resolve('app', 'src', 'types', 'api.generated.ts'),
   ];
 
   const file = candidates.find((p) => fs.existsSync(p));
   if (!file) {
-    console.error('api.generated.ts not found. Run this from frontend-app or repo root.');
+    console.error('api.generated.ts not found. Run this from app or repo root.');
     process.exit(2);
   }
 

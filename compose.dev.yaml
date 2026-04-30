@@ -45,7 +45,7 @@ services:
   migrator:
     env_file: ./backend/.env.dev
 
-  docs-site:
+  docs:
     build:
       context: ./docs
       dockerfile: Dockerfile
@@ -95,7 +95,7 @@ services:
         - action: rebuild
           path: ./docs/package.json
 
-  app-site:
+  app:
     build:
       dockerfile: Dockerfile
       target: dev
@@ -107,50 +107,50 @@ services:
       EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
     develop:
       watch:
-        # Avoid watching the whole frontend-app tree. Recursive watches can walk
+        # Avoid watching the whole app tree. Recursive watches can walk
         # into large dependency/cache directories on the host and exhaust inotify.
         - action: sync
-          path: ./frontend-app/src
-          target: /opt/relab/frontend-app/src
+          path: ./app/src
+          target: /opt/relab/app/src
         - action: sync
-          path: ./frontend-app/config
-          target: /opt/relab/frontend-app/config
+          path: ./app/config
+          target: /opt/relab/app/config
         - action: sync
-          path: ./frontend-app/scripts
-          target: /opt/relab/frontend-app/scripts
+          path: ./app/scripts
+          target: /opt/relab/app/scripts
         - action: sync
-          path: ./frontend-app/app.json
-          target: /opt/relab/frontend-app/app.json
+          path: ./app/app.json
+          target: /opt/relab/app/app.json
         - action: sync
-          path: ./frontend-app/babel.config.js
-          target: /opt/relab/frontend-app/babel.config.js
+          path: ./app/babel.config.js
+          target: /opt/relab/app/babel.config.js
         - action: sync
-          path: ./frontend-app/biome.jsonc
-          target: /opt/relab/frontend-app/biome.jsonc
+          path: ./app/biome.jsonc
+          target: /opt/relab/app/biome.jsonc
         - action: sync
-          path: ./frontend-app/eslint.config.mjs
-          target: /opt/relab/frontend-app/eslint.config.mjs
+          path: ./app/eslint.config.mjs
+          target: /opt/relab/app/eslint.config.mjs
         - action: sync
-          path: ./frontend-app/expo-env.d.ts
-          target: /opt/relab/frontend-app/expo-env.d.ts
+          path: ./app/expo-env.d.ts
+          target: /opt/relab/app/expo-env.d.ts
         - action: sync
-          path: ./frontend-app/jest.config.cjs
-          target: /opt/relab/frontend-app/jest.config.cjs
+          path: ./app/jest.config.cjs
+          target: /opt/relab/app/jest.config.cjs
         - action: sync
-          path: ./frontend-app/playwright.config.ts
-          target: /opt/relab/frontend-app/playwright.config.ts
+          path: ./app/playwright.config.ts
+          target: /opt/relab/app/playwright.config.ts
         - action: sync
-          path: ./frontend-app/README.md
-          target: /opt/relab/frontend-app/README.md
+          path: ./app/README.md
+          target: /opt/relab/app/README.md
         - action: sync
-          path: ./frontend-app/tsconfig.json
-          target: /opt/relab/frontend-app/tsconfig.json
+          path: ./app/tsconfig.json
+          target: /opt/relab/app/tsconfig.json
         - action: rebuild
-          path: ./frontend-app/pnpm-lock.yaml
+          path: ./app/pnpm-lock.yaml
         - action: rebuild
-          path: ./frontend-app/package.json
+          path: ./app/package.json
 
-  web-site:
+  www:
     build:
       dockerfile: Dockerfile
       target: dev
@@ -164,33 +164,33 @@ services:
       watch:
         # Same rule here: explicit source/config syncs only, rebuild for deps.
         - action: sync
-          path: ./frontend-web/src
-          target: /opt/relab/frontend-web/src
+          path: ./www/src
+          target: /opt/relab/www/src
         - action: sync
-          path: ./frontend-web/public
-          target: /opt/relab/frontend-web/public
+          path: ./www/public
+          target: /opt/relab/www/public
         - action: sync
-          path: ./frontend-web/config
-          target: /opt/relab/frontend-web/config
+          path: ./www/config
+          target: /opt/relab/www/config
         - action: sync
-          path: ./frontend-web/astro.config.ts
-          target: /opt/relab/frontend-web/astro.config.ts
+          path: ./www/astro.config.ts
+          target: /opt/relab/www/astro.config.ts
         - action: sync
-          path: ./frontend-web/biome.jsonc
-          target: /opt/relab/frontend-web/biome.jsonc
+          path: ./www/biome.jsonc
+          target: /opt/relab/www/biome.jsonc
         - action: sync
-          path: ./frontend-web/Caddyfile
-          target: /opt/relab/frontend-web/Caddyfile
+          path: ./www/Caddyfile
+          target: /opt/relab/www/Caddyfile
         - action: sync
-          path: ./frontend-web/playwright.config.ts
-          target: /opt/relab/frontend-web/playwright.config.ts
+          path: ./www/playwright.config.ts
+          target: /opt/relab/www/playwright.config.ts
         - action: sync
-          path: ./frontend-web/README.md
-          target: /opt/relab/frontend-web/README.md
+          path: ./www/README.md
+          target: /opt/relab/www/README.md
         - action: sync
-          path: ./frontend-web/tsconfig.json
-          target: /opt/relab/frontend-web/tsconfig.json
+          path: ./www/tsconfig.json
+          target: /opt/relab/www/tsconfig.json
         - action: rebuild
-          path: ./frontend-web/pnpm-lock.yaml
+          path: ./www/pnpm-lock.yaml
         - action: rebuild
-          path: ./frontend-web/package.json
+          path: ./www/package.json

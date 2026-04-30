@@ -31,13 +31,13 @@ backend:
   - 'compose*.yml'
   - 'compose*.yaml'
 
-frontend-web:
-  - 'frontend-web/**'
+www:
+  - 'www/**'
   - 'compose*.yml'
   - 'compose*.yaml'
 
-frontend-app:
-  - 'frontend-app/**'
+app:
+  - 'app/**'
   - 'compose*.yml'
   - 'compose*.yaml'
 
@@ -52,5 +52,5 @@ containers:
   - '**/Dockerfile*'
   - 'backend/uv.lock'
   - 'docs/pnpm-lock.yaml'
-  - 'frontend-app/pnpm-lock.yaml'
-  - 'frontend-web/pnpm-lock.yaml'
+  - 'app/pnpm-lock.yaml'
+  - 'www/pnpm-lock.yaml'

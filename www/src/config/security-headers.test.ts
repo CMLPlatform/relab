@@ -38,7 +38,7 @@ function cspDirective(policy: string, directive: string) {
 
 describe('Caddy security headers', () => {
   it.each([
-    ['frontend-web', readCaddyfile('../../Caddyfile')],
+    ['www', readCaddyfile('../../Caddyfile')],
     ['docs', readCaddyfile('../../../docs/Caddyfile')],
   ])('%s enforces the OWASP baseline CSP directives', (_name, caddyfile) => {
     const policy = enforcedCsp(caddyfile);
@@ -51,7 +51,7 @@ describe('Caddy security headers', () => {
   });
 
   it.each([
-    ['frontend-web', readCaddyfile('../../Caddyfile'), false],
+    ['www', readCaddyfile('../../Caddyfile'), false],
     ['docs', readCaddyfile('../../../docs/Caddyfile'), true],
   ])('%s has the expected inline-script enforcement posture', (_name, caddyfile, allowsInline) => {
     const scriptPolicy = cspDirective(enforcedCsp(caddyfile), 'script-src');
@@ -74,7 +74,7 @@ describe('Caddy security headers', () => {
   });
 
   it.each([
-    ['frontend-web', readCaddyfile('../../Caddyfile')],
+    ['www', readCaddyfile('../../Caddyfile')],
     ['docs', readCaddyfile('../../../docs/Caddyfile')],
   ])('%s does not allow wildcard scripts or javascript URLs', (_name, caddyfile) => {
     const enforced = enforcedCsp(caddyfile);

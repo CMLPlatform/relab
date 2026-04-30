@@ -3,7 +3,7 @@
   "source": [
     "package.json",
     "docs/package.json",
-    "frontend-web/package.json",
-    "frontend-app/package.json"
+    "www/package.json",
+    "app/package.json"
   ]
 }

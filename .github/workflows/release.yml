@@ -60,18 +60,18 @@ jobs:
             context: ./backend
             dockerfile: ./backend/Dockerfile.backups
             image_ref: relab-backup:${{ github.sha }}
-          - service: docs-site
+          - service: docs
             context: ./docs
             dockerfile: ./docs/Dockerfile
             image_ref: relab-docs:${{ github.sha }}
-          - service: app-site
-            context: ./frontend-app
-            dockerfile: ./frontend-app/Dockerfile
-            image_ref: relab-frontend-app:${{ github.sha }}
-          - service: web-site
-            context: ./frontend-web
-            dockerfile: ./frontend-web/Dockerfile
-            image_ref: relab-frontend-web:${{ github.sha }}
+          - service: app
+            context: ./app
+            dockerfile: ./app/Dockerfile
+            image_ref: relab-app:${{ github.sha }}
+          - service: www
+            context: ./www
+            dockerfile: ./www/Dockerfile
+            image_ref: relab-www:${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

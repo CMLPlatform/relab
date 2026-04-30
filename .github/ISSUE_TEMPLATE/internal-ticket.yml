@@ -9,8 +9,8 @@ body:
       label: Area
       options:
         - backend
-        - frontend-web
-        - frontend-app
+        - www
+        - app
         - docs
         - infrastructure
         - cross-cutting

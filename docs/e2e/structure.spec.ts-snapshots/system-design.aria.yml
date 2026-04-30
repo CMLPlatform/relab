@@ -44,10 +44,10 @@
       - code: backend/
       - text: ": main API, persistence, auth, file handling, and plugin integration"
     - listitem:
-      - code: frontend-app/
+      - code: app/
       - text: ": authenticated mobile-first data collection client built with Expo Router"
     - listitem:
-      - code: frontend-web/
+      - code: www/
       - text: ": landing page built with Astro"
     - listitem:
       - code: docs/
