@@ -165,6 +165,32 @@ describe('productSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it.each([
+    ['root-relative upload path', '/uploads/images/example.jpg'],
+    ['file picker URI', 'file:///data/user/0/app/cache/image.jpg'],
+    ['content picker URI', 'content://media/external/images/1'],
+    ['web object URL', 'blob:http://localhost/image'],
+  ])('accepts an image with a safe %s', (_name, url) => {
+    const result = productSchema.safeParse({
+      ...validBase,
+      images: [{ url, description: 'Cover' }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    ['javascript URL', 'javascript:alert(1)'],
+    ['data URL', 'data:text/html,<script>alert(1)</script>'],
+    ['protocol-relative URL', '//evil.example/image.jpg'],
+    ['malformed URL', 'https://'],
+  ])('rejects an image with a %s', (_name, url) => {
+    const result = productSchema.safeParse({
+      ...validBase,
+      images: [{ url, description: 'Cover' }],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('extractYouTubeVideoId', () => {

@@ -28,9 +28,20 @@ describe('resolveApiMediaUrl', () => {
     expect(resolveApiMediaUrl('http://cdn.test/img.jpg')).toBe('http://cdn.test/img.jpg');
   });
 
-  it('passes through data: URIs unchanged', () => {
-    const dataUri = 'data:image/png;base64,abc123';
-    expect(resolveApiMediaUrl(dataUri)).toBe(dataUri);
+  it.each([
+    'javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    '//evil.example/a.png',
+  ])('rejects unsafe image URI %s', (uri) => {
+    expect(resolveApiMediaUrl(uri)).toBeUndefined();
+  });
+
+  it.each([
+    'blob:http://localhost/abc',
+    'file:///data/image.jpg',
+    'content://media/image/1',
+  ])('passes through local image URI %s unchanged', (uri) => {
+    expect(resolveApiMediaUrl(uri)).toBe(uri);
   });
 
   it('prepends the API base URL to root-relative paths', () => {
@@ -95,15 +106,8 @@ describe('getResizedImageUrl', () => {
     expect(result).toBe('file:///data/image.jpg');
   });
 
-  it('returns resolved original URL for data: URI (no resize)', () => {
-    const dataUri = 'data:image/png;base64,abc';
-    const result = getResizedImageUrl(dataUri, '5', 400);
-    expect(result).toBe(dataUri);
-  });
-
-  it('falls back to imageUrl when resolveApiMediaUrl returns undefined', () => {
-    // Pass an http URL so it passes through resolve unchanged
-    const result = getResizedImageUrl('https://cdn.example.com/img.jpg', undefined, 200);
-    expect(result).toBe('https://cdn.example.com/img.jpg');
+  it('falls back to the placeholder when the image URL is unsafe', () => {
+    const result = getResizedImageUrl('javascript:alert(1)', '5', 400);
+    expect(result).toBe('http://localhost:8000/static/images/placeholder.png');
   });
 });
