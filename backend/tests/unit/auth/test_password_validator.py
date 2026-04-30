@@ -1,5 +1,5 @@
 """Unit tests for password validation helpers."""
-# spell-checker: ignore alicewonder, hibp, zxcvbn
+# spell-checker: ignore alicewonder, blocklisted, elevenchars, hibp
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ _STRONG = "correct-horse-battery-staple-v42"  # test fixture, not a real secret
 
 
 async def test_validate_password_accepts_strong() -> None:
-    """A strong password that meets all criteria should be accepted without exception."""
+    """A long passphrase that meets all criteria should be accepted without exception."""
     await validate_password(_STRONG, email="alice@example.com", skip_breach_check=True)
 
 
@@ -71,10 +71,10 @@ async def test_validate_password_accepts_secretstr() -> None:
 
 
 async def test_validate_password_rejects_short() -> None:
-    """The password must be at least 8 characters long."""
+    """The password must be at least 12 characters long."""
     with pytest.raises(InvalidPasswordException) as exc:
-        await validate_password("short", email="a@b.c", skip_breach_check=True)
-    assert "8 characters" in exc.value.reason
+        await validate_password("elevenchars", email="a@b.c", skip_breach_check=True)
+    assert "12 characters" in exc.value.reason
 
 
 async def test_validate_password_rejects_email_in_password() -> None:
@@ -83,6 +83,17 @@ async def test_validate_password_rejects_email_in_password() -> None:
         await validate_password(
             "prefix-alice@example.com-suffix",
             email="alice@example.com",
+            skip_breach_check=True,
+        )
+    assert "e-mail" in exc.value.reason
+
+
+async def test_validate_password_rejects_email_local_part_case_insensitively() -> None:
+    """The password must not contain the e-mail local-part."""
+    with pytest.raises(InvalidPasswordException) as exc:
+        await validate_password(
+            "prefix-ALICEWONDER-suffix",
+            email="alicewonder@example.com",
             skip_breach_check=True,
         )
     assert "e-mail" in exc.value.reason
@@ -100,11 +111,44 @@ async def test_validate_password_rejects_username_in_password() -> None:
     assert "username" in exc.value.reason
 
 
-async def test_validate_password_rejects_weak_password_with_feedback() -> None:
-    """A well-known weak password (zxcvbn score 0) must be rejected with feedback."""
+async def test_validate_password_rejects_username_case_insensitively() -> None:
+    """The username comparison should not be bypassed with case differences."""
     with pytest.raises(InvalidPasswordException) as exc:
-        await validate_password("password123", email="a@b.c", skip_breach_check=True)
-    assert "too weak" in exc.value.reason
+        await validate_password(
+            "prefix-ALICEWONDER-suffix",
+            email="a@b.c",
+            username="alicewonder",
+            skip_breach_check=True,
+        )
+    assert "username" in exc.value.reason
+
+
+async def test_validate_password_rejects_blocklisted_passwords() -> None:
+    """Common and project-specific blocklisted passwords should be rejected."""
+    for password in ("password12345", "relab-password"):
+        with pytest.raises(InvalidPasswordException) as exc:
+            await validate_password(password, email="a@b.c", skip_breach_check=True)
+        assert "too common" in exc.value.reason
+
+
+async def test_validate_password_normalizes_unicode_before_checks() -> None:
+    """NFC-equivalent values should be compared consistently."""
+    decomposed_username = "cafe\u0301"
+    with pytest.raises(InvalidPasswordException) as exc:
+        await validate_password(
+            "prefix-caf\u00e9-suffix",
+            email="a@b.c",
+            username=decomposed_username,
+            skip_breach_check=True,
+        )
+    assert "username" in exc.value.reason
+
+
+async def test_validate_password_rejects_weak_password_with_clear_reason() -> None:
+    """A well-known weak password must be rejected with a local blocklist reason."""
+    with pytest.raises(InvalidPasswordException) as exc:
+        await validate_password("password12345", email="a@b.c", skip_breach_check=True)
+    assert "too common" in exc.value.reason
 
 
 async def test_validate_password_rejects_breached() -> None:

@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.db
+VALID_TEST_PASSWORD = "correct-horse-battery-staple-v42"
 
 
 def _make_user_db(db_session: AsyncSession) -> UserDatabaseAsync:
@@ -36,7 +37,7 @@ class TestValidateUserCreate:
     async def test_returns_user_create_unchanged_when_valid(self, db_session: AsyncSession) -> None:
         """No conflicts or checks → returns the same UserCreate unchanged."""
         user_db = _make_user_db(db_session)
-        user_create = UserCreate(email="fresh@example.com", password="ValidPass1")
+        user_create = UserCreate(email="fresh@example.com", password=VALID_TEST_PASSWORD)
 
         result = await validate_user_create(user_db, user_create)
 
@@ -49,7 +50,7 @@ class TestValidateUserCreate:
         user_db = _make_user_db(db_session)
         user_create = UserCreate(
             email="second@example.com",
-            password="ValidPass1",
+            password=VALID_TEST_PASSWORD,
             username="taken_name",
         )
 
@@ -59,7 +60,7 @@ class TestValidateUserCreate:
     async def test_allows_null_username(self, db_session: AsyncSession) -> None:
         """username=None skips uniqueness check entirely."""
         user_db = _make_user_db(db_session)
-        user_create = UserCreate(email="anon@example.com", password="ValidPass1", username=None)
+        user_create = UserCreate(email="anon@example.com", password=VALID_TEST_PASSWORD, username=None)
 
         result = await validate_user_create(user_db, user_create)
 
@@ -68,7 +69,7 @@ class TestValidateUserCreate:
     async def test_raises_for_disposable_email(self, db_session: AsyncSession) -> None:
         """A disposable email flagged by the checker must raise DisposableEmailError."""
         user_db = _make_user_db(db_session)
-        user_create = UserCreate(email="burner@disposable.com", password="ValidPass1")
+        user_create = UserCreate(email="burner@disposable.com", password=VALID_TEST_PASSWORD)
 
         mock_checker = AsyncMock()
         mock_checker.is_disposable.return_value = True
@@ -79,7 +80,7 @@ class TestValidateUserCreate:
     async def test_skips_disposable_check_when_checker_is_none(self, db_session: AsyncSession) -> None:
         """No email_checker → disposable check is skipped, validation passes."""
         user_db = _make_user_db(db_session)
-        user_create = UserCreate(email="burner@disposable.com", password="ValidPass1")
+        user_create = UserCreate(email="burner@disposable.com", password=VALID_TEST_PASSWORD)
 
         result = await validate_user_create(user_db, user_create, email_checker=None)
 
@@ -90,7 +91,7 @@ class TestValidateUserCreate:
         user_db = _make_user_db(db_session)
         user_create = UserCreateWithOrganization(
             email="orgfounder@example.com",
-            password="ValidPass1",
+            password=VALID_TEST_PASSWORD,
             organization=OrganizationCreate(name="CircularTech", location="Berlin"),
         )
 

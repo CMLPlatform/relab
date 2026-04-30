@@ -92,7 +92,7 @@ test.describe('Account registration', () => {
     const unique = Date.now();
     const username = `e2e${unique}`;
     const email = `e2e-${unique}@example.com`;
-    const password = 'E2eNewPass123!';
+    const password = 'correct-horse-battery-staple-v42';
 
     await page.goto('/new-account');
 

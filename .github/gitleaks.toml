@@ -1,7 +1,7 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Global allowlist for known false positives"
 paths = [
   # Auto-generated OpenAPI types contain example JWTs from fastapi-users docs
@@ -11,4 +11,17 @@ regexTarget = "line"
 regexes = [
   # PERF_IMAGE_ID is a sample image UUID used in perf-baseline docs, not a secret
   '''PERF_IMAGE_ID=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
+]
+
+[[allowlists]]
+description = "Deliberate passphrase fixture used in password validation and auth tests"
+condition = "AND"
+paths = [
+  '''backend/tests/.*''',
+  '''frontend-app/e2e/.*''',
+  '''frontend-app/src/__tests__/.*''',
+  '''frontend-app/src/.*/__tests__/.*''',
+]
+stopwords = [
+  '''correct-horse-battery-staple-v42''',
 ]

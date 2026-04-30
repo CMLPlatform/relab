@@ -5,7 +5,7 @@ from functools import lru_cache
 from pwdlib import PasswordHash
 
 TEST_EMAIL = "newuser@example.com"
-TEST_PASSWORD = "SecurePassword123"
+TEST_PASSWORD = "correct-horse-battery-staple-v42"
 TEST_USERNAME = "newuser"
 DUPLICATE_EMAIL = "existing@example.com"
 UNIQUE_USERNAME = "uniqueuser"

@@ -33,7 +33,7 @@ const mockUseAuth = jest.fn(
 const AT_LEAST_2_PATTERN = /at least 2/;
 const HOW_DO_WE_REACH_YOU_PATTERN = /How do we reach you/;
 const VALID_EMAIL_PATTERN = /valid email/;
-const AT_LEAST_8_PATTERN = /at least 8/;
+const AT_LEAST_12_PATTERN = /at least 12/;
 
 const mockedRegister = jest.mocked(register);
 const mockedLogin = jest.mocked(login);
@@ -172,7 +172,10 @@ describe('NewAccount screen', () => {
 
     await screen.findByPlaceholderText('Password');
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
+      fireEvent.changeText(
+        screen.getByPlaceholderText('Password'),
+        'correct-horse-battery-staple-v42',
+      );
     });
     await act(async () => {
       fireEvent.press(screen.getByText('Create Account'));
@@ -201,7 +204,10 @@ describe('NewAccount screen', () => {
     });
     await screen.findByPlaceholderText('Password');
     await act(async () => {
-      fireEvent.changeText(screen.getByPlaceholderText('Password'), 'strongpass99');
+      fireEvent.changeText(
+        screen.getByPlaceholderText('Password'),
+        'correct-horse-battery-staple-v42',
+      );
     });
 
     await act(async () => {
@@ -240,7 +246,7 @@ describe('NewAccount screen', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(AT_LEAST_8_PATTERN)).toBeOnTheScreen();
+      expect(screen.getByText(AT_LEAST_12_PATTERN)).toBeOnTheScreen();
     });
   });
 

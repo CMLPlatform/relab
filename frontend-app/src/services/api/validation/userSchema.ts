@@ -1,12 +1,42 @@
 import { z } from 'zod';
+// spell-checker: ignore blocklisted, changeme, letmein, reverseengineeringlab
 
 // Canonical validation constraints used by the auth schemas and helper text.
 export const USERNAME_MIN_LENGTH = 2;
 export const USERNAME_MAX_LENGTH = 50;
 export const USERNAME_PATTERN = /^\w+$/; // Only letters, numbers, and underscores
 
-export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MIN_LENGTH = 12;
 export const PASSWORD_MAX_LENGTH = 128;
+const MIN_CONTEXT_TOKEN_LENGTH = 3;
+const BLOCKLISTED_PASSWORD_TOKENS = new Set([
+  'password',
+  'qwerty',
+  'admin',
+  'letmein',
+  'welcome',
+  'changeme',
+  'relab',
+  'reverseengineeringlab',
+]);
+
+function normalizeForPasswordValidation(value: string): string {
+  return value.normalize('NFC').toLocaleLowerCase();
+}
+
+function passwordContainsContext(normalizedPassword: string, value: string | undefined): boolean {
+  if (!value) return false;
+  const normalizedValue = normalizeForPasswordValidation(value);
+  return (
+    normalizedValue.length >= MIN_CONTEXT_TOKEN_LENGTH &&
+    normalizedPassword.includes(normalizedValue)
+  );
+}
+
+function passwordMatchesBlocklist(normalizedPassword: string): boolean {
+  const compactPassword = normalizedPassword.replaceAll(/[^a-z0-9]/g, '');
+  return [...BLOCKLISTED_PASSWORD_TOKENS].some((blocked) => compactPassword.includes(blocked));
+}
 
 // ─── Individual field schemas ───────────────────────────────────────────────
 
@@ -39,7 +69,11 @@ export const passwordSchema = z
   .string({ message: 'Password is required' })
   .min(1, 'Password is required')
   .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
-  .max(PASSWORD_MAX_LENGTH, `Password must be at most ${PASSWORD_MAX_LENGTH} characters`);
+  .max(PASSWORD_MAX_LENGTH, `Password must be at most ${PASSWORD_MAX_LENGTH} characters`)
+  .refine(
+    (password) => !passwordMatchesBlocklist(normalizeForPasswordValidation(password)),
+    'Password is too common. Choose a longer, less predictable password.',
+  );
 
 // ─── Form schemas ──────────────────────────────────────────────────────────
 
@@ -75,8 +109,11 @@ export const newAccountSchema = z
     password: passwordSchema,
   })
   .superRefine((data, ctx) => {
-    // Check if password contains username
-    if (data.password.toLowerCase().includes(data.username.toLowerCase())) {
+    const normalizedPassword = normalizeForPasswordValidation(data.password);
+    const normalizedEmail = normalizeForPasswordValidation(data.email);
+    const emailUsername = normalizedEmail.split('@')[0];
+
+    if (passwordContainsContext(normalizedPassword, data.username)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['password'],
@@ -84,11 +121,9 @@ export const newAccountSchema = z
       });
     }
 
-    // Check if password contains email or email username part
-    const emailUsername = data.email.split('@')[0];
     if (
-      data.password.toLowerCase().includes(data.email.toLowerCase()) ||
-      data.password.toLowerCase().includes(emailUsername.toLowerCase())
+      normalizedPassword.includes(normalizedEmail) ||
+      passwordContainsContext(normalizedPassword, emailUsername)
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
