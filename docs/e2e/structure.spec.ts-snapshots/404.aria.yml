@@ -1,6 +1,3 @@
 - main:
-  - paragraph: /\d+/
-  - heading "Page Not Found" [level=1]
-  - paragraph: This docs URL does not exist anymore, or it may have moved while the platform docs were reorganized.
-  - link "Go to Docs Home":
-    - /url: /
+  - heading /\d+/ [level=1]
+  - text: Page not found. Check the URL or try using the search bar.

@@ -1,16 +1,11 @@
 ---
-title: Getting Started
+title: Getting started
 description: Create an account and capture a first RELab product record.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
-RELab is a platform for documenting product disassembly. You create structured records of what a product is made of, how it comes apart, and what the components look like.
+RELab helps you document a product while you take it apart. A useful first record does not need to be perfect; it needs a clear product identity, a few good photos, and honest notes about what you saw.
 
-Those records are not just for private note-taking. The broader goal is that they can later be shared, compared, and reused as part of a larger open product-data infrastructure.
-
-## Create an Account
+## Create an account
 
 1. Go to [app.cml-relab.org](https://app.cml-relab.org) or open [sign up](https://app.cml-relab.org/new-account).
 1. Register with email and password, or sign in with GitHub or Google.
@@ -19,28 +14,28 @@ Those records are not just for private note-taking. The broader goal is that the
 !!! tip "Fastest path in"
 GitHub and Google OAuth skip the manual email-verification step. If you have access to either, use that.
 
-## Your First Product
+## Make your first product record
 
 Once you're logged in, the core workflow is:
 
-1. Create a **product record** for the item you're about to document (e.g. a power drill).
+1. Create a **product record** for the item you're about to document, such as a power drill.
 1. Add identifying information: name, brand, model, any initial notes.
 1. Photograph the intact product before you open it.
-1. As you disassemble, create **child records** for meaningful components (e.g. battery pack, motor assembly, housing).
+1. As you disassemble, create **child records** for meaningful components, such as a battery pack, motor assembly, or housing.
 1. Attach images, measurements, and notes at the level where they belong.
 
 !!! note "Start simple"
 A partial record with good photos and honest notes is usually more useful than an over-structured one that takes twice as long. You can fill in gaps later.
 
-## Before You Start
+## Before you start
 
 - Prepare a workspace with enough space for the product and separated components.
 - Good lighting matters more than fancy equipment, see [Hardware](../hardware/) for what works.
 - Have a device ready for photos. A phone is fine; a camera rig is optional.
 
-## Next Steps
+## Next steps
 
-- [Data Collection Guide](../data-collection/): how to build a thorough record
+- [Data collection guide](../data-collection/): how to build a thorough record
 - [Hardware](../hardware/): simple and advanced capture setups
-- [RPI Camera](../rpi-cam/): if you are using a camera device
-- [API Guide](../api/): for scripts and technical integrations
+- [RPI camera](../rpi-cam/): if you are using a camera device
+- [API guide](../api/): for scripts and technical integrations

@@ -1,28 +1,15 @@
 ---
-title: Dataset Documentation
-description: The intended path from live RELab records to curated dataset releases.
-owner: docs
-status: reviewed
-lastReviewed: '2026-04-15'
+title: Dataset
+description: How to browse current RELab records and how curated dataset releases will differ.
 ---
 
-<div class="relab-section-intro">
-RELab is intended to support a public dataset of disassembled durable goods. The platform is the operational system; the dataset is the curated research output derived from it.
-</div>
+Current RELab records can be browsed in the production app: [app.cml-relab.org](https://app.cml-relab.org).
 
-<div class="grid cards relab-card-grid" markdown>
+The app is the live operational system. A curated dataset release is a different thing: a reviewed, versioned snapshot with clear scope, metadata, and licensing.
 
-- **Source**: Live platform records and media
-- **Output**: Curated public dataset releases
-- **Use**: Industrial ecology, circular economy, and AI-related research
+## What a release should contain
 
-</div>
-
-## Why It Matters
-
-The dataset layer is where live RELab records become a citable research output: a curated, versioned snapshot with explicit provenance, scope, and licensing, decoupled from the operational database. Keeping that boundary sharp is what makes the data reusable beyond the project — for benchmarking, comparative studies, and integration with other industrial-ecology infrastructures.
-
-Likely data elements include:
+Expected data elements:
 
 - product metadata
 - component hierarchies
@@ -30,26 +17,24 @@ Likely data elements include:
 - material and category annotations
 - measurements and observational notes
 
-Likely uses include:
+Expected uses:
 
 - computer vision and image-based classification tasks
 - circular economy and design-for-disassembly studies
 - material composition analysis
 - comparative studies across product families or brands
-- industrial ecology and LCA-oriented work that depends on better primary product data
-- linking with other open IE and CE data infrastructures
+- industrial ecology and LCA-oriented work that depends on primary product data
+- linking with other open industrial-ecology data infrastructures
 
-## Access and Publication Status
+## Access and publication status
 
-The intention is to publish the dataset openly. The publication workflow is still maturing, so the most reliable technical interface right now is the live API rather than a formal release portal.
+The intention is to publish curated releases openly. That publication workflow is still maturing, so the most reliable way to explore current records is the app. For technical access to live data, use the API docs: [api.cml-relab.org/docs](https://api.cml-relab.org/docs).
 
-[API Access](https://api.cml-relab.org/docs)
+Curated downloadable releases will be the authoritative source for exact scope, version, and license once they exist.
 
-A browsable dataset portal and curated downloadable releases are planned.
+The longer-term aim is to contribute to an open industrial ecology data commons, not just publish an isolated file.
 
-In the broader project vision, dataset publication is not only an output step. It is also part of building an open industrial ecology data commons that others can inspect, reuse, compare, and extend.
-
-## Dublin Core Metadata
+## Dublin Core metadata
 
 Following the [Dublin Core specifications](https://www.dublincore.org/specifications/dublin-core/):
 

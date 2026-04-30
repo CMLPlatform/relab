@@ -42,42 +42,42 @@ const SIDEBAR = [
   {
     label: 'Guides',
     items: [
-      { label: 'Getting Started', slug: 'user-guides/getting-started' },
-      { label: 'Data Collection', slug: 'user-guides/data-collection' },
+      { label: 'Getting started', slug: 'user-guides/getting-started' },
+      { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPI Camera', slug: 'user-guides/rpi-cam' },
+      { label: 'RPI camera', slug: 'user-guides/rpi-cam' },
       { label: 'API', slug: 'user-guides/api' },
     ],
   },
   {
     label: 'Architecture',
     items: [
-      { label: 'System Design', slug: 'architecture/system-design' },
-      { label: 'Data Model', slug: 'architecture/datamodel' },
-      { label: 'API Structure', slug: 'architecture/api' },
+      { label: 'System design', slug: 'architecture/system-design' },
+      { label: 'Data model', slug: 'architecture/datamodel' },
+      { label: 'API structure', slug: 'architecture/api' },
       { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'RPI Camera Plugin', slug: 'architecture/rpi-cam' },
-      { label: 'Deployment', slug: 'architecture/deployment' },
-      { label: 'Install & Self-Host', slug: 'architecture/install' },
-      { label: 'C4 Diagrams', slug: 'architecture/c4-diagrams' },
-      { label: 'Engineering Config', slug: 'architecture/engineering-config' },
-      { label: 'Engineering Ops', slug: 'architecture/engineering-ops' },
-      { label: 'Security Practices', slug: 'architecture/security-practices' },
+      { label: 'RPI camera plugin', slug: 'architecture/rpi-cam' },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { label: 'Install and self-host', slug: 'operations/install' },
+      { label: 'Deployment', slug: 'operations/deployment' },
     ],
   },
   {
     label: 'Project',
     items: [
-      { label: 'Use Cases', slug: 'project/use-cases' },
+      { label: 'Use cases', slug: 'project/use-cases' },
       { label: 'Roadmap', slug: 'project/roadmap' },
       { label: 'Dataset', slug: 'project/dataset' },
     ],
   },
 ];
 const STARLIGHT_OPTIONS = {
-  title: 'Reverse Engineering Lab',
+  title: 'RELab docs',
   description: 'Technical documentation for the Reverse Engineering Lab research platform.',
-  disable404Route: true,
   logo: {
     src: './public/images/logo.png',
     alt: 'Reverse Engineering Lab logo',
@@ -86,7 +86,10 @@ const STARLIGHT_OPTIONS = {
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
-  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
+  social: [
+    { icon: 'external', label: 'Open RELab app', href: 'https://app.cml-relab.org' },
+    { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
+  ],
   editLink: {
     baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
   },
@@ -104,15 +107,21 @@ const site = MODE_SITES[buildMode] ?? MODE_SITES.prod;
 export default defineConfig({
   site,
   vite: {
+    server: {
+      watch: {
+        ignored: [
+          '**/.astro/**',
+          '**/dist/**',
+          '**/node_modules/**',
+          '**/playwright-report/**',
+          '**/test-results/**',
+        ],
+      },
+    },
     build: {
       // Mermaid is lazy-loaded and currently ships a minified chunk just over Vite's default warning threshold.
       chunkSizeWarningLimit: 650,
     },
-  },
-  redirects: {
-    '/guides': '/user-guides/',
-    '/reference': '/architecture/',
-    '/explanation': '/architecture/system-design/',
   },
   integrations: [starlight(STARLIGHT_OPTIONS), mdx()],
 });

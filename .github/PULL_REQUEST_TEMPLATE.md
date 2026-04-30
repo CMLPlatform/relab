@@ -31,7 +31,15 @@ _What problem does this solve or why is it worth merging?_
 
 ## Security, if relevant
 
-See [security practices](https://docs.cml-relab.org/architecture/security-practices/) for the review checklist and threat-model template.
+For changes touching auth, permissions, browser rendering, dynamic URLs, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data:
+
+- Assets affected:
+- Trust boundaries crossed:
+- What could go wrong:
+- Controls and tests:
+- Follow-up items:
+
+See the maintainer checklist in [SECURITY.md](SECURITY.md).
 
 ## Notes for reviewers
 

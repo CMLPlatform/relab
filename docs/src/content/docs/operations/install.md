@@ -1,31 +1,26 @@
 ---
-title: Installation and Self-Hosting
+title: Installation and self-hosting
 description: Run RELab locally or self-host the stack in production or staging.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-23'
 ---
 
-## Hosted Use
+## Hosted use
 
-If you just want to use RELab, start here:
-
-[app.cml-relab.org](https://app.cml-relab.org)
+If you just want to use RELab, start here: [app.cml-relab.org](https://app.cml-relab.org).
 
 No local setup is required.
 
-## Self-Hosting
+## Self-hosting
 
 Self-hosting makes sense for evaluation, institutional deployment, offline use, or local development. If your main goal is contributing code, [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md) is the better starting point.
 
-This page is about running the stack. For manifest conventions, tooling policy, and contributor workflow, use the engineering and contributing docs instead.
+This page is about running the stack. For tooling policy and contributor workflow, use [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md).
 
 ### Prerequisites
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
 - [`just`](https://just.systems/man/en/) is optional but recommended
 
-## Local Docker Setup
+## Local Docker setup
 
 1. Clone the repository.
 
@@ -86,7 +81,7 @@ This page is about running the stack. For manifest conventions, tooling policy, 
    just test
    ```
 
-## Production / Staging Deployment
+## Production and staging deployment
 
 Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.env` decides whether the stack comes up as prod or staging — one file, one command, no extra flags. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
 
@@ -151,38 +146,9 @@ If you run a central monitoring stack (Grafana + Loki + Tempo + Prometheus), pro
 
 1. Set `LOKI_URL` (and optionally `OTEL_EXPORTER_OTLP_ENDPOINT`) in the host's root `.env`. The `prod-up` / `staging-up` recipes auto-include `compose.logging.loki.yaml` when `LOKI_URL` is non-empty. Hosts without the variable keep Docker's default `json-file` driver.
 
-See the [engineering ops telemetry section](/architecture/engineering-ops/#telemetry) for the full flow.
+See [Deployment and operations](/operations/deployment/#telemetry) for the full flow.
 
-## Staging Deployment
-
-Staging is a first-class operational environment and follows the same manual server-side flow as production.
-
-1. Configure the backend staging environment.
-
-   ```bash
-   cp backend/.env.staging.example backend/.env.staging
-   ```
-
-1. Start the staging stack.
-
-   ```bash
-   just staging-up YES
-   ```
-
-1. Run migrations.
-
-   ```bash
-   just staging-migrate YES
-   ```
-
-1. Manage the running stack.
-
-   ```bash
-   just staging-logs
-   just staging-down YES
-   ```
-
-## Raspberry Pi Camera Plugin
+## Raspberry Pi camera plugin
 
 If you want camera-assisted capture, see the external plugin repository:
 
@@ -191,7 +157,7 @@ If you want camera-assisted capture, see the external plugin repository:
 The plugin uses **WebSocket relay** — the RPi connects outbound to the backend, so no public IP or port forwarding is needed. The quickest setup is **automatic pairing**: set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the displayed pairing code in the app. See the [plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md) and the [platform camera guide](/user-guides/rpi-cam/) for details.
 If the Pi is headless, you can read the pairing code either from its local `/setup` page or from the `PAIRING READY` log line over SSH, `docker compose logs`, or `journalctl`.
 
-## Need Help?
+## Need help?
 
-- Docs: [docs.cml-relab.org](https://docs.cml-relab.org)
+- Source code: [github.com/CMLPlatform/relab](https://github.com/CMLPlatform/relab)
 - Contact: [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl)

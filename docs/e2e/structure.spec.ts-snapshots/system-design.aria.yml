@@ -1,50 +1,43 @@
 - main:
-  - heading "System Design" [level=1]
+  - heading "System design" [level=1]
   - paragraph: RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
-  - heading "High-Level Architecture" [level=2]
-  - link "Section titled “High-Level Architecture”":
+  - heading "High-level architecture" [level=2]
+  - link "Section titled “High-level architecture”":
     - /url: "#high-level-architecture"
   - document:
+    - paragraph: External services
+    - paragraph: Authentication layer
+    - paragraph: Data stores
+    - paragraph: Frontends
+    - paragraph: RPI camera API
+    - paragraph: YouTube API
+    - paragraph: "OAuth: GitHub, Google"
+    - paragraph: Bearer / cookie auth
+    - paragraph: Redis
+    - paragraph: PostgreSQL
+    - paragraph: File storage
+    - paragraph: Expo app
+    - paragraph: Astro landing page
+    - paragraph: Astro Starlight docs
+    - paragraph: Researcher
+    - paragraph: Public visitor
+    - paragraph: Admin
+    - paragraph: FastAPI backend
     - paragraph: Data entry
     - paragraph: Browses products
     - paragraph: Reads landing page
     - paragraph: Reads docs
     - paragraph: Admin API calls
     - paragraph: API requests
-    - paragraph: Selected API usage
     - paragraph: Cache + refresh tokens
     - paragraph: Queries
     - paragraph: Upload / process / delete
-    - paragraph: Transactional email
+    - paragraph: Authenticates
+    - paragraph: Authenticates
     - paragraph: Camera integration
     - paragraph: Optional streaming
-    - paragraph: Authenticates
-    - paragraph: Authenticates
-    - paragraph: Authentication Layer
-    - paragraph: "OAuth: GitHub, Google"
-    - paragraph: Bearer/cookie auth + refresh tokens
-    - paragraph: Have I Been Pwned
-    - paragraph: Researcher
-    - paragraph: Expo App
-    - paragraph: Public visitor
-    - paragraph: Astro Landing Page
-    - paragraph: Astro Starlight Docs
-    - paragraph: Admin
-    - paragraph: FastAPI Backend
-    - paragraph: Redis
-    - paragraph: PostgreSQL
-    - paragraph: File Storage
-    - paragraph: SMTP
-    - paragraph: RPI Camera API
-    - paragraph: YouTube API
-  - group: Styled architecture overview (ELK layout)
-  - paragraph:
-    - text: For formal C4 architecture views (Context, Container, Component), see
-    - link "C4 Architecture Diagrams":
-      - /url: ../c4-diagrams/
-    - text: .
-  - heading "Monorepo Structure" [level=2]
-  - link "Section titled “Monorepo Structure”":
+  - heading "Monorepo structure" [level=2]
+  - link "Section titled “Monorepo structure”":
     - /url: "#monorepo-structure"
   - list:
     - listitem:
@@ -60,8 +53,8 @@
       - code: docs/
       - text: ": documentation site"
     - listitem: Compose files at the repository root coordinate local and deployed multi-service setups
-  - heading "Technology Choices" [level=2]
-  - link "Section titled “Technology Choices”":
+  - heading "Technology choices" [level=2]
+  - link "Section titled “Technology choices”":
     - /url: "#technology-choices"
   - list:
     - listitem:
@@ -88,18 +81,18 @@
     - listitem:
       - strong: Docs site
       - text: ": Astro Starlight"
-  - paragraph: These choices keep the stack relatively small and understandable, while still supporting public access, API interoperability, and later AI-assisted workflows.
-  - heading "Backend Domain Structure" [level=2]
-  - link "Section titled “Backend Domain Structure”":
+  - paragraph: These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
+  - heading "Backend domain structure" [level=2]
+  - link "Section titled “Backend domain structure”":
     - /url: "#backend-domain-structure"
   - paragraph: "The backend is organised mainly by domain rather than by HTTP verb alone:"
   - figure "Terminal window":
     - text: ""
     - region:
-      - code: "app/ ├── api/ │ ├── auth/ # Login, registration, OAuth, users, organizations │ ├── reference_data/  # Taxonomies, categories, materials, product types, units │ ├── data_collection/ # Products, components, search, related properties │ ├── file_storage/ # Uploaded files, images, linked media records │ ├── plugins/ # Optional integrations such as rpi_cam │ └── common/ # Shared routers, helpers, exceptions ├── core/ # Runtime configuration, DB, cache, logging, HTTP clients ├── static/ # Static assets served by the backend └── templates/ # Email and HTML templates"
+      - code: "app/ ├── api/ │ ├── auth/ # Login, registration, OAuth, users, organizations │ ├── reference_data/ # Taxonomies, categories, materials, product types, units │ ├── data_collection/ # Products, components, search, related properties │ ├── file_storage/ # Uploaded files, images, linked media records │ ├── plugins/ # Optional integrations such as rpi_cam │ └── common/ # Shared routers, helpers, exceptions ├── core/ # Runtime configuration, DB, cache, logging, HTTP clients ├── static/ # Static assets served by the backend └── templates/ # Email and HTML templates"
     - button "Copy to clipboard"
-  - heading "Runtime Behavior" [level=2]
-  - link "Section titled “Runtime Behavior”":
+  - heading "Runtime behavior" [level=2]
+  - link "Section titled “Runtime behavior”":
     - /url: "#runtime-behavior"
   - paragraph: "At startup the backend:"
   - list:
@@ -109,17 +102,16 @@
     - listitem: mounts static and upload-backed routes
     - listitem: prepares shared outbound HTTP clients
     - listitem: starts background cleanup infrastructure
-  - heading "Design Priorities" [level=2]
-  - link "Section titled “Design Priorities”":
+  - heading "Design priorities" [level=2]
+  - link "Section titled “Design priorities”":
     - /url: "#design-priorities"
   - list:
     - listitem: keep the data model explicit and inspectable
     - listitem: support authenticated data entry from a dedicated app
     - listitem: allow public and private API surfaces to coexist
     - listitem: preserve a path toward dataset publication and external reuse
-    - listitem: support FAIR-style reuse through open interfaces and documented structure
-    - listitem: keep the data model suitable for later benchmarking and AI-assisted enrichment
-    - listitem: avoid unnecessary infrastructure complexity for a PhD-scale project
+    - listitem: keep identifiers and exports stable enough to link with other datasets
+    - listitem: avoid infrastructure complexity that isn’t justified by the project scale
   - link "Edit page":
     - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/architecture/system-design.mdx
   - paragraph:
@@ -127,5 +119,5 @@
     - time: /Apr \d+, \d+/
   - link "Previous API":
     - /url: /user-guides/api/
-  - link "Next Data Model":
+  - link "Next Data model":
     - /url: /architecture/datamodel/

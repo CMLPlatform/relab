@@ -1,12 +1,9 @@
 ---
-title: API Interaction Guide
+title: API interaction guide
 description: Use the RELab API safely for scripts, notebooks, and external tooling.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
-For the authoritative schema, request models, and full endpoint list, use the [interactive API documentation](https://api.cml-relab.org/docs). For how the API is designed internally, see [API Structure](../../architecture/api/).
+For the authoritative schema, request models, and endpoint list, use the [interactive API documentation](https://api.cml-relab.org/docs). For how the API is designed internally, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
 
@@ -39,4 +36,4 @@ Public reference data (taxonomies, materials, product types), product records, a
 - Build against the live OpenAPI schema rather than copying examples from old documentation.
 - For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
 - Treat uploads and image handling as first-class API operations, not afterthoughts.
-- If you need a stable exported dataset rather than live application access, check the [Dataset Documentation](../../project/dataset/) first.
+- If you need a stable exported dataset rather than live application access, check the [dataset page](../../project/dataset/) first.

@@ -1,11 +1,13 @@
 - link "Skip to content":
   - /url: "#_top"
 - banner:
-  - link "Reverse Engineering Lab logo Reverse Engineering Lab":
+  - link "Reverse Engineering Lab logo RELab docs":
     - /url: /
     - img "Reverse Engineering Lab logo"
     - text: ""
   - button "Search": Ctrl K
+  - link "Open RELab app":
+    - /url: https://app.cml-relab.org
   - link "GitHub":
     - /url: https://github.com/CMLPlatform/relab
   - text: Select theme
@@ -23,16 +25,16 @@
         - text: Guides
         - list:
           - listitem:
-            - link "Getting Started":
+            - link "Getting started":
               - /url: /user-guides/getting-started/
           - listitem:
-            - link "Data Collection":
+            - link "Data collection":
               - /url: /user-guides/data-collection/
           - listitem:
             - link "Hardware":
               - /url: /user-guides/hardware/
           - listitem:
-            - link "RPI Camera":
+            - link "RPI camera":
               - /url: /user-guides/rpi-cam/
           - listitem:
             - link "API":
@@ -42,41 +44,36 @@
         - text: Architecture
         - list:
           - listitem:
-            - link "System Design":
+            - link "System design":
               - /url: /architecture/system-design/
           - listitem:
-            - link "Data Model":
+            - link "Data model":
               - /url: /architecture/datamodel/
           - listitem:
-            - link "API Structure":
+            - link "API structure":
               - /url: /architecture/api/
           - listitem:
             - link "Authentication":
               - /url: /architecture/auth/
           - listitem:
-            - link "RPI Camera Plugin":
+            - link "RPI camera plugin":
               - /url: /architecture/rpi-cam/
+    - listitem:
+      - group:
+        - text: Operations
+        - list:
+          - listitem:
+            - link "Install and self-host":
+              - /url: /operations/install/
           - listitem:
             - link "Deployment":
-              - /url: /architecture/deployment/
-          - listitem:
-            - link "Install & Self-Host":
-              - /url: /architecture/install/
-          - listitem:
-            - link "C4 Diagrams":
-              - /url: /architecture/c4-diagrams/
-          - listitem:
-            - link "Engineering Config":
-              - /url: /architecture/engineering-config/
-          - listitem:
-            - link "Engineering Ops":
-              - /url: /architecture/engineering-ops/
+              - /url: /operations/deployment/
     - listitem:
       - group:
         - text: Project
         - list:
           - listitem:
-            - link "Use Cases":
+            - link "Use cases":
               - /url: /project/use-cases/
           - listitem:
             - link "Roadmap":
@@ -85,62 +82,71 @@
             - link "Dataset":
               - /url: /project/dataset/
 - complementary:
-  - button "Hide table of contents" [expanded]
   - navigation "On this page":
+    - heading "On this page" [level=2]
     - list:
       - listitem:
         - link "Overview":
           - /url: "#_top"
       - listitem:
-        - link "Start Here":
+        - link "Start here":
           - /url: "#start-here"
       - listitem:
-        - link "Quick Links":
+        - link "Quick links":
           - /url: "#quick-links"
       - listitem:
-        - link "Research Motivation":
+        - link "Research motivation":
           - /url: "#research-motivation"
-      - listitem:
-        - link "Current System At A Glance":
-          - /url: "#current-system-at-a-glance"
 - main:
   - heading "Reverse Engineering Lab" [level=1]
-  - paragraph: RELab documentation
   - paragraph:
     - text: RELab is a research platform for collecting and publicly viewing data on the disassembly of durable goods, developed by the
     - link "Institute of Environmental Sciences (CML)":
       - /url: https://www.universiteitleiden.nl/en/science/environmental-sciences
     - text: at Leiden University. It supports structured data collection, media capture, and later analysis of product composition, materials, and circularity.
-  - heading "Start Here" [level=2]
-  - link "Section titled “Start Here”":
+  - paragraph:
+    - link "DOI":
+      - /url: https://doi.org/10.5281/zenodo.16637742
+      - img "DOI"
+    - link "Coverage":
+      - /url: https://codecov.io/gh/CMLPlatform/relab
+      - img "Coverage"
+    - link "OpenSSF Scorecard":
+      - /url: https://scorecard.dev/viewer/?uri=github.com/CMLPlatform/relab
+      - img "OpenSSF Scorecard"
+    - link "Deployed":
+      - /url: https://cml-relab.org
+      - img "Deployed"
+  - heading "Start here" [level=2]
+  - link "Section titled “Start here”":
     - /url: "#start-here"
   - list:
     - listitem:
       - paragraph:
         - strong:
-          - link "Getting Started":
+          - link "Getting started":
             - /url: user-guides/getting-started/
-        - text: Create an account, document a first product, and learn the core workflow.
+        - text: Create an account and document a first product without overthinking the model.
     - listitem:
       - paragraph:
         - strong:
           - link "Guides":
             - /url: user-guides/
-        - text: Task-first help for data collection, hardware setup, RPI camera use, and API workflows.
+        - text: Practical help for data collection, hardware, camera capture, and API access.
     - listitem:
       - paragraph:
         - strong:
           - link "Architecture":
             - /url: architecture/
-        - text: System design, data model, API, auth, and deployment.
+        - text: How the platform is built, how it runs, and where the main boundaries are.
     - listitem:
       - paragraph:
         - strong:
-          - link "Project Context":
+          - link "Project context":
             - /url: project/
-        - text: Use cases, roadmap, dataset goals, and research framing.
-  - heading "Quick Links" [level=2]
-  - link "Section titled “Quick Links”":
+        - text: Why RELab exists, who it is for, and where the dataset work is heading.
+  - heading "Quick links" [level=2]
+  - link "Section titled “Quick links”":
     - /url: "#quick-links"
   - list:
     - listitem:
@@ -152,41 +158,25 @@
     - listitem:
       - link "View the repository":
         - /url: https://github.com/CMLPlatform/relab
-  - heading "Research Motivation" [level=2]
-  - link "Section titled “Research Motivation”":
+  - heading "Research motivation" [level=2]
+  - link "Section titled “Research motivation”":
     - /url: "#research-motivation"
-  - paragraph: "Primary product data — material makeup, component structure, circularity-relevant properties — is still hard to obtain for many durable goods. RELab takes a bottom-up approach: instead of relying on producer-controlled information flows, the platform lets repairers, refurbishers, dismantlers, recyclers, and citizen scientists contribute structured observations directly, and is designed to interoperate with existing industrial-ecology databases rather than stand alone."
-  - heading "Current System At A Glance" [level=2]
-  - link "Section titled “Current System At A Glance”":
-    - /url: "#current-system-at-a-glance"
-  - list:
-    - listitem:
-      - code: backend/
-      - text: ": FastAPI application with PostgreSQL, Redis, Alembic migrations, file handling, and plugin routes"
-    - listitem:
-      - code: frontend-app/
-      - text: ": Expo / React Native app for authenticated data collection"
-    - listitem:
-      - code: frontend-web/
-      - text: ": Astro site for the public-facing web presence"
-    - listitem:
-      - code: docs/
-      - text: ": Astro Starlight docs app for public, operator, and contributor-facing reference"
+  - paragraph: "Good product data is still surprisingly hard to get: what something is made of, how it comes apart, which parts matter, and what evidence supports those claims. RELab takes a bottom-up approach. It helps people who handle real products document what they see, with enough structure that the records can later be compared, reused, and linked to other industrial-ecology data."
   - paragraph:
-    - text: Canonical repo entry points live in
+    - text: For repository entry points and self-hosting, see
     - link "README.md":
       - /url: https://github.com/CMLPlatform/relab/blob/main/README.md
-    - text: and
+    - text: ","
     - link "CONTRIBUTING.md":
       - /url: https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md
-    - text: . Install and self-hosting steps live on this site at
-    - link "Install & Self-Host":
-      - /url: /architecture/install/
+    - text: ", or"
+    - link "Install and self-host":
+      - /url: /operations/install/
     - text: .
   - link "Edit page":
     - /url: https://github.com/CMLPlatform/relab/edit/main/docs/src/content/docs/index.md
   - paragraph:
     - text: "Last updated:"
     - time: /Apr \d+, \d+/
-  - link "Next Getting Started":
+  - link "Next Getting started":
     - /url: /user-guides/getting-started/

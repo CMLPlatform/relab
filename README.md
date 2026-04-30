@@ -42,7 +42,7 @@ The fastest path is the hosted platform:
 
 If you want to go deeper:
 
-- [Install & Self-Host](https://docs.cml-relab.org/architecture/install/) for running or self-hosting the stack
+- [Install and self-host](https://docs.cml-relab.org/operations/install/) for running or self-hosting the stack
 - [CONTRIBUTING.md](.github/CONTRIBUTING.md) for making code or docs changes
 - [docs.cml-relab.org](https://docs.cml-relab.org) for architecture and user-facing docs
 
@@ -77,7 +77,7 @@ just dev       # start the full Docker dev stack with file watching
 ## Community and Policy
 
 - [Contributing](.github/CONTRIBUTING.md)
-- [Install & Self-Host](https://docs.cml-relab.org/architecture/install/)
+- [Install and self-host](https://docs.cml-relab.org/operations/install/)
 - [Security](.github/SECURITY.md)
 - [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 - [Changelog](CHANGELOG.md)

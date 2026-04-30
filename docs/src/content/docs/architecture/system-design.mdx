@@ -1,88 +1,57 @@
 ---
-title: System Design
+title: System design
 description: Why RELab is split into separate frontends, backend services, and docs surfaces.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
-<div class="relab-section-intro">
 RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
-</div>
 
-## High-Level Architecture
-
-```mermaid
-graph TD
-    Researcher[Researcher] -->|Data entry| FrontendApp[Expo App]
-    PublicUser[Public visitor] -->|Browses products| FrontendApp
-    PublicUser -->|Reads landing page| FrontendWeb[Astro Landing Page]
-    PublicUser -->|Reads docs| Docs[Astro Starlight Docs]
-    Admin[Admin] -->|Admin API calls| Backend[FastAPI Backend]
-
-    FrontendApp -->|API requests| Backend
-    FrontendWeb -->|Selected API usage| Backend
-    Backend -->|Cache + refresh tokens| Redis[(Redis)]
-    Backend -->|Queries| PostgreSQL[(PostgreSQL)]
-    Backend -->|Upload / process / delete| FileStorage[(File Storage)]
-    Backend -->|Transactional email| SMTP[SMTP]
-
-    subgraph AuthenticationLayer [Authentication Layer]
-        OAuthProviders[OAuth: GitHub, Google]
-        AuthSystem[Bearer/cookie auth + refresh tokens]
-        HIBP[Have I Been Pwned]
-    end
-
-    Researcher -->|Authenticates| AuthenticationLayer
-    Admin -->|Authenticates| AuthenticationLayer
-
-    Backend -->|Camera integration| RaspberryPi[RPI Camera API]
-    Backend -->|Optional streaming| YouTube[YouTube API]
-```
-
-<details>
-<summary>Styled architecture overview (ELK layout)</summary>
+## High-level architecture
 
 ```mermaid
+---
+config:
+    layout: elk
+    elk:
+        nodePlacementStrategy: NETWORK_SIMPLEX
+---
+
 graph TD
-    Researcher["fa:fa-flask Researcher"] -->|Data entry| FrontendApp
-    PublicUser["fa:fa-globe Public Visitor"] -->|Browses products| FrontendApp
+    Researcher["Researcher"] -->|Data entry| FrontendApp
+    PublicUser["Public visitor"] -->|Browses products| FrontendApp
     PublicUser -->|Reads landing page| FrontendWeb
     PublicUser -->|Reads docs| Docs
-    Admin["fa:fa-shield-halved Admin"] -->|Admin API calls| Backend
+    Admin["Admin"] -->|Admin API calls| Backend
 
-    subgraph Frontends [" "]
-        FrontendApp["fa:fa-mobile-screen Expo App"]
-        FrontendWeb["fa:fa-window-maximize Astro Landing Page"]
-        Docs["fa:fa-book Astro Starlight Docs"]
+    subgraph Frontends ["Frontends"]
+        FrontendApp["Expo app"]
+        FrontendWeb["Astro landing page"]
+        Docs["Astro Starlight docs"]
     end
 
     FrontendApp -->|API requests| Backend
-    FrontendWeb -->|Selected API usage| Backend
+    Backend["FastAPI backend"]
 
-    Backend["fa:fa-bolt FastAPI Backend"]
-
-    subgraph DataStores ["Data Stores"]
-        Redis[("fa:fa-gauge-high Redis")]
-        PostgreSQL[("fa:fa-database PostgreSQL")]
-        FileStorage[("fa:fa-hard-drive File Storage")]
+    subgraph DataStores ["Data stores"]
+        Redis[("Redis")]
+        PostgreSQL[("PostgreSQL")]
+        FileStorage[("File storage")]
     end
 
     Backend -->|Cache + refresh tokens| Redis
     Backend -->|Queries| PostgreSQL
     Backend -->|Upload / process / delete| FileStorage
 
-    subgraph Auth ["Authentication Layer"]
-        OAuthProviders["fa:fa-right-to-bracket OAuth: GitHub, Google"]
-        AuthSystem["fa:fa-key Bearer / cookie auth"]
+    subgraph Auth ["Authentication layer"]
+        OAuthProviders["OAuth: GitHub, Google"]
+        AuthSystem["Bearer / cookie auth"]
     end
 
     Researcher -->|Authenticates| Auth
     Admin -->|Authenticates| Auth
 
-    subgraph External ["External Services"]
-        RaspberryPi["fa:fa-camera RPI Camera API"]
-        YouTube["fa:fa-video YouTube API"]
+    subgraph External ["External services"]
+        RaspberryPi["RPI camera API"]
+        YouTube["YouTube API"]
     end
 
     Backend -->|Camera integration| RaspberryPi
@@ -99,15 +68,11 @@ graph TD
     class FrontendApp,FrontendWeb,Docs frontend
     class Backend backend
     class Redis,PostgreSQL,FileStorage datastore
-    class OAuthProviders,AuthSystem,HIBP auth
-    class SMTP,RaspberryPi,YouTube external
+    class OAuthProviders,AuthSystem auth
+    class RaspberryPi,YouTube external
 ```
 
-</details>
-
-For formal C4 architecture views (Context, Container, Component), see [C4 Architecture Diagrams](../c4-diagrams/).
-
-## Monorepo Structure
+## Monorepo structure
 
 - `backend/`: main API, persistence, auth, file handling, and plugin integration
 - `frontend-app/`: authenticated mobile-first data collection client built with Expo Router
@@ -115,7 +80,7 @@ For formal C4 architecture views (Context, Container, Component), see [C4 Archit
 - `docs/`: documentation site
 - Compose files at the repository root coordinate local and deployed multi-service setups
 
-## Technology Choices
+## Technology choices
 
 - **Backend API**: FastAPI
 - **Persistence layer**: SQLAlchemy 2.0 + Pydantic
@@ -126,9 +91,9 @@ For formal C4 architecture views (Context, Container, Component), see [C4 Archit
 - **Public web frontend**: Astro
 - **Docs site**: Astro Starlight
 
-These choices keep the stack relatively small and understandable, while still supporting public access, API interoperability, and later AI-assisted workflows.
+These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
 
-## Backend Domain Structure
+## Backend domain structure
 
 The backend is organised mainly by domain rather than by HTTP verb alone:
 
@@ -146,7 +111,7 @@ app/
 └── templates/            # Email and HTML templates
 ```
 
-## Runtime Behavior
+## Runtime behavior
 
 At startup the backend:
 
@@ -157,12 +122,11 @@ At startup the backend:
 - prepares shared outbound HTTP clients
 - starts background cleanup infrastructure
 
-## Design Priorities
+## Design priorities
 
 - keep the data model explicit and inspectable
 - support authenticated data entry from a dedicated app
 - allow public and private API surfaces to coexist
 - preserve a path toward dataset publication and external reuse
-- support FAIR-style reuse through open interfaces and documented structure
-- keep the data model suitable for later benchmarking and AI-assisted enrichment
-- avoid unnecessary infrastructure complexity for a PhD-scale project
+- keep identifiers and exports stable enough to link with other datasets
+- avoid infrastructure complexity that isn't justified by the project scale

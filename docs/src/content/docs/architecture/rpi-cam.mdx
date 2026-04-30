@@ -1,69 +1,38 @@
 ---
-title: RPI Camera Plugin Architecture
+title: RPI camera plugin architecture
 description: How the RELab Raspberry Pi camera plugin talks to the backend and app clients.
-owner: docs
-status: reviewed
-lastReviewed: '2026-04-29'
 ---
 
-<div class="relab-section-intro">
 An optional plugin that connects camera devices to RELab for remote capture, HLS preview streaming, and YouTube streaming. The backend remains the control plane and default relay path; when the camera and client share a LAN, the RELab app can optionally switch to direct local access for lower-latency preview and capture.
-</div>
 
-For platform-side setup and day-to-day usage, see the [RPI Camera User Guide](../../user-guides/rpi-cam/). For device installation and deployment, see the [RPI Camera Plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+For platform-side setup and day-to-day usage, see the [RPI camera user guide](../../user-guides/rpi-cam/). For device installation and deployment, see the [RPI camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
-## System Diagram
+## System diagram
 
 ```mermaid
+---
+config:
+    layout: elk
+---
 graph TD
-    Researcher[Researcher] -->|Capture workflow| FrontendApp[Expo App]
-    FrontendApp -->|API requests| MainAPI[FastAPI Backend]
+    Researcher["Researcher"] -->|Capture workflow| FrontendApp["Expo app"]
+    FrontendApp -->|API requests| MainAPI["FastAPI backend"]
 
-    MainAPI -->|WebSocket relay| RpiCamAPI[RPI Camera API]
+    MainAPI -->|WebSocket relay| RpiCamAPI["RPI camera API"]
     FrontendApp -.->|LAN direct| RpiCamAPI
-    RpiCamAPI -->|Controls| Camera[Camera Hardware]
+    RpiCamAPI -->|Controls| Camera["Camera hardware"]
 
     RpiCamAPI -->|HLS preview| FrontendApp
-    RpiCamAPI -.->|Stream egress| YouTube[YouTube API]
+    RpiCamAPI -.->|Stream egress| YouTube["YouTube API"]
     RpiCamAPI -->|Image upload| MainAPI
 
-    GoogleOAuth[Google OAuth] -.->|User tokens| MainAPI
+    GoogleOAuth["Google OAuth"] -.->|User tokens| MainAPI
     MainAPI -.->|Livestream management| YouTube
 
-    subgraph DataStores ["Data Stores"]
-        Database[(PostgreSQL)]
-        FileStorage[(File Storage)]
-        Redis[(Redis)]
-    end
-
-    MainAPI -->|Metadata| Database
-    MainAPI -->|Images| FileStorage
-    MainAPI -->|Session state| Redis
-```
-
-??? info "Styled diagram (ELK layout)"
-
-````
-```mermaid
-graph TD
-    Researcher["fa:fa-flask Researcher"] -->|Capture workflow| FrontendApp["fa:fa-mobile-screen Expo App"]
-    FrontendApp -->|API requests| MainAPI["fa:fa-bolt FastAPI Backend"]
-
-    MainAPI -->|WebSocket relay| RpiCamAPI["fa:fa-microchip RPI Camera API"]
-    FrontendApp -.->|LAN direct| RpiCamAPI
-    RpiCamAPI -->|Controls| Camera["fa:fa-camera Camera Hardware"]
-
-    RpiCamAPI -->|HLS preview| FrontendApp
-    RpiCamAPI -.->|Stream egress| YouTube["fa:fa-video YouTube API"]
-    RpiCamAPI -->|Image upload| MainAPI
-
-    GoogleOAuth["fa:fa-right-to-bracket Google OAuth"] -.->|User tokens| MainAPI
-    MainAPI -.->|Livestream management| YouTube
-
-    subgraph DataStores ["Data Stores"]
-        Database[("fa:fa-database PostgreSQL")]
-        FileStorage[("fa:fa-hard-drive File Storage")]
-        Redis[("fa:fa-gauge-high Redis")]
+    subgraph DataStores ["Data stores"]
+        Database[("PostgreSQL")]
+        FileStorage[("File storage")]
+        Redis[("Redis")]
     end
 
     MainAPI -->|Metadata| Database
@@ -87,9 +56,8 @@ graph TD
     class GoogleOAuth auth
     class RpiCamAPI,Camera hardware
 ```
-````
 
-## Interaction Flow
+## Interaction flow
 
 ```mermaid
 sequenceDiagram
@@ -156,7 +124,7 @@ sequenceDiagram
     RPiCamAPI->>Camera: Stop camera
 ```
 
-## Key Design Decisions
+## Key design decisions
 
 - **Backend as control plane**: Pairing, relay orchestration, capture storage, and YouTube coordination stay in the main backend.
 - **Two contract layers**: backend OpenAPI remains the public app-facing contract, while a smaller shared private device contract covers pairing payloads, relay envelopes, local-access bootstrap, and Pi-initiated upload acknowledgements.
@@ -165,13 +133,13 @@ sequenceDiagram
 - **Media storage**: Captured images are stored in RELab's file storage and linked to the originating product or component record automatically.
 - **Optional YouTube integration**: Streaming is mediated through the backend's OAuth connection to YouTube. The device streams directly to YouTube once authorised.
 
-## Contract Ownership
+## Contract ownership
 
 - **Frontend -> backend** uses only backend-owned public routes and schemas.
 - **Backend -> plugin** uses a smaller private device seam: pairing register/poll payloads, relay command/response envelopes, local-access info, and direct upload/self-unpair acknowledgements.
 - **Shared models** exist to keep that private seam typed and versioned without leaking plugin implementation details into the frontend contract.
 
-## Protocol Boundaries
+## Protocol boundaries
 
 The plugin uses three separate contracts:
 
@@ -181,7 +149,7 @@ The plugin uses three separate contracts:
 
 OpenAPI covers the HTTP routes. The WebSocket tunnel is a protocol contract and should be treated separately from generated REST clients.
 
-### WebSocket Relay Envelope
+### WebSocket relay envelope
 
 The backend sends command envelopes to the device:
 
@@ -213,7 +181,7 @@ The relay allowlist is intentionally small:
 
 Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`.
 
-### Device Callback Routes
+### Device callback routes
 
 Pi-originated HTTP callbacks are plugin-scoped instead of using a generic `/device` namespace because RELab currently has one device family:
 

@@ -1,35 +1,28 @@
 ---
-title: API Structure
+title: API structure
 description: How the RELab API is organized and how the main domain surfaces fit together.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
-<div class="relab-section-intro">
-Routes are organised by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling.
-</div>
+Routes are organised by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
 
-The RELab backend exposes a REST-style API used by the Expo app, the public web frontend, and selected operational tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
+For the live schema and request models, use the [interactive API documentation](https://api.cml-relab.org/docs). For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
 
-For the live schema and request models, use the [interactive API documentation](https://api.cml-relab.org/docs). For practical usage guidance, see the [API Interaction Guide](../../user-guides/api/).
+## Route organisation
 
-## Route Organisation
-
-### Authentication & User Management
+### Authentication and user management
 
 - `/v1/auth/*` — login, logout, refresh, registration, verification, and password reset
 - `/v1/oauth/*` — Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
 - `/v1/users/*` and `/v1/organizations/*` — authenticated user and organization operations
 - `/v1/admin/users/*` and `/v1/admin/organizations/*` — superuser administration
 
-### Data Collection
+### Data collection
 
 - `/v1/products/*` — base-product creation, reads, updates, search, owner filters, base-product media, videos, bill-of-materials, and parent-scoped component lists
 - `/v1/components/*` — stable component reads, updates, component-scoped media, and component bill-of-materials
 - `/v1/products?owner=me` and `/v1/users/{user_id}/products/*` — user-scoped product access
 
-### Reference Data
+### Reference data
 
 - public `/v1/taxonomies`, `/v1/categories`, `/v1/materials`, `/v1/product-types`, and `/v1/units` endpoints for reference lookups
 - `/v1/admin/*` variants for controlled management of reference data
@@ -41,7 +34,7 @@ For the live schema and request models, use the [interactive API documentation](
 - component media uses `/v1/components/{id}/images` and `/v1/components/{id}/files`
 - videos are base-product-only under `/v1/products/{id}/videos`
 
-## Product and Component Resources
+## Product and component resources
 
 Base products and components share the same database table, but they are separate API resources:
 
@@ -53,21 +46,21 @@ Base products and components share the same database table, but they are separat
 
 Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
 
-### Hardware Integration
+### Hardware integration
 
 - `/v1/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
 
-### Supporting Services
+### Supporting services
 
 - health and readiness endpoints for deployment checks
 
-## Design Notes
+## Design notes
 
 - The backend serves both browser-oriented and app-oriented clients.
 - Authentication supports both cookie and bearer transports (see [Authentication](../auth/)).
 - Public reference data is openly accessible; user-owned research data requires authentication.
 
-## Example Interaction Flow
+## Example interaction flow
 
 ```mermaid
 sequenceDiagram
