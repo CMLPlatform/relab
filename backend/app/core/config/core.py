@@ -133,13 +133,15 @@ class CoreSettings(RelabBaseSettings):
     # ── Cache ─────────────────────────────────────────────────────────────────────
     cache: CacheSettings = Field(default_factory=CacheSettings)
 
-    # ── Concurrency & connection limits ──────────────────────────────────────────
+    # ── Concurrency, request, and upload limits ──────────────────────────────────
     db_pool_size: int = Field(default=10, ge=1, le=50)
     db_pool_max_overflow: int = Field(default=10, ge=0, le=50)
     image_resize_workers: int = Field(default=5, ge=1, le=64)
     http_max_connections: int = Field(default=100, ge=1, le=1000)
     http_max_keepalive_connections: int = Field(default=20, ge=0, le=1000)
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
+    max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
+    max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
     # OTEL on/off is derived from the endpoint; service.name is read by the
     # OTEL SDK directly from the OTEL_SERVICE_NAME env var (set in compose).
     otel_exporter_otlp_endpoint: str | None = None
