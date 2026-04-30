@@ -6,6 +6,8 @@ shared:
   - '.env.example'
   - 'backend/.env*.example'
   - 'justfile'
+  - 'scripts/**'
+  - 'deploy/**'
   - 'compose*.yml'
   - 'compose*.yaml'
 
@@ -21,6 +23,8 @@ policy:
   - 'backend/.env*.example'
   - 'pyproject.toml'
   - 'justfile'
+  - 'scripts/**'
+  - 'deploy/**'
 
 backend:
   - 'backend/**'

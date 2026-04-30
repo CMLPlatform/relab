@@ -27,16 +27,15 @@ graph TD
 
     subgraph Operational ["Optional Operational Services"]
         Migrations[migrator\none-shot on deploy]
-        DBBackups[postgres-backup\ndaily pg_dump + zstd]
-        UploadBackups[user-upload-backups\ndaily file archives]
+        Backups[relab-backup\npg_dump + uploads to restic]
         Cloudflared[cloudflared\noutbound tunnel]
         Loki[Loki log driver\nexternal push]
         OTel[external OTLP collector]
     end
 
     Migrations -->|schema forward| DB
-    DBBackups -->|dumps| DB
-    UploadBackups -->|archives| Uploads
+    Backups -->|logical dumps| DB
+    Backups -->|encrypted snapshots| Uploads
     Cloudflared -->|proxies inbound traffic| Backend
     Backend -->|OTLP traces/metrics| OTel
     Backend -->|container logs via Docker driver| Loki
@@ -49,7 +48,7 @@ Backup services are enabled through Compose profiles. Telemetry is opt-in throug
 - Docker Compose is the runtime for staging and production.
 - `compose.yaml` is the shared base topology.
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
-- The same `compose.deploy.yaml` is used for prod and staging. Host-level `.env` values and committed `.env.<env>.compose` files select the environment.
+- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment; the host-level root `.env` holds only local interpolation values such as tunnel tokens, telemetry endpoints, backup paths, and optional offsite repositories.
 - GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
 
 The root `justfile` is the supported local interface for full-stack checks:
@@ -72,11 +71,16 @@ For a new host, clone the repo, create the root `.env`, create the backend runti
 ```bash
 cp .env.example .env
 cp backend/.env.prod.example backend/.env.prod
+just deploy-secrets-template prod
+# Replace every placeholder under secrets/prod/.
 just prod-up YES
 just prod-migrate YES
 ```
 
 Staging follows the same pattern with the staging env files and `staging-*` recipes. Upgrades are intentionally boring: pull a known-good revision, bring the stack up again, run migrations, and verify `/live` and `/health`.
+
+The database role hardening is a breaking fresh-volume change. For an existing host, take a verified dump first, stop the stack, recreate the Postgres volume, start Postgres so `/docker-entrypoint-initdb.d` creates the least-privilege roles, run migrations, then restore the dump through the migration/admin path.
+For local rehearsal, use staging plus the backups profile instead of production: `just staging-up YES backups`, `just staging-migrate YES`, then `just backup-restore-smoke staging`.
 
 ## Denial-of-service controls
 
@@ -88,14 +92,22 @@ The backend enforces source-controlled application limits: JSON bodies are count
 
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
-- Database dumps and user-uploaded files are backed up regularly to cloud storage.
+- Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_DIR`.
+- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend with `RESTIC_OFFSITE_REPOSITORY=rclone:<remote>:relab/<env>/restic`.
 - Alembic migrations move schema state forward in a controlled way.
+- `just backup-restore-smoke staging` or `just backup-restore-smoke prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
 
 ## Secrets and encrypted fields
 
 Most RELab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPI camera keys, request IDs, and cache keys are not application-encrypted.
 
-The backend uses `DATA_ENCRYPTION_KEYS` only for reversible sensitive values it must recover later, currently OAuth provider tokens and active YouTube broadcast keys. Keep those keys in the host runtime environment, not in committed files. If key rotation becomes operationally necessary after production launch, add a focused re-encryption task then.
+The backend uses `DATA_ENCRYPTION_KEYS` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Keep those keys in the host runtime environment, not in committed files. If key rotation becomes operationally necessary after production launch, add a focused re-encryption task then.
+
+Database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`. The required secret filenames are listed in `deploy/required-secret-files.txt`; use `just deploy-secrets-template <env>` to create missing files and `just deploy-secrets-check` to verify that the manifest and Compose overlay stay aligned. The application role, migration role, and backup role are separate PostgreSQL users; the application role is not the schema owner.
+
+Keep configuration ownership narrow: `deploy/` contains committed infrastructure config and manifests, `secrets/` contains uncommitted operator-owned secret material, and `scripts/` contains repo-wide operational helpers that are too large for the root `justfile`. Backend runtime settings stay in `backend/.env.<env>` because they are consumed directly by the FastAPI settings layer and backend tooling.
+
+In the current single-host deployment, PostgreSQL and Redis are isolated on the internal Compose `data` network and do not publish host ports in prod or staging. `DATABASE_SSL=false` is intentional for this trusted local Docker network. If PostgreSQL moves to an external host, managed database, or untrusted network, enable `DATABASE_SSL` and manage database TLS certificates as part of that move.
 
 If a real secret is exposed outside the intended host, rotate it and treat existing encrypted backups as still depending on the old key until the backup retention window passes.
 

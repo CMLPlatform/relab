@@ -83,12 +83,12 @@ This page is about running the stack. For tooling policy and contributor workflo
 
 ## Production and staging deployment
 
-Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.env` decides whether the stack comes up as prod or staging — one file, one command, no extra flags. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
+Deploys use a single compose overlay, `compose.deploy.yaml`. Prod and staging are selected by committed non-secret Compose env files under `deploy/env/`, while each host keeps only host-local interpolation values in the gitignored root `.env`. Cloudflare Tunnel remains the supported ingress path. The current operational path is manual on the server: pull the repo, run the deploy stack, run migrations, verify health.
 
 1. Configure a Cloudflare tunnel.
 
    - Set up a domain and a remotely managed tunnel in Cloudflare.
-   - Forward traffic to `app-site:8081`, `web-site:8081`, `api:8000`, and `docs-site:8000`.
+   - Forward traffic to `app:8081`, `www:8081`, `api:8000`, and `docs:8000`.
 
 1. Copy `.env.example` to `.env` and fill in values.
 
@@ -96,8 +96,10 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.e
    cp .env.example .env
    ```
 
-   - **Prod host**: set `TUNNEL_TOKEN=<prod token>`; leave the commented "staging overrides" block commented. Defaults resolve to `ENVIRONMENT=prod`, `WEB_CONCURRENCY=4`, project `relab_prod`.
-   - **Staging host**: uncomment the staging block (`APP_ENV=staging`, `COMPOSE_PROJECT_NAME=relab_staging`, `WEB_CONCURRENCY=2`, `BUILD_MODE=staging`, `PUBLIC_SITE_URL=…`, `CSP_API_ORIGIN=…`) and set `TUNNEL_TOKEN=<staging token>`.
+   - **Prod host**: set `TUNNEL_TOKEN=<prod token>` plus optional telemetry and backup overrides.
+   - **Staging host**: set `TUNNEL_TOKEN=<staging token>` plus optional telemetry and backup overrides.
+
+   Environment identity, public URLs, worker counts, and build mode live in `deploy/env/prod.compose.env` and `deploy/env/staging.compose.env`; do not duplicate those values in the root `.env`.
 
 1. Configure the backend runtime environment for this host.
 
@@ -107,10 +109,26 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.e
    cp backend/.env.staging.example backend/.env.staging    # on a staging host
    ```
 
+1. Create the host-local Compose secret files for database roles and backups.
+
+   ```bash
+   just deploy-secrets-template prod
+   ```
+
+   Replace every placeholder value under `secrets/prod/`. Use `just deploy-secrets-template staging` for staging. The required filenames for database, Redis, and restic credentials are tracked in `deploy/required-secret-files.txt`, and `just deploy-secrets-check` verifies that the manifest still matches Compose. Existing database volumes must be dumped and recreated before this role layout can take effect.
+
 1. Start the stack.
 
    ```bash
    just prod-up YES
+   ```
+
+   For a local production-like backup rehearsal, prefer staging:
+
+   ```bash
+   just staging-up YES backups
+   just staging-migrate YES
+   just backup-restore-smoke staging
    ```
 
    In the current setup, deployment is done directly on the server.
@@ -124,7 +142,7 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.e
    If you also need taxonomy seeding in the migration container:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true docker compose -p relab_prod -f compose.yaml -f compose.deploy.yaml --profile migrations up --build migrator
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true just prod-migrate YES
    ```
 
 1. Manage the running stack.
@@ -132,6 +150,24 @@ Deploys use a single compose overlay, `compose.deploy.yaml`. The host's root `.e
    ```bash
    just prod-logs
    just prod-down YES
+   ```
+
+### Optional WebDAV offsite backups
+
+The supported offsite path is a second restic repository copied from the local restic repository. WebDAV is handled through restic's rclone backend.
+
+1. Create `secrets/<env>/rclone.conf` with a WebDAV remote.
+
+1. Set the offsite repository in the host root `.env`.
+
+   ```env
+   RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
+   ```
+
+1. Copy snapshots offsite after a local backup exists.
+
+   ```bash
+   just backup-offsite-copy staging
    ```
 
 ### Optional: central telemetry

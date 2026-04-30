@@ -126,6 +126,9 @@ jobs:
       - name: Validate Compose stacks
         run: just compose-config
 
+      - name: Validate Compose policy
+        run: just compose-policy-check
+
       - name: Publish summary
         run: |
           {
@@ -134,6 +137,7 @@ jobs:
             echo "- repository policy checks passed"
             echo "- shared dep versions aligned across subrepos"
             echo "- Compose configs rendered successfully"
+            echo "- Compose network policy passed"
             echo "- GitHub workflow lint passed via pre-commit"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -391,7 +395,7 @@ jobs:
           - docker-smoke-frontend-web
           - docker-smoke-frontend-app
           - docker-smoke-docs
-          - docker-smoke-user-upload-backups
+          - docker-smoke-backups
     steps:
       - name: Run smoke recipe
         uses: ./.github/actions/docker-smoke
