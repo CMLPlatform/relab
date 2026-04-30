@@ -2,17 +2,17 @@
 
 Thanks for contributing. RELab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
 
-This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install & Self-Host](https://docs.cml-relab.org/architecture/install/).
+This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install and self-host](https://docs.cml-relab.org/operations/install/).
 
 ## Start Here
 
-| I want to...                            | Start here                                                                               |
-| --------------------------------------- | ---------------------------------------------------------------------------------------- |
-| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                                |
-| run the full stack locally in Docker    | [Docker Development](#docker-development)                                                |
-| work on one subrepo directly            | [Local Development](#local-development)                                                  |
-| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/)              |
-| understand config ownership             | [engineering configuration](https://docs.cml-relab.org/architecture/engineering-config/) |
+| I want to...                            | Start here                                                                  |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                   |
+| run the full stack locally in Docker    | [Docker Development](#docker-development)                                   |
+| work on one subrepo directly            | [Local Development](#local-development)                                     |
+| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/) |
+| understand config ownership             | [Tooling and configuration](#tooling-and-configuration)                     |
 
 ## Code of Conduct
 
@@ -155,7 +155,21 @@ just security
 ```
 
 Use `just --list` in any directory to see what is available there.
-Manifest ownership, env rules, and infra review guidelines live in the [engineering configuration docs](https://docs.cml-relab.org/architecture/engineering-config/).
+
+## Tooling and Configuration
+
+Use `.tool-versions` as the source of truth for local tool versions. Do not duplicate exact versions in docs unless a manifest or generated file requires it.
+
+Configuration ownership should stay predictable:
+
+- root `justfile`: repo-wide orchestration and cross-project workflows
+- subrepo `justfile`: local commands for one project
+- `pyproject.toml`: Python dependencies and Python tool configuration
+- `package.json`: frontend dependencies, engine policy, and script wrappers
+- env files: runtime and build-time configuration only
+- GitHub workflow YAML: CI/CD wiring; move complex logic to versioned scripts
+
+Keep new settings in the smallest surface that actually needs them. If a change adds or renames env vars, update the examples, validation rules, and affected docs in the same PR.
 
 ## Security Review Expectations
 
@@ -163,7 +177,7 @@ RELab uses [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS) as the application-
 
 For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, include security considerations in the pull request and update the relevant docs when behavior changes.
 
-The working review map and small threat-model template live in the [security practices docs](https://docs.cml-relab.org/architecture/security-practices/).
+Use the security section in the pull request template for sensitive changes. The maintainer checklist lives in [SECURITY.md](SECURITY.md).
 
 ## Backend Setup
 

@@ -1,10 +1,11 @@
+import elkLayouts from '@mermaid-js/layout-elk';
+
 let mermaidRenderPromise: Promise<void> | undefined;
 let activeMermaidTheme = '';
 let themeObserver: MutationObserver | undefined;
 let mermaidModulePromise: Promise<typeof import('mermaid')> | undefined;
+let mermaidLayoutsRegistered = false;
 const BOM_PATTERN = /^\uFEFF/;
-const FRONTMATTER_PATTERN = /^[\s\u200b]*---\s*\n[\s\S]*?\n---\s*(?:\n|$)/;
-const FONT_AWESOME_PATTERN = /\s+fa:[a-z0-9-]+/gi;
 const TRAILING_WHITESPACE_PATTERN = /[ \t]+$/g;
 
 const reportMermaidError = (error: unknown) => {
@@ -33,26 +34,10 @@ const mermaidThemeVariables = {
 } as const;
 
 const normalizeMermaidSource = (source: string) => {
-  let text = source.replace(/\r\n?/g, '\n').replace(BOM_PATTERN, '').trim();
-
-  const frontmatterMatch = text.match(FRONTMATTER_PATTERN);
-  if (frontmatterMatch) {
-    text = text.slice(frontmatterMatch[0].length).trimStart();
-  }
-
-  const lines = text.split('\n');
-  if (lines[0]?.trim() === '---') {
-    const frontmatterEnd = lines.findIndex((line, index) => index > 0 && line.trim() === '---');
-    if (frontmatterEnd !== -1) {
-      text = lines
-        .slice(frontmatterEnd + 1)
-        .join('\n')
-        .trimStart();
-    }
-  }
-
-  return text
-    .replace(FONT_AWESOME_PATTERN, '')
+  return source
+    .replace(/\r\n?/g, '\n')
+    .replace(BOM_PATTERN, '')
+    .trim()
     .split('\n')
     .map((line) => line.replace(TRAILING_WHITESPACE_PATTERN, ''))
     .join('\n')
@@ -77,7 +62,12 @@ const getCurrentTheme = () =>
 
 const loadMermaid = async () => {
   mermaidModulePromise ??= import('mermaid');
-  return (await mermaidModulePromise).default;
+  const mermaid = (await mermaidModulePromise).default;
+  if (!mermaidLayoutsRegistered) {
+    mermaid.registerLayoutLoaders(elkLayouts);
+    mermaidLayoutsRegistered = true;
+  }
+  return mermaid;
 };
 
 const ensureMermaidContainers = () => {
@@ -127,7 +117,7 @@ const renderMermaid = async (force = false) => {
     if (force || activeMermaidTheme !== theme) {
       mermaid.initialize({
         startOnLoad: false,
-        securityLevel: 'loose',
+        securityLevel: 'strict',
         theme: 'base',
         themeVariables: mermaidThemeVariables[theme],
       });

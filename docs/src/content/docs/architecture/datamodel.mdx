@@ -1,32 +1,33 @@
 ---
-title: Data Model Overview
+title: Data model overview
 description: The major RELab entities and the relationships between them.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
 ```mermaid
+---
+config:
+    layout: elk
+---
 graph TD
 
-        User["User fa:fa-user"]
-        OAuthAccount["OAuth Account fa:fa-id-card"]
-        Organization["Organization fa:fa-building"]
+        User["User"]
+        OAuthAccount["OAuth account"]
+        Organization["Organization"]
 
-        Camera["Camera fa:fa-camera"]
-        Product["Product fa:fa-box"]
-        PhysicalProperties["Physical Properties fa:fa-ruler-combined"]
+        Camera["Camera"]
+        Product["Product"]
+        PhysicalProperties["Physical properties"]
 
-        Taxonomy["Taxonomy fa:fa-sitemap"]
-        Material["Material fa:fa-flask"]
-        Category["Category fa:fa-folder-open"]
-        ProductType["Product Type fa:fa-tags"]
+        Taxonomy["Taxonomy"]
+        Material["Material"]
+        Category["Category"]
+        ProductType["Product type"]
 
-        subgraph LocalStorage["Local Storage"]
-            File["File fa:fa-file"]
-            Image["Image fa:fa-image"]
+        subgraph LocalStorage["Local storage"]
+            File["File"]
+            Image["Image"]
         end
-        Video["Video fa:fa-video"]
+        Video["Video"]
 
     User -->|Has| OAuthAccount
     User -->|Belongs to| Organization
@@ -48,18 +49,18 @@ graph TD
     Material -->|Has| LocalStorage
     ProductType -->|Has| LocalStorage
 
-    style LocalStorage fill:#e0e0e0,stroke:#616161,stroke-width:1px;
+    style LocalStorage fill:#f8fafc,stroke:#475569,stroke-width:1px,color:#1e293b;
 
-    classDef UserManagementFill fill:#e1bee7,stroke:#9c27b0,stroke-width:2px;
+    classDef UserManagementFill fill:#e9d8fd,stroke:#6b46c1,stroke-width:2px,color:#44337a;
     class User,OAuthAccount,Organization UserManagementFill;
 
-    classDef DataCollectionFill fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
+    classDef DataCollectionFill fill:#d9f4fb,stroke:#006783,stroke-width:2px,color:#13263a;
     class Product,PhysicalProperties,Camera DataCollectionFill;
 
-    classDef ReferenceDataFill fill:#f5f5f5,stroke:#8d6e63,stroke-width:2px;
+    classDef ReferenceDataFill fill:#f8fafc,stroke:#475569,stroke-width:2px,color:#1e293b;
     class Taxonomy,Material,Category,ProductType ReferenceDataFill;
 
-    classDef MediaFill fill:#c8e6c9,stroke:#43a047,stroke-width:2px;
+    classDef MediaFill fill:#f0fff4,stroke:#276749,stroke-width:2px,color:#1a4731;
     class File,Image,Video MediaFill;
 ```
 

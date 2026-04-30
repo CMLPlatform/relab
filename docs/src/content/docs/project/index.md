@@ -1,24 +1,19 @@
 ---
 title: Project
 description: Why RELab exists, what it is for, and where the research platform is heading.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
-<div class="relab-section-intro">
-Why RELab exists, what it is for, and where it is going. The short version: a bottom-up platform for generating, sharing, and reusing product data for industrial ecology and circular economy research.
-</div>
+RELab exists to make product disassembly data easier to collect and reuse. These pages explain the research framing, current priorities, and the path from live records to curated dataset releases.
 
 <div class="grid cards relab-card-grid" markdown>
 
-- **[Use Cases](use-cases/)**
-  What the platform is for in practice, and why bottom-up data generation matters.
+- **[Use cases](use-cases/)**
+  Who RELab is for and what the platform deliberately does not try to be.
 
 - **[Roadmap](roadmap/)**
-  Near-term and longer-term priorities.
+  Current priorities, with GitHub issues as the live work list.
 
 - **[Dataset](dataset/)**
-  Publication goals, metadata, licensing, and the path from operational data to research output.
+  How to browse current records and how curated releases differ from the live app.
 
 </div>

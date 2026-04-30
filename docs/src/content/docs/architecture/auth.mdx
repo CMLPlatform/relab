@@ -1,14 +1,9 @@
 ---
 title: Authentication
 description: RELab authentication flows, token handling, and browser session behavior.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-30'
 ---
 
-<div class="relab-section-intro">
 RELab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs token storage and rate limiting outside local development.
-</div>
 
 Authentication is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with RELab-specific refresh-token, session-cookie, OAuth, and validation logic.
 
@@ -17,7 +12,7 @@ The API exposes two login transports:
 - bearer tokens for native apps, scripts, and API clients
 - session cookies for browser-based clients
 
-## Supported Flows
+## Supported flows
 
 - Email/password login with bearer-token or session-cookie responses
 - Refresh-token rotation and logout revocation
@@ -27,7 +22,7 @@ The API exposes two login transports:
 - Google PKCE login on web
 - Disposable email checks during registration
 
-## Security Controls
+## Security controls
 
 Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a small local blocklist. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API.
 
@@ -44,7 +39,7 @@ Rate limits use the existing Redis-backed `limits` integration:
 
 Auth logs record successful logins and rate-limit events. They do not include plaintext passwords, reset tokens, verification tokens, or refresh tokens.
 
-## Token Handling
+## Token handling
 
 ```mermaid
 sequenceDiagram
@@ -76,11 +71,15 @@ Refresh-token rotation uses dedicated endpoints:
 
 Logout clears auth cookies and blacklists the refresh token when one is present.
 
+Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so Redis key names are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with the backend `DATA_ENCRYPTION_KEYS` keyring.
+
+Encryption is not used as a substitute for authorization. Authenticated API handlers must still check ownership, organization membership, and route-level permissions before returning or mutating data.
+
 ## OAuth
 
 OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association.
 
-### Backend-Mediated Flow
+### Backend-mediated flow
 
 GitHub uses the backend-mediated flow on all platforms. Google uses it on native clients.
 
@@ -112,7 +111,7 @@ sequenceDiagram
     API-->>Frontend: Redirect with session/token response
 ```
 
-### Google PKCE Flow
+### Google PKCE flow
 
 The web frontend uses `expo-auth-session` to run Google PKCE directly in the browser, then exchanges the Google ID token with RELab. No backend redirect or third-party auth proxy is involved.
 
@@ -138,21 +137,25 @@ Google token exchange endpoints:
 - `POST /v1/oauth/google/session/token` — sets httpOnly session cookies (used by the web app)
 - `POST /v1/oauth/google/bearer/token` — returns bearer + refresh tokens (for API clients)
 
-## Public Auth Endpoints
+## Public auth endpoints
 
-??? note "Expand endpoint list"
-\- `POST /v1/auth/login`
-\- `POST /v1/auth/session/login`
-\- `POST /v1/auth/refresh`
-\- `POST /v1/auth/session/refresh`
-\- `POST /v1/auth/logout`
-\- `POST /v1/auth/register`
-\- `POST /v1/auth/verify`
-\- `POST /v1/auth/forgot-password`
-\- `POST /v1/auth/reset-password`
-\- `GET /v1/auth/validate-email`
-\- `GET /v1/oauth/*`
-\- `POST /v1/oauth/google/session/token`
-\- `POST /v1/oauth/google/bearer/token`
+<details>
+<summary>Expand endpoint list</summary>
+
+- `POST /v1/auth/login`
+- `POST /v1/auth/session/login`
+- `POST /v1/auth/refresh`
+- `POST /v1/auth/session/refresh`
+- `POST /v1/auth/logout`
+- `POST /v1/auth/register`
+- `POST /v1/auth/verify`
+- `POST /v1/auth/forgot-password`
+- `POST /v1/auth/reset-password`
+- `GET /v1/auth/validate-email`
+- `GET /v1/oauth/*`
+- `POST /v1/oauth/google/session/token`
+- `POST /v1/oauth/google/bearer/token`
+
+</details>
 
 For the full live surface, see the [interactive API docs](https://api.cml-relab.org/docs#tag/auth).

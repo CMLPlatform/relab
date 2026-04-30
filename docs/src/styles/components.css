@@ -2,6 +2,12 @@
   border-radius: 0.45rem;
 }
 
+@media (min-width: 50rem) {
+  .header {
+    grid-template-columns: minmax(max-content, auto) minmax(14rem, 1fr) auto;
+  }
+}
+
 .relab-section-intro {
   padding: 1rem 1.1rem;
   margin: 0.2rem 0 1.2rem;
@@ -44,6 +50,28 @@
   margin-bottom: 0;
 }
 
+.relab-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+  margin: 1rem 0 1.4rem;
+}
+
+.relab-badge-row p {
+  display: contents;
+}
+
+.relab-badge-row a,
+.relab-badge-row img {
+  display: inline-block;
+}
+
+.relab-badge-row img {
+  margin: 0;
+  vertical-align: middle;
+}
+
 .relab-card-grid > ul {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
@@ -69,7 +97,8 @@
   color: #12314b;
   font-weight: 700;
   background: color-mix(in srgb, var(--relab-primary) 14%, white 86%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--relab-primary) 18%, transparent);
 }
 
 .sidebar-pane :where(a[aria-current="page"] span) {
@@ -78,48 +107,11 @@
 
 :root[data-theme="dark"] .sidebar-pane :where(a[aria-current="page"]) {
   color: #eaf7ff;
-  background: color-mix(in srgb, var(--relab-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
-}
-
-.right-sidebar-panel :where(h2) {
-  display: none;
-}
-
-.relab-toc-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  margin-bottom: 0.75rem;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, white 84%, var(--relab-primary) 8%);
-  color: var(--relab-text);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.relab-toc-toggle svg {
-  width: 1rem;
-  height: 1rem;
-  transition: transform 160ms ease;
-}
-
-.right-sidebar-panel[data-relab-toc-collapsed="true"] .relab-toc-toggle svg {
-  transform: rotate(-90deg);
-}
-
-.right-sidebar-panel[data-relab-toc-collapsed="true"] starlight-toc {
-  display: none;
-}
-
-:root[data-theme="dark"] .relab-toc-toggle {
-  background: color-mix(in srgb, rgba(15, 23, 42, 0.88) 88%, var(--relab-primary) 12%);
-  color: #eaf7ff;
+  background: color-mix(
+    in srgb,
+    var(--relab-primary) 22%,
+    rgba(15, 23, 42, 0.9) 78%
+  );
 }
 
 .relab-mermaid {

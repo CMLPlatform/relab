@@ -1,21 +1,18 @@
 ---
-title: RPI Camera Integration
+title: RPI camera integration
 description: Set up and use the RELab Raspberry Pi camera workflow from the platform side.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
 ---
 
-This page covers the platform side only. For device installation and plugin deployment, see the [RPI Camera Plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+This page covers the platform side: pairing a camera, checking that it is online, and using it during documentation. For device installation and plugin deployment, use the [RPI camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
-## When It Is Worth Setting Up
+## When it's worth setting up
 
 - you want consistent, repeatable image capture across many products
 - a workstation is used regularly for disassembly documentation
 - remote triggering is more convenient than manual photo transfer
 - a live preview while documenting is useful
 
-## How It Works
+## How it works
 
 The camera connects to the platform via **WebSocket relay**. The Raspberry Pi opens an outbound WebSocket connection to the backend, which relays commands (capture, preview, stream) through the tunnel. No public IP, port forwarding, or reverse proxy is needed.
 
@@ -23,9 +20,9 @@ From the app's perspective, the backend remains the only public API surface.
 The device/plugin uses a smaller private backend-facing contract for pairing,
 relay, and direct upload flows.
 
-## Platform Setup
+## Platform setup
 
-### Option A: Automatic Pairing (recommended)
+### Option A: automatic pairing (recommended)
 
 This is the quickest way to add a camera. No manual credential exchange is needed.
 
@@ -35,7 +32,7 @@ This is the quickest way to add a camera. No manual credential exchange is neede
 
 1. **Wait for the connection.** The platform claims the code, creates the camera record, and sends credentials back to the RPi automatically. The camera should come online within seconds.
 
-### Option B: Manual Registration
+### Option B: manual registration
 
 Use this when automatic pairing is unavailable.
 
@@ -43,13 +40,13 @@ Use this when automatic pairing is unavailable.
 1. **Copy credentials to the Pi.** Save the displayed JSON to `~/.config/relab/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
 1. **Restart the plugin** if it was already running.
 
-### Verify the Registration
+### Verify the registration
 
 - Open the camera detail screen in the app and check the connection status.
 - The status indicator should show "Online".
 - Run a test capture before relying on the setup for real product documentation.
 
-## Using Cameras During Documentation
+## Using cameras during documentation
 
 1. Start from a known product or component record.
 1. Trigger image capture or preview through the platform.
@@ -63,7 +60,7 @@ local mode is an optimization, not a separate registration flow.
 
 Camera management (inspecting, updating, removing registered cameras) is available through the app's Cameras section.
 
-## Managing Cameras
+## Managing cameras
 
 From the camera detail screen you can:
 
@@ -71,7 +68,7 @@ From the camera detail screen you can:
 - Edit the camera name and description.
 - Delete the camera.
 
-## Practical Advice
+## Practical advice
 
 - Test the full setup before documenting a real product.
 - Use clear, descriptive camera names so the physical workstation is obvious at a glance.
@@ -87,8 +84,8 @@ From the camera detail screen you can:
 - Look at the RPi plugin logs for WebSocket connection errors.
 - If the camera was intentionally unpaired or re-paired, confirm the current relay credentials are present on the Pi.
 
-## Device Setup
+## Device setup
 
 For device installation, deployment, and hardware-specific details, see the external plugin documentation:
 
-[RPI Camera Plugin Documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
+[RPI camera plugin documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
