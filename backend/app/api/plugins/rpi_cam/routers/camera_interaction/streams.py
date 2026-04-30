@@ -333,12 +333,14 @@ async def stop_recording(
             sanitize_log_value(camera_cleanup_error),
         )
 
-    video = VideoCreate(
-        url=recording_session.stream_url,
-        title=recording_session.title,
-        description=recording_session.description,
-        product_id=recording_session.product_id,
-        video_metadata=recording_session.video_metadata,
+    video = VideoCreate.model_validate(
+        {
+            "url": str(recording_session.stream_url),
+            "title": recording_session.title,
+            "description": recording_session.description,
+            "product_id": recording_session.product_id,
+            "video_metadata": recording_session.video_metadata,
+        }
     )
     created_video = await create_video(session, video)
     await clear_recording_session(redis_client, session, camera_id)
