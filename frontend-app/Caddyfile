@@ -11,8 +11,6 @@
 	}
 
 	header {
-		# Prevent clickjacking
-		X-Frame-Options "DENY"
 		# Prevent MIME-type sniffing
 		X-Content-Type-Options "nosniff"
 		# Force HTTPS on subsequent visits
@@ -30,10 +28,15 @@
 		#   web runtime starts using them explicitly.
 		# - media-src blob:: covers blob-backed previews/snapshots without
 		#   opening media loading to arbitrary origins.
+		# - frame-src youtube-nocookie: product video embeds use YouTube's
+		#   privacy-enhanced embed host.
+		# - Report-Only policy: observes the intended strict script policy
+		#   while Expo web still requires unsafe inline/eval script support.
 		# - CSP_API_ORIGIN: injected by the container environment per deployment
 		-Content-Security-Policy
 		-Content-Security-Policy-Report-Only
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CSP_API_ORIGIN}; connect-src 'self' blob: {$CSP_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CSP_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CSP_API_ORIGIN}; connect-src 'self' blob: {$CSP_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CSP_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CSP_API_ORIGIN}; connect-src 'self' blob: {$CSP_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CSP_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 	}
 
 	# Hashed, content-addressed static assets — serve directly with no SPA fallback
