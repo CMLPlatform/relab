@@ -8,6 +8,7 @@ decorator, Redis-backed storage, and a fixed-window strategy.
 from __future__ import annotations
 
 import functools
+import logging
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 from fastapi import Request
@@ -22,10 +23,12 @@ from app.core.middleware.client_ip import get_client_ip
 from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine
+    from collections.abc import Callable, Coroutine, Mapping
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimitExceededError(Exception):
@@ -69,19 +72,27 @@ class Limiter:
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                 if self.enabled:
                     limiter = self._limiter
-                    request: Request | None = next(
-                        (v for v in (*args, *kwargs.values()) if isinstance(v, Request)),
-                        None,
-                    )
+                    request = _find_request(args, kwargs)
                     if request is not None and limiter is not None:
                         key = self._key_func(request)
                         if not limiter.hit(parsed, key):
+                            logger.info("Rate limit exceeded for key %s", key)
                             raise RateLimitExceededError
                 return await func(*args, **kwargs)
 
             return wrapper
 
         return decorator
+
+    def hit_key(self, rate_string: str, key: str) -> None:
+        """Enforce *rate_string* for an explicit bucket key."""
+        if not self.enabled or self._limiter is None:
+            return
+
+        parsed = parse(rate_string)
+        if not self._limiter.hit(parsed, key):
+            logger.info("Rate limit exceeded for key %s", key)
+            raise RateLimitExceededError
 
 
 def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -96,7 +107,7 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
     )
 
 
-def _find_request(args: tuple[object, ...], kwargs: dict[str, object]) -> Request | None:
+def _find_request(args: tuple[object, ...], kwargs: Mapping[str, object]) -> Request | None:
     """Extract the ``Request`` instance from endpoint arguments."""
     for val in (*args, *kwargs.values()):
         if isinstance(val, Request):

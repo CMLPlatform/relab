@@ -1,9 +1,10 @@
 """User management service."""
 
+import hashlib
 import logging
 from typing import TYPE_CHECKING, cast
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
 from fastapi_users.manager import BaseUserManager
@@ -27,6 +28,7 @@ from app.api.auth.services.login_hooks import (
     update_last_login_metadata,
 )
 from app.api.auth.services.password_validator import validate_password as _validate_password
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.routers.dependencies import get_external_http_client
 from app.core.logging import sanitize_log_value
@@ -50,6 +52,16 @@ SECRET: SecretStr = auth_settings.fastapi_users_secret
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 RESET_TOKEN_TTL = auth_settings.reset_password_token_ttl_seconds
 VERIFICATION_TOKEN_TTL = auth_settings.verification_token_ttl_seconds
+SENSITIVE_UPDATE_FIELDS = frozenset({"email", "password"})
+
+
+def _login_identifier_rate_limit_key(identifier: str) -> str:
+    """Return a privacy-preserving login rate-limit key for a submitted identifier."""
+    normalized_identifier = identifier.strip().casefold()
+    if not normalized_identifier:
+        return "auth:login:account:missing"
+    digest = hashlib.sha256(normalized_identifier.encode("utf-8")).hexdigest()
+    return f"auth:login:account:{digest}"
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
@@ -73,6 +85,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
 
     async def authenticate(self, credentials: OAuth2PasswordRequestForm) -> User | None:
         """Support login with either email or username."""
+        limiter.hit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
+
         is_email = False
         try:
             TypeAdapter(EmailStr).validate_python(credentials.username)
@@ -115,11 +129,34 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         """Update a user, injecting custom organization & username validation first."""
         # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
+        self._require_current_password_for_sensitive_update(real_user_update, user)
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 
         # Proceed with base FastAPI User update logic
         return await super().update(user_update, user, safe=safe, request=request)
+
+    def _require_current_password_for_sensitive_update(self, user_update: UserUpdate, user: User) -> None:
+        """Require password reauthentication before e-mail or password changes."""
+        update_data = user_update.model_dump(exclude_unset=True)
+        if not SENSITIVE_UPDATE_FIELDS.intersection(update_data):
+            return
+
+        if not user_update.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required for this account update.",
+            )
+
+        is_valid, _ = self.password_helper.verify_and_update(
+            user_update.current_password.get_secret_value(),
+            user.hashed_password,
+        )
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is invalid.",
+            )
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
         """Send verification email after verification is requested."""

@@ -106,6 +106,7 @@ overrides:
       - PYTHONDONTWRITEBYTECODE
       - PYTHONUNBUFFERED
       - primaryjoin
+      - reauthentication
       - selectinload
       - tsquery
       - uninstrument

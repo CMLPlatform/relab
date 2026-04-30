@@ -234,6 +234,11 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
 
     # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=12)
+    current_password: SecretStr | None = Field(
+        default=None,
+        json_schema_extra={"format": "password"},
+        description="Current password required when changing email or password.",
+    )
 
     preferences: UserPreferencesUpdate | None = Field(
         default=None,
@@ -241,6 +246,18 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     )
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
+
+    def create_update_dict(self) -> dict:
+        """Return FastAPI-Users update data without reauthentication-only fields."""
+        update_dict = super().create_update_dict()
+        update_dict.pop("current_password", None)
+        return update_dict
+
+    def create_update_dict_superuser(self) -> dict:
+        """Return privileged update data without reauthentication-only fields."""
+        update_dict = super().create_update_dict_superuser()
+        update_dict.pop("current_password", None)
+        return update_dict
 
 
 ### Authentication & Sessions ###
