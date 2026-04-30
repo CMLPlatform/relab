@@ -91,6 +91,8 @@ services:
     restart: unless-stopped
     volumes:
       - database_data:/var/lib/postgresql
+      # Postgres runs initdb files in sorted order on fresh volumes.
+      - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       <<: *healthcheck-defaults
       test: [ "CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]

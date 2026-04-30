@@ -5,6 +5,7 @@ Tests CORS settings, host allowlists, and environment file resolution.
 # spell-checker: ignore PGSSL
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from pydantic import HttpUrl, SecretStr
@@ -15,7 +16,40 @@ from app.api.auth.config import AuthSettings
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
 from app.core.env import get_env_file
 
+if TYPE_CHECKING:
+    from typing import Any
+
 TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
+
+def _database_role_kwargs() -> dict[str, Any]:
+    """Return valid split-role database credentials for production-like settings."""
+    return {
+        "database_app_user": "relab_app",
+        "database_app_password": SecretStr("app-password"),
+        "database_migration_user": "relab_migrator",
+        "database_migration_password": SecretStr("migration-password"),
+        "database_backup_user": "relab_backup",
+        "database_backup_password": SecretStr("backup-password"),
+    }
+
+
+def _production_core_settings_kwargs(**overrides: Any) -> dict[str, Any]:
+    """Return valid production-like settings, with optional field overrides."""
+    kwargs: dict[str, Any] = {
+        "environment": Environment.PROD,
+        "backend_api_url": HttpUrl("https://api.cml-relab.org"),
+        "frontend_web_url": HttpUrl("https://cml-relab.org"),
+        "frontend_app_url": HttpUrl("https://app.cml-relab.org"),
+        "postgres_password": SecretStr("admin-password"),
+        **_database_role_kwargs(),
+        "redis_password": SecretStr("test-password"),
+        "superuser_password": SecretStr("test-password"),
+        "superuser_email": "test@example.com",
+        "data_encryption_keys": SecretStr(TEST_DATA_ENCRYPTION_KEY),
+    }
+    kwargs.update(overrides)
+    return kwargs
 
 
 class TestCoreSettingsCors:
@@ -33,16 +67,13 @@ class TestCoreSettingsCors:
     def test_allowed_origins_staging_are_normalized(self) -> None:
         """Staging origins should match browser Origin format (no trailing slash)."""
         settings = CoreSettings(
-            environment=Environment.STAGING,
-            backend_api_url=HttpUrl("https://api-test.cml-relab.org/"),
-            frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
-            frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
-            cors_origin_regex=None,
-            postgres_password=SecretStr("test-password"),
-            redis_password=SecretStr("test-password"),
-            superuser_password=SecretStr("test-password"),
-            superuser_email="test@example.com",
-            data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
+            **_production_core_settings_kwargs(
+                environment=Environment.STAGING,
+                backend_api_url=HttpUrl("https://api-test.cml-relab.org/"),
+                frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+                frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+                cors_origin_regex=None,
+            )
         )
 
         assert settings.allowed_origins == [
@@ -58,16 +89,13 @@ class TestCoreSettingsCors:
     def test_allowed_hosts_derive_from_backend_api_url(self) -> None:
         """Trusted hosts should derive from backend_api_url in non-DEV environments."""
         settings = CoreSettings(
-            environment=Environment.STAGING,
-            backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
-            frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
-            frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
-            cors_origin_regex=None,
-            postgres_password=SecretStr("test-password"),
-            redis_password=SecretStr("test-password"),
-            superuser_password=SecretStr("test-password"),
-            superuser_email="test@example.com",
-            data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
+            **_production_core_settings_kwargs(
+                environment=Environment.STAGING,
+                backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+                frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+                frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+                cors_origin_regex=None,
+            )
         )
 
         assert settings.allowed_hosts == [
@@ -80,14 +108,13 @@ class TestCoreSettingsCors:
         """Staging/production should reject the permissive dev CORS regex."""
         with pytest.raises(ValidationError, match="CORS_ORIGIN_REGEX must not be set in production/staging"):
             CoreSettings(
-                environment=Environment.STAGING,
-                backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
-                cors_origin_regex=DEFAULT_CORS_ORIGIN_REGEX,
-                postgres_password=SecretStr("test-password"),
-                redis_password=SecretStr("test-password"),
-                superuser_password=SecretStr("test-password"),
-                superuser_email="test@example.com",
-                data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
+                **_production_core_settings_kwargs(
+                    environment=Environment.STAGING,
+                    backend_api_url=HttpUrl("https://api-test.cml-relab.org"),
+                    frontend_web_url=HttpUrl("https://web-test.cml-relab.org/"),
+                    frontend_app_url=HttpUrl("https://app-test.cml-relab.org/"),
+                    cors_origin_regex=DEFAULT_CORS_ORIGIN_REGEX,
+                )
             )
 
     def test_production_requires_non_default_secrets(self) -> None:
@@ -156,8 +183,8 @@ class TestCoreSettingsCors:
             environment=Environment.DEV,
             database_host="database.internal",
             database_port=5432,
-            postgres_user="relab_user",
-            postgres_password=SecretStr("p@ss:word/with?chars"),
+            database_app_user="relab_user",
+            database_app_password=SecretStr("p@ss:word/with?chars"),
         )
 
         url = settings.build_database_url("asyncpg", "relab_db")
@@ -170,13 +197,102 @@ class TestCoreSettingsCors:
         assert parsed.port == 5432
         assert parsed.database == "relab_db"
 
+    def test_database_urls_use_least_privilege_roles(self) -> None:
+        """Application and migration URLs should use distinct database roles."""
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            database_host="database.internal",
+            database_app_user="relab_app",
+            database_app_password=SecretStr("app-password"),
+            database_migration_user="relab_migrator",
+            database_migration_password=SecretStr("migration-password"),
+        )
+
+        async_url = make_url(settings.async_database_url)
+        migration_url = make_url(settings.sync_migration_database_url)
+
+        assert async_url.username == "relab_app"
+        assert async_url.password == "app-password"
+        assert migration_url.username == "relab_migrator"
+        assert migration_url.password == "migration-password"
+
+    def test_database_role_passwords_can_load_from_secret_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Production credentials should be loadable from Docker-style secret files."""
+        (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
+        (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
+        (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
+        (tmp_path / "redis_password").write_text("redis-secret", encoding="utf-8")
+        settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
+        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+
+        settings = CoreSettings(
+            environment=Environment.DEV,
+            database_app_user="relab_app",
+            database_migration_user="relab_migrator",
+            database_backup_user="relab_backup",
+        )
+
+        assert settings.database_app_password.get_secret_value() == "app-secret"
+        assert settings.database_migration_password.get_secret_value() == "migration-secret"
+        assert settings.database_backup_password.get_secret_value() == "backup-secret"
+        assert settings.redis_password.get_secret_value() == "redis-secret"
+
+    def test_production_can_load_runtime_passwords_from_secret_files(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Production-like settings should accept runtime passwords from secrets_dir."""
+        (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
+        (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
+        (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
+        (tmp_path / "redis_password").write_text("redis-secret", encoding="utf-8")
+        settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
+        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+
+        kwargs = _production_core_settings_kwargs()
+        for name in (
+            "database_app_password",
+            "database_migration_password",
+            "database_backup_password",
+            "redis_password",
+        ):
+            kwargs.pop(name)
+        settings = CoreSettings(**kwargs)
+
+        assert settings.database_app_password.get_secret_value() == "app-secret"
+        assert settings.database_migration_password.get_secret_value() == "migration-secret"
+        assert settings.database_backup_password.get_secret_value() == "backup-secret"
+        assert settings.redis_password.get_secret_value() == "redis-secret"
+
+    def test_production_rejects_missing_redis_secret_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Production-like settings should fail when Redis has no password source."""
+        (tmp_path / "database_app_password").write_text("app-secret", encoding="utf-8")
+        (tmp_path / "database_migration_password").write_text("migration-secret", encoding="utf-8")
+        (tmp_path / "database_backup_password").write_text("backup-secret", encoding="utf-8")
+        settings_config: Any = {**CoreSettings.model_config, "env_file": None, "secrets_dir": tmp_path}
+        monkeypatch.setattr(CoreSettings, "model_config", settings_config)
+
+        with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
+            kwargs = _production_core_settings_kwargs()
+            for name in (
+                "database_app_password",
+                "database_migration_password",
+                "database_backup_password",
+                "redis_password",
+            ):
+                kwargs.pop(name)
+            CoreSettings(**kwargs)
+
     def test_sync_database_url_disables_ssl_by_default(self) -> None:
         """Sync DB URLs should explicitly disable SSL for the internal Postgres service."""
         settings = CoreSettings(
             environment=Environment.DEV,
-            postgres_password=SecretStr("test-password"),
+            database_migration_password=SecretStr("test-password"),
         )
-        parsed = make_url(settings.sync_database_url)
+        parsed = make_url(settings.sync_migration_database_url)
         assert parsed.query["sslmode"] == "disable"
 
     def test_async_database_connect_args_disable_ssl_by_default(self) -> None:
@@ -186,34 +302,39 @@ class TestCoreSettingsCors:
 
     def test_async_database_connect_args_enable_ssl_when_configured(self) -> None:
         """Async DB SSL should remain configurable for deployments that need it."""
-        settings = CoreSettings(
-            environment=Environment.PROD,
-            database_ssl=True,
-            backend_api_url=HttpUrl("https://api.cml-relab.org/"),
-            frontend_web_url=HttpUrl("https://cml-relab.org/"),
-            frontend_app_url=HttpUrl("https://app.cml-relab.org/"),
-            postgres_password=SecretStr("test-password"),
-            redis_password=SecretStr("test-password"),
-            superuser_password=SecretStr("test-password"),
-            superuser_email="test@example.com",
-            data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
-        )
+        settings = CoreSettings(**_production_core_settings_kwargs(database_ssl=True))
         assert settings.async_database_connect_args == {"ssl": True}
 
     def test_production_requires_https_origins(self) -> None:
         """Production-like environments should use HTTPS for external URLs."""
         with pytest.raises(ValidationError, match="BACKEND_API_URL must use https"):
-            CoreSettings(
-                environment=Environment.PROD,
-                backend_api_url=HttpUrl("http://api.cml-relab.org"),
-                frontend_web_url=HttpUrl("https://cml-relab.org"),
-                frontend_app_url=HttpUrl("https://app.cml-relab.org"),
-                postgres_password=SecretStr("test-password"),
-                redis_password=SecretStr("test-password"),
-                superuser_password=SecretStr("test-password"),
-                superuser_email="test@example.com",
-                data_encryption_keys=SecretStr(TEST_DATA_ENCRYPTION_KEY),
-            )
+            CoreSettings(**_production_core_settings_kwargs(backend_api_url=HttpUrl("http://api.cml-relab.org")))
+
+    @pytest.mark.parametrize(
+        ("field", "value", "message"),
+        [
+            ("database_app_user", "postgres", "DATABASE_APP_USER must not use the bootstrap/admin role"),
+            ("database_migration_user", "postgres", "DATABASE_MIGRATION_USER must not use the bootstrap/admin role"),
+            ("database_backup_user", "postgres", "DATABASE_BACKUP_USER must not use the bootstrap/admin role"),
+            ("database_app_password", SecretStr(""), "DATABASE_APP_PASSWORD must not be empty"),
+            ("database_migration_password", SecretStr(""), "DATABASE_MIGRATION_PASSWORD must not be empty"),
+            ("database_backup_password", SecretStr(""), "DATABASE_BACKUP_PASSWORD must not be empty"),
+        ],
+    )
+    def test_production_rejects_unsafe_database_role_settings(
+        self, field: str, value: str | SecretStr, message: str
+    ) -> None:
+        """Production should fail fast when role credentials break least privilege."""
+        kwargs = _production_core_settings_kwargs()
+        kwargs[field] = value
+
+        with pytest.raises(ValidationError, match=message):
+            CoreSettings(**kwargs)
+
+    def test_production_rejects_duplicate_database_runtime_roles(self) -> None:
+        """Production database runtime, migration, and backup roles must be distinct."""
+        with pytest.raises(ValidationError, match="Database app, migration, and backup users must be distinct"):
+            CoreSettings(**_production_core_settings_kwargs(database_migration_user="relab_app"))
 
     def test_otel_enabled_tracks_endpoint(self) -> None:
         """Telemetry is enabled iff an exporter endpoint is configured."""
