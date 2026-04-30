@@ -541,36 +541,17 @@ docker-smoke-frontend-app:
     just _docker-smoke-up app-site 300
     echo "✅ Frontend-app smoke test passed"
 
-# Smoke test: user-upload backups image can create a backup archive from a sample uploads tree
-docker-smoke-user-upload-backups:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    tmp_root="$(mktemp -d)"
-    host_uid="$(id -u)"
-    host_gid="$(id -g)"
-    # Cleanup runs as host user; chown the backup tree back before rm since the
-    # container wrote it as uid 1001 (backupuser).
-    trap 'docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work >/dev/null 2>&1 || true; rm -rf "$tmp_root"' EXIT
-    mkdir -p "$tmp_root/uploads/images" "$tmp_root/uploads/files" "$tmp_root/backups"
-    printf 'smoke test image bytes\n' > "$tmp_root/uploads/images/example.txt"
-    printf 'smoke test file bytes\n' > "$tmp_root/uploads/files/example.txt"
-    docker build -f backend/Dockerfile.user-upload-backups -t relab-user-upload-backups-smoke backend
-    # Exercise the production perms pattern: enter as root, chown the bind mount,
-    # then drop privileges to backupuser via su-exec (matches the real entrypoint).
-    docker run --rm \
-        -v "$tmp_root/uploads:/data/uploads:ro" \
-        -v "$tmp_root/backups:/backups" \
-        -e UPLOADS_DIR=/data/uploads \
-        -e UPLOADS_BACKUP_DIR=/backups \
-        -e BACKUP_KEEP_DAYS=1 \
-        -e BACKUP_KEEP_WEEKS=1 \
-        -e BACKUP_KEEP_MONTHS=1 \
-        -e MAX_TOTAL_GB=1 \
-        --entrypoint sh \
-        relab-user-upload-backups-smoke \
-        -c 'chown -R backupuser:backupuser "$UPLOADS_BACKUP_DIR" && exec su-exec backupuser ./backup_user_uploads.sh'
-    find "$tmp_root/backups" -type f -name 'user_uploads-*.tar.*' | grep -q .
-    echo "✅ User-upload backups smoke test passed"
+# Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
+docker-smoke-backups:
+    @bash scripts/backup_restic_ops.sh docker-smoke-backups
+
+# Copy the local restic repository to an optional offsite repository, such as rclone:<remote>:relab/staging/restic
+backup-offsite-copy env='staging':
+    @bash scripts/backup_restic_ops.sh backup-offsite-copy "{{ env }}"
+
+# Restore the latest restic PostgreSQL dump into a disposable Postgres container
+backup-restore-smoke env='prod':
+    @bash scripts/backup_restic_ops.sh backup-restore-smoke "{{ env }}"
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
 docker-orchestration-smoke:
@@ -587,7 +568,7 @@ docker-smoke:
     @just docker-smoke-docs
     @just docker-smoke-frontend-web
     @just docker-smoke-frontend-app
-    @just docker-smoke-user-upload-backups
+    @just docker-smoke-backups
     @just docker-orchestration-smoke
 
 ### CI test helpers for backend performance regression testing ---
