@@ -13,32 +13,14 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 
+from app.api.auth.services.rate_limiter import RateLimitExceededError
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion as _verify_device_assertion
 from app.api.plugins.rpi_cam.websocket.router import (
     _authenticate,
     _handle_text_frame,
     _heartbeat_loop,
-    _record_auth_failure,
+    _receive_loop,
 )
-
-
-async def test_record_auth_failure_sanitizes_ip_in_log() -> None:
-    """Auth failure logging should neutralize line breaks in client IPs."""
-    ip = "203.0.113.10\nFORGED"
-    camera_key = "cam\nFORGED"
-
-    with patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger:
-        _record_auth_failure(ip, camera_key, 1, 0, 0.0)
-
-    mock_logger.warning.assert_called_once_with(
-        "Auth failure (ip=%s %d/%d; camera=%s %d/%d).",
-        "203.0.113.10 FORGED",
-        2,
-        5,
-        "cam FORGED",
-        1,
-        20,
-    )
 
 
 async def test_handle_text_frame_sanitizes_camera_id_in_log() -> None:
@@ -70,19 +52,35 @@ async def test_authenticate_sanitizes_client_ip_when_blocked() -> None:
     camera_id = uuid4()
 
     with (
-        patch.dict(_authenticate.__globals__, {"_auth_failures": {"203.0.113.10\nFORGED": (5, 0.0)}}),
-        patch("app.api.plugins.rpi_cam.websocket.router.asyncio.get_running_loop") as mock_loop,
+        patch("app.api.plugins.rpi_cam.websocket.router.limiter") as mock_limiter,
         patch("app.api.plugins.rpi_cam.websocket.router.logger") as mock_logger,
     ):
-        mock_loop.return_value.time.return_value = 10.0
+        mock_limiter.hit_key.side_effect = RateLimitExceededError
         result = await _authenticate(websocket, camera_id)
 
     assert result is False
     websocket.close.assert_awaited_once()
     mock_logger.warning.assert_called_once_with(
-        "Auth from %s blocked — too many failures.",
+        "WebSocket auth from %s for camera %s blocked by rate limit.",
         "203.0.113.10 FORGED",
+        str(camera_id),
     )
+
+
+async def test_authenticate_enforces_redis_backed_rate_limit_before_auth_lookup() -> None:
+    """WebSocket auth attempts should use the shared limiter so limits work across workers."""
+    websocket = MagicMock()
+    websocket.headers = {}
+    websocket.client = SimpleNamespace(host="203.0.113.10")
+    websocket.close = AsyncMock()
+    camera_id = uuid4()
+
+    with patch("app.api.plugins.rpi_cam.websocket.router.limiter", create=True) as mock_limiter:
+        result = await _authenticate(websocket, camera_id)
+
+    assert result is False
+    mock_limiter.hit_key.assert_any_call("10/minute", "rpi-cam:ws-auth:ip:203.0.113.10")
+    mock_limiter.hit_key.assert_any_call("10/minute", f"rpi-cam:ws-auth:camera:{camera_id}")
 
 
 async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
@@ -107,6 +105,40 @@ async def test_heartbeat_loop_sanitizes_camera_id_on_timeout() -> None:
         str(camera_id),
         91.0,
     )
+
+
+async def test_receive_loop_closes_on_oversized_text_frame(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Oversized WebSocket text frames should close before JSON parsing or dispatch."""
+    monkeypatch.setattr("app.api.plugins.rpi_cam.websocket.router.settings.rpi_cam_ws_text_frame_limit_bytes", 8)
+    websocket = AsyncMock()
+    websocket.receive = AsyncMock(
+        side_effect=[
+            {"type": "websocket.receive", "text": "x" * 9},
+            {"type": "websocket.disconnect"},
+        ]
+    )
+    websocket.close = AsyncMock()
+
+    await _receive_loop(websocket, uuid4(), MagicMock(), [0.0], None)
+
+    websocket.close.assert_awaited_once()
+
+
+async def test_receive_loop_closes_on_oversized_binary_frame(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Oversized WebSocket binary frames should close before being retained in memory."""
+    monkeypatch.setattr("app.api.plugins.rpi_cam.websocket.router.settings.rpi_cam_ws_binary_frame_limit_bytes", 8)
+    websocket = AsyncMock()
+    websocket.receive = AsyncMock(
+        side_effect=[
+            {"type": "websocket.receive", "bytes": b"x" * 9},
+            {"type": "websocket.disconnect"},
+        ]
+    )
+    websocket.close = AsyncMock()
+
+    await _receive_loop(websocket, uuid4(), MagicMock(), [0.0], None)
+
+    websocket.close.assert_awaited_once()
 
 
 # ── Device assertion verification ────────────────────────────────────────────

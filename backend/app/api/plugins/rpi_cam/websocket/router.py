@@ -15,12 +15,14 @@ from pydantic import UUID4
 from relab_rpi_cam_models import RelayResponseEnvelope
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth.services.rate_limiter import RateLimitExceededError, limiter
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.services import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
 from app.api.plugins.rpi_cam.websocket.protocol import MSG_PING, MSG_PONG, MSG_RESPONSE
+from app.core.config import settings
 from app.core.database import get_async_session
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip
@@ -42,11 +44,6 @@ _WS_BYTES = "bytes"
 
 _HEARTBEAT_INTERVAL = 30.0
 _HEARTBEAT_TIMEOUT = 90.0
-_MAX_AUTH_FAILURES = 5
-_MAX_CAMERA_AUTH_FAILURES = 20
-_AUTH_LOCKOUT_SECONDS = 300.0
-_auth_failures: dict[str, tuple[int, float]] = {}
-_camera_auth_failures: dict[str, tuple[int, float]] = {}
 
 
 @router.websocket("/plugins/rpi-cam/ws/connect")
@@ -94,47 +91,36 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
             await mark_camera_offline(redis, camera_id)
 
 
-async def _check_lockout(websocket: WebSocket, client_ip: str, camera_key: str, now: float) -> tuple[int, int] | None:
-    """Return (ip_count, camera_count) if caller is not locked out, else None."""
-    fail_count, last_fail_at = _auth_failures.get(client_ip, (0, 0.0))
-    if now - last_fail_at > _AUTH_LOCKOUT_SECONDS:
-        fail_count = 0
-    if fail_count >= _MAX_AUTH_FAILURES:
-        logger.warning("Auth from %s blocked — too many failures.", sanitize_log_value(client_ip))
+async def _enforce_ws_auth_rate_limit(websocket: WebSocket, client_ip: str, camera_key: str) -> bool:
+    """Apply shared Redis-backed rate limits to WebSocket authentication attempts."""
+    try:
+        limiter.hit_key(settings.rpi_cam_ws_auth_rate_limit, f"rpi-cam:ws-auth:ip:{client_ip}")
+        limiter.hit_key(settings.rpi_cam_ws_auth_rate_limit, f"rpi-cam:ws-auth:camera:{camera_key}")
+    except RateLimitExceededError:
+        logger.warning(
+            "WebSocket auth from %s for camera %s blocked by rate limit.",
+            sanitize_log_value(client_ip),
+            sanitize_log_value(camera_key),
+        )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Too many failed attempts.")
-        return None
-
-    cam_fail_count, cam_last_fail_at = _camera_auth_failures.get(camera_key, (0, 0.0))
-    if now - cam_last_fail_at > _AUTH_LOCKOUT_SECONDS:
-        cam_fail_count = 0
-    if cam_fail_count >= _MAX_CAMERA_AUTH_FAILURES:
-        logger.warning("Auth for camera %s blocked — too many failures.", sanitize_log_value(camera_key))
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Too many failed attempts.")
-        return None
-
-    return fail_count, cam_fail_count
+        return False
+    return True
 
 
 async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
     """Validate a short-lived signed camera device assertion."""
     client_ip = extract_client_ip(websocket.headers, websocket.client.host if websocket.client else "unknown")
     camera_key = str(camera_id)
-    loop = asyncio.get_running_loop()
-
-    lockout = await _check_lockout(websocket, client_ip, camera_key, loop.time())
-    if lockout is None:
+    if not await _enforce_ws_auth_rate_limit(websocket, client_ip, camera_key):
         return False
-    fail_count, cam_fail_count = lockout
 
     assertion = _extract_bearer_token(websocket)
     if not assertion:
-        _record_auth_failure(client_ip, camera_key, fail_count, cam_fail_count, loop.time())
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing Authorization header.")
         return False
 
     camera = await _get_camera(camera_id)
     if camera is None or not camera.credential_is_active:
-        _record_auth_failure(client_ip, camera_key, fail_count, cam_fail_count, loop.time())
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
         return False
 
@@ -154,13 +140,10 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
             sanitize_log_value(client_ip),
             sanitize_log_value(exc),
         )
-        _record_auth_failure(client_ip, camera_key, fail_count, cam_fail_count, loop.time())
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
         return False
 
     await mark_camera_online(redis, camera_id)
-    _auth_failures.pop(client_ip, None)
-    _camera_auth_failures.pop(camera_key, None)
     logger.info(
         "Camera %s authenticated from %s with key %s.",
         sanitize_log_value(camera_id),
@@ -182,22 +165,6 @@ async def _get_camera(camera_id: UUID4) -> Camera | None:
         return await session.get(Camera, camera_id)
     finally:
         await session.close()
-
-
-def _record_auth_failure(ip: str, camera_key: str, ip_count: int, camera_count: int, now: float) -> None:
-    new_ip = ip_count + 1
-    new_cam = camera_count + 1
-    _auth_failures[ip] = (new_ip, now)
-    _camera_auth_failures[camera_key] = (new_cam, now)
-    logger.warning(
-        "Auth failure (ip=%s %d/%d; camera=%s %d/%d).",
-        sanitize_log_value(ip),
-        new_ip,
-        _MAX_AUTH_FAILURES,
-        sanitize_log_value(camera_key),
-        new_cam,
-        _MAX_CAMERA_AUTH_FAILURES,
-    )
 
 
 async def _heartbeat_loop(websocket: WebSocket, camera_id: UUID4, last_pong_at: list[float]) -> None:
@@ -235,10 +202,20 @@ async def _receive_loop(
             break
 
         if _WS_TEXT in raw:
+            text_data: str = raw[_WS_TEXT]
+            if len(text_data.encode("utf-8")) > settings.rpi_cam_ws_text_frame_limit_bytes:
+                logger.warning("Camera %s sent oversized text frame; closing.", sanitize_log_value(camera_id))
+                await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG, reason="WebSocket frame too large.")
+                return
             pending_binary_id, pending_binary_json = await _handle_text_frame(
                 raw, camera_id, manager, pending_binary_id, pending_binary_json, last_pong_at, redis
             )
         elif _WS_BYTES in raw:
+            binary_data: bytes = raw[_WS_BYTES]
+            if len(binary_data) > settings.rpi_cam_ws_binary_frame_limit_bytes:
+                logger.warning("Camera %s sent oversized binary frame; closing.", sanitize_log_value(camera_id))
+                await websocket.close(code=status.WS_1009_MESSAGE_TOO_BIG, reason="WebSocket frame too large.")
+                return
             pending_binary_id, pending_binary_json = _handle_binary_frame(
                 raw, camera_id, manager, pending_binary_id, pending_binary_json
             )
