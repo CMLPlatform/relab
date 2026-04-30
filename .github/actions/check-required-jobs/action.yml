@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Check Required Jobs
+description: Fail when any required upstream job failed, was cancelled, or returned an unexpected result.
+
+inputs:
+  results:
+    description: JSON object mapping job names to needs.<job>.result values.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check job results
+      shell: bash
+      env:
+        RESULTS_JSON: ${{ inputs.results }}
+      run: |
+        python - <<'PY'
+        import json
+        import os
+        import sys
+
+        accepted = {"success", "skipped"}
+        failed = False
+        results = json.loads(os.environ["RESULTS_JSON"])
+
+        for job, result in sorted(results.items()):
+            print(f"{job}: {result}")
+            if result not in accepted:
+                failed = True
+
+        sys.exit(1 if failed else 0)
+        PY

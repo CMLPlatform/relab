@@ -7,6 +7,7 @@ shared:
   - 'backend/.env*.example'
   - 'justfile'
   - 'compose*.yml'
+  - 'compose*.yaml'
 
 policy:
   - '.github/**'
@@ -28,21 +29,26 @@ root-python:
 backend:
   - 'backend/**'
   - 'compose*.yml'
+  - 'compose*.yaml'
 
 frontend-web:
   - 'frontend-web/**'
   - 'compose*.yml'
+  - 'compose*.yaml'
 
 frontend-app:
   - 'frontend-app/**'
   - 'compose*.yml'
+  - 'compose*.yaml'
 
 docs:
   - 'docs/**'
   - 'compose*.yml'
+  - 'compose*.yaml'
 
 containers:
   - 'compose*.yml'
+  - 'compose*.yaml'
   - '**/Dockerfile*'
   - 'backend/uv.lock'
   - 'docs/pnpm-lock.yaml'

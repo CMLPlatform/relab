@@ -1,9 +1,10 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# spell-checker: ignore anchore, aquasecurity, gacts
+# spell-checker: ignore anchore, aquasecurity, esac, gacts, ossf, sarif, SARIF
 
 name: Security
 
 on:
+  branch_protection_rule:
   schedule:
     - cron: "0 2 * * 1"
   pull_request:
@@ -19,7 +20,6 @@ concurrency:
 
 permissions:
   contents: read
-  security-events: write
 
 defaults:
   run:
@@ -28,6 +28,7 @@ defaults:
 jobs:
   changes:
     name: Detect Changes
+    if: github.event_name != 'branch_protection_rule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -52,7 +53,6 @@ jobs:
         env:
           IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
           IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
-          IS_RENOVATE_PR: ${{ steps.detect.outputs.is-renovate-pr }}
           SHARED: ${{ steps.detect.outputs.shared }}
           ROOT_PYTHON: ${{ steps.detect.outputs.root-python }}
           BACKEND: ${{ steps.detect.outputs.backend }}
@@ -85,14 +85,6 @@ jobs:
             echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
 
-          # Renovate PRs touch runtime tooling, not service source — skip container rebuilds on those PRs.
-          if [[ "$IS_RENOVATE_PR" == "true" ]]; then
-            BACKEND=false
-            DOCS=false
-            FRONTEND_APP=false
-            FRONTEND_WEB=false
-          fi
-
           shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
 
           include_entries=()
@@ -116,7 +108,7 @@ jobs:
 
   secret-scan:
     name: Secret Scan
-    if: github.event_name != 'merge_group' && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'renovate[bot]')
+    if: github.event_name != 'branch_protection_rule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -137,19 +129,22 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Review dependency changes
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
         with:
           fail-on-severity: moderate
 
   python-audit-root:
     name: Python Audit (root)
     needs: [ changes ]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run-root-python == 'true'
+    if: needs.changes.outputs.run-root-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -171,7 +166,7 @@ jobs:
   backend-python-audit:
     name: Python Audit (backend)
     needs: [ changes ]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run-backend-python == 'true'
+    if: needs.changes.outputs.run-backend-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -193,10 +188,9 @@ jobs:
   docs-node-audit:
     name: Node Audit (docs)
     needs: [ changes ]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run-docs-node == 'true'
+    if: needs.changes.outputs.run-docs-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -211,29 +205,12 @@ jobs:
         run: just docs/install
 
       - name: Run dependency audit
-        run: |
-          set -o pipefail
-          output="$(just docs/audit 2>&1)"
-          status=$?
-          printf '%s\n' "$output"
-          if [ "$status" -ne 0 ]; then
-            exit "$status"
-          fi
-
-          if printf '%s\n' "$output" | grep -Eq '^Found [1-9][0-9]* known vulnerability|^Vulnerabilities:'; then
-            echo "::warning title=Docs dependency audit::Vulnerabilities were found in docs dependencies. Review the audit output above."
-            {
-              printf '### Docs dependency audit\n\n'
-              printf 'Warning: vulnerabilities were found in docs dependencies.\n\n'
-              printf 'This check is intentionally non-blocking so the pull request can still be merged.\n\n'
-              printf 'Review the audit output in the step log above.\n'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+        run: just docs/audit
 
   frontend-app-node-audit:
     name: Node Audit (frontend-app)
     needs: [ changes ]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run-frontend-app-node == 'true'
+    if: needs.changes.outputs.run-frontend-app-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -255,7 +232,7 @@ jobs:
   frontend-web-node-audit:
     name: Node Audit (frontend-web)
     needs: [ changes ]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.run-frontend-web-node == 'true'
+    if: needs.changes.outputs.run-frontend-web-node == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -277,7 +254,7 @@ jobs:
   container-security:
     name: Container Security (${{ matrix.service }})
     needs: [ changes ]
-    if: needs.changes.outputs.run-container-images == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'renovate[bot]')
+    if: needs.changes.outputs.run-container-images == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
@@ -326,6 +303,7 @@ jobs:
 
   codeql:
     name: CodeQL (${{ matrix.language }})
+    if: github.event_name != 'branch_protection_rule'
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: 30
     permissions:
@@ -348,13 +326,85 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           config-file: ./.github/codeql-config.yml
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
         with:
           category: "/language:${{ matrix.language }}"
+
+  scorecard:
+    name: Scorecard
+    if: github.event_name == 'branch_protection_rule' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      id-token: write
+      issues: read
+      pull-requests: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@99c09fe975337306107572b4fdf4db224cf8e2f2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          sarif_file: results.sarif
+
+  security-result:
+    name: Security Result
+    # Keep blocking jobs in sync between `needs` and the JSON passed to
+    # check-required-jobs; skipped jobs are accepted, failed/cancelled jobs fail.
+    if: always()
+    needs:
+      - changes
+      - secret-scan
+      - dependency-review
+      - python-audit-root
+      - backend-python-audit
+      - docs-node-audit
+      - frontend-app-node-audit
+      - frontend-web-node-audit
+      - container-security
+      - codeql
+      - scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Check security jobs
+        uses: ./.github/actions/check-required-jobs
+        with:
+          results: >-
+            {
+              "changes": "${{ needs.changes.result }}",
+              "secret-scan": "${{ needs.secret-scan.result }}",
+              "dependency-review": "${{ needs.dependency-review.result }}",
+              "python-audit-root": "${{ needs.python-audit-root.result }}",
+              "backend-python-audit": "${{ needs.backend-python-audit.result }}",
+              "docs-node-audit": "${{ needs.docs-node-audit.result }}",
+              "frontend-app-node-audit": "${{ needs.frontend-app-node-audit.result }}",
+              "frontend-web-node-audit": "${{ needs.frontend-web-node-audit.result }}",
+              "container-security": "${{ needs.container-security.result }}",
+              "codeql": "${{ needs.codeql.result }}",
+              "scorecard": "${{ needs.scorecard.result }}"
+            }
