@@ -15,13 +15,8 @@ from app.api.common.exceptions import BadRequestError
 from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError, ModelFileNotFoundError
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
-from app.api.file_storage.schemas import (  # lgtm[py/unused-import]
-    MAX_FILE_SIZE_MB,
-    MAX_IMAGE_SIZE_MB,
-    FileCreate,
-    ImageCreateFromForm,
-    ImageCreateInternal,
-)
+from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageCreateInternal
+from app.core.config import settings
 from app.core.images import generate_thumbnails, process_image_for_storage
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
@@ -64,10 +59,14 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         self,
         *,
         model: type[StorageModelT],
-        max_size_mb: int,
     ) -> None:
         self.model = model
-        self.max_size_mb = max_size_mb
+
+    @property
+    def max_size_mb(self) -> int:
+        """Return the upload size limit for this media type."""
+        msg = "Subclasses must define max_size_mb."
+        raise NotImplementedError(msg)
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an uploaded file to storage."""
@@ -136,7 +135,12 @@ class FileStorageService(StoredMediaService[File, FileCreate]):
     """Service for generic file storage."""
 
     def __init__(self) -> None:
-        super().__init__(model=File, max_size_mb=MAX_FILE_SIZE_MB)
+        super().__init__(model=File)
+
+    @property
+    def max_size_mb(self) -> int:
+        """Return the configured generic file upload limit."""
+        return settings.max_file_upload_size_mb
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist a generic file upload."""
@@ -147,7 +151,12 @@ class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageC
     """Service for image storage and post-processing."""
 
     def __init__(self) -> None:
-        super().__init__(model=Image, max_size_mb=MAX_IMAGE_SIZE_MB)
+        super().__init__(model=Image)
+
+    @property
+    def max_size_mb(self) -> int:
+        """Return the configured image upload limit."""
+        return settings.max_image_upload_size_mb
 
     async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
         """Persist an image upload."""

@@ -28,8 +28,6 @@ from app.core.images import thumbnail_path_for, validate_image_mime_type
 if TYPE_CHECKING:
     from os import PathLike
 
-MAX_FILE_SIZE_MB = 50
-MAX_IMAGE_SIZE_MB = 10
 PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.value for parent in MediaParentType)}"
 
 

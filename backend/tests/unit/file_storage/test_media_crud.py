@@ -11,6 +11,7 @@ import pytest
 from fastapi import UploadFile
 
 from app.api.file_storage.crud.media_queries import create_file, create_image, delete_file, delete_image
+from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.exceptions import ModelFileNotFoundError, UploadTooLargeError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
@@ -70,6 +71,27 @@ class TestFileStorageCrud:
 
         with pytest.raises(UploadTooLargeError, match="Maximum size: 50 MB"):
             await create_file(mock_session, file_create)
+
+    async def test_create_file_uses_configured_upload_size_limit(
+        self, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Generic file uploads should use the configured limit instead of a module constant."""
+        monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_file_upload_size_mb", 2)
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = TEST_FILENAME
+        mock_file.size = 3 * MB
+        mock_file.file = BytesIO(b"")
+
+        file_create = FileCreate(
+            file=mock_file, description=TEST_FILE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+        )
+
+        with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
+            await create_file(mock_session, file_create)
+
+    def test_file_service_does_not_keep_legacy_fallback_upload_limit(self) -> None:
+        """The file upload service should read limits from settings only."""
+        assert not hasattr(file_storage_service, "_max_size_mb")
 
     async def test_delete_file_success(self, mock_session: AsyncMock) -> None:
         """Deletes a stored file and its database record."""
@@ -132,6 +154,28 @@ class TestImageStorageCrud:
 
         with pytest.raises(UploadTooLargeError, match="Maximum size: 10 MB"):
             await create_image(mock_session, image_create)
+
+    async def test_create_image_uses_configured_upload_size_limit(
+        self, mock_session: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Image uploads should use the configured limit instead of a module constant."""
+        monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_image_upload_size_mb", 2)
+        mock_file = MagicMock(spec=UploadFile)
+        mock_file.filename = IMAGE_FILENAME
+        mock_file.content_type = CONTENT_TYPE_PNG
+        mock_file.size = 3 * MB
+        mock_file.file = BytesIO(b"")
+
+        image_create = ImageCreateInternal(
+            file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+        )
+
+        with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
+            await create_image(mock_session, image_create)
+
+    def test_image_service_does_not_keep_legacy_fallback_upload_limit(self) -> None:
+        """The image upload service should read limits from settings only."""
+        assert not hasattr(image_storage_service, "_max_size_mb")
 
     async def test_delete_image_success(self, mock_session: AsyncMock) -> None:
         """Deletes a stored image and its database record."""
