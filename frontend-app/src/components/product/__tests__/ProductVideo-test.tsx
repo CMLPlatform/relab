@@ -10,10 +10,16 @@ jest.mock('react-native-webview', () => {
   const { Text, View } = require('react-native');
 
   return {
-    WebView: ({ source }: { source?: { uri?: string } }) =>
+    WebView: ({
+      originWhitelist,
+      source,
+    }: {
+      originWhitelist?: string[];
+      source?: { uri?: string };
+    }) =>
       React.createElement(
         View,
-        { testID: 'mock-webview' },
+        { testID: 'mock-webview', originWhitelist },
         React.createElement(Text, null, source?.uri ?? ''),
       ),
   };
@@ -171,6 +177,30 @@ describe('ProductVideo', () => {
     renderProductVideo({ product: productWithVideo });
     fireEvent.press(screen.getByText('Show (1)'));
     expect(screen.getByDisplayValue('A great talk')).toBeOnTheScreen();
+  });
+
+  it('constrains native YouTube WebView embeds to the privacy-enhanced origin', () => {
+    const productWithVideo: Product = {
+      ...baseProduct,
+      videos: [
+        {
+          id: 1,
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          title: 'Demo',
+          description: '',
+        },
+      ],
+    };
+
+    renderProductVideo({ product: productWithVideo });
+    fireEvent.press(screen.getByText('Show (1)'));
+
+    expect(screen.getByTestId('mock-webview')).toHaveProp('originWhitelist', [
+      'https://www.youtube-nocookie.com',
+    ]);
+    expect(
+      screen.getByText('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'),
+    ).toBeOnTheScreen();
   });
 
   it('calls onVideoChange when a video is removed', () => {

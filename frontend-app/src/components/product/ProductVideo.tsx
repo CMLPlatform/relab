@@ -378,6 +378,7 @@ function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
   const { WebView } = require('react-native-webview');
   return (
     <WebView
+      originWhitelist={['https://www.youtube-nocookie.com']}
       source={{ uri: embedUri }}
       style={embedContainerStyle}
       allowsInlineMediaPlayback

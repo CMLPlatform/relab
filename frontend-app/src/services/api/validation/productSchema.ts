@@ -102,9 +102,28 @@ const videoSchema = z.object({
   title: z.string().min(1, 'Video title cannot be empty'),
 });
 
+const SAFE_IMAGE_PROTOCOLS = new Set(['http:', 'https:', 'file:', 'blob:', 'content:']);
+
+function isSafeImageUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('data:')) {
+    return false;
+  }
+  if (trimmed.startsWith('/')) {
+    return true;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    return SAFE_IMAGE_PROTOCOLS.has(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
 const imageSchema = z.object({
   id: z.string().optional(),
-  url: z.string(),
+  url: z.string().refine(isSafeImageUrl, { message: 'Image URL is not allowed' }),
   thumbnailUrl: z.string().optional(),
   description: z.string(),
 });

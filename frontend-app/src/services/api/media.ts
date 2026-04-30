@@ -4,22 +4,40 @@ const apiBaseUrl = API_ORIGIN_URL.replace(/\/+$/, '');
 
 export const API_PLACEHOLDER_IMAGE_PATH = '/static/images/placeholder.png';
 
-const PASSTHROUGH_SCHEMES = ['http://', 'https://', 'file://', 'data:', 'blob:', 'content://'];
+const PASSTHROUGH_SCHEMES = ['http:', 'https:', 'file:', 'blob:', 'content:'];
+const SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
+
+function hasSafeMediaScheme(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return PASSTHROUGH_SCHEMES.includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
 
 export function resolveApiMediaUrl(path?: string | null): string | undefined {
-  if (!path) {
+  const trimmedPath = path?.trim();
+  if (!trimmedPath) {
     return;
   }
 
-  if (PASSTHROUGH_SCHEMES.some((scheme) => path.startsWith(scheme))) {
-    return path;
+  if (trimmedPath.startsWith('//') || trimmedPath.toLowerCase().startsWith('data:')) {
+    return;
+  }
+
+  if (hasSafeMediaScheme(trimmedPath)) {
+    return trimmedPath;
+  }
+  if (SCHEME_PATTERN.test(trimmedPath)) {
+    return;
   }
 
   if (!apiBaseUrl) {
-    return path.startsWith('/') ? path : `/${path}`;
+    return trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
   }
 
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = trimmedPath.startsWith('/') ? trimmedPath : `/${trimmedPath}`;
   return `${apiBaseUrl}${normalizedPath}`;
 }
 
@@ -34,5 +52,5 @@ export function getResizedImageUrl(
 ): string {
   void imageId;
   void width;
-  return resolveApiMediaUrl(imageUrl) ?? imageUrl;
+  return resolveApiMediaUrl(imageUrl) ?? getPlaceholderImageUrl();
 }
