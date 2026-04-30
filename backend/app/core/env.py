@@ -45,7 +45,13 @@ def get_env_file(base_dir: PathType) -> Path:
     return base_dir / filename
 
 
+def get_secrets_dir() -> Path | None:
+    """Return Docker's runtime secrets directory when it is mounted."""
+    secrets_dir = Path("/run/secrets")
+    return secrets_dir if secrets_dir.exists() else None
+
+
 class RelabBaseSettings(BaseSettings):
     """Shared settings base class for backend modules."""
 
-    model_config = SettingsConfigDict(env_file=get_env_file(BACKEND_DIR), extra="ignore")
+    model_config = SettingsConfigDict(env_file=get_env_file(BACKEND_DIR), extra="ignore", secrets_dir=get_secrets_dir())

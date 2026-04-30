@@ -27,7 +27,7 @@ config = context.config
 # Set the synchronous database URL if not already set in the test environment
 if config.get_alembic_option("is_test") != "true":  # noqa: PLR2004 # This variable is set in tests/conftest.py to indicate a test environment
     setup_logging()
-    config.set_main_option("sqlalchemy.url", settings.sync_database_url)
+    config.set_main_option("sqlalchemy.url", settings.sync_migration_database_url)
 else:
     # In tests, logging is already configured in conftest.py.
     # We just need to ensure the alembic.env logger exists.

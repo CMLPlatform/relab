@@ -46,6 +46,12 @@ class CoreSettings(RelabBaseSettings):
     postgres_user: str = "postgres"
     postgres_password: SecretStr = SecretStr("")
     postgres_db: str = "relab_db"
+    database_app_user: str = "relab_app"
+    database_app_password: SecretStr = SecretStr("")
+    database_migration_user: str = "relab_migrator"
+    database_migration_password: SecretStr = SecretStr("")
+    database_backup_user: str = "relab_backup"
+    database_backup_password: SecretStr = SecretStr("")
 
     # ── Redis ─────────────────────────────────────────────────────────────────────
     redis_host: str = "localhost"
@@ -133,12 +139,14 @@ class CoreSettings(RelabBaseSettings):
     # ── Cache ─────────────────────────────────────────────────────────────────────
     cache: CacheSettings = Field(default_factory=CacheSettings)
 
-    # ── Concurrency, request, upload, rate, and WebSocket limits ─────────────────
+    # ── Worker, DB, image, and outbound HTTP capacity ────────────────────────────
     db_pool_size: int = Field(default=10, ge=1, le=50)
     db_pool_max_overflow: int = Field(default=10, ge=0, le=50)
     image_resize_workers: int = Field(default=5, ge=1, le=64)
     http_max_connections: int = Field(default=100, ge=1, le=1000)
     http_max_keepalive_connections: int = Field(default=20, ge=0, le=1000)
+
+    # ── Request, upload, and DoS limits ──────────────────────────────────────────
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
     max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
@@ -195,7 +203,14 @@ class CoreSettings(RelabBaseSettings):
     log_path: Path = BACKEND_DIR / "logs"
     docs_path: Path = BACKEND_DIR / "docs" / "site"
 
-    def build_database_url(self, driver: str, database: str) -> str:
+    def build_database_url(
+        self,
+        driver: str,
+        database: str,
+        *,
+        username: str | None = None,
+        password: SecretStr | None = None,
+    ) -> str:
         """Build and validate PostgreSQL database URL."""
         query: dict[str, str] = {}
         if driver == DATABASE_DRIVER_PSYCOPG:
@@ -203,8 +218,8 @@ class CoreSettings(RelabBaseSettings):
 
         url = URL.create(
             f"postgresql+{driver}",
-            username=self.postgres_user,
-            password=self.postgres_password.get_secret_value(),
+            username=username or self.database_app_user,
+            password=(password or self.database_app_password).get_secret_value(),
             host=self.database_host,
             port=self.database_port,
             database=database,
@@ -223,6 +238,26 @@ class CoreSettings(RelabBaseSettings):
     def sync_database_url(self) -> str:
         """Get sync database URL."""
         return self.build_database_url(DATABASE_DRIVER_PSYCOPG, self.postgres_db)
+
+    @cached_property
+    def sync_migration_database_url(self) -> str:
+        """Get sync migration database URL."""
+        return self.build_database_url(
+            DATABASE_DRIVER_PSYCOPG,
+            self.postgres_db,
+            username=self.database_migration_user,
+            password=self.database_migration_password,
+        )
+
+    @cached_property
+    def sync_backup_database_url(self) -> str:
+        """Get sync backup database URL."""
+        return self.build_database_url(
+            DATABASE_DRIVER_PSYCOPG,
+            self.postgres_db,
+            username=self.database_backup_user,
+            password=self.database_backup_password,
+        )
 
     @cached_property
     def async_database_connect_args(self) -> dict[str, bool]:
@@ -286,6 +321,34 @@ class CoreSettings(RelabBaseSettings):
             raise ValueError(msg)
         return self
 
+    def _database_role_security_errors(self) -> list[str]:
+        """Collect least-privilege database role validation errors."""
+        errors: list[str] = []
+
+        database_role_credentials = {
+            "DATABASE_APP_PASSWORD": self.database_app_password,
+            "DATABASE_MIGRATION_PASSWORD": self.database_migration_password,
+            "DATABASE_BACKUP_PASSWORD": self.database_backup_password,
+        }
+        for name, value in database_role_credentials.items():
+            if not value.get_secret_value():
+                errors.append(f"{name} must not be empty in production")
+
+        bootstrap_user = self.postgres_user.casefold()
+        database_roles = {
+            "DATABASE_APP_USER": self.database_app_user,
+            "DATABASE_MIGRATION_USER": self.database_migration_user,
+            "DATABASE_BACKUP_USER": self.database_backup_user,
+        }
+        for name, value in database_roles.items():
+            if value.casefold() == bootstrap_user:
+                errors.append(f"{name} must not use the bootstrap/admin role")
+
+        if len({value.casefold() for value in database_roles.values()}) != len(database_roles):
+            errors.append("Database app, migration, and backup users must be distinct")
+
+        return errors
+
     def _production_security_errors(self) -> list[str]:
         """Collect environment-specific security validation errors."""
         errors: list[str] = []
@@ -293,8 +356,7 @@ class CoreSettings(RelabBaseSettings):
         if self.cors_origin_regex == DEFAULT_CORS_ORIGIN_REGEX:
             errors.append("CORS_ORIGIN_REGEX must not be set in production/staging")
 
-        if not self.postgres_password.get_secret_value():
-            errors.append("POSTGRES_PASSWORD must not be empty in production")
+        errors.extend(self._database_role_security_errors())
 
         if not self.redis_password.get_secret_value():
             errors.append("REDIS_PASSWORD must not be empty in production")

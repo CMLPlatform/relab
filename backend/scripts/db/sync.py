@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
-sync_engine = create_engine(settings.sync_database_url, echo=settings.debug)
+sync_engine = create_engine(settings.sync_migration_database_url, echo=settings.debug)
 
 
 @contextmanager
