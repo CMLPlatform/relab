@@ -170,6 +170,15 @@ class TestLimiter:
         await endpoint(req_b)
         assert call_count == 2  # Both succeed with their own bucket
 
+    def test_hit_key_limits_explicit_non_request_buckets(self, limiter: Limiter) -> None:
+        """Explicit buckets support small auth-service checks without endpoint introspection."""
+        limiter.hit_key("1/minute", "auth:login:account:one")
+
+        with pytest.raises(RateLimitExceededError):
+            limiter.hit_key("1/minute", "auth:login:account:one")
+
+        limiter.hit_key("1/minute", "auth:login:account:two")
+
     async def test_no_request_arg_skips_check(self, limiter: Limiter) -> None:
         """When no Request is found in args, the limiter should not block."""
 

@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users.manager import BaseUserManager
+from pydantic import SecretStr
 
+from app.api.auth.schemas import UserUpdate
+from app.api.auth.services.rate_limiter import RateLimitExceededError
 from app.api.auth.services.user_manager import UserManager
 
 
@@ -39,6 +43,37 @@ def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, Asyn
 
 class TestAuthenticateUsernameResolution:
     """UserManager.authenticate resolves usernames to email before delegating to the parent."""
+
+    async def test_applies_account_aware_rate_limit_before_lookup(self) -> None:
+        """Login attempts should also be bucketed by a hash of the submitted identifier."""
+        manager, mock_session = _make_manager()
+        credentials = _make_credentials(" User@Example.COM ")
+
+        with (
+            patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
+            patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super,
+        ):
+            mock_super.return_value = None
+            await manager.authenticate(credentials)
+
+        mock_limiter.hit_key.assert_called_once()
+        rate, key = mock_limiter.hit_key.call_args.args
+        assert rate == "3/minute"
+        assert key.startswith("auth:login:account:")
+        assert "user@example.com" not in key
+        mock_session.execute.assert_not_called()
+
+    async def test_account_rate_limit_exceeded_skips_lookup(self) -> None:
+        """A blocked account bucket should stop work before DB or password checks."""
+        manager, mock_session = _make_manager()
+        credentials = _make_credentials("blocked@example.com")
+
+        with patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter:
+            mock_limiter.hit_key.side_effect = RateLimitExceededError
+            with pytest.raises(RateLimitExceededError):
+                await manager.authenticate(credentials)
+
+        mock_session.execute.assert_not_called()
 
     async def test_email_input_skips_db_lookup(self) -> None:
         """When credentials contain '@', no DB query is made and the email is passed through unchanged."""
@@ -95,3 +130,14 @@ class TestAuthenticateUsernameResolution:
             result = await manager.authenticate(credentials)
 
         assert result is mock_user
+
+
+class TestUserUpdateSchema:
+    """UserUpdate keeps reauthentication-only fields out of persistence payloads."""
+
+    def test_current_password_is_not_in_forwarded_update_dicts(self) -> None:
+        """The reauthentication-only field must not be persisted onto the User model."""
+        update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
+
+        assert "current_password" not in update.create_update_dict()
+        assert "current_password" not in update.create_update_dict_superuser()

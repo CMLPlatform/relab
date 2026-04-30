@@ -14,7 +14,16 @@ from app.api.auth.exceptions import UserNameAlreadyExistsError
 from app.api.auth.schemas import UserUpdate
 from tests.factories.models import UserFactory
 
-from .shared import NEW_USERNAME, TAKEN_USERNAME, USER1_EMAIL, USER1_USERNAME, USER2_EMAIL, USER2_USERNAME
+from .shared import (
+    NEW_USERNAME,
+    TAKEN_USERNAME,
+    TEST_PASSWORD,
+    USER1_EMAIL,
+    USER1_USERNAME,
+    USER2_EMAIL,
+    USER2_USERNAME,
+    hash_test_password,
+)
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -22,6 +31,7 @@ if TYPE_CHECKING:
 
 
 pytestmark = pytest.mark.api
+UPDATED_PASSWORD = "updated-test-credential-42"
 
 
 class TestUpdateUserValidation:
@@ -153,3 +163,89 @@ class TestUpdateUserEndpoint:
         """Test that getting user info without authentication returns 401."""
         response = await api_client.get("/v1/users/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    async def test_password_update_requires_current_password(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        """Password changes through the self-management endpoint require reauthentication."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="reauth-required@example.com",
+            username="reauth_required",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+        )
+        login_response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": user.email, "password": TEST_PASSWORD},
+        )
+        assert login_response.status_code == status.HTTP_200_OK
+        token = login_response.json()["access_token"]
+
+        response = await api_client.patch(
+            "/v1/users/me",
+            json={"password": UPDATED_PASSWORD},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "current password" in response.json()["detail"].lower()
+
+    async def test_password_update_accepts_valid_current_password(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        """A valid current password allows a password change."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="reauth-valid@example.com",
+            username="reauth_valid",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+        )
+        login_response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": user.email, "password": TEST_PASSWORD},
+        )
+        assert login_response.status_code == status.HTTP_200_OK
+        token = login_response.json()["access_token"]
+
+        response = await api_client.patch(
+            "/v1/users/me",
+            json={
+                "password": UPDATED_PASSWORD,
+                "current_password": TEST_PASSWORD,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    async def test_username_update_does_not_require_current_password(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        """Non-sensitive updates keep working without a current password."""
+        user = await UserFactory.create_async(
+            db_session,
+            email="reauth-username@example.com",
+            username="reauth_username",
+            hashed_password=hash_test_password(TEST_PASSWORD),
+        )
+        login_response = await api_client.post(
+            "/v1/auth/login",
+            data={"username": user.email, "password": TEST_PASSWORD},
+        )
+        assert login_response.status_code == status.HTTP_200_OK
+        token = login_response.json()["access_token"]
+
+        response = await api_client.patch(
+            "/v1/users/me",
+            json={"username": "reauth_username_new"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["username"] == "reauth_username_new"

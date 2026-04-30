@@ -12,7 +12,12 @@ from pydantic import EmailStr  # Needed for Fastapi dependency injection
 from app.api.auth.routers import refresh, register
 from app.api.auth.schemas import UserRead
 from app.api.auth.services.email_checker import EmailChecker, get_email_checker_dependency
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, VERIFY_RATE_LIMIT, limiter
+from app.api.auth.services.rate_limiter import (
+    LOGIN_RATE_LIMIT,
+    PASSWORD_RESET_RATE_LIMIT,
+    VERIFY_RATE_LIMIT,
+    limiter,
+)
 from app.api.auth.services.user_manager import (
     bearer_auth_backend,
     cookie_auth_backend,
@@ -25,6 +30,7 @@ if TYPE_CHECKING:
 
 LOGIN_PATH = "/login"
 REQUEST_VERIFY_TOKEN_PATH = "/request-verify-token"  # noqa: S105 # This value is not a secret
+FORGOT_PASSWORD_PATH = "/forgot-password"  # noqa: S105 # This value is not a secret
 AUTH_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {400: {"model": ErrorModel}}
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -69,7 +75,11 @@ for route in verify_router.routes:
     if isinstance(route, APIRoute) and route.path == REQUEST_VERIFY_TOKEN_PATH:
         route.endpoint = limiter.limit(VERIFY_RATE_LIMIT)(route.endpoint)
 router.include_router(verify_router)
-router.include_router(fastapi_user_manager.get_reset_password_router())
+reset_password_router = fastapi_user_manager.get_reset_password_router()
+for route in reset_password_router.routes:
+    if isinstance(route, APIRoute) and route.path == FORGOT_PASSWORD_PATH:
+        route.endpoint = limiter.limit(PASSWORD_RESET_RATE_LIMIT)(route.endpoint)
+router.include_router(reset_password_router)
 
 
 @router.get("/validate-email")

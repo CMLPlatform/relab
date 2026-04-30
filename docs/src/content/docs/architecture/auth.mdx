@@ -3,32 +3,48 @@ title: Authentication
 description: RELab authentication flows, token handling, and browser session behavior.
 owner: docs
 status: canonical
-lastReviewed: '2026-04-15'
+lastReviewed: '2026-04-30'
 ---
 
 <div class="relab-section-intro">
-Bearer tokens for API clients, cookies for browser sessions. Both are supported, and Redis is part of the production auth path.
+RELab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs token storage and rate limiting outside local development.
 </div>
 
-The auth system is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with custom session and refresh-token handling. It exposes two main login transports:
+Authentication is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with RELab-specific refresh-token, session-cookie, OAuth, and validation logic.
 
-- `bearer` for API clients that send an `Authorization: Bearer ...` token
-- `cookie` for browser-based sessions that rely on the `auth` cookie
+The API exposes two login transports:
 
-In development and tests, the access-token strategy can fall back to signed JWTs if Redis is unavailable. Outside development, Redis is expected to be present. Access tokens are short-lived and refresh tokens are handled separately.
+- bearer tokens for native apps, scripts, and API clients
+- session cookies for browser-based clients
 
 ## Supported Flows
 
-- Email/password login
-- Session-cookie login for web sessions
-- Bearer-token login for programmatic clients
-- Refresh-token rotation
-- Logout and token revocation
-- Password reset
-- Email verification
-- OAuth login and account linking for Google and GitHub
-- Client-side PKCE OAuth for Google on web (no backend redirect required)
-- Disposable email validation during registration
+- Email/password login with bearer-token or session-cookie responses
+- Refresh-token rotation and logout revocation
+- Password reset and email verification
+- Google and GitHub OAuth login
+- OAuth account linking for existing users
+- Google PKCE login on web
+- Disposable email checks during registration
+
+## Security Controls
+
+Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a small local blocklist. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API.
+
+The breach check fails open if Have I Been Pwned is unavailable. The frontend keeps standard password inputs and does not block paste, so password managers work normally.
+
+Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`. Username, profile, and preference updates do not.
+
+Forgot-password responses do not reveal whether an account exists. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.
+
+Rate limits use the existing Redis-backed `limits` integration:
+
+- login by client IP and by a hash of the submitted identifier
+- registration, email verification requests, and forgot-password requests by client IP
+
+Auth logs record successful logins and rate-limit events. They do not include plaintext passwords, reset tokens, verification tokens, or refresh tokens.
+
+## Token Handling
 
 ```mermaid
 sequenceDiagram
@@ -49,37 +65,26 @@ sequenceDiagram
     end
 ```
 
-## Session Handling
+Access tokens are short-lived. In development and tests, access-token storage can fall back to signed JWTs if Redis is unavailable. In production-like environments, Redis is expected to be present.
 
-Login also:
+Successful login updates `last_login_at` and `last_login_ip`. When Redis is available, login also creates a refresh token. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
 
-- updates `last_login_at` and `last_login_ip`
-- creates a refresh token when Redis is available
-- sets the `refresh_token` cookie for browser sessions
+Refresh-token rotation uses dedicated endpoints:
 
-Refresh-token rotation happens through dedicated endpoints:
-
-- `POST /v1/auth/refresh` for bearer-style clients
+- `POST /v1/auth/refresh` for bearer clients
 - `POST /v1/auth/session/refresh` for browser sessions
 
-Logout clears the access cookie, deletes the refresh cookie, and blacklists the refresh token when present.
+Logout clears auth cookies and blacklists the refresh token when one is present.
 
 ## OAuth
 
-OAuth login is available for Google and GitHub. Each provider supports:
+OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association.
 
-- a token-based callback flow
-- a session-cookie callback flow
-- account linking for existing users
+### Backend-Mediated Flow
 
-Google accounts may be auto-linked by email because Google verifies ownership. GitHub linking is stricter and requires explicit association.
+GitHub uses the backend-mediated flow on all platforms. Google uses it on native clients.
 
-### Backend-mediated flow (GitHub all platforms, Google on native)
-
-OAuth callbacks use a CSRF cookie and a signed state token. Redirect targets are restricted by allowlists in the auth settings.
-
-The public backend origin is configured with `BACKEND_API_URL`, for example `https://api.cml-relab.org`.
-Provider callback URLs are versioned API routes and must be registered in the provider consoles with the `/v1/oauth` prefix:
+Callbacks use a CSRF cookie and signed state token. Redirect targets are restricted by auth-setting allowlists. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
 
 - `https://api.cml-relab.org/v1/oauth/google/session/callback`
 - `https://api.cml-relab.org/v1/oauth/google/associate/callback`
@@ -87,7 +92,7 @@ Provider callback URLs are versioned API routes and must be registered in the pr
 - `https://api.cml-relab.org/v1/oauth/github/session/callback`
 - `https://api.cml-relab.org/v1/oauth/github/associate/callback`
 
-The bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when that transport is enabled for a client.
+The public backend origin comes from `BACKEND_API_URL`; production currently uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
 ```mermaid
 sequenceDiagram
@@ -107,9 +112,9 @@ sequenceDiagram
     API-->>Frontend: Redirect with session/token response
 ```
 
-### Client-side PKCE flow (Google on web)
+### Google PKCE Flow
 
-The web frontend uses `expo-auth-session` to run a PKCE flow directly with Google, then exchanges the resulting ID token for a session via a dedicated backend endpoint. No backend redirect is involved, so there is no dependency on any third-party auth proxy.
+The web frontend uses `expo-auth-session` to run Google PKCE directly in the browser, then exchanges the Google ID token with RELab. No backend redirect or third-party auth proxy is involved.
 
 ```mermaid
 sequenceDiagram
@@ -128,12 +133,12 @@ sequenceDiagram
     API-->>Frontend: Set session cookies (204)
 ```
 
-The backend exposes two token-exchange endpoints:
+Google token exchange endpoints:
 
 - `POST /v1/oauth/google/session/token` — sets httpOnly session cookies (used by the web app)
 - `POST /v1/oauth/google/bearer/token` — returns bearer + refresh tokens (for API clients)
 
-## User-Facing Endpoints
+## Public Auth Endpoints
 
 ??? note "Expand endpoint list"
 \- `POST /v1/auth/login`

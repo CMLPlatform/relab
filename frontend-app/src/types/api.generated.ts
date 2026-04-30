@@ -5387,6 +5387,12 @@ export interface components {
       username?: string | null;
       /** Organization Id */
       organization_id?: string | null;
+      /**
+       * Current Password
+       * Format: password
+       * @description Current password required when changing email or password.
+       */
+      current_password?: string | null;
       /** @description User preferences (partial merge). */
       preferences?: components['schemas']['UserPreferencesUpdate'] | null;
     };
