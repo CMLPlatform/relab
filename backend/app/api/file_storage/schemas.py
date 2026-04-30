@@ -13,7 +13,7 @@ from app.api.common.schemas.base import (
     IntIdReadSchemaWithTimeStamp,
     UUIDIdReadSchemaWithTimeStamp,
 )
-from app.api.common.schemas.custom_fields import AnyUrlToDB
+from app.api.common.schemas.custom_fields import HttpUrlToDB
 from app.api.file_storage.examples import (
     FILE_READ_WITHIN_PARENT_EXAMPLES,
     IMAGE_READ_WITHIN_PARENT_EXAMPLES,
@@ -191,13 +191,13 @@ class VideoCreateWithinProduct(BaseCreateSchema, VideoBase):
 
     model_config = ConfigDict(json_schema_extra={"examples": VIDEO_CREATE_WITHIN_PRODUCT_EXAMPLES})
 
-    url: AnyUrlToDB
+    url: HttpUrlToDB
 
 
 class VideoCreate(BaseCreateSchema, VideoBase):
     """Schema for creating a video."""
 
-    url: AnyUrlToDB
+    url: HttpUrlToDB
     product_id: PositiveInt
 
 
@@ -218,7 +218,7 @@ class VideoUpdateWithinProduct(BaseUpdateSchema):
 
     model_config = ConfigDict(json_schema_extra={"examples": VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES})
 
-    url: AnyUrlToDB | None = Field(default=None, description="URL linking to the video")
+    url: HttpUrlToDB | None = Field(default=None, description="URL linking to the video")
     title: str | None = Field(default=None, max_length=100, description="Title of the video")
     description: str | None = Field(default=None, max_length=500, description="Description of the video")
     video_metadata: dict[str, Any] | None = Field(default=None, description="Video metadata as a JSON dict")
