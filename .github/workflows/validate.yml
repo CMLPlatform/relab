@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-# spell-checker: ignore esac, rhysd
+# spell-checker: ignore rhysd
 
 name: Validate
 
@@ -9,7 +9,6 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  merge_group:
   workflow_dispatch:
   schedule:
     - cron: "0 3 * * 1"
@@ -336,36 +335,10 @@ jobs:
       - name: Run docs CI test suite
         run: just docs/test-ci
 
-  renovate-docker-smoke:
-    name: Renovate Docker Smoke
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'renovate[bot]' && contains(github.event.pull_request.title, '(major)')
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - name: Select recipe
-        id: route
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          case "$PR_TITLE" in
-            *backend-python-runtime*)       recipe=docker-smoke-backend ;;
-            *docs-site-runtime-tooling*)    recipe=docker-smoke-docs ;;
-            *frontend-web-runtime-tooling*) recipe=docker-smoke-frontend-web ;;
-            *frontend-app-runtime-tooling*) recipe=docker-smoke-frontend-app ;;
-            *) echo "No runtime-tooling major match — skipping."; exit 0 ;;
-          esac
-          echo "recipe=$recipe" >> "$GITHUB_OUTPUT"
-
-      - name: Run smoke recipe
-        if: steps.route.outputs.recipe
-        uses: ./.github/actions/docker-smoke
-        with:
-          recipe: ${{ steps.route.outputs.recipe }}
-
   e2e-full-stack:
     name: Frontend App Full-Stack E2E
     needs: [ changes ]
-    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && (github.event_name == 'push' || github.event_name == 'merge_group'))
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && github.event_name == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -424,3 +397,40 @@ jobs:
         uses: ./.github/actions/docker-smoke
         with:
           recipe: ${{ matrix.recipe }}
+
+  validate-result:
+    name: Validate Result
+    # Keep blocking jobs in sync between `needs` and the JSON passed to
+    # check-required-jobs; skipped jobs are accepted, failed/cancelled jobs fail.
+    if: always()
+    needs:
+      - changes
+      - automation
+      - backend
+      - frontend-web
+      - e2e-frontend-web
+      - frontend-app
+      - docs
+      - e2e-full-stack
+      - docker-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Check validate jobs
+        uses: ./.github/actions/check-required-jobs
+        with:
+          results: >-
+            {
+              "changes": "${{ needs.changes.result }}",
+              "automation": "${{ needs.automation.result }}",
+              "backend": "${{ needs.backend.result }}",
+              "frontend-web": "${{ needs.frontend-web.result }}",
+              "e2e-frontend-web": "${{ needs.e2e-frontend-web.result }}",
+              "frontend-app": "${{ needs.frontend-app.result }}",
+              "docs": "${{ needs.docs.result }}",
+              "e2e-full-stack": "${{ needs.e2e-full-stack.result }}",
+              "docker-smoke": "${{ needs.docker-smoke.result }}"
+            }

@@ -21,26 +21,45 @@
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "automerge": true
+    "automerge": false
   },
   "packageRules": [
     {
       "groupName": "dependency pins",
-      "matchUpdateTypes": ["pin"]
+      "matchUpdateTypes": [
+        "pin"
+      ]
     },
     {
       "groupName": "runtime-containers",
-      "matchManagers": ["docker-compose", "dockerfile"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "matchManagers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
       "pinDigests": true,
       "automerge": false,
-      "labels": ["runtime-risk", "containers"]
+      "labels": [
+        "runtime-risk",
+        "containers"
+      ]
     },
     {
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true,
-      "labels": ["automerge"],
-      "matchPackageNames": ["*"]
+      "minimumReleaseAge": "14 days",
+      "labels": [
+        "automerge"
+      ],
+      "matchPackageNames": [
+        "*"
+      ]
     },
     {
       "groupName": "repo-tooling",
@@ -56,15 +75,28 @@
         "pyproject.toml",
         "uv.lock"
       ],
-      "labels": ["tooling"]
+      "automerge": false,
+      "labels": [
+        "tooling"
+      ]
     },
     {
       "groupName": "backend-python-runtime",
-      "matchFileNames": ["backend/pyproject.toml", "backend/uv.lock", "backend/Dockerfile*"]
+      "matchFileNames": [
+        "backend/pyproject.toml",
+        "backend/uv.lock",
+        "backend/Dockerfile*"
+      ],
+      "automerge": false
     },
     {
       "groupName": "docs-site-runtime-tooling",
-      "matchFileNames": ["docs/package.json", "docs/pnpm-lock.yaml", "docs/Dockerfile*"]
+      "matchFileNames": [
+        "docs/package.json",
+        "docs/pnpm-lock.yaml",
+        "docs/Dockerfile*"
+      ],
+      "automerge": false
     },
     {
       "groupName": "frontend-web-runtime-tooling",
@@ -72,7 +104,8 @@
         "frontend-web/package.json",
         "frontend-web/pnpm-lock.yaml",
         "frontend-web/Dockerfile*"
-      ]
+      ],
+      "automerge": false
     },
     {
       "groupName": "frontend-app-runtime-tooling",
@@ -80,10 +113,14 @@
         "frontend-app/package.json",
         "frontend-app/pnpm-lock.yaml",
         "frontend-app/Dockerfile*"
-      ]
+      ],
+      "automerge": false
     },
     {
-      "matchFileNames": ["frontend-app/package.json", "frontend-app/pnpm-lock.yaml"],
+      "matchFileNames": [
+        "frontend-app/package.json",
+        "frontend-app/pnpm-lock.yaml"
+      ],
       "matchPackageNames": [
         "expo",
         "/^expo($|-)/",
@@ -101,36 +138,63 @@
         "react-native-web"
       ],
       "enabled": false,
-      "labels": ["expo-sdk-managed"]
+      "labels": [
+        "expo-sdk-managed"
+      ]
     },
     {
       "groupName": "python lock file maintenance",
-      "matchUpdateTypes": ["lockFileMaintenance"],
-      "matchFileNames": ["uv.lock", "backend/uv.lock"]
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "matchFileNames": [
+        "uv.lock",
+        "backend/uv.lock"
+      ],
+      "automerge": false
     },
     {
       "groupName": "node lock file maintenance",
-      "matchUpdateTypes": ["lockFileMaintenance"],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
       "matchFileNames": [
         "pnpm-lock.yaml",
         "docs/pnpm-lock.yaml",
         "frontend-web/pnpm-lock.yaml",
         "frontend-app/pnpm-lock.yaml"
-      ]
+      ],
+      "automerge": false
     },
     {
       "groupName": "containers-compose",
-      "matchFileNames": ["**/compose.*.yml", "**/compose.yml"],
-      "pinDigests": true
+      "matchFileNames": [
+        "compose*.yaml",
+        "**/compose.*.yaml",
+        "**/compose.yaml"
+      ],
+      "pinDigests": true,
+      "automerge": false
     },
     {
       "groupName": "github-actions",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
       "pinDigests": true,
-      "automerge": true,
-      "labels": ["automerge", "github-actions"]
+      "automerge": false,
+      "labels": [
+        "github-actions"
+      ]
     }
   ],
-  "labels": ["dependencies", "renovate"]
+  "labels": [
+    "dependencies",
+    "renovate"
+  ]
 }
