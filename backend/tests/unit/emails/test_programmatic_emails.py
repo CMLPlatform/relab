@@ -11,11 +11,7 @@ from faker import Faker
 from fastapi import BackgroundTasks
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.services.emails import (
-    ACCOUNT_RECOVERY_TEMPLATE,
-    POST_VERIFICATION_TEMPLATE,
-    REGISTRATION_TEMPLATE,
-    VERIFICATION_TEMPLATE,
+from app.api.auth.services.email import (
     generate_token_link,
     send_post_verification_email,
     send_registration_email,
@@ -127,11 +123,8 @@ async def test_send_registration_email_uses_template_contract(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert await_args.kwargs["template_name"] == REGISTRATION_TEMPLATE
-    assert message.template_body == {
-        "username": email_data["username"],
-        "verification_link": generate_token_link(email_data["token"], "/verify"),
-    }
+    assert email_data["username"] in message.html_body
+    assert generate_token_link(email_data["token"], "/verify") in message.html_body
 
 
 async def test_send_registration_email_with_background_tasks(
@@ -165,11 +158,8 @@ async def test_send_reset_password_email_uses_template_contract(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert await_args.kwargs["template_name"] == ACCOUNT_RECOVERY_TEMPLATE
-    assert message.template_body == {
-        "username": email_data["username"],
-        "reset_link": generate_token_link(email_data["token"], "/reset-password"),
-    }
+    assert email_data["username"] in message.html_body
+    assert generate_token_link(email_data["token"], "/reset-password") in message.html_body
 
 
 async def test_send_reset_password_email_with_background_tasks(
@@ -202,11 +192,8 @@ async def test_send_verification_email_uses_template_contract(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert await_args.kwargs["template_name"] == VERIFICATION_TEMPLATE
-    assert message.template_body == {
-        "username": email_data["username"],
-        "verification_link": generate_token_link(email_data["token"], "/verify"),
-    }
+    assert email_data["username"] in message.html_body
+    assert generate_token_link(email_data["token"], "/verify") in message.html_body
 
 
 async def test_send_verification_email_with_background_tasks(
@@ -239,8 +226,7 @@ async def test_send_post_verification_email_uses_template_contract(
     await_args = mock_email_sending.await_args
     assert await_args is not None
     message = await_args.args[0]
-    assert await_args.kwargs["template_name"] == POST_VERIFICATION_TEMPLATE
-    assert message.template_body == {"username": email_data["username"]}
+    assert email_data["username"] in message.html_body
 
 
 async def test_send_post_verification_email_no_username(

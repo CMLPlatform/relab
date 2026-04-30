@@ -1,5 +1,4 @@
 """Runtime-facing camera helpers for cache, recording sessions, and image capture."""
-# spell-checker: ignore astext
 
 from __future__ import annotations
 

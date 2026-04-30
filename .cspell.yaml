@@ -96,6 +96,7 @@ overrides:
     words:
       # Technical terms
       - astext
+      - DMARC
       - instrumentor
       - instrumentors
       - joinedload

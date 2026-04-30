@@ -1,15 +1,23 @@
 """Configuration for the auth module."""
 
 from dataclasses import dataclass
+from enum import StrEnum
 from functools import cached_property
 
-from pydantic import EmailStr, Field, NameEmail, SecretStr, TypeAdapter, model_validator
+from pydantic import BaseModel, EmailStr, Field, NameEmail, SecretStr, TypeAdapter, field_validator, model_validator
 
 from app.core.config.models import Environment
 from app.core.constants import DAY, HOUR, MINUTE
 from app.core.env import RelabBaseSettings, is_production_like_environment
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
+
+
+class EmailProviderName(StrEnum):
+    """Supported email delivery providers."""
+
+    SMTP = "smtp"
+    MICROSOFT_GRAPH = "microsoft_graph"
 
 
 def parse_name_email(value: str, *, fallback: str = "") -> NameEmail | None:
@@ -36,6 +44,25 @@ class ResolvedEmailSettings:
         return NAME_EMAIL_ADAPTER.validate_python(str(email))
 
 
+class GraphEmailSettings(BaseModel):
+    """Microsoft Graph email provider settings."""
+
+    tenant_id: str = Field(min_length=1)
+    client_id: str = Field(min_length=1)
+    client_secret: SecretStr
+    sender_user: str = Field(min_length=1)
+    save_to_sent_items: bool = False
+
+    @field_validator("client_secret")
+    @classmethod
+    def validate_client_secret(cls, value: SecretStr) -> SecretStr:
+        """Reject empty Graph client secrets."""
+        if not value.get_secret_value():
+            msg = "Microsoft Graph client secret must not be empty"
+            raise ValueError(msg)
+        return value
+
+
 class AuthSettings(RelabBaseSettings):
     """Settings class to store settings related to auth components."""
 
@@ -59,12 +86,20 @@ class AuthSettings(RelabBaseSettings):
     oauth_allowed_native_redirect_uris: list[str] = Field(default_factory=list)
 
     # Settings used to configure the email server for sending emails from the app.
+    email_provider: EmailProviderName = EmailProviderName.SMTP
     email_host: str = ""
     email_port: int = 587  # Default SMTP port for TLS
     email_username: str = ""
     email_password: SecretStr = SecretStr("")
     email_from: str = ""
     email_reply_to: str = ""
+
+    # Microsoft Graph email provider settings.
+    microsoft_graph_tenant_id: str = ""
+    microsoft_graph_client_id: str = ""
+    microsoft_graph_client_secret: SecretStr = SecretStr("")
+    microsoft_graph_sender_user: str = ""
+    microsoft_graph_save_to_sent_items: bool = False
 
     # Time to live for access (login) and verification tokens
     access_token_ttl_seconds: int = 15 * MINUTE  # 15 minutes (Redis token lifetime)
@@ -105,6 +140,17 @@ class AuthSettings(RelabBaseSettings):
             reply_to=parse_name_email(self.email_reply_to, fallback=self.email_from or self.email_username) or sender,
         )
 
+    @cached_property
+    def microsoft_graph_email(self) -> GraphEmailSettings:
+        """Return validated Microsoft Graph email settings."""
+        return GraphEmailSettings(
+            tenant_id=self.microsoft_graph_tenant_id,
+            client_id=self.microsoft_graph_client_id,
+            client_secret=self.microsoft_graph_client_secret,
+            sender_user=self.microsoft_graph_sender_user,
+            save_to_sent_items=self.microsoft_graph_save_to_sent_items,
+        )
+
     @model_validator(mode="after")
     def validate_production_auth_settings(self) -> AuthSettings:
         """Fail fast when production-like auth settings are incomplete."""
@@ -112,20 +158,34 @@ class AuthSettings(RelabBaseSettings):
             return self
 
         errors: list[str] = []
-        required_secrets = {
+        required_secrets: dict[str, str] = {
             "FASTAPI_USERS_SECRET": self.fastapi_users_secret.get_secret_value(),
             "GOOGLE_OAUTH_CLIENT_ID": self.google_oauth_client_id.get_secret_value(),
             "GOOGLE_OAUTH_CLIENT_SECRET": self.google_oauth_client_secret.get_secret_value(),
             "GITHUB_OAUTH_CLIENT_ID": self.github_oauth_client_id.get_secret_value(),
             "GITHUB_OAUTH_CLIENT_SECRET": self.github_oauth_client_secret.get_secret_value(),
-            "EMAIL_PASSWORD": self.email_password.get_secret_value(),
         }
-        required_strings = {
-            "EMAIL_HOST": self.email_host,
-            "EMAIL_USERNAME": self.email_username,
+        required_strings: dict[str, str] = {
             "EMAIL_FROM": self.email_from,
             "EMAIL_REPLY_TO": self.email_reply_to,
         }
+        if self.email_provider is EmailProviderName.SMTP:
+            required_secrets["EMAIL_PASSWORD"] = self.email_password.get_secret_value()
+            required_strings.update(
+                {
+                    "EMAIL_HOST": self.email_host,
+                    "EMAIL_USERNAME": self.email_username,
+                }
+            )
+        else:
+            required_secrets["MICROSOFT_GRAPH_CLIENT_SECRET"] = self.microsoft_graph_client_secret.get_secret_value()
+            required_strings.update(
+                {
+                    "MICROSOFT_GRAPH_TENANT_ID": self.microsoft_graph_tenant_id,
+                    "MICROSOFT_GRAPH_CLIENT_ID": self.microsoft_graph_client_id,
+                    "MICROSOFT_GRAPH_SENDER_USER": self.microsoft_graph_sender_user,
+                }
+            )
 
         for name, value in required_secrets.items():
             if not value:
