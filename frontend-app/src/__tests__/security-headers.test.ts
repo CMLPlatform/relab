@@ -38,4 +38,11 @@ describe('Caddy security headers', () => {
   it('observes a stricter script policy without unsafe eval', () => {
     expect(reportOnlyCsp()).not.toContain("'unsafe-eval'");
   });
+
+  it('does not allow wildcard scripts or javascript URLs', () => {
+    expect(enforcedCsp()).not.toContain('script-src *');
+    expect(reportOnlyCsp()).not.toContain('script-src *');
+    expect(enforcedCsp()).not.toContain('javascript:');
+    expect(reportOnlyCsp()).not.toContain('javascript:');
+  });
 });

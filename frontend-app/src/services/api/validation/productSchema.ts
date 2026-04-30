@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isHttpUrl, isSafeImageUrl } from '@/utils/urlSafety';
 
 export const PRODUCT_NAME_MIN_LENGTH = 2;
 export const PRODUCT_NAME_MAX_LENGTH = 100;
@@ -8,18 +9,8 @@ export const PRODUCT_NAME_MAX_LENGTH = 100;
  * Validates that a string is a properly-formatted URL (http or https).
  * Used by ProductVideo component and video schema validation.
  */
-export function isValidUrl(value: string | undefined): true | false {
-  if (!value || typeof value !== 'string') return false;
-
-  const trimmed = value.trim();
-  if (trimmed.length === 0) return false;
-
-  try {
-    const url = new URL(trimmed);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
+export function isValidHttpUrl(value: string | undefined): boolean {
+  return isHttpUrl(value);
 }
 
 const isYouTubeHostname = (hostname: string) => {
@@ -87,39 +78,10 @@ const videoSchema = z.object({
   url: z
     .string()
     .url('Invalid video URL')
-    .refine(
-      (val) => {
-        try {
-          const url = new URL(val);
-          return url.protocol === 'http:' || url.protocol === 'https:';
-        } catch {
-          return false;
-        }
-      },
-      { message: 'Video URL must use http or https' },
-    ),
+    .refine(isHttpUrl, { message: 'Video URL must use http or https' }),
   description: z.string(),
   title: z.string().min(1, 'Video title cannot be empty'),
 });
-
-const SAFE_IMAGE_PROTOCOLS = new Set(['http:', 'https:', 'file:', 'blob:', 'content:']);
-
-function isSafeImageUrl(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('data:')) {
-    return false;
-  }
-  if (trimmed.startsWith('/')) {
-    return true;
-  }
-
-  try {
-    const url = new URL(trimmed);
-    return SAFE_IMAGE_PROTOCOLS.has(url.protocol);
-  } catch {
-    return false;
-  }
-}
 
 const imageSchema = z.object({
   id: z.string().optional(),
