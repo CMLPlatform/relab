@@ -13,8 +13,8 @@ from sqlalchemy import select
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.models import OAuthAccount
 from app.api.auth.services.oauth_clients import google_youtube_oauth_client
-from app.api.common.crud.query import require_model
 from app.api.common.exceptions import APIError
+from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection.models.product import Product
@@ -131,9 +131,13 @@ async def start_recording(
     ] = YouTubePrivacyStatus.PRIVATE,
 ) -> StreamView:
     """Start a YouTube recording stream and cache the backend-owned session in Redis."""
-    # Validate video data before starting stream
-    await require_model(session, Product, product_id)
     redis_client = require_redis(redis)
+
+    # Fetch user camera up-front so product ownership is checked against the
+    # same owner that controls the camera.
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
+    await get_user_owned_object(session, Product, product_id, camera.owner_id)
+
     resolved_title, resolved_description = build_recording_text(
         product_id=product_id,
         title=title,
@@ -152,8 +156,6 @@ async def start_recording(
     # Initialize YouTube service
     youtube_service = YouTubeService(oauth_account, google_youtube_oauth_client, session, http_client)
 
-    # Fetch user camera up-front so the idempotency check can verify an existing session against the Pi.
-    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera, redis)
 
     # Idempotency guard: if a prior POST already started a recording but the response never reached
