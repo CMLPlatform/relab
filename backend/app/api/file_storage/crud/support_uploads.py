@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -9,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 from anyio import to_thread
 from fastapi import UploadFile
 from pydantic import UUID4
-from slugify import slugify
 
 from app.api.common.exceptions import BadRequestError
 from app.api.file_storage.exceptions import UploadTooLargeError
@@ -20,6 +21,27 @@ from .support_types import StorageCreateSchema, StorageModel
 if TYPE_CHECKING:
     from typing import BinaryIO
 
+_FILENAME_SEPARATOR_RE = re.compile(r"[^A-Za-z0-9]+")
+_FILENAME_SEPARATOR = "-"
+
+
+def _slugify_filename_stem(stem: str, max_length: int) -> str:
+    """Return an ASCII-safe filename stem."""
+    normalized = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode("ascii")
+    slug = _FILENAME_SEPARATOR_RE.sub(_FILENAME_SEPARATOR, normalized).strip(_FILENAME_SEPARATOR)
+    if not slug:
+        return "file"
+
+    if len(slug) <= max_length:
+        return slug
+
+    truncated = slug[:max_length].rstrip(_FILENAME_SEPARATOR)
+    if _FILENAME_SEPARATOR in truncated:
+        word_boundary = truncated.rsplit(_FILENAME_SEPARATOR, 1)[0].rstrip(_FILENAME_SEPARATOR)
+        if word_boundary:
+            return word_boundary
+    return truncated or "file"
+
 
 def sanitize_filename(filename: str, max_length: int = 42) -> str:
     """Preserve all suffixes while sanitizing the base name."""
@@ -29,12 +51,7 @@ def sanitize_filename(filename: str, max_length: int = 42) -> str:
     for suffix in path.suffixes[::-1]:
         name = name.removesuffix(suffix)
 
-    sanitized_filename = slugify(
-        name[:-1] + "_" if len(name) > max_length else name,
-        lowercase=False,
-        max_length=max_length,
-        word_boundary=True,
-    )
+    sanitized_filename = _slugify_filename_stem(name, max_length=max_length)
 
     return f"{sanitized_filename}{''.join(path.suffixes)}"
 

@@ -27,6 +27,7 @@ class TestFileStorageCrudUtils:
         """Test filename sanitization."""
         assert sanitize_filename(TEST_SAN_RAW) == TEST_SAN_CLEAN
         assert sanitize_filename(ARC_TAR_GZ) == ARC_TAR_GZ
+        assert sanitize_filename("Résumé photo 01.JPG") == "Resume-photo-01.JPG"
 
         long_name = "a" * 50 + ".pdf"
         sanitized = sanitize_filename(long_name, max_length=10)
