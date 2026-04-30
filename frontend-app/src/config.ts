@@ -1,16 +1,13 @@
+import { normalizeHttpUrl } from '@/utils/urlSafety';
+
 const API_VERSION_PATH = '/v1';
 const DEFAULT_API_ORIGIN_URL = 'http://localhost:8000';
 const TRAILING_SLASHES_PATTERN = /\/+$/;
 
 export function normalizeRequiredHttpUrl(value: string | undefined, key: string): string {
-  const trimmedValue = `${value ?? ''}`.trim();
-  try {
-    const url = new URL(trimmedValue);
-    if (url.protocol === 'http:' || url.protocol === 'https:') {
-      return url.toString();
-    }
-  } catch {
-    // Fall through to the shared error below.
+  const url = normalizeHttpUrl(value);
+  if (url) {
+    return url;
   }
   throw new Error(`${key} must be an http(s) URL`);
 }

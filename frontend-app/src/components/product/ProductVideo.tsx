@@ -7,7 +7,7 @@ import DetailSectionHeader from '@/components/common/DetailSectionHeader';
 import { useDialog } from '@/components/common/dialogContext';
 import { StreamingContent } from '@/components/common/StreamingContent';
 import type { StreamSession } from '@/context/streamSession';
-import { extractYouTubeVideoId, isValidUrl } from '@/services/api/validation/productSchema';
+import { extractYouTubeVideoId, isValidHttpUrl } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
@@ -86,9 +86,9 @@ export default function ProductVideo({
         { text: 'Cancel' },
         {
           text: 'Add',
-          disabled: (value) => !(value?.trim() && isValidUrl(value)),
+          disabled: (value) => !(value?.trim() && isValidHttpUrl(value)),
           onPress: (url) => {
-            if (!(url && isValidUrl(url))) return;
+            if (!(url && isValidHttpUrl(url))) return;
             const updated = [...videos, { url: url.trim(), title: '', description: '' }];
             setVideos(updated);
             onVideoChange?.(updated);
@@ -270,7 +270,7 @@ function VideoRow({
             value={video.url}
             onChangeText={(value) => onVideoChange(idx, 'url', value)}
             errorOnEmpty
-            customValidation={isValidUrl}
+            customValidation={isValidHttpUrl}
             editable={editMode}
           />
         ) : (
