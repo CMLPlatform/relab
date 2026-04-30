@@ -1,14 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import {
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import { TextInput } from '@/components/base/TextInput';
 import DetailSectionHeader from '@/components/common/DetailSectionHeader';
@@ -16,6 +8,7 @@ import { useDialog } from '@/components/common/dialogContext';
 import { StreamingContent } from '@/components/common/StreamingContent';
 import type { StreamSession } from '@/context/streamSession';
 import { extractYouTubeVideoId, isValidUrl } from '@/services/api/validation/productSchema';
+import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 
@@ -360,7 +353,7 @@ const embedContainerStyle = {
 
 function VideoEmbed({ url, linkColor }: { url: string; linkColor: string }) {
   const videoId = extractYouTubeVideoId(url);
-  const handleOpenUrl = async () => Linking.openURL(url);
+  const handleOpenUrl = async () => openExternalUrl(url);
   if (!videoId) {
     return (
       <TouchableOpacity onPress={handleOpenUrl}>

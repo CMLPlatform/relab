@@ -1,10 +1,10 @@
-import { Linking } from 'react-native';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/hooks/useRpiCameras';
 import { useYouTubeIntegration } from '@/hooks/useYouTubeIntegration';
+import { openExternalUrl } from '@/services/externalLinks';
 
 export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {
   const { enabled: youtubeEnabled } = useYouTubeIntegration();
@@ -18,7 +18,7 @@ export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {
 
   const handleWatch = () => {
     if (!streamStatus?.url) return;
-    void Linking.openURL(streamStatus.url);
+    void openExternalUrl(streamStatus.url);
   };
 
   const handleStop = () => {

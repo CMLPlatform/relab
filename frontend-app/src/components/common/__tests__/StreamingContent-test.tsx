@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { Linking } from 'react-native';
 import { StreamingContent } from '@/components/common/StreamingContent';
+import { openExternalUrl } from '@/services/externalLinks';
 import { renderWithProviders } from '@/test-utils/index';
 
 const mockPush = jest.fn();
@@ -15,6 +15,13 @@ const mockFeedback = {
 };
 const mockStopMutate = jest.fn();
 const mockInvalidateProductQuery = jest.fn();
+
+jest.mock('@/services/externalLinks', () => ({
+  __esModule: true,
+  openExternalUrl: require('@jest/globals').jest.fn(),
+}));
+
+const openExternalUrlMock = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>;
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush }),
@@ -59,7 +66,7 @@ describe('StreamingContent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    openExternalUrlMock.mockResolvedValue(true);
     mockStopMutate.mockImplementation((...args: unknown[]) => {
       const options = args[1] as { onSuccess?: () => void } | undefined;
       options?.onSuccess?.();
@@ -85,7 +92,7 @@ describe('StreamingContent', () => {
     fireEvent.press(screen.getByText('Watch on YouTube'));
     fireEvent.press(screen.getByText('Go to Desk Radio'));
 
-    expect(Linking.openURL).toHaveBeenCalledWith(session.youtubeUrl);
+    expect(openExternalUrlMock).toHaveBeenCalledWith(session.youtubeUrl);
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/products/[id]',
       params: { id: '42' },

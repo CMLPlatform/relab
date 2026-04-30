@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Button, Chip, Text } from 'react-native-paper';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
@@ -10,6 +10,7 @@ import { invalidateProductQuery } from '@/hooks/camera-data/mutations';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useStopYouTubeStreamMutation } from '@/hooks/useRpiCameras';
+import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 
 interface StreamingContentProps {
@@ -34,7 +35,7 @@ export function StreamingContent({
   const elapsed = useElapsed(session.startedAt);
   const stopMutation = useStopYouTubeStreamMutation(session.cameraId);
 
-  const handleWatch = async () => Linking.openURL(session.youtubeUrl);
+  const handleWatch = async () => openExternalUrl(session.youtubeUrl);
 
   const handleStop = () => {
     stopMutation.mutate(undefined, {

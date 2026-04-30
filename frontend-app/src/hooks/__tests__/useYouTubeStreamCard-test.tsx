@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
-import { Linking } from 'react-native';
 import { useYouTubeStreamCard } from '@/hooks/useYouTubeStreamCard';
+import { openExternalUrl } from '@/services/externalLinks';
 
 const mockSetActiveStream = jest.fn();
 const mockAlert = jest.fn();
@@ -10,6 +10,13 @@ const mockMutate = jest.fn();
 const mockUseYouTubeIntegration = jest.fn();
 const mockUseStreamStatusQuery = jest.fn();
 const mockUseStopYouTubeStreamMutation = jest.fn();
+
+jest.mock('@/services/externalLinks', () => ({
+  __esModule: true,
+  openExternalUrl: require('@jest/globals').jest.fn(),
+}));
+
+const openExternalUrlMock = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>;
 
 jest.mock('@/context/streamSession', () => ({
   useStreamSession: () => ({
@@ -40,7 +47,7 @@ jest.mock('@/hooks/useRpiCameras', () => ({
 describe('useYouTubeStreamCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    openExternalUrlMock.mockResolvedValue(true);
     mockUseYouTubeIntegration.mockReturnValue({ enabled: true });
     mockUseStreamStatusQuery.mockReturnValue({
       data: {
@@ -87,7 +94,7 @@ describe('useYouTubeStreamCard', () => {
       result.current.actions.handleWatch();
     });
 
-    expect(Linking.openURL).toHaveBeenCalledWith('https://youtube.test/watch?v=abc');
+    expect(openExternalUrlMock).toHaveBeenCalledWith('https://youtube.test/watch?v=abc');
   });
 
   it('does nothing when watch is triggered without a stream URL', () => {
@@ -102,7 +109,7 @@ describe('useYouTubeStreamCard', () => {
       result.current.actions.handleWatch();
     });
 
-    expect(Linking.openURL).not.toHaveBeenCalled();
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
   });
 
   it('confirms stop and clears the active stream on successful stop', () => {
