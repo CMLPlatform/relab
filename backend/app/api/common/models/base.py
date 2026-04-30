@@ -1,10 +1,10 @@
 """Base model helpers and generic mixins for ORM models."""
+# spell-checker: ignore aeiou
 
 import re
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
 from typing import TYPE_CHECKING
 
-import inflect
 from sqlalchemy import DateTime, func
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.dialects.postgresql import JSONB
@@ -30,14 +30,24 @@ class Base(DeclarativeBase):
         return {c.key: getattr(self, c.key) for c in self.__table__.columns if c.key not in exclude}
 
 
-_INFLECT_ENGINE = inflect.engine()
+_IRREGULAR_PLURALS = {
+    "category": "categories",
+    "taxonomy": "taxonomies",
+}
+_VOWELS = frozenset("aeiou")
 
 
 def pluralize_camel_name(name: str) -> str:
     """Pluralize the final word in a CamelCase name."""
     parts = re.split(r"(?<!^)(?=[A-Z])", name)
     singular = parts[-1]
-    plural = _INFLECT_ENGINE.plural_noun(singular.lower()) or _INFLECT_ENGINE.plural(singular.lower())
+    singular_lower = singular.lower()
+    if singular_lower in _IRREGULAR_PLURALS:
+        plural = _IRREGULAR_PLURALS[singular_lower]
+    elif singular_lower.endswith("y") and len(singular_lower) > 1 and singular_lower[-2] not in _VOWELS:
+        plural = f"{singular_lower[:-1]}ies"
+    else:
+        plural = f"{singular_lower}s"
     parts[-1] = plural.capitalize() if singular[:1].isupper() else plural
     return "".join(parts)
 
