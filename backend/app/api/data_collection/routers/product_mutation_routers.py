@@ -15,6 +15,7 @@ from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -166,6 +167,7 @@ async def get_product_file(
     response_model=FileReadWithinParent,
     status_code=201,
     summary="Upload a file to a base product",
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def upload_product_file(
     session: AsyncSessionDep,
@@ -227,6 +229,7 @@ async def get_product_image(
     response_model=ImageReadWithinParent,
     status_code=201,
     summary="Upload an image to a base product",
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def upload_product_image(
     session: AsyncSessionDep,

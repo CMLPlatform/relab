@@ -2,16 +2,18 @@
 
 Replaces the unmaintained slowapi package with a minimal implementation
 that covers exactly the features this project uses: a per-route ``@limiter.limit()``
-decorator, Redis-backed storage, and a fixed-window strategy.
+decorator, FastAPI route dependencies, Redis-backed storage, and a fixed-window
+strategy.
 """
 
 from __future__ import annotations
 
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
-from fastapi import Request
+from fastapi import Depends, Request
+from fastapi.params import Depends as DependsParam
 from fastapi.responses import JSONResponse
 from limits import parse
 from limits.storage import storage_from_string
@@ -23,7 +25,7 @@ from app.core.middleware.client_ip import get_client_ip
 from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Coroutine, Mapping
+    from collections.abc import Awaitable, Callable, Mapping
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -59,15 +61,13 @@ class Limiter:
             self._storage = None
             self._limiter = None
 
-    def limit(
-        self, rate_string: str
-    ) -> Callable[[Callable[P, Coroutine[Any, Any, R]]], Callable[P, Coroutine[Any, Any, R]]]:
+    def limit(self, rate_string: str) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
         """Decorator that enforces *rate_string* on an async endpoint."""
         parsed = parse(rate_string)
 
         def decorator(
-            func: Callable[P, Coroutine[Any, Any, R]],
-        ) -> Callable[P, Coroutine[Any, Any, R]]:
+            func: Callable[P, Awaitable[R]],
+        ) -> Callable[P, Awaitable[R]]:
             @functools.wraps(func)
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                 if self.enabled:
@@ -93,6 +93,19 @@ class Limiter:
         if not self._limiter.hit(parsed, key):
             logger.info("Rate limit exceeded for key %s", key)
             raise RateLimitExceededError
+
+    def hit_request(self, rate_string: str, request: Request) -> None:
+        """Enforce *rate_string* for a FastAPI request."""
+        self.hit_key(rate_string, self._key_func(request))
+
+    def dependency(self, rate_string: str, *, name: str = "rate_limit") -> DependsParam:
+        """Return a FastAPI dependency that enforces *rate_string* for a request."""
+
+        def dependency(request: Request) -> None:
+            self.hit_request(rate_string, request)
+
+        dependency.__name__ = name
+        return Depends(dependency)
 
 
 def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -130,3 +143,5 @@ LOGIN_RATE_LIMIT = f"{auth_settings.rate_limit_login_attempts_per_minute}/minute
 REGISTER_RATE_LIMIT = f"{auth_settings.rate_limit_register_attempts_per_hour}/hour"
 VERIFY_RATE_LIMIT = f"{auth_settings.rate_limit_verify_attempts_per_hour}/hour"
 PASSWORD_RESET_RATE_LIMIT = f"{auth_settings.rate_limit_password_reset_attempts_per_hour}/hour"
+API_READ_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_read_rate_limit, name="api_read_rate_limit")
+API_UPLOAD_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_upload_rate_limit, name="api_upload_rate_limit")
