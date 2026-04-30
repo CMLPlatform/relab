@@ -7,10 +7,13 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from httpx import Response
 
+from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import OAuthAccount
 from app.api.common.exceptions import ServiceUnavailableError
+from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Video
 from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT
 from app.api.plugins.rpi_cam.routers.camera_interaction.streams import (
@@ -54,16 +57,16 @@ def build_oauth_account() -> OAuthAccount:
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.YouTubeService")
-@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.require_model")
+@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_object")
 async def test_start_recording(
-    mock_db_check: MagicMock,
+    mock_product_ownership: MagicMock,
     mock_yt_service_class: MagicMock,
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_camera: Camera,
 ) -> None:
     """Starting recording should create a YouTube session and cache it."""
-    del mock_db_check
+    del mock_product_ownership
     mock_get_cam.return_value = mock_camera
 
     session_mock = AsyncMock()
@@ -115,6 +118,40 @@ async def test_start_recording(
     assert cache_key == f"rpi_cam:youtube_recording:{camera_id}"
     cached_session = json.loads(payload)
     assert cached_session["product_id"] == 1
+
+
+@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
+@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.YouTubeService")
+@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_object")
+async def test_start_recording_rejects_product_not_owned_by_camera_owner(
+    mock_get_owned_product: MagicMock,
+    mock_yt_service_class: MagicMock,
+    mock_get_cam: MagicMock,
+    mock_camera: Camera,
+) -> None:
+    """Recording may only attach videos to products owned by the camera owner."""
+    user_mock = build_user()
+    foreign_product_id = 1
+    mock_get_cam.return_value = mock_camera
+    mock_get_owned_product.side_effect = UserOwnershipError(Product, foreign_product_id, require_uuid(user_mock.id))
+
+    session_mock = AsyncMock()
+    session_mock.scalar.return_value = build_oauth_account()
+
+    with pytest.raises(UserOwnershipError):
+        await start_recording(
+            camera_id=require_uuid(mock_camera.id),
+            session=session_mock,
+            http_client=AsyncMock(),
+            redis=AsyncMock(),
+            current_user=user_mock,
+            product_id=foreign_product_id,
+            title="Test",
+            description="Test Desc",
+            privacy_status=YouTubePrivacyStatus.PRIVATE,
+        )
+
+    mock_yt_service_class.assert_not_called()
 
 
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
@@ -299,16 +336,16 @@ async def test_stop_recording_ends_youtube_when_camera_offline(
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_camera")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.build_camera_request")
 @patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.YouTubeService")
-@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.require_model")
+@patch("app.api.plugins.rpi_cam.routers.camera_interaction.streams.get_user_owned_object")
 async def test_start_recording_is_idempotent_when_session_already_active(
-    mock_db_check: MagicMock,
+    mock_product_ownership: MagicMock,
     mock_yt_service_class: MagicMock,
     mock_build_camera_request: MagicMock,
     mock_get_cam: MagicMock,
     mock_camera: Camera,
 ) -> None:
     """A retry of start_recording must return the live stream view without creating a second broadcast."""
-    del mock_db_check
+    del mock_product_ownership
     mock_get_cam.return_value = mock_camera
 
     session_mock = AsyncMock()

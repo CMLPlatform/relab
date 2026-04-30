@@ -95,8 +95,9 @@ class TestTelemetryRouter:
         mock_camera: Camera,
         mock_user: User,
     ) -> None:
-        """On cache hit the handler returns the cached snapshot and never touches the relay."""
+        """On cache hit the handler authorizes ownership, returns cached data, and skips the relay."""
         cached = _make_snapshot()
+        mock_get_cam.return_value = mock_camera
         mock_get_cached.return_value = cached
 
         result = await get_camera_telemetry(
@@ -108,7 +109,7 @@ class TestTelemetryRouter:
         )
 
         assert result is cached
-        mock_get_cam.assert_not_called()
+        mock_get_cam.assert_awaited_once()
         mock_build_camera_request.assert_not_called()
         mock_store.assert_not_called()
 

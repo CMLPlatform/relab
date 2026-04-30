@@ -4,17 +4,56 @@ from __future__ import annotations
 
 from io import BytesIO
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, UploadFile
 
-from app.api.plugins.rpi_cam.routers.camera_interaction.images import receive_preview_thumbnail_upload
+from app.api.auth.exceptions import UserOwnershipError
+from app.api.data_collection.models.product import Product
+from app.api.plugins.rpi_cam.routers.camera_interaction.images import (
+    receive_camera_upload,
+    receive_preview_thumbnail_upload,
+)
 from app.core.config import settings
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from app.api.plugins.rpi_cam.models import Camera
+
+
+class TestReceiveCameraUpload:
+    """Tests for device-pushed image uploads."""
+
+    async def test_rejects_upload_for_product_not_owned_by_camera_owner(self, mock_camera: Camera) -> None:
+        """A paired device may only attach captures to products owned by its owner."""
+        upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
+        foreign_product_id = 1
+
+        with (
+            patch(
+                "app.api.plugins.rpi_cam.routers.camera_interaction.images.get_user_owned_object",
+                new=AsyncMock(
+                    side_effect=UserOwnershipError(Product, foreign_product_id, mock_camera.owner_id),
+                ),
+            ),
+            patch(
+                "app.api.plugins.rpi_cam.routers.camera_interaction.images.create_image",
+                new=AsyncMock(),
+            ) as mock_create_image,
+            pytest.raises(UserOwnershipError),
+        ):
+            await receive_camera_upload(
+                camera_id=mock_camera.id,
+                camera=mock_camera,
+                session=MagicMock(),
+                file=upload,
+                capture_metadata="{}",
+                upload_metadata=f'{{"product_id": {foreign_product_id}}}',
+            )
+
+        mock_create_image.assert_not_awaited()
 
 
 class TestReceivePreviewThumbnailUpload:
