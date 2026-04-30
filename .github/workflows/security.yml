@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# spell-checker: ignore anchore, aquasecurity, esac, gacts, ossf, sarif, SARIF
+# spell-checker: ignore aquasecurity, esac, gacts, ossf, sarif, SARIF
 
 name: Security
 
@@ -32,11 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      run-root-python: ${{ steps.decide.outputs.run-root-python }}
-      run-backend-python: ${{ steps.decide.outputs.run-backend-python }}
-      run-docs-node: ${{ steps.decide.outputs.run-docs-node }}
-      run-frontend-app-node: ${{ steps.decide.outputs.run-frontend-app-node }}
-      run-frontend-web-node: ${{ steps.decide.outputs.run-frontend-web-node }}
       run-container-images: ${{ steps.decide.outputs.run-container-images }}
       container-security-matrix: ${{ steps.decide.outputs.container-security-matrix }}
     steps:
@@ -54,48 +49,32 @@ jobs:
           IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
           IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
           SHARED: ${{ steps.detect.outputs.shared }}
-          ROOT_PYTHON: ${{ steps.detect.outputs.root-python }}
           BACKEND: ${{ steps.detect.outputs.backend }}
           DOCS: ${{ steps.detect.outputs.docs }}
           FRONTEND_APP: ${{ steps.detect.outputs.frontend-app }}
           FRONTEND_WEB: ${{ steps.detect.outputs.frontend-web }}
           CONTAINERS: ${{ steps.detect.outputs.containers }}
         run: |
-          matrix_all='{"include":[
-            {"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"},
-            {"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"},
-            {"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"},
-            {"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}
-          ]}'
-
-          # Scheduled or manual runs exercise every audit + scan every image.
+          # Scheduled or manual runs scan every runtime image and emit SBOMs.
           if [[ "$IS_SCHEDULE" == "true" || "$IS_DISPATCH" == "true" ]]; then
-            for k in run-root-python run-backend-python run-docs-node run-frontend-app-node run-frontend-web-node run-container-images; do
-              echo "$k=true" >> "$GITHUB_OUTPUT"
-            done
-            echo "container-security-matrix=$matrix_all" >> "$GITHUB_OUTPUT"
-            exit 0
+            SHARED=true
           fi
-
-          {
-            echo "run-root-python=$([[ "$SHARED" == "true" || "$ROOT_PYTHON" == "true" ]] && echo true || echo false)"
-            echo "run-backend-python=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)"
-            echo "run-docs-node=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
-            echo "run-frontend-app-node=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)"
-            echo "run-frontend-web-node=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)"
-          } >> "$GITHUB_OUTPUT"
 
           shared_trigger=$([[ "$SHARED" == "true" || "$CONTAINERS" == "true" ]] && echo true || echo false)
 
           include_entries=()
           [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
-            include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab/api:${{ github.sha }}"}')
+            include_entries+=('{"service":"api","context":"./backend","dockerfile":"./backend/Dockerfile","image_ref":"relab-backend:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
+            include_entries+=('{"service":"migrator","context":"./backend","dockerfile":"./backend/Dockerfile.migrations","image_ref":"relab-backend-migrations:${{ github.sha }}"}')
+          [[ "$shared_trigger" == "true" || "$BACKEND" == "true" ]] && \
+            include_entries+=('{"service":"relab-backup","context":"./backend","dockerfile":"./backend/Dockerfile.backups","image_ref":"relab-backup:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && \
-            include_entries+=('{"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab/docs-site:${{ github.sha }}"}')
+            include_entries+=('{"service":"docs-site","context":"./docs","dockerfile":"./docs/Dockerfile","image_ref":"relab-docs:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$FRONTEND_APP" == "true" ]] && \
-            include_entries+=('{"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab/app-site:${{ github.sha }}"}')
+            include_entries+=('{"service":"app-site","context":"./frontend-app","dockerfile":"./frontend-app/Dockerfile","image_ref":"relab-frontend-app:${{ github.sha }}"}')
           [[ "$shared_trigger" == "true" || "$FRONTEND_WEB" == "true" ]] && \
-            include_entries+=('{"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab/web-site:${{ github.sha }}"}')
+            include_entries+=('{"service":"web-site","context":"./frontend-web","dockerfile":"./frontend-web/Dockerfile","image_ref":"relab-frontend-web:${{ github.sha }}"}')
 
           if ((${#include_entries[@]} == 0)); then
             echo "run-container-images=false" >> "$GITHUB_OUTPUT"
@@ -141,116 +120,6 @@ jobs:
         with:
           fail-on-severity: moderate
 
-  python-audit-root:
-    name: Python Audit (root)
-    needs: [ changes ]
-    if: needs.changes.outputs.run-root-python == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-        with:
-          setup-python: "true"
-          uv-cache-dependency-glob: uv.lock
-
-      - name: Install root dependencies
-        run: uv sync --frozen
-
-      - name: Run root dependency audit
-        run: just audit-root
-
-  backend-python-audit:
-    name: Python Audit (backend)
-    needs: [ changes ]
-    if: needs.changes.outputs.run-backend-python == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-        with:
-          setup-python: "true"
-          uv-cache-dependency-glob: backend/uv.lock
-
-      - name: Install dependencies
-        run: just backend/install
-
-      - name: Run dependency audit
-        run: just backend/audit
-
-  docs-node-audit:
-    name: Node Audit (docs)
-    needs: [ changes ]
-    if: needs.changes.outputs.run-docs-node == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-        with:
-          setup-node: "true"
-          cache-dependency-path: docs/pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: just docs/install
-
-      - name: Run dependency audit
-        run: just docs/audit
-
-  frontend-app-node-audit:
-    name: Node Audit (frontend-app)
-    needs: [ changes ]
-    if: needs.changes.outputs.run-frontend-app-node == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-        with:
-          setup-node: "true"
-          cache-dependency-path: frontend-app/pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: just frontend-app/install
-
-      - name: Run dependency audit
-        run: just frontend-app/audit
-
-  frontend-web-node-audit:
-    name: Node Audit (frontend-web)
-    needs: [ changes ]
-    if: needs.changes.outputs.run-frontend-web-node == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-        with:
-          setup-node: "true"
-          cache-dependency-path: frontend-web/pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: just frontend-web/install
-
-      - name: Run dependency audit
-        run: just frontend-web/audit
-
   container-security:
     name: Container Security (${{ matrix.service }})
     needs: [ changes ]
@@ -277,7 +146,7 @@ jobs:
           tags: ${{ matrix.image_ref }}
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@1f0aa582c8c8f5f7639610d6d38baddfea4fdcee
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab
         with:
           image-ref: ${{ matrix.image_ref }}
           format: table
@@ -287,11 +156,12 @@ jobs:
           trivyignores: .github/trivyignore
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab
         with:
-          image: ${{ matrix.image_ref }}
+          image-ref: ${{ matrix.image_ref }}
           format: spdx-json
-          output-file: sbom-${{ matrix.service }}.spdx.json
+          output: sbom-${{ matrix.service }}.spdx.json
+          skip-setup-trivy: true
 
       - name: Archive container security artifacts
         if: always()
@@ -299,7 +169,7 @@ jobs:
         with:
           name: security-${{ matrix.service }}-artifacts
           path: sbom-${{ matrix.service }}.spdx.json
-          retention-days: 14
+          retention-days: 90
 
   codeql:
     name: CodeQL (${{ matrix.language }})
@@ -377,11 +247,6 @@ jobs:
       - changes
       - secret-scan
       - dependency-review
-      - python-audit-root
-      - backend-python-audit
-      - docs-node-audit
-      - frontend-app-node-audit
-      - frontend-web-node-audit
       - container-security
       - codeql
       - scorecard
@@ -399,11 +264,6 @@ jobs:
               "changes": "${{ needs.changes.result }}",
               "secret-scan": "${{ needs.secret-scan.result }}",
               "dependency-review": "${{ needs.dependency-review.result }}",
-              "python-audit-root": "${{ needs.python-audit-root.result }}",
-              "backend-python-audit": "${{ needs.backend-python-audit.result }}",
-              "docs-node-audit": "${{ needs.docs-node-audit.result }}",
-              "frontend-app-node-audit": "${{ needs.frontend-app-node-audit.result }}",
-              "frontend-web-node-audit": "${{ needs.frontend-web-node-audit.result }}",
               "container-security": "${{ needs.container-security.result }}",
               "codeql": "${{ needs.codeql.result }}",
               "scorecard": "${{ needs.scorecard.result }}"

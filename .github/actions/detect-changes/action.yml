@@ -15,9 +15,6 @@ outputs:
   policy:
     description: Policy/config files (pre-commit, prettier, editorconfig, etc.).
     value: ${{ steps.filter.outputs.policy }}
-  root-python:
-    description: Root-level Python project files (pyproject.toml, uv.lock).
-    value: ${{ steps.filter.outputs.root-python }}
   backend:
     description: Backend source or compose files.
     value: ${{ steps.filter.outputs.backend }}
