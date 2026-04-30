@@ -4,7 +4,6 @@
 import io
 from pathlib import Path
 
-import piexif
 import pytest
 from anyio import Path as AnyIOPath
 from fastapi import UploadFile
@@ -26,7 +25,6 @@ from app.core.images import (
     validate_image_file,
     validate_image_mime_type,
 )
-from app.core.images.exif import _clean_exif_bytes
 
 
 @pytest.fixture
@@ -48,17 +46,16 @@ def jpeg_image(tmp_path: Path) -> Path:
 
 
 def _make_jpeg_with_exif(
-    path: Path, width: int, height: int, orientation: int | None = None, *, gps: bool = False
+    path: Path, width: int, height: int, orientation: int | None = None, *, camera_make: bool = False
 ) -> Path:
-    """Save a JPEG with optional EXIF orientation and GPS tags."""
+    """Save a JPEG with optional EXIF orientation and metadata tags."""
     img = PILImage.new("RGB", (width, height), color="green")
-    exif_dict: dict = {"0th": {}, "Exif": {}, "1st": {}, "thumbnail": None}
+    exif = PILImage.Exif()
     if orientation is not None:
-        exif_dict["0th"][piexif.ImageIFD.Orientation] = orientation
-    if gps:
-        exif_dict["GPS"] = {piexif.GPSIFD.GPSLatitudeRef: b"N"}
-    exif_bytes = piexif.dump(exif_dict)
-    img.save(path, format="JPEG", exif=exif_bytes)
+        exif[0x0112] = orientation
+    if camera_make:
+        exif[0x010F] = "Test Camera"
+    img.save(path, format="JPEG", exif=exif)
     return path
 
 
@@ -248,23 +245,6 @@ def test_strip_sensitive_exif_removes_orientation(tmp_path: Path) -> None:
         assert img.getexif().get(0x0112) is None
 
 
-def test_clean_exif_bytes_returns_none_for_piexif_dump_bug(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Malformed EXIF values from camera firmware should not crash image processing."""
-
-    def _fake_load(_: bytes) -> dict[str, object]:
-        return {
-            "0th": {33434: 0.041551},
-            "Exif": {},
-            "GPS": {},
-            "1st": {},
-            "thumbnail": None,
-        }
-
-    monkeypatch.setattr(piexif, "load", _fake_load)
-
-    assert _clean_exif_bytes(b"broken-exif") is None
-
-
 # ---------------------------------------------------------------------------
 # process_image_for_storage
 # ---------------------------------------------------------------------------
@@ -297,17 +277,15 @@ def test_process_image_dimension_guard(tmp_path: Path) -> None:
         process_image_for_storage(path)
 
 
-def test_process_image_strips_gps(tmp_path: Path) -> None:
-    """GPS data should be absent from the saved file after processing."""
-    path = _make_jpeg_with_exif(tmp_path / "gps.jpg", 100, 100, gps=True)
+def test_process_image_strips_all_exif(tmp_path: Path) -> None:
+    """Stored images should not retain EXIF metadata."""
+    path = _make_jpeg_with_exif(tmp_path / "metadata.jpg", 100, 100, camera_make=True)
 
     process_image_for_storage(path)
 
     with PILImage.open(path) as result:
-        exif_bytes = result.info.get("exif")
-        if exif_bytes:
-            exif_dict = piexif.load(exif_bytes)
-            assert exif_dict.get("GPS") == {}
+        assert not result.info.get("exif")
+        assert not result.getexif()
 
 
 def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> None:

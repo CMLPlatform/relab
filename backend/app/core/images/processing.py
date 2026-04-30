@@ -7,12 +7,11 @@ import contextlib
 import io
 from typing import TYPE_CHECKING
 
-import piexif
 from PIL import Image as PILImage
 from PIL import ImageOps
 
 from .constants import FORMAT_JPEG, FORMAT_WEBP, RESAMPLE_FILTER
-from .exif import _clean_exif_bytes, _get_exif_orientation
+from .exif import get_exif_orientation
 from .validation import validate_image_dimensions
 
 if TYPE_CHECKING:
@@ -26,17 +25,14 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
         original_format = img.format or FORMAT_JPEG
         validate_image_dimensions(img)
 
-        exif_bytes: bytes | None = img.info.get("exif") or None
-        if not exif_bytes:
+        has_exif = bool(img.info.get("exif"))
+        if not has_exif:
             with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
-                raw = img.getexif().tobytes()
-                exif_bytes = raw or None
+                has_exif = bool(img.getexif())
 
-        cleaned_exif_bytes = _clean_exif_bytes(exif_bytes) if exif_bytes else None
-        orientation = _get_exif_orientation(exif_bytes) if exif_bytes else None
-
+        orientation = get_exif_orientation(img) if has_exif else None
         needs_rotation = orientation not in (None, 1)
-        if needs_rotation or original_format != FORMAT_JPEG:
+        if has_exif or needs_rotation or original_format != FORMAT_JPEG:
             try:
                 processed: PILImage.Image | None = ImageOps.exif_transpose(img)
             except AttributeError, ValueError, OSError, TypeError:
@@ -46,19 +42,11 @@ def process_image_for_storage(image_path: PathLike[str]) -> None:
             processed = None
 
     if processed is None:
-        if not exif_bytes:
-            return
-        if cleaned_exif_bytes is not None:
-            piexif.insert(cleaned_exif_bytes, str(image_path))
-            return
-        with PILImage.open(image_path) as img:
-            processed = img.copy()
+        return
 
     save_kwargs: dict[str, Any] = {"format": original_format}
     if original_format == FORMAT_JPEG:
         save_kwargs.update({"quality": 95, "optimize": True})
-    if cleaned_exif_bytes:
-        save_kwargs["exif"] = cleaned_exif_bytes
 
     processed.save(image_path, **save_kwargs)
 
