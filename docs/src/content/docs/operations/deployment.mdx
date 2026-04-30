@@ -102,6 +102,12 @@ If a real secret is exposed outside the intended host, rotate it and treat exist
 
 The repository also includes dependency maintenance, container scanning, performance baselines, and repository-level checks through GitHub Actions.
 
+## Supply chain artifacts
+
+GitHub Dependency Review / Dependency Graph gates dependency changes, while Renovate opens dependency update PRs. The security workflow builds the deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days.
+
+When Release Please creates a GitHub release, the release workflow rebuilds those images, generates SPDX SBOM files, attests the SBOM files with GitHub artifact attestations, and uploads them as release assets. RELab deploys locally built Compose images rather than immutable registry images, so release attestations prove SBOM file provenance. Image-digest-bound SBOM attestations require publishing runtime images to a registry.
+
 ## Telemetry
 
 Prod and staging can ship logs, traces, and metrics to a central monitoring stack outside this repo. Dev and CI do not ship telemetry.
