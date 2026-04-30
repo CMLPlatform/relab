@@ -78,6 +78,9 @@ __pycache__/
 # Local Docker Compose overrides
 compose.local.yml
 
+# Local Docker Compose secret files
+secrets/
+
 # Local architecture diagrams
 LOCAL_DIAGRAMS.md
 

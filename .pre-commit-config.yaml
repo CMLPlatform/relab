@@ -87,15 +87,15 @@ repos:
         types: [ text ]
         # Disable cspell caching as pre-commit and CI doesn't play well with it.
         args: [ "--no-cache", "--no-must-find-files" ]
-      - id: pnpm-lock-frontend-app
-        name: pnpm-lock-frontend-app
-        entry: just frontend-app/lockfile
+      - id: pnpm-lock-app
+        name: pnpm-lock-app
+        entry: just app/lockfile
         language: system
-        files: ^frontend-app/package\.json$
+        files: ^app/package.json$
         pass_filenames: false
-      - id: pnpm-lock-frontend-web
-        name: pnpm-lock-frontend-web
-        entry: just frontend-web/lockfile
+      - id: pnpm-lock-www
+        name: pnpm-lock-www
+        entry: just www/lockfile
         language: system
-        files: ^frontend-web/package\.json$
+        files: ^www/package.json$
         pass_filenames: false

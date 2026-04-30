@@ -13,8 +13,8 @@
 #   2. Set LOKI_URL in the host's root `.env`, e.g.:
 #        LOKI_URL=https://logs.cml-relab.org/loki/api/v1/push
 #
-# The justfile's `prod_compose` / `staging_compose` auto-include this overlay
-# when a non-empty LOKI_URL is present in `.env`.
+# The root deploy recipes auto-include this overlay when a non-empty LOKI_URL is
+# present in `.env`.
 
 # --- Reusable fragment -------------------------------------------------------
 x-loki-logging: &loki-logging
@@ -32,7 +32,7 @@ services:
     logging: *loki-logging
   migrator:
     logging: *loki-logging
-  uploads-backup:
+  relab-backup:
     logging: *loki-logging
   redis:
     logging: *loki-logging
@@ -45,6 +45,4 @@ services:
   app-site:
     logging: *loki-logging
   web-site:
-    logging: *loki-logging
-  postgres-backup:
     logging: *loki-logging
