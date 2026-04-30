@@ -2699,8 +2699,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /** Format: uri */
-    AnyUrlToDB: string;
     /** Body_auth_cookie_login_v1_auth_session_login_post */
     Body_auth_cookie_login_v1_auth_session_login_post: {
       /** Grant Type */
@@ -3768,6 +3766,8 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
     };
+    /** Format: uri */
+    HttpUrlToDB: string;
     /**
      * ImageRead
      * @description Schema for reading image information.
@@ -5423,7 +5423,7 @@ export interface components {
      *     }
      */
     VideoCreateWithinProduct: {
-      url: components['schemas']['AnyUrlToDB'];
+      url: components['schemas']['HttpUrlToDB'];
       /** Title */
       title?: string | null;
       /** Description */
@@ -5502,7 +5502,7 @@ export interface components {
      */
     VideoUpdateWithinProduct: {
       /** @description URL linking to the video */
-      url?: components['schemas']['AnyUrlToDB'] | null;
+      url?: components['schemas']['HttpUrlToDB'] | null;
       /**
        * Title
        * @description Title of the video

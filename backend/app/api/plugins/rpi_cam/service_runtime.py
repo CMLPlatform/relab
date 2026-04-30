@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
-from pydantic import UUID4, AnyUrl, BaseModel, PositiveInt, ValidationError
+from pydantic import UUID4, BaseModel, HttpUrl, PositiveInt, ValidationError
 from relab_rpi_cam_models.images import ImageCaptureStatus
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -146,7 +146,7 @@ class YouTubeRecordingSession(BaseModel):
     product_id: PositiveInt
     title: str
     description: str
-    stream_url: AnyUrl
+    stream_url: HttpUrl
     broadcast_key: str
     video_metadata: dict[str, Any] | None = None
 
