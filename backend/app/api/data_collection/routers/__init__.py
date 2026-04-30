@@ -19,6 +19,7 @@ from typing import (  # Runtime import is required for FastAPI/Pydantic endpoint
 from fastapi import APIRouter, Query
 from fastapi_pagination.links import Page
 
+from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
@@ -52,6 +53,7 @@ PRODUCT_FACET_BRAND: ProductFacetField = "brand"
     "/products/suggestions/brands",
     response_model=Page[str],
     summary="Get product brand suggestions",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 @cache(expire=60)
 async def get_brand_suggestions(
@@ -70,6 +72,7 @@ async def get_brand_suggestions(
     "/products/suggestions/models",
     response_model=Page[str],
     summary="Get product model suggestions",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 @cache(expire=60)
 async def get_model_suggestions(
@@ -88,6 +91,7 @@ async def get_model_suggestions(
     "/products/facets",
     response_model=ProductFacetsRead,
     summary="Get derived product facets",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 @cache(expire=60)
 async def get_product_facets(

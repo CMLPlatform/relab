@@ -10,6 +10,7 @@ from fastapi import File as FastAPIFile
 from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.models import MediaParentType
@@ -202,7 +203,7 @@ async def remove_category_from_material(
     "/{material_id}/files",
     response_model=FileReadWithinParent,
     status_code=201,
-    dependencies=[Security(current_active_superuser)],
+    dependencies=[Security(current_active_superuser), API_UPLOAD_RATE_LIMIT_DEPENDENCY],
     summary="Add File to Material",
 )
 async def upload_material_file(
@@ -239,7 +240,7 @@ async def delete_material_file(
     "/{material_id}/images",
     response_model=ImageReadWithinParent,
     status_code=201,
-    dependencies=[Security(current_active_superuser)],
+    dependencies=[Security(current_active_superuser), API_UPLOAD_RATE_LIMIT_DEPENDENCY],
     summary="Add Image to Material",
 )
 async def upload_material_image(

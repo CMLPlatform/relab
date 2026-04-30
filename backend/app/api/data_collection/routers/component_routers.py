@@ -21,6 +21,7 @@ from fastapi_filter import FilterDepends
 from pydantic import UUID4, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.associations import require_link
 from app.api.common.crud.query import require_model
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
@@ -207,6 +208,7 @@ async def get_component_file(
     response_model=FileReadWithinParent,
     status_code=201,
     summary="Upload a file to a component",
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def upload_component_file(
     session: AsyncSessionDep,
@@ -268,6 +270,7 @@ async def get_component_image(
     response_model=ImageReadWithinParent,
     status_code=201,
     summary="Upload an image to a component",
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def upload_component_image(
     session: AsyncSessionDep,
