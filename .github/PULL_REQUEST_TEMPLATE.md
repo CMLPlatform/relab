@@ -29,6 +29,10 @@ _What problem does this solve or why is it worth merging?_
 - [ ] Documentation updated (if applicable)
 - [ ] Database migrations created (if applicable)
 
+## Security, if relevant
+
+See [security practices](https://docs.cml-relab.org/architecture/security-practices/) for the review checklist and threat-model template.
+
 ## Notes for reviewers
 
 _Add rollout notes, tradeoffs, follow-up work, or links to related issues._
