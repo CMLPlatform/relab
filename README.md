@@ -48,12 +48,12 @@ If you want to go deeper:
 
 ## Monorepo
 
-| Path            | Purpose                                               |
-| --------------- | ----------------------------------------------------- |
-| `backend/`      | FastAPI API, auth, data model, file handling, plugins |
-| `frontend-app/` | Expo / React Native research app                      |
-| `frontend-web/` | Astro public website                                  |
-| `docs/`         | Documentation site                                    |
+| Path       | Purpose                                               |
+| ---------- | ----------------------------------------------------- |
+| `backend/` | FastAPI API, auth, data model, file handling, plugins |
+| `app/`     | Expo / React Native research app                      |
+| `www/`     | Astro public website                                  |
+| `docs/`    | Documentation site                                    |
 
 Infrastructure is orchestrated with Docker Compose from the repo root.
 

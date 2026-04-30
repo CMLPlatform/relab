@@ -28,7 +28,7 @@ lint:
 typecheck:
     pnpm run typecheck
 
-# Run the frontend-app quality gate
+# Run the app quality gate
 check: lint typecheck
     @echo "✓ Frontend-app checks passed"
 
@@ -52,11 +52,11 @@ test-unit:
 test-integration:
     pnpm run test:integration
 
-# Run the frontend-app CI test suite
+# Run the app CI test suite
 test-ci:
     pnpm run test:ci
 
-# Run the full frontend-app CI pipeline locally
+# Run the full app CI pipeline locally
 ci: check test-ci
     @echo "✓ Frontend-app CI pipeline passed"
 

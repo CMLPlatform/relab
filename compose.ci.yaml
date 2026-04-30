@@ -17,12 +17,12 @@ services:
   redis:
     env_file: ./backend/.env.test
 
-  app-site:
+  app:
     build:
       args:
         BUILD_MODE: test
 
-  web-site:
+  www:
     build:
       args:
         BUILD_MODE: test

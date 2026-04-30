@@ -1,8 +1,8 @@
 {
   "name": "relab-fullstack",
   "dockerComposeFile": ["../compose.yaml", "../compose.dev.yaml"],
-  "service": "app-site",
-  "runServices": ["api", "redis", "postgres", "docs-site", "web-site", "app-site"],
+  "service": "app",
+  "runServices": ["api", "redis", "postgres", "docs", "www", "app"],
   "workspaceFolder": "/opt/relab",
   "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
   "features": {

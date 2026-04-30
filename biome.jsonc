@@ -7,8 +7,8 @@
       // Each subrepo owns its own Biome surface through its local biome.jsonc.
       "**",
       "!backend",
-      "!frontend-app",
-      "!frontend-web",
+      "!app",
+      "!www",
       "!docs"
     ]
   }

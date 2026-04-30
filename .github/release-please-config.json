@@ -12,9 +12,9 @@
         "backend/app/__version__.py",
         "backend/pyproject.toml",
         "docs/package.json",
-        "frontend-app/app.json",
-        "frontend-app/package.json",
-        "frontend-web/package.json",
+        "app/app.json",
+        "app/package.json",
+        "www/package.json",
         "package.json",
         "pyproject.toml"
       ]

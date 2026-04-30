@@ -32,8 +32,8 @@ jobs:
     outputs:
       run-policy: ${{ steps.decide.outputs.run-policy }}
       run-backend: ${{ steps.decide.outputs.run-backend }}
-      run-frontend-web: ${{ steps.decide.outputs.run-frontend-web }}
-      run-frontend-app: ${{ steps.decide.outputs.run-frontend-app }}
+      run-www: ${{ steps.decide.outputs.run-www }}
+      run-app: ${{ steps.decide.outputs.run-app }}
       run-docs: ${{ steps.decide.outputs.run-docs }}
       run-e2e: ${{ steps.decide.outputs.run-e2e }}
       is-renovate-pr: ${{ steps.detect.outputs.is-renovate-pr }}
@@ -54,13 +54,13 @@ jobs:
           SHARED: ${{ steps.detect.outputs.shared }}
           POLICY: ${{ steps.detect.outputs.policy }}
           BACKEND: ${{ steps.detect.outputs.backend }}
-          FRONTEND_WEB: ${{ steps.detect.outputs.frontend-web }}
-          FRONTEND_APP: ${{ steps.detect.outputs.frontend-app }}
+          WWW: ${{ steps.detect.outputs.www }}
+          APP: ${{ steps.detect.outputs.app }}
           DOCS: ${{ steps.detect.outputs.docs }}
         run: |
           # Scheduled runs only exercise docker-smoke; skip all other jobs.
           if [[ "$IS_SCHEDULE" == "true" ]]; then
-            for k in run-policy run-backend run-frontend-web run-frontend-app run-docs run-e2e; do
+            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
               echo "$k=false" >> "$GITHUB_OUTPUT"
             done
             exit 0
@@ -68,7 +68,7 @@ jobs:
 
           # Manual dispatch runs exercise everything.
           if [[ "$IS_DISPATCH" == "true" ]]; then
-            for k in run-policy run-backend run-frontend-web run-frontend-app run-docs run-e2e; do
+            for k in run-policy run-backend run-www run-app run-docs run-e2e; do
               echo "$k=true" >> "$GITHUB_OUTPUT"
             done
             exit 0
@@ -78,10 +78,10 @@ jobs:
           {
             echo "run-policy=$([[ "$SHARED" == "true" || "$POLICY" == "true" ]] && echo true || echo false)"
             echo "run-backend=$([[ "$SHARED" == "true" || "$BACKEND" == "true" ]] && echo true || echo false)"
-            echo "run-frontend-web=$([[ "$SHARED" == "true" || "$FRONTEND_WEB" == "true" ]] && echo true || echo false)"
-            echo "run-frontend-app=$([[ "$SHARED" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)"
+            echo "run-www=$([[ "$SHARED" == "true" || "$WWW" == "true" ]] && echo true || echo false)"
+            echo "run-app=$([[ "$SHARED" == "true" || "$APP" == "true" ]] && echo true || echo false)"
             echo "run-docs=$([[ "$SHARED" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
-            echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$FRONTEND_APP" == "true" ]] && echo true || echo false)"
+            echo "run-e2e=$([[ "$SHARED" == "true" || "$BACKEND" == "true" || "$APP" == "true" ]] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
 
   automation:
@@ -185,10 +185,10 @@ jobs:
             backend/reports/coverage/coverage.xml
           retention-days: 7
 
-  frontend-web:
-    name: Frontend Web
+  www:
+    name: www
     needs: [ changes ]
-    if: needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule'
+    if: needs.changes.outputs.run-www == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -199,40 +199,40 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: frontend-web/pnpm-lock.yaml
+          cache-dependency-path: www/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: just frontend-web/install
+        run: just www/install
 
       - name: Run check
-        run: just frontend-web/check
+        run: just www/check
 
       - name: Run CI test suite
-        run: just frontend-web/test-ci
+        run: just www/test-ci
 
       - name: Upload coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: ./.github/actions/upload-codecov
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend-web/coverage/lcov.info
-          flags: frontend-web
-          name: validate-frontend-web-coverage
+          files: ./www/coverage/lcov.info
+          flags: www
+          name: validate-www-coverage
           disable-search: "true"
-          network-prefix: frontend-web/
+          network-prefix: www/
 
-      - name: Archive frontend-web coverage
+      - name: Archive www coverage
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: validate-frontend-web-coverage
-          path: frontend-web/coverage/
+          name: validate-www-coverage
+          path: www/coverage/
           retention-days: 7
 
-  e2e-frontend-web:
-    name: Frontend Web E2E
+  e2e-www:
+    name: www E2E
     needs: [ changes ]
-    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-frontend-web == 'true' && github.event_name != 'schedule' && needs.changes.outputs.is-renovate-pr != 'true')
+    if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-www == 'true' && github.event_name != 'schedule' && needs.changes.outputs.is-renovate-pr != 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -243,33 +243,33 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: frontend-web/pnpm-lock.yaml
+          cache-dependency-path: www/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: just frontend-web/install
+        run: just www/install
 
       - name: Build site
-        run: just frontend-web/build
+        run: just www/build
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium firefox webkit
-        working-directory: frontend-web
+        working-directory: www
 
       - name: Run browser E2E tests
-        run: just frontend-web/test-e2e
+        run: just www/test-e2e
 
       - name: Archive Playwright report
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: validate-frontend-web-playwright
-          path: frontend-web/playwright-report/
+          name: validate-www-playwright
+          path: www/playwright-report/
           retention-days: 7
 
-  frontend-app:
-    name: Frontend App
+  app:
+    name: App
     needs: [ changes ]
-    if: needs.changes.outputs.run-frontend-app == 'true' && github.event_name != 'schedule'
+    if: needs.changes.outputs.run-app == 'true' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -280,34 +280,34 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: frontend-app/pnpm-lock.yaml
+          cache-dependency-path: app/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: just frontend-app/install
+        run: just app/install
 
       - name: Run check
-        run: just frontend-app/check
+        run: just app/check
 
       - name: Run CI test suite
-        run: just frontend-app/test-ci
+        run: just app/test-ci
 
       - name: Upload coverage
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: ./.github/actions/upload-codecov
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend-app/coverage/lcov.info
-          flags: frontend-app
-          name: validate-frontend-app-coverage
+          files: ./app/coverage/lcov.info
+          flags: app
+          name: validate-app-coverage
           disable-search: "true"
-          network-prefix: frontend-app/
+          network-prefix: app/
 
-      - name: Archive frontend-app coverage
+      - name: Archive app coverage
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: validate-frontend-app-coverage
-          path: frontend-app/coverage/
+          name: validate-app-coverage
+          path: app/coverage/
           retention-days: 7
 
   docs:
@@ -340,7 +340,7 @@ jobs:
         run: just docs/test-ci
 
   e2e-full-stack:
-    name: Frontend App Full-Stack E2E
+    name: App Full-Stack E2E
     needs: [ changes ]
     if: github.event_name == 'workflow_dispatch' || (needs.changes.outputs.run-e2e == 'true' && github.event_name == 'push')
     runs-on: ubuntu-latest
@@ -358,17 +358,17 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: frontend-app/pnpm-lock.yaml
+          cache-dependency-path: app/pnpm-lock.yaml
 
-      - name: Install frontend-app dependencies
-        run: just frontend-app/install
+      - name: Install app dependencies
+        run: just app/install
 
       - name: Build Expo web app for local E2E backend
-        run: just frontend-app/build-web
+        run: just app/build-web
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
-        working-directory: frontend-app
+        working-directory: app
 
       - name: Run full-stack E2E tests
         run: just test-e2e-full-stack
@@ -377,8 +377,8 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: validate-frontend-app-e2e
-          path: frontend-app/playwright-report/
+          name: validate-app-e2e
+          path: app/playwright-report/
           retention-days: 7
 
   docker-smoke:
@@ -392,8 +392,8 @@ jobs:
         recipe:
           - docker-smoke-backend
           - docker-orchestration-smoke
-          - docker-smoke-frontend-web
-          - docker-smoke-frontend-app
+          - docker-smoke-www
+          - docker-smoke-app
           - docker-smoke-docs
           - docker-smoke-backups
     steps:
@@ -411,9 +411,9 @@ jobs:
       - changes
       - automation
       - backend
-      - frontend-web
-      - e2e-frontend-web
-      - frontend-app
+      - www
+      - e2e-www
+      - app
       - docs
       - e2e-full-stack
       - docker-smoke
@@ -431,9 +431,9 @@ jobs:
               "changes": "${{ needs.changes.result }}",
               "automation": "${{ needs.automation.result }}",
               "backend": "${{ needs.backend.result }}",
-              "frontend-web": "${{ needs.frontend-web.result }}",
-              "e2e-frontend-web": "${{ needs.e2e-frontend-web.result }}",
-              "frontend-app": "${{ needs.frontend-app.result }}",
+              "www": "${{ needs.www.result }}",
+              "e2e-www": "${{ needs.e2e-www.result }}",
+              "app": "${{ needs.app.result }}",
               "docs": "${{ needs.docs.result }}",
               "e2e-full-stack": "${{ needs.e2e-full-stack.result }}",
               "docker-smoke": "${{ needs.docker-smoke.result }}"

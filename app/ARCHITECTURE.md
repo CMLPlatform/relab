@@ -1,6 +1,6 @@
 # Architecture
 
-High-level map of `frontend-app`.
+High-level map of `app`.
 
 ## Stack
 

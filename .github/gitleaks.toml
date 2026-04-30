@@ -5,7 +5,7 @@ useDefault = true
 description = "Global allowlist for known false positives"
 paths = [
   # Auto-generated OpenAPI types contain example JWTs from fastapi-users docs
-  '''frontend-app/src/types/api\.generated\.ts''',
+  '''app/src/types/api\.generated\.ts''',
 ]
 regexTarget = "line"
 regexes = [
@@ -18,9 +18,9 @@ description = "Deliberate passphrase fixture used in password validation and aut
 condition = "AND"
 paths = [
   '''backend/tests/.*''',
-  '''frontend-app/e2e/.*''',
-  '''frontend-app/src/__tests__/.*''',
-  '''frontend-app/src/.*/__tests__/.*''',
+  '''app/e2e/.*''',
+  '''app/src/__tests__/.*''',
+  '''app/src/.*/__tests__/.*''',
 ]
 stopwords = [
   '''correct-horse-battery-staple-v42''',

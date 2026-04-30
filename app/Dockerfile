@@ -5,7 +5,7 @@
 #   - `runtime` → caddy-served expo web export (default)
 
 # spell-checker: ignore USEPOLLING
-ARG WORKDIR=/opt/relab/frontend-app
+ARG WORKDIR=/opt/relab/app
 
 # --- Shared deps stage ---
 FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps

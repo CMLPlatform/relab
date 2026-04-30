@@ -29,20 +29,20 @@ flags:
       - backend/
     carryforward: true
 
-  frontend-app:
+  app:
     paths:
-      - frontend-app/
+      - app/
     carryforward: true
 
-  frontend-web:
+  www:
     paths:
-      - frontend-web/
+      - www/
     carryforward: true
 
 # Path resolution note:
 # Frontend LCOV uploads contain paths relative to their subrepo (for example
 # "src/app/index.tsx"). CI passes an explicit network_prefix per upload, so
-# Codecov resolves those files against "frontend-app/" and "frontend-web/"
+# Codecov resolves those files against "app/" and "www/"
 # without relying on repository-wide path search heuristics.
 
 comment:

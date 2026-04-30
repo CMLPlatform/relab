@@ -18,12 +18,12 @@ outputs:
   backend:
     description: Backend source or compose files.
     value: ${{ steps.filter.outputs.backend }}
-  frontend-web:
-    description: Frontend-web source or compose files.
-    value: ${{ steps.filter.outputs.frontend-web }}
-  frontend-app:
-    description: Frontend-app source or compose files.
-    value: ${{ steps.filter.outputs.frontend-app }}
+  www:
+    description: www (landing/marketing) source or compose files.
+    value: ${{ steps.filter.outputs.www }}
+  app:
+    description: app (product frontend) source or compose files.
+    value: ${{ steps.filter.outputs.app }}
   docs:
     description: Docs-site source or compose files.
     value: ${{ steps.filter.outputs.docs }}

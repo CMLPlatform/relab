@@ -10,9 +10,9 @@ dev_compose := "docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
-subrepos := "backend docs frontend-web frontend-app"
+subrepos := "backend docs www app"
 # Subset of subrepos that implement test-unit / test-integration.
-unit_subrepos := "backend frontend-app"
+unit_subrepos := "backend app"
 
 # Deploy overlay operations live in scripts/deploy_ops.sh. The justfile keeps
 # stable public recipes while the script owns Compose env-file paths, profiles,
@@ -140,8 +140,8 @@ test-ci:
 
 # Run end-to-end tests across subrepos that implement them
 test-e2e:
-    @just frontend-web/build
-    @just frontend-web/test-e2e
+    @just www/build
+    @just www/test-e2e
     @just docs/build
     @just docs/test-e2e
     @just test-e2e-full-stack
@@ -173,9 +173,9 @@ test-e2e-full-stack MODE="default":
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
     echo "→ Building Expo web app..."
-    just frontend-app/build-web
+    just app/build-web
     echo "→ Running Playwright E2E tests ({{ MODE }})..."
-    just "frontend-app/$e2e_recipe"
+    just "app/$e2e_recipe"
     echo "✅ Full-stack E2E tests passed ({{ MODE }})"
 
 # ============================================================================
@@ -192,7 +192,7 @@ audit: audit-root
     #!/usr/bin/env bash
     set -euo pipefail
     just backend/audit all
-    for d in docs frontend-web frontend-app; do just "$d/audit"; done
+    for d in docs www app; do just "$d/audit"; done
     echo "✅ Root and subrepo dependency audits complete"
 
 # Canonical security target
@@ -230,15 +230,15 @@ _dev-backend:
 
 # Start docs server with hot reload
 _dev-docs:
-    {{ dev_compose }} up --watch docs-site
+    {{ dev_compose }} up --watch docs
 
-# Start frontend-app + backend with hot reload
-_dev-frontend-app:
-    {{ dev_compose }} up --watch api app-site
+# Start app + backend with hot reload
+_dev-app:
+    {{ dev_compose }} up --watch api app
 
-# Start frontend-web + backend with hot reload
-_dev-frontend-web:
-    {{ dev_compose }} up --watch api web-site
+# Start www + backend with hot reload
+_dev-www:
+    {{ dev_compose }} up --watch api www
 
 # ============================================================================
 # Docker: Development
@@ -362,25 +362,25 @@ docker-smoke-backend:
 docker-smoke-docs:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down docs-site' EXIT
-    just _docker-smoke-up docs-site 60
+    trap 'just _docker-smoke-down docs' EXIT
+    just _docker-smoke-up docs 60
     echo "✅ Docs smoke test passed"
 
-# Smoke test: frontend-web static server
-docker-smoke-frontend-web:
+# Smoke test: www static server
+docker-smoke-www:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down web-site' EXIT
-    just _docker-smoke-up web-site 60
-    echo "✅ Frontend-web smoke test passed"
+    trap 'just _docker-smoke-down www' EXIT
+    just _docker-smoke-up www 60
+    echo "✅ www smoke test passed"
 
-# Smoke test: frontend-app static server (slow: expo export runs during build)
-docker-smoke-frontend-app:
+# Smoke test: app static server (slow: expo export runs during build)
+docker-smoke-app:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down app-site' EXIT
-    just _docker-smoke-up app-site 300
-    echo "✅ Frontend-app smoke test passed"
+    trap 'just _docker-smoke-down app' EXIT
+    just _docker-smoke-up app 300
+    echo "✅ App smoke test passed"
 
 # Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
 docker-smoke-backups:
@@ -407,8 +407,8 @@ docker-orchestration-smoke:
 docker-smoke:
     @just docker-smoke-backend
     @just docker-smoke-docs
-    @just docker-smoke-frontend-web
-    @just docker-smoke-frontend-app
+    @just docker-smoke-www
+    @just docker-smoke-app
     @just docker-smoke-backups
     @just docker-orchestration-smoke
 
@@ -467,7 +467,7 @@ clean:
     rm -rf .ruff_cache
     echo "✓ Cleaned caches and build artifacts"
 
-# Print a static-output size budget for a built directory (e.g. docs/dist, frontend-web/dist)
+# Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
 size DIR:
     du -sh {{ DIR }}
     find {{ DIR }} -type f | sort | xargs du -h

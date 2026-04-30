@@ -1,6 +1,6 @@
 # RELab App
 
-The `frontend-app` subrepo contains the Expo / React Native app used for authenticated data collection.
+The `app` subrepo contains the Expo / React Native app used for authenticated data collection.
 
 For the stack, source layout, routing, data flow, and testing layers, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -85,7 +85,7 @@ For emulator and device setup, testing patterns, and app-specific development no
 
 ## Styling And Theming
 
-Styling in `frontend-app` now follows a single-theme setup built on React Native Paper MD3.
+Styling in `app` now follows a single-theme setup built on React Native Paper MD3.
 
 - Import theme values from `@/theme`, not from `src/assets/themes/*`
 - Use `useAppTheme()` as the default hook for theme access

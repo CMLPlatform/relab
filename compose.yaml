@@ -107,7 +107,7 @@ services:
     networks:
       - data
 
-  docs-site:
+  docs:
     build:
       context: ./docs
       <<: *gha-build
@@ -115,17 +115,17 @@ services:
     networks:
       - edge
 
-  app-site:
+  app:
     build:
-      context: ./frontend-app
+      context: ./app
       <<: *gha-build
     restart: unless-stopped
     networks:
       - edge
 
-  web-site:
+  www:
     build:
-      context: ./frontend-web
+      context: ./www
       <<: *gha-build
     restart: unless-stopped
     networks:

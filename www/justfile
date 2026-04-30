@@ -50,7 +50,7 @@ build:
 test:
     pnpm run test
 
-# Run the frontend-web CI test suite
+# Run the www CI test suite
 test-ci:
     pnpm run test:ci
 
@@ -58,7 +58,7 @@ test-ci:
 test-e2e:
     pnpm run test:e2e
 
-# Run the full frontend-web CI pipeline locally
+# Run the full www CI pipeline locally
 ci: check test-ci
     @echo "✓ Frontend-web CI pipeline passed"
 

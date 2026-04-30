@@ -6,7 +6,7 @@ If you are looking for the main application itself, that lives elsewhere in the 
 
 ## Quick start
 
-Run commands from `frontend-web/`.
+Run commands from `www/`.
 
 ```bash
 just install
