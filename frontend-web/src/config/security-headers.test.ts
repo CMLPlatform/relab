@@ -27,6 +27,15 @@ function reportOnlyCsp(caddyfile: string) {
   return match[1];
 }
 
+function cspDirective(policy: string, directive: string) {
+  return (
+    policy
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${directive} `)) ?? ''
+  );
+}
+
 describe('Caddy security headers', () => {
   it.each([
     ['frontend-web', readCaddyfile('../../Caddyfile')],
@@ -42,10 +51,26 @@ describe('Caddy security headers', () => {
   });
 
   it.each([
-    ['frontend-web', readCaddyfile('../../Caddyfile')],
+    ['frontend-web', readCaddyfile('../../Caddyfile'), false],
+    ['docs', readCaddyfile('../../../docs/Caddyfile'), true],
+  ])('%s has the expected inline-script enforcement posture', (_name, caddyfile, allowsInline) => {
+    const scriptPolicy = cspDirective(enforcedCsp(caddyfile), 'script-src');
+
+    if (allowsInline) {
+      expect(scriptPolicy).toContain("'unsafe-inline'");
+    } else {
+      expect(scriptPolicy).not.toContain("'unsafe-inline'");
+    }
+    expect(scriptPolicy).not.toContain("'unsafe-eval'");
+  });
+
+  it.each([
     ['docs', readCaddyfile('../../../docs/Caddyfile')],
   ])('%s observes a stricter script policy without unsafe eval', (_name, caddyfile) => {
-    expect(reportOnlyCsp(caddyfile)).not.toContain("'unsafe-eval'");
+    const scriptPolicy = cspDirective(reportOnlyCsp(caddyfile), 'script-src');
+
+    expect(scriptPolicy).not.toContain("'unsafe-eval'");
+    expect(scriptPolicy).not.toContain("'unsafe-inline'");
   });
 
   it.each([

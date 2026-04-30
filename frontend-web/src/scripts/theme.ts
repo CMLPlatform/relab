@@ -96,29 +96,5 @@ function initThemeControl() {
   mediaQuery.addEventListener('change', handleMediaChange);
 }
 
-function getThemeBootstrapScript() {
-  return `(() => {
-    const storageKey = ${JSON.stringify(STORAGE_KEY)};
-    const storedTheme = window.localStorage.getItem(storageKey);
-    const theme = storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
-      ? storedTheme
-      : 'system';
-    const resolvedTheme = theme === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : theme;
-    const root = document.documentElement;
-    root.dataset.themePreference = theme;
-    root.dataset.theme = resolvedTheme;
-  })();`;
-}
-
 export type { ResolvedTheme, ThemeName };
-export {
-  applyTheme,
-  getStoredTheme,
-  getThemeBootstrapScript,
-  initThemeControl,
-  resolveTheme,
-  STORAGE_KEY,
-  THEMES,
-};
+export { applyTheme, getStoredTheme, initThemeControl, resolveTheme, STORAGE_KEY, THEMES };

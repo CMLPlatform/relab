@@ -14,11 +14,11 @@
 		X-Content-Type-Options "nosniff"
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# Inline scripts/styles are still needed by Astro theme bootstrap and
-		# generated page chrome. The report-only policy tracks the stricter target.
+		# Inline styles are still needed by Astro output. Scripts stay bundled
+		# and same-origin so the enforced policy can reject inline/eval script.
 		-Content-Security-Policy
 		-Content-Security-Policy-Report-Only
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
 	}
 

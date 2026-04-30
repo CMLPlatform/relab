@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   applyTheme,
   getStoredTheme,
-  getThemeBootstrapScript,
   initThemeControl,
   resolveTheme,
   STORAGE_KEY,
@@ -126,13 +125,5 @@ describe('initThemeControl', () => {
     button.click();
     // Only one listener wired, so exactly one step forward.
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
-  });
-});
-
-describe('getThemeBootstrapScript', () => {
-  it('returns a self-invoking script string referencing the storage key', () => {
-    const script = getThemeBootstrapScript();
-    expect(script).toContain(JSON.stringify(STORAGE_KEY));
-    expect(script.trim().startsWith('(()')).toBe(true);
   });
 });
