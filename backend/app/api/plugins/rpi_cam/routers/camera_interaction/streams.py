@@ -194,13 +194,15 @@ async def start_recording(
             redis_client,
             session,
             camera_id,
-            YouTubeRecordingSession(
-                product_id=product_id,
-                title=resolved_title,
-                description=resolved_description,
-                stream_url=stream_info.url,
-                broadcast_key=youtube_config.broadcast_key.get_secret_value(),
-                video_metadata=serialize_stream_metadata(stream_info.metadata),
+            YouTubeRecordingSession.model_validate(
+                {
+                    "product_id": product_id,
+                    "title": resolved_title,
+                    "description": resolved_description,
+                    "stream_url": str(stream_info.url),
+                    "broadcast_key": youtube_config.broadcast_key.get_secret_value(),
+                    "video_metadata": serialize_stream_metadata(stream_info.metadata),
+                }
             ),
         )
     except HTTPException, APIError:
