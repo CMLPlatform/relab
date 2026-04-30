@@ -28,11 +28,19 @@ export type TimedRequestInit = RequestInit & {
   timeoutMs?: number;
 };
 
+let fallbackRequestCounter = 0;
+
 export function createRequestId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return globalThis.crypto.randomUUID();
   }
-  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const bytes = new Uint8Array(8);
+    globalThis.crypto.getRandomValues(bytes);
+    return `req-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+  }
+  fallbackRequestCounter = (fallbackRequestCounter + 1) % Number.MAX_SAFE_INTEGER;
+  return `req-${Date.now().toString(36)}-${fallbackRequestCounter.toString(36)}`;
 }
 
 export async function fetchWithTimeout(
