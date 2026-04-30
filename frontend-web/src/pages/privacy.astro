@@ -1,4 +1,5 @@
 ---
+
 import ContentPage from '@/components/ContentPage.astro';
 import { privacyContent } from '@/content/privacy-content.ts';
 import Layout from '@/layouts/Layout.astro';
@@ -20,7 +21,7 @@ import Layout from '@/layouts/Layout.astro';
                 <p>{paragraph}</p>
               ) : (
                 <p>
-                  <strong>{paragraph.label}:</strong>{' '}
+                  <strong>{`${paragraph.label}:`}</strong>{' '}
                   {paragraph.link ? (
                     <>
                       <a href={paragraph.link.href}>{paragraph.link.text}</a> {paragraph.text}
