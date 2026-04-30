@@ -11,7 +11,7 @@ from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
 from app.api.audiences import DeviceAPIRouter
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.common.crud.query import require_model
+from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.data_collection.models.product import Product
@@ -95,6 +95,7 @@ async def capture_image(
         session,
         camera_request=camera_request,
         product_id=product_id,
+        owner_id=camera.owner_id,
         description=description,
     )
 
@@ -141,7 +142,7 @@ async def receive_camera_upload(
     if product_id_int <= 0:
         raise HTTPException(status_code=400, detail="product_id must be a positive integer")
 
-    await require_model(session, Product, product_id_int)
+    await get_user_owned_object(session, Product, product_id_int, camera.owner_id)
 
     description = upload_meta.get("description") or f"Captured from camera {camera.name}."
     image_data = ImageCreateInternal(

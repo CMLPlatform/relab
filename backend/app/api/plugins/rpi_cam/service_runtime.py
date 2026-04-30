@@ -13,7 +13,7 @@ from relab_rpi_cam_models.images import ImageCaptureStatus
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.common.crud.query import require_model
+from app.api.common.ownership import get_user_owned_object
 from app.api.common.schemas.base import serialize_datetime_with_z
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image
@@ -288,11 +288,12 @@ async def capture_and_store_image(
     *,
     camera_request: Callable[..., Awaitable[Response | RelayResponse]],
     product_id: PositiveInt,
+    owner_id: UUID4,
     filename: str | None = None,
     description: str | None = None,
 ) -> Image:
     """Trigger a capture on the Pi and return the resulting stored ``Image``."""
-    await require_model(session, Product, product_id)
+    await get_user_owned_object(session, Product, product_id, owner_id)
 
     upload_metadata: dict[str, Any] = {"product_id": int(product_id)}
     if description is not None:
