@@ -5,7 +5,6 @@ import '@/styles/global.css';
 import SiteFooter from '@/components/SiteFooter.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteLinks, siteMeta } from '@/content/site-meta.ts';
-import { getThemeBootstrapScript } from '@/scripts/theme.ts';
 
 interface Props {
   title: string;
@@ -28,7 +27,6 @@ const pageTitle =
   title === siteMeta.title || title.includes(siteMeta.name) ? title : `${title} | ${siteMeta.name}`;
 const socialImage = siteOrigin ? new URL(image, siteOrigin).toString() : image;
 const currentYear = new Date().getFullYear();
-const themeBootstrapScript = getThemeBootstrapScript();
 ---
 
 <!doctype html>
@@ -53,7 +51,6 @@ const themeBootstrapScript = getThemeBootstrapScript();
     <meta name="twitter:image" content={socialImage} />
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
     <title>{pageTitle}</title>
-    <script is:inline set:html={themeBootstrapScript}></script>
   </head>
   <body>
     <div class="site-backdrop" aria-hidden="true">
