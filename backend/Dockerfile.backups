@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1
+
+# Runtime image for encrypted RELab backups.
+FROM postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
+
+ARG WORKDIR=/opt/relab/backups
+ARG APP_USER=backupuser
+ARG APP_UID=1001
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates rclone restic \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER"
+
+WORKDIR $WORKDIR
+
+COPY --chmod=755 scripts/backup/backup_relab_restic.sh .
+COPY --chmod=755 scripts/backup/backup_relab_restic_entrypoint.sh .
+
+ENV BACKUP_SCRIPT=$WORKDIR/backup_relab_restic.sh
+
+ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]

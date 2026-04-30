@@ -8,7 +8,6 @@
 #   docker compose --env-file .env --env-file .env.prod.compose \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
-# spell-checker: ignore prodrigestivill
 
 name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
 
@@ -55,27 +54,35 @@ services:
     <<: *env-backend
     image: relab-backend-migrations:${APP_ENV}-local
 
-  # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
-  uploads-backup:
-    # Automated user uploads backups to local file system
+  relab-backup:
+    # Encrypted logical PostgreSQL + user upload backups.
     build:
       context: ./backend
-      dockerfile: Dockerfile.user-upload-backups
+      dockerfile: Dockerfile.backups
     restart: unless-stopped
     depends_on:
-      api:
-        condition: service_started
+      postgres:
+        condition: service_healthy
     volumes:
       - user_uploads:/data/uploads:ro
-      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
+      - ${BACKUP_DIR:-./backups}/restic:/restic
     environment:
-      SCHEDULE: 0 2 * * * # Daily at 2am
-      UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
-      UPLOADS_BACKUP_DIR: /backups # NOTE: this is the path inside the container
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 6
-      MAX_TOTAL_GB: 100
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
+      RESTIC_PASSWORD_FILE: /run/secrets/restic_password
+      RESTIC_REPOSITORY: /restic
+      UPLOADS_DIR: /data/uploads
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_ON_START: "true"
+      RESTIC_KEEP_HOURLY: ${RESTIC_KEEP_HOURLY:-24}
+      RESTIC_KEEP_DAILY: ${RESTIC_KEEP_DAILY:-14}
+      RESTIC_KEEP_WEEKLY: ${RESTIC_KEEP_WEEKLY:-8}
+      RESTIC_KEEP_MONTHLY: ${RESTIC_KEEP_MONTHLY:-12}
+    env_file: ./backend/.env.${APP_ENV}
+    secrets:
+      - database_backup_password
+      - restic_password
     profiles:
       - backups
 
@@ -122,29 +129,11 @@ services:
       args:
         BUILD_MODE: ${BUILD_MODE:-prod}
 
-  postgres-backup:
-    # Automated database backups to local file system
-    image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_started
-    volumes:
-      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
-    environment:
-      SCHEDULE: 0 2 * * * # Daily at 2am
-      POSTGRES_HOST: postgres
-      POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
-      BACKUP_SUFFIX: ".sql.zst"
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 6
-      BACKUP_ON_START: "TRUE"
-    env_file: ./backend/.env.${APP_ENV} # Load database connection settings
-    healthcheck:
-      start_period: 30s # Override image's 5min default so the first probe runs quickly after boot
-    profiles:
-      - backups
-
 volumes:
   cache_data:
+
+secrets:
+  database_backup_password:
+    file: ./secrets/${APP_ENV}/database_backup_password
+  restic_password:
+    file: ./secrets/${APP_ENV}/restic_password

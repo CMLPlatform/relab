@@ -1,94 +1,67 @@
 # RELab Backups
 
-These scripts back up RELab data locally and can optionally sync it to remote storage.
+RELab uses one restic-based backup workflow for production and staging.
 
-Two kinds of data are covered:
+The backup container creates:
 
-- PostgreSQL backups
-- uploaded files and images
+- a logical PostgreSQL dump with `pg_dump` using `DATABASE_BACKUP_USER`
+- a restic snapshot of that dump tagged `postgres`
+- a restic snapshot of uploaded files tagged `user-uploads`
 
-## Important Note
+The restic repository is encrypted with `RESTIC_PASSWORD` / `RESTIC_PASSWORD_FILE`.
 
-By default, these scripts target services reachable from the host. If your stack runs in Docker, make sure the scripts point at the right database host and upload storage path. Do not assume the defaults match your deployment.
+## Runtime
 
-## Local Backups
+The deploy overlay exposes the `relab-backup` service behind the `backups` profile:
 
-Set the root backup directory in the root `.env` file:
+```bash
+just prod-up YES backups
+just staging-up YES backups
+```
+
+Backups are stored under:
+
+```text
+$BACKUP_DIR/restic
+```
+
+`BACKUP_DIR` is configured in the host-local root `.env` file and defaults to `./backups`. Non-secret prod/staging Compose interpolation lives in `deploy/env/*.compose.env`; do not put real secrets under `deploy/`.
+
+## Required Secrets
+
+The required filename list lives in `deploy/required-secret-files.txt`. Use
+`just deploy-secrets-template prod` or `just deploy-secrets-template staging` to
+create missing files, then replace the placeholder values. `just deploy-secrets-check` verifies that the manifest and Compose overlay stay
+aligned.
+
+## Restore Smoke Test
+
+From the repo root, restore the latest database dump into a disposable Postgres container:
+
+```bash
+just backup-restore-smoke prod
+```
+
+The smoke test restores the latest `postgres` snapshot, runs `pg_restore`, and verifies `SELECT 1` plus the `public.alembic_version` table.
+
+## Optional Offsite Copy
+
+Keep the local restic repository as the primary fast restore point. For offsite storage, copy restic snapshots to a second restic repository:
+
+```bash
+RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic just backup-offsite-copy staging
+```
+
+For WebDAV, configure an rclone remote in:
+
+```text
+secrets/staging/rclone.conf
+```
+
+Production uses `secrets/prod/rclone.conf` and a separate repository path, for example:
 
 ```env
-BACKUP_DIR=/path/to/local/backups
+RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/prod/restic
 ```
 
-The scripts create:
-
-- `$BACKUP_DIR/postgres_db`
-- `$BACKUP_DIR/user_upload_backups`
-
-### Manual Use
-
-Run from `backend/scripts/backup/`:
-
-```bash
-./backup_user_uploads.sh
-./backup_pg_database.sh
-```
-
-### Automated Use
-
-From the repo root:
-
-```bash
-docker compose -f compose.yaml -f compose.deploy.yaml --profile backups up -d
-```
-
-This starts:
-
-- `uploads-backup` for user uploads
-- `postgres-backup` for PostgreSQL dumps
-
-Schedules and retention settings live in [compose.deploy.yaml](../../../compose.deploy.yaml).
-
-## Remote Sync
-
-You can sync local backups to remote storage with either `rsync` or `rclone`. Both sync scripts include safety checks to reduce the chance of pushing an empty local directory over a valid remote backup set.
-
-### rsync
-
-Use this for SSH-accessible servers or local-network targets.
-
-Add to the root `.env`:
-
-```env
-BACKUP_RSYNC_REMOTE_HOST=user@hostname
-BACKUP_RSYNC_REMOTE_PATH=/path/to/remote/backup
-```
-
-Manual run:
-
-```bash
-./backend/scripts/backup/rsync_backup.sh
-```
-
-### rclone
-
-Use this for cloud or remote object storage.
-
-Add to the root `.env`:
-
-```env
-BACKUP_RCLONE_REMOTE=myremote:/backup/relab
-BACKUP_RCLONE_MULTI_THREAD_STREAMS=16
-```
-
-Manual run:
-
-```bash
-./backend/scripts/backup/rclone_backup.sh
-```
-
-## Cron Examples
-
-```cron
-30 3 * * * /path/to/relab/backend/scripts/backup/rsync_backup.sh >> /var/log/relab/rsync_backup.log 2>&1
-30 3 * * * /path/to/relab/backend/scripts/backup/rclone_backup.sh >> /var/log/relab/rclone_backup.log 2>&1
-```
+Do not mirror the raw repository directory with separate rsync/rclone scripts. The supported offsite path is `restic copy`, with rclone acting only as restic's transport for WebDAV and other remotes.
