@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, selectinload
 
 from app.api.common.crud.loading import relationship_attr
 from app.api.common.models.base import Base
+from app.core.crypto.sqlalchemy import EncryptedString
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Mapping
@@ -50,9 +51,9 @@ class BaseOAuthAccountDB(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
     oauth_name: Mapped[str] = mapped_column(String, index=True)
-    access_token: Mapped[str] = mapped_column(String)
+    access_token: Mapped[str] = mapped_column(EncryptedString())
     expires_at: Mapped[int | None] = mapped_column(default=None)
-    refresh_token: Mapped[str | None] = mapped_column(default=None)
+    refresh_token: Mapped[str | None] = mapped_column(EncryptedString(), default=None)
     account_id: Mapped[str] = mapped_column(String, index=True)
     account_email: Mapped[str] = mapped_column(String)
 
