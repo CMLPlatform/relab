@@ -10,7 +10,7 @@ For the authoritative schema, request models, and full endpoint list, use the [i
 
 The public API is versioned under `/v1`. Client configuration should keep the API origin separate from the versioned path, then build requests such as `https://api.cml-relab.org/v1/products`.
 
-## When to Use the API Directly
+## When to use the API directly
 
 - scripted or batch access to structured research data
 - connecting RELab records to notebooks or external tooling
@@ -24,9 +24,9 @@ The public API is versioned under `/v1`. Client configuration should keep the AP
 - Refresh-token handling depends on the Redis-backed auth path (see [Authentication](../../architecture/auth/))
 
 !!! note "Public vs. authenticated routes"
-Public reference data (taxonomies, materials, product types) is accessible without authentication. Product records, images, and user data require a valid token.
+Public reference data (taxonomies, materials, product types), product records, and uploaded media are accessible without authentication. Creating or changing records, account management, private user details, and owner-scoped workflows require a valid token.
 
-## Suggested First Steps
+## Suggested first steps
 
 1. Open the [live OpenAPI docs](https://api.cml-relab.org/docs).
 1. Identify whether the endpoint you need is public or requires authentication.
@@ -34,7 +34,7 @@ Public reference data (taxonomies, materials, product types) is accessible witho
 1. Inspect response models carefully, especially around linked entities and media.
 1. Only automate writes once you understand how the product hierarchy is represented.
 
-## Integration Advice
+## Integration advice
 
 - Build against the live OpenAPI schema rather than copying examples from old documentation.
 - For product circularity notes, use `circularity_properties` as either `null` or an object with optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects and empty note strings are normalized to `null`.
