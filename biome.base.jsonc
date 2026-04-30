@@ -32,6 +32,9 @@
       "trailingCommas": "all"
     }
   },
+  "html": {
+    "experimentalFullSupportEnabled": true
+  },
   "json": {
     "formatter": {
       "trailingCommas": "none"

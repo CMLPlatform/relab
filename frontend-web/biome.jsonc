@@ -20,7 +20,8 @@
           "correctness": {
             "noUnresolvedImports": "off",
             "noUnusedImports": "off",
-            "noUnusedVariables": "off"
+            "noUnusedVariables": "off",
+            "useJsxKeyInIterable": "off"
           },
           "style": {
             // Astro components follow PascalCase by convention.
