@@ -23,8 +23,6 @@ import asyncio
 import logging
 import os
 import re
-import sys
-from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
@@ -37,14 +35,13 @@ os.environ.setdefault("ENVIRONMENT", "testing")
 import pytest
 from alembic import command
 from alembic.config import Config
-from loguru import logger as loguru_logger
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
 
-from app.core.logging import LOG_FORMAT, setup_logging
+from app.core.logging import setup_logging
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
@@ -83,12 +80,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # Initialize logging for the test session
     setup_logging()
-    # Remove all sinks initially to prevent logs from bypassing pytest's capture/filtering
-    loguru_logger.remove()
-
-    # If -s (no capture) is active, add back a stderr sink for live output
-    if config.getoption("capture") == "no":
-        loguru_logger.add(sys.stderr, format=LOG_FORMAT, level="INFO")
 
 
 def _ensure_testcontainers_postgres() -> None:
@@ -264,13 +255,6 @@ async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> A
                 await transaction.rollback()
 
 
-@pytest.fixture(autouse=True, scope="session")
-def cleanup_loguru() -> Generator[None]:
-    """Ensure Loguru background queues are closed cleanly after testing session."""
-    yield
-    loguru_logger.remove()
-
-
 @pytest.fixture(autouse=True)
 def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
     """Automatically mock email sending for all tests."""
@@ -278,21 +262,3 @@ def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
         "app.api.auth.services.email.service.default_email_provider.send",
         new_callable=AsyncMock,
     )
-
-
-@pytest.fixture(autouse=True)
-def caplog_loguru(caplog: pytest.LogCaptureFixture) -> Generator[None]:
-    """Propagate Loguru logs to Pytest's caplog handler.
-
-    This allows loguru logs to be captured by pytest and shown in the CLI
-    according to the log_cli settings in pyproject.toml.
-    """
-    sink_id = loguru_logger.add(
-        caplog.handler,
-        format="{message}",
-        level=0,
-        filter=lambda record: record["level"].no >= caplog.handler.level,
-    )
-    yield
-    with suppress(ValueError):
-        loguru_logger.remove(sink_id)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
@@ -9,7 +10,8 @@ from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI
 
-from app.core.observability.telemetry import init_telemetry, shutdown_telemetry
+from app.core.logging import RequestContextFilter
+from app.core.observability.telemetry import _telemetry_state, init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
     import pytest
@@ -31,6 +33,27 @@ class _FakeTracerProvider:
         self.processors.append(processor)
 
 
+class _FakeLoggerProvider:
+    def __init__(self, *, resource: dict[str, object]) -> None:
+        self.resource = resource
+        self.processors: list[object] = []
+        self.shutdown = MagicMock()
+
+    def add_log_record_processor(self, processor: object) -> None:
+        self.processors.append(processor)
+
+
+class _FakeLoggingHandler(logging.Handler):
+    def __init__(self, *, level: int, logger_provider: _FakeLoggerProvider) -> None:
+        super().__init__(level=level)
+        self.level = level
+        self.logger_provider = logger_provider
+
+    def handle(self, record: logging.LogRecord) -> bool:
+        del record
+        return True
+
+
 def _build_fake_otel_modules(
     fastapi_instrumentor: MagicMock,
     sqlalchemy_instrumentor: MagicMock,
@@ -47,12 +70,21 @@ def _build_fake_otel_modules(
         "opentelemetry.sdk.trace.export": SimpleNamespace(
             BatchSpanProcessor=lambda exporter: ("batch", exporter),
         ),
+        "opentelemetry.sdk._logs": SimpleNamespace(LoggerProvider=_FakeLoggerProvider),
+        "opentelemetry.sdk._logs.export": SimpleNamespace(
+            BatchLogRecordProcessor=lambda exporter: ("log-batch", exporter),
+        ),
+        "opentelemetry.sdk._logs._internal": SimpleNamespace(LoggingHandler=_FakeLoggingHandler),
+        "opentelemetry._logs": SimpleNamespace(set_logger_provider=MagicMock()),
         "opentelemetry.exporter": SimpleNamespace(),
         "opentelemetry.exporter.otlp": SimpleNamespace(),
         "opentelemetry.exporter.otlp.proto": SimpleNamespace(),
         "opentelemetry.exporter.otlp.proto.http": SimpleNamespace(),
         "opentelemetry.exporter.otlp.proto.http.trace_exporter": SimpleNamespace(
             OTLPSpanExporter=lambda **kwargs: ("otlp", kwargs),
+        ),
+        "opentelemetry.exporter.otlp.proto.http._log_exporter": SimpleNamespace(
+            OTLPLogExporter=lambda **kwargs: ("otlp-log", kwargs),
         ),
         "opentelemetry.instrumentation": SimpleNamespace(),
         "opentelemetry.instrumentation.fastapi": SimpleNamespace(
@@ -101,12 +133,17 @@ def test_init_telemetry_instruments_app_when_enabled(monkeypatch: pytest.MonkeyP
     fastapi_instrumentor.instrument_app.assert_called_once_with(app)
     sqlalchemy_instrumentor.instrument.assert_called_once_with(engine=async_engine.sync_engine)
     httpx_instrumentor.instrument.assert_called_once_with()
+    assert isinstance(_telemetry_state.log_handler, _FakeLoggingHandler)
+    assert isinstance(_telemetry_state.log_provider, _FakeLoggerProvider)
+    assert any(isinstance(log_filter, RequestContextFilter) for log_filter in _telemetry_state.log_handler.filters)
 
     shutdown_telemetry(app)
 
     fastapi_instrumentor.uninstrument_app.assert_called_once_with(app)
     sqlalchemy_instrumentor.uninstrument.assert_called_once_with()
     httpx_instrumentor.uninstrument.assert_called_once_with()
+    assert _telemetry_state.log_handler is None
+    assert _telemetry_state.log_provider is None
 
 
 def test_init_telemetry_returns_false_when_dependencies_missing(monkeypatch: pytest.MonkeyPatch) -> None:

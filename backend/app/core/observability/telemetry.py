@@ -8,10 +8,10 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 from app.core.config import settings
+from app.core.logging import RequestContextFilter
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
-    from loguru import Message as LoguruMessage
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
     from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
     from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
@@ -33,25 +33,20 @@ class TelemetryState:
     httpx_instrumentor: HTTPXClientInstrumentor | None = None
     # Log export
     log_provider: Any = field(default=None)
-    loguru_sink_id: int | None = None
+    log_handler: logging.Handler | None = None
 
 
 _telemetry_state = TelemetryState()
 
 
 def _init_log_export(resource: Resource, state: TelemetryState) -> None:
-    """Wire up OTLP log export and bridge loguru/stdlib logs into OTel.
-
-    A dedicated bridge logger with propagate=False is used so loguru → OTel
-    emission does not loop back through the root InterceptHandler.
-    """
+    """Wire up stdlib logging to OTLP log export."""
     try:
         otlp_log_exporter_cls = import_module("opentelemetry.exporter.otlp.proto.http._log_exporter").OTLPLogExporter
         logger_provider_cls = import_module("opentelemetry.sdk._logs").LoggerProvider
         batch_log_processor_cls = import_module("opentelemetry.sdk._logs.export").BatchLogRecordProcessor
         set_logger_provider = import_module("opentelemetry._logs").set_logger_provider
         logging_handler_cls = import_module("opentelemetry.sdk._logs._internal").LoggingHandler
-        loguru_mod = import_module("loguru")
     except ImportError, AttributeError:
         logger.warning("OTel log export dependencies unavailable; skipping log export")
         return
@@ -64,30 +59,11 @@ def _init_log_export(resource: Resource, state: TelemetryState) -> None:
     set_logger_provider(log_provider)
 
     otel_handler = logging_handler_cls(level=logging.NOTSET, logger_provider=log_provider)
-    bridge = logging.getLogger("_otel_log_bridge")
-    bridge.propagate = False
-    bridge.setLevel(logging.NOTSET)
-    bridge.addHandler(otel_handler)
+    otel_handler.setLevel(logging.INFO)
+    otel_handler.addFilter(RequestContextFilter())
+    logging.root.addHandler(otel_handler)
 
-    def _otel_sink(message: LoguruMessage) -> None:
-        rec = message.record
-        exc = rec["exception"]
-        exc_info = (exc.type, exc.value, exc.traceback) if exc and exc.type and exc.value else None
-        log_record = logging.LogRecord(
-            name=rec["name"] or __name__,
-            level=getattr(logging, rec["level"].name, logging.INFO),
-            pathname=str(rec["file"].path),
-            lineno=rec["line"],
-            msg=str(rec["message"]),
-            args=(),
-            exc_info=exc_info,
-        )
-        for key, val in rec["extra"].items():
-            if val is not None:
-                setattr(log_record, key, val)
-        bridge.handle(log_record)
-
-    state.loguru_sink_id = loguru_mod.logger.add(_otel_sink, level="INFO", format="{message}")
+    state.log_handler = otel_handler
     state.log_provider = log_provider
 
 
@@ -161,12 +137,8 @@ def shutdown_telemetry(app: FastAPI) -> None:
     if _telemetry_state.tracer_provider is not None:
         _telemetry_state.tracer_provider.shutdown()
 
-    if _telemetry_state.loguru_sink_id is not None:
-        try:
-            loguru_mod = import_module("loguru")
-            loguru_mod.logger.remove(_telemetry_state.loguru_sink_id)
-        except (ImportError, ValueError) as exc:
-            logger.debug("Could not remove loguru OTel sink: %s", exc)
+    if _telemetry_state.log_handler is not None:
+        logging.root.removeHandler(_telemetry_state.log_handler)
 
     if _telemetry_state.log_provider is not None:
         _telemetry_state.log_provider.shutdown()
@@ -177,5 +149,5 @@ def shutdown_telemetry(app: FastAPI) -> None:
     _telemetry_state.sqlalchemy_instrumentor = None
     _telemetry_state.httpx_instrumentor = None
     _telemetry_state.log_provider = None
-    _telemetry_state.loguru_sink_id = None
+    _telemetry_state.log_handler = None
     logger.info("OpenTelemetry instrumentation disabled")
