@@ -6,28 +6,9 @@
 .page-shell {
   width: min(calc(100% - 2rem), var(--content-width));
   margin: 0 auto;
-  padding: 1.5rem 0 2.75rem;
+  padding: 2.75rem 0;
   display: grid;
   gap: 1.25rem;
-}
-
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  padding-top: 0;
-}
-
-.site-header-inner {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.72rem 1.75rem;
-  border-bottom: 1px solid var(--color-border);
-  background: color-mix(in srgb, var(--color-surface-raised) 94%, transparent);
-  backdrop-filter: blur(16px);
 }
 
 .site-footer {
@@ -38,8 +19,9 @@
 
 .site-footer-inner {
   width: min(calc(100% - 2rem), var(--content-width));
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
   gap: 1rem;
   padding: 1rem 0;
 }
@@ -64,25 +46,24 @@
   gap: 0.55rem;
 }
 
+.footer-theme {
+  display: inline-flex;
+  padding-left: 1rem;
+  border-left: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  justify-content: flex-end;
+}
+
 @media (max-width: 760px) {
   .page-shell {
     width: min(calc(100% - 1.25rem), var(--content-width));
-    padding-top: 0.85rem;
+    padding-top: 1.5rem;
     padding-bottom: 2rem;
     gap: 0.9rem;
   }
 
-  .site-header {
-    position: static;
-  }
-
-  .site-header-inner {
-    padding: 0.68rem 1rem;
-  }
-
   .site-footer-inner {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr auto;
+    align-items: center;
     gap: 0.8rem;
   }
 
@@ -91,9 +72,12 @@
     justify-content: flex-start;
   }
 
+  .footer-meta {
+    grid-column: 1 / -1;
+  }
+
   .footer-links {
-    width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
   }
 
@@ -105,6 +89,11 @@
   .footer-social {
     margin-left: auto;
   }
+
+  .footer-theme {
+    padding-left: 0.8rem;
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 480px) {
@@ -115,7 +104,7 @@
 
   .footer-links {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .footer-links > a:first-child {

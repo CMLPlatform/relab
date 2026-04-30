@@ -1,6 +1,6 @@
 # RELab Web
 
-This subrepo contains the public website for RELab, built with Astro. It is the small, mostly static front door for the project: the landing page, privacy page, and the links that point people toward the app, docs, and backend services.
+This subrepo contains the public website for RELab, built with Astro. It is the small, mostly static front door for the project: the landing page, privacy page, and the links that point people toward the app, docs, and source code.
 
 If you are looking for the main application itself, that lives elsewhere in the monorepo. This package is the website around the project, not the research workflow UI.
 
@@ -13,7 +13,9 @@ just install
 pnpm run dev
 ```
 
-The local dev server runs at <http://localhost:8081>.
+The local dev server runs at <http://127.0.0.1:8081>. Use the numeric loopback
+host when developing through VS Code Remote port forwarding; Firefox can be
+unreliable with forwarded `localhost` URLs.
 
 In the full Docker stack, the site is served behind Caddy at <http://localhost:8010>.
 
@@ -58,7 +60,6 @@ Public variables are read through `import.meta.env` and used by [src/config/publ
 
 | Name                   | Required | Purpose                            |
 | ---------------------- | -------- | ---------------------------------- |
-| `PUBLIC_API_URL`       | yes      | Backend API base URL               |
 | `PUBLIC_APP_URL`       | yes      | Canonical app URL                  |
 | `PUBLIC_SITE_URL`      | yes      | Canonical site URL                 |
 | `PUBLIC_DOCS_URL`      | yes      | Canonical docs URL                 |

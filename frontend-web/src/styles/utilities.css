@@ -9,18 +9,12 @@
   color: var(--color-muted);
 }
 
-.narrow-card {
-  max-width: 64rem;
-}
-
 .empty-state {
   max-width: 42rem;
 }
 
 .stack-sm,
-.stack-md,
-.stack-lg,
-.content-section {
+.stack-md {
   display: grid;
 }
 
@@ -28,13 +22,8 @@
   gap: 0.7rem;
 }
 
-.stack-md,
-.content-section {
+.stack-md {
   gap: 1rem;
-}
-
-.stack-lg {
-  gap: 1.3rem;
 }
 
 .content-page {
@@ -83,12 +72,6 @@
 
 .content-reveal:nth-of-type(3) {
   animation-delay: 140ms;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @keyframes rise-in {

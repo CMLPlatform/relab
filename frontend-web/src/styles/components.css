@@ -35,9 +35,6 @@
 }
 
 .hero-copy,
-.newsletter-copy,
-.section-copy,
-.trust-details,
 .page-intro,
 .empty-state {
   display: grid;
@@ -53,83 +50,17 @@
 }
 
 .hero-lead,
-.page-intro p,
-.newsletter-copy p,
 .footer-copy,
-.page-meta,
-.muted-text {
+.page-meta {
   color: var(--color-text);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
 }
 
-.hero-lead,
-.hero-secondary {
-  max-width: 72ch;
-  font-size: 1.05rem;
-}
-
-.section-kicker {
-  color: var(--color-primary-strong);
-  font-size: 0.84rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .hero-lead {
+  max-width: 100%;
+  font-size: 1.05rem;
   font-weight: 460;
-}
-
-.hero-secondary {
-  color: var(--color-text);
-  line-height: var(--line-height-body);
-}
-
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  padding: 0.45rem 0.8rem;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-primary-soft) 72%, transparent);
-  color: var(--color-on-surface);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.hero-highlight-list,
-.fact-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hero-highlight-list {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.hero-highlight-list li,
-.fact-list li {
-  position: relative;
-  padding-left: 1.2rem;
-  color: var(--color-text);
-  line-height: var(--line-height-body-compact);
-}
-
-.hero-highlight-list li::before,
-.fact-list li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.7rem;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 999px;
-  background: var(--color-primary);
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-primary-soft) 72%, transparent);
 }
 
 .hero-actions,
@@ -139,71 +70,6 @@
   gap: 0.8rem;
 }
 
-.support-links {
-  display: grid;
-  gap: 0.65rem;
-  padding-top: 1rem;
-  border-top: 1px solid color-mix(in srgb, var(--color-border) 88%, transparent);
-}
-
-.support-links-label {
-  font-size: 0.95rem;
-  color: var(--color-text);
-}
-
-.primary-links {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.1rem;
-}
-
-.primary-link {
-  background: none;
-  padding: 0;
-  border-radius: 0;
-  color: var(--color-primary-strong);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 0.98rem;
-}
-
-.newsletter-shell {
-  position: relative;
-  overflow: hidden;
-}
-
-.content-section {
-  display: grid;
-  gap: 1.4rem;
-}
-
-.capability-grid,
-.workflow-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.capability-card,
-.workflow-card {
-  display: grid;
-  gap: 0.75rem;
-  min-height: 100%;
-  padding: 1.05rem;
-  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-surface-strong) 90%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-:root[data-theme="dark"] .capability-card,
-:root[data-theme="dark"] .workflow-card {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.newsletter-copy h2,
 .card h1,
 .card h2 {
   font-size: clamp(1.6rem, 2.4vw, 2.2rem);
@@ -211,49 +77,6 @@
 
 .card h3 {
   font-size: 1.08rem;
-}
-
-.section-copy p,
-.capability-card p,
-.workflow-card p,
-.trust-details p,
-.follow-shell p {
-  color: var(--color-text);
-  line-height: var(--line-height-body);
-}
-
-.workflow-shell {
-  background:
-    radial-gradient(
-      circle at top right,
-      color-mix(in srgb, var(--color-primary-soft) 72%, transparent) 0%,
-      transparent 42%
-    ),
-    color-mix(in srgb, var(--color-surface-raised) 98%, transparent);
-}
-
-.workflow-label {
-  color: var(--color-primary-strong);
-  font-size: 0.86rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.trust-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: 1.25rem;
-  align-items: start;
-}
-
-.fact-list {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.follow-shell {
-  gap: 0.85rem;
 }
 
 .btn {
@@ -307,6 +130,59 @@
   border-color: var(--color-border);
 }
 
+.theme-control {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.theme-toggle {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
+  color: var(--color-muted);
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+}
+
+.theme-control[data-theme-current="light"] .theme-toggle,
+.theme-control[data-theme-current="dark"] .theme-toggle {
+  background: var(--color-surface-strong);
+  color: var(--color-on-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.theme-icon {
+  display: none;
+}
+
+.theme-control[data-theme-current="system"] [data-theme-icon="system"],
+.theme-control[data-theme-current="light"] [data-theme-icon="light"],
+.theme-control[data-theme-current="dark"] [data-theme-icon="dark"] {
+  display: inline-flex;
+}
+
+.theme-icon svg {
+  width: 0.92rem;
+  height: 0.92rem;
+  fill: currentColor;
+}
+
 .footer-meta a,
 .footer-links a {
   color: var(--color-muted);
@@ -330,18 +206,9 @@
   fill: currentColor;
 }
 
-@media (max-width: 980px) {
-  .capability-grid,
-  .workflow-grid,
-  .trust-shell {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 760px) {
   .card,
   .hero-panel,
-  .newsletter-shell,
   .empty-state {
     padding: 1rem;
   }
@@ -367,47 +234,30 @@
     min-height: 3.1rem;
   }
 
+  .theme-toggle {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  .theme-icon svg {
+    width: 0.82rem;
+    height: 0.82rem;
+  }
+
   .hero-copy,
-  .newsletter-copy,
-  .section-copy,
-  .trust-details,
   .page-intro,
   .empty-state {
     gap: 0.8rem;
   }
 
-  .hero-lead,
-  .hero-secondary,
-  .page-intro p,
-  .newsletter-copy p,
-  .section-copy p,
-  .muted-text {
+  .hero-lead {
     font-size: 0.98rem;
     line-height: 1.62;
   }
 
-  .support-links {
-    gap: 0.5rem;
-    padding-top: 0.85rem;
-  }
-
-  .primary-links {
-    gap: 1rem;
-  }
-
-  .newsletter-copy h2,
   .card h1,
   .card h2 {
     font-size: clamp(1.35rem, 8vw, 1.95rem);
-  }
-
-  .hero-badge {
-    font-size: 0.88rem;
-  }
-
-  .capability-card,
-  .workflow-card {
-    padding: 0.95rem;
   }
 }
 
@@ -422,7 +272,6 @@
 
   .card,
   .hero-panel,
-  .newsletter-shell,
   .empty-state {
     padding: 0.9rem;
     border-radius: 18px;
@@ -430,16 +279,5 @@
 
   .hero-actions {
     gap: 0.65rem;
-  }
-
-  .support-links-label {
-    font-size: 0.9rem;
-  }
-
-  .primary-links {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem;
   }
 }

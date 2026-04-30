@@ -2,7 +2,6 @@ import { type EnvSource, getOptional, getRequired } from './env.ts';
 
 interface PublicSiteConfig {
   appUrl: string;
-  apiUrl: string;
   contactEmail: string;
   docsUrl: string;
   linkedInUrl?: string;
@@ -19,7 +18,6 @@ export function readSiteUrl(env: EnvSource, fallback?: string): string {
 
 export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
   return {
-    apiUrl: getRequired(env, 'PUBLIC_API_URL', LABEL),
     appUrl: getRequired(env, 'PUBLIC_APP_URL', LABEL),
     docsUrl: getRequired(env, 'PUBLIC_DOCS_URL', LABEL),
     linkedInUrl: getOptional(env, 'PUBLIC_LINKEDIN_URL'),

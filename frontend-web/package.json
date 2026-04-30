@@ -12,13 +12,13 @@
     "Simon van Lierde <s.n.van.lierde@cml.leidenuniv.nl>"
   ],
   "scripts": {
-    "dev": "astro dev --port 8081 --host --mode dev",
+    "dev": "astro dev --port 8081 --host 0.0.0.0 --strictPort --mode dev",
     "build": "astro build --mode prod",
     "build:prod": "astro build --mode prod",
     "build:staging": "astro build --mode staging",
     "build:test": "astro build --mode test",
-    "preview": "astro preview --port 8081 --host",
-    "preview:e2e": "pnpm run build && astro preview --port 8081 --host",
+    "preview": "astro preview --port 8081 --host 0.0.0.0 --strictPort",
+    "preview:e2e": "pnpm run build && astro preview --port 8081 --host 0.0.0.0 --strictPort",
     "check": "pnpm run lint && pnpm run typecheck",
     "format": "biome format --write .",
     "fix": "biome check --write .",

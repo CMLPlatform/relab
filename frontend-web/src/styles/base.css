@@ -103,11 +103,6 @@ select {
   background: var(--backdrop-wash);
 }
 
-.site-glow,
-.site-grid {
-  display: none;
-}
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -126,9 +121,7 @@ select {
   }
 
   .content-reveal,
-  .spinner,
   .btn,
-  .primary-link,
   .theme-toggle {
     animation: none;
     transition-duration: 0.01ms;

@@ -1,12 +1,7 @@
 ---
-import FollowUpdates from '@/components/FollowUpdates.astro';
 import Hero from '@/components/Hero.astro';
-import LandingHighlights from '@/components/LandingHighlights.astro';
-import TrustPanel from '@/components/TrustPanel.astro';
-import WorkflowPanels from '@/components/WorkflowPanels.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
-import { homeContent } from '@/content/home-content.ts';
-import { buildHomeStructuredData, siteLinks } from '@/content/site-meta.ts';
+import { buildHomeStructuredData, siteLinks, siteMeta } from '@/content/site-meta.ts';
 import Layout from '@/layouts/Layout.astro';
 
 const publicSiteConfig = getPublicSiteConfig();
@@ -20,23 +15,12 @@ const structuredData = buildHomeStructuredData({
 
 <Layout
   title="RELab | Reverse engineering platform for product data and disassembly records"
-  description={homeContent.heroBody}
+  description={siteMeta.defaultDescription}
   structuredData={structuredData}
 >
   <Hero
     appUrl={publicSiteConfig.appUrl}
     docsUrl={publicSiteConfig.docsUrl}
     githubUrl={siteLinks.github}
-  />
-
-  <LandingHighlights />
-
-  <WorkflowPanels />
-
-  <TrustPanel docsUrl={publicSiteConfig.docsUrl} githubUrl={siteLinks.github} />
-
-  <FollowUpdates
-    githubUrl={siteLinks.github}
-    linkedInUrl={publicSiteConfig.linkedInUrl}
   />
 </Layout>

@@ -59,6 +59,7 @@ export function buildHomeStructuredData({
 
 export const siteLinks = {
   github: 'https://github.com/CMLPlatform/relab',
+  youtube: 'https://www.youtube.com/@open_product_data',
 };
 
 export { siteMeta };

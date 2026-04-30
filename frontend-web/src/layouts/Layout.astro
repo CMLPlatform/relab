@@ -3,7 +3,6 @@ import '@/styles/fonts.css';
 import '@/styles/global.css';
 
 import SiteFooter from '@/components/SiteFooter.astro';
-import SiteHeader from '@/components/SiteHeader.astro';
 import { getPublicSiteConfig } from '@/config/public.ts';
 import { siteLinks, siteMeta } from '@/content/site-meta.ts';
 import { getThemeBootstrapScript } from '@/scripts/theme.ts';
@@ -59,18 +58,13 @@ const structuredDataJson =
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
     <title>{pageTitle}</title>
     {structuredDataJson && (
-      <script type="application/ld+json" set:html={structuredDataJson}></script>
+      <script is:inline type="application/ld+json" set:html={structuredDataJson}></script>
     )}
     <script is:inline set:html={themeBootstrapScript}></script>
   </head>
   <body>
     <div class="site-backdrop" aria-hidden="true">
-      <div class="site-glow site-glow-left"></div>
-      <div class="site-glow site-glow-right"></div>
-      <div class="site-grid"></div>
     </div>
-
-    <SiteHeader />
 
     <main class="page-shell">
       <slot />
@@ -81,12 +75,13 @@ const structuredDataJson =
       currentYear={currentYear}
       githubUrl={siteLinks.github}
       linkedInUrl={publicSiteConfig.linkedInUrl}
+      youtubeUrl={siteLinks.youtube}
     />
 
     <script>
-      import { initClient } from '@/scripts/init.ts';
+      import { initThemeControl } from '@/scripts/theme.ts';
 
-      initClient();
+      initThemeControl();
     </script>
   </body>
 </html>

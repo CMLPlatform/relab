@@ -1,92 +1,22 @@
-- banner:
-  - link "Home":
-    - /url: /
-    - strong: RELab
-  - navigation "Primary":
-    - link "Home":
-      - /url: /
-    - link "Privacy":
-      - /url: /privacy
-  - 'button "Theme: system. Switch theme"'
 - main:
-  - paragraph: Structured disassembly records for research
   - heading "Reverse Engineering Lab" [level=1]
   - paragraph: RELab is an open-source research platform for documenting the disassembly of durable goods and organising the resulting product data.
-  - paragraph: Use the app to create structured records, attach media, and keep observations available for comparison and later analysis.
-  - paragraph: Built at CML, Leiden University
-  - link "Open the App":
-    - /url: https://app.cml-relab.org
-  - list:
-    - listitem: Record products, components, materials, and observations in a consistent structure.
-    - listitem: Document disassembly work with photos, notes, and linked records.
-    - listitem: Reuse collected data for comparison, publication, and circularity-oriented research.
-  - paragraph: "App, documentation, and source:"
-  - list "Supporting links":
-    - listitem:
-      - link "Read the Docs":
-        - /url: https://docs.cml-relab.org
-    - listitem:
-      - link "Browse GitHub":
-        - /url: https://github.com/CMLPlatform/relab
-  - paragraph: What you can do
-  - heading "What you can do" [level=2]
-  - paragraph: "RELab supports the practical work around disassembly records: collecting observations, keeping them structured, and making them easier to review later."
-  - article:
-    - heading "Record product structure" [level=3]
-    - paragraph: Create consistent records for products, components, materials, and related observations without relying on ad hoc spreadsheets.
-  - article:
-    - heading "Document disassembly" [level=3]
-    - paragraph: Capture teardown notes, media, and relationships between parts so the record remains useful after the session itself.
-  - article:
-    - heading "Review and compare records" [level=3]
-    - paragraph: Keep records organised enough for researchers and collaborators to revisit, compare, and check later.
-  - article:
-    - heading "Support later analysis" [level=3]
-    - paragraph: Use the resulting data as a basis for circularity, repairability, and other product-focused research workflows.
-  - paragraph: Workflow overview
-  - heading "How RELab fits the workflow" [level=2]
-  - paragraph: A typical RELab workflow starts with a product record, continues through documented disassembly, and leaves a dataset that can be reviewed or analysed later.
-  - article:
-    - paragraph: Capture
-    - heading "Start with the product record" [level=3]
-    - paragraph: Register the product, record core attributes, and attach the images and notes that make later interpretation easier.
-  - article:
-    - paragraph: Document
-    - heading "Document the disassembly" [level=3]
-    - paragraph: Add components, materials, and teardown observations in a structure that can still be understood after the workbench is cleared.
-  - article:
-    - paragraph: Analyse
-    - heading "Work from the resulting data" [level=3]
-    - paragraph: Use the record as a basis for comparison, reporting, publication, or later circularity-oriented analysis.
-  - paragraph: Research context
-  - heading "Built in a research context" [level=2]
-  - paragraph: RELab is developed at the Institute of Environmental Sciences (CML), Leiden University. The app is operational software for collecting and organising disassembly records; the documentation and source are available for people who want implementation or project detail.
-  - list:
-    - listitem: Built for documenting the disassembly of durable goods.
-    - listitem: Designed around structured product and media records.
-    - listitem: Documented in public, with source code available.
-  - paragraph: "Project and implementation details:"
-  - list "Supporting links":
-    - listitem:
-      - link "Read the Docs":
-        - /url: https://docs.cml-relab.org
-    - listitem:
-      - link "Browse GitHub":
-        - /url: https://github.com/CMLPlatform/relab
-  - paragraph: Public channels
-  - heading "Follow public updates" [level=2]
-  - paragraph: RELab does not run a separate public mailing list. Development updates and public project information are shared through GitHub and LinkedIn.
-  - paragraph: "Public updates:"
-  - list "Supporting links":
-    - listitem:
-      - link "Browse GitHub":
-        - /url: https://github.com/CMLPlatform/relab
-    - listitem:
-      - link "Follow LinkedIn":
-        - /url: https://www.linkedin.com/groups/15671021
+  - link "Open the RELab app":
+    - /url: http://localhost:8013
+    - text: Open the app
+  - link "Read the RELab documentation":
+    - /url: http://localhost:8012
+    - text: Read the docs
+  - link "Browse the RELab source code on GitHub":
+    - /url: https://github.com/CMLPlatform/relab
+    - text: Browse source
 - contentinfo:
-  - link "Privacy Policy":
+  - link "Go to the homepage":
+    - /url: /
+    - text: Home
+  - link "Read the RELab privacy policy":
     - /url: /privacy
+    - text: Privacy policy
   - paragraph: /© \d+ CML, Leiden University/
   - navigation "Footer":
     - link "relab@cml.leidenuniv.nl":
@@ -95,3 +25,6 @@
       - /url: https://github.com/CMLPlatform/relab
     - link "LinkedIn":
       - /url: https://www.linkedin.com/groups/15671021
+    - link "YouTube":
+      - /url: https://www.youtube.com/@open_product_data
+  - 'button "Theme: system. Switch theme"': Cycle theme
