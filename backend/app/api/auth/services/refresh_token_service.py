@@ -7,6 +7,7 @@ used when Redis is unavailable (convenient for local development).
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import time
 from typing import TYPE_CHECKING
@@ -32,6 +33,19 @@ _memory_blacklist: dict[str, float] = {}
 _USER_TOKENS_KEY_PREFIX = "auth:rt:user:"
 
 
+def refresh_token_fingerprint(token: str) -> str:
+    """Return a stable non-secret fingerprint for refresh-token storage keys."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _refresh_token_key(token_fingerprint: str) -> str:
+    return f"auth:rt:{token_fingerprint}"
+
+
+def _refresh_token_blacklist_key(token_fingerprint: str) -> str:
+    return f"auth:rt_blacklist:{token_fingerprint}"
+
+
 async def create_refresh_token(
     redis: Redis | None,
     user_id: UUID4,
@@ -55,10 +69,11 @@ async def create_refresh_token(
         return token
 
     # Store token with user_id mapping in Redis and add to user's token set
-    token_key = f"auth:rt:{token}"
+    token_fingerprint = refresh_token_fingerprint(token)
+    token_key = _refresh_token_key(token_fingerprint)
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id}"
     await redis.setex(token_key, ttl, str(user_id))
-    await redis_int(redis.sadd(user_tokens_key, token))
+    await redis_int(redis.sadd(user_tokens_key, token_fingerprint))
     await redis.expire(user_tokens_key, ttl)
     return token
 
@@ -86,8 +101,8 @@ async def verify_refresh_token(
         if bl_expire and bl_expire > time.time():
             raise RefreshTokenRevokedError
     else:
-        blacklist_key = f"auth:rt_blacklist:{token}"
-        if await redis.exists(blacklist_key):
+        token_fingerprint = refresh_token_fingerprint(token)
+        if await redis.exists(_refresh_token_blacklist_key(token_fingerprint)):
             raise RefreshTokenRevokedError
 
     if redis is None:
@@ -96,7 +111,7 @@ async def verify_refresh_token(
             raise RefreshTokenInvalidError
         user_id_str = token_data[0]
     else:
-        token_key = f"auth:rt:{token}"
+        token_key = _refresh_token_key(refresh_token_fingerprint(token))
         user_id_str = await redis.get(token_key)
 
         if not user_id_str:
@@ -117,7 +132,8 @@ async def blacklist_token(
         token: Refresh token to blacklist
         ttl_seconds: TTL for blacklist entry (if None, uses remaining token TTL)
     """
-    token_key = f"auth:rt:{token}"
+    token_fingerprint = refresh_token_fingerprint(token)
+    token_key = _refresh_token_key(token_fingerprint)
 
     if redis is None:
         # Determine ttl from token if not provided
@@ -129,6 +145,8 @@ async def blacklist_token(
         _memory_tokens.pop(token, None)
         return
 
+    blacklist_key = _refresh_token_blacklist_key(token_fingerprint)
+
     if ttl_seconds is None:
         # Get remaining TTL from the token itself
         ttl_seconds = await redis.ttl(token_key)
@@ -139,14 +157,13 @@ async def blacklist_token(
     user_id_str = await redis.get(token_key)
 
     # Add to blacklist and delete the token
-    blacklist_key = f"auth:rt_blacklist:{token}"
     await redis.setex(blacklist_key, ttl_seconds, "1")
     await redis.delete(token_key)
 
     # Remove from user's token set
     if user_id_str:
         user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
-        await redis_int(redis.srem(user_tokens_key, token))
+        await redis_int(redis.srem(user_tokens_key, token_fingerprint))
 
 
 async def revoke_all_user_tokens(
@@ -169,12 +186,12 @@ async def revoke_all_user_tokens(
 
     user_tokens_key = f"{_USER_TOKENS_KEY_PREFIX}{user_id_str}"
     tokens = await redis_str_set(redis.smembers(user_tokens_key))
-    for token in tokens:
-        token_key = f"auth:rt:{token}"
+    for stored_token_id in tokens:
+        token_key = _refresh_token_key(stored_token_id)
         ttl_seconds = await redis.ttl(token_key)
         if ttl_seconds <= 0:
             ttl_seconds = HOUR
-        blacklist_key = f"auth:rt_blacklist:{token}"
+        blacklist_key = _refresh_token_blacklist_key(stored_token_id)
         await redis.setex(blacklist_key, ttl_seconds, "1")
         await redis.delete(token_key)
     await redis.delete(user_tokens_key)
