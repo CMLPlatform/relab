@@ -67,7 +67,7 @@ test-unit *ARGS:
 
 # Run DB-backed persistence and schema tests
 test-integration-db *ARGS:
-    {{ pytest }} tests/integration/db tests/integration/models tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
+    {{ pytest }} tests/integration/db tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
 
 # Run only API tests
 test-api *ARGS:
