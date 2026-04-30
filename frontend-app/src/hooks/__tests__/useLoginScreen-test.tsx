@@ -41,7 +41,7 @@ jest.mock('react-hook-form', () => ({
   useForm: () => ({
     control: { field: 'control' },
     handleSubmit: (handler: (values: { email: string; password: string }) => Promise<void>) => () =>
-      handler({ email: 'test@example.com', password: 'password123' }),
+      handler({ email: 'test@example.com', password: 'correct-horse-battery-staple-v42' }),
   }),
 }));
 

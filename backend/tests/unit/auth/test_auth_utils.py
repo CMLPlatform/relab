@@ -193,7 +193,7 @@ class TestProgrammaticUserCrud:
     @pytest.fixture
     def user_create(self) -> UserCreate:
         """Fixture for UserCreate schema."""
-        return UserCreate(email="test@example.com", password="password123")
+        return UserCreate(email="test@example.com", password="correct-horse-battery-staple-v42")
 
     @pytest.fixture
     def mock_user_manager(self) -> AsyncMock:

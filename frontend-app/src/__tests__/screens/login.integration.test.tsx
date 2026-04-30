@@ -276,13 +276,16 @@ describe('Login screen', () => {
     renderWithProviders(<Login />, { withDialog: true });
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'password123');
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Login' }));
     });
 
     await waitFor(() => {
-      expect(login).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(login).toHaveBeenCalledWith('test@example.com', 'correct-horse-battery-staple-v42');
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
     });
   });
@@ -295,7 +298,10 @@ describe('Login screen', () => {
     renderWithProviders(<Login />, { withDialog: true });
 
     fireEvent.changeText(screen.getByPlaceholderText('Email or username'), 'test@example.com');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'password123');
+    fireEvent.changeText(
+      screen.getByPlaceholderText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
     await act(async () => {
       fireEvent.press(screen.getByRole('button', { name: 'Login' }));
     });

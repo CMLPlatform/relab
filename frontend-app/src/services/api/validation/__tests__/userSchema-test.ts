@@ -10,6 +10,8 @@ import {
   usernameSchema,
 } from '../userSchema';
 
+// spell-checker: ignore blocklisted
+
 // Helper to extract all error messages from a Zod result
 function getErrorMessages(result: unknown): string[] {
   if (
@@ -139,8 +141,15 @@ describe('passwordSchema', () => {
   });
 
   it('returns valid with a normal password', () => {
-    const result = passwordSchema.safeParse('StrongPassword123');
+    const result = passwordSchema.safeParse('correct-horse-battery-staple-v42');
     expect(result.success).toBe(true);
+  });
+
+  it('returns invalid for locally blocklisted passwords', () => {
+    const result = passwordSchema.safeParse('relab-password');
+    expect(result.success).toBe(false);
+    const messages = getErrorMessages(result);
+    expect(messages.some((m) => m.includes('too common'))).toBe(true);
   });
 });
 
@@ -202,7 +211,30 @@ describe('newAccountSchema', () => {
     const result = newAccountSchema.safeParse({
       username: 'validuser',
       email: 'user@example.com',
-      password: 'StrongPassword123',
+      password: 'correct-horse-battery-staple-v42',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('normalizes unicode before checking username in password', () => {
+    const result = newAccountSchema.safeParse({
+      username: 'cafe\u0301',
+      email: 'user@example.com',
+      password: 'prefix-caf\u00e9-suffix',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const flattened = result.error.flatten();
+      const passwordErrors = flattened.fieldErrors.password || [];
+      expect(passwordErrors.some((m) => m.includes('username'))).toBe(true);
+    }
+  });
+
+  it('does not reject tiny email local parts as password substrings', () => {
+    const result = newAccountSchema.safeParse({
+      username: 'validuser',
+      email: 'a@example.com',
+      password: 'correct-horse-battery-staple-v42',
     });
     expect(result.success).toBe(true);
   });
@@ -211,7 +243,7 @@ describe('newAccountSchema', () => {
     const result = newAccountSchema.safeParse({
       username: 'a',
       email: 'user@example.com',
-      password: 'StrongPassword123',
+      password: 'correct-horse-battery-staple-v42',
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -225,7 +257,7 @@ describe('newAccountSchema', () => {
     const result = newAccountSchema.safeParse({
       username: 'validuser',
       email: 'not_an_email',
-      password: 'StrongPassword123',
+      password: 'correct-horse-battery-staple-v42',
     });
     expect(result.success).toBe(false);
     if (!result.success) {

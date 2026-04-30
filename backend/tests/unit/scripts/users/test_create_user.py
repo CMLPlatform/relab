@@ -11,6 +11,8 @@ from fastapi_users.exceptions import UserAlreadyExists
 
 from scripts.users import create_user as create_user_script
 
+SCRIPT_TEST_PASSWORD = "correct-horse-battery-staple-v42"
+
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
@@ -42,7 +44,7 @@ class TestCreateUserScript:
         monkeypatch.setattr(create_user_script, "async_session_context", fake_session_context)
         monkeypatch.setattr(create_user_script, "create_user", create_user_mock)
 
-        await create_user_script.create_normal_user("user@example.com", "alice", "very-secret")
+        await create_user_script.create_normal_user("user@example.com", "alice", SCRIPT_TEST_PASSWORD)
 
         kwargs = create_user_mock.await_args.kwargs
         user_create = kwargs["user_create"]
@@ -66,7 +68,7 @@ class TestCreateUserScript:
         monkeypatch.setattr(create_user_script, "async_session_context", fake_session_context)
         monkeypatch.setattr(create_user_script, "create_user", create_user_mock)
 
-        await create_user_script.create_normal_user("user@example.com", None, "very-secret")
+        await create_user_script.create_normal_user("user@example.com", None, SCRIPT_TEST_PASSWORD)
 
         create_user_mock.assert_awaited_once()
         kwargs = create_user_mock.await_args.kwargs
@@ -76,7 +78,7 @@ class TestCreateUserScript:
         assert kwargs["send_registration_email"] is False
         assert user_create.email == "user@example.com"
         assert user_create.username is None
-        assert user_create.password == "very-secret"
+        assert user_create.password == SCRIPT_TEST_PASSWORD
         assert user_create.organization_id is None
         assert user_create.is_superuser is False
         assert user_create.is_verified is True
@@ -98,7 +100,7 @@ class TestCreateUserScript:
         monkeypatch.setattr(create_user_script, "async_session_context", fake_session_context)
         monkeypatch.setattr(create_user_script, "create_user", create_user_mock)
 
-        await create_user_script.create_normal_user("user@example.com", "alice", "very-secret")
+        await create_user_script.create_normal_user("user@example.com", "alice", SCRIPT_TEST_PASSWORD)
 
         warning_mock.assert_called_once()
 

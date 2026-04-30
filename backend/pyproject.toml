@@ -38,8 +38,6 @@
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
     "relab-rpi-cam-models>=0.3.1",
-    # Password strength and breach checking
-    "zxcvbn>=4.4.28",
     # Configuration, validation, and utility types
     "loguru>=0.7.3",
     "pydantic>=2.12",

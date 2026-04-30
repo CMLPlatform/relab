@@ -74,7 +74,7 @@ jest.mock('react-hook-form', () => ({
         handler({
           username: 'newuser',
           email: 'user@example.com',
-          password: 'password123',
+          password: 'correct-horse-battery-staple-v42',
         }),
   }),
   useWatch: () => 'newuser',
@@ -145,8 +145,12 @@ describe('useNewAccountScreen', () => {
       await result.current.actions.createAccount();
     });
 
-    expect(mockRegister).toHaveBeenCalledWith('newuser', 'user@example.com', 'password123');
-    expect(mockLogin).toHaveBeenCalledWith('user@example.com', 'password123');
+    expect(mockRegister).toHaveBeenCalledWith(
+      'newuser',
+      'user@example.com',
+      'correct-horse-battery-staple-v42',
+    );
+    expect(mockLogin).toHaveBeenCalledWith('user@example.com', 'correct-horse-battery-staple-v42');
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 });

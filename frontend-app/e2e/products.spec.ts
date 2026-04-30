@@ -18,7 +18,7 @@ async function registerNewUserAndReachProducts(page: import('@playwright/test').
   const unique = Date.now();
   const username = `empty${unique}`;
   const email = `empty-${unique}@example.com`;
-  const password = 'E2eNewPass123!';
+  const password = 'correct-horse-battery-staple-v42';
 
   await page.goto('/new-account');
   await page.getByPlaceholder('Username', { exact: true }).fill(username);

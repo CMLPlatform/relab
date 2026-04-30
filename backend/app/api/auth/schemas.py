@@ -121,7 +121,7 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
         return validate_username_not_reserved(v)
 
     # Override for OpenAPI schema configuration
-    password: str = Field(json_schema_extra={"format": "password"}, min_length=8)
+    password: str = Field(json_schema_extra={"format": "password"}, min_length=12)
 
 
 class UserCreate(UserCreateBase):
@@ -233,7 +233,7 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
     organization_id: UUID4 | None = None
 
     # Override password field to include password format in JSON schema
-    password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
+    password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=12)
 
     preferences: UserPreferencesUpdate | None = Field(
         default=None,

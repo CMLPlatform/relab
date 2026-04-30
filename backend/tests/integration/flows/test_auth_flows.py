@@ -29,7 +29,7 @@ pytestmark = pytest.mark.flow
 # Constants for test values
 FLOW_TEST_EMAIL = "flowtest@example.com"
 FLOW_TEST_USERNAME = "flowtest"
-FLOW_TEST_PASSWORD = "SecurePassword123!"
+FLOW_TEST_PASSWORD = "correct-horse-battery-staple-v42"
 MULTI_DEVICE_EMAIL = "multidevice@example.com"
 MULTI_DEVICE_USERNAME = "multidevice"
 LOGOUT_ALL_EMAIL = "logoutall@example.com"

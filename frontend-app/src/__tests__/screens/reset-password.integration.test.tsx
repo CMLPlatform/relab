@@ -15,7 +15,7 @@ jest.mock('@/services/api/client', () => ({
   apiFetch: jest.fn(),
 }));
 
-const AT_LEAST_8_PATTERN = /at least 8/i;
+const AT_LEAST_12_PATTERN = /at least 12/i;
 const PASSWORD_RESET_SUCCESS_PATTERN = /Password reset successful/i;
 const REDIRECTING_TO_LOGIN_PATTERN = /Redirecting to login/i;
 
@@ -90,7 +90,7 @@ describe('ResetPasswordScreen rendering', () => {
     fireEvent.changeText(screen.getByTestId('password-input'), 'short');
     await settleForm();
 
-    expect(screen.getByText(AT_LEAST_8_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByText(AT_LEAST_12_PATTERN)).toBeOnTheScreen();
   });
 });
 
@@ -99,7 +99,7 @@ describe('ResetPasswordScreen submission', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
 
     renderResetPasswordScreen();
-    await submitResetPassword('strongpass99');
+    await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(screen.getByText('No reset token provided')).toBeOnTheScreen();
     expect(mockedApiFetch).not.toHaveBeenCalled();
@@ -107,7 +107,7 @@ describe('ResetPasswordScreen submission', () => {
 
   it('submits the new password and shows the success state', async () => {
     renderResetPasswordScreen();
-    await submitResetPassword('strongpass99');
+    await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(mockedApiFetch).toHaveBeenCalledWith(
       expect.stringContaining('/auth/reset-password'),
@@ -115,7 +115,7 @@ describe('ResetPasswordScreen submission', () => {
         method: 'POST',
         body: JSON.stringify({
           token: 'valid-reset-token',
-          password: 'strongpass99',
+          password: 'correct-horse-battery-staple-v42',
         }),
       }),
     );
@@ -127,7 +127,7 @@ describe('ResetPasswordScreen submission', () => {
     mockedApiFetch.mockResolvedValue(createMockResponse(false, { detail: 'Reset token expired' }));
 
     renderResetPasswordScreen();
-    await submitResetPassword('strongpass99');
+    await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(screen.getByText('Reset token expired')).toBeOnTheScreen();
   });
@@ -137,7 +137,7 @@ describe('ResetPasswordScreen submission', () => {
     mockedApiFetch.mockRejectedValue(new Error('network down'));
 
     renderResetPasswordScreen();
-    await submitResetPassword('strongpass99');
+    await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(screen.getByText('An error occurred during password reset')).toBeOnTheScreen();
 
@@ -152,7 +152,7 @@ describe('ResetPasswordScreen navigation', () => {
     fireEvent.press(screen.getAllByTestId('button')[1]);
     expect(mockPush).toHaveBeenCalledWith('/login');
 
-    await submitResetPassword('strongpass99');
+    await submitResetPassword('correct-horse-battery-staple-v42');
     await screen.findByText(PASSWORD_RESET_SUCCESS_PATTERN);
 
     await act(async () => {
