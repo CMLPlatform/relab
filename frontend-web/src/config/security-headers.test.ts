@@ -47,4 +47,17 @@ describe('Caddy security headers', () => {
   ])('%s observes a stricter script policy without unsafe eval', (_name, caddyfile) => {
     expect(reportOnlyCsp(caddyfile)).not.toContain("'unsafe-eval'");
   });
+
+  it.each([
+    ['frontend-web', readCaddyfile('../../Caddyfile')],
+    ['docs', readCaddyfile('../../../docs/Caddyfile')],
+  ])('%s does not allow wildcard scripts or javascript URLs', (_name, caddyfile) => {
+    const enforced = enforcedCsp(caddyfile);
+    const reportOnly = reportOnlyCsp(caddyfile);
+
+    expect(enforced).not.toContain('script-src *');
+    expect(reportOnly).not.toContain('script-src *');
+    expect(enforced).not.toContain('javascript:');
+    expect(reportOnly).not.toContain('javascript:');
+  });
 });

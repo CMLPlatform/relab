@@ -1,3 +1,19 @@
+type PrivacyParagraph =
+  | string
+  | {
+      label: string;
+      text: string;
+      link?: {
+        href: string;
+        text: string;
+      };
+    };
+
+interface PrivacySection {
+  title: string;
+  paragraphs: PrivacyParagraph[];
+}
+
 export const privacyContent = {
   description: 'Privacy information for RELab accounts, uploads, and account email preferences.',
   title: 'Privacy policy',
@@ -32,11 +48,24 @@ export const privacyContent = {
     },
     {
       title: 'Your rights',
-      htmlParagraphs: [
-        '<strong>Updates:</strong> Public-facing project updates are shared on GitHub and LinkedIn. Optional recurring account update emails will stay tied to authenticated user preferences.',
-        '<strong>Account holders:</strong> You may access and update your details, and request deletion of your account and associated data.',
-        'Contact <a href="mailto:relab@cml.leidenuniv.nl">relab@cml.leidenuniv.nl</a> for questions or data requests.',
+      paragraphs: [
+        {
+          label: 'Updates',
+          text: 'Public-facing project updates are shared on GitHub and LinkedIn. Optional recurring account update emails will stay tied to authenticated user preferences.',
+        },
+        {
+          label: 'Account holders',
+          text: 'You may access and update your details, and request deletion of your account and associated data.',
+        },
+        {
+          label: 'Contact',
+          text: 'for questions or data requests.',
+          link: {
+            href: 'mailto:relab@cml.leidenuniv.nl',
+            text: 'relab@cml.leidenuniv.nl',
+          },
+        },
       ],
     },
-  ],
+  ] satisfies PrivacySection[],
 };

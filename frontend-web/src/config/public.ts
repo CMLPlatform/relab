@@ -12,17 +12,32 @@ const LABEL = 'public env var';
 
 let cachedConfig: PublicSiteConfig | undefined;
 
+function validateHttpUrl(value: string, key: string): string {
+  const trimmedValue = value.trim();
+  try {
+    const url = new URL(trimmedValue);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
+      return trimmedValue;
+    }
+  } catch {
+    // Fall through to the shared error below.
+  }
+  throw new Error(`${key} must be an http(s) URL`);
+}
+
 export function readSiteUrl(env: EnvSource, fallback?: string): string {
-  return getOptional(env, 'SITE_URL') ?? getOptional(env, 'PUBLIC_SITE_URL') ?? fallback ?? '';
+  const value = getOptional(env, 'SITE_URL') ?? getOptional(env, 'PUBLIC_SITE_URL') ?? fallback;
+  return value ? validateHttpUrl(value, 'SITE_URL') : '';
 }
 
 export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
+  const linkedInUrl = getOptional(env, 'PUBLIC_LINKEDIN_URL');
   return {
-    appUrl: getRequired(env, 'PUBLIC_APP_URL', LABEL),
-    docsUrl: getRequired(env, 'PUBLIC_DOCS_URL', LABEL),
-    linkedInUrl: getOptional(env, 'PUBLIC_LINKEDIN_URL'),
+    appUrl: validateHttpUrl(getRequired(env, 'PUBLIC_APP_URL', LABEL), 'PUBLIC_APP_URL'),
+    docsUrl: validateHttpUrl(getRequired(env, 'PUBLIC_DOCS_URL', LABEL), 'PUBLIC_DOCS_URL'),
+    linkedInUrl: linkedInUrl ? validateHttpUrl(linkedInUrl, 'PUBLIC_LINKEDIN_URL') : undefined,
     contactEmail: getOptional(env, 'PUBLIC_CONTACT_EMAIL') ?? 'relab@cml.leidenuniv.nl',
-    siteUrl: getRequired(env, 'PUBLIC_SITE_URL', LABEL),
+    siteUrl: validateHttpUrl(getRequired(env, 'PUBLIC_SITE_URL', LABEL), 'PUBLIC_SITE_URL'),
   };
 }
 
