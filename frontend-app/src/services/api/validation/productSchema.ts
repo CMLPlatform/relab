@@ -31,6 +31,8 @@ const isYouTubeHostname = (hostname: string) => {
   );
 };
 
+const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+
 /**
  * Extracts the YouTube video ID from common YouTube URL formats.
  * Handles youtube.com/watch?v=ID, youtu.be/ID, and youtube.com/live/ID.
@@ -39,15 +41,20 @@ const isYouTubeHostname = (hostname: string) => {
 export function extractYouTubeVideoId(url: string): string | null {
   try {
     const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      return null;
+    }
+    let videoId: string | null = null;
     if (u.hostname === 'youtu.be') {
-      return u.pathname.slice(1) || null;
+      videoId = u.pathname.slice(1) || null;
     }
     if (
       isYouTubeHostname(u.hostname) &&
       (u.hostname === 'youtube.com' || u.hostname.endsWith('.youtube.com'))
     ) {
-      return u.searchParams.get('v') ?? u.pathname.split('/').pop() ?? null;
+      videoId = u.searchParams.get('v') ?? u.pathname.split('/').pop() ?? null;
     }
+    return videoId && YOUTUBE_VIDEO_ID_PATTERN.test(videoId) ? videoId : null;
   } catch {
     // not a valid URL
   }
