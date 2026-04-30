@@ -125,6 +125,14 @@ describe('productSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects a video with javascript:// protocol', () => {
+    const result = productSchema.safeParse({
+      ...validBase,
+      videos: [{ url: 'javascript:alert(1)', title: 'Demo', description: '' }],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('accepts a video with an optional id', () => {
     const result = productSchema.safeParse({
       ...validBase,
@@ -161,11 +169,21 @@ describe('productSchema', () => {
 
 describe('extractYouTubeVideoId', () => {
   it('extracts IDs from youtube.com watch URLs', () => {
-    expect(extractYouTubeVideoId('https://www.youtube.com/watch?v=abc123')).toBe('abc123');
+    expect(extractYouTubeVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(
+      'dQw4w9WgXcQ',
+    );
+  });
+
+  it('rejects non-http YouTube URLs and invalid ID characters', () => {
+    expect(extractYouTubeVideoId('javascript://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBeNull();
+    expect(extractYouTubeVideoId('https://www.youtube.com/watch?v=dQw4w9<script>')).toBeNull();
+    expect(extractYouTubeVideoId('https://www.youtube.com/watch?v=too-short')).toBeNull();
   });
 
   it('rejects deceptive non-YouTube hosts containing youtube.com', () => {
-    expect(extractYouTubeVideoId('https://evil-youtube.com/watch?v=abc123')).toBeNull();
-    expect(extractYouTubeVideoId('https://youtube.com.evil.example/watch?v=abc123')).toBeNull();
+    expect(extractYouTubeVideoId('https://evil-youtube.com/watch?v=dQw4w9WgXcQ')).toBeNull();
+    expect(
+      extractYouTubeVideoId('https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'),
+    ).toBeNull();
   });
 });
