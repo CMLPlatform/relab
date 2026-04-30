@@ -120,7 +120,8 @@ class TestCompleteAuthFlow:
         assert logout_response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify token is now blacklisted in Redis
-        is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{refresh_token}")
+        token_fingerprint = refresh_token_service.refresh_token_fingerprint(refresh_token)
+        is_blacklisted = await mock_redis_dependency.exists(f"auth:rt_blacklist:{token_fingerprint}")
         assert is_blacklisted
 
         # Step 7: Try to use blacklisted token (should fail)
@@ -216,7 +217,8 @@ class TestErrorHandling:
         token = await refresh_token_service.create_refresh_token(mock_redis_dependency, user_id)
 
         # Delete the token (simulate expiry)
-        await mock_redis_dependency.delete(f"auth:rt:{token}")
+        token_fingerprint = refresh_token_service.refresh_token_fingerprint(token)
+        await mock_redis_dependency.delete(f"auth:rt:{token_fingerprint}")
 
         # Try to refresh
         refresh_data = {"refresh_token": token}
