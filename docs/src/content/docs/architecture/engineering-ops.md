@@ -6,7 +6,7 @@ status: reviewed
 lastReviewed: '2026-04-23'
 ---
 
-This page documents the supported engineering and delivery path for RELab as of 2026. The goal is a lean self-hosted platform that stays easy to understand and operate on one server.
+The supported engineering and delivery path for RELab. The stack runs on a single server and is meant to stay simple enough to operate without a dedicated ops function.
 
 ## Delivery Model
 
@@ -36,7 +36,7 @@ The configuration contract behind them is documented in [Engineering Configurati
 ## CI and Release Lanes
 
 - `Validate`: PR and push validation, Compose rendering checks, workflow linting, targeted subsystem tests, and full-stack E2E when backend or app changes justify it.
-- `Security`: secret scanning, dependency audits, image scanning, and SBOM generation.
+- `Security`: secret scanning, dependency audits, image scanning, SBOM generation, CodeQL, and advisory OpenSSF Scorecard monitoring.
 - `Release Please`: versioning, changelog updates, and release PR/tag management.
 - `Ops`: backend performance baselines only.
 

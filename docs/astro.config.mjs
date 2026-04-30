@@ -62,6 +62,7 @@ const SIDEBAR = [
       { label: 'C4 Diagrams', slug: 'architecture/c4-diagrams' },
       { label: 'Engineering Config', slug: 'architecture/engineering-config' },
       { label: 'Engineering Ops', slug: 'architecture/engineering-ops' },
+      { label: 'Security Practices', slug: 'architecture/security-practices' },
     ],
   },
   {

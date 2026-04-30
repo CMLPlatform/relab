@@ -157,6 +157,14 @@ just security
 Use `just --list` in any directory to see what is available there.
 Manifest ownership, env rules, and infra review guidelines live in the [engineering configuration docs](https://docs.cml-relab.org/architecture/engineering-config/).
 
+## Security Review Expectations
+
+RELab uses [OWASP ASVS 5.0.0](https://github.com/OWASP/ASVS) as the application-security baseline and OpenSSF Scorecard as an advisory repository and supply-chain hygiene signal.
+
+For changes that touch authentication, authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data, include security considerations in the pull request and update the relevant docs when behavior changes.
+
+The working review map and small threat-model template live in the [security practices docs](https://docs.cml-relab.org/architecture/security-practices/).
+
 ## Backend Setup
 
 The backend lives in `backend/`.

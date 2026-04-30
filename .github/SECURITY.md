@@ -17,3 +17,5 @@ Instead, email [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) with:
 - For confirmed vulnerabilities, we will coordinate a fix and responsible disclosure timeline with the reporter where practical.
 
 Please include enough detail for us to reproduce the problem. That saves time for everyone.
+
+Maintainer-facing security review practices are documented in the [RELab security practices guide](https://docs.cml-relab.org/architecture/security-practices/).

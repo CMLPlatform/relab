@@ -47,8 +47,10 @@ words:
   - grotesk
 
   # Technical terms
+  - ASVS
   - linkinator
   - LogQL
+  - MASVS
   - mpegurl
   - nosniff
   - OTLP
@@ -116,8 +118,9 @@ overrides:
 
   - filename: "docs/**"
     words:
-      - RTMP
+      - IDOR
       - HIBP
+      - RTMP
 
   - filename: "frontend-app/**"
     words:
