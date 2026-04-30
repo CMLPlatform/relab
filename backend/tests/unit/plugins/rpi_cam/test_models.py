@@ -62,9 +62,8 @@ class TestCameraModel:
         """Return a camera instance for testing."""
         return build_camera()
 
-    def test_hash_and_str(self, camera: Camera) -> None:
-        """Test string representation and hashing of the camera model."""
-        assert hash(camera) == hash(camera.id)
+    def test_str(self, camera: Camera) -> None:
+        """Test string representation of the camera model."""
         assert str(camera) == f"{TEST_CAMERA_NAME} (id: {camera.id})"
 
     def test_credential_is_active(self, camera: Camera) -> None:

@@ -97,10 +97,6 @@ class Camera(TimeStampMixinBare, Base):
         """Return whether this camera can authenticate to the relay."""
         return self.relay_credential_status == CameraCredentialStatus.ACTIVE
 
-    def __hash__(self) -> int:
-        """Make Camera instances hashable using their id. Used for caching."""
-        return hash(self.id)
-
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"
 
