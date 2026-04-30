@@ -13,7 +13,7 @@ export function getOptional(env: EnvSource, key: string): string | undefined {
 }
 
 export function getRequired(env: EnvSource, key: string, label = 'env var'): string {
-  const value = env[key];
+  const value = getOptional(env, key);
   if (!value) {
     throw new Error(`Missing required ${label}: ${key}`);
   }

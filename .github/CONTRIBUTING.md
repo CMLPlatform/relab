@@ -296,7 +296,9 @@ pnpm install --frozen-lockfile
 just dev
 ```
 
-The Astro dev server runs on <http://localhost:8081>.
+The Astro dev server runs on <http://127.0.0.1:8081>. Use the numeric loopback
+host when developing through VS Code Remote port forwarding; Firefox can be
+unreliable with forwarded `localhost` URLs.
 
 ## Docs Setup
 

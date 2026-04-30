@@ -158,7 +158,6 @@ services:
     ports:
       - "8010:8081"
     environment:
-      PUBLIC_API_URL: "http://localhost:8011"
       PUBLIC_DOCS_URL: "http://localhost:8012"
       PUBLIC_APP_URL: "http://localhost:8013"
     develop:

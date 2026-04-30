@@ -7,6 +7,9 @@ import { readSiteUrl } from './src/config/public.ts';
 const defaultSiteUrl = 'https://cml-relab.org';
 
 export default defineConfig({
+  devToolbar: {
+    enabled: false,
+  },
   site: readSiteUrl(processEnv, defaultSiteUrl),
   integrations: [sitemap()],
 });

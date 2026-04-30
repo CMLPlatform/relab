@@ -1,6 +1,5 @@
 ---
-import { homeContent } from '@/content/home-content.ts';
-import PrimaryLinks from './PrimaryLinks.astro';
+import { siteMeta } from '@/content/site-meta.ts';
 
 interface Props {
   appUrl: string;
@@ -9,32 +8,46 @@ interface Props {
 }
 
 const { appUrl, docsUrl, githubUrl } = Astro.props;
+const primaryCtas = {
+  app: 'Open the app',
+  docs: 'Read the docs',
+  github: 'Browse source',
+};
 ---
 
 <section class="hero-panel card content-reveal">
   <div class="hero-copy">
-    <p class="section-kicker hero-kicker">{homeContent.heroEyebrow}</p>
-    <h1>{homeContent.heroTitle}</h1>
-    <p class="hero-lead">{homeContent.heroBody}</p>
-    <p class="hero-secondary">{homeContent.heroSecondary}</p>
-    <p class="hero-badge">{homeContent.heroBadge}</p>
+    <h1>{siteMeta.title}</h1>
+    <p class="hero-lead">{siteMeta.defaultDescription}</p>
 
     <div class="hero-actions">
-      <a href={appUrl} class="btn btn-primary btn-large" target="_blank" rel="noopener noreferrer">
-        {homeContent.primaryCtas.app}
+      <a
+        href={appUrl}
+        class="btn btn-primary btn-large"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Open the RELab app"
+      >
+        {primaryCtas.app}
+      </a>
+      <a
+        href={docsUrl}
+        class="btn btn-muted btn-large"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Read the RELab documentation"
+      >
+        {primaryCtas.docs}
+      </a>
+      <a
+        href={githubUrl}
+        class="btn btn-muted btn-large"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Browse the RELab source code on GitHub"
+      >
+        {primaryCtas.github}
       </a>
     </div>
-
-    <ul class="hero-highlight-list">
-      {homeContent.heroHighlights.map((highlight) => <li>{highlight}</li>)}
-    </ul>
-
-    <PrimaryLinks
-      label="App, documentation, and source:"
-      links={[
-        { href: docsUrl, label: homeContent.primaryCtas.docs },
-        { href: githubUrl, label: homeContent.primaryCtas.github },
-      ]}
-    />
   </div>
 </section>
