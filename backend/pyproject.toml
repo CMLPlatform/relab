@@ -31,7 +31,6 @@
     "cashews>=7.5.0",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
     "pyjwt[crypto]>=2.12.1",
-    "inflect>=7.5.0",
     "redis>=5.2.1",
     "limits[redis]>=5.8.0",
     # Database and persistence
