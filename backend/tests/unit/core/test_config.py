@@ -4,7 +4,7 @@ Tests CORS settings, host allowlists, and environment file resolution.
 """
 # spell-checker: ignore PGSSL
 
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import pytest
 from pydantic import HttpUrl, SecretStr
@@ -14,9 +14,6 @@ from sqlalchemy.engine import make_url
 from app.api.auth.config import AuthSettings
 from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, Environment
 from app.core.env import get_env_file
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 TEST_DATA_ENCRYPTION_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 
@@ -102,6 +99,50 @@ class TestCoreSettingsCors:
         """Non-upload request bodies should default to a conservative 1 MiB cap."""
         settings = CoreSettings(environment=Environment.DEV)
         assert settings.request_body_limit_bytes == 1024 * 1024
+
+    def test_dos_hardening_defaults_are_conservative(self) -> None:
+        """DoS controls should have safe built-in defaults for every environment."""
+        settings = CoreSettings(environment=Environment.DEV)
+
+        assert settings.max_file_upload_size_mb == 50
+        assert settings.max_image_upload_size_mb == 10
+        assert settings.api_read_rate_limit == "300/minute"
+        assert settings.api_upload_rate_limit == "30/minute"
+        assert settings.rpi_cam_ws_auth_rate_limit == "10/minute"
+        assert settings.rpi_cam_ws_text_frame_limit_bytes == 65_536
+        assert settings.rpi_cam_ws_binary_frame_limit_bytes == 10_485_760
+        assert settings.uvicorn_limit_concurrency == 100
+        assert settings.uvicorn_timeout_keep_alive == 5
+        assert settings.uvicorn_h11_max_incomplete_event_size == 16_384
+
+    def test_dos_hardening_defaults_are_not_advertised_as_env_file_knobs(self) -> None:
+        """Source-owned hardening defaults should not clutter deploy env examples."""
+        backend_dir = Path(__file__).resolve().parents[3]
+        source_default_names = {
+            "REQUEST_BODY_LIMIT_BYTES",
+            "MAX_FILE_UPLOAD_SIZE_MB",
+            "MAX_IMAGE_UPLOAD_SIZE_MB",
+            "API_READ_RATE_LIMIT",
+            "API_UPLOAD_RATE_LIMIT",
+            "RPI_CAM_WS_AUTH_RATE_LIMIT",
+            "RPI_CAM_WS_TEXT_FRAME_LIMIT_BYTES",
+            "RPI_CAM_WS_BINARY_FRAME_LIMIT_BYTES",
+            "UVICORN_TIMEOUT_KEEP_ALIVE",
+            "UVICORN_H11_MAX_INCOMPLETE_EVENT_SIZE",
+        }
+
+        for env_example in (".env.prod.example", ".env.staging.example"):
+            contents = (backend_dir / env_example).read_text(encoding="utf-8")
+            for name in source_default_names:
+                assert name not in contents
+
+    def test_deploy_env_examples_keep_only_capacity_sized_uvicorn_knob(self) -> None:
+        """Concurrency may vary by host capacity, so it remains the advertised Uvicorn knob."""
+        backend_dir = Path(__file__).resolve().parents[3]
+
+        for env_example in (".env.prod.example", ".env.staging.example"):
+            contents = (backend_dir / env_example).read_text(encoding="utf-8")
+            assert "UVICORN_LIMIT_CONCURRENCY" in contents
 
     def test_otel_is_disabled_by_default(self) -> None:
         """Telemetry is opt-in: no endpoint configured means OTEL is off."""

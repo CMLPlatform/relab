@@ -78,6 +78,12 @@ just prod-migrate YES
 
 Staging follows the same pattern with the staging env files and `staging-*` recipes. Upgrades are intentionally boring: pull a known-good revision, bring the stack up again, run migrations, and verify `/live` and `/health`.
 
+## Denial-of-service controls
+
+RELab keeps DoS mitigation layered. Cloudflare Tunnel is the public ingress path and should carry the network-level controls: WAF rules, per-path rate limiting for `/v1/auth/*`, `/v1/products/*/files`, `/v1/products/*/images`, `/v1/components/*/files`, `/v1/components/*/images`, and `/v1/plugins/rpi-cam/ws/connect`, and request body limits aligned with the backend upload limits. Volumetric attacks are handled at Cloudflare or the upstream provider, not inside the FastAPI process.
+
+The backend enforces source-controlled application limits: JSON bodies are counted while streaming, multipart uploads have per-media size caps, expensive public product suggestion/facet routes and upload routes use Redis-backed rate limits, and the RPi camera WebSocket relay bounds auth attempts and frame sizes. Keep those defaults in code unless product policy changes; the main deployment-sized Uvicorn knob is `UVICORN_LIMIT_CONCURRENCY`, which should be tuned with worker count, DB pool size, and host capacity.
+
 ## Storage and backups
 
 - PostgreSQL stores the primary application state.
