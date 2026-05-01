@@ -160,7 +160,7 @@ The supported offsite path is a second restic repository copied from the local r
 
 1. Set the offsite repository in the host root `.env`.
 
-   ```env
+   ```sh
    RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic
    ```
 
