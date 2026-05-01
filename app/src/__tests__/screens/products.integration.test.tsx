@@ -181,7 +181,7 @@ jest.mock('@/hooks/useProductQueries', () => ({
   useSearchProductTypesQuery: (...args: unknown[]) => mockUseProductTypesQuery(...args),
   useProductTypesQuery: jest.fn().mockReturnValue({ data: [], isLoading: false }),
   PRODUCT_SORT_OPTIONS: [
-    { label: 'Relevance', value: ['rank'] },
+    { label: 'Relevance', value: [] },
     { label: 'Newest first', value: ['-created_at'] },
     { label: 'Oldest first', value: ['created_at'] },
     { label: 'Name A→Z', value: ['name'] },
@@ -710,12 +710,12 @@ describe('Date filter dropdown', () => {
 });
 
 describe('Sort — Relevance default when searching', () => {
-  it('defaults to rank sort when a search query is in the URL', async () => {
+  it('omits explicit sort when a search query is in the URL', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
     renderProducts();
 
     const sortArgs = (mockUseProductsQuery.mock.calls as unknown[][]).map((c) => c[3] as string[]);
-    expect(sortArgs.some((s) => s[0] === 'rank')).toBe(true);
+    expect(sortArgs.some((s) => s.length === 0)).toBe(true);
   });
 
   it('defaults to newest-first sort when there is no search query', async () => {
@@ -734,13 +734,6 @@ describe('Sort — Relevance default when searching', () => {
     expect(sortArgs.some((s) => s[0] === 'name')).toBe(true);
   });
 
-  it('resets rank sort param when search is cleared', async () => {
-    // sort=rank in URL but no search query → effect should clear the sort param
-    (useLocalSearchParams as jest.Mock).mockReturnValue({ sort: 'rank' });
-    renderProducts();
-    expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined });
-  });
-
   it('shows Relevance option in the sort menu when a search is active', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
     renderProducts();
@@ -755,11 +748,11 @@ describe('Sort — Relevance default when searching', () => {
     expect(screen.queryByText('Relevance')).toBeNull();
   });
 
-  it('sends rank when Relevance is selected from the sort menu', async () => {
+  it('clears explicit sort when Relevance is selected from the sort menu', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
     renderProducts();
     fireEvent.press(screen.getByLabelText('Sort products'));
     fireEvent.press(screen.getByText('Relevance'));
-    expect(mockSetParams).toHaveBeenCalledWith({ sort: 'rank', page: '1' });
+    expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined, page: '1' });
   }, 15_000);
 });

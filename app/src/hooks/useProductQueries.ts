@@ -22,12 +22,12 @@ export type ProductExtraFilters = {
 };
 
 export const PRODUCT_SORT_OPTIONS = [
-  { label: 'Relevance', value: ['rank'] },
+  { label: 'Relevance', value: [] },
   { label: 'Newest first', value: ['-created_at'] },
-  { label: 'Oldest first', value: ['created_at'] },
-  { label: 'Name A→Z', value: ['name'] },
+  { label: 'Oldest first', value: ['+created_at'] },
+  { label: 'Name A→Z', value: ['+name'] },
   { label: 'Name Z→A', value: ['-name'] },
-  { label: 'Brand A→Z', value: ['brand'] },
+  { label: 'Brand A→Z', value: ['+brand'] },
   { label: 'Brand Z→A', value: ['-brand'] },
 ] as const;
 
