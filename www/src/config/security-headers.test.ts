@@ -10,15 +10,7 @@ const HSTS_POLICY = 'max-age=63072000; includeSubDomains';
 const HSTS_PATTERN = /^\s*Strict-Transport-Security\s+"([^"]+)"/m;
 const REFERRER_POLICY_PATTERN = /^\s*Referrer-Policy\s+"([^"]+)"/m;
 const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
-const PERMISSIONS_POLICY_PATTERN = /^\s*Permissions-Policy\s+"([^"]+)"/m;
-const DISABLED_BROWSER_FEATURES = [
-  'camera',
-  'microphone',
-  'geolocation',
-  'payment',
-  'usb',
-  'interest-cohort',
-];
+const PERMISSIONS_POLICY_HEADER_PATTERN = /^\s*Permissions-Policy\s+/m;
 
 function readCaddyfile(relativePath: string) {
   return readFileSync(resolve(import.meta.dirname, relativePath), 'utf8');
@@ -64,14 +56,6 @@ function contentTypeOptions(caddyfile: string) {
   return match[1];
 }
 
-function permissionsPolicy(caddyfile: string) {
-  const match = caddyfile.match(PERMISSIONS_POLICY_PATTERN);
-  if (!match) {
-    throw new Error('Missing Permissions-Policy header');
-  }
-  return match[1];
-}
-
 function cspDirective(policy: string, directive: string) {
   return (
     policy
@@ -100,12 +84,8 @@ describe('Caddy baseline security headers', () => {
   it.each([
     ['www', readCaddyfile('../../Caddyfile')],
     ['docs', readCaddyfile('../../../docs/Caddyfile')],
-  ])('%s disables unused browser capabilities', (_name, caddyfile) => {
-    const policy = permissionsPolicy(caddyfile);
-
-    for (const feature of DISABLED_BROWSER_FEATURES) {
-      expect(policy).toContain(`${feature}=()`);
-    }
+  ])('%s omits Permissions-Policy when no browser capabilities are used', (_name, caddyfile) => {
+    expect(caddyfile).not.toMatch(PERMISSIONS_POLICY_HEADER_PATTERN);
   });
 });
 

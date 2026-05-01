@@ -17,8 +17,8 @@
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		# Restrict referrer information
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# Disable browser capabilities the app does not use
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+		# Only declare features we intentionally allow; product photos need same-origin camera access.
+		Permissions-Policy "camera=(self)"
 		# Content Security Policy
 		# - script-src 'unsafe-inline' 'unsafe-eval': Expo web export uses
 		#   inline bootstrap code and runtime eval-based module loading.
