@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.common.models.base import Base, TimeStampMixinBare
+from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.core.crypto.sqlalchemy import EncryptedString
 
 if TYPE_CHECKING:
@@ -65,8 +66,8 @@ class CameraStatus(BaseModel):
 class CameraBase(BaseModel):
     """Base schema for Camera. Used by Pydantic schemas only, not ORM."""
 
-    name: str
-    description: str | None = None
+    name: SingleLineUserText
+    description: MultilineUserText | None = None
 
 
 class Camera(TimeStampMixinBare, Base):

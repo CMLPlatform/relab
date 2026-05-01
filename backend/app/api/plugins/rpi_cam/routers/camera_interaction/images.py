@@ -17,6 +17,7 @@ from app.api.common.form_json import parse_required_json_object
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.common.validation import MultilineUserText
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.media_queries import create_image
 from app.api.file_storage.crud.support_uploads import validate_upload_size
@@ -86,7 +87,7 @@ async def capture_image(
         ),
     ],
     description: Annotated[
-        str | None,
+        MultilineUserText | None,
         Body(
             description="Custom description for the image",
             max_length=500,

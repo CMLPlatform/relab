@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
-from fastapi_filter import FilterDepends, with_prefix
-from fastapi_filter.contrib.sqlalchemy import Filter
+from fastapi_filters import FilterField, FilterOperator
 from pydantic import UUID4, ConfigDict, Field, field_validator
 from relab_rpi_cam_models import DevicePublicKeyJWK
 from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
-from app.api.auth.filters import UserFilter
+from app.api.auth.models import User
+from app.api.common.crud.filtering import RelabFilterSet, RelationshipFilterJoin
 from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
+from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
 from app.api.plugins.rpi_cam.models import Camera, CameraBase, CameraCredentialStatus, CameraStatus
 from app.api.plugins.rpi_cam.runtime_status import get_cached_telemetry, get_camera_status
@@ -20,25 +21,28 @@ if TYPE_CHECKING:
     from redis.asyncio import Redis
 
 
-class CameraFilter(Filter):
-    """FastAPI-filter class for Camera filtering."""
+class CameraFilter(RelabFilterSet):
+    """FilterSet for Camera filtering."""
 
-    name__ilike: str | None = None
-    description__ilike: str | None = None
-    search: str | None = None
-    order_by: list[str] | None = None
+    filter_model: ClassVar[type[Camera]] = Camera
+    sortable_fields: ClassVar[tuple[str, ...]] = ("name", "created_at")
+    search_columns: ClassVar[tuple[Any, ...]] = (Camera.name, Camera.description)
 
-    class Constants(Filter.Constants):
-        """FilterAPI class configuration."""
-
-        model = Camera
-        search_model_fields: list[str] = ["name", "description"]  # noqa: RUF012 # fastapi-filter excepts this syntax
+    name: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
+    description: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
 
 
 class CameraFilterWithOwner(CameraFilter):
-    """FastAPI-filter class for Camera filtering with owner relationship."""
+    """Camera filters with explicit owner relationship fields."""
 
-    owner: UserFilter | None = FilterDepends(with_prefix("owner", UserFilter))
+    sortable_fields: ClassVar[tuple[str, ...]] = (*CameraFilter.sortable_fields, "owner_email", "owner_username")
+    relationship_joins: ClassVar[tuple[RelationshipFilterJoin, ...]] = (
+        RelationshipFilterJoin("owner_email", (Camera.owner,), User.email),
+        RelationshipFilterJoin("owner_username", (Camera.owner,), User.username),
+    )
+
+    owner_email: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
+    owner_username: FilterField[str] = FilterField(operators=[FilterOperator.ilike])
 
 
 class RelayPublicKeyJWK(DevicePublicKeyJWK):
@@ -104,8 +108,8 @@ class CameraUpdate(BaseUpdateSchema):
 
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_UPDATE_EXAMPLES})
 
-    name: str | None = Field(default=None, min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
+    name: SingleLineUserText | None = Field(default=None, min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
     relay_public_key_jwk: RelayPublicKeyJWK | None = None
     relay_key_id: str | None = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
     relay_credential_status: CameraCredentialStatus | None = None

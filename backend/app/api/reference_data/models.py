@@ -11,6 +11,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from app.api.common.models.base import Base, TimeStampMixinBare
+from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.file_storage.models import File, Image, MediaParentType
 
 
@@ -27,11 +28,11 @@ class TaxonomyDomain(StrEnum):
 class TaxonomyBase(BaseModel):
     """Base schema for Taxonomy. Used by Pydantic schemas only, not ORM."""
 
-    name: str = Field(min_length=2, max_length=100)
-    version: str | None = Field(default=None, min_length=1, max_length=50)
-    description: str | None = Field(default=None, max_length=500)
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    version: SingleLineUserText | None = Field(default=None, min_length=1, max_length=50)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
     domains: set[TaxonomyDomain] = set()
-    source: str | None = Field(default=None, max_length=500)
+    source: SingleLineUserText | None = Field(default=None, max_length=500)
 
     model_config: ConfigDict = ConfigDict(use_enum_values=True)
 
@@ -39,17 +40,17 @@ class TaxonomyBase(BaseModel):
 class CategoryBase(BaseModel):
     """Base schema for Category. Used by Pydantic schemas only, not ORM."""
 
-    name: str = Field(min_length=2, max_length=250)
-    description: str | None = Field(default=None, max_length=500)
-    external_id: str | None = None
+    name: SingleLineUserText = Field(min_length=2, max_length=250)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    external_id: SingleLineUserText | None = None
 
 
 class MaterialBase(BaseModel):
     """Base schema for Material. Used by Pydantic schemas only, not ORM."""
 
-    name: str = Field(min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    source: str | None = Field(default=None, max_length=100)
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    source: SingleLineUserText | None = Field(default=None, max_length=100)
     density_kg_m3: float | None = Field(default=None, gt=0)
     is_crm: bool | None = None
 
@@ -57,8 +58,8 @@ class MaterialBase(BaseModel):
 class ProductTypeBase(BaseModel):
     """Base schema for ProductType. Used by Pydantic schemas only, not ORM."""
 
-    name: str = Field(min_length=2, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
+    name: SingleLineUserText = Field(min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
 
 
 ### Linking Models ###

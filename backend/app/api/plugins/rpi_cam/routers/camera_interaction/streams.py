@@ -17,6 +17,7 @@ from app.api.common.exceptions import APIError
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.routers.openapi import PublicAPIRouter
+from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.video import create_video
 from app.api.file_storage.schemas import VideoCreate, VideoRead
@@ -111,16 +112,18 @@ async def start_recording(
         ),
     ],
     title: Annotated[
-        str | None,
+        SingleLineUserText | None,
         Body(
             description="Custom video title",
+            max_length=100,
             openapi_examples=CAMERA_START_RECORDING_TITLE_OPENAPI_EXAMPLES,
         ),
     ] = None,
     description: Annotated[
-        str | None,
+        MultilineUserText | None,
         Body(
             description="Custom description for the video",
+            max_length=500,
             openapi_examples=CAMERA_START_RECORDING_DESCRIPTION_OPENAPI_EXAMPLES,
         ),
     ] = None,
