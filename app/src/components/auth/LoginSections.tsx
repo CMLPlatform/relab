@@ -82,6 +82,8 @@ export function LoginFormSection({
             onChangeText={onChange}
             autoCapitalize="none"
             autoCorrect={false}
+            autoComplete="username"
+            textContentType="username"
             placeholder="Email or username"
           />
         )}
@@ -95,6 +97,8 @@ export function LoginFormSection({
             value={value}
             onChangeText={onChange}
             autoCapitalize="none"
+            autoComplete="current-password"
+            textContentType="password"
             secureTextEntry
             placeholder="Password"
             onSubmitEditing={onSubmit}
