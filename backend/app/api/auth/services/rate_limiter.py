@@ -9,6 +9,7 @@ strategy.
 from __future__ import annotations
 
 import functools
+import hashlib
 import logging
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
@@ -39,6 +40,15 @@ class RateLimitExceededError(Exception):
     def __init__(self, detail: str = "Rate limit exceeded") -> None:
         self.detail = detail
         super().__init__(detail)
+
+
+def hashed_identifier_rate_limit_key(prefix: str, identifier: str) -> str:
+    """Return a privacy-preserving rate-limit key for a submitted account identifier."""
+    normalized_identifier = identifier.strip().casefold()
+    if not normalized_identifier:
+        return f"{prefix}:missing"
+    digest = hashlib.sha256(normalized_identifier.encode("utf-8")).hexdigest()
+    return f"{prefix}:{digest}"
 
 
 class Limiter:

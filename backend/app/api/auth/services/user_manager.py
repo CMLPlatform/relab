@@ -1,6 +1,5 @@
 """User management service."""
 
-import hashlib
 import logging
 from typing import TYPE_CHECKING, cast
 
@@ -20,6 +19,7 @@ from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email import (
     mask_email_for_log,
     send_email_changed_notification,
+    send_password_reset_confirmation_email,
     send_post_verification_email,
     send_reset_password_email,
     send_verification_email,
@@ -30,7 +30,7 @@ from app.api.auth.services.login_hooks import (
     update_last_login_metadata,
 )
 from app.api.auth.services.password_validator import validate_password as _validate_password
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, limiter
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, hashed_identifier_rate_limit_key, limiter
 from app.api.auth.services.user_database import get_user_db
 from app.api.common.routers.dependencies import get_external_http_client
 from app.core.runtime import get_request_services
@@ -58,11 +58,7 @@ SENSITIVE_UPDATE_FIELDS = frozenset({"email", "password"})
 
 def _login_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving login rate-limit key for a submitted identifier."""
-    normalized_identifier = identifier.strip().casefold()
-    if not normalized_identifier:
-        return "auth:login:account:missing"
-    digest = hashlib.sha256(normalized_identifier.encode("utf-8")).hexdigest()
-    return f"auth:login:account:{digest}"
+    return hashed_identifier_rate_limit_key("auth:login:account", identifier)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: ignore UUIDID
@@ -177,10 +173,22 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):  # spell-checker: 
         logger.info("User %s has been verified.", mask_email_for_log(user.email))
         await send_post_verification_email(user.email, user.username)
 
-    async def on_after_forgot_password(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
+    async def on_after_forgot_password(
+        self,
+        user: User,
+        token: str,
+        request: Request | None = None,
+    ) -> None:
         """Send password reset email."""
         logger.info("Password reset email requested for user %s", mask_email_for_log(user.email))
-        await send_reset_password_email(user.email, user.username, token)
+        background_tasks = getattr(getattr(request, "state", None), "background_tasks", None)
+        await send_reset_password_email(user.email, user.username, token, background_tasks)
+
+    async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
+        """Revoke active refresh tokens and notify the user after a password reset."""
+        redis = get_request_services(request).redis if request else None
+        await refresh_token_service.revoke_all_user_tokens(redis, user.id)
+        await send_password_reset_confirmation_email(user.email, user.username)
 
     async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
         """Revoke all refresh tokens when a user is deactivated."""
